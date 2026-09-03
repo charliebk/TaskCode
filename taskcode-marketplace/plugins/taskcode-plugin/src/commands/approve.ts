@@ -11,6 +11,9 @@
  *
  * A diferencia de "plan"/"start", este comando no mueve la tarea de
  * carpeta (resultingState('approve', task) sigue siendo 'en-diseno').
+ *
+ * Desde TASK-012 tambien aplica la precondicion de rama base de la
+ * seccion 8.3 (ensureBaseBranchReady) antes de escribir nada.
  */
 import path from 'node:path';
 import { stat } from 'node:fs/promises';
@@ -18,6 +21,7 @@ import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { PLAN_FINAL_FILENAME } from './plan.js';
+import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 
 export class ApproveCommandError extends Error {}
 
@@ -34,12 +38,19 @@ async function planFinalFileExists(planPath: string): Promise<boolean> {
 export interface ApproveCommandResult {
   id: string;
   filePath: string;
+  baseBranchGuard: BaseBranchGuardResult;
+}
+
+export interface ApproveCommandDeps {
+  /** Directorio de trabajo del repo Git del usuario (normalmente process.cwd()). */
+  repoCwd: string;
 }
 
 export async function runApproveCommand(
   tareasRoot: string,
   argv: readonly string[],
-  today: string
+  today: string,
+  deps: ApproveCommandDeps
 ): Promise<ApproveCommandResult> {
   const id = argv[0];
   if (id === undefined || id.trim() === '') {
@@ -52,12 +63,20 @@ export async function runApproveCommand(
     : false;
   // assertTransitionAllowed lanza StateMachineError si existing es
   // null, si el estado actual no es "en-diseno", o si planFinalExiste
-  // es false — en todos los casos no se llega a escribir nada.
+  // es false — en todos los casos no se llega a escribir nada. Se
+  // comprueba ANTES que la rama base por el mismo motivo que en
+  // "plan": no depende de Git y evita cambiar de rama para una tarea
+  // que ni siquiera puede aprobarse todavia.
   assertTransitionAllowed('approve', existing ? existing.task : null, { planFinalExiste });
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
+
+  // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
+  // tiene cambios sin commitear, o si no puede cambiar de forma
+  // automatica a la rama base esperada segun task.tipo.
+  const baseBranchGuard = ensureBaseBranchReady(task.tipo, deps.repoCwd);
 
   const updated: Task = { ...task, plan_aprobado: true, actualizado: today };
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
 
-  return { id: task.id, filePath: newFilePath };
+  return { id: task.id, filePath: newFilePath, baseBranchGuard };
 }

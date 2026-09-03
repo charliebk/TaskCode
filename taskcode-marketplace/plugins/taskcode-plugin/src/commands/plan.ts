@@ -4,8 +4,11 @@
  * determinista desde docs/INDEX.md, sin gatekeeper barato (Haiku), sin
  * seleccion de skill (6.6), sin brainstorm multi-agente en paralelo —
  * todo eso es Sprint 3 (TASK-016/017). Tampoco implementa la
- * precondicion completa de rama base (seccion 8.3): eso es TASK-012,
- * igual que quedo pendiente para "taskctl start" en TASK-009.
+ * precondicion completa de rama base (seccion 8.3) SI la aplica desde
+ * TASK-012 (ensureBaseBranchReady, antes de mover nada) — lo que
+ * quedo pendiente para "taskctl start" en TASK-009 (seccion 8.3 no
+ * aplica a start, que ya cambia de rama como parte de su propio
+ * trabajo).
  *
  * Lo que SI hace: validar la transicion, mover la tarea a
  * 01-en-diseno/, y dejar un scaffold de plan-final.md listo para que
@@ -20,6 +23,7 @@ import { writeFile } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
+import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 
 export class PlanCommandError extends Error {}
 
@@ -44,12 +48,19 @@ export interface PlanCommandResult {
   planPath: string;
   /** false si plan-final.md ya existia (re-planificacion) y se dejo intacto. */
   planCreated: boolean;
+  baseBranchGuard: BaseBranchGuardResult;
+}
+
+export interface PlanCommandDeps {
+  /** Directorio de trabajo del repo Git del usuario (normalmente process.cwd()). */
+  repoCwd: string;
 }
 
 export async function runPlanCommand(
   tareasRoot: string,
   argv: readonly string[],
-  today: string
+  today: string,
+  deps: PlanCommandDeps
 ): Promise<PlanCommandResult> {
   const id = argv[0];
   if (id === undefined || id.trim() === '') {
@@ -59,9 +70,18 @@ export async function runPlanCommand(
   const existing = await readTareaFile(tareasRoot, id);
   // assertTransitionAllowed lanza StateMachineError si existing es null
   // o si el estado/plan_aprobado actuales no permiten "plan" todavia —
-  // en ambos casos no se llega a mover ni escribir nada.
+  // en ambos casos no se llega a mover ni escribir nada. Se comprueba
+  // ANTES que la rama base porque no depende de Git y es mas barato de
+  // evaluar (evita cambiar de rama para una tarea que ni siquiera
+  // puede planificarse).
   assertTransitionAllowed('plan', existing ? existing.task : null);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
+
+  // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
+  // tiene cambios sin commitear, o si no puede cambiar de forma
+  // automatica a la rama base esperada segun task.tipo — en ambos
+  // casos no se llega a mover ni escribir nada todavia.
+  const baseBranchGuard = ensureBaseBranchReady(task.tipo, deps.repoCwd);
 
   const updated: Task = { ...task, estado: 'en-diseno', actualizado: today };
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
@@ -82,5 +102,5 @@ export async function runPlanCommand(
     if (!isEexist(e)) throw e;
   }
 
-  return { id: task.id, filePath: newFilePath, planPath, planCreated };
+  return { id: task.id, filePath: newFilePath, planPath, planCreated, baseBranchGuard };
 }
