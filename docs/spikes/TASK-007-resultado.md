@@ -174,12 +174,66 @@ Esto es exactamente el tipo de ajuste que le toca a TASK-009/011 en Sprint 1,
 no a este spike — se deja anotado aquí porque solo se ve corriendo el script
 de verdad, no leyéndolo.
 
+### Hallazgo 4 (real, reproducido, el más importante de los cuatro): los scripts de `merge` fallan duro sin `origin`, a diferencia de los de `create`
+
+Tras el commit anterior, probé además `merge-fix-to-develop.sh` para
+integrar esta misma rama en `develop` — y con eso, en principio, cerrar el
+ciclo completo create → trabajo → merge en una sola pasada del spike.
+Resultado:
+
+```
+[ERROR] No se pudo hacer fetch de origin.
+[ERROR] fatal: 'origin' does not appear to be a git repository
+[ERROR] fatal: Could not read from remote repository.
+[ERROR] Please make sure you have the correct access rights
+[ERROR] and the repository exists.
+```
+`EXIT_CODE=1`. La rama activa se quedó en `fix/task-007-spike-gitflow-windows`,
+sin mergear, sin tocar `develop`.
+
+Causa raíz, en `_gitflow-common.sh`: `invoke_create_work_branch` (la que
+usan los `create-*.sh`) comprueba primero con `git ls-remote --heads origin`
+si el remoto está disponible y, si no, pone `remote_available=false` y
+continúa en modo local con un `[WARN]` — el comportamiento que valida el
+Hallazgo de la ejecución anterior. Pero `invoke_merge_work_branch_to_develop`
+(la que usan los `merge-*.sh`, incluido este) **no tiene ese guard**: su
+primera línea es `invoke_git "No se pudo hacer fetch de origin." fetch origin`
+sin comprobación previa, y `invoke_git` hace `exit 1` ante cualquier error de
+Git. Es decir: **la familia `create-*` es "modo offline"-aware, la familia
+`merge-*` no lo es** — una asimetría real dentro del propio script, no algo
+que dependa de Windows/Linux ni de este spike en concreto.
+
+Esto afecta directamente a **TASK-014** (`taskctl finish`, que internamente
+llama a `merge-<tipo>-to-develop|main.sh`): tal como está el script hoy,
+`taskctl finish` fallaría en cualquier repo sin `origin` configurado (nuestro
+propio caso hasta que exista un remoto para TaskCode), aunque el merge en sí
+sea perfectamente posible en local. Para TASK-008, la corrección natural es
+llevar el mismo guard de `invoke_create_work_branch`
+(`git ls-remote --heads origin` → `remote_available`) a
+`invoke_merge_work_branch_to_develop`, y solo intentar `fetch`/`pull`/`push`
+cuando `remote_available=true` — igual que ya hace la mitad "create" del
+mismo fichero. Es un cambio acotado (una función, patrón ya existente en el
+mismo archivo), no un rediseño.
+
+**Para no dejar el repo real en un estado raro** (rama de trabajo terminada
+pero sin integrar), completé el merge a mano con Git plano, replicando
+exactamente lo que el script habría hecho si hubiera llegado a esa línea
+(`git merge --no-ff fix/task-007-spike-gitflow-windows -m "merge(fix): ... -> develop"`,
+sin push porque no hay remoto). Esto no es "arreglar el script" — es
+completar manualmente, por esta vez, lo que el bug le impidió terminar solo,
+igual que haría cualquiera del equipo hoy mismo si le pasara esto.
+
 ## 4. Conclusión para TASK-008/009 (Sprint 1)
 
-1. Los scripts pueden migrarse a `scripts/gitflow/` **con un único cambio de
-   lógica real**: sustituir el cálculo de `log_dir` en `_gitflow-common.sh`
-   por `git rev-parse --show-toplevel` (Hallazgo 1). Todo lo demás se migra
-   literal.
+1. Los scripts pueden migrarse a `scripts/gitflow/` **con dos cambios de
+   lógica real, acotados y ya con patrón existente en el propio fichero**:
+   - sustituir el cálculo de `log_dir` en `_gitflow-common.sh` por
+     `git rev-parse --show-toplevel` (Hallazgo 1);
+   - llevar el guard de `origin` disponible/no disponible de
+     `invoke_create_work_branch` también a
+     `invoke_merge_work_branch_to_develop` (Hallazgo 4) — si no,
+     `taskctl finish` (TASK-014) falla en cualquier repo sin remoto.
+   Todo lo demás se migra literal.
 2. El scaffold de cualquier proyecto nuevo debe incluir `logs/` en
    `.gitignore` desde el principio (Hallazgo 2) — evita que el primer uso
    real de Git-Flow en un repo nuevo se autobloquee.
