@@ -18,7 +18,7 @@
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 
 export class PlanCommandError extends Error {}
@@ -36,10 +36,6 @@ export function planTemplate(task: Task): string {
     'complejidad media o mayor.)\n\n' +
     '## Riesgos o preguntas abiertas\n\n'
   );
-}
-
-function isEexist(e: unknown): boolean {
-  return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'EEXIST';
 }
 
 export interface PlanCommandResult {
@@ -70,6 +66,11 @@ export async function runPlanCommand(
   const updated: Task = { ...task, estado: 'en-diseno', actualizado: today };
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
 
+  // plan-final.md no tiene frontmatter y no encaja en el modelo Task,
+  // asi que no pasa por writeTareaFile/moveTareaFile (que son
+  // especificas de tarea.md) — pero SI reusa isEexist de task-store.ts
+  // en vez de duplicar la comprobacion (hallazgo de revision por
+  // pares, TASK-010).
   const planPath = path.join(path.dirname(newFilePath), PLAN_FINAL_FILENAME);
   let planCreated = false;
   try {

@@ -8,6 +8,7 @@ import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
+import { TaskFolderConflictError } from './fs/task-store.js';
 
 const VERSION = '0.1.0';
 
@@ -30,6 +31,19 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Algunos errores del CLI ya se construyen con el prefijo "[ERROR]"
+ * (StartCommandError, PlanCommandError, StateMachineError...), otros
+ * no (TaskFolderConflictError, NewTaskArgError...). Evita duplicar el
+ * prefijo en vez de tener que acordarse caso por caso (hallazgo de
+ * revision por pares, TASK-010: TaskFolderConflictError no se
+ * capturaba en absoluto antes de este ajuste).
+ */
+function printCliError(e: Error): void {
+  const msg = e.message.startsWith('[ERROR]') ? e.message : `[ERROR] ${e.message}`;
+  process.stderr.write(`${msg}\n`);
+}
+
 export async function main(argv: readonly string[]): Promise<number> {
   const cmd = argv[0];
 
@@ -50,7 +64,7 @@ export async function main(argv: readonly string[]): Promise<number> {
       return 0;
     } catch (e) {
       if (e instanceof NewTaskArgError) {
-        process.stderr.write(`[ERROR] ${e.message}\n`);
+        printCliError(e);
         return 1;
       }
       throw e;
@@ -71,8 +85,12 @@ export async function main(argv: readonly string[]): Promise<number> {
       );
       return 0;
     } catch (e) {
-      if (e instanceof StartCommandError || e instanceof StateMachineError) {
-        process.stderr.write(`${e.message}\n`);
+      if (
+        e instanceof StartCommandError ||
+        e instanceof StateMachineError ||
+        e instanceof TaskFolderConflictError
+      ) {
+        printCliError(e);
         return 1;
       }
       throw e;
@@ -91,8 +109,12 @@ export async function main(argv: readonly string[]): Promise<number> {
       );
       return 0;
     } catch (e) {
-      if (e instanceof PlanCommandError || e instanceof StateMachineError) {
-        process.stderr.write(`${e.message}\n`);
+      if (
+        e instanceof PlanCommandError ||
+        e instanceof StateMachineError ||
+        e instanceof TaskFolderConflictError
+      ) {
+        printCliError(e);
         return 1;
       }
       throw e;

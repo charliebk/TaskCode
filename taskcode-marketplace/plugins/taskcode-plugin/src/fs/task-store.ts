@@ -193,10 +193,16 @@ export async function readTareaFile(
   return null;
 }
 
-function isEnoent(e: unknown): boolean {
+/**
+ * Exportadas (hallazgo de revision por pares, TASK-010): otros modulos
+ * que escriben ficheros auxiliares de una tarea (p. ej. plan.ts con
+ * plan-final.md) necesitan la misma comprobacion de codigo de error
+ * que esta capa ya resolvia solo para uso interno.
+ */
+export function isEnoent(e: unknown): boolean {
   return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'ENOENT';
 }
 
-function isEexist(e: unknown): boolean {
+export function isEexist(e: unknown): boolean {
   return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'EEXIST';
 }

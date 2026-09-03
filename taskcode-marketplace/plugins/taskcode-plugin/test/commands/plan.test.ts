@@ -6,7 +6,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile, stat } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, stat, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
@@ -133,6 +133,31 @@ test('taskctl plan: rechaza si el ID no existe, sin efectos secundarios', async 
       () => runPlanCommand(root, ['TASK-999'], '2026-09-04'),
       StateMachineError
     );
+  });
+});
+
+test('taskctl plan: propaga cualquier error de escritura que NO sea EEXIST (no lo confunde con una re-planificacion)', async () => {
+  await withTempRoot(async (root) => {
+    await writeTareaFile(root, sampleTask({ estado: 'en-diseno' }), '');
+    const taskDir = path.join(root, '01-en-diseno', 'TASK-700');
+    // Carpeta de la tarea sin permiso de escritura: writeFile de
+    // plan-final.md falla con EACCES, no con EEXIST — debe
+    // propagarse tal cual, no tratarse como "ya existe, re-planificacion
+    // normal".
+    await chmod(taskDir, 0o555);
+    try {
+      await assert.rejects(
+        () => runPlanCommand(root, ['TASK-700'], '2026-09-04'),
+        (err: unknown) => {
+          assert.ok(err instanceof Error);
+          assert.equal((err as NodeJS.ErrnoException).code, 'EACCES');
+          return true;
+        }
+      );
+    } finally {
+      // Restaura permisos para que withTempRoot pueda limpiar el directorio.
+      await chmod(taskDir, 0o755);
+    }
   });
 });
 
