@@ -44,10 +44,30 @@ y el PATH del Bash tool, que no requieren marketplace.
 Según la referencia oficial (`https://code.claude.com/docs/en/plugins`,
 tabla "Plugin structure overview"): *"`bin/`: Executables added to the
 Bash tool's `PATH` while the plugin is enabled"*. Es decir, el mecanismo
-no pasa por el campo `commands` de `plugin.json` (ese campo es para un
-array de rutas a skills en Markdown, no un mapa nombre→ejecutable) — pasa
-simplemente por tener el ejecutable dentro de `bin/` en la raíz del
-plugin, con el bit de ejecución puesto.
+no pasa por el campo `commands` de `plugin.json` — pasa simplemente por
+tener el ejecutable dentro de `bin/` en la raíz del plugin, con el bit de
+ejecución puesto.
+
+**Matiz encontrado en revisión por pares, sin confirmar con pruebas
+propias todavía:** esa frase dice explícitamente *Bash tool*, no "shell
+tool" en general. Según `https://code.claude.com/docs/en/setup`
+("Set up on Windows"): en Windows nativo, **sin** Git for Windows
+instalado, Claude Code usa el *PowerShell tool* en vez del Bash tool; con
+Git for Windows instalado, usa Git Bash para el Bash tool (y el
+PowerShell tool queda disponible en paralelo). No hay confirmación oficial
+de si `bin/` también se añade al PATH cuando quien corre los comandos es
+el PowerShell tool en vez del Bash tool — es una pregunta abierta, no un
+hecho verificado en ningún sentido.
+
+En la práctica esto ya condiciona a este proyecto igual: `taskctl start`,
+`plan` y `approve` invocan los scripts de Git-Flow como
+`bash "$CLAUDE_PLUGIN_ROOT/scripts/gitflow/<script>.sh"` (ver
+`scripts/gitflow/README.md`), así que ya exigen Git for Windows / Bash
+tool para funcionar, con o sin este hallazgo. Lo que sigue sin confirmar
+es si `taskctl new`/`import`/`board` (que no tocan Git-Flow) podrían
+seguir funcionando bajo un PowerShell-tool-only vía
+`node bin/taskctl ...` explícito aunque la resolución de `taskctl` como
+comando suelto por PATH no aplicara ahí.
 
 ### Bug encontrado y corregido en TASK-006
 
@@ -70,14 +90,24 @@ $ git ls-files -s taskcode-marketplace/plugins/taskcode-plugin/bin/taskctl
 100755 79d808e6009043081c76b013a8cba1f6d3c01932 0	taskcode-marketplace/plugins/taskcode-plugin/bin/taskctl
 ```
 
-### `commands` en `plugin.json`: campo inválido, eliminado
+### `commands` en `plugin.json`: campo con forma inválida, eliminado — corrección tras revisión por pares
 
-`plugin.json` tenía `"commands": {"taskctl": "bin/taskctl"}`. Ese campo no
-existe en el schema real (que solo documenta `name`, `description`,
-`version`, `author`, y opcionalmente `homepage`/`repository`/`license`);
-no hacía nada. Se eliminó, y de paso se corrigió `author` al formato de
-objeto (`{"name": "charlie.bk"}`) que usa el propio ejemplo oficial de la
-guía de creación de plugins, en vez de un string suelto.
+`plugin.json` tenía `"commands": {"taskctl": "bin/taskctl"}`.
+**Corrección respecto a la primera versión de este README:** el campo
+`commands` sí existe en el schema real (referencia oficial,
+`https://code.claude.com/docs/en/plugins-reference`) — apunta a ficheros
+`.md` de skills "planas" (no anidadas en `<nombre>/SKILL.md`), y su tipo
+es `string | array` únicamente. Nunca acepta un objeto. Nuestro uso (un
+objeto `{"taskctl": "bin/taskctl"}`) no era "un campo que no hacía nada":
+era un campo reconocido con un tipo incorrecto, y según la misma
+referencia *"How Claude Code handles a recognized field whose value has
+the wrong type... Most fields: the plugin fails to load"*. Es decir, no
+se puede descartar que este `plugin.json`, tal cual estaba, impidiera que
+el plugin cargara en cualquier sesión real de Claude Code hasta este fix
+— no solo que el campo fuera inofensivo. Se eliminó, y de paso se corrigió
+`author` al formato de objeto (`{"name": "charlie.bk"}`) que usa el propio
+ejemplo oficial de la guía de creación de plugins, en vez de un string
+suelto.
 
 ### Evidencia recogida en esta sesión
 
@@ -180,14 +210,76 @@ lo que Git registra (correcto y necesario para clones en Linux/macOS,
 donde sí se preserva) pero **no se ha podido confirmar por separado si un
 checkout nativo en Windows conserva el bit**. Es la misma clase de
 limitación que TASK-007 dejó abierta para los scripts `.sh`, ahora también
-aplicable a `bin/taskctl`. Se recomienda comprobarlo la próxima vez que
-alguien del equipo tenga una sesión nativa abierta:
+aplicable a `bin/taskctl`.
 
-```bash
-git clone <repo> /tmp/check && cd /tmp/check
-ls -la taskcode-marketplace/plugins/taskcode-plugin/bin/taskctl
-# ¿aparece la "x" en los permisos tras un checkout limpio?
+**Precisión encontrada en revisión por pares** (más fuerte que "no
+preserva de forma fiable"): el punto de montaje del bridge de dispositivo
+(`$HOME/mnt/TaskCode`, el que usa esta sesión para tocar el repo) no es
+que preserve el bit de ejecución de forma poco fiable — **sintetiza
+`-rwx------` para cualquier fichero por igual**, sea o no ejecutable de
+verdad. Verificado a mano:
+
 ```
+$ touch taskcode-marketplace/plugins/taskcode-plugin/probe-mount.txt
+$ ls -la taskcode-marketplace/plugins/taskcode-plugin/probe-mount.txt
+-rwx------ ... probe-mount.txt        # fichero vacio recien creado: "ejecutable"
+
+$ ls -la taskcode-marketplace/plugins/taskcode-plugin/package.json
+-rwx------ ... package.json           # JSON, nunca deberia ser "ejecutable"
+```
+
+Es decir: cualquier comprobación de permisos hecha *a través de este
+mismo bridge* (incluida la que se hizo al principio de esta tarea, antes
+de mirar `git ls-files -s`) es un falso positivo garantizado y no prueba
+nada sobre el filesystem real de Windows. Lo único fiable que se pudo
+comprobar desde esta sesión es lo que Git tiene trackeado
+(`git ls-files -s`, correcto ahora) y el comportamiento en un clon nuevo
+sobre un filesystem POSIX normal (`/tmp` dentro de la VM Linux del bridge,
+fuera de `mnt/` — ver el smoke test más abajo, que sí es representativo
+de Linux/macOS/WSL). Se recomienda comprobar el checkout nativo de
+Windows en sí la próxima vez que alguien del equipo tenga una sesión
+nativa abierta ahí, no a través de este bridge:
+
+```powershell
+git clone <repo> C:\temp\check
+cd C:\temp\check
+# ¿el checkout tiene forma de marcar/perder un "bit de ejecucion" en NTFS,
+# o el concepto no aplica igual que en POSIX? Confirmar contra `bin/taskctl`
+# funcionando de verdad como comando suelto dentro de una sesion real.
+```
+
+No se ha intentado usar las herramientas de control remoto de escritorio
+disponibles en este bridge (`mcp__remote-devices__computer_*`, que
+permiten abrir una ventana real en la máquina del usuario) para hacer esta
+comprobación desde esta misma sesión. Quedó descartado por alcance/tiempo,
+no porque no fuera técnicamente posible — se deja anotado como opción más
+barata que esperar a una sesión nativa, por si alguien quiere intentarlo
+antes.
+
+## Mecanismo determinista de sección 14 (punto 11): sigue sin confirmarse
+
+TASK-006 pide explícitamente (AC3) dejar constancia de que el "mecanismo
+determinista para comprobar instalación" de la sección 14 de
+`docs/PROPUESTA_METODOLOGIA.md` sigue sin confirmarse con documentación
+oficial. Cita exacta, punto 11 de esa sección: *"confirmar a mano (no dar
+por bueno sin probar) el mecanismo exacto para que `taskctl` compruebe de
+forma determinista qué plugins/skills están instalados en la máquina
+local (comando de CLI o archivo de configuración concreto) — sección 6.6,
+paso 3."*
+
+Es un punto distinto de todo lo demás documentado arriba: no es sobre que
+una persona confirme a mano que el plugin está instalado (eso es el resto
+de este README), sino sobre que **`taskctl` mismo** tenga una forma
+programática y determinista de preguntarle a Claude Code qué
+plugins/skills están instalados en la máquina — sin depender de un LLM
+para adivinarlo. La investigación de esta tarea (centrada en
+`--plugin-dir`, el schema de `plugin.json` y el mecanismo `bin/` en PATH)
+no cubrió esto, y no se ha encontrado en la documentación oficial
+consultada (`plugins-reference`, `plugins`, `plugin-marketplaces`,
+`setup`) un comando de CLI o fichero de configuración pensado para que un
+*script* (no una persona en una sesión interactiva) consulte ese estado.
+Queda registrado como sigue pendiente, sin bloquear TASK-006 — tal como
+pide el criterio de aceptación.
 
 ## Comandos disponibles
 
