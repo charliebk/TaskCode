@@ -1,13 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   listExistingTaskIds,
   writeTareaFile,
   readTareaFile,
+  moveTareaFile,
   TaskAlreadyExistsError,
+  TaskFolderConflictError,
 } from '../../src/fs/task-store.js';
 import { InvalidTaskIdError } from '../../src/core/task.js';
 import type { Task } from '../../src/core/task.js';
@@ -123,5 +125,63 @@ test('writeTareaFile sin failIfExists (comportamiento por defecto) SI permite ac
     await writeTareaFile(root, sampleTask({ id: 'TASK-050', titulo: 'v2' }), '');
     const read = await readTareaFile(root, 'TASK-050');
     assert.equal(read?.task.titulo, 'v2');
+  });
+});
+
+
+// --- moveTareaFile (TASK-009) ---------------------------------------------
+
+test('moveTareaFile: cambia de carpeta cuando el estado cambia y borra la carpeta vieja', async () => {
+  await withTempRoot(async (root) => {
+    const original = sampleTask({ id: 'TASK-060', estado: 'en-diseno' });
+    const filePath = await writeTareaFile(root, original, '## Objetivo\nAlgo.\n');
+
+    const updated = { ...original, estado: 'en-curso' as const, actualizado: '2026-09-04' };
+    const newFilePath = await moveTareaFile(root, filePath, updated, '## Objetivo\nAlgo.\n');
+
+    assert.match(newFilePath, /02-en-curso[/\\]TASK-060[/\\]tarea\.md$/);
+
+    const read = await readTareaFile(root, 'TASK-060');
+    assert.ok(read !== null);
+    assert.equal(read?.task.estado, 'en-curso');
+    assert.equal(read?.task.actualizado, '2026-09-04');
+
+    // La carpeta vieja (01-en-diseno/TASK-060) ya no debe contener nada.
+    await assert.rejects(() => stat(path.dirname(filePath)));
+  });
+});
+
+test('moveTareaFile: si el estado no cambia, solo reescribe el fichero en el mismo sitio', async () => {
+  await withTempRoot(async (root) => {
+    const original = sampleTask({ id: 'TASK-061', estado: 'en-curso', titulo: 'v1' });
+    const filePath = await writeTareaFile(root, original, '');
+
+    const updated = { ...original, titulo: 'v2' };
+    const newFilePath = await moveTareaFile(root, filePath, updated, '');
+
+    assert.equal(newFilePath, filePath);
+    const read = await readTareaFile(root, 'TASK-061');
+    assert.equal(read?.task.titulo, 'v2');
+  });
+});
+
+test('moveTareaFile: falla con TaskFolderConflictError si la carpeta destino ya existe', async () => {
+  await withTempRoot(async (root) => {
+    const enDiseno = sampleTask({ id: 'TASK-062', estado: 'en-diseno' });
+    const filePath = await writeTareaFile(root, enDiseno, '');
+    // Carpeta destino ya ocupada por otra cosa (no deberia pasar en uso
+    // normal, pero moveTareaFile debe negarse en vez de arriesgarse a
+    // mezclar contenido).
+    await writeTareaFile(root, sampleTask({ id: 'TASK-062', estado: 'en-curso', titulo: 'otra' }), '');
+
+    const updated = { ...enDiseno, estado: 'en-curso' as const };
+    await assert.rejects(
+      () => moveTareaFile(root, filePath, updated, ''),
+      TaskFolderConflictError
+    );
+
+    // La tarea original en 01-en-diseno sigue intacta (no se movio a medias).
+    const stillThere = await stat(path.dirname(filePath));
+    assert.ok(stillThere.isDirectory());
   });
 });

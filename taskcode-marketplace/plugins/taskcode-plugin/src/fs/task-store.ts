@@ -11,7 +11,7 @@
  * como argumento de CLI (plan, approve, start...) un id sin sanear
  * como "../../etc" podria escapar de tareasRoot.
  */
-import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readdir, readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { STATE_FOLDER, assertValidTaskId, type Task } from '../core/task.js';
 import { parseTareaFile, serializeTareaFile } from '../core/tarea-file.js';
@@ -82,6 +82,73 @@ export async function writeTareaFile(
     }
     throw e;
   }
+  return filePath;
+}
+
+export class TaskFolderConflictError extends Error {
+  constructor(public readonly id: string, public readonly targetDir: string) {
+    super(
+      `No se puede mover ${id} a ${targetDir}: la carpeta de destino ya existe. Revisalo a mano.`
+    );
+    this.name = 'TaskFolderConflictError';
+  }
+}
+
+/**
+ * Actualiza una tarea que puede haber cambiado de estado (y por tanto
+ * de carpeta): mueve el directorio completo de la tarea (no solo
+ * tarea.md, por si en el futuro guarda mas ficheros) con un unico
+ * rename atomico si la carpeta de destino difiere, y despues
+ * reescribe tarea.md con el frontmatter/cuerpo actualizados. Si la
+ * carpeta de destino ya existiera (no deberia pasar nunca en uso
+ * normal), falla en vez de arriesgarse a mezclar dos tareas — mismo
+ * principio "fail closed" que TaskAlreadyExistsError en writeTareaFile.
+ */
+export async function moveTareaFile(
+  tareasRoot: string,
+  previousFilePath: string,
+  task: Task,
+  body: string
+): Promise<string> {
+  assertValidTaskId(task.id);
+  // Revalida (via serializeTareaFile) ANTES de tocar el filesystem.
+  const content = serializeTareaFile(task, body);
+
+  const newDir = path.join(tareasRoot, STATE_FOLDER[task.estado], task.id);
+  const oldDir = path.dirname(previousFilePath);
+
+  if (path.resolve(oldDir) !== path.resolve(newDir)) {
+    let destinoOcupado = false;
+    try {
+      await stat(newDir);
+      destinoOcupado = true;
+    } catch (e: unknown) {
+      if (!isEnoent(e)) throw e;
+    }
+    if (destinoOcupado) {
+      throw new TaskFolderConflictError(task.id, newDir);
+    }
+    await mkdir(path.dirname(newDir), { recursive: true });
+    try {
+      await rename(oldDir, newDir);
+    } catch (e: unknown) {
+      if (!isEnoent(e)) throw e;
+      // La carpeta vieja no existe en el working tree actual. Pasa de
+      // verdad con hotfix/release (TASK-009): create-hotfix.sh y
+      // create-release.sh cambian de rama a una creada desde main/develop
+      // ANTES de que moveTareaFile se ejecute, y si esa base no incluye
+      // este fichero (p. ej. un hotfix creado desde main cuando la tarea
+      // solo estaba commiteada en develop) Git ya lo elimino del working
+      // tree al hacer checkout. No hay nada que mover: se recrea la
+      // carpeta y se escribe la tarea con el contenido ya leido en
+      // memoria antes de invocar el script. La copia vieja sigue intacta
+      // en el historial de la rama de origen (develop), no se pierde.
+      await mkdir(newDir, { recursive: true });
+    }
+  }
+
+  const filePath = path.join(newDir, 'tarea.md');
+  await writeFile(filePath, content, 'utf8');
   return filePath;
 }
 
