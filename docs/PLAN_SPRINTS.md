@@ -145,12 +145,16 @@ quedan pendientes — ya existen como tareas en `tareas/00-planificadas/`.
 - **Sprint 3 completo** depende de tener datos reales de Sprint 0-2 para
   calibrar los pesos de la heurística de complejidad (sección 16.1) — se
   usan los pesos propuestos como punto de partida, no como definitivos.
-- **Nuevo, detectado al programar TASK-001-003:** el repositorio `TaskCode`
-  todavía no es un repositorio Git (`git status` falla con "not a git
-  repository"). No bloquea Sprint 0 (deliberadamente Git-agnóstico), pero
-  es prerrequisito real de TASK-007/008/009 (Sprint 1): hay que
-  inicializar el repo y crear `develop`/`main` antes de migrar o probar
-  los scripts de Git-Flow.
+- ~~Nuevo, detectado al programar TASK-001-003: el repositorio `TaskCode`
+  todavía no es un repositorio Git.~~ **Resuelto (2026-09-03):** repo
+  inicializado, primer commit en `main` (36 ficheros, todo Sprint 0 +
+  metodología + plan), rama `develop` creada desde `main` y activa como
+  rama de trabajo por defecto. `node_modules/` y `dist/` excluidos vía
+  `.gitignore`. Identidad de commit configurada localmente para este
+  repo (`charlie.bk <charlie.bk@gmail.com>`, no global — cámbiala con
+  `git config user.name/user.email` si prefieres otra). Sin remoto
+  todavía (eso es TASK-021, Sprint 4). TASK-007/008/009 ya pueden
+  arrancar.
 
 ## 8. Qué se entrega ya en este mismo turno
 
