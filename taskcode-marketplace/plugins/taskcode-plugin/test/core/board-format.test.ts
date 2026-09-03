@@ -114,3 +114,29 @@ test('formatBoard: incluye ID, titulo y asignado como columnas de la tabla', () 
   assert.match(out, /Un titulo distintivo/);
   assert.match(out, /charlie\.bk/);
 });
+
+
+// --- hallazgos de revision por pares (TASK-005), corregidos ------------
+
+test('formatBoard: un titulo con caracteres CJK (ancho visual doble) no desalinea la tabla (hallazgo IMPORTANTE de revision por pares)', () => {
+  const out = formatBoard([
+    sampleTask({ id: 'TASK-001', titulo: '日本語のタスク', asignado_a: 'a' }), // 7 caracteres, 14 columnas visuales
+    sampleTask({ id: 'TASK-002', titulo: 'x', asignado_a: 'b' }), // 1 caracter, 1 columna visual
+  ]);
+  const lines = out.split('\n').filter((l) => l.startsWith('TASK-'));
+  assert.equal(lines.length, 2);
+  // Con el ancho de columna calculado por VISUAL (no por .length), la
+  // fila con el titulo CJK no necesita relleno extra (ya ocupa las 14
+  // columnas visuales exactas), mientras que la fila con "x" necesita
+  // 13 espacios de relleno para alcanzar esas mismas 14 columnas
+  // visuales -- exactamente lo que produce un terminal monoespaciado
+  // real al alinear ambas filas.
+  assert.equal(lines[0], 'TASK-001  日本語のタスク  a');
+  assert.equal(lines[1], `TASK-002  x${' '.repeat(13)}  b`);
+});
+
+test('formatBoard: un titulo con un tabulador embebido no rompe la tabla (hallazgo IMPORTANTE de revision por pares)', () => {
+  const out = formatBoard([sampleTask({ id: 'TASK-001', titulo: 'Con\tun\ttab', asignado_a: 'x' })]);
+  assert.doesNotMatch(out, /\t/);
+  assert.match(out, /Con un tab/);
+});

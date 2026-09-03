@@ -63,12 +63,34 @@ export async function runBoardCommand(
 ): Promise<BoardCommandResult> {
   const filters = parseBoardArgs(argv);
 
-  const ids = await listExistingTaskIds(tareasRoot);
+  const rawIds = await listExistingTaskIds(tareasRoot);
   const tasks: Task[] = [];
   const advertencias: string[] = [];
 
+  // listExistingTaskIds devuelve un ID una vez POR CARPETA de estado
+  // en la que aparece: si el mismo ID existe a la vez en dos carpetas
+  // (inconsistencia de datos -- p. ej. un merge de Git-Flow que dejo
+  // la carpeta vieja sin borrar), el ID sale repetido en rawIds.
+  // Hallazgo IMPORTANTE de revision por pares: iterar rawIds tal cual
+  // mostraba esa tarea DOS VECES (siempre con el mismo contenido,
+  // porque readTareaFile ya devuelve solo la primera coincidencia
+  // segun el orden del ciclo de vida) y escondia en silencio la copia
+  // real mas avanzada, sin ningun aviso. Deduplicado aqui, con una
+  // advertencia explicita cuando se detecta la inconsistencia -- mismo
+  // tratamiento que una tarea.md invalida.
+  const idCounts = new Map<string, number>();
+  for (const id of rawIds) idCounts.set(id, (idCounts.get(id) ?? 0) + 1);
+
   await Promise.all(
-    ids.map(async (id) => {
+    [...idCounts.keys()].map(async (id) => {
+      const count = idCounts.get(id) ?? 1;
+      if (count > 1) {
+        advertencias.push(
+          `${id} existe en ${count} carpetas de estado distintas a la vez (inconsistencia de ` +
+            'datos); se muestra la copia de la carpeta mas temprana del ciclo de vida -- revisa ' +
+            'el repo a mano.'
+        );
+      }
       try {
         const read = await readTareaFile(tareasRoot, id);
         if (read) tasks.push(read.task);

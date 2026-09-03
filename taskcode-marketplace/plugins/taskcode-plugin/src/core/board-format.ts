@@ -41,15 +41,70 @@ function taskIdSortKey(id: string): number {
   return m ? parseInt(m[1] as string, 10) : Number.POSITIVE_INFINITY;
 }
 
+/**
+ * Rangos aproximados de caracteres de ancho visual doble (East Asian
+ * Wide/Fullwidth + emoji comunes). Hallazgo IMPORTANTE de revision
+ * por pares: calcular el ancho de columna con `.length` (unidades
+ * UTF-16) desalineaba la tabla con un titulo en CJK (1 unidad de
+ * longitud, 2 columnas visuales en cualquier terminal real) —
+ * reproducido y confirmado por el revisor con "cat -A" sobre la
+ * salida real. No es una tabla Unicode completa (no existe una en la
+ * biblioteca estandar de Node sin depender de un paquete externo,
+ * fuera del alcance de "cero dependencias" del proyecto), pero cubre
+ * los bloques CJK/Hangul/Fullwidth/emoji mas comunes, que es lo que
+ * de verdad aparece en un titulo de tarea.
+ */
+function isWideCodePoint(cp: number): boolean {
+  return (
+    (cp >= 0x1100 && cp <= 0x115f) || // Jamo de Hangul
+    cp === 0x2329 ||
+    cp === 0x232a ||
+    (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) || // Radicales CJK .. Yi
+    (cp >= 0xac00 && cp <= 0xd7a3) || // Silabas de Hangul
+    (cp >= 0xf900 && cp <= 0xfaff) || // Ideogramas de compatibilidad CJK
+    (cp >= 0xfe30 && cp <= 0xfe6f) || // Formas de compatibilidad CJK
+    (cp >= 0xff00 && cp <= 0xff60) || // Formas de ancho completo
+    (cp >= 0xffe0 && cp <= 0xffe6) ||
+    (cp >= 0x1f300 && cp <= 0x1fadf) || // Emoji (rango comun)
+    (cp >= 0x20000 && cp <= 0x3fffd) // Extensiones CJK (planos suplementarios)
+  );
+}
+
+/** Ancho visual aproximado en columnas de terminal, no numero de unidades UTF-16. */
+function visualWidth(s: string): number {
+  let width = 0;
+  for (const ch of s) {
+    width += isWideCodePoint(ch.codePointAt(0) ?? 0) ? 2 : 1;
+  }
+  return width;
+}
+
+/**
+ * Sustituye caracteres de control (tabuladores, saltos de linea
+ * embebidos, etc.) por un espacio antes de calcular anchos o
+ * renderizar (hallazgo IMPORTANTE de revision por pares: un titulo
+ * con un tabulador colado se expande de forma impredecible en una
+ * terminal real y rompe la alineacion, sin que `visualWidth` pueda
+ * preverlo). Defensa en el propio formateador, independiente de si
+ * `task.ts` llega a validar esto en el futuro.
+ */
+function sanitizeCell(s: string): string {
+  // eslint-disable-next-line no-control-regex
+  return s.replace(/[\x00-\x1f\x7f]/g, ' ');
+}
+
 function padEndVisible(s: string, width: number): string {
-  return s.length >= width ? s : s + ' '.repeat(width - s.length);
+  const vw = visualWidth(s);
+  return vw >= width ? s : s + ' '.repeat(width - vw);
 }
 
 function formatTable(tasks: readonly Task[]): string[] {
   const header = ['ID', 'Titulo', 'Asignado'];
-  const rows = tasks.map((t) => [t.id, t.titulo, t.asignado_a ?? '(sin asignar)']);
+  const rows = tasks.map((t) =>
+    [t.id, t.titulo, t.asignado_a ?? '(sin asignar)'].map(sanitizeCell)
+  );
   const allRows = [header, ...rows];
-  const widths = header.map((_, col) => Math.max(...allRows.map((r) => (r[col] ?? '').length)));
+  const widths = header.map((_, col) => Math.max(...allRows.map((r) => visualWidth(r[col] ?? ''))));
   const formatRow = (r: readonly string[]): string =>
     r.map((cell, i) => padEndVisible(cell, widths[i] ?? 0)).join('  ').trimEnd();
   const separator = widths.map((w) => '-'.repeat(w)).join('  ');

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseBoardArgs, runBoardCommand, BoardCommandError } from '../../src/commands/board.js';
@@ -133,6 +134,36 @@ test('runBoardCommand: una tarea existente con tarea.md corrupto se reporta como
     assert.doesNotMatch(result.output, /TASK-002/);
     assert.equal(result.advertencias.length, 1);
     assert.match(result.advertencias[0]!, /TASK-002/);
+  });
+});
+
+test('runBoardCommand: el mismo ID en dos carpetas de estado a la vez no se duplica en la salida, y se reporta como advertencia (hallazgo IMPORTANTE de revision por pares)', async () => {
+  await withTareasRoot(async (tareasRoot) => {
+    const vieja = buildNewTask('TASK-200', {
+      titulo: 'Version en planificadas (vieja)', tipo: 'feature', sprint: 0, etiquetas: [],
+      complejidad: 'media', modeloSugerido: 'sonnet', agenteRevisor: 'general-purpose',
+    }, '2026-09-01');
+    await writeTareaFile(tareasRoot, vieja, DEFAULT_BODY);
+
+    // Inconsistencia de datos a proposito: la MISMA carpeta TASK-200
+    // tambien "existe" en 01-en-diseno (p. ej. un merge de Git-Flow
+    // que dejo la carpeta vieja sin borrar). writeTareaFile no lo
+    // permite por accidente (mkdir + wx), asi que se crea a mano.
+    const nuevaDir = path.join(tareasRoot, '01-en-diseno', 'TASK-200');
+    await mkdir(nuevaDir, { recursive: true });
+    const nueva = { ...vieja, estado: 'en-diseno' as const, titulo: 'Version en-diseno (nueva, real)' };
+    const { serializeTareaFile } = await import('../../src/core/tarea-file.js');
+    await writeFile(path.join(nuevaDir, 'tarea.md'), serializeTareaFile(nueva, DEFAULT_BODY), 'utf8');
+
+    const result = await runBoardCommand(tareasRoot, []);
+
+    // Ni una fila duplicada ni dos filas: exactamente una.
+    const apariciones = (result.output.match(/TASK-200/g) ?? []).length;
+    assert.equal(apariciones, 1, `deberia aparecer una sola vez:\n${result.output}`);
+    assert.equal(result.totalTareas, 1);
+    assert.equal(result.advertencias.length, 1);
+    assert.match(result.advertencias[0]!, /TASK-200/);
+    assert.match(result.advertencias[0]!, /2 carpetas/);
   });
 });
 
