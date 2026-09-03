@@ -260,3 +260,73 @@ test('taskctl plan: el estado invalido se sigue rechazando ANTES de tocar la ram
     assert.equal(branchNow(repoRoot), 'feature/otra-cosa');
   });
 });
+
+test('taskctl plan: la tarea existe en la rama vieja pero NO en la rama base real tras el cambio — rechaza sin crear nada (hallazgo CRITICO de revision por pares, TASK-012)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // A proposito NO se commitea en develop: la tarea solo existe en
+    // esta rama de feature (violando 8.3, pero es exactamente el
+    // escenario que expone el hallazgo — una lectura preliminar en la
+    // rama equivocada no debe decidir nada).
+    git(['checkout', '-q', '-b', 'feature/donde-no-deberia-estar'], repoRoot);
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea TASK-700 solo en esta rama de feature');
+
+    await assert.rejects(
+      () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-04', { repoCwd: repoRoot }),
+      StateMachineError
+    );
+
+    // Termino en develop (el cambio de rama SI se hizo, porque la
+    // lectura preliminar en la rama de feature parecia valida) pero
+    // sin crear ni mover nada ahi: develop nunca tuvo esta tarea.
+    assert.equal(branchNow(repoRoot), 'develop');
+    await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-700')));
+    await assert.rejects(() => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700')));
+  });
+});
+
+test('taskctl plan: la rama base real tiene la tarea en un estado distinto al de la lectura preliminar — decide con el estado real, no con el viejo (hallazgo CRITICO de revision por pares, TASK-012)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Primero, la tarea nace "planificada" (como dejaria taskctl new).
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea TASK-700 planificada');
+
+    // Una rama de feature se bifurca AQUI — ve la tarea "planificada",
+    // sin plan-final.md.
+    git(['checkout', '-q', '-b', 'feature/vieja'], repoRoot);
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.estado, 'planificada');
+
+    // develop sigue avanzando de verdad: se re-planifica de verdad
+    // (en-diseno, con un plan-final.md real) — borra la carpeta vieja
+    // a mano para que el commit refleje el movimiento real (aqui no se
+    // usa runPlanCommand a proposito: es solo el estado de partida del
+    // test, no lo que se esta probando).
+    git(['checkout', '-q', 'develop'], repoRoot);
+    await rm(path.join(tareasRoot, '00-planificadas', 'TASK-700'), { recursive: true, force: true });
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
+    await writeFile(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-700', PLAN_FINAL_FILENAME),
+      '# Plan real en develop\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'tarea TASK-700 en diseno de verdad en develop');
+
+    // Vuelve a la rama vieja (limpia) para invocar "plan" desde ahi.
+    git(['checkout', '-q', 'feature/vieja'], repoRoot);
+
+    // "plan" desde la rama vieja: la lectura preliminar ve
+    // "planificada" (primera vez, valido) y NO deberia usarse para
+    // escribir. Tras el cambio automatico a develop, la lectura fresca
+    // ve "en-diseno" con plan_aprobado false: sigue siendo una
+    // re-planificacion legitima, PERO sobre el contenido real de
+    // develop, no sobre el de la rama vieja — y sin pisar el
+    // plan-final.md real que ya existe ahi (writeFile con 'wx').
+    const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-05', { repoCwd: repoRoot });
+
+    assert.equal(result.planCreated, false);
+    const planContent = await readFile(result.planPath, 'utf8');
+    assert.equal(planContent, '# Plan real en develop\n');
+    assert.equal(branchNow(repoRoot), 'develop');
+  });
+});

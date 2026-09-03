@@ -67,21 +67,38 @@ export async function runPlanCommand(
     throw new PlanCommandError('[ERROR] Falta el ID de la tarea: taskctl plan TASK-NNN.');
   }
 
-  const existing = await readTareaFile(tareasRoot, id);
-  // assertTransitionAllowed lanza StateMachineError si existing es null
-  // o si el estado/plan_aprobado actuales no permiten "plan" todavia —
-  // en ambos casos no se llega a mover ni escribir nada. Se comprueba
-  // ANTES que la rama base porque no depende de Git y es mas barato de
-  // evaluar (evita cambiar de rama para una tarea que ni siquiera
-  // puede planificarse).
-  assertTransitionAllowed('plan', existing ? existing.task : null);
-  const { task, body, filePath } = existing as NonNullable<typeof existing>;
+  // Lectura PRELIMINAR, contra la rama activa en este momento — que
+  // puede no ser la rama base real si alguien invoca "plan" desde una
+  // rama de feature vieja. Sirve solo para (a) rechazar rapido, sin
+  // tocar Git, un caso ya claramente invalido en esta rama, y (b)
+  // conocer task.tipo para poder resolver la rama base. NO se usa para
+  // nada mas: ni su "body"/"filePath" ni un "aprobado en esta lectura"
+  // se llevan a la escritura de mas abajo (hallazgo CRITICO de
+  // revision por pares, TASK-012 — antes de este fix, una lectura
+  // hecha en una rama vieja podia acabar escribiendose encima del
+  // contenido real de la rama base tras el cambio automatico, o
+  // disparar un TaskFolderConflictError falso comparando la carpeta
+  // vieja con la carpeta real de la rama base).
+  const initial = await readTareaFile(tareasRoot, id);
+  assertTransitionAllowed('plan', initial ? initial.task : null);
 
   // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
   // tiene cambios sin commitear, o si no puede cambiar de forma
-  // automatica a la rama base esperada segun task.tipo — en ambos
-  // casos no se llega a mover ni escribir nada todavia.
-  const baseBranchGuard = ensureBaseBranchReady(task.tipo, deps.repoCwd);
+  // automatica a la rama base esperada segun task.tipo. task.tipo es
+  // metadata estable que ningun comando de taskctl reescribe, asi que
+  // usar la lectura preliminar para esto es seguro aunque sea de antes
+  // del cambio de rama.
+  const baseBranchGuard = ensureBaseBranchReady(initial!.task.tipo, deps.repoCwd);
+
+  // Lectura FRESCA, ya en la rama base real (si hubo cambio, aqui es
+  // donde se nota) — esta es la unica que decide si se muta algo y con
+  // que contenido. Puede rechazar aunque la preliminar de arriba haya
+  // pasado (p. ej. otra persona ya avanzo la tarea en la rama base
+  // mientras tanto) o aceptar como re-planificacion legitima un caso
+  // que en la rama vieja parecia otra cosa.
+  const existing = await readTareaFile(tareasRoot, id);
+  assertTransitionAllowed('plan', existing ? existing.task : null);
+  const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
   const updated: Task = { ...task, estado: 'en-diseno', actualizado: today };
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);

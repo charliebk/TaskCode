@@ -274,3 +274,66 @@ test('taskctl approve: falta de plan-final.md se sigue rechazando ANTES de tocar
     assert.equal(branchNow(repoRoot), 'feature/otra-cosa');
   });
 });
+
+test('taskctl approve: la tarea existe en la rama vieja pero NO en la rama base real tras el cambio — rechaza sin marcar nada (hallazgo CRITICO de revision por pares, TASK-012)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    git(['checkout', '-q', '-b', 'feature/donde-no-deberia-estar'], repoRoot);
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 solo en esta rama de feature');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
+      StateMachineError
+    );
+
+    assert.equal(branchNow(repoRoot), 'develop');
+    await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-800')));
+  });
+});
+
+test('taskctl approve: NO sobrescribe con datos viejos el contenido real de la rama base (hallazgo CRITICO de revision por pares, TASK-012)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // develop (rama base real) ya tiene la tarea aprobada de verdad,
+    // con etiquetas que alguien edito despues de la lectura que va a
+    // hacer la rama vieja.
+    await writeTareaFile(tareasRoot, sampleTask({ etiquetas: ['orig'] }), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan (v1)');
+
+    // Rama de feature vieja, bifurcada ANTES de que developara
+    // avanzara.
+    git(['checkout', '-q', '-b', 'feature/vieja'], repoRoot);
+
+    // develop sigue avanzando de verdad: se edita a mano (simulando
+    // otra persona/sesion) y se aprueba.
+    git(['checkout', '-q', 'develop'], repoRoot);
+    const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-800');
+    const tareaPath = path.join(taskDir, 'tarea.md');
+    const original = await (await import('node:fs/promises')).readFile(tareaPath, 'utf8');
+    const editado = original
+      .replace('etiquetas: [orig]', 'etiquetas: [real, editada-en-develop]')
+      .replace('plan_aprobado: false', 'plan_aprobado: true');
+    await writeFile(tareaPath, editado, 'utf8');
+    commitAll(repoRoot, 'TASK-800 aprobada de verdad en develop, con etiquetas nuevas');
+
+    // Vuelve a la rama vieja (limpia, sin cambios sin commitear) y
+    // ejecuta approve desde ahi.
+    git(['checkout', '-q', 'feature/vieja'], repoRoot);
+    const staleRead = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.deepEqual(staleRead?.task.etiquetas, ['orig']);
+    assert.equal(staleRead?.task.plan_aprobado, false);
+
+    const result = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot });
+
+    assert.equal(result.baseBranchGuard.switched, true);
+    assert.equal(branchNow(repoRoot), 'develop');
+
+    // El contenido real de develop (etiquetas nuevas) se conserva —
+    // NO se sobrescribe con lo que veia la rama vieja.
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.deepEqual(read?.task.etiquetas, ['real', 'editada-en-develop']);
+    assert.equal(read?.task.plan_aprobado, true);
+    assert.equal(read?.task.actualizado, '2026-09-06');
+  });
+});

@@ -320,3 +320,40 @@ test('ensureBaseBranchReady: hay remoto pero no tiene la rama base — el checko
     });
   });
 });
+
+test('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only falla, el mensaje deja claro que la rama SI cambio (no se deshace)', async () => {
+  await withOriginRepo(async (originRoot) => {
+    await withClone(originRoot, async (repoRoot) => {
+      const { writeFile } = await import('node:fs/promises');
+
+      git(['checkout', '-q', 'develop'], repoRoot);
+      // Diverge: un commit local que origin no tiene.
+      await writeFile(path.join(repoRoot, 'local.txt'), 'solo en local\n', 'utf8');
+      git(['add', '-A'], repoRoot);
+      git(['commit', '-q', '-m', 'commit local que origin no tiene'], repoRoot);
+      git(['checkout', '-q', 'main'], repoRoot);
+
+      // Y origin/develop avanza con OTRO commit distinto — ff-only es
+      // imposible en cualquier direccion.
+      git(['checkout', '-q', 'develop'], originRoot);
+      await writeFile(path.join(originRoot, 'remoto.txt'), 'solo en origin\n', 'utf8');
+      git(['add', '-A'], originRoot);
+      git(['commit', '-q', '-m', 'commit en origin que el local no tiene'], originRoot);
+
+      let error: unknown;
+      try {
+        ensureBaseBranchReady('feature', repoRoot);
+      } catch (e) {
+        error = e;
+      }
+      assert.ok(error instanceof BaseBranchGuardError);
+      assert.match((error as Error).message, /Se cambio a la rama base "develop"/);
+      assert.match((error as Error).message, /no se pudo actualizar/);
+      assert.match((error as Error).message, /no se deshizo/);
+      // La rama SI cambio de verdad, pese al error de pull — el
+      // mensaje no debe sugerir lo contrario (hallazgo importante de
+      // revision por pares, TASK-012).
+      assert.equal(currentBranch(repoRoot), 'develop');
+    });
+  });
+});

@@ -168,16 +168,23 @@ export interface BaseBranchGuardResult {
  * proposito — ver el Objetivo de TASK-012 en su tarea.md.
  */
 export function ensureBaseBranchReady(tipo: Task['tipo'], cwd: string): BaseBranchGuardResult {
-  const baseBranch = resolveBaseBranchForTipo(tipo, cwd);
   const branchAntes = currentBranch(cwd);
 
+  // Comprobacion sin red ANTES de resolver la rama base (que para
+  // "hotfix" puede necesitar hasta 3 "git ls-remote"): el caso mas
+  // comun de todos — workspace sucio — no deberia pagar ese coste
+  // (hallazgo menor de revision por pares, TASK-012). El mensaje no
+  // menciona la rama base esperada a proposito: es literalmente el
+  // ejemplo de la seccion 8.3 de la metodologia, que tampoco la
+  // menciona.
   if (!isWorkspaceClean(cwd)) {
     throw new BaseBranchGuardError(
       `[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos o comitealos antes de ` +
-        `continuar (seccion 8.3: este comando requiere estar en "${baseBranch}", limpio).`
+        'continuar.'
     );
   }
 
+  const baseBranch = resolveBaseBranchForTipo(tipo, cwd);
   if (branchAntes === baseBranch) {
     return { baseBranch, switched: false, branchAntes };
   }
@@ -198,14 +205,32 @@ export function ensureBaseBranchReady(tipo: Task['tipo'], cwd: string): BaseBran
     } else {
       runGit(['checkout', '-q', '-b', baseBranch, `origin/${baseBranch}`], cwd);
     }
-    if (remoteAvailable) {
-      runGit(['pull', '--ff-only', 'origin', baseBranch], cwd);
-    }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new BaseBranchGuardError(
-      `[ERROR] No se pudo cambiar automaticamente a la rama base "${baseBranch}": ${msg}`
+      `[ERROR] No se pudo cambiar a la rama base "${baseBranch}": ${msg}`
     );
+  }
+
+  // El pull va en su propio try/catch (hallazgo importante de revision
+  // por pares, TASK-012): si el checkout de arriba tuvo exito, la rama
+  // activa YA cambio de verdad, aunque el pull falle despues (por
+  // ejemplo, develop local diverge de origin/develop). Envolver ambos
+  // en un unico catch daba un mensaje que sonaba a "no se cambio de
+  // rama" cuando en realidad si se habia cambiado y se quedaba asi, sin
+  // deshacerse — el mensaje de aqui deja claro que el cambio de rama
+  // ya es un hecho consumado y hay que resolver el pull a mano.
+  if (remoteAvailable) {
+    try {
+      runGit(['pull', '--ff-only', 'origin', baseBranch], cwd);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new BaseBranchGuardError(
+        `[ERROR] Se cambio a la rama base "${baseBranch}" pero no se pudo actualizar con ` +
+          `"pull --ff-only": ${msg} La rama activa AHORA es "${baseBranch}" (el cambio de rama ` +
+          'no se deshizo); resuelve el pull a mano antes de reintentar.'
+      );
+    }
   }
 
   // Evidencia, no suposicion (mismo principio que TASK-007/009): un
