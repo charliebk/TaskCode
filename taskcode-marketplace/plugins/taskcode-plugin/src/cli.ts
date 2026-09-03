@@ -127,9 +127,13 @@ export async function main(argv: readonly string[]): Promise<number> {
     const tareasRoot = path.join(process.cwd(), 'tareas');
     try {
       const result = await runApproveCommand(tareasRoot, argv.slice(1), today());
+      // Nota (hallazgo menor de revision por pares): para complejidad
+      // trivial/simple, "taskctl start" nunca exigio plan_aprobado
+      // (ver TRIVIAL_SIN_APROBACION en state-machine.ts) — el mensaje
+      // no sobrevende que approve fuera un requisito, solo confirma el
+      // resultado del propio comando.
       process.stdout.write(
-        `Tarea ${result.id} aprobada (plan_aprobado: true): ${result.filePath}. ` +
-          'Ya se puede ejecutar "taskctl start".\n'
+        `Tarea ${result.id} aprobada (plan_aprobado: true): ${result.filePath}.\n`
       );
       return 0;
     } catch (e) {
