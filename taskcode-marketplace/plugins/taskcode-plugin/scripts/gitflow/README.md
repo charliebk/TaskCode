@@ -45,25 +45,40 @@ IntelliJ en Windows. Se recomienda una prueba rápida (`bash --version`, o
 `taskctl new` de verdad) la próxima vez que alguien del equipo tenga esa
 sesión abierta — ver `docs/spikes/TASK-007-resultado.md`.
 
-## Hallazgo abierto, no corregido en TASK-008: el mismo bug de `origin` existe en más scripts
+## Hallazgo abierto (parcialmente corregido en TASK-009): el mismo bug de `origin` existia en mas scripts
 
-Al migrar se encontró que el patrón de "`fetch origin` sin comprobar
-disponibilidad" del hallazgo 4 **no está solo en
-`invoke_merge_work_branch_to_develop`**. Aparece, con su propia copia de
-lógica (no comparten la función corregida), en:
+Al migrar (TASK-008) se encontro que el patron de "`fetch origin` sin
+comprobar disponibilidad" del hallazgo 4 **no estaba solo en
+`invoke_merge_work_branch_to_develop`**. Aparecia, con su propia copia de
+logica (no comparten la funcion corregida), en:
 
-- `create-develop.sh`, `create-hotfix.sh`, `create-release.sh`
-- `merge-hotfix-to-main.sh`, `merge-release-to-main.sh`
-- `recover-branch.sh`, `resume-work.sh`
+- ~~`create-hotfix.sh`, `create-release.sh`~~ — **corregidos en TASK-009**
+  (mismo guard `REMOTE_AVAILABLE`), porque sin ellos `taskctl start`
+  fallaria siempre para tareas `hotfix`/`release` en un repo sin origin
+  como el propio TaskCode.
+- `create-develop.sh` — sin corregir. No lo toca ningun comando de
+  `taskctl` (no es un tipo de tarea; es un script de inicializacion de
+  repo, fuera del flujo por-tarea).
+- `merge-hotfix-to-main.sh`, `merge-release-to-main.sh` — sin corregir,
+  precondicion explicita de TASK-014 (`taskctl finish`).
+- `recover-branch.sh`, `resume-work.sh` — sin corregir, no forman parte
+  todavia del flujo de ningun comando de `taskctl`.
 
-Es decir: hoy, en un repo sin `origin` (como `TaskCode` mismo), `taskctl
-start` para una tarea `hotfix` o `release`, y `taskctl finish` para
-`hotfix`/`release`, fallarían igual que fallaba `merge-fix-to-develop.sh`
-antes del ajuste. No se ha corregido en TASK-008 para mantener el diff
-revisable y acotado a lo que motivó la tarea — queda documentado aquí y en
-la sección 14 de la metodología como precondición explícita de TASK-009
-(`taskctl start`, que sí toca `create-hotfix.sh`/`create-release.sh`) y
-TASK-014 (`taskctl finish`, que toca los `merge-*-to-main.sh`).
+## Hallazgo real de TASK-009: `moveTareaFile` y el checkout de hotfix/release
+
+Al probar `taskctl start` de punta a punta contra un repo Git temporal se
+confirmo (no se asumio) que `create-hotfix.sh` cambia de rama — a una
+creada desde `main` — ANTES de que taskctl mueva la carpeta de la tarea.
+Si `main` no incluye el historial de `tareas/` (el caso normal: `tareas/`
+solo vive en `develop` hasta que se hace un release), Git borra
+`tareas/.../tarea.md` del working tree al hacer ese checkout. `taskctl`
+ya habia leido la tarea en memoria antes de invocar el script, asi que no
+se pierde nada: `moveTareaFile` (con `tolerateMissingSource: true`, solo
+para este caso) recrea la carpeta en `02-en-curso/` con el contenido ya
+leido. La copia vieja sigue intacta en el historial de `develop`, solo
+que la carpeta de trabajo de la nueva rama `hotfix/...` no tiene el
+fichero como un "rename" trackeado por Git — queda como fichero nuevo sin
+commitear en esa rama, a la espera del primer commit real de la tarea.
 
 ## El bit ejecutable no sobrevive en este repo — invocar siempre con `bash`
 

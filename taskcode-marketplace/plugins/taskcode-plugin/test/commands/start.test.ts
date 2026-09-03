@@ -133,9 +133,105 @@ for (const tipo of ['fix', 'hotfix', 'release'] as const) {
       assert.equal(result.rama, `${tipo}/task-501-prueba-${tipo}`);
       const branch = spawnSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' });
       assert.equal(branch.stdout.trim(), `${tipo}/task-501-prueba-${tipo}`);
+
+      // No basta con que el comando no lance: hay que confirmar que la
+      // tarea de verdad quedo movida y con el contenido correcto (hallazgo
+      // de revision por pares, TASK-009 — este es justo el caso, hotfix,
+      // donde moveTareaFile necesito el fallback ENOENT porque Git ya
+      // habia borrado la carpeta vieja del working tree al cambiar de
+      // rama).
+      const read = await readTareaFile(tareasRoot, 'TASK-501');
+      assert.ok(read !== null, 'la tarea deberia poder releerse tras start');
+      assert.equal(read?.task.estado, 'en-curso');
+      assert.equal(read?.task.actualizado, '2026-09-04');
+      assert.match(read?.filePath ?? '', /02-en-curso[/\\]TASK-501[/\\]tarea\.md$/);
     });
   });
 }
+
+test('taskctl start: rechaza un task.rama invalido para Git antes de invocar el script', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ rama: 'rama con espacios' }), '');
+    commitAll(repoRoot, 'tarea(TASK-500): plan aprobado');
+
+    await assert.rejects(
+      () =>
+        runStartCommand(tareasRoot, ['TASK-500'], '2026-09-04', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      StartCommandError
+    );
+
+    const branch = spawnSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(branch.stdout.trim(), 'develop');
+    const read = await readTareaFile(tareasRoot, 'TASK-500');
+    assert.equal(read?.task.estado, 'en-diseno');
+  });
+});
+
+test('taskctl start: si el script de Git-Flow falla (codigo != 0), no mueve la tarea', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea(TASK-500): plan aprobado');
+
+    // Para forzar un fallo genuino del script (no simulado con mocks),
+    // apuntamos runStartCommand a un scriptsDir con un create-feature.sh
+    // que siempre termina en un codigo de error real.
+    const brokenScriptsDir = await mkdtemp(path.join(tmpdir(), 'taskctl-broken-scripts-'));
+    await writeFile(
+      path.join(brokenScriptsDir, 'create-feature.sh'),
+      '#!/usr/bin/env bash\nexit 7\n',
+      'utf8'
+    );
+
+    await assert.rejects(
+      () =>
+        runStartCommand(tareasRoot, ['TASK-500'], '2026-09-04', {
+          repoCwd: repoRoot,
+          scriptsDir: brokenScriptsDir,
+        }),
+      StartCommandError
+    );
+
+    const read = await readTareaFile(tareasRoot, 'TASK-500');
+    assert.equal(read?.task.estado, 'en-diseno');
+    await rm(brokenScriptsDir, { recursive: true, force: true });
+  });
+});
+
+test('taskctl start: si el script termina con codigo 0 pero la rama activa no coincide, no mueve la tarea (evidencia, no suposicion)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea(TASK-500): plan aprobado');
+
+    // Script "malicioso/con bug": termina en codigo 0 sin haber creado
+    // ni cambiado a la rama pedida. runStartCommand debe detectarlo con
+    // git branch --show-current en vez de fiarse solo del exit code.
+    const fakeScriptsDir = await mkdtemp(path.join(tmpdir(), 'taskctl-fake-scripts-'));
+    await writeFile(
+      path.join(fakeScriptsDir, 'create-feature.sh'),
+      '#!/usr/bin/env bash\nexit 0\n',
+      'utf8'
+    );
+
+    await assert.rejects(
+      () =>
+        runStartCommand(tareasRoot, ['TASK-500'], '2026-09-04', {
+          repoCwd: repoRoot,
+          scriptsDir: fakeScriptsDir,
+        }),
+      StartCommandError
+    );
+
+    // La rama activa sigue siendo develop (el script fake no la cambio).
+    const branch = spawnSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(branch.stdout.trim(), 'develop');
+    const read = await readTareaFile(tareasRoot, 'TASK-500');
+    assert.equal(read?.task.estado, 'en-diseno');
+    await rm(fakeScriptsDir, { recursive: true, force: true });
+  });
+});
 
 test('taskctl start: rechaza una tarea en "planificada" (no ha pasado por plan) sin tocar Git ni mover nada', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {

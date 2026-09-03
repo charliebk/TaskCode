@@ -49,6 +49,27 @@ export interface RunGitflowScriptOptions {
 
 export interface GitflowScriptResult {
   code: number;
+  /** Nombre de la senal que mato al proceso, si fue el caso (p. ej. un OOM-kill). */
+  signal: NodeJS.Signals | null;
+}
+
+/**
+ * "bash" no se pudo ni siquiera lanzar (no esta en el PATH, etc.).
+ * Distinto de un exit code != 0 (el script SI corrio). Sin esto, el
+ * ENOENT de spawnSync se propagaba como Error generico y terminaba en
+ * el catch-all de bin/taskctl con un mensaje enganoso, como si taskctl
+ * mismo hubiera fallado al arrancar (hallazgo de revision por pares,
+ * TASK-009) — relevante porque en Windows "bash" solo esta en el PATH
+ * si Git for Windows lo expone.
+ */
+export class GitflowScriptLaunchError extends Error {
+  constructor(
+    public readonly scriptName: string,
+    public readonly originalError: Error
+  ) {
+    super(`No se pudo ejecutar "bash" para lanzar ${scriptName}: ${originalError.message}`);
+    this.name = 'GitflowScriptLaunchError';
+  }
 }
 
 export function runGitflowScript(
@@ -62,7 +83,7 @@ export function runGitflowScript(
     stdio: ['ignore', 'inherit', 'inherit'],
   });
   if (result.error) {
-    throw result.error;
+    throw new GitflowScriptLaunchError(scriptName, result.error);
   }
-  return { code: result.status ?? 1 };
+  return { code: result.status ?? 1, signal: result.signal ?? null };
 }

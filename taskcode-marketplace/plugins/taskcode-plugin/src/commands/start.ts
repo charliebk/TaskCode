@@ -14,7 +14,7 @@
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed, StateMachineError } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, isValidBranchName } from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 
 export { StateMachineError };
@@ -73,15 +73,26 @@ export async function runStartCommand(
     );
   }
 
+  // Defensa en profundidad (hallazgo menor de revision por pares): sin
+  // esto, un task.rama invalido solo se detecta varios procesos mas
+  // abajo, dentro del propio script de Git-Flow.
+  if (!isValidBranchName(task.rama, deps.repoCwd)) {
+    throw new StartCommandError(
+      `[ERROR] ${task.id}: "${task.rama}" no es un nombre de rama valido para Git. ` +
+        'Corrige el campo "rama" en tarea.md antes de reintentar.'
+    );
+  }
+
   const scriptName = SCRIPT_BY_TYPE[task.tipo];
-  const { code } = runGitflowScript(scriptName, [task.rama], {
+  const { code, signal } = runGitflowScript(scriptName, [task.rama], {
     scriptsDir: deps.scriptsDir,
     cwd: deps.repoCwd,
   });
   if (code !== 0) {
+    const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
     throw new StartCommandError(
-      `[ERROR] ${task.id}: ${scriptName} termino con codigo ${code}. Revisa la salida de arriba; ` +
-        'la tarea no se ha movido de carpeta.'
+      `[ERROR] ${task.id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
+        'Revisa la salida de arriba; la tarea no se ha movido de carpeta.'
     );
   }
 
@@ -96,7 +107,15 @@ export async function runStartCommand(
   }
 
   const updated: Task = { ...task, estado: 'en-curso', actualizado: today };
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+  // tolerateMissingSource: un hotfix/release creado desde una base
+  // (main) que no incluye tareas/ hace que Git borre la carpeta vieja
+  // del working tree al hacer checkout, ANTES de que lleguemos aqui —
+  // ver comentario de MoveTareaFileOptions en task-store.ts. task/body
+  // ya se leyeron en memoria antes de invocar el script, asi que no se
+  // pierde nada.
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body, {
+    tolerateMissingSource: true,
+  });
 
   return { id: task.id, rama: task.rama, filePath: newFilePath };
 }

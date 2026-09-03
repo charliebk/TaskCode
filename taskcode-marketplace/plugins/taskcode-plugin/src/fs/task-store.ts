@@ -94,6 +94,25 @@ export class TaskFolderConflictError extends Error {
   }
 }
 
+export interface MoveTareaFileOptions {
+  /**
+   * Si es true, tolera que la carpeta vieja ya no exista al mover
+   * (ENOENT en el rename): en vez de fallar, recrea la carpeta nueva
+   * con el contenido ya recibido en memoria. Pensado EXCLUSIVAMENTE
+   * para el caso real que TASK-009 encontro: un script de Git-Flow
+   * (create-hotfix.sh/create-release.sh) cambia de rama ANTES de que
+   * el caller mueva la tarea, y si la rama nueva se creo desde una
+   * base (main) que no incluye el historial de tareas/, Git ya borro
+   * el fichero del working tree al hacer checkout. Por defecto es
+   * false ("fail closed", hallazgo de revision por pares de TASK-009):
+   * un caller que no espera perder la carpeta vieja (p. ej. un futuro
+   * "taskctl approve" moviendo 00-planificadas -> 01-en-diseno sin
+   * checkout de por medio) debe seguir fallando ruidosamente si eso
+   * pasa, en vez de "arreglarlo" en silencio.
+   */
+  tolerateMissingSource?: boolean;
+}
+
 /**
  * Actualiza una tarea que puede haber cambiado de estado (y por tanto
  * de carpeta): mueve el directorio completo de la tarea (no solo
@@ -108,7 +127,8 @@ export async function moveTareaFile(
   tareasRoot: string,
   previousFilePath: string,
   task: Task,
-  body: string
+  body: string,
+  options: MoveTareaFileOptions = {}
 ): Promise<string> {
   assertValidTaskId(task.id);
   // Revalida (via serializeTareaFile) ANTES de tocar el filesystem.
@@ -132,17 +152,13 @@ export async function moveTareaFile(
     try {
       await rename(oldDir, newDir);
     } catch (e: unknown) {
-      if (!isEnoent(e)) throw e;
-      // La carpeta vieja no existe en el working tree actual. Pasa de
-      // verdad con hotfix/release (TASK-009): create-hotfix.sh y
-      // create-release.sh cambian de rama a una creada desde main/develop
-      // ANTES de que moveTareaFile se ejecute, y si esa base no incluye
-      // este fichero (p. ej. un hotfix creado desde main cuando la tarea
-      // solo estaba commiteada en develop) Git ya lo elimino del working
-      // tree al hacer checkout. No hay nada que mover: se recrea la
+      if (!isEnoent(e) || !options.tolerateMissingSource) throw e;
+      // La carpeta vieja no existe en el working tree actual y el
+      // caller declaro explicitamente (tolerateMissingSource) que ese
+      // escenario es esperado. No hay nada que mover: se recrea la
       // carpeta y se escribe la tarea con el contenido ya leido en
       // memoria antes de invocar el script. La copia vieja sigue intacta
-      // en el historial de la rama de origen (develop), no se pierde.
+      // en el historial de la rama de origen, no se pierde.
       await mkdir(newDir, { recursive: true });
     }
   }
