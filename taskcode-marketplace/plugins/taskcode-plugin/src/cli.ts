@@ -1,9 +1,10 @@
 /**
- * Punto de entrada del CLI. Sprint 0: --help/--version y el comando
- * "new" (TASK-003). "import"/"board" llegan en TASK-004/005.
+ * Punto de entrada del CLI. Sprint 0: --help/--version, "new" (TASK-003)
+ * e "import" (TASK-004). "board" llega en TASK-005.
  */
 import path from 'node:path';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
+import { runImportCommand, ImportCommandError } from './commands/import.js';
 import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
@@ -22,11 +23,14 @@ Uso:
   taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release> \\
               [--sprint N] [--etiquetas a,b,c] [--complejidad ...] \\
               [--modelo-sugerido ...] [--agente-revisor ...]
+  taskctl import <fichero.md> [--tipo <feature|fix|hotfix|release>] \\
+                 [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
+                 [--agente-revisor ...]
   taskctl start TASK-NNN
   taskctl plan TASK-NNN
   taskctl approve TASK-NNN
 
-Comandos: new, start, plan, approve. import, board llegan a
+Comandos: new, import, start, plan, approve. board llega a
 continuacion. Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -85,6 +89,37 @@ export async function main(argv: readonly string[]): Promise<number> {
       return 0;
     } catch (e) {
       if (e instanceof NewTaskArgError || e instanceof BaseBranchGuardError) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'import') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const result = await runImportCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+      printBaseBranchSwitchNotice(result.baseBranchGuard);
+      for (const error of result.errores) {
+        process.stderr.write(
+          `[ERROR] Linea ${error.lineNumber} ("${error.tituloRaw}"): ${error.motivo}\n`
+        );
+      }
+      for (const omitida of result.omitidas) {
+        process.stdout.write(`Omitida "${omitida.titulo}": ${omitida.motivo}\n`);
+      }
+      for (const creada of result.creadas) {
+        process.stdout.write(`Tarea ${creada.id} creada: ${creada.filePath}\n`);
+      }
+      process.stdout.write(
+        `Import completado: ${result.creadas.length} creada(s), ` +
+          `${result.omitidas.length} omitida(s), ${result.errores.length} con error.\n`
+      );
+      return 0;
+    } catch (e) {
+      if (e instanceof ImportCommandError || e instanceof BaseBranchGuardError) {
         printCliError(e);
         return 1;
       }
