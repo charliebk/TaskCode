@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+import('../dist/src/cli.js')
+  .then(async (m) => {
+    const code = await m.main(process.argv.slice(2));
+    process.exitCode = code;
+  })
+  .catch((e) => {
+    console.error('[ERROR] taskctl no pudo arrancar:', e && e.message ? e.message : e);
+    process.exitCode = 1;
+  });

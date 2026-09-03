@@ -1,0 +1,11 @@
+# Artefactos de build / dependencias — nunca se versionan
+node_modules/
+dist/
+
+# Ficheros de IDE
+.idea/
+*.iml
+
+# SO
+.DS_Store
+Thumbs.db

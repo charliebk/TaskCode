@@ -1,0 +1,52 @@
+flowchart TD
+    subgraph ING["1. Ingesta de tareas"]
+        direction TB
+        A1["Lista de sprint en Markdown<br/>docs/sprint-N-propuesta.md"] -->|"taskctl import"| A2["Se crean varias tareas<br/>en 00-planificadas/"]
+        A3["Tarea suelta que surge a mitad<br/>de proyecto: olvido, correccion,<br/>hotfix"] -->|"taskctl new"| A4["Se crea 1 tarea<br/>en 00-planificadas/"]
+    end
+
+    A2 --> B0
+    A4 --> B0
+
+    subgraph DIS["2. Diseno — taskctl plan"]
+        direction TB
+        B0["Tarea en 00-planificadas/"] --> B1["Contexto determinista<br/>docs/INDEX.md por etiquetas"]
+        B1 --> B2["Gatekeeper barato (Haiku):<br/>confirma complejidad, agente<br/>revisor y skill recomendado"]
+        B2 --> B3{"tipo == hotfix?"}
+        B3 -->|"si"| B4["Un solo agente escribe<br/>plan-final.md"]
+        B3 -->|"no"| B5["Brainstorm en paralelo<br/>roles segun complejidad"]
+        B5 --> B6["Agente unificador escribe<br/>plan-final.md"]
+        B4 --> B7["Tarea movida a<br/>01-en-diseno/"]
+        B6 --> B7
+        B7 --> B8{"complejidad media o mas?"}
+        B8 -->|"si"| B9{"Persona aprueba<br/>plan_aprobado?"}
+        B9 -->|"pide cambios"| B5
+        B9 -->|"aprobado"| B10["Lista para arrancar"]
+        B8 -->|"no, trivial o simple"| B10
+    end
+
+    subgraph EJE["3. Ejecucion — taskctl start / review"]
+        direction TB
+        C1["taskctl start:<br/>crea rama tipo/task-id-slug<br/>via create-tipo.sh"] --> C2["Tarea movida a<br/>02-en-curso/"]
+        C2 --> C3["Trabajo en la rama<br/>con el modelo sugerido"]
+        C3 --> C4["taskctl review:<br/>update-tipo.sh + agente revisor"]
+        C4 --> C5["Tarea movida a<br/>03-en-revision/"]
+        C5 --> C6{"Revision aprobada?"}
+        C6 -->|"cambios solicitados"| C3
+        C6 -->|"aprobada"| C7{"revision_codex activa?"}
+        C7 -->|"si"| C8["taskctl codex-review:<br/>segunda opinion independiente"]
+        C8 --> C9{"Coinciden los veredictos?"}
+        C9 -->|"no"| C10["Marcada para<br/>decision humana"]
+        C9 -->|"si"| C11["Lista para cerrar"]
+        C7 -->|"no"| C11
+    end
+
+    B10 --> C1
+    C10 --> C6
+    C11 --> D1
+
+    subgraph CIE["4. Cierre — taskctl finish"]
+        direction TB
+        D1["merge-tipo-a-develop-o-main.sh<br/>backmerge y tag si aplica"] --> D2["Tarea movida a<br/>04-terminadas/"]
+        D2 --> D3["Se actualizan CHANGELOG.md,<br/>INDEX.md y BOARD.md"]
+    end
