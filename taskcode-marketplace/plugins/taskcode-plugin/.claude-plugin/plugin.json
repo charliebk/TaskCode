@@ -2,8 +2,7 @@
   "name": "taskcode-plugin",
   "version": "0.1.0",
   "description": "Metodologia de tareas por sprints, revision por pares de agentes y Git-Flow determinista para Claude Code.",
-  "author": "charlie.bk",
-  "commands": {
-    "taskctl": "bin/taskctl"
+  "author": {
+    "name": "charlie.bk"
   }
 }
