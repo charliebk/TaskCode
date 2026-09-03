@@ -134,15 +134,16 @@ salvo la primera fila:
 | 1 (parcial) | TASK-011 | — | 98.76% líneas / 95.31% ramas (`taskctl` completo) | 131 (9 nuevos) | 0 críticos; 0 importantes; 2 menores (todos corregidos) |
 | 1 (completo) | TASK-012 | — | 99.03% líneas / 96.20% ramas (`taskctl` completo) | 165 (34 nuevos) | 2 críticos; 1 importante (los 3 corregidos); 3 menores (1 corregido, 2 documentados sin corregir) |
 | 0 (parcial) | TASK-004 | — | 96.69% líneas / 95.22% ramas (`taskctl` completo) | 201 (36 nuevos) | 1 crítico; 4 importantes (los 5 corregidos); 3 menores (2 corregidos, 1 documentado sin corregir) |
+| 0 (parcial) | TASK-005 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo) | 226 (3 nuevos) | 0 críticos; 3 importantes (los 3 corregidos); 2 menores (documentados sin corregir) |
 
 Detalle completo en `docs/METRICAS.md` y `docs/spikes/`. **Sprint 1
 completo** (TASK-008 a TASK-012). De Sprint 0, TASK-004 (`taskctl
-import`) ya está cerrada; TASK-005 (`taskctl board`) y TASK-006
-(empaquetado y validación de instalación local) quedan pendientes. Con
-TASK-004 cerrada, la definición de "hecho" de la sección 2 (ciclo
-`import → plan → approve → start` real, de punta a punta, con rama Git
-de verdad) ya se cumple por completo — los cuatro comandos del ciclo
-existen y están probados contra Git real.
+import`) y TASK-005 (`taskctl board`) ya están cerradas; solo queda
+TASK-006 (empaquetado del plugin y validación de instalación local)
+para cerrar Sprint 0 también. La definición de "hecho" de la sección 2
+(ciclo `import → plan → approve → start` real, de punta a punta, con
+rama Git de verdad) ya se cumple por completo desde TASK-004 — los
+cuatro comandos del ciclo existen y están probados contra Git real.
 
 ## 7. Riesgos y supuestos abiertos que bloquean sprints concretos
 
