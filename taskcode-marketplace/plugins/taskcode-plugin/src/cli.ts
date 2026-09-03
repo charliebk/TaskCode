@@ -1,10 +1,11 @@
 /**
- * Punto de entrada del CLI. Sprint 0: --help/--version, "new" (TASK-003)
- * e "import" (TASK-004). "board" llega en TASK-005.
+ * Punto de entrada del CLI. Sprint 0: --help/--version, "new" (TASK-003),
+ * "import" (TASK-004) y "board" (TASK-005).
  */
 import path from 'node:path';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
 import { runImportCommand, ImportCommandError } from './commands/import.js';
+import { runBoardCommand, BoardCommandError } from './commands/board.js';
 import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
@@ -26,12 +27,13 @@ Uso:
   taskctl import <fichero.md> [--tipo <feature|fix|hotfix|release>] \\
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
+  taskctl board [--sprint N] [--asignado_a <persona>]
   taskctl start TASK-NNN
   taskctl plan TASK-NNN
   taskctl approve TASK-NNN
 
-Comandos: new, import, start, plan, approve. board llega a
-continuacion. Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
+Comandos: new, import, board, start, plan, approve.
+Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
 function today(): string {
@@ -127,6 +129,29 @@ export async function main(argv: readonly string[]): Promise<number> {
       return result.errores.length > 0 ? 1 : 0;
     } catch (e) {
       if (e instanceof ImportCommandError || e instanceof BaseBranchGuardError) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'board') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const result = await runBoardCommand(tareasRoot, argv.slice(1));
+      for (const aviso of result.advertencias) {
+        process.stderr.write(`[AVISO] ${aviso}\n`);
+      }
+      if (result.totalTareas === 0) {
+        process.stdout.write('No hay tareas que coincidan (o no hay ninguna tarea todavia).\n');
+      } else {
+        process.stdout.write(`${result.output}\n`);
+      }
+      return 0;
+    } catch (e) {
+      if (e instanceof BoardCommandError) {
         printCliError(e);
         return 1;
       }
