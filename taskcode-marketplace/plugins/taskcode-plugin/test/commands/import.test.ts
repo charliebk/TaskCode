@@ -4,7 +4,9 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { parseImportArgs, runImportCommand, ImportCommandError } from '../../src/commands/import.js';
+import { parseImportArgs, runImportCommand, normalizedTitleKey, ImportCommandError } from '../../src/commands/import.js';
+import { writeTareaFile } from '../../src/fs/task-store.js';
+import { buildNewTask, DEFAULT_BODY } from '../../src/commands/new.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import { listExistingTaskIds } from '../../src/fs/task-store.js';
 
@@ -230,5 +232,114 @@ test('runImportCommand: --tipo/--sprint/--complejidad se propagan a las tareas c
     assert.match(content, /tipo: fix/);
     assert.match(content, /sprint: 3/);
     assert.match(content, /complejidad: alta/);
+  });
+});
+
+
+// --- hallazgos de revision por pares (TASK-004), corregidos ------------
+
+test('normalizedTitleKey: titulos normales usan el slug tal cual (sin cambio de comportamiento)', () => {
+  assert.equal(normalizedTitleKey('Anadir validacion'), 'anadir-validacion');
+  assert.equal(normalizedTitleKey('Añadir Validación'), 'anadir-validacion');
+});
+
+test('normalizedTitleKey: dos titulos MUY distintos que caen en el fallback de slugify ya NO colisionan (hallazgo CRITICO de revision por pares)', () => {
+  const a = normalizedTitleKey('日本語のタスク一番');
+  const b = normalizedTitleKey('!!!???');
+  assert.notEqual(a, b);
+});
+
+test('runImportCommand: dos titulos sin ASCII alfanumerico (colisionaban antes en el fallback "tarea") ahora se crean AMBOS', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const md = await writeFixture('### 日本語のタスク一番\n- criterio japones\n\n### !!!???\n- criterio simbolos totalmente distintos\n');
+    const result = await runImportCommand(tareasRoot, [md], '2026-09-03', { repoCwd: repoRoot });
+    assert.equal(result.creadas.length, 2, `deberian crearse las 2: ${JSON.stringify(result)}`);
+    assert.equal(result.omitidas.length, 0);
+  });
+});
+
+test('runImportCommand: fichero inexistente NO cambia de rama (hallazgo IMPORTANTE de revision por pares)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    git(['checkout', '-q', '-b', 'feature/algo-existente'], repoRoot);
+    await assert.rejects(
+      () =>
+        runImportCommand(tareasRoot, [path.join(repoRoot, 'no-existe.md')], '2026-09-03', {
+          repoCwd: repoRoot,
+        }),
+      ImportCommandError
+    );
+    const branchNow = spawnSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(branchNow.stdout.trim(), 'feature/algo-existente');
+  });
+});
+
+test('runImportCommand: una tarea EXISTENTE con tarea.md corrupto se reporta como advertencia y no bloquea el import de tareas nuevas y no relacionadas (hallazgo IMPORTANTE de revision por pares)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Tarea existente valida, comiteada, y luego corrompida a mano
+    // (typo humano: falta ":" en una linea de frontmatter) para
+    // simular un tarea.md invalido ya presente en el repo, sin
+    // relacion alguna con lo que se va a importar.
+    const previa = buildNewTask('TASK-001', {
+      titulo: 'Tarea previa intacta', tipo: 'feature', sprint: 0, etiquetas: [],
+      complejidad: 'media', modeloSugerido: 'sonnet', agenteRevisor: 'general-purpose',
+    }, '2026-09-01');
+    const filePath = await writeTareaFile(tareasRoot, previa, DEFAULT_BODY);
+    const original = await readFile(filePath, 'utf8');
+    await writeFile(filePath, original.replace('complejidad: media', 'complejidad media'), 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'TASK-001 (corrupta a proposito para el test)'], repoRoot);
+
+    const md = await writeFixture('### Tarea nueva sin relacion\n- criterio nuevo\n');
+    const result = await runImportCommand(tareasRoot, [md], '2026-09-03', { repoCwd: repoRoot });
+
+    assert.equal(result.creadas.length, 1, `la tarea nueva deberia crearse igualmente: ${JSON.stringify(result)}`);
+    assert.equal(result.creadas[0]!.titulo, 'Tarea nueva sin relacion');
+    assert.equal(result.advertencias.length, 1);
+    assert.match(result.advertencias[0]!, /TASK-001/);
+  });
+});
+
+test('runImportCommand: una tarea EXISTENTE con frontmatter sintacticamente valido pero con un valor invalido (TaskValidationError) tambien se reporta como advertencia, no como excepcion sin capturar', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const previa = buildNewTask('TASK-001', {
+      titulo: 'Tarea previa con tipo invalido', tipo: 'feature', sprint: 0, etiquetas: [],
+      complejidad: 'media', modeloSugerido: 'sonnet', agenteRevisor: 'general-purpose',
+    }, '2026-09-01');
+    const filePath = await writeTareaFile(tareasRoot, previa, DEFAULT_BODY);
+    const original = await readFile(filePath, 'utf8');
+    // Sintacticamente valido como frontmatter (tiene ":"), pero "chore"
+    // no es un TaskType valido: dispara TaskValidationError, no
+    // FrontmatterParseError.
+    await writeFile(filePath, original.replace('tipo: feature', 'tipo: chore'), 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'TASK-001 (tipo invalido a proposito para el test)'], repoRoot);
+
+    const md = await writeFixture('### Otra tarea nueva\n- criterio\n');
+    const result = await runImportCommand(tareasRoot, [md], '2026-09-03', { repoCwd: repoRoot });
+
+    assert.equal(result.creadas.length, 1);
+    assert.equal(result.advertencias.length, 1);
+    assert.match(result.advertencias[0]!, /TASK-001/);
+  });
+});
+
+test('runImportCommand: dos imports concurrentes sobre el mismo repo no pierden ninguna entrada ni lanzan sin capturar (hallazgo IMPORTANTE de revision por pares)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const mdA = await writeFixture('### Tarea concurrente A\n- criterio a\n');
+    const mdB = await writeFixture('### Tarea concurrente B\n- criterio b\n');
+
+    const [ra, rb] = await Promise.all([
+      runImportCommand(tareasRoot, [mdA], '2026-09-03', { repoCwd: repoRoot }),
+      runImportCommand(tareasRoot, [mdB], '2026-09-03', { repoCwd: repoRoot }),
+    ]);
+
+    // Ninguna de las dos llamadas debe rechazar la promesa (antes del
+    // fix, TaskAlreadyExistsError escapaba sin capturar). Cada entrada
+    // debe quedar contabilizada en exactamente un sitio: creada, o con
+    // un error que documenta la colision.
+    assert.equal(ra.creadas.length + ra.errores.length, 1);
+    assert.equal(rb.creadas.length + rb.errores.length, 1);
+    if (ra.errores.length > 0) assert.match(ra.errores[0]!.motivo, /concurrente/);
+    if (rb.errores.length > 0) assert.match(rb.errores[0]!.motivo, /concurrente/);
   });
 });

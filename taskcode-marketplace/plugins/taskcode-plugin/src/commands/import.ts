@@ -10,15 +10,34 @@
  * — igual que new.ts documenta — no hace falta el patron de "doble
  * lectura" de plan.ts/approve.ts: toda lectura de tareas/ existentes
  * ocurre DESPUES de ensureBaseBranchReady, ya en la rama base real.
+ *
+ * Nota (hallazgo IMPORTANTE de revision por pares): el fichero a
+ * importar se lee ANTES de ensureBaseBranchReady, no despues. A
+ * diferencia de "new" (que no depende de ningun fichero externo que
+ * pueda no existir), "import" si tiene un argumento que puede fallar
+ * — y si esa comprobacion corriera despues de la precondicion, un
+ * "taskctl import fichero-que-no-existe.md" desde una rama de feature
+ * limpia cambiaria de rama igualmente (porque el workspace SI esta
+ * limpio) y luego fallaria, dejando a la persona en la rama base sin
+ * avisarle del cambio (el aviso solo se imprime en el camino de
+ * exito). Leer el fichero primero no incumple "no toca nada antes de
+ * la precondicion" — esa garantia es sobre tareas/ y Git, no sobre
+ * validar los argumentos de entrada.
  */
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
-import { TASK_TYPES, TASK_COMPLEXITIES, type TaskType, type TaskComplexity } from '../core/task.js';
+import { TASK_TYPES, TASK_COMPLEXITIES, TaskValidationError, type TaskType, type TaskComplexity } from '../core/task.js';
+import { FrontmatterParseError } from '../core/frontmatter.js';
 import { nextTaskId } from '../core/task-id.js';
-import { listExistingTaskIds, readTareaFile, writeTareaFile } from '../fs/task-store.js';
+import {
+  listExistingTaskIds,
+  readTareaFile,
+  writeTareaFile,
+  TaskAlreadyExistsError,
+} from '../fs/task-store.js';
 import { parseImportMarkdown } from '../core/import-parser.js';
-import { slugify, buildNewTask } from './new.js';
+import { slugify, buildNewTask, SLUG_FALLBACK } from './new.js';
 
 export class ImportCommandError extends Error {}
 
@@ -96,6 +115,27 @@ export function parseImportArgs(argv: readonly string[]): ImportOptions {
   return { filePath, tipo, sprint, complejidad, modeloSugerido, agenteRevisor };
 }
 
+/**
+ * Clave de idempotencia por "titulo normalizado" (hallazgo CRITICO de
+ * revision por pares): slugify() colapsa CUALQUIER titulo sin ningun
+ * caracter ASCII alfanumerico al mismo literal SLUG_FALLBACK
+ * ("tarea") — pensado para nombrar la rama de una tarea aislada
+ * (taskctl new), donde es inofensivo. Reutilizado tal cual como clave
+ * de deteccion de duplicados en un import de VARIAS tareas, dos
+ * titulos completamente distintos que caen en el fallback (p. ej.
+ * "日本語のタスク" y "!!!???") colisionaban en silencio: la segunda
+ * se descartaba como si ya existiera, sin ningun aviso real, violando
+ * el criterio de aceptacion "5 tareas bien formadas -> 5 ficheros".
+ * Fuera del caso fallback, el comportamiento no cambia: sigue usando
+ * el slug tal cual (misma insensibilidad a mayusculas/acentos que ya
+ * prueban los tests de idempotencia).
+ */
+export function normalizedTitleKey(titulo: string): string {
+  const slug = slugify(titulo);
+  if (slug !== SLUG_FALLBACK) return slug;
+  return `${SLUG_FALLBACK}:${titulo.trim().toLowerCase()}`;
+}
+
 export interface ImportCreatedEntry {
   id: string;
   titulo: string;
@@ -118,6 +158,13 @@ export interface ImportCommandResult {
   creadas: ImportCreatedEntry[];
   omitidas: ImportSkippedEntry[];
   errores: ImportErrorEntry[];
+  /**
+   * Avisos que no impiden el import pero merecen visibilidad
+   * (hallazgo IMPORTANTE de revision por pares): p. ej. una tarea
+   * YA EXISTENTE, ajena a este import, cuyo tarea.md esta corrupto y
+   * no se pudo leer para calcular la deteccion de duplicados.
+   */
+  advertencias: string[];
 }
 
 export interface ImportCommandDeps {
@@ -132,10 +179,6 @@ export async function runImportCommand(
   deps: ImportCommandDeps
 ): Promise<ImportCommandResult> {
   const opts = parseImportArgs(argv);
-  // Igual que "new" (TASK-012): la precondicion corre ANTES de leer o
-  // escribir nada de tareas/, incluso antes de intentar abrir el
-  // fichero a importar.
-  const baseBranchGuard = ensureBaseBranchReady(opts.tipo, deps.repoCwd);
 
   let content: string;
   try {
@@ -145,25 +188,43 @@ export async function runImportCommand(
     throw new ImportCommandError(`No se pudo leer "${opts.filePath}": ${msg}`);
   }
 
+  // Solo AHORA, con el fichero ya leido con exito, se aplica la
+  // precondicion de rama base — ver nota de cabecera del fichero.
+  const baseBranchGuard = ensureBaseBranchReady(opts.tipo, deps.repoCwd);
+
   const parsed = parseImportMarkdown(content);
 
   const errores: ImportErrorEntry[] = [];
   const omitidas: ImportSkippedEntry[] = [];
   const creadas: ImportCreatedEntry[] = [];
+  const advertencias: string[] = [];
 
   let existingIds = await listExistingTaskIds(tareasRoot);
-  // Titulo normalizado = mismo slug que usa "taskctl new" para la
-  // rama (TASK-012 lo reutiliza tal cual): es la nocion de "mismo
-  // titulo" mas barata de calcular sin arrastrar un segundo criterio
-  // de similitud. Se calcula una vez, leyendo cada tarea existente,
-  // y se actualiza en memoria segun se van creando tareas nuevas en
-  // esta misma pasada (para que dos entradas iguales dentro del mismo
-  // fichero tambien se detecten, no solo contra tareas ya en disco).
   const usedSlugs = new Set<string>();
-  for (const id of existingIds) {
-    const existing = await readTareaFile(tareasRoot, id);
-    if (existing) usedSlugs.add(slugify(existing.task.titulo));
-  }
+  // Lectura en paralelo (hallazgo MENOR de revision por pares,
+  // corregido de paso): cada tarea existente se lee de forma
+  // independiente, sin esperar a la anterior. Una tarea.md corrupta
+  // (hallazgo IMPORTANTE de revision por pares) ya NO bloquea el
+  // import entero: se reporta como advertencia y esa tarea
+  // simplemente no participa en la deteccion de duplicados.
+  await Promise.all(
+    existingIds.map(async (id) => {
+      try {
+        const existing = await readTareaFile(tareasRoot, id);
+        if (existing) usedSlugs.add(normalizedTitleKey(existing.task.titulo));
+      } catch (e: unknown) {
+        if (e instanceof FrontmatterParseError || e instanceof TaskValidationError) {
+          const msg = e instanceof Error ? e.message : String(e);
+          advertencias.push(
+            `${id} tiene un tarea.md invalido y no se pudo leer (no participa en la deteccion ` +
+              `de duplicados de este import): ${msg}`
+          );
+          return;
+        }
+        throw e;
+      }
+    })
+  );
 
   for (const entry of parsed) {
     if (!entry.ok) {
@@ -171,11 +232,11 @@ export async function runImportCommand(
       continue;
     }
 
-    const slug = slugify(entry.titulo);
-    if (usedSlugs.has(slug)) {
+    const key = normalizedTitleKey(entry.titulo);
+    if (usedSlugs.has(key)) {
       omitidas.push({
         titulo: entry.titulo,
-        motivo: `ya existe una tarea con el titulo normalizado "${slug}"; no se sobreescribe.`,
+        motivo: `ya existe una tarea con el titulo normalizado "${slugify(entry.titulo)}"; no se sobreescribe.`,
       });
       continue;
     }
@@ -197,12 +258,39 @@ export async function runImportCommand(
       },
       today
     );
-    const filePath = await writeTareaFile(tareasRoot, task, body, { failIfExists: true });
+
+    let filePath: string;
+    try {
+      filePath = await writeTareaFile(tareasRoot, task, body, { failIfExists: true });
+    } catch (e: unknown) {
+      // Hallazgo IMPORTANTE de revision por pares: si otra ejecucion
+      // concurrente ("taskctl new"/"taskctl import" en paralelo) crea
+      // ese mismo ID entre listExistingTaskIds() y este write, antes
+      // esto escapaba sin capturar y perdia el resumen entero de la
+      // pasada (incluidas las tareas ya escritas con exito antes en
+      // el mismo bucle). Ahora se reporta como error de ESTA entrada
+      // y el import sigue con las demas — igual que una entrada
+      // malformada — resincronizando el listado de IDs para no volver
+      // a calcular el mismo ID ya ocupado en la siguiente vuelta.
+      if (e instanceof TaskAlreadyExistsError) {
+        errores.push({
+          tituloRaw: entry.titulo,
+          lineNumber: entry.lineNumber,
+          motivo:
+            `no se pudo crear como ${id}: ${e.message} Puede haberse creado por otra ejecucion ` +
+            'concurrente de "taskctl new"/"taskctl import"; las tareas ya creadas en esta misma ' +
+            'pasada se conservan. Vuelve a intentar el import para esta entrada.',
+        });
+        existingIds = await listExistingTaskIds(tareasRoot);
+        continue;
+      }
+      throw e;
+    }
 
     creadas.push({ id, titulo: entry.titulo, filePath });
     existingIds = [...existingIds, id];
-    usedSlugs.add(slug);
+    usedSlugs.add(key);
   }
 
-  return { baseBranchGuard, creadas, omitidas, errores };
+  return { baseBranchGuard, creadas, omitidas, errores, advertencias };
 }

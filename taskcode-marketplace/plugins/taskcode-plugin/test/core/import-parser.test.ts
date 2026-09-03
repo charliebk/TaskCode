@@ -101,3 +101,20 @@ test('parseImportMarkdown: lineas en blanco entre criterios no rompen la entrada
   assert.equal(e.ok, true);
   if (e.ok) assert.deepEqual(e.criterios, ['uno', 'dos', 'tres']);
 });
+
+test('parseImportMarkdown: tolera criterios con indentacion (hallazgo IMPORTANTE de revision por pares, TASK-004)', () => {
+  const entries = parseImportMarkdown('### Tarea con bullets indentados\n  - criterio indentado uno\n  - criterio indentado dos\n');
+  assert.equal(entries.length, 1);
+  const e = entries[0]!;
+  assert.equal(e.ok, true);
+  if (e.ok) assert.deepEqual(e.criterios, ['criterio indentado uno', 'criterio indentado dos']);
+});
+
+test('parseImportMarkdown: tolera mezclar criterios indentados y sin indentar en la misma entrada', () => {
+  const entries = parseImportMarkdown('### Tarea\n- sin indentar\n  - indentado\n    * mas indentado, con asterisco\n');
+  const e = entries[0]!;
+  assert.equal(e.ok, true);
+  if (e.ok) {
+    assert.deepEqual(e.criterios, ['sin indentar', 'indentado', 'mas indentado, con asterisco']);
+  }
+});

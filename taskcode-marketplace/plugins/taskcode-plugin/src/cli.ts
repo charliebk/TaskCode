@@ -102,6 +102,9 @@ export async function main(argv: readonly string[]): Promise<number> {
     try {
       const result = await runImportCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
       printBaseBranchSwitchNotice(result.baseBranchGuard);
+      for (const aviso of result.advertencias) {
+        process.stderr.write(`[AVISO] ${aviso}\n`);
+      }
       for (const error of result.errores) {
         process.stderr.write(
           `[ERROR] Linea ${error.lineNumber} ("${error.tituloRaw}"): ${error.motivo}\n`
@@ -117,7 +120,11 @@ export async function main(argv: readonly string[]): Promise<number> {
         `Import completado: ${result.creadas.length} creada(s), ` +
           `${result.omitidas.length} omitida(s), ${result.errores.length} con error.\n`
       );
-      return 0;
+      // Hallazgo IMPORTANTE de revision por pares (TASK-004): antes
+      // siempre devolvia 0, incluso si TODAS las entradas fallaban —
+      // un "taskctl import x.md && siguiente_paso" en un script nunca
+      // se enteraba de que el import no creo nada.
+      return result.errores.length > 0 ? 1 : 0;
     } catch (e) {
       if (e instanceof ImportCommandError || e instanceof BaseBranchGuardError) {
         printCliError(e);

@@ -29,7 +29,12 @@
 
 const HEADING_LEVEL_3_RE = /^###\s+(.*)$/;
 const ANY_HEADING_RE = /^#{1,6}\s/;
-const LIST_ITEM_RE = /^[-*]\s+(.+)$/;
+// Tolera indentacion inicial (hallazgo IMPORTANTE de revision por
+// pares, TASK-004): una lista indentada con espacios es Markdown
+// valido y visualmente identica a una sin indentar en cualquier
+// renderizador — anclarla a la columna 0 rechazaba la tarea ENTERA
+// con un mensaje que no explicaba la causa real.
+const LIST_ITEM_RE = /^\s*[-*]\s+(.+)$/;
 
 export interface ParsedImportEntryOk {
   ok: true;
