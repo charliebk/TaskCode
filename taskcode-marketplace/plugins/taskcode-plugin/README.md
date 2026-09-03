@@ -105,6 +105,29 @@ Las cuatro formas de invocación funcionan de forma idéntica una vez el bit
 de ejecución está bien trackeado: el mecanismo de `bin/` en PATH que usa
 Claude Code depende exactamente de esto.
 
+### Smoke test en un clon aislado
+
+Se repitió el patrón de smoke test de TASK-004/TASK-005: `git clone` a un
+directorio temporal separado, checkout de esta rama, `npm install && npm
+run build` en el clon (nunca se hereda `dist/`/`node_modules/` de un
+`git clone`), y ejecución real:
+
+```
+$ ls -la bin/taskctl          # tras un clon limpio, sin tocar permisos a mano
+-rwxr-xr-x 1 ... bin/taskctl
+
+$ node bin/taskctl --help     # OK
+$ ./bin/taskctl --version     # OK — 0.1.0
+$ PATH="$(pwd)/bin:$PATH" taskctl --version   # OK — 0.1.0, resuelto como comando suelto
+```
+
+El bit de ejecución sobrevive un `git clone` normal en un filesystem POSIX
+estándar (confirma que el fix de `git update-index --chmod=+x` es
+correcto y suficiente ahí). Además se corrió `taskctl import` y
+`taskctl board` de punta a punta en ese mismo clon para confirmar que el
+empaquetado no rompió nada del resto del CLI — ambos funcionaron igual
+que en TASK-004/TASK-005.
+
 ### Lo que NO se ha podido verificar en esta sesión (limitación de entorno)
 
 Ni el contenedor cloud de esta sesión ni el bridge hacia el equipo del
