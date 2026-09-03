@@ -4,6 +4,8 @@
  */
 import path from 'node:path';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
+import { runStartCommand, StartCommandError, StateMachineError } from './commands/start.js';
+import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
 
 const VERSION = '0.1.0';
 
@@ -15,8 +17,9 @@ Uso:
   taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release> \\
               [--sprint N] [--etiquetas a,b,c] [--complejidad ...] \\
               [--modelo-sugerido ...] [--agente-revisor ...]
+  taskctl start TASK-NNN
 
-Comandos (Sprint 0, en construccion): new. import y board llegan a
+Comandos: new, start. import, board, plan, approve llegan a
 continuacion. Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -45,6 +48,28 @@ export async function main(argv: readonly string[]): Promise<number> {
     } catch (e) {
       if (e instanceof NewTaskArgError) {
         process.stderr.write(`[ERROR] ${e.message}\n`);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'start') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const result = await runStartCommand(tareasRoot, argv.slice(1), today(), {
+        repoCwd,
+        scriptsDir: resolveGitflowScriptsDir(),
+      });
+      process.stdout.write(
+        `Tarea ${result.id} en curso: rama ${result.rama} creada y confirmada, ` +
+          `tarea movida a ${result.filePath}\n`
+      );
+      return 0;
+    } catch (e) {
+      if (e instanceof StartCommandError || e instanceof StateMachineError) {
+        process.stderr.write(`${e.message}\n`);
         return 1;
       }
       throw e;
