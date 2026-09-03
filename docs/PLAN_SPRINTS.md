@@ -127,9 +127,11 @@ salvo la primera fila:
 | Sprint | Tareas cerradas | Horas reales | Cobertura tests | Nº tests | Hallazgos en revisión por pares |
 |---|---|---|---|---|---|
 | 0 (parcial) | TASK-001, TASK-002, TASK-003 | — (sesión con agentes, no comparable a horas-persona) | 98.69% líneas / 95.77% ramas | 91 | 10 (9 corregidos, 1 documentado como limitación conocida) |
+| 0 (spike) | TASK-007 | — | n/a (smoke test funcional, no unitario) | — | 4 hallazgos reales, 2 corregidos en el propio spike |
+| 1 (parcial) | TASK-008 | — | n/a (scripts Bash) | 1 smoke test, 6 comprobaciones | 1 menor (corregido); 2 hallazgos nuevos documentados sin corregir (mismo bug de `origin` en 7 scripts más; bit ejecutable no se conserva en este repo) |
 
-Detalle completo en `docs/METRICAS.md`. TASK-004 a TASK-007 de Sprint 0
-quedan pendientes — ya existen como tareas en `tareas/00-planificadas/`.
+Detalle completo en `docs/METRICAS.md` y `docs/spikes/`. TASK-004, TASK-005,
+TASK-006 de Sprint 0 y TASK-009 a TASK-012 de Sprint 1 quedan pendientes.
 
 ## 7. Riesgos y supuestos abiertos que bloquean sprints concretos
 
