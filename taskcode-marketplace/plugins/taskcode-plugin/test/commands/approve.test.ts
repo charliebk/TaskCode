@@ -1,16 +1,19 @@
 /**
- * Tests de taskctl approve (TASK-011). Como plan.test.ts, no hace
- * falta un repo Git real: approve tampoco toca Git.
+ * Tests de taskctl approve (TASK-011). Desde TASK-012, approve SI toca
+ * Git (ensureBaseBranchReady, seccion 8.3) — monta un repo Git
+ * temporal real, mismo patron que start.test.ts/plan.test.ts.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import { runApproveCommand, ApproveCommandError } from '../../src/commands/approve.js';
 import { PLAN_FINAL_FILENAME } from '../../src/commands/plan.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
+import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
 
 function sampleTask(overrides: Partial<Task> = {}): Task {
@@ -37,121 +40,157 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
   };
 }
 
-async function withTempRoot(fn: (root: string) => Promise<void>): Promise<void> {
-  const root = await mkdtemp(path.join(tmpdir(), 'taskctl-approve-'));
+function git(args: string[], cwd: string): void {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  assert.equal(result.status, 0, `git ${args.join(' ')} fallo: ${result.stderr}`);
+}
+
+function branchNow(cwd: string): string {
+  return spawnSync('git', ['branch', '--show-current'], { cwd, encoding: 'utf8' }).stdout.trim();
+}
+
+function commitAll(repoRoot: string, message: string): void {
+  git(['add', '-A'], repoRoot);
+  git(['commit', '-q', '-m', message], repoRoot);
+}
+
+async function withTempRepo(fn: (repoRoot: string, tareasRoot: string) => Promise<void>): Promise<void> {
+  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-approve-'));
   try {
-    await fn(root);
+    git(['init', '-q', '-b', 'main'], repoRoot);
+    git(['config', 'user.email', 'test@example.com'], repoRoot);
+    git(['config', 'user.name', 'Test'], repoRoot);
+    await writeFile(path.join(repoRoot, 'README.md'), '# repo de prueba\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'inicial'], repoRoot);
+    git(['checkout', '-q', '-b', 'develop'], repoRoot);
+
+    const tareasRoot = path.join(repoRoot, 'tareas');
+    await fn(repoRoot, tareasRoot);
   } finally {
-    await rm(root, { recursive: true, force: true });
+    await rm(repoRoot, { recursive: true, force: true });
   }
 }
 
-async function writePlanFinal(root: string, id: string, content = '# Plan real\n'): Promise<void> {
-  await writeFile(path.join(root, '01-en-diseno', id, PLAN_FINAL_FILENAME), content, 'utf8');
+async function writePlanFinal(tareasRoot: string, id: string, content = '# Plan real\n'): Promise<void> {
+  await writeFile(path.join(tareasRoot, '01-en-diseno', id, PLAN_FINAL_FILENAME), content, 'utf8');
 }
 
 test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-diseno y plan-final.md existe', async () => {
-  await withTempRoot(async (root) => {
-    await writeTareaFile(root, sampleTask(), '## Objetivo\nAlgo.\n');
-    await writePlanFinal(root, 'TASK-800');
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nAlgo.\n');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan');
 
-    const result = await runApproveCommand(root, ['TASK-800'], '2026-09-05');
+    const result = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot });
 
     assert.equal(result.id, 'TASK-800');
     // No se mueve de carpeta: sigue en 01-en-diseno.
     assert.match(result.filePath, /01-en-diseno[/\\]TASK-800[/\\]tarea\.md$/);
+    assert.equal(result.baseBranchGuard.switched, false);
 
-    const read = await readTareaFile(root, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
     assert.equal(read?.task.estado, 'en-diseno');
     assert.equal(read?.task.plan_aprobado, true);
     assert.equal(read?.task.actualizado, '2026-09-05');
 
     // plan-final.md no se toco.
-    const plan = await stat(path.join(root, '01-en-diseno', 'TASK-800', PLAN_FINAL_FILENAME));
+    const plan = await stat(path.join(tareasRoot, '01-en-diseno', 'TASK-800', PLAN_FINAL_FILENAME));
     assert.ok(plan.isFile());
   });
 });
 
 test('taskctl approve: rechaza si plan-final.md todavia no existe, sin tocar nada', async () => {
-  await withTempRoot(async (root) => {
-    await writeTareaFile(root, sampleTask(), '');
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea TASK-800 sin plan');
     // Sin escribir plan-final.md.
 
     await assert.rejects(
-      () => runApproveCommand(root, ['TASK-800'], '2026-09-05'),
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
       StateMachineError
     );
 
-    const read = await readTareaFile(root, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
     assert.equal(read?.task.plan_aprobado, false);
     assert.equal(read?.task.actualizado, '2026-09-03');
   });
 });
 
 test('taskctl approve: rechaza si la tarea no esta en en-diseno (p. ej. planificada)', async () => {
-  await withTempRoot(async (root) => {
-    await writeTareaFile(root, sampleTask({ estado: 'planificada' }), '');
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'planificada' }), '');
+    commitAll(repoRoot, 'tarea TASK-800 planificada');
     await assert.rejects(
-      () => runApproveCommand(root, ['TASK-800'], '2026-09-05'),
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
       StateMachineError
     );
-    const read = await readTareaFile(root, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
     assert.equal(read?.task.estado, 'planificada');
     assert.equal(read?.task.plan_aprobado, false);
   });
 });
 
 test('taskctl approve: rechaza si la tarea no esta en en-diseno (p. ej. en-curso), aunque exista un plan-final.md suelto', async () => {
-  await withTempRoot(async (root) => {
-    await writeTareaFile(root, sampleTask({ estado: 'en-curso' }), '');
-    await writeFile(path.join(root, '02-en-curso', 'TASK-800', PLAN_FINAL_FILENAME), '# x\n', 'utf8');
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-curso' }), '');
+    await writeFile(path.join(tareasRoot, '02-en-curso', 'TASK-800', PLAN_FINAL_FILENAME), '# x\n', 'utf8');
+    commitAll(repoRoot, 'tarea TASK-800 en curso');
 
     await assert.rejects(
-      () => runApproveCommand(root, ['TASK-800'], '2026-09-05'),
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
       StateMachineError
     );
-    const read = await readTareaFile(root, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
     assert.equal(read?.task.estado, 'en-curso');
   });
 });
 
 test('taskctl approve: rechaza si el ID no existe, sin efectos secundarios', async () => {
-  await withTempRoot(async (root) => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
     await assert.rejects(
-      () => runApproveCommand(root, ['TASK-999'], '2026-09-05'),
+      () => runApproveCommand(tareasRoot, ['TASK-999'], '2026-09-05', { repoCwd: repoRoot }),
       StateMachineError
     );
   });
 });
 
 test('taskctl approve: error claro si falta el ID', async () => {
-  await withTempRoot(async (root) => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
     await assert.rejects(
-      () => runApproveCommand(root, [], '2026-09-05'),
+      () => runApproveCommand(tareasRoot, [], '2026-09-05', { repoCwd: repoRoot }),
       ApproveCommandError
     );
   });
 });
 
 test('taskctl approve: es idempotente si se invoca dos veces seguidas (ya aprobada sigue aprobada)', async () => {
-  await withTempRoot(async (root) => {
-    await writeTareaFile(root, sampleTask(), '');
-    await writePlanFinal(root, 'TASK-800');
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan');
 
-    await runApproveCommand(root, ['TASK-800'], '2026-09-05');
-    const result2 = await runApproveCommand(root, ['TASK-800'], '2026-09-06');
+    await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot });
+    // approve no comitea por la persona (fuera de alcance de TASK-012,
+    // ver Objetivo de tarea.md — el paso 5 de la seccion 8.3 queda
+    // pendiente): el workspace queda con tarea.md modificado, hay que
+    // comitearlo a mano antes de la segunda vuelta, igual que en uso
+    // real.
+    commitAll(repoRoot, 'TASK-800 aprobada (primera vuelta)');
+    const result2 = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot });
 
     assert.equal(result2.id, 'TASK-800');
-    const read = await readTareaFile(root, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
     assert.equal(read?.task.plan_aprobado, true);
     assert.equal(read?.task.actualizado, '2026-09-06');
   });
 });
 
 test('taskctl approve: propaga cualquier error de stat que NO sea ENOENT (no lo confunde con "no existe")', async () => {
-  await withTempRoot(async (root) => {
-    await writeTareaFile(root, sampleTask(), '');
-    const taskDir = path.join(root, '01-en-diseno', 'TASK-800');
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea TASK-800');
+    const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-800');
     // Symlink autorreferencial en vez de un fichero normal: stat()
     // falla con ELOOP, no con ENOENT — debe propagarse, no
     // interpretarse como "el plan no existe todavia". (Restringir
@@ -159,11 +198,11 @@ test('taskctl approve: propaga cualquier error de stat que NO sea ENOENT (no lo 
     // tambien contiene tarea.md, asi que quitarle el bit de ejecucion
     // hace fallar la propia lectura de tarea.md en readTareaFile con
     // el mismo EACCES, antes de llegar siquiera al codigo bajo prueba
-    // — hallazgo propio al escribir este test.)
+    // — hallazgo propio al escribir este test, TASK-011.)
     await symlink(PLAN_FINAL_FILENAME, path.join(taskDir, PLAN_FINAL_FILENAME));
 
     await assert.rejects(
-      () => runApproveCommand(root, ['TASK-800'], '2026-09-05'),
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
       (err: unknown) => {
         assert.ok(err instanceof Error);
         assert.equal((err as NodeJS.ErrnoException).code, 'ELOOP');
@@ -174,13 +213,127 @@ test('taskctl approve: propaga cualquier error de stat que NO sea ENOENT (no lo 
 });
 
 test('taskctl approve: complejidad trivial/simple tambien pasa por el mismo checkpoint si se invoca (approve no distingue complejidad)', async () => {
-  await withTempRoot(async (root) => {
-    await writeTareaFile(root, sampleTask({ complejidad: 'trivial' }), '');
-    await writePlanFinal(root, 'TASK-800');
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'trivial' }), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 trivial');
 
-    const result = await runApproveCommand(root, ['TASK-800'], '2026-09-05');
+    const result = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot });
     assert.equal(result.id, 'TASK-800');
-    const read = await readTareaFile(root, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
     assert.equal(read?.task.plan_aprobado, true);
+  });
+});
+
+// --- precondicion de rama base (seccion 8.3, TASK-012) ---------------------
+
+test('taskctl approve: workspace sucio en develop aborta sin marcar plan_aprobado', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan');
+    await writeFile(path.join(repoRoot, 'sucio.txt'), 'sin commitear', 'utf8');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
+      BaseBranchGuardError
+    );
+
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, false);
+  });
+});
+
+test('taskctl approve: en una rama de feature, limpia, cambia sola a develop antes de aprobar', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan');
+    git(['checkout', '-q', '-b', 'feature/otra-cosa'], repoRoot);
+
+    const result = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot });
+
+    assert.equal(result.baseBranchGuard.switched, true);
+    assert.equal(result.baseBranchGuard.branchAntes, 'feature/otra-cosa');
+    assert.equal(branchNow(repoRoot), 'develop');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, true);
+  });
+});
+
+test('taskctl approve: falta de plan-final.md se sigue rechazando ANTES de tocar la rama activa', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea TASK-800 sin plan');
+    git(['checkout', '-q', '-b', 'feature/otra-cosa'], repoRoot);
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
+      StateMachineError
+    );
+    assert.equal(branchNow(repoRoot), 'feature/otra-cosa');
+  });
+});
+
+test('taskctl approve: la tarea existe en la rama vieja pero NO en la rama base real tras el cambio — rechaza sin marcar nada (hallazgo CRITICO de revision por pares, TASK-012)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    git(['checkout', '-q', '-b', 'feature/donde-no-deberia-estar'], repoRoot);
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 solo en esta rama de feature');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
+      StateMachineError
+    );
+
+    assert.equal(branchNow(repoRoot), 'develop');
+    await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-800')));
+  });
+});
+
+test('taskctl approve: NO sobrescribe con datos viejos el contenido real de la rama base (hallazgo CRITICO de revision por pares, TASK-012)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // develop (rama base real) ya tiene la tarea aprobada de verdad,
+    // con etiquetas que alguien edito despues de la lectura que va a
+    // hacer la rama vieja.
+    await writeTareaFile(tareasRoot, sampleTask({ etiquetas: ['orig'] }), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan (v1)');
+
+    // Rama de feature vieja, bifurcada ANTES de que developara
+    // avanzara.
+    git(['checkout', '-q', '-b', 'feature/vieja'], repoRoot);
+
+    // develop sigue avanzando de verdad: se edita a mano (simulando
+    // otra persona/sesion) y se aprueba.
+    git(['checkout', '-q', 'develop'], repoRoot);
+    const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-800');
+    const tareaPath = path.join(taskDir, 'tarea.md');
+    const original = await (await import('node:fs/promises')).readFile(tareaPath, 'utf8');
+    const editado = original
+      .replace('etiquetas: [orig]', 'etiquetas: [real, editada-en-develop]')
+      .replace('plan_aprobado: false', 'plan_aprobado: true');
+    await writeFile(tareaPath, editado, 'utf8');
+    commitAll(repoRoot, 'TASK-800 aprobada de verdad en develop, con etiquetas nuevas');
+
+    // Vuelve a la rama vieja (limpia, sin cambios sin commitear) y
+    // ejecuta approve desde ahi.
+    git(['checkout', '-q', 'feature/vieja'], repoRoot);
+    const staleRead = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.deepEqual(staleRead?.task.etiquetas, ['orig']);
+    assert.equal(staleRead?.task.plan_aprobado, false);
+
+    const result = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot });
+
+    assert.equal(result.baseBranchGuard.switched, true);
+    assert.equal(branchNow(repoRoot), 'develop');
+
+    // El contenido real de develop (etiquetas nuevas) se conserva —
+    // NO se sobrescribe con lo que veia la rama vieja.
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.deepEqual(read?.task.etiquetas, ['real', 'editada-en-develop']);
+    assert.equal(read?.task.plan_aprobado, true);
+    assert.equal(read?.task.actualizado, '2026-09-06');
   });
 });

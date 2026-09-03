@@ -7,6 +7,7 @@
  * scripts .sh siguen siendo la unica fuente de verdad para eso).
  */
 import { spawnSync } from 'node:child_process';
+import type { Task } from '../core/task.js';
 
 export class GitCommandError extends Error {
   constructor(
@@ -72,4 +73,176 @@ export function isValidBranchName(name: string, cwd: string): boolean {
     throw new GitLaunchError(result.error);
   }
   return result.status === 0;
+}
+
+/**
+ * true si "git ls-remote --heads origin" responde sin error: hay un
+ * remoto "origin" configurado y alcanzable. No distingue "no hay
+ * origin" de "hay origin pero no hay red" — ninguno de los dos casos
+ * cambia lo que taskctl debe hacer (seguir en modo local), igual que
+ * ya asume _gitflow-common.sh.
+ */
+export function isRemoteAvailable(cwd: string): boolean {
+  const result = spawnSync('git', ['ls-remote', '--heads', 'origin'], { cwd, encoding: 'utf8' });
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  return result.status === 0;
+}
+
+/** true si existe una referencia LOCAL para esa rama. */
+export function localBranchExists(name: string, cwd: string): boolean {
+  const result = spawnSync(
+    'git',
+    ['show-ref', '--verify', '--quiet', `refs/heads/${name}`],
+    { cwd, encoding: 'utf8' }
+  );
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  return result.status === 0;
+}
+
+/** true si esa rama existe en "origin". Asume que ya se llamo isRemoteAvailable. */
+function remoteBranchExists(name: string, cwd: string): boolean {
+  const output = runGit(['ls-remote', '--heads', 'origin', name], cwd);
+  return output
+    .split('\n')
+    .some((line) => line.trim().endsWith(`refs/heads/${name}`));
+}
+
+/**
+ * Reimplementacion en TypeScript de resolve_main_branch()
+ * (_gitflow-common.sh): que rama usar como base "principal" cuando no
+ * hay una preferencia explicita (orden: origin/main, origin/master,
+ * main local, master local, "master" por defecto). No se invoca la
+ * funcion Bash porque vive pensada para ser sourceada desde los
+ * scripts create-*.sh, no como script independiente invocable — mismo
+ * motivo por el que isValidBranchName (TASK-009) ya reimplemento
+ * assert_valid_branch_name en vez de intentar invocar la funcion sola.
+ */
+export function resolveMainBranch(cwd: string): string {
+  if (isRemoteAvailable(cwd)) {
+    if (remoteBranchExists('main', cwd)) return 'main';
+    if (remoteBranchExists('master', cwd)) return 'master';
+  }
+  if (localBranchExists('main', cwd)) return 'main';
+  if (localBranchExists('master', cwd)) return 'master';
+  return 'master';
+}
+
+const RAMA_BASE_ES_DEVELOP: Record<Task['tipo'], boolean> = {
+  feature: true,
+  fix: true,
+  release: true,
+  hotfix: false,
+};
+
+/**
+ * Rama base esperada para un tipo de tarea (seccion 8.3): "develop"
+ * para feature/fix/release, resolveMainBranch() para hotfix.
+ */
+export function resolveBaseBranchForTipo(tipo: Task['tipo'], cwd: string): string {
+  return RAMA_BASE_ES_DEVELOP[tipo] ? 'develop' : resolveMainBranch(cwd);
+}
+
+export class BaseBranchGuardError extends Error {}
+
+export interface BaseBranchGuardResult {
+  baseBranch: string;
+  /** true si taskctl tuvo que cambiar de rama para llegar a baseBranch. */
+  switched: boolean;
+  /** Rama activa ANTES de la comprobacion (para el mensaje al usuario). */
+  branchAntes: string;
+}
+
+/**
+ * Precondicion de la seccion 8.3, pasos 1 a 3 (TASK-012): resuelve la
+ * rama base esperada segun el tipo de tarea, aborta sin tocar nada si
+ * el workspace tiene cambios sin commitear, y si esta limpio pero no
+ * esta ya en la base, cambia automaticamente (creando tracking local a
+ * origin/<base> si hace falta y hay remoto) y hace "pull --ff-only"
+ * cuando hay remoto disponible. El paso 4 (logica propia de cada
+ * comando) lo hace el caller despues de que esto no lance. El paso 5
+ * (comitear y subir lo que el comando genere) queda fuera de alcance a
+ * proposito — ver el Objetivo de TASK-012 en su tarea.md.
+ */
+export function ensureBaseBranchReady(tipo: Task['tipo'], cwd: string): BaseBranchGuardResult {
+  const branchAntes = currentBranch(cwd);
+
+  // Comprobacion sin red ANTES de resolver la rama base (que para
+  // "hotfix" puede necesitar hasta 3 "git ls-remote"): el caso mas
+  // comun de todos — workspace sucio — no deberia pagar ese coste
+  // (hallazgo menor de revision por pares, TASK-012). El mensaje no
+  // menciona la rama base esperada a proposito: es literalmente el
+  // ejemplo de la seccion 8.3 de la metodologia, que tampoco la
+  // menciona.
+  if (!isWorkspaceClean(cwd)) {
+    throw new BaseBranchGuardError(
+      `[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos o comitealos antes de ` +
+        'continuar.'
+    );
+  }
+
+  const baseBranch = resolveBaseBranchForTipo(tipo, cwd);
+  if (branchAntes === baseBranch) {
+    return { baseBranch, switched: false, branchAntes };
+  }
+
+  const remoteAvailable = isRemoteAvailable(cwd);
+  const existeLocal = localBranchExists(baseBranch, cwd);
+
+  if (!existeLocal && !remoteAvailable) {
+    throw new BaseBranchGuardError(
+      `[ERROR] La rama base "${baseBranch}" no existe en local y no hay conexion con origin ` +
+        'para crearla. Revisa el repo antes de continuar.'
+    );
+  }
+
+  try {
+    if (existeLocal) {
+      runGit(['checkout', '-q', baseBranch], cwd);
+    } else {
+      runGit(['checkout', '-q', '-b', baseBranch, `origin/${baseBranch}`], cwd);
+    }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new BaseBranchGuardError(
+      `[ERROR] No se pudo cambiar a la rama base "${baseBranch}": ${msg}`
+    );
+  }
+
+  // El pull va en su propio try/catch (hallazgo importante de revision
+  // por pares, TASK-012): si el checkout de arriba tuvo exito, la rama
+  // activa YA cambio de verdad, aunque el pull falle despues (por
+  // ejemplo, develop local diverge de origin/develop). Envolver ambos
+  // en un unico catch daba un mensaje que sonaba a "no se cambio de
+  // rama" cuando en realidad si se habia cambiado y se quedaba asi, sin
+  // deshacerse — el mensaje de aqui deja claro que el cambio de rama
+  // ya es un hecho consumado y hay que resolver el pull a mano.
+  if (remoteAvailable) {
+    try {
+      runGit(['pull', '--ff-only', 'origin', baseBranch], cwd);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new BaseBranchGuardError(
+        `[ERROR] Se cambio a la rama base "${baseBranch}" pero no se pudo actualizar con ` +
+          `"pull --ff-only": ${msg} La rama activa AHORA es "${baseBranch}" (el cambio de rama ` +
+          'no se deshizo); resuelve el pull a mano antes de reintentar.'
+      );
+    }
+  }
+
+  // Evidencia, no suposicion (mismo principio que TASK-007/009): un
+  // "git checkout" sin error no basta por si solo, se confirma la
+  // rama activa real antes de dejar seguir al comando.
+  const branchDespues = currentBranch(cwd);
+  if (branchDespues !== baseBranch) {
+    throw new BaseBranchGuardError(
+      `[ERROR] Se intento cambiar a "${baseBranch}" pero la rama activa es "${branchDespues}". ` +
+        'No se ha tocado ningun fichero de la tarea; revisa el repo a mano.'
+    );
+  }
+
+  return { baseBranch, switched: true, branchAntes };
 }

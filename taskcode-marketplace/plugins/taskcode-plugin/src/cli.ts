@@ -10,6 +10,7 @@ import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
+import { BaseBranchGuardError, type BaseBranchGuardResult } from './fs/git.js';
 
 const VERSION = '0.1.0';
 
@@ -46,6 +47,22 @@ function printCliError(e: Error): void {
   process.stderr.write(`${msg}\n`);
 }
 
+/**
+ * Aviso informativo del paso 3 de la seccion 8.3 (TASK-012): cuando
+ * ensureBaseBranchReady tuvo que cambiar de rama por la persona, se lo
+ * dice antes de mostrar el resultado del comando — mismo formato que
+ * el ejemplo de la metodologia ("Workspace limpio -> cambiando
+ * automaticamente a develop..."), en pasado porque para cuando se
+ * imprime ya ha terminado.
+ */
+function printBaseBranchSwitchNotice(guard: BaseBranchGuardResult): void {
+  if (!guard.switched) return;
+  process.stdout.write(
+    `Workspace limpio -> cambiado automaticamente de "${guard.branchAntes}" a ` +
+      `"${guard.baseBranch}".\n`
+  );
+}
+
 export async function main(argv: readonly string[]): Promise<number> {
   const cmd = argv[0];
 
@@ -59,13 +76,15 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
 
   if (cmd === 'new') {
-    const tareasRoot = path.join(process.cwd(), 'tareas');
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
     try {
-      const result = await runNewCommand(tareasRoot, argv.slice(1), today());
+      const result = await runNewCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+      printBaseBranchSwitchNotice(result.baseBranchGuard);
       process.stdout.write(`Tarea ${result.id} creada: ${result.filePath}\n`);
       return 0;
     } catch (e) {
-      if (e instanceof NewTaskArgError) {
+      if (e instanceof NewTaskArgError || e instanceof BaseBranchGuardError) {
         printCliError(e);
         return 1;
       }
@@ -100,9 +119,11 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
 
   if (cmd === 'plan') {
-    const tareasRoot = path.join(process.cwd(), 'tareas');
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
     try {
-      const result = await runPlanCommand(tareasRoot, argv.slice(1), today());
+      const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+      printBaseBranchSwitchNotice(result.baseBranchGuard);
       const scaffoldMsg = result.planCreated
         ? `Scaffold creado en ${result.planPath} — redactalo antes de "taskctl approve".`
         : `${result.planPath} ya existia (re-planificacion) — se dejo intacto.`;
@@ -114,7 +135,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       if (
         e instanceof PlanCommandError ||
         e instanceof StateMachineError ||
-        e instanceof TaskFolderConflictError
+        e instanceof TaskFolderConflictError ||
+        e instanceof BaseBranchGuardError
       ) {
         printCliError(e);
         return 1;
@@ -124,9 +146,11 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
 
   if (cmd === 'approve') {
-    const tareasRoot = path.join(process.cwd(), 'tareas');
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
     try {
-      const result = await runApproveCommand(tareasRoot, argv.slice(1), today());
+      const result = await runApproveCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+      printBaseBranchSwitchNotice(result.baseBranchGuard);
       // Nota (hallazgo menor de revision por pares): para complejidad
       // trivial/simple, "taskctl start" nunca exigio plan_aprobado
       // (ver TRIVIAL_SIN_APROBACION en state-machine.ts) — el mensaje
@@ -140,7 +164,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       if (
         e instanceof ApproveCommandError ||
         e instanceof StateMachineError ||
-        e instanceof TaskFolderConflictError
+        e instanceof TaskFolderConflictError ||
+        e instanceof BaseBranchGuardError
       ) {
         printCliError(e);
         return 1;

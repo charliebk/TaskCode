@@ -3,8 +3,15 @@
  * PLAN_SPRINTS.md). Separa a proposito el parseo/validacion de
  * argumentos (puro, testeable sin disco) de la escritura real
  * (src/fs/task-store.ts).
+ *
+ * Desde TASK-012 aplica la precondicion de la seccion 8.3 antes de
+ * tocar cualquier fichero (ni siquiera antes de calcular el siguiente
+ * ID): ensureBaseBranchReady aborta si el workspace tiene cambios sin
+ * commitear, o cambia automaticamente a la rama base esperada segun
+ * --tipo si el workspace esta limpio pero no esta ya ahi.
  */
 import { parseArgs } from '../cli/args.js';
+import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 import {
   TASK_TYPES,
   TASK_COMPLEXITIES,
@@ -138,17 +145,29 @@ export function buildNewTask(id: string, opts: NewTaskOptions, today: string): T
 export interface NewCommandResult {
   id: string;
   filePath: string;
+  baseBranchGuard: BaseBranchGuardResult;
+}
+
+export interface NewCommandDeps {
+  /** Directorio de trabajo del repo Git del usuario (normalmente process.cwd()). */
+  repoCwd: string;
 }
 
 export async function runNewCommand(
   tareasRoot: string,
   argv: readonly string[],
-  today: string
+  today: string,
+  deps: NewCommandDeps
 ): Promise<NewCommandResult> {
   const opts = parseNewTaskArgs(argv);
+  // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
+  // tiene cambios sin commitear, o si no puede cambiar de forma
+  // automatica a la rama base esperada segun opts.tipo — en ambos
+  // casos no se llega a leer ni escribir nada de tareas/.
+  const baseBranchGuard = ensureBaseBranchReady(opts.tipo, deps.repoCwd);
   const existingIds = await listExistingTaskIds(tareasRoot);
   const id = nextTaskId(existingIds);
   const task = buildNewTask(id, opts, today);
   const filePath = await writeTareaFile(tareasRoot, task, DEFAULT_BODY, { failIfExists: true });
-  return { id, filePath };
+  return { id, filePath, baseBranchGuard };
 }
