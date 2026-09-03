@@ -9,3 +9,6 @@ dist/
 # SO
 .DS_Store
 Thumbs.db
+
+# Logs de los scripts Git-Flow (ver guia original: nunca se comparten)
+logs/
