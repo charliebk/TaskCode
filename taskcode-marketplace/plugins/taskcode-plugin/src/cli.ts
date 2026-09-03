@@ -6,6 +6,7 @@ import path from 'node:path';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
 import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
+import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
@@ -22,8 +23,9 @@ Uso:
               [--modelo-sugerido ...] [--agente-revisor ...]
   taskctl start TASK-NNN
   taskctl plan TASK-NNN
+  taskctl approve TASK-NNN
 
-Comandos: new, start, plan. import, board, approve llegan a
+Comandos: new, start, plan, approve. import, board llegan a
 continuacion. Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -111,6 +113,28 @@ export async function main(argv: readonly string[]): Promise<number> {
     } catch (e) {
       if (
         e instanceof PlanCommandError ||
+        e instanceof StateMachineError ||
+        e instanceof TaskFolderConflictError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'approve') {
+    const tareasRoot = path.join(process.cwd(), 'tareas');
+    try {
+      const result = await runApproveCommand(tareasRoot, argv.slice(1), today());
+      process.stdout.write(
+        `Tarea ${result.id} aprobada (plan_aprobado: true): ${result.filePath}. ` +
+          'Ya se puede ejecutar "taskctl start".\n'
+      );
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof ApproveCommandError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError
       ) {
