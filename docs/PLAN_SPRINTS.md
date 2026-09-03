@@ -135,15 +135,26 @@ salvo la primera fila:
 | 1 (completo) | TASK-012 | — | 99.03% líneas / 96.20% ramas (`taskctl` completo) | 165 (34 nuevos) | 2 críticos; 1 importante (los 3 corregidos); 3 menores (1 corregido, 2 documentados sin corregir) |
 | 0 (parcial) | TASK-004 | — | 96.69% líneas / 95.22% ramas (`taskctl` completo) | 201 (36 nuevos) | 1 crítico; 4 importantes (los 5 corregidos); 3 menores (2 corregidos, 1 documentado sin corregir) |
 | 0 (parcial) | TASK-005 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo) | 226 (3 nuevos) | 0 críticos; 3 importantes (los 3 corregidos); 2 menores (documentados sin corregir) |
+| 0 (completo) | TASK-006 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo, sin cambios: TASK-006 es empaquetado/documentación, no lógica de comandos) | 226 (0 nuevos) | 0 críticos; 3 importantes (los 3 corregidos, todos de precisión documental); 2 menores (los 2 corregidos) |
 
-Detalle completo en `docs/METRICAS.md` y `docs/spikes/`. **Sprint 1
-completo** (TASK-008 a TASK-012). De Sprint 0, TASK-004 (`taskctl
-import`) y TASK-005 (`taskctl board`) ya están cerradas; solo queda
-TASK-006 (empaquetado del plugin y validación de instalación local)
-para cerrar Sprint 0 también. La definición de "hecho" de la sección 2
-(ciclo `import → plan → approve → start` real, de punta a punta, con
-rama Git de verdad) ya se cumple por completo desde TASK-004 — los
-cuatro comandos del ciclo existen y están probados contra Git real.
+Detalle completo en `docs/METRICAS.md` y `docs/spikes/`. **Sprint 0
+completo** (TASK-001 a TASK-007) y **Sprint 1 completo** (TASK-008 a
+TASK-012). TASK-006 corrigió dos bugs reales de empaquetado — el bit de
+ejecución de `bin/taskctl` no sobrevivía a un `git clone` (Git lo
+trackeaba en modo `100644`) y `plugin.json` tenía un campo `commands` con
+un tipo no soportado (objeto en vez de `string | array`, que según la
+documentación oficial puede hacer fallar la carga completa del plugin) —
+y documentó en su README el procedimiento de instalación local correcto
+(`claude --plugin-dir`, no `/plugin install <ruta-local>` como decía el
+texto original de la tarea). Quedan dos preguntas abiertas sin resolver,
+explícitas en ese README: si el mecanismo `bin/` en PATH aplica también
+al PowerShell tool (no solo al Bash tool) en Windows nativo sin Git for
+Windows, y si el bit de ejecución sobrevive un checkout nativo de Windows
+fuera de este bridge de dispositivo — ninguna bloquea el cierre de
+TASK-006 ni de Sprint 0. La definición de "hecho" de la sección 2 (ciclo
+`import → plan → approve → start` real, de punta a punta, con rama Git de
+verdad) se cumple por completo desde TASK-004 — los cuatro comandos del
+ciclo existen y están probados contra Git real.
 
 ## 7. Riesgos y supuestos abiertos que bloquean sprints concretos
 
@@ -151,11 +162,19 @@ cuatro comandos del ciclo existen y están probados contra Git real.
   Windows vía Bash de Claude Code, Sprint 1 se retrasa hasta adaptar el
   wrapper (probablemente invocarlos vía `bash.exe` de Git for Windows
   explícito en vez de depender del PATH).
-- **TASK-006 (Sprint 0) → TASK-021 (Sprint 4):** el mecanismo determinista
-  para comprobar si un plugin/skill está instalado localmente sigue sin
-  confirmarse con la documentación oficial (marcado como no verificado en
-  la metodología, sección 14). No bloquea Sprint 0-3, sí condiciona cómo se
-  implementa la sugerencia automática de instalación desde marketplace.
+- **TASK-006 (Sprint 0, cerrada) → TASK-021 (Sprint 4):** el mecanismo
+  determinista para que `taskctl` mismo compruebe programáticamente qué
+  plugins/skills están instalados localmente (punto 11, sección 14 de la
+  metodología) sigue sin confirmarse con documentación oficial —
+  investigado en TASK-006 sin encontrar nada en `plugins-reference`,
+  `plugins`, `plugin-marketplaces` ni `setup`. No bloquea Sprint 0-3, sí
+  condiciona cómo se implementa la sugerencia automática de instalación
+  desde marketplace. Relacionado, nuevo en TASK-006: sigue sin
+  confirmarse si el mecanismo `bin/` en PATH (el que expone `taskctl`
+  como comando) aplica también al PowerShell tool de Windows nativo (solo
+  está documentado para el Bash tool), ni si el bit de ejecución de
+  `bin/taskctl` sobrevive un checkout nativo de Windows fuera de este
+  bridge de dispositivo — ver `taskcode-marketplace/plugins/taskcode-plugin/README.md`.
 - **Sprint 3 completo** depende de tener datos reales de Sprint 0-2 para
   calibrar los pesos de la heurística de complejidad (sección 16.1) — se
   usan los pesos propuestos como punto de partida, no como definitivos.
