@@ -13,11 +13,9 @@
  */
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
-import { assertTransitionAllowed, StateMachineError } from '../core/state-machine.js';
+import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isValidBranchName } from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
-
-export { StateMachineError };
 
 export class StartCommandError extends Error {}
 

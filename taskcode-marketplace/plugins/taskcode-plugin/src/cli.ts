@@ -4,8 +4,10 @@
  */
 import path from 'node:path';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
-import { runStartCommand, StartCommandError, StateMachineError } from './commands/start.js';
+import { runStartCommand, StartCommandError } from './commands/start.js';
+import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
+import { StateMachineError } from './core/state-machine.js';
 
 const VERSION = '0.1.0';
 
@@ -18,8 +20,9 @@ Uso:
               [--sprint N] [--etiquetas a,b,c] [--complejidad ...] \\
               [--modelo-sugerido ...] [--agente-revisor ...]
   taskctl start TASK-NNN
+  taskctl plan TASK-NNN
 
-Comandos: new, start. import, board, plan, approve llegan a
+Comandos: new, start, plan. import, board, approve llegan a
 continuacion. Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -69,6 +72,26 @@ export async function main(argv: readonly string[]): Promise<number> {
       return 0;
     } catch (e) {
       if (e instanceof StartCommandError || e instanceof StateMachineError) {
+        process.stderr.write(`${e.message}\n`);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'plan') {
+    const tareasRoot = path.join(process.cwd(), 'tareas');
+    try {
+      const result = await runPlanCommand(tareasRoot, argv.slice(1), today());
+      const scaffoldMsg = result.planCreated
+        ? `Scaffold creado en ${result.planPath} — redactalo antes de "taskctl approve".`
+        : `${result.planPath} ya existia (re-planificacion) — se dejo intacto.`;
+      process.stdout.write(
+        `Tarea ${result.id} en diseno: movida a ${result.filePath}. ${scaffoldMsg}\n`
+      );
+      return 0;
+    } catch (e) {
+      if (e instanceof PlanCommandError || e instanceof StateMachineError) {
         process.stderr.write(`${e.message}\n`);
         return 1;
       }
