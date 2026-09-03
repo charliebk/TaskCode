@@ -130,9 +130,10 @@ salvo la primera fila:
 | 0 (spike) | TASK-007 | — | n/a (smoke test funcional, no unitario) | — | 4 hallazgos reales, 2 corregidos en el propio spike |
 | 1 (parcial) | TASK-008 | — | n/a (scripts Bash) | 1 smoke test, 6 comprobaciones | 1 menor (corregido); 2 hallazgos nuevos documentados sin corregir (mismo bug de `origin` en 7 scripts más; bit ejecutable no se conserva en este repo) |
 | 1 (parcial) | TASK-009 | — | 98.37% líneas / 94.21% ramas (`taskctl` completo) | 115 (15 nuevos) | 0 críticos; 3 importantes (corregidos); 6 menores (5 corregidos, 1 pendiente de validación en Windows nativo, igual que TASK-007/008) |
+| 1 (parcial) | TASK-010 | — | 98.52% líneas / 94.31% ramas (`taskctl` completo) | 122 (7 nuevos) | 0 críticos; 0 importantes; 4 menores (todos corregidos) |
 
 Detalle completo en `docs/METRICAS.md` y `docs/spikes/`. TASK-004, TASK-005,
-TASK-006 de Sprint 0 y TASK-010 a TASK-012 de Sprint 1 quedan pendientes.
+TASK-006 de Sprint 0 y TASK-011, TASK-012 de Sprint 1 quedan pendientes.
 
 ## 7. Riesgos y supuestos abiertos que bloquean sprints concretos
 
