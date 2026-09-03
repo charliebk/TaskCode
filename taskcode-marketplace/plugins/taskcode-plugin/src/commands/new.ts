@@ -105,7 +105,15 @@ export function parseNewTaskArgs(argv: readonly string[]): NewTaskOptions {
   return { titulo, tipo: tipoRaw as TaskType, sprint, etiquetas, complejidad, modeloSugerido, agenteRevisor };
 }
 
-const SLUG_FALLBACK = 'tarea';
+/**
+ * Exportado (hallazgo CRITICO de revision por pares, TASK-004): "import"
+ * reutiliza slugify() para su clave de idempotencia y necesita saber
+ * cuando el resultado es este fallback generico, para no tratar dos
+ * titulos MUY distintos que colisionan en el (p. ej. "日本語のタスク" y
+ * "!!!???", ninguno con ASCII alfanumerico) como si fueran el mismo
+ * titulo. Ver normalizedTitleKey en src/commands/import.ts.
+ */
+export const SLUG_FALLBACK = 'tarea';
 
 export function slugify(titulo: string): string {
   const base = titulo
