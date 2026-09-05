@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 21 / 40 items terminados (53%)** · última actualización: 2026-09-05
+**Progreso global: 22 / 40 items terminados (55%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
-| B — Cerrar el ciclo de vida | 7 | **5** | ~18h |
+| B — Cerrar el ciclo de vida | 7 | **6** | ~18h |
 | C — Tapar huecos | 6 | 0 | ~10h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **28** | **9** | **~79h** |
+| **Total pendiente** | **28** | **10** | **~79h** |
 
 ---
 
@@ -63,7 +63,7 @@ frágil o ciego todo lo demás.
       ningún crítico ni importante abierto. De paso se corrigieron dos
       recuentos de tests mal anotados en `PLAN_SPRINTS.md`.*
 
-## Fase B — Cerrar el ciclo de vida (5/7) · ~18h
+## Fase B — Cerrar el ciclo de vida (6/7) · ~18h
 
 **Este es el hito real de usabilidad.** Al terminar la Fase B el sistema se
 puede usar a diario de punta a punta; todo lo posterior mejora la calidad
@@ -116,8 +116,22 @@ del proceso, no lo habilita.
       (orden no determinista de avisos que hacía el fichero irreproducible,
       tablero fantasma fuera de la raíz del repo, errores de escritura mal
       etiquetados), 1 menor documentado. 9 tests nuevos (275).*      *La metodología dice "regenera `docs/BOARD.md`"; lo implementado es un listado por pantalla. Decidir en qué sentido se corrige.*
-- [ ] **B6** · Añadir `--asignado-a` a `plan` y `start` — ~2h
-      *Sin esto nadie rellena `asignado_a`: B7 no tiene sobre qué operar y `board --asignado_a` filtra por un campo vacío.*
+- [x] **B6** · Añadir `--asignado-a` a `plan` y `start` — ~2h
+      *Cerrado el 2026-09-05 (rama `feature/b6-asignado-a-en-plan-y-start`,
+      merge `--no-ff` a develop). `parseAsignadoAFlag` vive en un módulo
+      compartido para que los comandos no diverjan; sin el flag se
+      **conserva** el `asignado_a` que hubiera, así que `start` hereda lo que
+      dejó `plan` (§8.2). Rechaza el flag suelto (asignaría a una persona
+      llamada "true"), el valor vacío, los saltos de línea y los valores de
+      más de 64 caracteres. `plan` y `start` leen ya el ID de los
+      posicionales, así que el flag funciona también delante del ID.
+      Revisión por pares: 1 IMPORTANTE y 5 MENORES; corregidos el
+      IMPORTANTE (`board --asignado-a` se ignoraba en silencio y devolvía
+      **el tablero entero** con código 0 — el mismo fallo que justificaba el
+      alias, sin cerrar el otro lado) y 3 menores; 2 documentados en
+      HALLAZGOS. El revisor verificó por mutación que los 6 tests clave se
+      ponen rojos al revertir lo que dicen probar. 32 tests reales nuevos
+      (307).*
 - [ ] **B7** · TASK-015 — Límite de WIP por persona (§8.2) — ~3h
 
 ## Fase C — Tapar huecos (0/6) · ~10h

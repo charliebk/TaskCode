@@ -385,3 +385,67 @@ test('runBoardCommand: sanity check via readTareaFile — moveTareaFile realment
     assert.equal(read?.task.estado, 'en-curso');
   });
 });
+
+// --- item B6: board acepta tambien --asignado-a (hallazgo IMPORTANTE de revision) ---
+
+test('parseBoardArgs: --asignado-a (guion medio) filtra igual que --asignado_a', () => {
+  // Sin esto, board devolvia EL TABLERO ENTERO con codigo 0 a quien
+  // acababa de asignar con 'plan --asignado-a carlos' y reutilizaba
+  // esa grafia: parseArgs ignora los flags que no conoce.
+  assert.deepEqual(parseBoardArgs(['--asignado-a', 'charlie.bk']), { asignadoA: 'charlie.bk' });
+  assert.deepEqual(parseBoardArgs(['--asignado-a=charlie.bk']), { asignadoA: 'charlie.bk' });
+});
+
+test('parseBoardArgs: pasar las dos grafias a la vez es un error', () => {
+  assert.throws(
+    () => parseBoardArgs(['--asignado-a', 'ana', '--asignado_a', 'carlos']),
+    BoardCommandError
+  );
+});
+
+test('parseBoardArgs: --asignado-a suelto (sin valor) falla, no filtra por true', () => {
+  assert.throws(() => parseBoardArgs(['--asignado-a']), BoardCommandError);
+});
+
+test('parseBoardArgs: el filtro se recorta, igual que lo hace plan al escribirlo', () => {
+  // Asimetria detectada en la revision: plan guardaba 'pepe' y board
+  // buscaba '  pepe  ', asi que el filtro no encontraba nada.
+  assert.deepEqual(parseBoardArgs(['--asignado_a=  charlie.bk  ']), { asignadoA: 'charlie.bk' });
+});
+
+test('runBoardCommand: --asignado-a filtra de punta a punta contra disco', async () => {
+  await withTareasRoot(async (tareasRoot) => {
+    const a = buildNewTask('TASK-001', {
+      titulo: 'De charlie',
+      tipo: 'feature',
+      sprint: 1,
+      etiquetas: [],
+      complejidad: 'media',
+      modeloSugerido: 'sonnet',
+      agenteRevisor: 'general-purpose',
+    }, '2026-09-05');
+    const aPath = await writeTareaFile(tareasRoot, a, DEFAULT_BODY);
+    await moveTareaFile(tareasRoot, aPath, { ...a, asignado_a: 'charlie.bk' }, DEFAULT_BODY);
+
+    const b = buildNewTask('TASK-002', {
+      titulo: 'De otra persona',
+      tipo: 'feature',
+      sprint: 1,
+      etiquetas: [],
+      complejidad: 'media',
+      modeloSugerido: 'sonnet',
+      agenteRevisor: 'general-purpose',
+    }, '2026-09-05');
+    const bPath = await writeTareaFile(tareasRoot, b, DEFAULT_BODY);
+    await moveTareaFile(tareasRoot, bPath, { ...b, asignado_a: 'otra.persona' }, DEFAULT_BODY);
+
+    const conGuion = await runBoardCommand(tareasRoot, ['--asignado-a', 'charlie.bk']);
+    const conGuionBajo = await runBoardCommand(tareasRoot, ['--asignado_a', 'charlie.bk']);
+
+    assert.equal(conGuion.totalTareas, 1);
+    assert.ok(conGuion.output.includes('TASK-001'), conGuion.output);
+    assert.ok(!conGuion.output.includes('TASK-002'), conGuion.output);
+    // Las dos grafias producen exactamente el mismo tablero.
+    assert.equal(conGuion.output, conGuionBajo.output);
+  });
+});

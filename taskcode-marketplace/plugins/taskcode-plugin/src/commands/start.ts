@@ -11,6 +11,8 @@
  * deterministica: comprobar que el workspace esta limpio ANTES de
  * llamar al script, en vez de delegar en su prompt interactivo.
  */
+import { parseArgs } from '../cli/args.js';
+import { parseAsignadoAFlag, PISTA_VACIO_ESCRITURA } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
@@ -37,6 +39,10 @@ export interface StartCommandResult {
   id: string;
   rama: string;
   filePath: string;
+  /** asignado_a resultante en el frontmatter (null si sigue sin asignar). */
+  asignadoA: string | null;
+  /** true si esta invocacion cambio asignado_a (se paso --asignado-a con otro valor). */
+  asignadoCambiado: boolean;
 }
 
 export async function runStartCommand(
@@ -45,10 +51,22 @@ export async function runStartCommand(
   today: string,
   deps: StartCommandDeps
 ): Promise<StartCommandResult> {
-  const id = argv[0];
+  // El ID sale de los POSICIONALES, no de argv[0] a secas (item B6):
+  // ver el comentario equivalente en plan.ts.
+  const { positional } = parseArgs(argv);
+  const id = positional[0];
   if (id === undefined || id.trim() === '') {
     throw new StartCommandError('[ERROR] Falta el ID de la tarea: taskctl start TASK-NNN.');
   }
+
+  // Se parsea antes de leer nada y, sobre todo, antes de invocar el
+  // script de Git-Flow: un --asignado-a mal escrito no debe dejar una
+  // rama creada a medias.
+  const asignadoA = parseAsignadoAFlag(
+    argv,
+    (m) => new StartCommandError(m),
+    PISTA_VACIO_ESCRITURA
+  );
 
   const existing = await readTareaFile(tareasRoot, id);
   // assertTransitionAllowed lanza StateMachineError si existing es null
@@ -104,7 +122,21 @@ export async function runStartCommand(
     );
   }
 
-  const updated: Task = { ...task, estado: 'en-curso', actualizado: today };
+  // Sin flag se conserva el asignado_a que "plan" dejara puesto (la
+  // seccion 8.2 describe start comprobando "la persona asignada", en
+  // pasado). Con flag, start reasigna: es el punto donde nace la rama,
+  // y quien la abre puede no ser quien diseno la tarea — o puede que
+  // nadie asignara nada en plan, en cuyo caso B7 no tendria sobre quien
+  // comprobar el limite de WIP.
+  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+  const asignadoCambiado = asignadoFinal !== task.asignado_a;
+
+  const updated: Task = {
+    ...task,
+    estado: 'en-curso',
+    asignado_a: asignadoFinal,
+    actualizado: today,
+  };
   // tolerateMissingSource: un hotfix/release creado desde una base
   // (main) que no incluye tareas/ hace que Git borre la carpeta vieja
   // del working tree al hacer checkout, ANTES de que lleguemos aqui —
@@ -115,5 +147,11 @@ export async function runStartCommand(
     tolerateMissingSource: true,
   });
 
-  return { id: task.id, rama: task.rama, filePath: newFilePath };
+  return {
+    id: task.id,
+    rama: task.rama,
+    filePath: newFilePath,
+    asignadoA: asignadoFinal,
+    asignadoCambiado,
+  };
 }

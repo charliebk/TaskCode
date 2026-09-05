@@ -330,3 +330,111 @@ test('taskctl plan: la rama base real tiene la tarea en un estado distinto al de
     assert.equal(branchNow(repoRoot), 'develop');
   });
 });
+
+// --- item B6: --asignado-a ---
+
+test('taskctl plan --asignado-a: escribe asignado_a en el frontmatter de verdad', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\
+Algo.\
+');
+    commitAll(repoRoot, 'tarea TASK-700');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a', 'carlos'], '2026-09-05', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.asignadoA, 'carlos');
+    assert.equal(result.asignadoCambiado, true);
+
+    // Evidencia en disco, no solo el valor devuelto: se relee el
+    // fichero movido y se comprueba el campo ya parseado.
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.asignado_a, 'carlos');
+    assert.equal(read?.task.estado, 'en-diseno');
+  });
+});
+
+test('taskctl plan: sin --asignado-a NO borra el asignado_a que ya tuviera la tarea', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'ana' }), '');
+    commitAll(repoRoot, 'tarea TASK-700 ya asignada');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-05', { repoCwd: repoRoot });
+
+    assert.equal(result.asignadoA, 'ana');
+    assert.equal(result.asignadoCambiado, false);
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.asignado_a, 'ana');
+  });
+});
+
+test('taskctl plan --asignado-a: reasignar a la MISMA persona no cuenta como cambio', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'carlos' }), '');
+    commitAll(repoRoot, 'tarea TASK-700 asignada a carlos');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a=carlos'], '2026-09-05', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.asignadoA, 'carlos');
+    // Sin esto, el CLI imprimiria 'Asignada a carlos' en cada
+    // re-planificacion aunque no hubiera cambiado nada.
+    assert.equal(result.asignadoCambiado, false);
+  });
+});
+
+test('taskctl plan --asignado-a: en una re-planificacion reasigna a otra persona', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno', asignado_a: 'ana' }), '');
+    commitAll(repoRoot, 'tarea TASK-700 en diseno, de ana');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a', 'carlos'], '2026-09-05', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.asignadoA, 'carlos');
+    assert.equal(result.asignadoCambiado, true);
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.asignado_a, 'carlos');
+  });
+});
+
+test('taskctl plan: el ID se lee de los posicionales, asi que --asignado-a puede ir delante', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea TASK-700');
+
+    const result = await runPlanCommand(tareasRoot, ['--asignado-a', 'carlos', 'TASK-700'], '2026-09-05', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.id, 'TASK-700');
+    assert.equal(result.asignadoA, 'carlos');
+  });
+});
+
+test('taskctl plan --asignado-a invalido: falla ANTES de mover la tarea ni cambiar de rama', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    commitAll(repoRoot, 'tarea TASK-700');
+    // Se arranca desde una rama que NO es la base, para que
+    // ensureBaseBranchReady tenga algo que hacer si se llegara a
+    // ejecutar. Si el flag se validara tarde, este test lo veria:
+    // la rama activa habria cambiado a develop.
+    git(['checkout', '-q', '-b', 'otra-rama'], repoRoot);
+
+    await assert.rejects(
+      () => runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a'], '2026-09-05', { repoCwd: repoRoot }),
+      PlanCommandError
+    );
+
+    assert.equal(branchNow(repoRoot), 'otra-rama');
+    // La tarea sigue donde estaba: nada se movio.
+    await stat(path.join(tareasRoot, '00-planificadas', 'TASK-700', 'tarea.md'));
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.estado, 'planificada');
+    assert.equal(read?.task.asignado_a, null);
+  });
+});
