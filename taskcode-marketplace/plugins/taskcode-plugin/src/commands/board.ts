@@ -17,7 +17,7 @@
  * board, en vez de romper el comando entero.
  */
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, type Task } from '../core/task.js';
@@ -27,7 +27,7 @@ import {
   renderBoardMarkdown,
   type BoardFilters,
 } from '../core/board-format.js';
-import { listExistingTaskIds, readTareaFile } from '../fs/task-store.js';
+import { listExistingTaskIds, readTareaFile, isEnoent } from '../fs/task-store.js';
 
 export class BoardCommandError extends Error {}
 
@@ -121,6 +121,23 @@ export async function runBoardCommand(
       '--escribir necesita saber la raiz del repo y la fecha; invocalo desde el CLI.'
     );
   }
+  // Sin esto (hallazgo IMPORTANTE de revision por pares, B5), ejecutar
+  // "board --escribir" desde una subcarpeta o desde un directorio que
+  // no es un repo de TaskCode creaba un docs/BOARD.md fantasma con solo
+  // la cabecera — un tablero aparentemente vacio pero legitimo, y
+  // basura que luego dispara el guard de la seccion 8.3.
+  if (escribir) {
+    try {
+      await stat(tareasRoot);
+    } catch (e: unknown) {
+      if (!isEnoent(e)) throw e;
+      throw new BoardCommandError(
+        `No existe "${tareasRoot}", asi que esto no parece la raiz de un repo con tareas. ` +
+          'Ejecuta "taskctl board --escribir" desde la raiz del repo (donde esta la carpeta ' +
+          '"tareas"), no desde una subcarpeta.'
+      );
+    }
+  }
 
   const rawIds = await listExistingTaskIds(tareasRoot);
   const tasks: Task[] = [];
@@ -164,18 +181,37 @@ export async function runBoardCommand(
     })
   );
 
+  // Orden estable de los avisos (hallazgo IMPORTANTE de revision por
+  // pares, B5): se acumulan dentro del Promise.all, asi que su orden
+  // dependia de cuando terminaba cada lectura de disco. Mientras solo
+  // salian por pantalla era cosmetico; desde que acaban DENTRO de
+  // docs/BOARD.md, un fichero versionado, hacian que dos ejecuciones
+  // seguidas con la misma entrada produjeran ficheros distintos.
+  advertencias.sort();
+
   const filtered = filterTasks(tasks, filters);
   const output = formatBoard(filtered);
 
   let boardPath: string | null = null;
   if (escribir) {
     boardPath = boardFilePath(deps.repoCwd as string);
-    await mkdir(path.dirname(boardPath), { recursive: true });
-    await writeFile(
-      boardPath,
-      renderBoardMarkdown(output, advertencias, deps.today as string, 'taskctl board --escribir'),
-      'utf8'
-    );
+    try {
+      await mkdir(path.dirname(boardPath), { recursive: true });
+      await writeFile(
+        boardPath,
+        renderBoardMarkdown(output, advertencias, deps.today as string, 'taskctl board --escribir'),
+        'utf8'
+      );
+    } catch (e: unknown) {
+      // Sin esto, un EPERM/EEXIST de disco escapaba del catch del CLI y
+      // salia como "taskctl no pudo arrancar" (hallazgo MENOR de
+      // revision por pares, B5), que es falso y despista.
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new BoardCommandError(
+        `No se pudo escribir ${boardPath}: ${msg}. Comprueba permisos y que "docs" sea una ` +
+          'carpeta; el listado por pantalla de arriba si es correcto.'
+      );
+    }
   }
 
   return { output, totalTareas: filtered.length, advertencias, boardPath };

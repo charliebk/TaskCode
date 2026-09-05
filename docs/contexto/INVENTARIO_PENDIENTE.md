@@ -51,16 +51,20 @@ implementado y probado) filtra por un campo que ningún comando puede
 poblar. **Hace falta añadir `--asignado-a` a `plan` y `start` antes de
 TASK-015**, y no está estimado en ninguna parte (~2h).
 
-### 2.2 `taskctl board` no hace lo que dice la metodología
+### 2.2 `taskctl board` no hace lo que dice la metodología — RESUELTO (B5, 2026-09-05)
 
 Tabla de la sección 8: *"`taskctl board` → Regenera `docs/BOARD.md`"*.
-Lo implementado en TASK-005 es un listado por pantalla, no escribe fichero.
-No es un bug (el criterio de aceptación de TASK-005 hablaba de "listado por
-estado" y se cumplió), pero es una divergencia real entre spec e
-implementación que hay que resolver de forma explícita: o se añade la
-escritura de `BOARD.md`, o se corrige la metodología. Relacionado: TASK-014
-promete "actualizar CHANGELOG.md, INDEX.md, BOARD.md" y **ninguno de esos
-tres ficheros existe todavía** en el repo.
+Lo implementado en TASK-005 era un listado por pantalla, no escribía fichero.
+Resuelto a favor de la metodología, con un matiz: `taskctl board --escribir`
+regenera el fichero, y sin el flag el comando sigue siendo de solo lectura
+—escribir en cada invocación ensuciaría el workspace y dispararía el guard
+de §8.3 en el siguiente comando—. La divergencia residual (§8 no menciona
+ningún flag) queda documentada en `HALLAZGOS.md`, no se reescribe la
+metodología congelada.
+
+Lo relacionado también está hecho: `CHANGELOG.md`, `docs/INDEX.md` y
+`docs/BOARD.md` **ya existen** (los crea `taskctl finish`, B3) y contienen
+además el histórico de Sprint 0 y 1 (B4).
 
 ### 2.3 Los 5 wrappers de Git-Flow no tienen tarea
 

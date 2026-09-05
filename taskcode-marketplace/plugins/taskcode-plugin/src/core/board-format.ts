@@ -143,6 +143,16 @@ export function formatBoard(tasks: readonly Task[]): string {
  * sus lineas en un parrafo y destruye la alineacion. Las cabeceras de
  * estado ("## Planificadas...") se dejan fuera para que sigan siendo
  * navegables como secciones.
+ *
+ * La valla es FIJA (tres backticks), a diferencia de la dinamica de
+ * review.ts, y es seguro porque ninguna linea embebida puede cerrarla:
+ * dentro de la valla solo van filas de tabla, que empiezan siempre por
+ * la columna ID ("TASK-NNN", "ID" o los guiones del separador), y
+ * CommonMark exige que el cierre sean solo backticks en toda la linea.
+ * Un titulo con backticks queda a partir de la segunda columna, nunca
+ * al principio. Si alguna vez se reordenan las columnas y el titulo
+ * pasa a ir primero, esto deja de ser cierto y habria que calcular la
+ * valla como en review.ts (comprobado por revision por pares, B5).
  */
 export function renderBoardMarkdown(
   boardOutput: string,

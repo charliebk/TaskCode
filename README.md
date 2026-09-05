@@ -28,13 +28,16 @@ claude --plugin-dir "$(pwd)"
 ```
 taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release>
 taskctl import <fichero.md>        # alta masiva desde Markdown
-taskctl board [--sprint N] [--asignado_a <persona>]
+taskctl board [--sprint N] [--asignado_a <persona>] [--escribir]
 taskctl plan TASK-NNN              # mueve a diseño, deja scaffold del plan
 taskctl approve TASK-NNN           # checkpoint humano
 taskctl start TASK-NNN             # crea la rama Git y mueve a en-curso
+taskctl review TASK-NNN            # trae la base, mueve a revisión, deja la petición
+taskctl finish TASK-NNN            # mergea, cierra y regenera CHANGELOG/INDEX/BOARD
 ```
 
-`review` y `finish` llegan en la Fase B (ver más abajo). Detalle completo en
+`board --escribir` regenera `docs/BOARD.md`; sin ese flag solo lista por
+pantalla (es el único comando de solo lectura del CLI). Detalle completo en
 [el README del plugin](taskcode-marketplace/plugins/taskcode-plugin/README.md).
 
 ## Cómo funciona

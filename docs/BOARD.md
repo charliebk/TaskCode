@@ -1,8 +1,10 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-09-05. No editar a mano.
+> Generado automaticamente por taskctl board --escribir el 2026-09-05. No editar a mano.
 
 ## Planificadas (00-planificadas) — 21
+
+```text
 ID        Titulo                                                                                      Asignado
 --------  ------------------------------------------------------------------------------------------  -------------
 TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
@@ -26,9 +28,13 @@ TASK-020  Comando taskctl codex-review (segunda opinión independiente)         
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 TASK-022  Documentación de equipo e incorporación de colaboradores                                    (sin asignar)
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
+```
 
 ## Terminadas (04-terminadas) — 2
+
+```text
 ID        Titulo                                                              Asignado
 --------  ------------------------------------------------------------------  -------------
 TASK-013  Comando taskctl review (revisión por pares de un solo agente)       (sin asignar)
 TASK-014  Comando taskctl finish (merge, cierre y actualización del tablero)  (sin asignar)
+```

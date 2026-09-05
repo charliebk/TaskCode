@@ -96,12 +96,31 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
 
 ## Divergencias entre la metodología y lo implementado
 
-- **`taskctl board`**: la tabla de la sección 8 dice que "regenera
-  `docs/BOARD.md`". Lo implementado es un listado por pantalla. Pendiente de
-  resolver en un sentido u otro (item B5).
+- **`taskctl board`** — resuelto en B5 (2026-09-05), con **divergencia
+  residual documentada**: la tabla de la sección 8 dice que "regenera
+  `docs/BOARD.md`", sin mencionar ningún flag. Lo implementado es
+  `taskctl board --escribir` para regenerar, y listado por pantalla por
+  defecto. El motivo de no escribir siempre es concreto: `board` es el único
+  comando de solo lectura del CLI, y escribir en cada invocación dejaría el
+  workspace sucio, disparando el guard de §8.3 en el siguiente
+  `plan`/`start`/`review`/`finish` — la misma trampa que ya documenta
+  `taskctl import` más arriba. La metodología (congelada) no se reescribe.
+- **Ramas fantasma en TASK-001, 002 y 003**: su frontmatter declara una
+  `rama` (`feature/task-001-scaffold-taskctl` y equivalentes) que **no
+  existe en Git** — esas tres tareas llegaron en el commit inicial, antes de
+  que hubiera flujo de ramas. Sin corregir a propósito (tocar su frontmatter
+  es parte de E4), pero anotado porque `taskctl finish` haría
+  `merge-base --is-ancestor` contra una ref inexistente si algún día se
+  intentan cerrar con el comando. `docs/INDEX.md` ya lo deja por escrito en
+  sus tres entradas.
 - **Paso 5 de §8.3** (que `taskctl` commitee y suba lo que genera): sin
   implementar y sin decidir. Mientras no exista, una tarea nueva no llega al
   resto del equipo sola.
+- **Un flag mal escrito se ignora en silencio** (preexistente, global al
+  CLI): `parseArgs` no rechaza flags desconocidos, así que
+  `taskctl board --escrivir` lista por pantalla y sale con 0 sin escribir
+  nada ni avisar. Detectado por la revisión de B5; corregirlo es un cambio
+  transversal del CLI, no de un comando — anotado sin corregir.
 - **El plugin no tiene `skills/` ni `agents/`.** Hoy es un CLI y unos scripts:
   todo el discurso de agentes especializados de la metodología no tiene aún
   ningún artefacto.

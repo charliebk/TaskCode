@@ -275,6 +275,91 @@ test('runBoardCommand --escribir: rechaza combinarse con filtros (docs/BOARD.md 
   });
 });
 
+test('runBoardCommand --escribir: el fichero es reproducible aunque haya varios avisos (hallazgo IMPORTANTE de revision: orden no determinista)', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    // Varias tarea.md invalidas: cada una produce un aviso, y antes su
+    // orden dependia de cuando terminaba su lectura de disco.
+    const dir = path.join(tareasRoot, '00-planificadas');
+    for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const id = `TASK-${String(n).padStart(3, '0')}`;
+      await mkdir(path.join(dir, id), { recursive: true });
+      await writeFile(path.join(dir, id, 'tarea.md'), 'frontmatter roto\n', 'utf8');
+    }
+
+    const contenidos: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const r = await runBoardCommand(tareasRoot, ['--escribir'], {
+        repoCwd: repoRoot,
+        today: '2026-09-06',
+      });
+      assert.equal(r.advertencias.length, 8);
+      contenidos.push(await readFile(r.boardPath as string, 'utf8'));
+    }
+    for (const c of contenidos) {
+      assert.equal(c, contenidos[0], 'la misma entrada debe producir el mismo fichero');
+    }
+  });
+});
+
+test('runBoardCommand --escribir: aborta si no hay carpeta tareas/ en vez de crear un tablero fantasma (hallazgo IMPORTANTE de revision)', async () => {
+  await withRepoRoot(async (repoRoot) => {
+    // repoRoot existe pero no tiene tareas/: es el caso de invocar el
+    // comando desde una subcarpeta o fuera de un repo de TaskCode.
+    await assert.rejects(
+      () =>
+        runBoardCommand(path.join(repoRoot, 'tareas'), ['--escribir'], {
+          repoCwd: repoRoot,
+          today: '2026-09-06',
+        }),
+      (e: unknown) => {
+        assert.ok(e instanceof BoardCommandError);
+        assert.match((e as Error).message, /raiz del repo/);
+        return true;
+      }
+    );
+    await assert.rejects(() => readFile(path.join(repoRoot, 'docs', 'BOARD.md'), 'utf8'));
+  });
+});
+
+test('runBoardCommand --escribir: un fallo de escritura da un error propio, no el generico de arranque (hallazgo MENOR de revision)', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
+    // "docs" existe como FICHERO: el mkdir de docs/ falla con EEXIST.
+    await writeFile(path.join(repoRoot, 'docs'), 'no soy una carpeta\n', 'utf8');
+
+    await assert.rejects(
+      () =>
+        runBoardCommand(tareasRoot, ['--escribir'], { repoCwd: repoRoot, today: '2026-09-06' }),
+      (e: unknown) => {
+        assert.ok(e instanceof BoardCommandError);
+        assert.match((e as Error).message, /No se pudo escribir/);
+        return true;
+      }
+    );
+  });
+});
+
+test('runBoardCommand --escribir: un titulo con vallas de backticks no rompe el bloque de codigo', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(
+      tareasRoot,
+      tareaEjemplo('TASK-001', '```text intento de romper la valla'),
+      DEFAULT_BODY
+    );
+    const r = await runBoardCommand(tareasRoot, ['--escribir'], {
+      repoCwd: repoRoot,
+      today: '2026-09-06',
+    });
+    const board = await readFile(r.boardPath as string, 'utf8');
+    // Las lineas de la tabla empiezan por la columna ID, asi que los
+    // backticks del titulo nunca quedan al principio de linea y no
+    // pueden cerrar la valla: aperturas y cierres siguen equilibrados.
+    const vallas = board.split('\n').filter((l) => l.trimEnd() === '```' || l.startsWith('```text'));
+    assert.equal(vallas.length % 2, 0);
+    assert.match(board, /intento de romper la valla/);
+  });
+});
+
 test('runBoardCommand --escribir: con valor explicito falla con mensaje claro', async () => {
   await withRepoRoot(async (repoRoot, tareasRoot) => {
     await assert.rejects(
