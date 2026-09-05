@@ -27,8 +27,13 @@ TMP_REPO="$(mktemp -d -t taskctl-gitflow-smoke-XXXXXX)"
 cleanup() { rm -rf "$TMP_REPO"; }
 trap cleanup EXIT
 
+if [ -z "$TMP_REPO" ] || [ ! -d "$TMP_REPO" ]; then
+    echo "ERROR: mktemp no pudo crear el repo temporal. Ejecuta este script desde Git Bash."
+    exit 1
+fi
+
 echo "== smoke-test: repo temporal en $TMP_REPO (fuera de cualquier repo real) =="
-cd "$TMP_REPO"
+cd "$TMP_REPO" || exit 1
 git init -q -b main
 git config user.name "smoke-test"
 git config user.email "smoke-test@example.invalid"
