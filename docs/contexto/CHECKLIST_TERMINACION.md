@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 16 / 40 items terminados (40%)** · última actualización: 2026-09-05
+**Progreso global: 17 / 40 items terminados (42%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
-| B — Cerrar el ciclo de vida | 7 | 0 | ~18h |
+| B — Cerrar el ciclo de vida | 7 | **1** | ~18h |
 | C — Tapar huecos | 6 | 0 | ~10h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **28** | **4** | **~79h** |
+| **Total pendiente** | **28** | **5** | **~79h** |
 
 ---
 
@@ -63,15 +63,23 @@ frágil o ciego todo lo demás.
       ningún crítico ni importante abierto. De paso se corrigieron dos
       recuentos de tests mal anotados en `PLAN_SPRINTS.md`.*
 
-## Fase B — Cerrar el ciclo de vida (0/7) · ~18h
+## Fase B — Cerrar el ciclo de vida (1/7) · ~18h
 
 **Este es el hito real de usabilidad.** Al terminar la Fase B el sistema se
 puede usar a diario de punta a punta; todo lo posterior mejora la calidad
 del proceso, no lo habilita.
 
 - [ ] **B1** · TASK-013 — `taskctl review` (`update-<tipo>.sh` + un agente revisor) — ~5h
-- [ ] **B2** · Corregir el bug de `origin` en `merge-hotfix-to-main.sh` y `merge-release-to-main.sh` — ~1h
-      *Precondición real de B3: hoy fallan duro (`exit 1`) en un repo sin `origin`.*
+- [x] **B2** · Corregir el bug de `origin` en `merge-hotfix-to-main.sh` y `merge-release-to-main.sh` — ~1h
+      *Cerrado el 2026-09-05 (rama `fix/b2-guard-origin-merge-main`, merge
+      `--no-ff` a develop). Guard de TASK-008 extraído a
+      `detect_origin_available` y aplicado a ambos scripts; la revisión por
+      pares añadió dos correcciones: origin configurado pero inaccesible
+      ABORTA (no es lo mismo que operar sin remoto: el tag caería sobre una
+      `main` obsoleta), y la rama de trabajo se valida antes de tocar la
+      principal. 10 tests reales nuevos (repos temporales + bare como
+      origin); verificado que fallan sin el fix. De propina: guard en
+      `smoke-test.sh` que evita un `git init` destructivo si mktemp falla.*
 - [ ] **B3** · TASK-014 — `taskctl finish` (merge, backmerge, tag) — ~5h
       *Destapa el riesgo documentado de colisión de IDs entre `main` y `develop`.*
 - [ ] **B4** · Crear `CHANGELOG.md`, `INDEX.md` y `BOARD.md` — ~1h

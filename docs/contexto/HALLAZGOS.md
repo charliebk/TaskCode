@@ -70,11 +70,18 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
 
 ## Git-Flow: deuda conocida
 
-- **Bug de `origin` sin guard** en 5 scripts que siguen sin corregir:
-  `create-develop.sh`, `merge-hotfix-to-main.sh`, `merge-release-to-main.sh`,
-  `recover-branch.sh`, `resume-work.sh`. Fallan duro (`exit 1`) en un repo sin
-  `origin`. Los dos `merge-*-to-main` son **precondición real de TASK-014**
-  (item B2 del checklist, hay que hacerlo antes que B3).
+- **Bug de `origin` sin guard** en 3 scripts que siguen sin corregir:
+  `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` (item C6). Los
+  dos `merge-*-to-main` se corrigieron en B2 (2026-09-05) con un matiz que
+  añadió la revisión por pares: distinguen "sin origin configurado" (modo
+  local, como los merge a develop) de "origin configurado que no responde"
+  (abortan con instrucción, porque el tag de release se crearía sobre una
+  `main` posiblemente obsoleta respecto al remoto).
+- **Confirmado por la revisión de B2 (preexistente, sin corregir)**: ejecutar
+  dos veces un `merge-*-to-main` con el mismo nombre muere en el tag
+  duplicado (`exit 1`, sin mensaje de guía), y un conflicto en el backmerge
+  dejaría `MERGE_HEAD` pendiente tras haber completado merge y tag en
+  `main`. Ambos pertenecen al alcance de TASK-014 (item B3).
 - **`core.fileMode` está en `false`** en este repo. Por eso los scripts se
   invocan **siempre** como `bash script.sh`, nunca por ruta directa: así el bit
   de ejecución deja de importar.
@@ -114,6 +121,23 @@ no de Windows, y en IntelliJ nativo no deberían aparecer:
   `claude --plugin-dir` y `/plugin install` nunca se pudieron probar de verdad.
   **En IntelliJ sí se puede** — y es lo único que le queda pendiente a
   TASK-021.
+
+## El entorno nativo (Windows/IntelliJ): trampas confirmadas el 2026-09-05
+
+- **`bash` invocado desde PowerShell resuelve al de WSL** (el de System32),
+  que revienta con "execvpe failed" si no hay distro instalada. Todo lo que
+  spawnea `bash` (la suite entera, los scripts de Git-Flow) necesita la
+  carpeta usr-bin de Git for Windows (`C:\Program Files\Git\usr\bin`) PREPENDIDA al
+  PATH. Y peor: invocar el bash de Git por ruta absoluta sin ese PATH deja a
+  bash sin coreutils (`mktemp`, `dirname`, `grep`...) — así llegó el smoke
+  test a ejecutar `git init` dentro del working tree real del plugin (ya
+  tiene guard que aborta, añadido en B2).
+- **3 tests fallan en local y pasan en CI**, y no son regresiones (fallan
+  idéntico en `develop`): los dos del truco del symlink (`EPERM`: sin
+  privilegio de symlink en Windows no se pueden crear) y uno de `plan` que
+  compara contenido esperando finales LF mientras `core.autocrlf=true`
+  materializa CRLF en el checkout. Referencia local: "suite verde" = fallan
+  solo esos 3.
 
 ## Detalles de testing que costaron encontrarlos
 
