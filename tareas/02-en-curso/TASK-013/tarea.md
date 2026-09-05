@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-013-comando-taskctl-review-revision-por-pare
 asignado_a: null
