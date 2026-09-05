@@ -15,6 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
+import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { runStartCommand, StartCommandError } from '../../src/commands/start.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import type { Task } from '../../src/core/task.js';
@@ -589,5 +590,55 @@ test('taskctl start: una tarea rota en 00-planificadas NO bloquea a nadie', asyn
     });
 
     assert.equal(result.id, 'TASK-500');
+  });
+});
+
+// --- correcciones de la revision por pares de TASK-015 ---
+
+test('taskctl start: un error de disco al comprobar el limite sale como StartCommandError', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // 02-en-curso como FICHERO en vez de carpeta: readdir da
+    // ENOTDIR. Sin envolverlo, escapaba como Error crudo y el usuario
+    // lo veia como 'taskctl no pudo arrancar', que es falso.
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'carlos' }), '');
+    await writeFile(path.join(tareasRoot, '02-en-curso'), 'no soy una carpeta', 'utf8');
+    commitAll(repoRoot, 'un fichero donde deberia haber una carpeta');
+
+    await assert.rejects(
+      () =>
+        runStartCommand(tareasRoot, ['TASK-500'], '2026-09-05', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      (err: unknown) =>
+        err instanceof StartCommandError &&
+        (err as Error).message.includes('limite de trabajo en curso')
+    );
+  });
+});
+
+test('taskctl start: el mensaje nombra la carpeta donde ESTA la bloqueante', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Tarea fisicamente en 02-en-curso pero con estado terminada en
+    // su frontmatter: bloquea (bien), y el mensaje debe mandar a
+    // 02-en-curso, no a 04-terminadas, donde no hay nada.
+    const dir = path.join(tareasRoot, '02-en-curso', 'TASK-501');
+    await mkdir(dir, { recursive: true });
+    const incoherente = sampleTask({ id: 'TASK-501', estado: 'terminada', asignado_a: 'carlos', rama: 'feature/task-501-incoherente' });
+    await writeFile(path.join(dir, 'tarea.md'), serializeTareaFile(incoherente, ''), 'utf8');
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'carlos' }), '');
+    commitAll(repoRoot, 'una tarea con carpeta y estado incoherentes');
+
+    await assert.rejects(
+      () =>
+        runStartCommand(tareasRoot, ['TASK-500'], '2026-09-05', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      (err: unknown) =>
+        err instanceof StartCommandError &&
+        (err as Error).message.includes('02-en-curso') &&
+        !(err as Error).message.includes('04-terminadas')
+    );
   });
 });

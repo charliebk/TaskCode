@@ -66,7 +66,7 @@ test('listTareasEnEstados: lee solo las carpetas pedidas, ignorando el resto', a
 
     // Ni planificada ni en-diseno ni terminada ocupan hueco.
     assert.deepEqual(
-      r.tareas.map((t) => t.id).sort(),
+      r.tareas.map((t) => t.task.id).sort(),
       ['TASK-903', 'TASK-904']
     );
   });
@@ -83,7 +83,7 @@ test('listTareasEnEstados: un tarea.md ilegible va a "ilegibles", no rompe la le
     const r = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
 
     // La legible se sigue leyendo...
-    assert.deepEqual(r.tareas.map((t) => t.id), ['TASK-903']);
+    assert.deepEqual(r.tareas.map((t) => t.task.id), ['TASK-903']);
     // ...y la rota se reporta con su ruta, para poder nombrarla.
     assert.equal(r.ilegibles.length, 1);
     assert.ok(r.ilegibles[0]?.includes('TASK-904'), r.ilegibles[0]);
@@ -108,7 +108,7 @@ test('listTareasEnEstados: ignora entradas que no son un ID de tarea', async () 
 
     const r = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
 
-    assert.deepEqual(r.tareas.map((t) => t.id), ['TASK-903']);
+    assert.deepEqual(r.tareas.map((t) => t.task.id), ['TASK-903']);
     assert.deepEqual(r.ilegibles, []);
   });
 });
@@ -124,7 +124,7 @@ test('listTareasEnEstados: el mismo ID en dos carpetas ocupa un hueco, no dos', 
 
     assert.equal(r.tareas.length, 1);
     // Gana la primera segun el orden de `estados`, que es el del ciclo.
-    assert.equal(r.tareas[0]?.estado, 'en-curso');
+    assert.equal(r.tareas[0]?.estadoCarpeta, 'en-curso');
   });
 });
 
@@ -154,6 +154,6 @@ test('listTareasEnEstados: acepta cualquier subconjunto de estados, no solo el d
 
     const r = await listTareasEnEstados(tareasRoot, ['planificada']);
 
-    assert.deepEqual(r.tareas.map((t) => t.id), ['TASK-901']);
+    assert.deepEqual(r.tareas.map((t) => t.task.id), ['TASK-901']);
   });
 });

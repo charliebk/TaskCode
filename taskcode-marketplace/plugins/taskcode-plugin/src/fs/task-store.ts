@@ -13,7 +13,13 @@
  */
 import { readdir, readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_FOLDER, assertValidTaskId, type Task, type TaskState } from '../core/task.js';
+import {
+  STATE_FOLDER,
+  assertValidTaskId,
+  type Task,
+  type TareaUbicada,
+  type TaskState,
+} from '../core/task.js';
 import { parseTareaFile, serializeTareaFile } from '../core/tarea-file.js';
 
 const ALL_STATE_FOLDERS: readonly string[] = Object.values(STATE_FOLDER);
@@ -39,7 +45,7 @@ export async function listExistingTaskIds(tareasRoot: string): Promise<string[]>
 
 export interface TareasEnEstadosResult {
   /** Tareas leidas y validadas, deduplicadas por ID. */
-  tareas: Task[];
+  tareas: TareaUbicada[];
   /**
    * Rutas de tarea.md que existen pero no se pudieron parsear ni
    * validar. Se devuelven en vez de lanzar para que el llamador decida
@@ -70,7 +76,7 @@ export async function listTareasEnEstados(
   tareasRoot: string,
   estados: readonly TaskState[]
 ): Promise<TareasEnEstadosResult> {
-  const porId = new Map<string, Task>();
+  const porId = new Map<string, TareaUbicada>();
   const ilegibles: string[] = [];
 
   for (const estado of estados) {
@@ -96,7 +102,7 @@ export async function listTareasEnEstados(
         throw e;
       }
       try {
-        porId.set(entry, parseTareaFile(content).task);
+        porId.set(entry, { task: parseTareaFile(content).task, estadoCarpeta: estado });
       } catch {
         // Frontmatter roto o Task invalido. No se propaga: el llamador
         // decide (ver TareasEnEstadosResult.ilegibles). Cualquier otro

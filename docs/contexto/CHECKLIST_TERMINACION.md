@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 22 / 40 items terminados (55%)** · última actualización: 2026-09-05
+**Progreso global: 23 / 40 items terminados (58%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
-| B — Cerrar el ciclo de vida | 7 | **6** | ~18h |
+| ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | C — Tapar huecos | 6 | 0 | ~10h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **28** | **10** | **~79h** |
+| **Total pendiente** | **28** | **11** | **~79h** |
 
 ---
 
@@ -63,7 +63,7 @@ frágil o ciego todo lo demás.
       ningún crítico ni importante abierto. De paso se corrigieron dos
       recuentos de tests mal anotados en `PLAN_SPRINTS.md`.*
 
-## Fase B — Cerrar el ciclo de vida (6/7) · ~18h
+## ✅ Fase B — Cerrar el ciclo de vida (7/7) · completada el 2026-09-05
 
 **Este es el hito real de usabilidad.** Al terminar la Fase B el sistema se
 puede usar a diario de punta a punta; todo lo posterior mejora la calidad
@@ -132,13 +132,20 @@ del proceso, no lo habilita.
       HALLAZGOS. El revisor verificó por mutación que los 6 tests clave se
       ponen rojos al revertir lo que dicen probar. 32 tests reales nuevos
       (307).*
-- [ ] **B7** · TASK-015 — Límite de WIP por persona (§8.2) — ~3h
-      *Desbloqueado: decisión #13 resuelta el 2026-09-05. Un **único**
-      límite y solo de ejecución — `plan` no comprueba nada, `start` aborta
-      si la persona asignada ya tiene otra tarea en `02-en-curso/` **o** en
-      `03-en-revision/` (el hueco no se libera hasta `finish`, porque la
-      rama sigue viva). Diverge de la §8.2, que describe dos límites
-      independientes; documentar la divergencia al implementarlo.*
+- [x] **B7** · TASK-015 — Límite de WIP por persona (§8.2) — ~3h
+      *Cerrado el 2026-09-05, gestionado de punta a punta con la propia
+      herramienta y estrenando el `--asignado-a` de B6. Un **único** límite
+      y solo de ejecución (decisión #13): `plan` no comprueba nada, `start`
+      aborta si la persona asignada ya tiene otra en `02-en-curso` **o** en
+      `03-en-revision` — el hueco no se libera hasta `finish` porque la rama
+      sigue viva y es donde se commitean las correcciones de la revisión.
+      **Diverge de la §8.2** (dos límites independientes, uno sobre el
+      diseño): es la mayor divergencia del proyecto y queda documentada en
+      HALLAZGOS. Revisión por pares con 16 casos de ataque y 8 mutaciones:
+      1 IMPORTANTE (la divergencia sin documentar) y 6 MENORES; corregidos
+      6, documentado 1 (el límite es opt-in, y `carlos` y `charlie.bk` son
+      la misma persona con dos grafías — normalizar identidades es material
+      de C4). 38 tests reales nuevos (345).*
 
 ## Fase C — Tapar huecos (0/6) · ~10h
 

@@ -20,6 +20,7 @@ import {
   tareasQueBloquean,
   mensajeWipExcedido,
   mensajeWipIndeterminado,
+  personaDeTarea,
 } from '../core/wip.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isValidBranchName } from '../fs/git.js';
@@ -110,8 +111,29 @@ export async function runStartCommand(
   // Una tarea sin asignar no tiene a quien aplicarle un limite. Es el
   // caso de todo lo anterior a B6 (asignado_a nace a null), asi que
   // bloquearlo aqui romperia el flujo de quien no use el flag.
-  if (asignadoFinal !== null) {
-    const { tareas, ilegibles } = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
+  // personaDeTarea recorta y trata la cadena vacia como sin asignar:
+  // el flag recorta su valor, pero un asignado_a editado a mano en el
+  // frontmatter puede llegar con espacios o vacio (dos hallazgos MENOR
+  // de revision por pares). Solo para COMPARAR: lo que se escribe
+  // sigue siendo asignadoFinal tal cual, que start no debe reformatear.
+  const personaParaWip = personaDeTarea(asignadoFinal);
+  if (personaParaWip !== null) {
+    let wip;
+    try {
+      wip = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
+    } catch (e: unknown) {
+      // Sin esto, un ENOTDIR/EACCES al escanear tareas/ escapaba como
+      // Error crudo y el usuario lo veia como "taskctl no pudo
+      // arrancar", que es falso: taskctl arranco bien, lo que fallo fue
+      // leer las tareas. Misma clase de bug que ya se corrigio en
+      // TASK-010 y TASK-014 (hallazgo MENOR de revision, TASK-015).
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new StartCommandError(
+        `[ERROR] ${task.id}: no se pudieron leer las tareas para comprobar el limite de ` +
+          `trabajo en curso: ${msg}. Revisa que "${tareasRoot}" sea una carpeta legible.`
+      );
+    }
+    const { tareas, ilegibles } = wip;
     // Fail-closed acotado: un tarea.md ilegible en las carpetas de
     // ejecucion podria ser justo el que bloquea, y no hay forma de
     // saberlo. Solo esas dos carpetas: una tarea rota en
@@ -119,9 +141,9 @@ export async function runStartCommand(
     if (ilegibles.length > 0) {
       throw new StartCommandError(mensajeWipIndeterminado(task.id, ilegibles));
     }
-    const bloqueantes = tareasQueBloquean(tareas, asignadoFinal, task.id);
+    const bloqueantes = tareasQueBloquean(tareas, personaParaWip, task.id);
     if (bloqueantes.length > 0) {
-      throw new StartCommandError(mensajeWipExcedido(task.id, asignadoFinal, bloqueantes));
+      throw new StartCommandError(mensajeWipExcedido(task.id, personaParaWip, bloqueantes));
     }
   }
 

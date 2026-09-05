@@ -24,7 +24,7 @@
  * fallo que este limite existe para evitar ("evitar que se programe
  * codigo de una tarea en la rama Git de otra tarea", Carlos, #13).
  */
-import { STATE_FOLDER, type Task, type TaskState } from './task.js';
+import { STATE_FOLDER, type TareaUbicada, type TaskState } from './task.js';
 
 /**
  * Estados cuya carpeta ocupa el hueco de ejecucion. Un unico sitio
@@ -32,6 +32,31 @@ import { STATE_FOLDER, type Task, type TaskState } from './task.js';
  * (item C4) y se quiera un limite configurable, se toca aqui.
  */
 export const ESTADOS_QUE_OCUPAN_WIP: readonly TaskState[] = ['en-curso', 'en-revision'];
+
+/**
+ * Normaliza un "asignado_a" para COMPARAR (nunca para escribir): lo
+ * recorta y trata la cadena vacia como "sin asignar".
+ *
+ * Dos hallazgos MENOR de revision por pares, TASK-015, salian de no
+ * hacerlo:
+ *
+ * - El flag --asignado-a recorta su valor (B6), pero el frontmatter no:
+ *   parseScalarOrArray solo recorta lo NO entrecomillado, asi que un
+ *   `asignado_a: "carlos "` escrito a mano no era igual a `carlos` y
+ *   dejaba abrir una segunda rama a la misma persona.
+ * - `asignado_a: ""` pasaba la validacion como si fuera una persona, de
+ *   modo que dos tareas "sin asignar en vacio" se bloqueaban entre si
+ *   (y el mensaje salia sin nombre), mientras que dos con null no. Dos
+ *   representaciones de lo mismo con semantica opuesta.
+ *
+ * No normaliza mayusculas: eso si seria inventar una equivalencia que
+ * no existe en el resto del sistema (ver tareasQueBloquean).
+ */
+export function personaDeTarea(asignado: string | null): string | null {
+  if (asignado === null) return null;
+  const v = asignado.trim();
+  return v === '' ? null : v;
+}
 
 /**
  * Tareas de `persona` que ocupan el hueco, excluida la que se intenta
@@ -51,18 +76,23 @@ export const ESTADOS_QUE_OCUPAN_WIP: readonly TaskState[] = ['en-curso', 'en-rev
  * nueva.
  */
 export function tareasQueBloquean(
-  tareas: readonly Task[],
+  tareas: readonly TareaUbicada[],
   persona: string,
   idQueArranca: string
-): Task[] {
+): TareaUbicada[] {
+  const buscada = personaDeTarea(persona);
+  if (buscada === null) return [];
   return tareas
-    .filter((t) => t.id !== idQueArranca && t.asignado_a === persona)
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .filter((t) => t.task.id !== idQueArranca && personaDeTarea(t.task.asignado_a) === buscada)
+    .sort((a, b) => a.task.id.localeCompare(b.task.id));
 }
 
-/** Una linea por tarea bloqueante: ID, titulo, carpeta y rama. */
-function describirBloqueante(t: Task): string {
-  return `          - ${t.id} "${t.titulo}" (${STATE_FOLDER[t.estado]}, rama ${t.rama})`;
+/** Una linea por tarea bloqueante: ID, titulo, carpeta REAL y rama. */
+function describirBloqueante(t: TareaUbicada): string {
+  return (
+    `          - ${t.task.id} "${t.task.titulo}" ` +
+    `(${STATE_FOLDER[t.estadoCarpeta]}, rama ${t.task.rama})`
+  );
 }
 
 /**
@@ -74,15 +104,15 @@ function describirBloqueante(t: Task): string {
 export function mensajeWipExcedido(
   idQueArranca: string,
   persona: string,
-  bloqueantes: readonly Task[]
+  bloqueantes: readonly TareaUbicada[]
 ): string {
-  const primera = bloqueantes[0] as Task;
+  const primera = bloqueantes[0] as TareaUbicada;
   const lineas: string[] = [];
 
   if (bloqueantes.length === 1) {
     lineas.push(
-      `[ERROR] ${idQueArranca}: ${persona} ya tiene ${primera.id} sin cerrar ` +
-        `(${STATE_FOLDER[primera.estado]}, rama ${primera.rama}).`
+      `[ERROR] ${idQueArranca}: ${persona} ya tiene ${primera.task.id} sin cerrar ` +
+        `(${STATE_FOLDER[primera.estadoCarpeta]}, rama ${primera.task.rama}).`
     );
   } else {
     // Mas de una solo puede pasar si el repo ya estaba en un estado
@@ -97,13 +127,19 @@ export function mensajeWipExcedido(
   lineas.push(
     '        Una sola tarea en curso por persona: esa rama sigue abierta y sin mergear,'
   );
+  lineas.push('        y ahi es donde se commitean las correcciones de su revision.');
+  // El consejo NO dice "ejecuta taskctl finish" a secas (hallazgo MENOR
+  // de revision por pares, TASK-015): si la bloqueante esta en
+  // 02-en-curso, "finish" todavia falla porque le falta pasar por
+  // "review", y si esta en 03-en-revision falla mientras el informe no
+  // este aprobado — justo el caso mas doloroso, el de una revision que
+  // se alarga. Prometer un comando que no funciona es peor que no
+  // proponer ninguno.
   lineas.push(
-    '        y ahi es donde se commitean las correcciones de su revision.'
+    `        Para desbloquearte: termina ${primera.task.id} (su revision y despues ` +
+      `"taskctl finish ${primera.task.id}"),`
   );
-  lineas.push(
-    `        Cierra ${primera.id} con "taskctl finish ${primera.id}", o reasigna una de las ` +
-      'dos con --asignado-a.'
-  );
+  lineas.push('        o reasigna con --asignado-a la tarea que quieras dejar para luego.');
 
   return lineas.join('\n');
 }
