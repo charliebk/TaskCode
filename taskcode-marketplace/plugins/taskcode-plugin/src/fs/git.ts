@@ -132,6 +132,23 @@ export function diffRange(desde: string, hasta: string, cwd: string): string {
   return runGit(['diff', `${desde}..${hasta}`], cwd);
 }
 
+/**
+ * Rutas (con "/" de Git, no separador del SO) de los ficheros bajo
+ * `prefix` en el arbol de `ref`, sin tocar el working tree. Lo usa
+ * "taskctl finish" (TASK-014) para detectar colisiones de IDs contra
+ * develop/main antes de mergear.
+ */
+export function lsTreeNames(ref: string, prefix: string, cwd: string): string[] {
+  return runGit(['ls-tree', '-r', '--name-only', ref, '--', prefix], cwd)
+    .split('\n')
+    .filter((line) => line !== '');
+}
+
+/** Contenido de `filePath` (ruta con "/" de Git) en el arbol de `ref`. */
+export function showFileAtRef(ref: string, filePath: string, cwd: string): string {
+  return runGit(['show', `${ref}:${filePath}`], cwd);
+}
+
 /** true si existe una referencia LOCAL para esa rama. */
 export function localBranchExists(name: string, cwd: string): boolean {
   const result = spawnSync(
