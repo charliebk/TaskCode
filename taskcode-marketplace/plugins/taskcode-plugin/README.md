@@ -192,6 +192,34 @@ claude --plugin-dir "$(pwd)"
 # dentro de la sesión: taskctl --help
 ```
 
+### RESUELTO (2026-09-05): el CI de Windows nativo contestó las preguntas
+
+Las dos limitaciones de abajo se documentaron cuando no había forma de
+probar nada en Windows nativo desde esta sesión. **Ya la hay**: el job
+`windows-latest` de `.github/workflows/ci.yml` corre sobre un checkout
+nativo de Windows y asevera cada hipótesis como un step propio. Resultado
+del primer run verde:
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿`bin/taskctl` conserva el bit `+x` tras un checkout nativo de Windows? | **Sí** |
+| ¿`taskctl` resuelve como comando suelto vía PATH en Windows? | **Sí** |
+| ¿Los `.sh` de Git-Flow corren bajo Git Bash nativo? | **Sí** (smoke test completo en verde) |
+| ¿`node bin/taskctl` funciona desde `cmd.exe`, sin Git Bash? | **Sí** |
+| ¿Pasa la suite completa en Windows? | **Sí**, tras corregir el glob de `npm test` |
+
+Además, `claude plugin validate` pasó en CI tanto para el manifiesto del
+plugin como para el del marketplace — la validación que esta tarea no
+pudo hacer por no tener un CLI real disponible.
+
+El único hallazgo negativo del ejercicio fue real y ya está corregido: el
+script `test` de `package.json` expandía los globs en el shell, y `cmd.exe`
+no expande globs, así que la suite entera fallaba en Windows. Con el glob
+entrecomillado lo expande Node y funciona en ambos sistemas.
+
+Lo que **sigue** sin poder comprobarse desde una sesión no interactiva:
+`claude --plugin-dir` en modo interactivo y el `/plugin install` real.
+
 ### Segunda limitación, específica de este repo: `core.fileMode=false`
 
 `scripts/gitflow/README.md` ya documentó que este repo tiene

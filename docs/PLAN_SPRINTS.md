@@ -158,10 +158,13 @@ ciclo existen y están probados contra Git real.
 
 ## 7. Riesgos y supuestos abiertos que bloquean sprints concretos
 
-- **TASK-007 (Sprint 0):** si los scripts `.sh` no corren sin modificar en
+- ~~**TASK-007 (Sprint 0):** si los scripts `.sh` no corren sin modificar en
   Windows vía Bash de Claude Code, Sprint 1 se retrasa hasta adaptar el
-  wrapper (probablemente invocarlos vía `bash.exe` de Git for Windows
-  explícito en vez de depender del PATH).
+  wrapper.~~ **RESUELTO (2026-09-05)**: el job `windows-latest` del CI corre
+  el smoke test de Git-Flow bajo Git Bash sobre un checkout nativo de
+  Windows y pasa en verde. También quedan confirmados el bit de ejecución de
+  `bin/taskctl` y su resolución como comando suelto por PATH. La reserva que
+  arrastraban TASK-006/007/008/009/010/011 queda cerrada con evidencia.
 - **TASK-006 (Sprint 0, cerrada) → TASK-021 (Sprint 4):** el mecanismo
   determinista para que `taskctl` mismo compruebe programáticamente qué
   plugins/skills están instalados localmente (punto 11, sección 14 de la

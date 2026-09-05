@@ -6,17 +6,17 @@
 > `PLAN_SPRINTS.md`, el resto son huecos detectados en el inventario que no
 > tenían tarea asignada.
 
-**Progreso global: 12 / 40 items terminados (30%)**
+**Progreso global: 16 / 40 items terminados (40%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
-| A — Desbloquear | 3 | 0 | ~6h |
+| ✅ A — Desbloquear | 3 | **3** | ~6h |
 | B — Cerrar el ciclo de vida | 7 | 0 | ~18h |
 | C — Tapar huecos | 6 | 0 | ~10h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
-| E — Cierre | 5 | 0 | ~7h |
-| **Total pendiente** | **28** | **0** | **~79h** |
+| E — Cierre | 5 | **1** | ~7h |
+| **Total pendiente** | **28** | **4** | **~79h** |
 
 ---
 
@@ -37,17 +37,27 @@
 
 ---
 
-## Fase A — Desbloquear (0/3) · ~6h
+## ✅ Fase A — Desbloquear (3/3) · completada el 2026-09-05
 
 Nada de esto es funcionalidad nueva: es quitar de en medio lo que hace
 frágil o ciego todo lo demás.
 
-- [ ] **A1** · Remoto en GitHub + `marketplace.json` (TASK-021 adelantada) — ~3h
-      *Hoy todo Sprint 0 y 1 vive en un solo disco sin copia.*
-- [ ] **A2** · Crear TASK-013…TASK-023 como carpetas reales con `taskctl import` — ~1h
-      *Dogfooding: el sistema gestiona su propio backlog en vez de una tabla en Markdown.*
-- [ ] **A3** · Poner `docs/METRICAS.md` al día (TASK-004 → TASK-012) — ~2h
-      *Hoy está congelado en TASK-003 y aún dice que el repo no es un repositorio Git.*
+- [x] **A1** · Remoto en GitHub + `marketplace.json` (TASK-021 adelantada)
+      *`github.com/charliebk/TaskCode` (privado), 11 ramas subidas, `develop`
+      por defecto, tag y release `v0.1.0` publicados. `marketplace.json`
+      contra el schema oficial, sin `relevance` (ver decisión #12). Extra no
+      planificado: README en la raíz y CI en GitHub Actions.*
+- [x] **A2** · Crear TASK-013…TASK-023 como carpetas reales con `taskctl import`
+      *Las 11 creadas con los IDs alineados con `PLAN_SPRINTS.md`. Dos
+      hallazgos de dogfooding: `import` aplica los mismos flags a todas las
+      entradas y no sabe expresar `dependencias` (hubo que ajustar el
+      frontmatter a mano), y no se puede ejecutar dos veces seguidas porque
+      ensucia el workspace que su propio guard de §8.3 exige limpio.*
+- [x] **A3** · Poner `docs/METRICAS.md` al día (TASK-004 → TASK-012)
+      *Cubre las 12 tareas con agregados nuevos: 50 hallazgos de revisión en
+      9 rondas (5 críticos, 18 importantes, 27 menores), 84% corregidos y
+      ningún crítico ni importante abierto. De paso se corrigieron dos
+      recuentos de tests mal anotados en `PLAN_SPRINTS.md`.*
 
 ## Fase B — Cerrar el ciclo de vida (0/7) · ~18h
 
@@ -75,7 +85,10 @@ Lo que la metodología da por hecho y no existe.
 - [ ] **C1** · Wrappers `taskctl diagnose` / `pause` / `resume` / `recover` / `abort-merge` — ~3h
       *§8.3 ya le dice al usuario "guárdalos con `taskctl pause`" — un comando que no existe.*
 - [ ] **C2** · Paso 5 de §8.3: ¿comitea y sube `taskctl` por la persona? — ~3h
-      *Decisión abierta + implementación. Sin esto, una tarea nueva no llega al equipo sola.*
+      *Decisión abierta + implementación. Sin esto, una tarea nueva no llega
+      al equipo sola. **Evidencia nueva (A2)**: sin el paso 5, `taskctl
+      import` no se puede ejecutar dos veces seguidas — crea las carpetas que
+      luego bloquean su propia siguiente invocación.*
 - [ ] **C3** · Subcarpetas `planificacion/` y `revision/` en cada carpeta de tarea — ~1h
       *Hoy `plan-final.md` queda suelto en la raíz de la carpeta.*
 - [ ] **C4** · `.taskcode/config.yml` — ~1h
@@ -98,18 +111,24 @@ ella, con un revisor genérico y un `plan` de un solo agente.
 - [ ] **D6** · Redactar las 4 skills revisoras (java-spring, angular-vue, csharp-autocad-ifc, code-quality) — ~6h
 - [ ] **D7** · Redactar `agents/` (roles de brainstorm) + `scripts/heuristica-complejidad.yml` — ~4h
 
-## Fase E — Cierre (0/5) · ~7h
+## Fase E — Cierre (1/5) · ~7h
 
 - [ ] **E1** · TASK-022 — Documentación de equipo + invitar colaboradores — ~2h
 - [ ] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — ~5h
-- [ ] **E3** · Validación en Windows nativo — ~10 min, pero solo desde esa sesión
-      *Tres preguntas acumuladas: ¿corren igual los `.sh`?, ¿sobrevive el bit de ejecución de `bin/taskctl` a un checkout nativo?, ¿aplica el mecanismo `bin/`-en-PATH al PowerShell tool sin Git for Windows?*
+- [x] **E3** · Validación en Windows nativo — **resuelta por el CI, no por una sesión nativa**
+      *El job `windows-latest` asevera cada hipótesis como un step propio.
+      Las cinco en verde: el bit `+x` sobrevive el checkout nativo, `taskctl`
+      resuelve como comando suelto por PATH, los `.sh` de Git-Flow pasan el
+      smoke test bajo Git Bash, `node bin/taskctl` funciona desde `cmd.exe`,
+      y la suite completa pasa. Cerró la reserva que arrastraban
+      TASK-006/007/008/009/010/011. Hallazgo negativo real y corregido: el
+      glob de `npm test` no era portable a `cmd.exe`.*
 - [ ] **E4** · Decidir el cierre de las 12 tareas con `estado: planificada` pese a estar hechas
 - [ ] **E5** · Decidir qué hacer con `runConfigurations.zip` en la raíz
 
 ---
 
-## Decisiones que dependen de ti (0/10)
+## Decisiones que dependen de ti (1/10)
 
 No son horas de trabajo mío, son respuestas tuyas — pero bloquean lo que
 está a su derecha.
@@ -118,7 +137,11 @@ está a su derecha.
 - [ ] **#2** · Máximo de agentes en brainstorm paralelo (3 vs 4) → bloquea D1
 - [ ] **#9** · Contenido de `.taskcode/config.yml` → bloquea C4
 - [ ] **#11** · Mecanismo determinista para saber qué plugins/skills hay instalados → bloquea D2
-- [ ] **#12** · Señales del `relevance` en `marketplace.json` → bloquea A1
+- [x] **#12** · Señales del `relevance` en `marketplace.json`
+      *Resuelta sin decisión: la documentación oficial dice que `relevance`
+      solo surte efecto en marketplaces que un administrador incluya en
+      managed settings, así que en un marketplace privado personal no haría
+      nada. No se declara.*
 - [ ] **#13** · ¿WIP único, o dos límites independientes (diseño y ejecución)? → bloquea B7
 - [ ] **#14 (paso 5)** · ¿`taskctl` comitea y sube por la persona? → bloquea C2
 - [ ] **#15** · Pesos de la heurística de complejidad → bloquea D1/D2
