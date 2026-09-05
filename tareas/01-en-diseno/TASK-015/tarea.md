@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-015-limite-de-trabajo-en-curso-por-persona
 asignado_a: carlos
 agente_revisor: typescript-reviewer
