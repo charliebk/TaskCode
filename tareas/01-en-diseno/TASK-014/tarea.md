@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-014-comando-taskctl-finish-merge-cierre-y-ac
 asignado_a: null
@@ -20,6 +20,13 @@ dependencias: [TASK-013]
 ---
 ## Objetivo
 
+Cerrar el ciclo de vida de una tarea: `taskctl finish TASK-NNN` exige la
+revisión aprobada (leyendo el veredicto del informe de revisión, fuente
+determinista), mergea la rama con el script Git-Flow del tipo (con tag y
+backmerge para hotfix/release), verifica con evidencia Git que los merges
+ocurrieron, detecta la colisión de IDs entre `main` y `develop` antes de
+mergear, mueve la carpeta a `04-terminadas/` y renderiza `CHANGELOG.md`,
+`docs/INDEX.md` y `docs/BOARD.md` desde el frontmatter (cero LLM).
 
 ## Criterios de aceptacion
 - [ ] Valida la transición `en-revision` → `terminada`, exigiendo revisión aprobada y, si `revision_codex` es true, también la de Codex.
