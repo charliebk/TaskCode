@@ -10,7 +10,8 @@ import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
-import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
+import { runFinishCommand, FinishCommandError } from './commands/finish.js';
+import { resolveGitflowScriptsDir, GitflowScriptLaunchError } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
 import {
@@ -38,8 +39,9 @@ Uso:
   taskctl plan TASK-NNN
   taskctl approve TASK-NNN
   taskctl review TASK-NNN
+  taskctl finish TASK-NNN
 
-Comandos: new, import, board, start, plan, approve, review.
+Comandos: new, import, board, start, plan, approve, review, finish.
 Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -180,10 +182,14 @@ export async function main(argv: readonly string[]): Promise<number> {
       );
       return 0;
     } catch (e) {
+      // GitflowScriptLaunchError incluido (hallazgo menor de revision
+      // por pares, TASK-014, preexistente desde TASK-009): sin esto un
+      // bash ilanzable caia al catch-all con "taskctl no pudo arrancar".
       if (
         e instanceof StartCommandError ||
         e instanceof StateMachineError ||
-        e instanceof TaskFolderConflictError
+        e instanceof TaskFolderConflictError ||
+        e instanceof GitflowScriptLaunchError
       ) {
         printCliError(e);
         return 1;
@@ -274,7 +280,41 @@ export async function main(argv: readonly string[]): Promise<number> {
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
         e instanceof GitLaunchError ||
-        e instanceof GitCommandError
+        e instanceof GitCommandError ||
+        e instanceof GitflowScriptLaunchError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'finish') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const result = await runFinishCommand(tareasRoot, argv.slice(1), today(), {
+        repoCwd,
+        scriptsDir: resolveGitflowScriptsDir(),
+      });
+      const mainInfo = result.mainBranch === null ? '' : ` y en "${result.mainBranch}" (con tag)`;
+      process.stdout.write(
+        `Tarea ${result.id} terminada: "${result.rama}" integrada en ` +
+          `"${result.baseBranch}"${mainInfo}, tarea movida a ${result.filePath}.\n` +
+          `Actualizados: ${result.changelogPath}, ${result.indexPath} y ${result.boardPath}.\n` +
+          'Recuerda commitear y subir el resultado (el auto-commit es la decision #14, aun ' +
+          'abierta).\n'
+      );
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof FinishCommandError ||
+        e instanceof StateMachineError ||
+        e instanceof TaskFolderConflictError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError ||
+        e instanceof GitflowScriptLaunchError
       ) {
         printCliError(e);
         return 1;

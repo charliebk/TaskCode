@@ -137,6 +137,7 @@ salvo la primera fila:
 | 0 (parcial) | TASK-005 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo) | 226 (25 nuevos) | 0 críticos; 3 importantes (los 3 corregidos); 2 menores (documentados sin corregir) |
 | 0 (completo) | TASK-006 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo, sin cambios: TASK-006 es empaquetado/documentación, no lógica de comandos) | 226 (0 nuevos) | 0 críticos; 3 importantes (los 3 corregidos, todos de precisión documental); 2 menores (los 2 corregidos) |
 | 2 (parcial) | TASK-013 | — | 95.99% líneas / 93.45% ramas (`taskctl` completo) | 247 (11 nuevos) | 0 críticos; 2 importantes (corregidos); 3 menores (2 corregidos, 1 documentado sin corregir) |
+| 2 (parcial) | TASK-014 | — | 95.49% líneas / 93.09% ramas (`taskctl` completo) | 266 (19 nuevos) | 1 crítico; 2 importantes; 4 menores (los 7 corregidos) |
 
 Detalle completo en `docs/METRICAS.md` y `docs/spikes/`. **Sprint 0
 completo** (TASK-001 a TASK-007) y **Sprint 1 completo** (TASK-008 a

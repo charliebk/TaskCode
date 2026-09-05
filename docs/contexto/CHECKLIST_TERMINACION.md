@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 18 / 40 items terminados (45%)** · última actualización: 2026-09-05
+**Progreso global: 19 / 40 items terminados (48%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
-| B — Cerrar el ciclo de vida | 7 | **2** | ~18h |
+| B — Cerrar el ciclo de vida | 7 | **3** | ~18h |
 | C — Tapar huecos | 6 | 0 | ~10h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **28** | **6** | **~79h** |
+| **Total pendiente** | **28** | **7** | **~79h** |
 
 ---
 
@@ -63,7 +63,7 @@ frágil o ciego todo lo demás.
       ningún crítico ni importante abierto. De paso se corrigieron dos
       recuentos de tests mal anotados en `PLAN_SPRINTS.md`.*
 
-## Fase B — Cerrar el ciclo de vida (2/7) · ~18h
+## Fase B — Cerrar el ciclo de vida (3/7) · ~18h
 
 **Este es el hito real de usabilidad.** Al terminar la Fase B el sistema se
 puede usar a diario de punta a punta; todo lo posterior mejora la calidad
@@ -88,9 +88,17 @@ del proceso, no lo habilita.
       principal. 10 tests reales nuevos (repos temporales + bare como
       origin); verificado que fallan sin el fix. De propina: guard en
       `smoke-test.sh` que evita un `git init` destructivo si mktemp falla.*
-- [ ] **B3** · TASK-014 — `taskctl finish` (merge, backmerge, tag) — ~5h
-      *Destapa el riesgo documentado de colisión de IDs entre `main` y `develop`.*
-- [ ] **B4** · Crear `CHANGELOG.md`, `INDEX.md` y `BOARD.md` — ~1h
+- [x] **B3** · TASK-014 — `taskctl finish` (merge, backmerge, tag) — ~5h
+      *Cerrado el 2026-09-05 con su propio comando (finish mergeó su propia
+      tarea: primer cierre de punta a punta del método). Aprobación leída
+      del veredicto del informe (parser fail-closed endurecido: la revisión
+      pilló que aprobaba <no aprobada>), colisión de IDs resuelta con dos
+      discriminadores (título distinto y linaje sin ancestro común), camino
+      idempotente de reintento tras conflicto de backmerge, y CHANGELOG,
+      INDEX y BOARD renderizados desde el frontmatter. 1 crítico + 2
+      importantes + 4 menores de revisión, los 7 corregidos. 19 tests
+      nuevos (266). De propina cubre la mitad de B4: los tres ficheros los
+      crea finish si no existen.*- [ ] **B4** · Crear `CHANGELOG.md`, `INDEX.md` y `BOARD.md` — ~1h
       *B3 promete actualizarlos y ninguno de los tres existe.*
 - [ ] **B5** · Resolver la divergencia de `board` — ~1h
       *La metodología dice "regenera `docs/BOARD.md`"; lo implementado es un listado por pantalla. Decidir en qué sentido se corrige.*
