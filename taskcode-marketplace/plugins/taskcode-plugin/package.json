@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test --experimental-test-coverage dist/test/core/*.test.js dist/test/cli/*.test.js dist/test/commands/*.test.js dist/test/fs/*.test.js"
+    "test": "npm run build && node --test --experimental-test-coverage \"dist/test/**/*.test.js\""
   },
   "devDependencies": {
     "typescript": "^5.6.0",
