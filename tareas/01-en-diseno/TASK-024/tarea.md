@@ -7,7 +7,7 @@ etiquetas: [cli, identidad]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-024-asignado-a-por-defecto-desde-la-identida
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
