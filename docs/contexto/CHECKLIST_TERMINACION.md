@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 23 / 40 items terminados (58%)** · última actualización: 2026-09-05
+**Progreso global: 23 / 41 items terminados (56%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 6 | 0 | ~10h |
+| C — Tapar huecos | 7 | 0 | ~12h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **28** | **11** | **~79h** |
+| **Total pendiente** | **29** | **11** | **~81h** |
 
 ---
 
@@ -147,7 +147,7 @@ del proceso, no lo habilita.
       la misma persona con dos grafías — normalizar identidades es material
       de C4). 38 tests reales nuevos (345).*
 
-## Fase C — Tapar huecos (0/6) · ~10h
+## Fase C — Tapar huecos (0/7) · ~12h
 
 Lo que la metodología da por hecho y no existe.
 
@@ -166,6 +166,12 @@ Lo que la metodología da por hecho y no existe.
       *La primera skill del plugin: hoy no expone ninguna a Claude Code.*
 - [ ] **C6** · Bug de `origin` en `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` — ~1h
       *Los dos últimos los envuelve C1.*
+- [ ] **C7** · TASK-024 — `asignado_a` por defecto desde la identidad Git — ~2h
+      *Decidido por Carlos el 2026-09-05: la identidad es
+      `git config user.email`. Sin esto el límite de WIP de B7 es opt-in y
+      no protege a nadie que no se acuerde del flag: hoy más de la mitad
+      de las tareas de este repo tienen `asignado_a: null`. Incluye migrar
+      las 10 tareas que hoy dicen `charlie.bk` o `carlos`.*
 
 ## Fase D — Inteligencia del proceso (0/7) · ~38h
 
