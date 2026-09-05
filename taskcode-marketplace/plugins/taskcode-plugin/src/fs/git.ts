@@ -35,8 +35,15 @@ export class GitLaunchError extends Error {
   }
 }
 
+// El default de spawnSync (1 MB) mata a git con ENOBUFS en cuanto un
+// diff real supera ese tamano — lockfiles o codigo generado lo hacen
+// sin esfuerzo (hallazgo IMPORTANTE de revision por pares, TASK-013:
+// dejaba "taskctl review" inutilizable para esa tarea, con el merge de
+// update ya consumado). 64 MB cubre cualquier diff razonable.
+const GIT_MAX_BUFFER = 64 * 1024 * 1024;
+
 function runGit(args: readonly string[], cwd: string): string {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: GIT_MAX_BUFFER });
   if (result.error) {
     throw new GitLaunchError(result.error);
   }

@@ -13,7 +13,12 @@ import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
-import { BaseBranchGuardError, type BaseBranchGuardResult } from './fs/git.js';
+import {
+  BaseBranchGuardError,
+  GitCommandError,
+  GitLaunchError,
+  type BaseBranchGuardResult,
+} from './fs/git.js';
 
 const VERSION = '0.1.0';
 
@@ -260,10 +265,16 @@ export async function main(argv: readonly string[]): Promise<number> {
       );
       return 0;
     } catch (e) {
+      // GitLaunchError/GitCommandError tambien se capturan aqui
+      // (hallazgo MENOR de revision por pares, TASK-013): sin esto
+      // caian al catch-all de bin/taskctl con el prefijo enganoso
+      // "taskctl no pudo arrancar".
       if (
         e instanceof ReviewCommandError ||
         e instanceof StateMachineError ||
-        e instanceof TaskFolderConflictError
+        e instanceof TaskFolderConflictError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError
       ) {
         printCliError(e);
         return 1;

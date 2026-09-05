@@ -20,7 +20,7 @@
 import path from 'node:path';
 import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile, isEnoent, isEexist } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import {
   isWorkspaceClean,
@@ -65,6 +65,24 @@ export interface ReviewCommandResult {
   informePath: string;
 }
 
+/**
+ * Valla de backticks mas larga que cualquier apertura/cierre de valla
+ * presente en el contenido embebido (CommonMark tolera hasta 3
+ * espacios de sangria, que es justo lo que produce una linea de
+ * contexto de diff con backticks a columna 0 — hallazgo MENOR de
+ * revision por pares, TASK-013: con valla fija de 4, un diff cuyo
+ * contexto contenga ```` cerraba el bloque antes de tiempo).
+ */
+export function fenceFor(...contents: readonly string[]): string {
+  let max = 3;
+  for (const content of contents) {
+    for (const m of content.matchAll(/^ {0,3}(`{3,})/gm)) {
+      max = Math.max(max, (m[1] as string).length);
+    }
+  }
+  return '`'.repeat(max + 1);
+}
+
 export function peticionTemplate(
   task: Task,
   baseBranch: string,
@@ -76,6 +94,7 @@ export function peticionTemplate(
 ): string {
   const commitsBlock = commits === '' ? '(sin commits nuevos respecto a la base)' : commits;
   const diffBlock = diff === '' ? '(sin diferencias respecto a la base)' : diff;
+  const fence = fenceFor(commitsBlock, diffBlock);
   return (
     `# Peticion de revision — ${task.id} (ronda ${ronda})\n\n` +
     `- Tarea: ${task.id} — ${task.titulo}\n` +
@@ -96,13 +115,13 @@ export function peticionTemplate(
     `informe de esta ronda (informe-revision-${ronda}.md), sin borrar la\n` +
     'peticion.\n\n' +
     `## Commits a revisar (git log ${baseBranch}..HEAD)\n\n` +
-    '````\n' +
+    `${fence}\n` +
     `${commitsBlock}\n` +
-    '````\n\n' +
+    `${fence}\n\n` +
     `## Diff completo (git diff ${baseBranch}..HEAD)\n\n` +
-    '````diff\n' +
+    `${fence}diff\n` +
     `${diffBlock}\n` +
-    '````\n'
+    `${fence}\n`
   );
 }
 
@@ -212,27 +231,44 @@ export async function runReviewCommand(
   const diff = diffRange(baseBranch, 'HEAD', deps.repoCwd);
 
   const updated: Task = { ...task, estado: 'en-revision', actualizado: today };
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
 
-  // Peticion + scaffold de informe, numerados por ronda. Flag 'wx' en
-  // ambos: la numeracion garantiza un hueco libre, y si aun asi el
-  // fichero existiera (carrera, restos a medias), fallar ruidosamente
-  // es mejor que pisar una revision anterior — mismo principio que
-  // plan-final.md en TASK-010.
-  const revisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
+  // Peticion + scaffold de informe ANTES de mover la tarea (hallazgo
+  // IMPORTANTE de revision por pares, TASK-013): si una escritura
+  // falla (EEXIST por colision case-insensitive en NTFS, permisos,
+  // disco), la tarea sigue en-curso y reintentar es posible — el orden
+  // inverso dejaba estado en-revision sin peticion ni salida, un
+  // callejon de la maquina de estados. Se escriben en la carpeta
+  // ACTUAL: el rename de moveTareaFile se lleva revision/ entera.
+  // Flag 'wx' en ambos: la numeracion garantiza un hueco libre, y si
+  // aun asi el fichero existiera, fallar ruidosamente es mejor que
+  // pisar una revision anterior — mismo principio que plan-final.md.
+  const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
   await mkdir(revisionDir, { recursive: true });
   const ronda = await siguienteRonda(revisionDir);
-  const peticionPath = path.join(revisionDir, `peticion-revision-${ronda}.md`);
-  const informePath = path.join(revisionDir, `informe-revision-${ronda}.md`);
-  await writeFile(
-    peticionPath,
-    peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diff),
-    { encoding: 'utf8', flag: 'wx' }
-  );
-  await writeFile(informePath, informeTemplate(updated, commitRevisado, ronda), {
-    encoding: 'utf8',
-    flag: 'wx',
-  });
+  try {
+    await writeFile(
+      path.join(revisionDir, `peticion-revision-${ronda}.md`),
+      peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diff),
+      { encoding: 'utf8', flag: 'wx' }
+    );
+    await writeFile(
+      path.join(revisionDir, `informe-revision-${ronda}.md`),
+      informeTemplate(updated, commitRevisado, ronda),
+      { encoding: 'utf8', flag: 'wx' }
+    );
+  } catch (e: unknown) {
+    if (!isEexist(e)) throw e;
+    throw new ReviewCommandError(
+      `[ERROR] ${id}: ya existe un fichero de la ronda ${ronda} en ${revisionDir} ` +
+        '(¿restos con otro case en un filesystem case-insensitive?). La tarea NO se ha ' +
+        'movido; limpia o renombra esos ficheros y reintenta.'
+    );
+  }
+
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+  const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
+  const peticionPath = path.join(newRevisionDir, `peticion-revision-${ronda}.md`);
+  const informePath = path.join(newRevisionDir, `informe-revision-${ronda}.md`);
 
   return {
     id: task.id,
