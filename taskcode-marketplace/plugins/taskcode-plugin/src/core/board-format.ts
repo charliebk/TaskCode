@@ -130,3 +130,70 @@ export function formatBoard(tasks: readonly Task[]): string {
   }
   return blocks.join('\n\n');
 }
+
+/**
+ * Documento completo de `docs/BOARD.md`. Unica fuente del formato del
+ * fichero: la comparten "taskctl finish" (que lo regenera al cerrar una
+ * tarea) y "taskctl board --escribir" (item B5 del plan de terminacion,
+ * que resuelve la divergencia con la tabla de la seccion 8 de la
+ * metodologia: alli el comando "regenera docs/BOARD.md").
+ *
+ * Las tablas van dentro de vallas de codigo a proposito: son texto
+ * alineado con espacios, y sin valla cualquier visor de Markdown junta
+ * sus lineas en un parrafo y destruye la alineacion. Las cabeceras de
+ * estado ("## Planificadas...") se dejan fuera para que sigan siendo
+ * navegables como secciones.
+ *
+ * La valla es FIJA (tres backticks), a diferencia de la dinamica de
+ * review.ts, y es seguro porque ninguna linea embebida puede cerrarla:
+ * dentro de la valla solo van filas de tabla, que empiezan siempre por
+ * la columna ID ("TASK-NNN", "ID" o los guiones del separador), y
+ * CommonMark exige que el cierre sean solo backticks en toda la linea.
+ * Un titulo con backticks queda a partir de la segunda columna, nunca
+ * al principio. Si alguna vez se reordenan las columnas y el titulo
+ * pasa a ir primero, esto deja de ser cierto y habria que calcular la
+ * valla como en review.ts (comprobado por revision por pares, B5).
+ */
+export function renderBoardMarkdown(
+  boardOutput: string,
+  advertencias: readonly string[],
+  fecha: string,
+  generadoPor: string
+): string {
+  const partes: string[] = [
+    '# Tablero de tareas',
+    '',
+    `> Generado automaticamente por ${generadoPor} el ${fecha}. No editar a mano.`,
+  ];
+  if (advertencias.length > 0) {
+    partes.push('>', '> Avisos del render:', ...advertencias.map((a) => `> - ${a}`));
+  }
+  partes.push('');
+
+  let enTabla = false;
+  for (const linea of boardOutput.split('\n')) {
+    if (linea.startsWith('## ')) {
+      if (enTabla) {
+        partes.push('```', '');
+        enTabla = false;
+      }
+      partes.push(linea, '');
+      continue;
+    }
+    if (linea.trim() === '') {
+      if (enTabla) {
+        partes.push('```', '');
+        enTabla = false;
+      }
+      continue;
+    }
+    if (!enTabla) {
+      partes.push('```text');
+      enTabla = true;
+    }
+    partes.push(linea);
+  }
+  if (enTabla) partes.push('```');
+
+  return `${partes.join('\n').trimEnd()}\n`;
+}

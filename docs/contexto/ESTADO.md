@@ -6,17 +6,18 @@
 
 ## Dónde estamos
 
-**16 de 40 items del plan de terminación (40%).** Sprint 0 y Sprint 1
-completos (TASK-001 a TASK-012), y la Fase A del plan de terminación cerrada.
+**21 de 40 items del plan de terminación (53%).** Sprint 0 y Sprint 1
+completos (TASK-001 a TASK-012), la Fase A cerrada, y de la Fase B ya están
+B1, B2, B3, B4 y B5.
 
-El ciclo `import → plan → approve → start` funciona de punta a punta contra un
-repo Git real: deja una rama creada de verdad y la tarea en `02-en-curso/`,
-con la máquina de estados rechazando el orden incorrecto. 226 tests, ~96% de
-cobertura de líneas.
+**El ciclo de vida está completo**: `import → plan → approve → start →
+review → finish` funciona de punta a punta contra un repo Git real, y no de
+forma teórica — TASK-013 y TASK-014 se gestionaron enteras con la propia
+herramienta, incluido el cierre (`taskctl finish` mergeó su propia tarea).
+275 tests, ~95% de cobertura de líneas.
 
-**Lo que todavía NO se puede hacer**: cerrar una tarea. No existen `taskctl
-review` ni `taskctl finish`. Ese es exactamente el contenido de la Fase B, y
-por eso la Fase B —no el final del plan— es el hito real de usabilidad diaria.
+Quedan **B6** (`--asignado-a` en `plan` y `start`) y **B7** (límite de WIP,
+bloqueado por la decisión #13) para cerrar la fase.
 
 ## Qué acaba de pasar (sesión del 2026-09-05)
 

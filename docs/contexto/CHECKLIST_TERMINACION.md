@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 19 / 40 items terminados (48%)** · última actualización: 2026-09-05
+**Progreso global: 21 / 40 items terminados (53%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
-| B — Cerrar el ciclo de vida | 7 | **3** | ~18h |
+| B — Cerrar el ciclo de vida | 7 | **5** | ~18h |
 | C — Tapar huecos | 6 | 0 | ~10h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **28** | **7** | **~79h** |
+| **Total pendiente** | **28** | **9** | **~79h** |
 
 ---
 
@@ -63,7 +63,7 @@ frágil o ciego todo lo demás.
       ningún crítico ni importante abierto. De paso se corrigieron dos
       recuentos de tests mal anotados en `PLAN_SPRINTS.md`.*
 
-## Fase B — Cerrar el ciclo de vida (3/7) · ~18h
+## Fase B — Cerrar el ciclo de vida (5/7) · ~18h
 
 **Este es el hito real de usabilidad.** Al terminar la Fase B el sistema se
 puede usar a diario de punta a punta; todo lo posterior mejora la calidad
@@ -98,10 +98,24 @@ del proceso, no lo habilita.
       INDEX y BOARD renderizados desde el frontmatter. 1 crítico + 2
       importantes + 4 menores de revisión, los 7 corregidos. 19 tests
       nuevos (266). De propina cubre la mitad de B4: los tres ficheros los
-      crea finish si no existen.*- [ ] **B4** · Crear `CHANGELOG.md`, `INDEX.md` y `BOARD.md` — ~1h
-      *B3 promete actualizarlos y ninguno de los tres existe.*
-- [ ] **B5** · Resolver la divergencia de `board` — ~1h
-      *La metodología dice "regenera `docs/BOARD.md`"; lo implementado es un listado por pantalla. Decidir en qué sentido se corrige.*
+      crea finish si no existen.*- [x] **B4** · Crear `CHANGELOG.md`, `INDEX.md` y `BOARD.md` — ~1h
+      *Los tres los creó `taskctl finish` al cerrar TASK-014 (B3). B4 añadió
+      el histórico que faltaba: las 12 tareas de Sprint 0 y 1 en CHANGELOG e
+      INDEX, compuestas leyendo sus `tarea.md` reales, apuntando a su ruta
+      real en `00-planificadas` (siguen ahí por la paradoja de
+      bootstrapping, E4). De paso quedó por escrito que TASK-001, 002 y 003
+      declaran una `rama` que no existe en Git.*- [x] **B5** · Resolver la divergencia de `board` — ~1h
+      *Resuelta a favor de la metodología: `taskctl board --escribir`
+      regenera `docs/BOARD.md`; sin el flag sigue siendo de solo lectura,
+      porque escribir siempre ensuciaría el workspace y dispararía el guard
+      de §8.3 en el siguiente comando. El formato del fichero vive ahora en
+      un único sitio (`renderBoardMarkdown`), compartido con `finish`, y las
+      tablas van en vallas de código. La divergencia residual (§8 no
+      menciona flags) queda documentada en HALLAZGOS, sin tocar la
+      metodología congelada. Revisión: 3 importantes y 2 menores corregidos
+      (orden no determinista de avisos que hacía el fichero irreproducible,
+      tablero fantasma fuera de la raíz del repo, errores de escritura mal
+      etiquetados), 1 menor documentado. 9 tests nuevos (275).*      *La metodología dice "regenera `docs/BOARD.md`"; lo implementado es un listado por pantalla. Decidir en qué sentido se corrige.*
 - [ ] **B6** · Añadir `--asignado-a` a `plan` y `start` — ~2h
       *Sin esto nadie rellena `asignado_a`: B7 no tiene sobre qué operar y `board --asignado_a` filtra por un campo vacío.*
 - [ ] **B7** · TASK-015 — Límite de WIP por persona (§8.2) — ~3h

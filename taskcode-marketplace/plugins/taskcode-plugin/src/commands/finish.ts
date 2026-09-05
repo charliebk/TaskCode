@@ -33,7 +33,8 @@ import {
   checkoutBranch,
 } from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
-import { runBoardCommand } from './board.js';
+import { runBoardCommand, boardFilePath } from './board.js';
+import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
 
 export class FinishCommandError extends Error {}
@@ -407,21 +408,16 @@ export async function runFinishCommand(
   const docsDir = path.join(deps.repoCwd, 'docs');
   await mkdir(docsDir, { recursive: true });
   const indexPath = path.join(docsDir, 'INDEX.md');
-  const boardPath = path.join(docsDir, 'BOARD.md');
+  // Misma ruta que usa "taskctl board --escribir" (item B5).
+  const boardPath = boardFilePath(deps.repoCwd);
 
   await appendEntry(changelogPath, CHANGELOG_INICIAL, CHANGELOG_HEADER, changelogEntry(updated, today));
   await appendEntry(indexPath, INDEX_INICIAL, INDEX_HEADER, indexEntry(updated, today));
 
   const board = await runBoardCommand(tareasRoot, []);
-  const avisos =
-    board.advertencias.length > 0
-      ? `\n> Avisos del render:\n${board.advertencias.map((a) => `> - ${a}`).join('\n')}\n`
-      : '';
   await writeFile(
     boardPath,
-    `# Tablero de tareas\n\n` +
-      `> Generado automaticamente por taskctl finish el ${today}. No editar a mano.\n${avisos}\n` +
-      `${board.output}\n`,
+    renderBoardMarkdown(board.output, board.advertencias, today, 'taskctl finish'),
     'utf8'
   );
 
