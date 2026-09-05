@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-013-comando-taskctl-review-revision-por-pare
 asignado_a: null
@@ -20,6 +20,13 @@ dependencias: [TASK-012]
 ---
 ## Objetivo
 
+Cerrar la fase de ejecución de una tarea y abrir la de revisión: `taskctl
+review TASK-NNN` trae los cambios de la rama base con el script Git-Flow del
+tipo, verifica con evidencia Git que el merge ocurrió, mueve la tarea a
+`03-en-revision/` y deja en `revision/` la petición para el agente revisor
+genérico (con el diff real) más el scaffold de su informe. El CLI hace lo
+determinista; el disparo del agente lo hace el orquestador (patrón del plan
+mínimo de TASK-010, decisión con Carlos 2026-09-05).
 
 ## Criterios de aceptacion
 - [ ] Valida la transición `en-curso` → `en-revision` y aborta con mensaje accionable si la tarea no está en `02-en-curso/`, sin tocar Git ni carpetas.
