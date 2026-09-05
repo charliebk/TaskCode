@@ -129,12 +129,12 @@ salvo la primera fila:
 | 0 (parcial) | TASK-001, TASK-002, TASK-003 | — (sesión con agentes, no comparable a horas-persona) | 98.69% líneas / 95.77% ramas | 91 | 10 (9 corregidos, 1 documentado como limitación conocida) |
 | 0 (spike) | TASK-007 | — | n/a (smoke test funcional, no unitario) | — | 4 hallazgos reales, 2 corregidos en el propio spike |
 | 1 (parcial) | TASK-008 | — | n/a (scripts Bash) | 1 smoke test, 6 comprobaciones | 1 menor (corregido); 2 hallazgos nuevos documentados sin corregir (mismo bug de `origin` en 7 scripts más; bit ejecutable no se conserva en este repo) |
-| 1 (parcial) | TASK-009 | — | 98.37% líneas / 94.21% ramas (`taskctl` completo) | 115 (15 nuevos) | 0 críticos; 3 importantes (corregidos); 6 menores (5 corregidos, 1 pendiente de validación en Windows nativo, igual que TASK-007/008) |
+| 1 (parcial) | TASK-009 | — | 98.37% líneas / 94.21% ramas (`taskctl` completo) | 115 (24 nuevos) | 0 críticos; 3 importantes (corregidos); 6 menores (5 corregidos, 1 pendiente de validación en Windows nativo, igual que TASK-007/008) |
 | 1 (parcial) | TASK-010 | — | 98.52% líneas / 94.31% ramas (`taskctl` completo) | 122 (7 nuevos) | 0 críticos; 0 importantes; 4 menores (todos corregidos) |
 | 1 (parcial) | TASK-011 | — | 98.76% líneas / 95.31% ramas (`taskctl` completo) | 131 (9 nuevos) | 0 críticos; 0 importantes; 2 menores (todos corregidos) |
 | 1 (completo) | TASK-012 | — | 99.03% líneas / 96.20% ramas (`taskctl` completo) | 165 (34 nuevos) | 2 críticos; 1 importante (los 3 corregidos); 3 menores (1 corregido, 2 documentados sin corregir) |
 | 0 (parcial) | TASK-004 | — | 96.69% líneas / 95.22% ramas (`taskctl` completo) | 201 (36 nuevos) | 1 crítico; 4 importantes (los 5 corregidos); 3 menores (2 corregidos, 1 documentado sin corregir) |
-| 0 (parcial) | TASK-005 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo) | 226 (3 nuevos) | 0 críticos; 3 importantes (los 3 corregidos); 2 menores (documentados sin corregir) |
+| 0 (parcial) | TASK-005 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo) | 226 (25 nuevos) | 0 críticos; 3 importantes (los 3 corregidos); 2 menores (documentados sin corregir) |
 | 0 (completo) | TASK-006 | — | 96.51% líneas / 94.29% ramas (`taskctl` completo, sin cambios: TASK-006 es empaquetado/documentación, no lógica de comandos) | 226 (0 nuevos) | 0 críticos; 3 importantes (los 3 corregidos, todos de precisión documental); 2 menores (los 2 corregidos) |
 
 Detalle completo en `docs/METRICAS.md` y `docs/spikes/`. **Sprint 0
