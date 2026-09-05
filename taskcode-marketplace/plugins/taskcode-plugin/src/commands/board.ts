@@ -16,13 +16,44 @@
  * reporta como advertencia y esa tarea concreta no aparece en el
  * board, en vez de romper el comando entero.
  */
+import path from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, type Task } from '../core/task.js';
-import { filterTasks, formatBoard, type BoardFilters } from '../core/board-format.js';
+import {
+  filterTasks,
+  formatBoard,
+  renderBoardMarkdown,
+  type BoardFilters,
+} from '../core/board-format.js';
 import { listExistingTaskIds, readTareaFile } from '../fs/task-store.js';
 
 export class BoardCommandError extends Error {}
+
+/** Ruta de docs/BOARD.md dentro del repo del usuario. */
+export function boardFilePath(repoCwd: string): string {
+  return path.join(repoCwd, 'docs', 'BOARD.md');
+}
+
+/**
+ * true si se pidio "--escribir" (item B5): regenerar docs/BOARD.md
+ * ademas de listar por pantalla. No se escribe por defecto a
+ * proposito: "board" es hoy el unico comando de solo lectura del CLI, y
+ * escribir en cada invocacion ensuciaria el workspace, disparando el
+ * guard de la seccion 8.3 en el siguiente plan/start/review/finish —
+ * exactamente la trampa que "taskctl import" ya documenta en
+ * HALLAZGOS.md (genera la suciedad que bloquea su propio siguiente uso).
+ */
+function parseEscribirFlag(argv: readonly string[]): boolean {
+  const { flags } = parseArgs(argv);
+  const raw = flags['escribir'];
+  if (raw === undefined) return false;
+  if (raw !== true) {
+    throw new BoardCommandError('--escribir no lleva valor: usalo suelto (taskctl board --escribir).');
+  }
+  return true;
+}
 
 export function parseBoardArgs(argv: readonly string[]): BoardFilters {
   const { flags } = parseArgs(argv);
@@ -55,13 +86,41 @@ export interface BoardCommandResult {
   output: string;
   totalTareas: number;
   advertencias: string[];
+  /** Ruta de docs/BOARD.md si se paso --escribir; null si no. */
+  boardPath: string | null;
+}
+
+export interface BoardCommandDeps {
+  /** Solo lo necesita "--escribir": raiz del repo donde vive docs/. */
+  repoCwd?: string;
+  /** Fecha para la cabecera del fichero generado (solo con --escribir). */
+  today?: string;
 }
 
 export async function runBoardCommand(
   tareasRoot: string,
-  argv: readonly string[]
+  argv: readonly string[],
+  deps: BoardCommandDeps = {}
 ): Promise<BoardCommandResult> {
   const filters = parseBoardArgs(argv);
+  const escribir = parseEscribirFlag(argv);
+
+  // docs/BOARD.md es el tablero COMPLETO del repo (es lo que regenera
+  // taskctl finish). Escribirlo con filtros dejaria un fichero parcial
+  // que parece el tablero entero: se rechaza en vez de generar algo
+  // enganoso.
+  if (escribir && (filters.sprint !== undefined || filters.asignadoA !== undefined)) {
+    throw new BoardCommandError(
+      '--escribir no se puede combinar con --sprint ni --asignado_a: docs/BOARD.md es el ' +
+        'tablero completo del repo. Ejecuta "taskctl board --escribir" sin filtros, o quita ' +
+        '--escribir para ver el listado filtrado por pantalla.'
+    );
+  }
+  if (escribir && (deps.repoCwd === undefined || deps.today === undefined)) {
+    throw new BoardCommandError(
+      '--escribir necesita saber la raiz del repo y la fecha; invocalo desde el CLI.'
+    );
+  }
 
   const rawIds = await listExistingTaskIds(tareasRoot);
   const tasks: Task[] = [];
@@ -108,5 +167,16 @@ export async function runBoardCommand(
   const filtered = filterTasks(tasks, filters);
   const output = formatBoard(filtered);
 
-  return { output, totalTareas: filtered.length, advertencias };
+  let boardPath: string | null = null;
+  if (escribir) {
+    boardPath = boardFilePath(deps.repoCwd as string);
+    await mkdir(path.dirname(boardPath), { recursive: true });
+    await writeFile(
+      boardPath,
+      renderBoardMarkdown(output, advertencias, deps.today as string, 'taskctl board --escribir'),
+      'utf8'
+    );
+  }
+
+  return { output, totalTareas: filtered.length, advertencias, boardPath };
 }

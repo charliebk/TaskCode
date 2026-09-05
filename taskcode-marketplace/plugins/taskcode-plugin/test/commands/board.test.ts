@@ -178,6 +178,116 @@ test('runBoardCommand: --sprint invalido falla sin leer nada de disco', async ()
   });
 });
 
+// --- B5: --escribir regenera docs/BOARD.md (divergencia de la seccion 8) ---
+
+async function withRepoRoot(fn: (repoRoot: string, tareasRoot: string) => Promise<void>): Promise<void> {
+  const root = await mkdtemp(path.join(tmpdir(), 'taskctl-board-escribir-'));
+  try {
+    await fn(root, path.join(root, 'tareas'));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+function tareaEjemplo(id: string, titulo: string) {
+  return buildNewTask(
+    id,
+    {
+      titulo,
+      tipo: 'feature',
+      sprint: 1,
+      etiquetas: [],
+      complejidad: 'media',
+      modeloSugerido: 'sonnet',
+      agenteRevisor: 'general-purpose',
+    },
+    '2026-09-01'
+  );
+}
+
+test('runBoardCommand: por defecto NO escribe nada (board sigue siendo de solo lectura)', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
+    const result = await runBoardCommand(tareasRoot, [], { repoCwd: repoRoot, today: '2026-09-06' });
+    assert.equal(result.boardPath, null);
+    await assert.rejects(() => readFile(path.join(repoRoot, 'docs', 'BOARD.md'), 'utf8'));
+  });
+});
+
+test('runBoardCommand --escribir: regenera docs/BOARD.md con las tablas dentro de vallas de codigo', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
+    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-002', 'Otra tarea'), DEFAULT_BODY);
+
+    const result = await runBoardCommand(tareasRoot, ['--escribir'], {
+      repoCwd: repoRoot,
+      today: '2026-09-06',
+    });
+
+    assert.equal(result.boardPath, path.join(repoRoot, 'docs', 'BOARD.md'));
+    const board = await readFile(result.boardPath as string, 'utf8');
+    assert.match(board, /# Tablero de tareas/);
+    assert.match(board, /Generado automaticamente por taskctl board --escribir el 2026-09-06/);
+    assert.match(board, /## Planificadas/);
+    assert.match(board, /TASK-001/);
+    assert.match(board, /TASK-002/);
+    // La tabla va dentro de una valla: sin ella, un visor Markdown
+    // junta sus lineas en un parrafo y rompe la alineacion.
+    assert.match(board, /```text\n/);
+    // Vallas equilibradas (misma cantidad de aperturas que cierres).
+    const vallas = board.split('\n').filter((l) => l.startsWith('```')).length;
+    assert.equal(vallas % 2, 0);
+  });
+});
+
+test('runBoardCommand --escribir: crea docs/ si no existe y es idempotente al repetirlo', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
+    const primera = await runBoardCommand(tareasRoot, ['--escribir'], {
+      repoCwd: repoRoot,
+      today: '2026-09-06',
+    });
+    const contenido1 = await readFile(primera.boardPath as string, 'utf8');
+    const segunda = await runBoardCommand(tareasRoot, ['--escribir'], {
+      repoCwd: repoRoot,
+      today: '2026-09-06',
+    });
+    const contenido2 = await readFile(segunda.boardPath as string, 'utf8');
+    assert.equal(contenido1, contenido2);
+  });
+});
+
+test('runBoardCommand --escribir: rechaza combinarse con filtros (docs/BOARD.md es el tablero completo)', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
+    for (const filtro of [['--sprint', '1'], ['--asignado_a', 'charlie.bk']]) {
+      await assert.rejects(
+        () =>
+          runBoardCommand(tareasRoot, ['--escribir', ...filtro], {
+            repoCwd: repoRoot,
+            today: '2026-09-06',
+          }),
+        BoardCommandError
+      );
+    }
+    // Y no dejo el fichero a medias.
+    await assert.rejects(() => readFile(path.join(repoRoot, 'docs', 'BOARD.md'), 'utf8'));
+  });
+});
+
+test('runBoardCommand --escribir: con valor explicito falla con mensaje claro', async () => {
+  await withRepoRoot(async (repoRoot, tareasRoot) => {
+    await assert.rejects(
+      () =>
+        runBoardCommand(tareasRoot, ['--escribir', 'si'], {
+          repoCwd: repoRoot,
+          today: '2026-09-06',
+        }),
+      BoardCommandError
+    );
+  });
+});
+
 test('runBoardCommand: sanity check via readTareaFile — moveTareaFile realmente cambio el estado en disco', async () => {
   await withTareasRoot(async (tareasRoot) => {
     const t = buildNewTask('TASK-001', {

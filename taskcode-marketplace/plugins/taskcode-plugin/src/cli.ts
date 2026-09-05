@@ -34,7 +34,7 @@ Uso:
   taskctl import <fichero.md> [--tipo <feature|fix|hotfix|release>] \\
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
-  taskctl board [--sprint N] [--asignado_a <persona>]
+  taskctl board [--sprint N] [--asignado_a <persona>] [--escribir]
   taskctl start TASK-NNN
   taskctl plan TASK-NNN
   taskctl approve TASK-NNN
@@ -149,7 +149,10 @@ export async function main(argv: readonly string[]): Promise<number> {
     const repoCwd = process.cwd();
     const tareasRoot = path.join(repoCwd, 'tareas');
     try {
-      const result = await runBoardCommand(tareasRoot, argv.slice(1));
+      const result = await runBoardCommand(tareasRoot, argv.slice(1), {
+        repoCwd,
+        today: today(),
+      });
       for (const aviso of result.advertencias) {
         process.stderr.write(`[AVISO] ${aviso}\n`);
       }
@@ -157,6 +160,9 @@ export async function main(argv: readonly string[]): Promise<number> {
         process.stdout.write('No hay tareas que coincidan (o no hay ninguna tarea todavia).\n');
       } else {
         process.stdout.write(`${result.output}\n`);
+      }
+      if (result.boardPath !== null) {
+        process.stdout.write(`\nRegenerado ${result.boardPath} (recuerda commitearlo).\n`);
       }
       return 0;
     } catch (e) {
