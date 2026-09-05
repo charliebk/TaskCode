@@ -149,6 +149,16 @@ export function showFileAtRef(ref: string, filePath: string, cwd: string): strin
   return runGit(['show', `${ref}:${filePath}`], cwd);
 }
 
+/** SHA del ancestro comun de `a` y `b` (git merge-base). */
+export function mergeBase(a: string, b: string, cwd: string): string {
+  return runGit(['merge-base', a, b], cwd);
+}
+
+/** Cambia a una rama local existente (checkout -q). */
+export function checkoutBranch(name: string, cwd: string): void {
+  runGit(['checkout', '-q', name], cwd);
+}
+
 /** true si existe una referencia LOCAL para esa rama. */
 export function localBranchExists(name: string, cwd: string): boolean {
   const result = spawnSync(

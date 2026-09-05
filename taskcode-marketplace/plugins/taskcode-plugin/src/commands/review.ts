@@ -130,7 +130,9 @@ export function informeTemplate(task: Task, commitRevisado: string, ronda: numbe
     `# Informe de revision — ${task.id} (ronda ${ronda})\n\n` +
     `- Commit revisado: ${commitRevisado}\n` +
     '- Revisor: (rellenar por el agente)\n' +
-    '- Veredicto: PENDIENTE (aprobada | cambios-solicitados)\n\n' +
+    // taskctl finish exige que TODAS las lineas "- Veredicto:" del
+    // informe aprueben: hay que SUSTITUIR esta linea, no anadir otra.
+    '- Veredicto: PENDIENTE (sustituye esta unica linea por "aprobada" o "cambios-solicitados")\n\n' +
     '## Hallazgos\n\n' +
     '(CRITICO / IMPORTANTE / MENOR con reproduccion, o "sin hallazgos" explicito.)\n'
   );

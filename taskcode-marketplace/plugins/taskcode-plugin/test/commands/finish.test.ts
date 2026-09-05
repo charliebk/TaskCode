@@ -116,6 +116,29 @@ test('veredictoAprobado: fail-closed con PENDIENTE, cambios-solicitados o sin li
   assert.equal(veredictoAprobado(''), false);
 });
 
+test('veredictoAprobado: NO es fail-open ante negaciones ni lineas multiples (hallazgo CRITICO de revision)', () => {
+  // La negacion mas natural en espanol debe rechazar, no aprobar.
+  assert.equal(veredictoAprobado('- Veredicto: no aprobada (faltan tests)\n'), false);
+  assert.equal(veredictoAprobado('- Veredicto: NO aprobada\n'), false);
+  assert.equal(veredictoAprobado('- Veredicto: rechazada (aprobada seria prematuro)\n'), false);
+  // El veredicto del informe de TASK-013 (referencia real): la palabra
+  // "independiente" no debe confundirse con "pendiente".
+  assert.equal(
+    veredictoAprobado('- Veredicto: aprobada (revisada por el agente independiente)\n'),
+    true
+  );
+  // Varias lineas Veredicto: TODAS deben aprobar (placeholder de la
+  // plantilla sin borrar => rechazo; aprobada + cambios => rechazo).
+  assert.equal(
+    veredictoAprobado('- Veredicto: PENDIENTE (...)\n\ntexto\n\n- Veredicto: aprobada\n'),
+    false
+  );
+  assert.equal(
+    veredictoAprobado('- Veredicto: aprobada\n\n- Veredicto: cambios-solicitados\n'),
+    false
+  );
+});
+
 test('taskctl finish (feature): merge a develop, tarea a 04-terminadas y CHANGELOG/INDEX/BOARD renderizados', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     const task = sampleTask();
@@ -249,6 +272,195 @@ test('taskctl finish: colision de IDs entre main y develop se detecta ANTES de m
     assert.equal(git(['branch', '--show-current'], repoRoot).trim(), task.rama);
     const read = await readTareaFile(tareasRoot, 'TASK-704');
     assert.equal(read?.task.estado, 'en-revision');
+  });
+});
+
+test('taskctl finish (hotfix): tras un conflicto de backmerge resuelto a mano, el reintento cierra por el camino idempotente sin chocar con el tag (hallazgo IMPORTANTE de revision)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Conflicto real: el hotfix y develop tocan la misma linea.
+    git(['checkout', '-q', 'main'], repoRoot);
+    await writeFile(path.join(repoRoot, 'app.txt'), 'linea original\n', 'utf8');
+    commitAll(repoRoot, 'app en main');
+    git(['checkout', '-q', 'develop'], repoRoot);
+    git(['merge', '-q', '--ff-only', 'main'], repoRoot);
+    await writeFile(path.join(repoRoot, 'app.txt'), 'version de develop\n', 'utf8');
+    commitAll(repoRoot, 'app cambiada en develop');
+
+    const task = sampleTask({ id: 'TASK-712', tipo: 'hotfix', rama: 'hotfix/task-712-conflicto' });
+    await setupTaskEnRevision(repoRoot, tareasRoot, task, { base: 'main' });
+    await writeFile(path.join(repoRoot, 'app.txt'), 'version del hotfix\n', 'utf8');
+    commitAll(repoRoot, 'app cambiada en el hotfix');
+
+    // Primer intento: merge a main + tag OK, backmerge en conflicto.
+    await assert.rejects(
+      () =>
+        runFinishCommand(tareasRoot, ['TASK-712'], '2026-09-07', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      FinishCommandError
+    );
+    assert.match(git(['log', '--oneline', 'main'], repoRoot), /merge\(hotfix\)/);
+    assert.equal(git(['tag', '--list', 'task-712-conflicto'], repoRoot).trim(), 'task-712-conflicto');
+
+    // La persona resuelve el conflicto del backmerge a mano y comitea.
+    await writeFile(path.join(repoRoot, 'app.txt'), 'version reconciliada\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '--no-edit'], repoRoot);
+
+    // Reintento: NO se reejecuta el script (moriria en el tag
+    // duplicado) — el camino idempotente cierra la tarea.
+    const result = await runFinishCommand(tareasRoot, ['TASK-712'], '2026-09-07', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+    assert.match(result.filePath, /04-terminadas[/\\]TASK-712/);
+    const read = await readTareaFile(tareasRoot, 'TASK-712');
+    assert.equal(read?.task.estado, 'terminada');
+    // El tag sigue siendo uno (no hubo segundo intento de crearlo).
+    assert.equal(git(['tag', '--list'], repoRoot).trim(), 'task-712-conflicto');
+  });
+});
+
+test('taskctl finish (hotfix): mismo ID y MISMO titulo en linaje divergente tambien aborta antes de mergear (hallazgo IMPORTANTE de revision: add+add duplicaria la carpeta)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // develop tiene la "misma" tarea (mismo id y titulo) pero anadida
+    // por su propio linaje, sin ancestro comun con la rama del hotfix.
+    const copiaDevelop = sampleTask({
+      id: 'TASK-713',
+      estado: 'planificada',
+      rama: 'hotfix/task-713-urgente',
+    });
+    await writeTareaFile(tareasRoot, copiaDevelop, '');
+    commitAll(repoRoot, 'TASK-713 en develop');
+
+    const task = sampleTask({ id: 'TASK-713', tipo: 'hotfix', rama: 'hotfix/task-713-urgente' });
+    await setupTaskEnRevision(repoRoot, tareasRoot, task, { base: 'main' });
+
+    await assert.rejects(
+      () =>
+        runFinishCommand(tareasRoot, ['TASK-713'], '2026-09-07', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      (e: unknown) => {
+        assert.ok(e instanceof FinishCommandError);
+        assert.match((e as Error).message, /linaje|ancestro comun|add\+add/);
+        return true;
+      }
+    );
+    // Nada mergeado: sin tag y main sin merge.
+    assert.equal(git(['tag', '--list'], repoRoot).trim(), '');
+    assert.doesNotMatch(git(['log', '--oneline', 'main'], repoRoot), /merge\(hotfix\)/);
+  });
+});
+
+test('taskctl finish (feature): el caso normal — la tarea vive en develop en una carpeta anterior del ciclo — NO dispara la colision de linaje', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Flujo real del metodo: la tarea nace en develop (01-en-diseno)...
+    const enDiseno = sampleTask({
+      id: 'TASK-714',
+      estado: 'en-diseno',
+      rama: 'feature/task-714-normal',
+    });
+    await writeTareaFile(tareasRoot, enDiseno, '');
+    commitAll(repoRoot, 'TASK-714 en diseno en develop');
+
+    // ...y su rama (que SI comparte ese commit como ancestro) la mueve
+    // por el ciclo hasta en-revision.
+    const task = sampleTask({ id: 'TASK-714', estado: 'en-revision', rama: 'feature/task-714-normal' });
+    git(['checkout', '-q', '-b', task.rama, 'develop'], repoRoot);
+    git(['rm', '-r', '-q', 'tareas/01-en-diseno/TASK-714'], repoRoot);
+    await writeTareaFile(tareasRoot, task, '');
+    const revisionDir = path.join(tareasRoot, '03-en-revision', 'TASK-714', 'revision');
+    await mkdir(revisionDir, { recursive: true });
+    await writeFile(path.join(revisionDir, 'informe-revision-1.md'), VEREDICTO_APROBADO, 'utf8');
+    commitAll(repoRoot, 'TASK-714 revisada en su rama');
+
+    const result = await runFinishCommand(tareasRoot, ['TASK-714'], '2026-09-07', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+    assert.match(result.filePath, /04-terminadas[/\\]TASK-714/);
+    // Y sin duplicados en develop: solo la copia terminada.
+    const read = await readTareaFile(tareasRoot, 'TASK-714');
+    assert.equal(read?.task.estado, 'terminada');
+    await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-714')));
+    await assert.rejects(() => stat(path.join(tareasRoot, '03-en-revision', 'TASK-714')));
+  });
+});
+
+test('taskctl finish: desde una rama que no ve la tarea, el mensaje dice cambiarse a la rama (no usar import) — hallazgo MENOR de revision', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // La tarea existe solo en su rama; nosotros estamos en develop.
+    const task = sampleTask({ id: 'TASK-715', rama: 'feature/task-715-otra' });
+    await setupTaskEnRevision(repoRoot, tareasRoot, task);
+    git(['checkout', '-q', 'develop'], repoRoot);
+
+    await assert.rejects(
+      () =>
+        runFinishCommand(tareasRoot, ['TASK-715'], '2026-09-07', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      (e: unknown) => {
+        assert.ok(e instanceof FinishCommandError);
+        assert.match((e as Error).message, /cambiate a esa rama/);
+        assert.doesNotMatch((e as Error).message, /import/);
+        return true;
+      }
+    );
+  });
+});
+
+test('taskctl finish: un CHANGELOG artesanal sin "Sin publicar" recibe la seccion ARRIBA, no al final (hallazgo MENOR de revision)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeFile(
+      path.join(repoRoot, 'CHANGELOG.md'),
+      '# Historial\n\n## v1.2.0\n\n- cosa nueva\n\n## v1.1.0\n\n- cosa vieja\n',
+      'utf8'
+    );
+    const task = sampleTask({ id: 'TASK-716', rama: 'feature/task-716-changelog' });
+    await setupTaskEnRevision(repoRoot, tareasRoot, task);
+
+    await runFinishCommand(tareasRoot, ['TASK-716'], '2026-09-07', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    const changelog = await readFile(path.join(repoRoot, 'CHANGELOG.md'), 'utf8');
+    assert.match(changelog, /TASK-716/);
+    assert.ok(
+      changelog.indexOf('## Sin publicar') < changelog.indexOf('## v1.2.0'),
+      'la seccion nueva debe quedar por encima de las versiones viejas'
+    );
+    assert.match(changelog, /- cosa vieja/);
+  });
+});
+
+test('taskctl finish: repetirlo sobre una tarea terminada dice que ya esta terminada, sin aconsejar taskctl review', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-717', rama: 'feature/task-717-doble' });
+    await setupTaskEnRevision(repoRoot, tareasRoot, task);
+    await runFinishCommand(tareasRoot, ['TASK-717'], '2026-09-07', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+    commitAll(repoRoot, 'cierre de TASK-717');
+
+    await assert.rejects(
+      () =>
+        runFinishCommand(tareasRoot, ['TASK-717'], '2026-09-07', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      (e: unknown) => {
+        assert.ok(e instanceof StateMachineError);
+        assert.match((e as Error).message, /ya esta terminada/);
+        assert.doesNotMatch((e as Error).message, /taskctl review/);
+        return true;
+      }
+    );
   });
 });
 

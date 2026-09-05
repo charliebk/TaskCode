@@ -213,6 +213,11 @@ export function assertTransitionAllowed(
 
     case 'finish': {
       if (task.estado !== 'en-revision') {
+        // Una tarea ya terminada no necesita "ejecuta taskctl review"
+        // (hallazgo menor de revision por pares, TASK-014).
+        if (task.estado === 'terminada') {
+          throw err(task.id, command, task.estado, null, 'ya esta terminada.');
+        }
         throw err(
           task.id,
           command,

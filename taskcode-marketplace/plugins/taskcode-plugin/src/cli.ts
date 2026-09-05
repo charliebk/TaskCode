@@ -11,7 +11,7 @@ import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
-import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
+import { resolveGitflowScriptsDir, GitflowScriptLaunchError } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
 import {
@@ -182,10 +182,14 @@ export async function main(argv: readonly string[]): Promise<number> {
       );
       return 0;
     } catch (e) {
+      // GitflowScriptLaunchError incluido (hallazgo menor de revision
+      // por pares, TASK-014, preexistente desde TASK-009): sin esto un
+      // bash ilanzable caia al catch-all con "taskctl no pudo arrancar".
       if (
         e instanceof StartCommandError ||
         e instanceof StateMachineError ||
-        e instanceof TaskFolderConflictError
+        e instanceof TaskFolderConflictError ||
+        e instanceof GitflowScriptLaunchError
       ) {
         printCliError(e);
         return 1;
@@ -276,7 +280,8 @@ export async function main(argv: readonly string[]): Promise<number> {
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
         e instanceof GitLaunchError ||
-        e instanceof GitCommandError
+        e instanceof GitCommandError ||
+        e instanceof GitflowScriptLaunchError
       ) {
         printCliError(e);
         return 1;
@@ -308,7 +313,8 @@ export async function main(argv: readonly string[]): Promise<number> {
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
         e instanceof GitLaunchError ||
-        e instanceof GitCommandError
+        e instanceof GitCommandError ||
+        e instanceof GitflowScriptLaunchError
       ) {
         printCliError(e);
         return 1;

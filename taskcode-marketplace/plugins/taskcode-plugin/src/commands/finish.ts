@@ -29,6 +29,8 @@ import {
   resolveMainBranch,
   lsTreeNames,
   showFileAtRef,
+  mergeBase,
+  checkoutBranch,
 } from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { runBoardCommand } from './board.js';
@@ -56,20 +58,29 @@ const INFORME_REVISION_RE = /^informe-revision-(\d+)\.md$/;
 const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
 
 /**
- * true solo si la linea "- Veredicto:" del informe dice aprobada y no
- * arrastra PENDIENTE ni cambios-solicitados. Fail-closed: sin linea de
- * veredicto (o sin informe), la revision NO esta aprobada.
+ * true solo si TODAS las lineas "- Veredicto:" del informe aprueban.
+ * Fail-closed de verdad (hallazgo CRITICO de revision por pares,
+ * TASK-014: la version anterior buscaba la palabra "aprobada" en
+ * cualquier parte y aprobaba literalmente "no aprobada"):
+ * - el VALOR del veredicto debe EMPEZAR por "aprobada" — una negacion
+ *   delante ("no aprobada", "rechazada: aprobada seria...") no pasa;
+ * - "pendiente" (con limites de palabra: "independiente" no cuenta) o
+ *   "cambios-solicitados" en el valor lo tumban;
+ * - si hay varias lineas Veredicto (p. ej. el placeholder de la
+ *   plantilla sin borrar), TODAS deben aprobar;
+ * - sin linea de veredicto (o sin informe), NO esta aprobada.
  */
 export function veredictoAprobado(informe: string): boolean {
-  const linea = informe
+  const prefijo = '- veredicto:';
+  const lineas = informe
     .split('\n')
-    .find((l) => l.trim().toLowerCase().startsWith('- veredicto:'));
-  if (linea === undefined) return false;
-  const valor = linea.toLowerCase();
-  // Limites de palabra obligatorios: la palabra independiente contiene
-  // pendiente como subcadena (caso real que pillo el primer test).
-  if (/\bpendiente\b/.test(valor) || valor.includes('cambios-solicitados')) return false;
-  return /\baprobada\b/.test(valor);
+    .filter((l) => l.trim().toLowerCase().startsWith(prefijo));
+  if (lineas.length === 0) return false;
+  return lineas.every((linea) => {
+    const valor = linea.trim().slice(prefijo.length).trim().toLowerCase();
+    if (/\bpendiente\b/.test(valor) || valor.includes('cambios-solicitados')) return false;
+    return /^aprobada\b/.test(valor);
+  });
 }
 
 /** Contenido del informe con mayor N segun `re`, o null si no hay. */
@@ -110,15 +121,35 @@ async function buildTransitionContext(taskDir: string): Promise<TransitionContex
   };
 }
 
+interface ColisionId {
+  path: string;
+  motivo: 'titulo-distinto' | 'linaje-divergente' | 'ilegible';
+}
+
 /**
  * Colision de IDs (riesgo documentado en TASK-012): el mismo TASK-NNN
- * puede existir en `ref` como OTRA tarea (titulo distinto) si nacio de
- * un linaje que no comparte tareas/ (p. ej. un hotfix numerado sobre
- * main mientras develop ya usaba ese ID). Mergear asi mezclaria dos
- * tareas bajo un mismo numero. Mismo titulo = la misma tarea en otro
- * punto de su ciclo, que es lo normal — no es colision.
+ * puede existir en `ref` con dos formas de romper el merge:
+ *
+ * - OTRA tarea (titulo distinto) numerada igual en un linaje que no
+ *   comparte tareas/ (un hotfix numerado sobre main mientras develop ya
+ *   usaba ese ID): mergear mezclaria dos tareas bajo un numero.
+ * - La MISMA tarea (mismo titulo) pero anadida en `ref` por un commit
+ *   que NO es ancestro comun con la rama (hallazgo IMPORTANTE de
+ *   revision por pares, TASK-014): sin historia compartida el merge es
+ *   add+add, no un rename — las dos carpetas sobreviven y develop queda
+ *   con el ID duplicado en dos carpetas de estado a la vez.
+ *
+ * El caso normal (feature/fix cuya carpeta vive en `ref` en una carpeta
+ * de estado anterior) no dispara nada: ahi la copia de `ref` SI esta en
+ * el ancestro comun y Git resuelve el movimiento como rename.
  */
-function detectarColisionId(id: string, titulo: string, ref: string, cwd: string): string | null {
+function detectarColisionId(
+  id: string,
+  titulo: string,
+  rama: string,
+  ref: string,
+  cwd: string
+): ColisionId | null {
   const names = lsTreeNames(ref, 'tareas', cwd);
   const match = names.find((n) => n.endsWith(`/${id}/tarea.md`));
   if (match === undefined) return null;
@@ -127,19 +158,35 @@ function detectarColisionId(id: string, titulo: string, ref: string, cwd: string
     tituloEnRef = parseTareaFile(showFileAtRef(ref, match, cwd)).task.titulo;
   } catch (e: unknown) {
     if (e instanceof FrontmatterParseError || e instanceof TaskValidationError) {
-      // Fail-closed: si el tarea.md de la otra rama ni se puede parsear,
-      // no se puede descartar la colision.
-      return match;
+      // Fail-closed: si el tarea.md de la otra rama ni se puede
+      // parsear, no se puede descartar la colision.
+      return { path: match, motivo: 'ilegible' };
     }
     throw e;
   }
-  return tituloEnRef === titulo ? null : match;
+  if (tituloEnRef !== titulo) {
+    return { path: match, motivo: 'titulo-distinto' };
+  }
+  const base = mergeBase(rama, ref, cwd);
+  const enBase = lsTreeNames(base, 'tareas', cwd).some((n) => n.endsWith(`/${id}/tarea.md`));
+  if (!enBase) {
+    return { path: match, motivo: 'linaje-divergente' };
+  }
+  return null;
 }
 
 function insertAfterHeader(content: string, header: string, entry: string): string {
   const idx = content.indexOf(header);
   if (idx === -1) {
-    return `${content.trimEnd()}\n\n${header}\n\n${entry}\n`;
+    // Fichero preexistente sin la seccion: se inserta ARRIBA (tras la
+    // primera linea, normalmente el titulo), no al final — lo mas nuevo
+    // encabeza el documento (hallazgo MENOR de revision por pares,
+    // TASK-014: antes quedaba "Sin publicar" debajo de versiones viejas).
+    const nl = content.indexOf('\n');
+    if (nl === -1) {
+      return `${content}\n\n${header}\n\n${entry}\n`;
+    }
+    return `${content.slice(0, nl + 1)}\n${header}\n\n${entry}\n${content.slice(nl + 1)}`;
   }
   let pos = content.indexOf('\n', idx + header.length);
   if (pos === -1) return `${content}\n\n${entry}\n`;
@@ -225,14 +272,22 @@ export async function runFinishCommand(
   // rapido sin tocar Git + metadata estable (tipo/rama/titulo). La
   // lectura que decide la escritura va DESPUES de los merges.
   const initial = await readTareaFile(tareasRoot, id);
-  const ctxInicial =
-    initial === null
-      ? {}
-      : await buildTransitionContext(path.dirname(initial.filePath));
-  assertTransitionAllowed('finish', initial ? initial.task : null, ctxInicial);
-  const tipo = initial!.task.tipo;
-  const rama = initial!.task.rama;
-  const titulo = initial!.task.titulo;
+  // Mensaje propio para "no esta en este working tree" (hallazgo MENOR
+  // de revision por pares, TASK-014): el generico de la maquina de
+  // estados aconseja crear la tarea con import/new, que aqui es lo
+  // contrario de lo util — lo normal es estar en develop y que la
+  // tarea viva en su rama.
+  if (initial === null) {
+    throw new FinishCommandError(
+      `[ERROR] ${id}: no se encuentra en el working tree de la rama actual. ` +
+        'Si la tarea existe en su propia rama, cambiate a esa rama antes de "taskctl finish".'
+    );
+  }
+  const ctxInicial = await buildTransitionContext(path.dirname(initial.filePath));
+  assertTransitionAllowed('finish', initial.task, ctxInicial);
+  const tipo = initial.task.tipo;
+  const rama = initial.task.rama;
+  const titulo = initial.task.titulo;
 
   if (!isWorkspaceClean(deps.repoCwd)) {
     throw new FinishCommandError(
@@ -248,56 +303,87 @@ export async function runFinishCommand(
   const mainBranch = MERGEA_A_MAIN[tipo] ? resolveMainBranch(deps.repoCwd) : null;
   const destinos = mainBranch === null ? [DEVELOP_BRANCH] : [mainBranch, DEVELOP_BRANCH];
   for (const destino of destinos) {
-    const colision = detectarColisionId(id, titulo, destino, deps.repoCwd);
+    const colision = detectarColisionId(id, titulo, rama, destino, deps.repoCwd);
     if (colision !== null) {
+      const detalle =
+        colision.motivo === 'titulo-distinto'
+          ? `con OTRO titulo distinto de "${titulo}": mergear mezclaria dos tareas bajo el mismo numero. ` +
+            'Renumera una de las dos (carpeta, frontmatter y rama)'
+          : colision.motivo === 'linaje-divergente'
+            ? 'anadido por un linaje SIN ancestro comun con la rama de la tarea: el merge seria ' +
+              'add+add (no un rename) y dejaria el ID duplicado en dos carpetas de estado a la vez. ' +
+              'Elimina o sincroniza a mano una de las dos copias'
+            : 'con un tarea.md que no se puede parsear, asi que la colision no se puede descartar. ' +
+              'Arregla ese fichero';
       throw new FinishCommandError(
-        `[ERROR] ${id}: colision de IDs — "${destino}" ya contiene ${colision} con OTRO ` +
-          `titulo distinto de "${titulo}". Mergear mezclaria dos tareas bajo el mismo numero. ` +
-          'Renumera una de las dos (carpeta, frontmatter y rama) antes de reintentar; ' +
-          'no se ha tocado nada.'
+        `[ERROR] ${id}: colision de IDs — "${destino}" ya contiene ${colision.path} ${detalle} ` +
+          'antes de reintentar; no se ha tocado nada.'
       );
     }
   }
 
   const scriptName = SCRIPT_BY_TYPE[tipo];
-  const { code, signal } = runGitflowScript(scriptName, [rama], {
-    scriptsDir: deps.scriptsDir,
-    cwd: deps.repoCwd,
-  });
-  if (code !== 0) {
-    const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
-    throw new FinishCommandError(
-      `[ERROR] ${id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
-        'Revisa la salida de arriba (si hay un conflicto de merge, resuelvelo antes de ' +
-        'reintentar); la tarea no se ha movido de carpeta.'
-    );
-  }
+  const integradaEnDevelop = isAncestor(rama, DEVELOP_BRANCH, deps.repoCwd);
+  const integradaEnMain = mainBranch === null || isAncestor(rama, mainBranch, deps.repoCwd);
 
-  // Evidencia, no suposicion (TASK-007/009): los cuatro scripts
-  // terminan en develop, con la rama de la tarea integrada; para
-  // hotfix/release ademas integrada en la principal. Un backmerge
-  // cancelado sale del script con exit 0 ("PARCIAL") — lo detecta la
-  // ancestria, no el exit code.
-  const branchNow = currentBranch(deps.repoCwd);
-  if (branchNow !== DEVELOP_BRANCH) {
+  if (integradaEnDevelop && integradaEnMain) {
+    // Camino idempotente (hallazgo IMPORTANTE de revision por pares,
+    // TASK-014): los merges ya estan consumados — p. ej. un reintento
+    // tras resolver a mano un conflicto de backmerge. Reejecutar el
+    // script moriria en el tag ya creado (hotfix/release); aqui solo
+    // queda cerrar: ponerse en develop y mover/renderizar.
+    if (currentBranch(deps.repoCwd) !== DEVELOP_BRANCH) {
+      checkoutBranch(DEVELOP_BRANCH, deps.repoCwd);
+    }
+  } else if (mainBranch !== null && integradaEnMain && !integradaEnDevelop) {
+    // Estado a medias: merge a main (y su tag) consumados, backmerge
+    // pendiente. Reejecutar el script chocaria con el tag duplicado.
     throw new FinishCommandError(
-      `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero la rama activa es ` +
-        `"${branchNow}", no "${DEVELOP_BRANCH}". No se actualiza la tarea; revisa el repo a mano.`
+      `[ERROR] ${id}: el merge a "${mainBranch}" (con su tag) ya esta consumado pero falta ` +
+        `el backmerge a "${DEVELOP_BRANCH}". No se reejecuta ${scriptName} (moriria en el tag ` +
+        `duplicado): completa el backmerge a mano — git checkout ${DEVELOP_BRANCH} && ` +
+        `git merge --no-ff ${rama} — y reintenta taskctl finish.`
     );
-  }
-  if (!isAncestor(rama, 'HEAD', deps.repoCwd)) {
-    throw new FinishCommandError(
-      `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero "${rama}" NO esta integrada ` +
-        `en "${DEVELOP_BRANCH}" (merge-base --is-ancestor lo niega). ¿Backmerge cancelado o ` +
-        'merge a medias? No se actualiza la tarea; revisa el repo a mano.'
-    );
-  }
-  if (mainBranch !== null && !isAncestor(rama, mainBranch, deps.repoCwd)) {
-    throw new FinishCommandError(
-      `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero "${rama}" NO esta integrada ` +
-        `en "${mainBranch}" (merge-base --is-ancestor lo niega). No se actualiza la tarea; ` +
-        'revisa el repo a mano.'
-    );
+  } else {
+    const { code, signal } = runGitflowScript(scriptName, [rama], {
+      scriptsDir: deps.scriptsDir,
+      cwd: deps.repoCwd,
+    });
+    if (code !== 0) {
+      const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
+      throw new FinishCommandError(
+        `[ERROR] ${id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
+          'Revisa la salida de arriba (si hay un conflicto de merge, resuelvelo antes de ' +
+          'reintentar); la tarea no se ha movido de carpeta.'
+      );
+    }
+
+    // Evidencia, no suposicion (TASK-007/009): los cuatro scripts
+    // terminan en develop, con la rama de la tarea integrada; para
+    // hotfix/release ademas integrada en la principal. Un backmerge
+    // cancelado sale del script con exit 0 ("PARCIAL") — lo detecta la
+    // ancestria, no el exit code.
+    const branchNow = currentBranch(deps.repoCwd);
+    if (branchNow !== DEVELOP_BRANCH) {
+      throw new FinishCommandError(
+        `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero la rama activa es ` +
+          `"${branchNow}", no "${DEVELOP_BRANCH}". No se actualiza la tarea; revisa el repo a mano.`
+      );
+    }
+    if (!isAncestor(rama, 'HEAD', deps.repoCwd)) {
+      throw new FinishCommandError(
+        `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero "${rama}" NO esta integrada ` +
+          `en "${DEVELOP_BRANCH}" (merge-base --is-ancestor lo niega). ¿Backmerge cancelado o ` +
+          'merge a medias? No se actualiza la tarea; revisa el repo a mano.'
+      );
+    }
+    if (mainBranch !== null && !isAncestor(rama, mainBranch, deps.repoCwd)) {
+      throw new FinishCommandError(
+        `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero "${rama}" NO esta integrada ` +
+          `en "${mainBranch}" (merge-base --is-ancestor lo niega). No se actualiza la tarea; ` +
+          'revisa el repo a mano.'
+      );
+    }
   }
 
   // Lectura FRESCA, ya en develop con el merge consumado: la unica que
