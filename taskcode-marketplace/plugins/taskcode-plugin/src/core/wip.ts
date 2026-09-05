@@ -59,6 +59,42 @@ export function personaDeTarea(asignado: string | null): string | null {
 }
 
 /**
+ * Decide quien queda asignado a una tarea (TASK-024, item C7). Un
+ * unico sitio con la regla de precedencia, compartido por "plan" y
+ * "start" para que no puedan divergir:
+ *
+ * 1. `flag` — lo que se paso en --asignado-a. Manda siempre: es la via
+ *    para asignar a otra persona, y la salida que ofrece el error de
+ *    WIP de B7 ("reasigna con --asignado-a").
+ * 2. `previo` — el asignado_a que ya tuviera la tarea. Ejecutar un
+ *    comando sobre la tarea de otra persona NO se la queda.
+ * 3. `identidad` — git config user.email, la novedad de TASK-024.
+ * 4. null.
+ *
+ * Que el paso 2 vaya antes que el 3 es lo que evita el robo
+ * silencioso: si Ana planifico TASK-030 y Carlos ejecuta "start"
+ * sin flag, la tarea sigue siendo de Ana — y el limite de WIP se
+ * comprueba contra Ana, que es quien tiene la rama abierta. Para
+ * quedarsela, Carlos tiene que decirlo.
+ *
+ * Los tres valores pasan por personaDeTarea, asi que un "  " o un ""
+ * cuentan como ausentes en cualquiera de los escalones.
+ */
+export function resolverAsignado(
+  flag: string | undefined,
+  previo: string | null,
+  identidad: string | null
+): string | null {
+  if (flag !== undefined) {
+    const delFlag = personaDeTarea(flag);
+    if (delFlag !== null) return delFlag;
+  }
+  const delPrevio = personaDeTarea(previo);
+  if (delPrevio !== null) return delPrevio;
+  return personaDeTarea(identidad);
+}
+
+/**
  * Tareas de `persona` que ocupan el hueco, excluida la que se intenta
  * arrancar. Devuelve la lista ordenada por ID para que el mensaje de
  * error sea reproducible: las tareas llegan aqui en el orden en que el

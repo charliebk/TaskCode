@@ -18,12 +18,13 @@ import { readTareaFile, moveTareaFile, listTareasEnEstados } from '../fs/task-st
 import {
   ESTADOS_QUE_OCUPAN_WIP,
   tareasQueBloquean,
+  resolverAsignado,
   mensajeWipExcedido,
   mensajeWipIndeterminado,
   personaDeTarea,
 } from '../core/wip.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, isValidBranchName } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail } from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 
 export class StartCommandError extends Error {}
@@ -106,7 +107,11 @@ export async function runStartCommand(
   // esto, un start --asignado-a otra-persona comprobaria el limite
   // contra quien la tenia asignada antes y luego escribiria a otra: se
   // comprobaria a la persona equivocada.
-  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+  // Precedencia (TASK-024): flag > asignado_a previo > identidad Git >
+  // null. Que el previo gane a la identidad es lo que evita que
+  // ejecutar start sobre la tarea de otra persona se la quede: el
+  // limite de WIP se sigue comprobando contra quien tiene la rama.
+  const asignadoFinal = resolverAsignado(asignadoA, task.asignado_a, gitUserEmail(deps.repoCwd));
 
   // Una tarea sin asignar no tiene a quien aplicarle un limite. Es el
   // caso de todo lo anterior a B6 (asignado_a nace a null), asi que

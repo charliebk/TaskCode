@@ -25,7 +25,8 @@ import { parseAsignadoAFlag, PISTA_VACIO_ESCRITURA } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
+import { ensureBaseBranchReady, gitUserEmail, type BaseBranchGuardResult } from '../fs/git.js';
+import { resolverAsignado } from '../core/wip.js';
 
 export class PlanCommandError extends Error {}
 
@@ -125,9 +126,11 @@ export async function runPlanCommand(
   // rama base mientras tanto, y decidir "cambio o no" con la lectura
   // vieja daria un asignadoCambiado mentiroso — la misma regla de doble
   // lectura que obliga TASK-012.
-  // Sin flag se CONSERVA lo que hubiera: "no lo has mencionado" no es
-  // "quitalo".
-  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+  // Precedencia (TASK-024): flag > asignado_a previo > identidad Git >
+  // null. Sin flag se CONSERVA lo que hubiera ("no lo has mencionado"
+  // no es "quitalo"), y solo si no habia nada entra la identidad de
+  // quien ejecuta.
+  const asignadoFinal = resolverAsignado(asignadoA, task.asignado_a, gitUserEmail(deps.repoCwd));
   const asignadoCambiado = asignadoFinal !== task.asignado_a;
 
   const updated: Task = {

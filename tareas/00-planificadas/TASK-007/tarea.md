@@ -9,7 +9,7 @@ modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
 rama: fix/task-007-spike-gitflow-windows
-asignado_a: charlie.bk
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 ultimo_commit_revisado: null

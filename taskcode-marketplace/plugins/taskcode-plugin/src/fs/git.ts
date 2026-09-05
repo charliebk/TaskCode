@@ -97,6 +97,32 @@ export function isRemoteAvailable(cwd: string): boolean {
   return result.status === 0;
 }
 
+/**
+ * Identidad Git de quien ejecuta el comando: el valor de
+ * `git config user.email`, o null si no hay ninguno configurado
+ * (TASK-024, item C7). Es lo que "plan" y "start" usan como
+ * asignado_a por defecto.
+ *
+ * Unica funcion de este modulo que NO pasa por runGit, a proposito:
+ * runGit convierte cualquier exit != 0 en GitCommandError, y
+ * `git config <clave>` sale con codigo 1 exactamente cuando la clave
+ * no existe. "Esta maquina no tiene identidad configurada" es un
+ * estado legitimo — la tarea se queda sin asignar, como antes de
+ * TASK-024 — y no un error que deba abortar el comando.
+ *
+ * Un fallo real de lanzamiento (no hay binario de git) SI se propaga:
+ * eso no es "no hay identidad", es que no hay Git.
+ */
+export function gitUserEmail(cwd: string): string | null {
+  const result = spawnSync('git', ['config', 'user.email'], { cwd, encoding: 'utf8' });
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  if (result.status !== 0) return null;
+  const email = (result.stdout ?? '').trim();
+  return email === '' ? null : email;
+}
+
 /** SHA completo del commit en HEAD. */
 export function headCommit(cwd: string): string {
   return runGit(['rev-parse', 'HEAD'], cwd);

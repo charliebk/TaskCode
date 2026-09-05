@@ -477,10 +477,12 @@ test('taskctl start: la tarea en curso de OTRA persona no bloquea', async () => 
   });
 });
 
-test('taskctl start: una tarea sin asignar no comprueba limite y arranca', async () => {
+test('taskctl start: sin identidad Git configurada, la tarea sigue sin asignar y no comprueba limite', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    // Comportamiento de todo lo anterior a B6: asignado_a nace a
-    // null. Aunque haya otra tarea en curso, tambien sin asignar.
+    // Comportamiento anterior a TASK-024, que se conserva cuando no
+    // hay identidad. Se vacia user.email DESPUES de los commits (que
+    // la necesitan): asi el repo no hereda tampoco la identidad
+    // global de la maquina, que haria el test no determinista.
     await writeTareaFile(
       tareasRoot,
       sampleTask({ id: 'TASK-501', estado: 'en-curso', asignado_a: null, rama: 'feature/task-501-sin-duenno' }),
@@ -488,6 +490,7 @@ test('taskctl start: una tarea sin asignar no comprueba limite y arranca', async
     );
     await writeTareaFile(tareasRoot, sampleTask({ asignado_a: null }), '');
     commitAll(repoRoot, 'tareas sin asignar');
+    git(['config', 'user.email', ''], repoRoot);
 
     const result = await runStartCommand(tareasRoot, ['TASK-500'], '2026-09-05', {
       repoCwd: repoRoot,
@@ -639,6 +642,89 @@ test('taskctl start: el mensaje nombra la carpeta donde ESTA la bloqueante', asy
         err instanceof StartCommandError &&
         (err as Error).message.includes('02-en-curso') &&
         !(err as Error).message.includes('04-terminadas')
+    );
+  });
+});
+
+// --- TASK-024 (item C7): identidad Git como asignado_a por defecto ---
+
+test('taskctl start: una tarea sin asignar se autoasigna a la identidad Git', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: null }), '');
+    commitAll(repoRoot, 'tarea sin asignar');
+
+    const result = await runStartCommand(tareasRoot, ['TASK-500'], '2026-09-05', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    // withTempRepo configura user.email como test@example.com.
+    assert.equal(result.asignadoA, 'test@example.com');
+    assert.equal(result.asignadoCambiado, true);
+    const read = await readTareaFile(tareasRoot, 'TASK-500');
+    assert.equal(read?.task.asignado_a, 'test@example.com');
+  });
+});
+
+test('taskctl start: la identidad Git NO roba la tarea de otra persona', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // El asignado previo gana a la identidad de quien ejecuta. Sin
+    // esto, arrancar la tarea de otra persona se la quedaria en
+    // silencio y el limite de WIP se comprobaria contra la persona
+    // equivocada.
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'ana@example.com' }), '');
+    commitAll(repoRoot, 'tarea de ana');
+
+    const result = await runStartCommand(tareasRoot, ['TASK-500'], '2026-09-05', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    assert.equal(result.asignadoA, 'ana@example.com');
+    assert.equal(result.asignadoCambiado, false);
+  });
+});
+
+test('taskctl start --asignado-a: el flag gana a la identidad Git', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: null }), '');
+    commitAll(repoRoot, 'tarea sin asignar');
+
+    const result = await runStartCommand(tareasRoot, ['TASK-500', '--asignado-a', 'otra@example.com'], '2026-09-05', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    assert.equal(result.asignadoA, 'otra@example.com');
+  });
+});
+
+test('taskctl start: el limite de WIP ya NO es opt-in: dos tareas sin asignar chocan', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Antes de TASK-024 este caso pasaba limpio y dejaba dos ramas
+    // abiertas, porque ninguna tarea tenia asignado_a. Ahora la que
+    // arranca primero se queda con la identidad Git, y la segunda
+    // choca contra ella. Es el objetivo entero de la tarea.
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: null }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ id: 'TASK-501', asignado_a: null, rama: 'feature/task-501-segunda' }), '');
+    commitAll(repoRoot, 'dos tareas sin asignar');
+
+    await runStartCommand(tareasRoot, ['TASK-500'], '2026-09-05', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+    commitAll(repoRoot, 'la primera en curso');
+
+    await assert.rejects(
+      () =>
+        runStartCommand(tareasRoot, ['TASK-501'], '2026-09-05', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      (err: unknown) =>
+        err instanceof StartCommandError &&
+        (err as Error).message.includes('TASK-500') &&
+        (err as Error).message.includes('test@example.com')
     );
   });
 });
