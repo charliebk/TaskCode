@@ -4,7 +4,7 @@ titulo: "Revisión ligera sin agente para tareas triviales"
 tipo: feature
 sprint: 3
 etiquetas: []
-complejidad: media
+complejidad: simple
 modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
@@ -16,7 +16,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
 actualizado: 2026-09-05
-dependencias: []
+dependencias: [TASK-013]
 ---
 ## Objetivo
 

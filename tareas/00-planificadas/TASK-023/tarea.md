@@ -16,7 +16,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
 actualizado: 2026-09-05
-dependencias: []
+dependencias: [TASK-014]
 ---
 ## Objetivo
 

@@ -4,7 +4,7 @@ titulo: "Límite de trabajo en curso por persona"
 tipo: feature
 sprint: 2
 etiquetas: []
-complejidad: media
+complejidad: simple
 modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
@@ -16,7 +16,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
 actualizado: 2026-09-05
-dependencias: []
+dependencias: [TASK-009]
 ---
 ## Objetivo
 

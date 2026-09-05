@@ -4,8 +4,8 @@ titulo: "Catálogo de skills determinista con selección en dos pasos"
 tipo: feature
 sprint: 3
 etiquetas: []
-complejidad: media
-modelo_sugerido: sonnet
+complejidad: alta
+modelo_sugerido: opus
 estado: planificada
 plan_aprobado: false
 rama: feature/task-017-catalogo-de-skills-determinista-con-sele
@@ -16,7 +16,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
 actualizado: 2026-09-05
-dependencias: []
+dependencias: [TASK-010]
 ---
 ## Objetivo
 
