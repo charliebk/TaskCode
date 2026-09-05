@@ -105,6 +105,43 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
   workspace sucio, disparando el guard de §8.3 en el siguiente
   `plan`/`start`/`review`/`finish` — la misma trampa que ya documenta
   `taskctl import` más arriba. La metodología (congelada) no se reescribe.
+- **`--asignado-a` en `start`, y el alias con guion bajo** (B6, 2026-09-05).
+  Tres divergencias deliberadas, todas del item B6:
+  1. La §8.2 describe `--asignado-a` **solo sobre `plan`**; que `start` lo
+     acepte también, y reasigne, es una **extensión**. El motivo: sin ella,
+     una tarea que nadie asignó en diseño llega a `02-en-curso/` con
+     `asignado_a: null`, y B7 no tiene sobre quién comprobar el límite de
+     WIP — que es justo lo que la §8.2 dice que `start` debe hacer.
+  2. El flag se acepta con **las dos grafías**, `--asignado-a` (la de la
+     §8.2, canónica) y `--asignado_a` (la que `taskctl board` usa desde
+     TASK-005), en `plan`, `start` y `board`. No es gusto por los alias:
+     `parseArgs` ignora en silencio los flags desconocidos, así que la
+     grafía "equivocada" salía con código 0 sin hacer nada. La revisión por
+     pares de B6 encontró ese fallo ya materializado en `board`
+     (`board --asignado-a carlos` devolvía **el tablero entero**), y por eso
+     los tres comandos comparten hoy `parseAsignadoAFlag`.
+  3. **No hay forma de desasignar desde el CLI.** Sin el flag se conserva lo
+     que hubiera; el mensaje de error remite a editar `asignado_a: null` a
+     mano en `tarea.md`, que contradice el principio de gobernar el repo por
+     comandos. Fuera del alcance de B6, sin decidir.
+- **`taskctl start` escribe `asignado_a` desde una lectura anterior al
+  checkout** (preexistente, ampliado por B6). `start` tiene que leer la
+  tarea *antes* de invocar `create-<tipo>.sh` (necesita `task.rama`), así que
+  reescribe el fichero entero — estado, cuerpo, `actualizado` y ahora
+  `asignado_a` — con lo que leyó en la rama anterior. Si la rama base del
+  script (`main`, para un `hotfix`) tiene esa tarea con otro `asignado_a`, ese
+  valor se pierde sin aviso. Reproducido por la revisión de B6. **Sin
+  corregir**: es la misma colisión de historiales `main`/`develop` ya
+  documentada más arriba, y en el caso `tolerateMissingSource` no hay nada
+  que releer. Lo que cambia con B6 es que el payload incluye ahora el campo
+  con más probabilidad de divergir entre personas.
+- **Un flag repetido gana el último, en silencio** (preexistente, global al
+  CLI): `plan TASK-002 --asignado-a ana --asignado-a beto` asigna a `beto`
+  sin avisar, mientras que mezclar las dos grafías **sí** es error. Se
+  rechaza el caso ambiguo menos peligroso y se acepta el más peligroso.
+  `parseArgs` colapsa los duplicados en un solo valor, así que corregirlo es
+  un cambio transversal del parser, no de un comando — anotado sin corregir,
+  igual que el flag desconocido ignorado.
 - **Ramas fantasma en TASK-001, 002 y 003**: su frontmatter declara una
   `rama` (`feature/task-001-scaffold-taskctl` y equivalentes) que **no
   existe en Git** — esas tres tareas llegaron en el commit inicial, antes de
@@ -120,7 +157,10 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
   CLI): `parseArgs` no rechaza flags desconocidos, así que
   `taskctl board --escrivir` lista por pantalla y sale con 0 sin escribir
   nada ni avisar. Detectado por la revisión de B5; corregirlo es un cambio
-  transversal del CLI, no de un comando — anotado sin corregir.
+  transversal del CLI, no de un comando — anotado sin corregir. **B6 lo tapó
+  solo para `--asignado-a`**, aceptando las dos grafías en los tres comandos
+  que lo usan, después de que la revisión encontrara el fallo ya
+  materializado en `board`. El resto de flags sigue igual.
 - **El plugin no tiene `skills/` ni `agents/`.** Hoy es un CLI y unos scripts:
   todo el discurso de agentes especializados de la metodología no tiene aún
   ningún artefacto.

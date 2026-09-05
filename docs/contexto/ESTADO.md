@@ -6,18 +6,18 @@
 
 ## Dónde estamos
 
-**21 de 40 items del plan de terminación (53%).** Sprint 0 y Sprint 1
+**22 de 40 items del plan de terminación (55%).** Sprint 0 y Sprint 1
 completos (TASK-001 a TASK-012), la Fase A cerrada, y de la Fase B ya están
-B1, B2, B3, B4 y B5.
+B1, B2, B3, B4, B5 y B6.
 
 **El ciclo de vida está completo**: `import → plan → approve → start →
 review → finish` funciona de punta a punta contra un repo Git real, y no de
 forma teórica — TASK-013 y TASK-014 se gestionaron enteras con la propia
 herramienta, incluido el cierre (`taskctl finish` mergeó su propia tarea).
-275 tests, ~95% de cobertura de líneas.
+307 tests.
 
-Quedan **B6** (`--asignado-a` en `plan` y `start`) y **B7** (límite de WIP,
-bloqueado por la decisión #13) para cerrar la fase.
+Queda **B7** (límite de WIP, bloqueado por la decisión #13) para cerrar la
+fase — y ya tiene sobre qué operar: desde B6, `asignado_a` se rellena.
 
 ## Qué acaba de pasar (sesión del 2026-09-05, segunda parte)
 
@@ -45,19 +45,32 @@ ciclo de vida completo ya funciona.
 start → review → finish` con la propia herramienta. 275 tests, ~95% de
 cobertura.
 
-**Pendiente operativo**: `develop` acumula cinco merges **sin subir a
-`origin`**. Hay que hacer `git push origin develop` (y las ramas nuevas)
-cuando se decida.
+**Pendiente operativo**: `develop` ya está en `origin` (`origin/develop` y
+`develop` coincidían al empezar la sesión del 2026-09-05, tarde: la nota
+anterior sobre cinco merges sin subir ya no aplica). La rama
+`feature/b6-asignado-a-en-plan-y-start` sí está pendiente de `git push`.
 
-## Qué sigue: Fase B (quedan 2 de 7)
+## Qué acaba de pasar (sesión del 2026-09-05, tercera parte)
 
-1. **B6** — añadir `--asignado-a` a `plan` y `start`. Sin esto nadie rellena
-   `asignado_a`, y B7 no tiene sobre qué operar (`board --asignado_a` filtra
-   hoy por un campo siempre vacío). ~2h.
-2. **B7** — TASK-015, límite de WIP. **Bloqueado por la decisión #13**: ¿un
+**B6** — `--asignado-a` en `plan` y `start`, la precondición de B7. El flag
+vive en un módulo compartido (`src/cli/asignado.ts`) que usan los tres
+comandos que lo tocan, `plan`, `start` y `board`. Sin flag se **conserva** el
+`asignado_a` que hubiera, así que `start` hereda lo que dejó `plan`, que es
+lo que describe la §8.2. La revisión por pares encontró un IMPORTANTE real:
+`board --asignado-a` (el nombre canónico que B6 acababa de introducir y que
+sale en la ayuda) se ignoraba en silencio y devolvía **el tablero entero** con
+código 0 — el mismo fallo que el propio commit usaba para justificar el
+alias, sin cerrar el otro lado. 307 tests.
+
+## Qué sigue: Fase B (queda 1 de 7)
+
+1. **B7** — TASK-015, límite de WIP. **Bloqueado por la decisión #13**: ¿un
    único límite (una sola tarea activa de punta a punta) o dos independientes,
    diseño y ejecución por separado? Hay que preguntárselo a Carlos antes de
-   implementar.
+   implementar. Ojo: la §8.2 **ya se moja** — dice dos límites
+   independientes, y explica por qué ("no es lo mismo estar pensando una
+   tarea que tener una rama activa"), dejando el límite único como la
+   alternativa a decidir. La decisión es confirmar eso o cambiarlo.
 ## Decisiones abiertas que dependen de Carlos
 
 Están listadas con su bloqueo al final de `CHECKLIST_TERMINACION.md`. Para la
