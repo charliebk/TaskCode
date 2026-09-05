@@ -13,7 +13,13 @@
  */
 import { readdir, readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_FOLDER, assertValidTaskId, type Task } from '../core/task.js';
+import {
+  STATE_FOLDER,
+  assertValidTaskId,
+  type Task,
+  type TareaUbicada,
+  type TaskState,
+} from '../core/task.js';
 import { parseTareaFile, serializeTareaFile } from '../core/tarea-file.js';
 
 const ALL_STATE_FOLDERS: readonly string[] = Object.values(STATE_FOLDER);
@@ -35,6 +41,81 @@ export async function listExistingTaskIds(tareasRoot: string): Promise<string[]>
     }
   }
   return ids;
+}
+
+export interface TareasEnEstadosResult {
+  /** Tareas leidas y validadas, deduplicadas por ID. */
+  tareas: TareaUbicada[];
+  /**
+   * Rutas de tarea.md que existen pero no se pudieron parsear ni
+   * validar. Se devuelven en vez de lanzar para que el llamador decida
+   * qué hacer: "taskctl start" (TASK-015) aborta si aparece alguna,
+   * porque no sabe de quién es y podria ser la que bloquea el limite.
+   */
+  ilegibles: string[];
+}
+
+/**
+ * Lee las tareas que viven en las carpetas de `estados`, y solo esas
+ * (TASK-015). A diferencia de listExistingTaskIds + readTareaFile, no
+ * recorre el ciclo de vida entero: el limite de WIP solo mira dos
+ * carpetas, y readTareaFile busca por ID en todas, asi que usarlo aqui
+ * leeria de mas y ademas no diria en qué carpeta encontro cada tarea.
+ *
+ * Deduplica por ID: si el mismo ID aparece en dos carpetas de estado a
+ * la vez (inconsistencia de datos que "taskctl board" ya reporta como
+ * advertencia), ocupa un hueco, no dos. Gana la primera segun el orden
+ * de `estados`.
+ *
+ * Las rutas se construyen solo con nombres de directorio que ya
+ * pasaron TASK_ID_RE, asi que no hay ID de fuera que llegue a
+ * componer una ruta (misma precaucion que assertValidTaskId en el
+ * resto del modulo).
+ */
+export async function listTareasEnEstados(
+  tareasRoot: string,
+  estados: readonly TaskState[]
+): Promise<TareasEnEstadosResult> {
+  const porId = new Map<string, TareaUbicada>();
+  const ilegibles: string[] = [];
+
+  for (const estado of estados) {
+    const dir = path.join(tareasRoot, STATE_FOLDER[estado]);
+    let entries: string[];
+    try {
+      entries = await readdir(dir);
+    } catch (e: unknown) {
+      if (isEnoent(e)) continue;
+      throw e;
+    }
+    for (const entry of entries) {
+      if (!TASK_ID_RE.test(entry)) continue;
+      if (porId.has(entry)) continue;
+      const filePath = path.join(dir, entry, 'tarea.md');
+      let content: string;
+      try {
+        content = await readFile(filePath, 'utf8');
+      } catch (e: unknown) {
+        // Una carpeta de tarea sin tarea.md dentro no es una tarea:
+        // no ocupa hueco ni impide comprobarlo.
+        if (isEnoent(e)) continue;
+        throw e;
+      }
+      try {
+        porId.set(entry, { task: parseTareaFile(content).task, estadoCarpeta: estado });
+      } catch {
+        // Frontmatter roto o Task invalido. No se propaga: el llamador
+        // decide (ver TareasEnEstadosResult.ilegibles). Cualquier otro
+        // error de I/O si se propaga, arriba.
+        ilegibles.push(filePath);
+      }
+    }
+  }
+
+  // Orden estable: el orden de readdir depende del filesystem, y estas
+  // tareas acaban en un mensaje de error que los tests aseveran.
+  ilegibles.sort();
+  return { tareas: [...porId.values()], ilegibles };
 }
 
 export class TaskAlreadyExistsError extends Error {

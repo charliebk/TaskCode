@@ -438,3 +438,29 @@ test('taskctl plan --asignado-a invalido: falla ANTES de mover la tarea ni cambi
     assert.equal(read?.task.asignado_a, null);
   });
 });
+
+// --- TASK-015 (item B7): en diseno NO hay limite ---
+
+test('taskctl plan: NO comprueba el limite de WIP, aunque la persona tenga una tarea en curso', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // La decision #13 es explicita: el limite es unico y solo de
+    // ejecucion. Disenar no consume el recurso escaso (la rama), asi
+    // que se pueden tener varias tareas en diseno a la vez.
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({ id: 'TASK-701', estado: 'en-curso', asignado_a: 'carlos', rama: 'feature/task-701-ya-abierta' }),
+      ''
+    );
+    await writeTareaFile(tareasRoot, sampleTask({ id: 'TASK-700' }), '');
+    commitAll(repoRoot, 'carlos con una tarea ya en curso');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a', 'carlos'], '2026-09-05', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.asignadoA, 'carlos');
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.estado, 'en-diseno');
+    assert.equal(read?.task.asignado_a, 'carlos');
+  });
+});

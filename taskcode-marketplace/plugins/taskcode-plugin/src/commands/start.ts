@@ -14,7 +14,14 @@
 import { parseArgs } from '../cli/args.js';
 import { parseAsignadoAFlag, PISTA_VACIO_ESCRITURA } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile, listTareasEnEstados } from '../fs/task-store.js';
+import {
+  ESTADOS_QUE_OCUPAN_WIP,
+  tareasQueBloquean,
+  mensajeWipExcedido,
+  mensajeWipIndeterminado,
+  personaDeTarea,
+} from '../core/wip.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isValidBranchName } from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
@@ -89,6 +96,57 @@ export async function runStartCommand(
     );
   }
 
+  // Limite de trabajo en curso (TASK-015, item B7). Va aqui, ANTES de
+  // tocar Git, por lo mismo que el resto de guardas de este comando:
+  // rechazar sin haber creado una rama que luego habria que borrar a
+  // mano.
+  //
+  // asignadoFinal se resuelve una sola vez y se usa para dos cosas: la
+  // comprobacion de aqui y el frontmatter que se escribe al final. Sin
+  // esto, un start --asignado-a otra-persona comprobaria el limite
+  // contra quien la tenia asignada antes y luego escribiria a otra: se
+  // comprobaria a la persona equivocada.
+  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+
+  // Una tarea sin asignar no tiene a quien aplicarle un limite. Es el
+  // caso de todo lo anterior a B6 (asignado_a nace a null), asi que
+  // bloquearlo aqui romperia el flujo de quien no use el flag.
+  // personaDeTarea recorta y trata la cadena vacia como sin asignar:
+  // el flag recorta su valor, pero un asignado_a editado a mano en el
+  // frontmatter puede llegar con espacios o vacio (dos hallazgos MENOR
+  // de revision por pares). Solo para COMPARAR: lo que se escribe
+  // sigue siendo asignadoFinal tal cual, que start no debe reformatear.
+  const personaParaWip = personaDeTarea(asignadoFinal);
+  if (personaParaWip !== null) {
+    let wip;
+    try {
+      wip = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
+    } catch (e: unknown) {
+      // Sin esto, un ENOTDIR/EACCES al escanear tareas/ escapaba como
+      // Error crudo y el usuario lo veia como "taskctl no pudo
+      // arrancar", que es falso: taskctl arranco bien, lo que fallo fue
+      // leer las tareas. Misma clase de bug que ya se corrigio en
+      // TASK-010 y TASK-014 (hallazgo MENOR de revision, TASK-015).
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new StartCommandError(
+        `[ERROR] ${task.id}: no se pudieron leer las tareas para comprobar el limite de ` +
+          `trabajo en curso: ${msg}. Revisa que "${tareasRoot}" sea una carpeta legible.`
+      );
+    }
+    const { tareas, ilegibles } = wip;
+    // Fail-closed acotado: un tarea.md ilegible en las carpetas de
+    // ejecucion podria ser justo el que bloquea, y no hay forma de
+    // saberlo. Solo esas dos carpetas: una tarea rota en
+    // 00-planificadas no ocupa hueco, asi que no debe bloquear a nadie.
+    if (ilegibles.length > 0) {
+      throw new StartCommandError(mensajeWipIndeterminado(task.id, ilegibles));
+    }
+    const bloqueantes = tareasQueBloquean(tareas, personaParaWip, task.id);
+    if (bloqueantes.length > 0) {
+      throw new StartCommandError(mensajeWipExcedido(task.id, personaParaWip, bloqueantes));
+    }
+  }
+
   // Defensa en profundidad (hallazgo menor de revision por pares): sin
   // esto, un task.rama invalido solo se detecta varios procesos mas
   // abajo, dentro del propio script de Git-Flow.
@@ -122,13 +180,10 @@ export async function runStartCommand(
     );
   }
 
-  // Sin flag se conserva el asignado_a que "plan" dejara puesto (la
-  // seccion 8.2 describe start comprobando "la persona asignada", en
-  // pasado). Con flag, start reasigna: es el punto donde nace la rama,
-  // y quien la abre puede no ser quien diseno la tarea — o puede que
-  // nadie asignara nada en plan, en cuyo caso B7 no tendria sobre quien
-  // comprobar el limite de WIP.
-  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+  // asignadoFinal ya se resolvio arriba, junto a la comprobacion del
+  // limite de WIP, para no calcularlo dos veces ni arriesgarse a que
+  // las dos copias diverjan: se comprueba el limite de la MISMA
+  // persona que se acaba escribiendo en el frontmatter.
   const asignadoCambiado = asignadoFinal !== task.asignado_a;
 
   const updated: Task = {

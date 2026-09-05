@@ -59,6 +59,20 @@ export interface Task {
   dependencias: string[];
 }
 
+/**
+ * Una tarea junto con la CARPETA de estado en la que se encontro, que
+ * puede no coincidir con task.estado si el repo esta en un estado
+ * inconsistente (el mismo ID en dos carpetas, o un frontmatter que
+ * declara un estado distinto al de su ubicacion). Lo devuelve
+ * listTareasEnEstados y lo consume el limite de WIP: quien selecciona
+ * por carpeta tiene que poder describir por carpeta (hallazgo MENOR de
+ * revision por pares, TASK-015).
+ */
+export interface TareaUbicada {
+  task: Task;
+  estadoCarpeta: TaskState;
+}
+
 /** Orden de campos tal y como aparecen en la plantilla (seccion 4). */
 export const TASK_FIELD_ORDER: readonly (keyof Task)[] = [
   'id',

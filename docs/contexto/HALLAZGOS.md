@@ -124,6 +124,38 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
      que hubiera; el mensaje de error remite a editar `asignado_a: null` a
      mano en `tarea.md`, que contradice el principio de gobernar el repo por
      comandos. Fuera del alcance de B6, sin decidir.
+- **El límite de WIP no es el que describe la §8.2** (B7 / TASK-015,
+  2026-09-05). La metodología (congelada) especifica **dos límites
+  independientes**, uno sobre el diseño (`plan` aborta si esa persona ya
+  tiene otra tarea en `01-en-diseno`) y otro sobre la ejecución. La
+  decisión #13 resolvió otra cosa: **un único límite, y solo sobre la
+  ejecución**.
+  - `taskctl plan` **no comprueba nada**. El límite de diseño de la §8.2
+    no existe: se pueden tener varias tareas en `01-en-diseno` a la vez.
+  - `taskctl start` aborta si la persona asignada ya tiene otra tarea en
+    `02-en-curso` **o** en `03-en-revision`. Que la carpeta de revisión
+    ocupe hueco tampoco está en la §8.2: la rama sigue viva y sin mergear
+    hasta `finish`, y es ahí donde se commitean las correcciones de los
+    hallazgos.
+  - Motivo, textual: *"evitar que se programe código de una tarea en la
+    rama Git de otra tarea"*.
+
+  Es la mayor de las divergencias que acumula el proyecto: no es una
+  extensión ni un alias, es **un límite entero de la metodología que no se
+  implementa**. Quien lea la §8.2 y compruebe que `plan` no corta nada
+  está viendo una decisión, no un bug.
+- **El límite de WIP es opt-in, y este repo ya tiene dos grafías para la
+  misma persona** (B7, hallazgo de la revisión por pares). El límite solo
+  actúa sobre tareas con `asignado_a` no vacío, y `new` e `import` las
+  crean con `null`: hoy, en este mismo repo, **más de la mitad de las
+  tareas caen en el camino que no comprueba nada**. Además la identidad es
+  la cadena exacta, y ya está rota en la práctica: `carlos` (TASK-015) y
+  `charlie.bk` (TASK-004 a TASK-012) son la misma persona con dos grafías.
+  No colisiona todavía porque esas nueve están en `00-planificadas`, pero
+  el día que dos convivan con una `carlos` en curso o en revisión, el
+  límite las verá como dos personas distintas. Sin corregir: normalizar
+  identidades exige decidir antes qué es una persona en este sistema
+  (candidato natural para `.taskcode/config.yml`, item C4).
 - **`taskctl start` escribe `asignado_a` desde una lectura anterior al
   checkout** (preexistente, ampliado por B6). `start` tiene que leer la
   tarea *antes* de invocar `create-<tipo>.sh` (necesita `task.rama`), así que
