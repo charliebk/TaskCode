@@ -1,0 +1,24 @@
+{
+  "name": "taskcode-marketplace",
+  "owner": {
+    "name": "Carlos Gallardo Rodriguez",
+    "url": "https://github.com/charliebk"
+  },
+  "description": "Marketplace privado de TaskCode: metodologia de tareas por sprints, revision por pares de agentes y Git-Flow determinista para Claude Code.",
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "taskcode-plugin",
+      "displayName": "TaskCode",
+      "source": "./taskcode-marketplace/plugins/taskcode-plugin",
+      "description": "Metodologia de tareas por sprints, revision por pares de agentes y Git-Flow determinista. Expone el CLI taskctl.",
+      "version": "0.1.0",
+      "author": {
+        "name": "charlie.bk"
+      },
+      "repository": "https://github.com/charliebk/TaskCode",
+      "keywords": ["git-flow", "tareas", "sprints", "revision-por-pares", "scrum"],
+      "category": "productivity"
+    }
+  ]
+}

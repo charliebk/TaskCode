@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: taskcode-marketplace/plugins/taskcode-plugin
+
+jobs:
+  test-linux:
+    name: Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm test
+
+  test-windows:
+    name: Tests + validacion nativa (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+
+      # --- Pregunta abierta desde TASK-006: el bit de ejecucion en un
+      #     checkout nativo de Windows. Se REPORTA, no se asevera todavia.
+      - name: "Q1 - bit de ejecucion de bin/taskctl tras checkout nativo"
+        shell: bash
+        run: |
+          echo "--- modo trackeado por Git ---"
+          git ls-files -s bin/taskctl
+          echo "--- vision del filesystem desde Git Bash ---"
+          ls -la bin/taskctl
+          if [ -x bin/taskctl ]; then
+            echo "RESULTADO Q1: bin/taskctl ES ejecutable en Windows nativo"
+          else
+            echo "RESULTADO Q1: bin/taskctl NO es ejecutable en Windows nativo"
+          fi
+
+      # --- Pregunta abierta desde TASK-006: resolucion como comando suelto
+      #     por PATH, que es el mecanismo bin/ de Claude Code.
+      - name: "Q2 - taskctl como comando suelto via PATH"
+        shell: bash
+        continue-on-error: true
+        run: |
+          npm run build
+          export PATH="$(pwd)/bin:$PATH"
+          if taskctl --version; then
+            echo "RESULTADO Q2: taskctl resuelve como comando suelto en Windows"
+          else
+            echo "RESULTADO Q2: taskctl NO resuelve como comando suelto en Windows"
+          fi
+
+      # --- Pregunta abierta desde TASK-007: los .sh de Git-Flow en Windows
+      #     nativo, invocados via Git Bash (que es lo que usa el Bash tool).
+      - name: "Q3 - scripts Git-Flow via Git Bash nativo"
+        shell: bash
+        continue-on-error: true
+        run: |
+          bash --version | head -1
+          bash scripts/gitflow/diagnose-repo.sh || echo "(diagnose-repo.sh salio con codigo != 0)"
+          echo "--- smoke test de los scripts ---"
+          bash scripts/gitflow/test/smoke-test.sh && echo "RESULTADO Q3: smoke test de Git-Flow OK en Windows" || echo "RESULTADO Q3: smoke test de Git-Flow FALLA en Windows"
+
+      # --- La suite completa en Windows. Si el glob de npm test no es
+      #     portable a cmd.exe, esto lo destapa.
+      - name: "Q4 - suite de tests en Windows"
+        run: npm test
+
+  validate-plugin:
+    name: claude plugin validate
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Claude Code CLI
+        working-directory: .
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validar el manifiesto del plugin
+        working-directory: .
+        run: claude plugin validate ./taskcode-marketplace/plugins/taskcode-plugin
+      - name: Validar el marketplace
+        working-directory: .
+        run: claude plugin validate .
