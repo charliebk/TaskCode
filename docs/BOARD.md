@@ -27,12 +27,8 @@ TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin               
 TASK-022  Documentación de equipo e incorporación de colaboradores                                    (sin asignar)
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
 
-## En revision (03-en-revision) — 1
-ID        Titulo                                                         Asignado
---------  -------------------------------------------------------------  -------------
-TASK-013  Comando taskctl review (revisión por pares de un solo agente)  (sin asignar)
-
-## Terminadas (04-terminadas) — 1
+## Terminadas (04-terminadas) — 2
 ID        Titulo                                                              Asignado
 --------  ------------------------------------------------------------------  -------------
+TASK-013  Comando taskctl review (revisión por pares de un solo agente)       (sin asignar)
 TASK-014  Comando taskctl finish (merge, cierre y actualización del tablero)  (sin asignar)
