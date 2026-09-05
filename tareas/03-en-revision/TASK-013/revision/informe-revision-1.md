@@ -4,7 +4,7 @@
 - Revisor: agente independiente (general-purpose), protocolo completo de
   CONVENCIONES.md: clon temporal, suite propia, 9 repos Git adversariales
   invocando el CLI real.
-- Veredicto: cambios-solicitados → **aplicados en 484a946** (ver Resolucion)
+- Veredicto: aprobada (los cambios solicitados en la ronda se aplicaron en 484a946, ver Resolucion)
 
 ## Suite ejecutada por el revisor
 
