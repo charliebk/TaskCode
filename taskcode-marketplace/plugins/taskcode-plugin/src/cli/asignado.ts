@@ -30,6 +30,15 @@ export const ASIGNADO_FLAG = 'asignado-a';
 export const ASIGNADO_FLAG_ALIAS = 'asignado_a';
 
 /**
+ * Coletilla para "plan" y "start" cuando el valor viene vacio: ahi el
+ * flag ESCRIBE, asi que tiene sentido explicar como dejar una tarea sin
+ * asignar. En "board", que solo filtra, sobraria.
+ */
+export const PISTA_VACIO_ESCRITURA =
+  ' Para dejar la tarea sin asignar, omite el flag (se conserva el asignado_a actual) o ' +
+  'edita "asignado_a: null" a mano en tarea.md.';
+
+/**
  * Devuelve el valor de --asignado-a (o de su alias --asignado_a) ya
  * recortado, o undefined si no se paso ninguno de los dos — que NO es
  * lo mismo que asignarlo a null: sin flag, el comando conserva el
@@ -39,9 +48,26 @@ export const ASIGNADO_FLAG_ALIAS = 'asignado_a';
  * suyo (PlanCommandError / StartCommandError) y el despacho de errores
  * de cli.ts siga funcionando sin tocarlo.
  */
+/**
+ * Tope de longitud del valor. No es una regla de negocio sobre nombres
+ * de persona: es que "asignado_a" se pinta como columna en el listado
+ * de "taskctl board" y acaba dentro de docs/BOARD.md, que es un fichero
+ * versionado. Un valor de 500 caracteres estira la fila a 500 columnas
+ * y deja el tablero ilegible para todo el mundo (hallazgo MENOR de
+ * revision por pares, B6). Antes de B6 hacia falta editar el
+ * frontmatter a mano para conseguirlo; ahora seria un flag.
+ */
+export const ASIGNADO_MAX_LONGITUD = 64;
+
 export function parseAsignadoAFlag(
   argv: readonly string[],
-  fail: (message: string) => Error
+  fail: (message: string) => Error,
+  /**
+   * Coletilla opcional para el error de valor vacio. La usan "plan" y
+   * "start", donde tiene sentido explicar como dejar una tarea sin
+   * asignar; "board", que solo filtra, no la pasa.
+   */
+  pistaVacio = ''
 ): string | undefined {
   const { flags } = parseArgs(argv);
   const canonico = flags[ASIGNADO_FLAG];
@@ -70,10 +96,14 @@ export function parseAsignadoAFlag(
 
   const valor = raw.trim();
   if (valor === '') {
+    throw fail(`[ERROR] --${ASIGNADO_FLAG} no puede estar vacio.${pistaVacio}`);
+  }
+
+  if (valor.length > ASIGNADO_MAX_LONGITUD) {
     throw fail(
-      `[ERROR] --${ASIGNADO_FLAG} no puede estar vacio. Para dejar la tarea sin asignar, ` +
-        'omite el flag (se conserva el asignado_a actual) o edita "asignado_a: null" a mano ' +
-        'en tarea.md.'
+      `[ERROR] --${ASIGNADO_FLAG} no puede pasar de ${ASIGNADO_MAX_LONGITUD} caracteres ` +
+        `(recibidos ${valor.length}): el valor se pinta como columna en "taskctl board" y ` +
+        'acaba dentro de docs/BOARD.md, que es un fichero versionado.'
     );
   }
 

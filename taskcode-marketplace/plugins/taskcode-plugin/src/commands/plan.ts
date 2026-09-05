@@ -21,7 +21,7 @@
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
-import { parseAsignadoAFlag } from '../cli/asignado.js';
+import { parseAsignadoAFlag, PISTA_VACIO_ESCRITURA } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
@@ -81,7 +81,11 @@ export async function runPlanCommand(
 
   // Se parsea ANTES de tocar Git: un flag mal escrito no debe llegar a
   // cambiar de rama ni a mover carpetas antes de fallar.
-  const asignadoA = parseAsignadoAFlag(argv, (m) => new PlanCommandError(m));
+  const asignadoA = parseAsignadoAFlag(
+    argv,
+    (m) => new PlanCommandError(m),
+    PISTA_VACIO_ESCRITURA
+  );
 
   // Lectura PRELIMINAR, contra la rama activa en este momento — que
   // puede no ser la rama base real si alguien invoca "plan" desde una

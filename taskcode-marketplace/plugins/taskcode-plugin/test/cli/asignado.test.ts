@@ -10,6 +10,8 @@ import {
   parseAsignadoAFlag,
   ASIGNADO_FLAG,
   ASIGNADO_FLAG_ALIAS,
+  ASIGNADO_MAX_LONGITUD,
+  PISTA_VACIO_ESCRITURA,
 } from '../../src/cli/asignado.js';
 
 class FlagError extends Error {}
@@ -86,4 +88,38 @@ test('parseAsignadoAFlag: un nombre que empieza por -- solo entra con la forma =
 test('los nombres de flag exportados son los que documenta la ayuda', () => {
   assert.equal(ASIGNADO_FLAG, 'asignado-a');
   assert.equal(ASIGNADO_FLAG_ALIAS, 'asignado_a');
+});
+
+test('parseAsignadoAFlag: un valor mas largo que el tope se rechaza', () => {
+  // El valor acaba como columna de docs/BOARD.md, que es un fichero
+  // versionado: 500 caracteres dejan el tablero ilegible para todos.
+  const largo = 'x'.repeat(ASIGNADO_MAX_LONGITUD + 1);
+  assert.throws(() => parseAsignadoAFlag(['--asignado-a=' + largo], fail), esFlagError('no puede pasar de'));
+  // Justo en el tope, pasa.
+  const justo = 'x'.repeat(ASIGNADO_MAX_LONGITUD);
+  assert.equal(parseAsignadoAFlag(['--asignado-a=' + justo], fail), justo);
+});
+
+test('parseAsignadoAFlag: el tope se mide DESPUES de recortar espacios', () => {
+  const conEspacios = ' '.repeat(20) + 'x'.repeat(ASIGNADO_MAX_LONGITUD) + ' '.repeat(20);
+  assert.equal(
+    parseAsignadoAFlag(['--asignado-a=' + conEspacios], fail),
+    'x'.repeat(ASIGNADO_MAX_LONGITUD)
+  );
+});
+
+test('parseAsignadoAFlag: la pista del error de vacio es opcional (board no la pasa)', () => {
+  assert.throws(
+    () => parseAsignadoAFlag(['--asignado-a='], fail, PISTA_VACIO_ESCRITURA),
+    esFlagError('omite el flag')
+  );
+  // Sin la pista, el mensaje sigue siendo correcto pero no habla de
+  // desasignar: en board el flag no escribe nada.
+  assert.throws(
+    () => parseAsignadoAFlag(['--asignado-a='], fail),
+    (err: unknown) =>
+      err instanceof FlagError &&
+      (err as Error).message.includes('no puede estar vacio') &&
+      !(err as Error).message.includes('omite el flag')
+  );
 });

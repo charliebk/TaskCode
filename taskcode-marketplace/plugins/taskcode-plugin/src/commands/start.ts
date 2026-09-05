@@ -12,7 +12,7 @@
  * llamar al script, en vez de delegar en su prompt interactivo.
  */
 import { parseArgs } from '../cli/args.js';
-import { parseAsignadoAFlag } from '../cli/asignado.js';
+import { parseAsignadoAFlag, PISTA_VACIO_ESCRITURA } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
@@ -62,7 +62,11 @@ export async function runStartCommand(
   // Se parsea antes de leer nada y, sobre todo, antes de invocar el
   // script de Git-Flow: un --asignado-a mal escrito no debe dejar una
   // rama creada a medias.
-  const asignadoA = parseAsignadoAFlag(argv, (m) => new StartCommandError(m));
+  const asignadoA = parseAsignadoAFlag(
+    argv,
+    (m) => new StartCommandError(m),
+    PISTA_VACIO_ESCRITURA
+  );
 
   const existing = await readTareaFile(tareasRoot, id);
   // assertTransitionAllowed lanza StateMachineError si existing es null

@@ -19,6 +19,7 @@
 import path from 'node:path';
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
+import { parseAsignadoAFlag } from '../cli/asignado.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, type Task } from '../core/task.js';
 import {
@@ -67,16 +68,22 @@ export function parseBoardArgs(argv: readonly string[]): BoardFilters {
     filters.sprint = parseInt(sprintRaw, 10);
   }
 
-  // Nombre del flag con guion bajo, no guion medio (--asignado_a, no
-  // --asignado-a): asi lo especifica el Objetivo de TASK-005, a
-  // proposito igual al nombre del campo en el frontmatter de la tarea
-  // aunque rompa la convencion de guiones del resto de flags del CLI.
-  const asignadoRaw = flags['asignado_a'];
-  if (asignadoRaw !== undefined) {
-    if (typeof asignadoRaw !== 'string' || asignadoRaw.trim() === '') {
-      throw new BoardCommandError('--asignado_a debe ser un valor no vacio.');
-    }
-    filters.asignadoA = asignadoRaw;
+  // Historicamente este filtro solo aceptaba "--asignado_a", con guion
+  // bajo: asi lo especifico el Objetivo de TASK-005, a proposito igual
+  // al nombre del campo en el frontmatter aunque rompiera la convencion
+  // de guiones del resto de flags del CLI.
+  //
+  // Desde B6 acepta TAMBIEN "--asignado-a", que es el nombre que la
+  // seccion 8.2 de la metodologia da al flag de "plan"/"start" y el que
+  // sale en la ayuda. Sin esto (hallazgo IMPORTANTE de revision por
+  // pares, B6), quien acababa de asignar con "plan --asignado-a carlos"
+  // y reutilizaba esa grafia aqui recibia EL TABLERO ENTERO con codigo
+  // 0 — parseArgs ignora los flags que no conoce — y concluia que
+  // carlos tenia todas las tareas del repo. Mismo modulo y mismas
+  // reglas que plan/start, para que las tres no puedan divergir.
+  const asignadoA = parseAsignadoAFlag(argv, (m) => new BoardCommandError(m));
+  if (asignadoA !== undefined) {
+    filters.asignadoA = asignadoA;
   }
 
   return filters;
@@ -111,9 +118,11 @@ export async function runBoardCommand(
   // enganoso.
   if (escribir && (filters.sprint !== undefined || filters.asignadoA !== undefined)) {
     throw new BoardCommandError(
-      '--escribir no se puede combinar con --sprint ni --asignado_a: docs/BOARD.md es el ' +
+      '--escribir no se puede combinar con --sprint ni --asignado-a: docs/BOARD.md es el ' +
         'tablero completo del repo. Ejecuta "taskctl board --escribir" sin filtros, o quita ' +
         '--escribir para ver el listado filtrado por pantalla.'
+      // (--asignado_a, con guion bajo, es el mismo filtro: ver
+      // parseBoardArgs.)
     );
   }
   if (escribir && (deps.repoCwd === undefined || deps.today === undefined)) {

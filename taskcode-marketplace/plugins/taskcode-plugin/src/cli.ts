@@ -34,7 +34,7 @@ Uso:
   taskctl import <fichero.md> [--tipo <feature|fix|hotfix|release>] \\
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
-  taskctl board [--sprint N] [--asignado_a <persona>] [--escribir]
+  taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
   taskctl start TASK-NNN [--asignado-a <persona>]
   taskctl plan TASK-NNN [--asignado-a <persona>]
   taskctl approve TASK-NNN
@@ -42,6 +42,7 @@ Uso:
   taskctl finish TASK-NNN
 
 Comandos: new, import, board, start, plan, approve, review, finish.
+--asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
 Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
