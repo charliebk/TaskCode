@@ -35,8 +35,8 @@ Uso:
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado_a <persona>] [--escribir]
-  taskctl start TASK-NNN
-  taskctl plan TASK-NNN
+  taskctl start TASK-NNN [--asignado-a <persona>]
+  taskctl plan TASK-NNN [--asignado-a <persona>]
   taskctl approve TASK-NNN
   taskctl review TASK-NNN
   taskctl finish TASK-NNN
@@ -76,6 +76,18 @@ function printBaseBranchSwitchNotice(guard: BaseBranchGuardResult): void {
     `Workspace limpio -> cambiado automaticamente de "${guard.branchAntes}" a ` +
       `"${guard.baseBranch}".\n`
   );
+}
+
+/**
+ * Confirmacion de --asignado-a (item B6). Solo se imprime cuando el
+ * flag CAMBIO algo: si la tarea ya venia asignada a esa misma persona,
+ * repetirlo seria ruido. Y se imprime siempre que cambie, tambien
+ * cuando "plan" ya la habia asignado y "start" la reasigna — ahi es
+ * justo donde interesa que se vea.
+ */
+function asignacionNotice(result: { asignadoA: string | null; asignadoCambiado: boolean }): string {
+  if (!result.asignadoCambiado || result.asignadoA === null) return '';
+  return `Asignada a "${result.asignadoA}".\n`;
 }
 
 export async function main(argv: readonly string[]): Promise<number> {
@@ -184,7 +196,7 @@ export async function main(argv: readonly string[]): Promise<number> {
       });
       process.stdout.write(
         `Tarea ${result.id} en curso: rama ${result.rama} creada y confirmada, ` +
-          `tarea movida a ${result.filePath}\n`
+          `tarea movida a ${result.filePath}\n${asignacionNotice(result)}`
       );
       return 0;
     } catch (e) {
@@ -214,7 +226,8 @@ export async function main(argv: readonly string[]): Promise<number> {
         ? `Scaffold creado en ${result.planPath} — redactalo antes de "taskctl approve".`
         : `${result.planPath} ya existia (re-planificacion) — se dejo intacto.`;
       process.stdout.write(
-        `Tarea ${result.id} en diseno: movida a ${result.filePath}. ${scaffoldMsg}\n`
+        `Tarea ${result.id} en diseno: movida a ${result.filePath}. ${scaffoldMsg}\n` +
+          asignacionNotice(result)
       );
       return 0;
     } catch (e) {

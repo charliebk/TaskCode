@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -93,5 +93,68 @@ test('main: "taskctl import" mezcla validas y malformadas -> sale con codigo 1 p
     assert.equal(code, 1);
     assert.match(stdout, /1 creada/);
     await rm(md, { force: true });
+  });
+});
+
+// --- item B6: --asignado-a en plan y start ---
+
+test('main: la ayuda documenta --asignado-a en plan y en start', async () => {
+  const { code, stdout } = await captureOutput(() => main(['--help']));
+  assert.equal(code, 0);
+  assert.ok(stdout.includes('taskctl plan TASK-NNN [--asignado-a <persona>]'));
+  assert.ok(stdout.includes('taskctl start TASK-NNN [--asignado-a <persona>]'));
+});
+
+test('main: taskctl plan --asignado-a confirma la asignacion y la deja en tarea.md', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() => main(['new', '--titulo', 'Probar asignacion', '--tipo', 'feature']));
+    assert.equal(creada.code, 0);
+    // plan exige workspace limpio, asi que se commitea lo que dejo
+    // new (misma secuencia que en uso real).
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+
+    const { code, stdout } = await captureOutput(() =>
+      main(['plan', 'TASK-001', '--asignado-a', 'carlos'])
+    );
+
+    assert.equal(code, 0);
+    assert.ok(stdout.includes('Asignada a "carlos".'), stdout);
+
+    const md = await readFile(
+      path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'tarea.md'),
+      'utf8'
+    );
+    assert.ok(md.includes('asignado_a: carlos'), md);
+  });
+});
+
+test('main: sin --asignado-a no se imprime ninguna linea de asignacion', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() => main(['new', '--titulo', 'Sin asignar', '--tipo', 'feature']));
+    assert.equal(creada.code, 0);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+
+    const { code, stdout } = await captureOutput(() => main(['plan', 'TASK-001']));
+
+    assert.equal(code, 0);
+    assert.ok(!stdout.includes('Asignada a'), stdout);
+  });
+});
+
+test('main: un --asignado-a sin valor sale con codigo 1 y mensaje util, no con un stack trace', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() => main(['new', '--titulo', 'Flag roto', '--tipo', 'feature']));
+    assert.equal(creada.code, 0);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+
+    const { code, stderr } = await captureOutput(() => main(['plan', 'TASK-001', '--asignado-a']));
+
+    assert.equal(code, 1);
+    assert.ok(stderr.includes('necesita un valor'), stderr);
+    // Un solo prefijo [ERROR], no dos (printCliError).
+    assert.equal(stderr.indexOf('[ERROR]'), stderr.lastIndexOf('[ERROR]'));
   });
 });

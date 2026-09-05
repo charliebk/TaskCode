@@ -20,6 +20,8 @@
  */
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
+import { parseArgs } from '../cli/args.js';
+import { parseAsignadoAFlag } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
@@ -48,6 +50,10 @@ export interface PlanCommandResult {
   planPath: string;
   /** false si plan-final.md ya existia (re-planificacion) y se dejo intacto. */
   planCreated: boolean;
+  /** asignado_a resultante en el frontmatter (null si sigue sin asignar). */
+  asignadoA: string | null;
+  /** true si esta invocacion cambio asignado_a (se paso --asignado-a con otro valor). */
+  asignadoCambiado: boolean;
   baseBranchGuard: BaseBranchGuardResult;
 }
 
@@ -62,10 +68,20 @@ export async function runPlanCommand(
   today: string,
   deps: PlanCommandDeps
 ): Promise<PlanCommandResult> {
-  const id = argv[0];
+  // El ID sale de los POSICIONALES, no de argv[0] a secas (item B6):
+  // con "--asignado-a" en juego, "taskctl plan --asignado-a carlos
+  // TASK-001" tiene que funcionar igual que con el flag detras. De
+  // paso, un "taskctl plan --loquesea" ya no se cuela como ID para
+  // morir mas abajo con un InvalidTaskIdError que cli.ts no captura.
+  const { positional } = parseArgs(argv);
+  const id = positional[0];
   if (id === undefined || id.trim() === '') {
     throw new PlanCommandError('[ERROR] Falta el ID de la tarea: taskctl plan TASK-NNN.');
   }
+
+  // Se parsea ANTES de tocar Git: un flag mal escrito no debe llegar a
+  // cambiar de rama ni a mover carpetas antes de fallar.
+  const asignadoA = parseAsignadoAFlag(argv, (m) => new PlanCommandError(m));
 
   // Lectura PRELIMINAR, contra la rama activa en este momento — que
   // puede no ser la rama base real si alguien invoca "plan" desde una
@@ -100,7 +116,22 @@ export async function runPlanCommand(
   assertTransitionAllowed('plan', existing ? existing.task : null);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
-  const updated: Task = { ...task, estado: 'en-diseno', actualizado: today };
+  // asignado_a se resuelve contra la lectura FRESCA (la de justo
+  // arriba), no contra la preliminar: otra persona pudo cambiarlo en la
+  // rama base mientras tanto, y decidir "cambio o no" con la lectura
+  // vieja daria un asignadoCambiado mentiroso — la misma regla de doble
+  // lectura que obliga TASK-012.
+  // Sin flag se CONSERVA lo que hubiera: "no lo has mencionado" no es
+  // "quitalo".
+  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+  const asignadoCambiado = asignadoFinal !== task.asignado_a;
+
+  const updated: Task = {
+    ...task,
+    estado: 'en-diseno',
+    asignado_a: asignadoFinal,
+    actualizado: today,
+  };
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
 
   // plan-final.md no tiene frontmatter y no encaja en el modelo Task,
@@ -119,5 +150,13 @@ export async function runPlanCommand(
     if (!isEexist(e)) throw e;
   }
 
-  return { id: task.id, filePath: newFilePath, planPath, planCreated, baseBranchGuard };
+  return {
+    id: task.id,
+    filePath: newFilePath,
+    planPath,
+    planCreated,
+    asignadoA: asignadoFinal,
+    asignadoCambiado,
+    baseBranchGuard,
+  };
 }
