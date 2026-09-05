@@ -26,6 +26,12 @@ async function withTempRepoCwd(fn: (repoRoot: string) => Promise<void>): Promise
     git(['init', '-q', '-b', 'main'], repoRoot);
     git(['config', 'user.email', 'test@example.com'], repoRoot);
     git(['config', 'user.name', 'Test'], repoRoot);
+    // logs/ en .gitignore ANTES del primer commit: los scripts de
+    // Git-Flow escriben ahi, y si no esta ignorado el workspace queda
+    // sucio y el propio script cancela en silencio con exit 0 (hallazgo
+    // 2 de TASK-007). Hace falta desde que un test de aqui invoca
+    // taskctl start (TASK-015); mismo patron que start.test.ts.
+    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
     await writeFile(path.join(repoRoot, 'README.md'), '# repo de prueba\n', 'utf8');
     git(['add', '-A'], repoRoot);
     git(['commit', '-q', '-m', 'inicial'], repoRoot);
@@ -156,5 +162,51 @@ test('main: un --asignado-a sin valor sale con codigo 1 y mensaje util, no con u
     assert.ok(stderr.includes('necesita un valor'), stderr);
     // Un solo prefijo [ERROR], no dos (printCliError).
     assert.equal(stderr.indexOf('[ERROR]'), stderr.lastIndexOf('[ERROR]'));
+  });
+});
+
+// --- TASK-015 (item B7): el limite visto desde el CLI ---
+
+test('main: taskctl start sale con codigo 1 y mensaje util cuando el limite esta ocupado', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    // Un commit entre los dos "new" y entre los dos "plan": el guard
+    // de la seccion 8.3 exige workspace limpio, asi que dos altas
+    // seguidas sin commitear en medio abortan (limitacion ya
+    // documentada en HALLAZGOS.md para taskctl import).
+    const uno = await captureOutput(() => main(['new', '--titulo', 'Primera de carlos', '--tipo', 'feature', '--complejidad', 'simple']));
+    assert.equal(uno.code, 0, uno.stderr);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'primera tarea'], repoRoot);
+
+    const dos = await captureOutput(() => main(['new', '--titulo', 'Segunda de carlos', '--tipo', 'feature', '--complejidad', 'simple']));
+    assert.equal(dos.code, 0, dos.stderr);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'segunda tarea'], repoRoot);
+
+    const p1 = await captureOutput(() => main(['plan', 'TASK-001', '--asignado-a', 'carlos']));
+    assert.equal(p1.code, 0, p1.stderr);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'primera en diseno'], repoRoot);
+
+    const p2 = await captureOutput(() => main(['plan', 'TASK-002', '--asignado-a', 'carlos']));
+    // Esta es la otra mitad de la decision #13: dos tareas en diseno
+    // de la misma persona a la vez son legales.
+    assert.equal(p2.code, 0, p2.stderr);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'segunda en diseno'], repoRoot);
+
+    const primera = await captureOutput(() => main(['start', 'TASK-001']));
+    assert.equal(primera.code, 0, primera.stderr);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'primera en curso'], repoRoot);
+
+    const segunda = await captureOutput(() => main(['start', 'TASK-002']));
+
+    assert.equal(segunda.code, 1);
+    assert.ok(segunda.stderr.includes('TASK-001'), segunda.stderr);
+    assert.ok(segunda.stderr.includes('carlos'), segunda.stderr);
+    assert.ok(segunda.stderr.includes('taskctl finish TASK-001'), segunda.stderr);
+    // Un solo prefijo [ERROR], no uno por linea (printCliError).
+    assert.equal(segunda.stderr.indexOf('[ERROR]'), segunda.stderr.lastIndexOf('[ERROR]'));
   });
 });
