@@ -7,3 +7,24 @@ Indice determinista para la recuperacion de contexto por etiquetas
 
 - TASK-013 — Comando taskctl review (revisión por pares de un solo agente) · etiquetas: (sin etiquetas) · rama feature/task-013-comando-taskctl-review-revision-por-pare · terminada 2026-09-05 · tareas/04-terminadas/TASK-013/
 - TASK-014 — Comando taskctl finish (merge, cierre y actualización del tablero) · etiquetas: (sin etiquetas) · rama feature/task-014-comando-taskctl-finish-merge-cierre-y-ac · terminada 2026-09-05 · tareas/04-terminadas/TASK-014/
+
+## Precedentes de Sprint 0 y 1 (pendientes de cierre formal)
+
+Terminadas de verdad, pero todavia en 00-planificadas: son anteriores a
+taskctl finish y su estado formal lo resuelve el item E4. Se indexan aqui,
+con su ruta REAL, porque son los precedentes mas utiles para la
+recuperacion de contexto por etiquetas (seccion 6.1) — dejarlas fuera
+vaciaba de sentido el indice. Anadidas a mano (item B4).
+
+- TASK-001 — Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner) · etiquetas: scaffold, infraestructura, taskctl · sin rama propia (commit inicial) · cerrada 2026-09-03 · tareas/00-planificadas/TASK-001/
+- TASK-002 — Modelo de tarea, parser de tarea.md y máquina de estados · etiquetas: core, maquina-de-estados, parser · sin rama propia (commit inicial) · cerrada 2026-09-03 · tareas/00-planificadas/TASK-002/
+- TASK-003 — Comando taskctl new (alta individual de tarea) · etiquetas: cli, ingesta · sin rama propia (commit inicial) · cerrada 2026-09-03 · tareas/00-planificadas/TASK-003/
+- TASK-004 — Comando taskctl import (alta masiva desde Markdown) · etiquetas: cli, ingesta · rama feature/task-004-taskctl-import · cerrada 2026-09-03 · tareas/00-planificadas/TASK-004/
+- TASK-005 — Comando taskctl board (listado por estado) · etiquetas: cli, visualizacion · rama feature/task-005-taskctl-board · cerrada 2026-09-03 · tareas/00-planificadas/TASK-005/
+- TASK-006 — Empaquetado del plugin y validación de carga local · etiquetas: plugin, empaquetado · rama feature/task-006-empaquetado-plugin · cerrada 2026-09-03 · tareas/00-planificadas/TASK-006/
+- TASK-007 — Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ · etiquetas: spike, gitflow, windows · rama fix/task-007-spike-gitflow-windows · cerrada 2026-09-03 · tareas/00-planificadas/TASK-007/
+- TASK-008 — Migrar scripts Git-Flow a scripts/gitflow/ del plugin · etiquetas: gitflow, plugin, migracion · rama feature/task-008-migrar-scripts-git-flow-a-scripts-gitflo · cerrada 2026-09-03 · tareas/00-planificadas/TASK-008/
+- TASK-009 — taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso · etiquetas: gitflow, cli, taskctl · rama feature/task-009-taskctl-start-crea-rama-via-create-tipo · cerrada 2026-09-03 · tareas/00-planificadas/TASK-009/
+- TASK-010 — taskctl plan: version minima, un solo agente redacta plan-final.md · etiquetas: cli, taskctl, diseno · rama feature/task-010-taskctl-plan-version-minima-un-solo-agen · cerrada 2026-09-03 · tareas/00-planificadas/TASK-010/
+- TASK-011 — taskctl approve: checkpoint humano, marca plan_aprobado · etiquetas: cli, taskctl, diseno · rama feature/task-011-taskctl-approve-checkpoint-humano-marca · cerrada 2026-09-03 · tareas/00-planificadas/TASK-011/
+- TASK-012 — Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio · etiquetas: cli, taskctl, gitflow, precondicion · rama feature/task-012-precondicion-de-rama-base-workspace-limp · cerrada 2026-09-03 · tareas/00-planificadas/TASK-012/
