@@ -90,6 +90,41 @@ export function isRemoteAvailable(cwd: string): boolean {
   return result.status === 0;
 }
 
+/** SHA completo del commit en HEAD. */
+export function headCommit(cwd: string): string {
+  return runGit(['rev-parse', 'HEAD'], cwd);
+}
+
+/**
+ * true si `ancestor` es antepasado de `descendant` (via
+ * `git merge-base --is-ancestor`). Es la evidencia que usa
+ * "taskctl review" (TASK-013) para confirmar que el update desde la
+ * rama base ocurrio de verdad, en vez de fiarse del exit 0 del script
+ * — mismo principio "evidencia, no suposicion" de TASK-007/009.
+ */
+export function isAncestor(ancestor: string, descendant: string, cwd: string): boolean {
+  const args = ['merge-base', '--is-ancestor', ancestor, descendant] as const;
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  if (result.status === 0) return true;
+  // Codigo 1 = "no es antepasado" (respuesta valida). Cualquier otro
+  // codigo es un error real (ref inexistente, repo corrupto...).
+  if (result.status === 1) return false;
+  throw new GitCommandError(args, result.stderr ?? '');
+}
+
+/** `git log --oneline <desde>..<hasta>` (vacio si no hay commits). */
+export function logOneline(desde: string, hasta: string, cwd: string): string {
+  return runGit(['log', '--oneline', `${desde}..${hasta}`], cwd);
+}
+
+/** `git diff <desde>..<hasta>` (vacio si no hay diferencias). */
+export function diffRange(desde: string, hasta: string, cwd: string): string {
+  return runGit(['diff', `${desde}..${hasta}`], cwd);
+}
+
 /** true si existe una referencia LOCAL para esa rama. */
 export function localBranchExists(name: string, cwd: string): boolean {
   const result = spawnSync(

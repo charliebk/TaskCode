@@ -9,6 +9,7 @@ import { runBoardCommand, BoardCommandError } from './commands/board.js';
 import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
+import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { resolveGitflowScriptsDir } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
@@ -31,8 +32,9 @@ Uso:
   taskctl start TASK-NNN
   taskctl plan TASK-NNN
   taskctl approve TASK-NNN
+  taskctl review TASK-NNN
 
-Comandos: new, import, board, start, plan, approve.
+Comandos: new, import, board, start, plan, approve, review.
 Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -233,6 +235,35 @@ export async function main(argv: readonly string[]): Promise<number> {
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
         e instanceof BaseBranchGuardError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'review') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const result = await runReviewCommand(tareasRoot, argv.slice(1), today(), {
+        repoCwd,
+        scriptsDir: resolveGitflowScriptsDir(),
+      });
+      process.stdout.write(
+        `Tarea ${result.id} en revision: "${result.baseBranch}" integrada en ` +
+          `"${result.rama}" (merge verificado), tarea movida a ${result.filePath}.\n` +
+          `Peticion de revision (ronda ${result.ronda}): ${result.peticionPath}\n` +
+          `Lanza el agente revisor con esa peticion y vuelca su salida en ` +
+          `${result.informePath}.\n`
+      );
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof ReviewCommandError ||
+        e instanceof StateMachineError ||
+        e instanceof TaskFolderConflictError
       ) {
         printCliError(e);
         return 1;
