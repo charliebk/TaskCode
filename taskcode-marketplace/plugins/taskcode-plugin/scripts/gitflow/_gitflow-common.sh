@@ -220,17 +220,29 @@ assert_valid_branch_name() {
     fi
 }
 
+# ── detect_origin_available ───────────────────────────────────────────────────
+# Ajuste B2 (mismo guard que introdujo TASK-008 en
+# invoke_merge_work_branch_to_develop): la deteccion de origin estaba
+# duplicada inline en dos funciones y faltaba en los scripts
+# merge-*-to-main.sh, que fallaban duro (exit 1) en un repo sin origin.
+# Resultado en la variable global REMOTE_AVAILABLE ("true"/"false").
+REMOTE_AVAILABLE=false
+detect_origin_available() {
+    if git ls-remote --heads origin > /dev/null 2>&1; then
+        REMOTE_AVAILABLE=true
+        log_ok "Conexion remota disponible (origin)."
+    else
+        REMOTE_AVAILABLE=false
+        log_warn "No hay conexion con origin (VPN/credenciales/red). Se continuara en modo local."
+    fi
+}
+
 # ── invoke_create_work_branch ─────────────────────────────────────────────────
 invoke_create_work_branch() {
     local name="$1" push="$2" base_branch="$3"
 
-    local remote_available=false
-    if git ls-remote --heads origin > /dev/null 2>&1; then
-        remote_available=true
-        log_ok "Conexion remota disponible (origin)."
-    else
-        log_warn "No hay conexion con origin (VPN/credenciales/red). Se continuara en modo local."
-    fi
+    detect_origin_available
+    local remote_available="$REMOTE_AVAILABLE"
 
     local current_branch
     current_branch=$(git branch --show-current 2>&1)
@@ -311,13 +323,8 @@ invoke_merge_work_branch_to_develop() {
     # repo sin origin configurado. Mismo guard que ya usa
     # invoke_create_work_branch, para que un merge en modo local siga
     # siendo posible.
-    local remote_available=false
-    if git ls-remote --heads origin > /dev/null 2>&1; then
-        remote_available=true
-        log_ok "Conexion remota disponible (origin)."
-    else
-        log_warn "No hay conexion con origin (VPN/credenciales/red). Se continuara en modo local."
-    fi
+    detect_origin_available
+    local remote_available="$REMOTE_AVAILABLE"
 
     if [ "$remote_available" = true ]; then
         invoke_git "No se pudo hacer fetch de origin." fetch origin
