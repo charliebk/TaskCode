@@ -114,6 +114,9 @@ for (const { script, tipo, base } of CASOS) {
 
       assert.notEqual(status, 0);
       assert.match(output, /no existe localmente y no hay conexion remota/);
+      // Hallazgo MENOR de revision por pares: el fallo no debe dejar a la
+      // persona en una rama distinta de la de partida.
+      assert.equal(git(['branch', '--show-current'], repoRoot).trim(), `${tipo}/901-sin-main`);
     } finally {
       await rm(repoRoot, { recursive: true, force: true });
     }
@@ -152,6 +155,40 @@ for (const { script, tipo, base } of CASOS) {
       } finally {
         await rm(origin, { recursive: true, force: true });
       }
+    });
+  });
+  test(`${script}: origin configurado pero inaccesible aborta sin merge ni tag (hallazgo IMPORTANTE de revision)`, async () => {
+    await withTempRepo(async (repoRoot) => {
+      const rama = `${tipo}/920-origin-roto`;
+      git(['checkout', '-q', base], repoRoot);
+      git(['checkout', '-q', '-b', rama], repoRoot);
+      await writeFile(path.join(repoRoot, 'cambio.txt'), 'cambio\n', 'utf8');
+      git(['add', '-A'], repoRoot);
+      git(['commit', '-q', '-m', `cambio en ${rama}`], repoRoot);
+      // Remote configurado apuntando a una ruta inexistente: simula la
+      // VPN/red caida, que NO es lo mismo que no tener remoto.
+      git(['remote', 'add', 'origin', path.join(repoRoot, 'no-existe.git')], repoRoot);
+
+      const { status, output } = runScript(script, ['920-origin-roto'], repoRoot);
+
+      assert.notEqual(status, 0);
+      assert.match(output, /origin esta configurado pero no responde/);
+      // Ni merge ni tag: el repo queda exactamente como estaba.
+      assert.doesNotMatch(git(['log', '--oneline', 'main'], repoRoot), /merge/);
+      assert.equal(git(['tag', '--list'], repoRoot).trim(), '');
+      assert.equal(git(['branch', '--show-current'], repoRoot).trim(), rama);
+    });
+  });
+
+  test(`${script}: sin origin y con rama de trabajo inexistente falla dejando a la persona en su rama (hallazgo MENOR de revision)`, async () => {
+    await withTempRepo(async (repoRoot) => {
+      // Estamos en develop y pedimos mergear una rama que no existe.
+      const { status, output } = runScript(script, ['930-no-existe'], repoRoot);
+
+      assert.notEqual(status, 0);
+      assert.match(output, /no existe localmente y no hay conexion remota para recuperarla/);
+      assert.equal(git(['branch', '--show-current'], repoRoot).trim(), 'develop');
+      assert.equal(git(['tag', '--list'], repoRoot).trim(), '');
     });
   });
 }

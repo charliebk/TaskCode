@@ -30,8 +30,29 @@ log_info "Rama principal detectada: $MAIN_BRANCH"
 # fallaba duro (exit 1) en cualquier repo sin origin configurado.
 detect_origin_available
 
+# Hallazgo IMPORTANTE de revision por pares (B2): origin configurado pero
+# inaccesible NO es lo mismo que no tener origin. Con el remoto caido, la
+# rama principal local puede estar obsoleta y el tag de version se crearia
+# sobre historia divergente. Mejor abortar y que la persona decida.
+if [ "$REMOTE_CONFIGURED" = true ] && [ "$REMOTE_AVAILABLE" = false ]; then
+    log_error "origin esta configurado pero no responde. Mergear a $MAIN_BRANCH sin sincronizar puede crear el tag sobre una $MAIN_BRANCH obsoleta. Revisa conexion/credenciales; si de verdad quieres operar sin remoto, ejecuta git remote remove origin y reintenta."
+    exit 1
+fi
+
 if [ "$REMOTE_AVAILABLE" = true ]; then
     invoke_git "No se pudo hacer fetch de origin." fetch origin
+fi
+
+# Hallazgo MENOR de revision por pares (B2): validar/recuperar la rama de
+# trabajo ANTES de tocar la rama principal, para que un nombre inexistente
+# falle dejando a la persona en su rama de partida.
+if ! git show-ref --verify --quiet "refs/heads/$NAME" 2>/dev/null; then
+    if [ "$REMOTE_AVAILABLE" = true ]; then
+        invoke_git "No se pudo crear/cambiar a $NAME desde origin." checkout -b "$NAME" "origin/$NAME"
+    else
+        log_error "$NAME no existe localmente y no hay conexion remota para recuperarla."
+        exit 1
+    fi
 fi
 
 if ! git show-ref --verify --quiet "refs/heads/$MAIN_BRANCH" 2>/dev/null; then
@@ -50,15 +71,6 @@ if [ "$REMOTE_AVAILABLE" = true ]; then
     invoke_git "No se pudo actualizar $MAIN_BRANCH desde origin." pull --ff-only origin "$MAIN_BRANCH"
 else
     log_warn "Sincronizacion omitida: no hay conexion con origin."
-fi
-
-if ! git show-ref --verify --quiet "refs/heads/$NAME" 2>/dev/null; then
-    if [ "$REMOTE_AVAILABLE" = true ]; then
-        invoke_git "No se pudo crear/cambiar a $NAME desde origin." checkout -b "$NAME" "origin/$NAME"
-    else
-        log_error "$NAME no existe localmente y no hay conexion remota para recuperarla."
-        exit 1
-    fi
 fi
 
 invoke_git "No se pudo volver a $MAIN_BRANCH para merge." checkout "$MAIN_BRANCH"

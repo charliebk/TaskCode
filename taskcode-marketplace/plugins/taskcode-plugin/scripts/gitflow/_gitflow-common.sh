@@ -225,9 +225,19 @@ assert_valid_branch_name() {
 # invoke_merge_work_branch_to_develop): la deteccion de origin estaba
 # duplicada inline en dos funciones y faltaba en los scripts
 # merge-*-to-main.sh, que fallaban duro (exit 1) en un repo sin origin.
-# Resultado en la variable global REMOTE_AVAILABLE ("true"/"false").
+# Resultado en las variables globales REMOTE_AVAILABLE y REMOTE_CONFIGURED
+# ("true"/"false"). La distincion importa (hallazgo IMPORTANTE de la
+# revision por pares de B2): "sin origin configurado" habilita el modo
+# local con seguridad, pero "origin configurado e inaccesible" puede ser
+# una VPN/red caida con la main local obsoleta respecto al remoto.
 REMOTE_AVAILABLE=false
+REMOTE_CONFIGURED=false
 detect_origin_available() {
+    if git remote get-url origin > /dev/null 2>&1; then
+        REMOTE_CONFIGURED=true
+    else
+        REMOTE_CONFIGURED=false
+    fi
     if git ls-remote --heads origin > /dev/null 2>&1; then
         REMOTE_AVAILABLE=true
         log_ok "Conexion remota disponible (origin)."
