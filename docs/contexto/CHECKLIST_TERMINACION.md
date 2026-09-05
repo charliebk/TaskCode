@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 17 / 40 items terminados (42%)** · última actualización: 2026-09-05
+**Progreso global: 18 / 40 items terminados (45%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
-| B — Cerrar el ciclo de vida | 7 | **1** | ~18h |
+| B — Cerrar el ciclo de vida | 7 | **2** | ~18h |
 | C — Tapar huecos | 6 | 0 | ~10h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **28** | **5** | **~79h** |
+| **Total pendiente** | **28** | **6** | **~79h** |
 
 ---
 
@@ -63,13 +63,21 @@ frágil o ciego todo lo demás.
       ningún crítico ni importante abierto. De paso se corrigieron dos
       recuentos de tests mal anotados en `PLAN_SPRINTS.md`.*
 
-## Fase B — Cerrar el ciclo de vida (1/7) · ~18h
+## Fase B — Cerrar el ciclo de vida (2/7) · ~18h
 
 **Este es el hito real de usabilidad.** Al terminar la Fase B el sistema se
 puede usar a diario de punta a punta; todo lo posterior mejora la calidad
 del proceso, no lo habilita.
 
-- [ ] **B1** · TASK-013 — `taskctl review` (`update-<tipo>.sh` + un agente revisor) — ~5h
+- [x] **B1** · TASK-013 — `taskctl review` (`update-<tipo>.sh` + un agente revisor) — ~5h
+      *Cerrado el 2026-09-05. Primera tarea gestionada por su propio ciclo
+      (plan → approve → start → review, dogfooding completo, incluida la
+      peticion de revision que uso el revisor por pares). El CLI hace lo
+      determinista (update verificado con merge-base, mover a
+      03-en-revision, peticion con el diff real + scaffold de informe) y el
+      agente lo dispara el orquestador — decision registrada en el plan.
+      Revision: 2 importantes y 2 menores corregidos, 1 menor documentado.
+      11 tests reales nuevos (247 en total).*
 - [x] **B2** · Corregir el bug de `origin` en `merge-hotfix-to-main.sh` y `merge-release-to-main.sh` — ~1h
       *Cerrado el 2026-09-05 (rama `fix/b2-guard-origin-merge-main`, merge
       `--no-ff` a develop). Guard de TASK-008 extraído a
