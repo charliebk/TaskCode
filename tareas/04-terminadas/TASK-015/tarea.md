@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-015-limite-de-trabajo-en-curso-por-persona
 asignado_a: carlos
