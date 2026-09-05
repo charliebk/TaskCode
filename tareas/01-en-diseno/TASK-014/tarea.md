@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-014-comando-taskctl-finish-merge-cierre-y-ac
 asignado_a: null
 agente_revisor: typescript-reviewer
