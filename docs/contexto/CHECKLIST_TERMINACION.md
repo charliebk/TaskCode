@@ -5,6 +5,10 @@
 > `INVENTARIO_PENDIENTE.md`; las tareas `TASK-0NN` son las de
 > `PLAN_SPRINTS.md`, el resto son huecos detectados en el inventario que no
 > tenían tarea asignada.
+>
+> **Convención**: al cerrar un item se marca su casilla, se actualizan los
+> contadores de la tabla de abajo, y se muestra el checklist actualizado en la
+> respuesta. Ver `CONVENCIONES.md`.
 
 **Progreso global: 16 / 40 items terminados (40%)** · última actualización: 2026-09-05
 

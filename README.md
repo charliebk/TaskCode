@@ -61,10 +61,11 @@ rama solo si no hay nada que perder.
 |---|---|
 | [`docs/PROPUESTA_METODOLOGIA.md`](docs/PROPUESTA_METODOLOGIA.md) | La metodología completa (v15, congelada). El "por qué" de todo lo demás. |
 | [`docs/PLAN_SPRINTS.md`](docs/PLAN_SPRINTS.md) | Plan de ejecución por sprints + métricas reales por tarea. |
-| [`docs/CHECKLIST_TERMINACION.md`](docs/CHECKLIST_TERMINACION.md) | **Documento vivo**: qué falta, por fases, con casillas marcables. |
-| [`docs/INVENTARIO_PENDIENTE.md`](docs/INVENTARIO_PENDIENTE.md) | Los huecos que ninguna tarea del plan cubría. |
+| [`docs/contexto/CHECKLIST_TERMINACION.md`](docs/contexto/CHECKLIST_TERMINACION.md) | **Documento vivo**: qué falta, por fases, con casillas marcables. |
+| [`docs/contexto/INVENTARIO_PENDIENTE.md`](docs/contexto/INVENTARIO_PENDIENTE.md) | Los huecos que ninguna tarea del plan cubría. |
 | [`docs/METRICAS.md`](docs/METRICAS.md) | Cobertura, tests y hallazgos de revisión por pares, tarea a tarea. |
 | [`docs/spikes/`](docs/spikes/) | Resultados de spikes de validación. |
+| [`docs/contexto/`](docs/contexto/) | **Empieza por aquí**: estado, convenciones y hallazgos acumulados. |
 
 ## Estado
 

@@ -33,7 +33,7 @@ cierto y no debe seguir citándose.** Estado real, medido hoy:
 - **Remoto (`origin`) creado el 2026-09-05**: `github.com/charliebk/TaskCode`
   (privado). Hasta ese día todo Sprint 0 y Sprint 1 vivió en un único disco
   sin copia — era el riesgo estructural abierto más serio del proyecto según
-  `docs/INVENTARIO_PENDIENTE.md`, y por eso TASK-021 se adelantó de Sprint 4
+  `docs/contexto/INVENTARIO_PENDIENTE.md`, y por eso TASK-021 se adelantó de Sprint 4
   a la Fase A del plan de terminación. Se subieron las 11 ramas (política
   IECA: no se borra ninguna tras el merge) y la rama por defecto del repo
   remoto es `develop`.
@@ -411,4 +411,4 @@ tag, ni `CHANGELOG.md`/`INDEX.md`/`BOARD.md` —que además no existen como
 ficheros—, y por tanto **una tarea arrancada con `taskctl start` no se puede
 cerrar con el sistema**: hay que terminarla a mano, exactamente como se han
 terminado estas 12. Ese es el hito real de usabilidad diaria, y
-`docs/CHECKLIST_TERMINACION.md` lo sitúa en su Fase B.
+`docs/contexto/CHECKLIST_TERMINACION.md` lo sitúa en su Fase B.

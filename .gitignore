@@ -12,3 +12,8 @@ Thumbs.db
 
 # Logs de los scripts Git-Flow (ver guia original: nunca se comparten)
 logs/
+
+# Evidencia de ejecucion del toolchain propio (topoplanet). No es fuente y,
+# sin ignorarla, deja el workspace permanentemente sucio -> el guard de la
+# seccion 8.3 abortaria todo taskctl new/import/plan/approve.
+.topoplanet/
