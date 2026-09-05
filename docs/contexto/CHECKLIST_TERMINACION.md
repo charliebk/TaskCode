@@ -133,6 +133,12 @@ del proceso, no lo habilita.
       ponen rojos al revertir lo que dicen probar. 32 tests reales nuevos
       (307).*
 - [ ] **B7** · TASK-015 — Límite de WIP por persona (§8.2) — ~3h
+      *Desbloqueado: decisión #13 resuelta el 2026-09-05. Un **único**
+      límite y solo de ejecución — `plan` no comprueba nada, `start` aborta
+      si la persona asignada ya tiene otra tarea en `02-en-curso/` **o** en
+      `03-en-revision/` (el hueco no se libera hasta `finish`, porque la
+      rama sigue viva). Diverge de la §8.2, que describe dos límites
+      independientes; documentar la divergencia al implementarlo.*
 
 ## Fase C — Tapar huecos (0/6) · ~10h
 
@@ -184,7 +190,7 @@ ella, con un revisor genérico y un `plan` de un solo agente.
 
 ---
 
-## Decisiones que dependen de ti (1/10)
+## Decisiones que dependen de ti (2/10)
 
 No son horas de trabajo mío, son respuestas tuyas — pero bloquean lo que
 está a su derecha.
@@ -198,7 +204,18 @@ está a su derecha.
       solo surte efecto en marketplaces que un administrador incluya en
       managed settings, así que en un marketplace privado personal no haría
       nada. No se declara.*
-- [ ] **#13** · ¿WIP único, o dos límites independientes (diseño y ejecución)? → bloquea B7
+- [x] **#13** · ¿WIP único, o dos límites independientes (diseño y ejecución)?
+      *Resuelta por Carlos el 2026-09-05: **ni una cosa ni la otra** — un
+      **único límite, y solo sobre la ejecución**. En diseño no hay tope: se
+      pueden planificar varias tareas a la vez. Lo que se limita es tener
+      **una sola tarea con la rama abierta**, y el hueco lo ocupan tanto
+      `02-en-curso/` como `03-en-revision/`, porque la rama sigue viva y sin
+      mergear hasta `taskctl finish` y es ahí donde se commitean las
+      correcciones de los hallazgos. Motivo textual: "evitar que se programe
+      código de una tarea en la rama Git de otra tarea".*
+      *Divergencia con la §8.2 (congelada), que describe dos límites
+      independientes y uno de ellos sobre el diseño: hay que documentarla al
+      implementar B7, no reescribir la metodología.*
 - [ ] **#14 (paso 5)** · ¿`taskctl` comitea y sube por la persona? → bloquea C2
 - [ ] **#15** · Pesos de la heurística de complejidad → bloquea D1/D2
 - [ ] **#16** · Umbral de dominios para caer a revisor único → bloquea D3

@@ -64,13 +64,21 @@ alias, sin cerrar el otro lado. 307 tests.
 
 ## Qué sigue: Fase B (queda 1 de 7)
 
-1. **B7** — TASK-015, límite de WIP. **Bloqueado por la decisión #13**: ¿un
-   único límite (una sola tarea activa de punta a punta) o dos independientes,
-   diseño y ejecución por separado? Hay que preguntárselo a Carlos antes de
-   implementar. Ojo: la §8.2 **ya se moja** — dice dos límites
-   independientes, y explica por qué ("no es lo mismo estar pensando una
-   tarea que tener una rama activa"), dejando el límite único como la
-   alternativa a decidir. La decisión es confirmar eso o cambiarlo.
+1. **B7** — TASK-015, límite de WIP. **Ya no está bloqueado**: la decisión
+   #13 se resolvió el 2026-09-05, y no por ninguna de las dos opciones que
+   planteaba la §8.2. Lo decidido: **un único límite, y solo sobre la
+   ejecución.**
+   - En diseño **no hay tope**: se pueden tener varias tareas en
+     `01-en-diseno/`. `taskctl plan` no comprueba nada.
+   - `taskctl start` aborta si la persona asignada ya tiene otra tarea en
+     `02-en-curso/` **o** en `03-en-revision/`. El hueco no se libera al
+     pasar a revisión: la rama sigue viva y sin mergear hasta `finish`, y es
+     ahí donde se commitean las correcciones de los hallazgos.
+   - Motivo, en palabras de Carlos: *"evitar que se programe código de una
+     tarea en la rama Git de otra tarea"*.
+   - **Diverge de la §8.2**, que describe dos límites independientes y uno
+     de ellos sobre el diseño. La metodología está congelada: se documenta
+     la divergencia al implementar B7, no se reescribe.
 ## Decisiones abiertas que dependen de Carlos
 
 Están listadas con su bloqueo al final de `CHECKLIST_TERMINACION.md`. Para la
