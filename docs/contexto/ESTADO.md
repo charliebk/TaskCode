@@ -1,23 +1,26 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-05**. Este documento se actualiza al cerrar
+> Última actualización: **2026-09-06**. Este documento se actualiza al cerrar
 > cada fase. Si lo que dice no cuadra con el repo, gana el repo — y hay que
 > corregir esto.
 
 ## Dónde estamos
 
-**23 de 40 items del plan de terminación (58%).** Sprint 0 y Sprint 1
-completos (TASK-001 a TASK-012), y **las Fases A y B cerradas enteras**.
+**25 de 42 items del plan de terminación (60%).** Sprint 0 y Sprint 1
+completos (TASK-001 a TASK-012), **las Fases A y B cerradas enteras**, y la
+Fase C empezada (2 de 8).
 
-**El ciclo de vida está completo y ya tiene reglas de proceso encima**:
-`import → plan → approve → start → review → finish` funciona de punta a
-punta contra un repo Git real; TASK-013, TASK-014 y TASK-015 se
-gestionaron enteras con la propia herramienta. Desde B6 el campo
-`asignado_a` se rellena de verdad, y desde B7 nadie puede tener dos ramas
-de trabajo abiertas a la vez. 345 tests.
+**El ciclo de vida está completo y con reglas de proceso encima que de
+verdad se aplican**: `import → plan → approve → start → review → finish`
+funciona de punta a punta contra un repo Git real, y TASK-013, 014, 015,
+024 y 025 se gestionaron enteras con la propia herramienta. `asignado_a` se
+rellena solo con `git config user.email` (C7), y el límite de una rama de
+trabajo por persona funciona mirando las ramas reales (C8). **387 tests.**
 
-Lo que queda son las Fases C (tapar huecos), D (la cara y opcional) y E
-(cierre). **El corte mínimo defendible ya solo depende de la Fase C.**
+Lo que queda son las Fases C (tapar huecos, 6 items), D (la cara y
+opcional) y E (cierre). **El corte mínimo defendible ya solo depende de la
+Fase C.**
+
 
 ## Qué acaba de pasar (sesión del 2026-09-05, segunda parte)
 
@@ -45,12 +48,8 @@ ciclo de vida completo ya funciona.
 start → review → finish` con la propia herramienta. 275 tests, ~95% de
 cobertura.
 
-**Pendiente operativo**: `develop` ya está en `origin` (`origin/develop` y
-`develop` coincidían al empezar la sesión del 2026-09-05, tarde: la nota
-anterior sobre cinco merges sin subir ya no aplica). La rama
-`feature/b6-asignado-a-en-plan-y-start` y
-`feature/task-015-limite-de-trabajo-en-curso-por-persona` sí están pendientes
-de `git push`, igual que los merges de B6 y B7 en `develop`.
+**Pendiente operativo**: nada. Todo está subido a `origin` — `develop` y las
+cinco ramas de tarea de estas sesiones.
 
 ## Qué acaba de pasar (sesión del 2026-09-05, tercera parte): B6 y B7
 
@@ -75,31 +74,66 @@ La revisión por pares fue la más dura hasta ahora — 16 casos de ataque y
 8 mutaciones del código fuente — y su hallazgo IMPORTANTE fue justamente
 que la divergencia no estaba documentada. 345 tests.
 
-## Qué sigue: Fase C (0 de 6), ~10h
+## Qué acaba de pasar (sesión del 2026-09-06): C7 y C8
+
+Los dos items cierran el bloque que arrancó con B6, y se sostenían unos a
+otros: `--asignado-a` → identidad Git → límite de WIP funcionando.
+
+**C7 (TASK-024)** — `asignado_a` sale de `git config user.email`, con la
+precedencia `--asignado-a` > asignado previo > identidad Git > `null`. Que
+el previo gane a la identidad es lo que impide quedarse la tarea de otra
+persona sin decirlo. Migradas 12 tareas a `charlie.bk@gmail.com` (antes
+convivían `charlie.bk` y `carlos` para la misma persona).
+
+**C8 (TASK-025)** — el límite de WIP de B7 **no protegía nada** y nadie lo
+había notado. Leía el árbol de la rama activa, y el paso a `02-en-curso` se
+commitea en la rama de la tarea. Ahora mira las ramas locales sin mergear.
+
+**Las dos revisiones por pares fueron las más duras hasta ahora**, y las dos
+encontraron cosas de peso: un CRÍTICO en C7 (un `user.email` con un salto
+de línea inyectaba una clave en el frontmatter que pisaba `estado` y dejaba
+la tarea ladrillada) y un **RECHAZO** en C8 (para un `hotfix`, 18 ramas ya
+cerradas contaban como abiertas y el camino urgente quedaba inutilizable).
+Ambos corregidos y verificados en el repo real.
+
+Lo que hay que llevarse de aquí está en `HALLAZGOS.md`: **un smoke test que
+ejecuta los comandos en el orden más cómodo confirma lo que ya creías.** El
+de B7 encadenaba dos `start` seguidos, el único orden en el que su límite
+funcionaba, y por eso el fallo pasó su revisión.
+
+## Qué sigue: Fase C (2 de 8), ~11h
 
 Con A y B cerradas, **el corte mínimo defendible ya solo depende de la
 Fase C**: lo que la metodología da por hecho y no existe.
+
+El siguiente item libre es **C1**. C2 y C4 siguen bloqueados.
 
 1. **C1** — wrappers `diagnose`, `pause`, `resume`, `recover` y
    `abort-merge` (~3h). La §8.3 ya le dice al usuario "guárdalos con
    `taskctl pause`", un comando que no existe.
 2. **C2** — el paso 5 de la §8.3 (¿`taskctl` commitea y sube por la
-   persona?). **Bloqueado por la decisión #14.** Hay evidencia acumulada
-   a favor: sin él, `import` no se puede ejecutar dos veces seguidas, y
-   el propio ciclo de TASK-015 necesitó cuatro commits manuales.
-3. **C3** — subcarpetas de planificación y revisión (~1h). `review` ya
-   crea la de revisión; falta la de planificación y mover ahí
-   `plan-final.md`.
+   persona?). **Bloqueado por la decisión #14.** La evidencia a favor no
+   para de crecer: sin él, `import` no se puede ejecutar dos veces
+   seguidas, cada tarea necesita cuatro o cinco commits manuales, y una
+   rama cuyo movimiento de tarea no esté commiteado es invisible para el
+   límite de WIP (C8).
+3. **C3** — subcarpetas de planificación y revisión (~1h). `review` ya crea
+   la de revisión; falta la de planificación y mover ahí `plan-final.md`.
 4. **C4** — `.taskcode` con su `config.yml`. **Bloqueado por la decisión
-   #9.** B7 le acaba de dar dos candidatos a contenido: el tamaño del
-   límite de WIP y qué cuenta como una misma persona.
+   #9**, que ya tiene dos candidatos claros a contenido salidos de B7 y C7:
+   el tamaño del límite de WIP y qué cuenta como una misma persona.
 5. **C5** — la primera skill del plugin (~1h).
 6. **C6** — bug de `origin` en los 3 scripts que siguen sin guard.
 
 ## Decisiones abiertas que dependen de Carlos
 
-Están listadas con su bloqueo al final de `CHECKLIST_TERMINACION.md`. Para la
-Fase B solo importa la **#13**. Las demás bloquean las Fases C y D.
+Están listadas con su bloqueo al final de `CHECKLIST_TERMINACION.md`. Van dos
+resueltas de once: la #12 y la #13 (límite de WIP, que cerró la Fase B). De
+las que quedan, **#14 y #9 bloquean la Fase C** (items C2 y C4); el resto
+bloquea la Fase D.
+
+Decidido además el 2026-09-06, fuera de la lista numerada: **la identidad de
+una persona es su `git config user.email`** (implementado en C7).
 
 ## El entorno cambió
 
