@@ -1,25 +1,29 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-06**. Este documento se actualiza al cerrar
-> cada fase. Si lo que dice no cuadra con el repo, gana el repo — y hay que
-> corregir esto.
+> Última actualización: **2026-09-06** (tras cerrar C1). Este documento se
+> actualiza al cerrar cada fase. Si lo que dice no cuadra con el repo, gana
+> el repo — y hay que corregir esto.
 
 ## Dónde estamos
 
-**25 de 42 items del plan de terminación (60%).** Sprint 0 y Sprint 1
+**26 de 42 items del plan de terminación (62%).** Sprint 0 y Sprint 1
 completos (TASK-001 a TASK-012), **las Fases A y B cerradas enteras**, y la
-Fase C empezada (2 de 8).
+Fase C empezada (3 de 8).
 
 **El ciclo de vida está completo y con reglas de proceso encima que de
 verdad se aplican**: `import → plan → approve → start → review → finish`
 funciona de punta a punta contra un repo Git real, y TASK-013, 014, 015,
-024 y 025 se gestionaron enteras con la propia herramienta. `asignado_a` se
-rellena solo con `git config user.email` (C7), y el límite de una rama de
-trabajo por persona funciona mirando las ramas reales (C8). **387 tests.**
+024, 025 y 026 se gestionaron enteras con la propia herramienta.
+`asignado_a` se rellena solo con `git config user.email` (C7), el límite de
+una rama de trabajo por persona funciona mirando las ramas reales (C8), y
+los cinco wrappers de Git-Flow ya existen (C1). **417 tests.**
 
-Lo que queda son las Fases C (tapar huecos, 6 items), D (la cara y
+Lo que queda son las Fases C (tapar huecos, 5 items), D (la cara y
 opcional) y E (cierre). **El corte mínimo defendible ya solo depende de la
 Fase C.**
+
+**Nada pendiente de subir**: `develop` está a la par con `origin/develop` y
+las ramas de tarea de esta sesión también.
 
 
 ## Qué acaba de pasar (sesión del 2026-09-05, segunda parte)
@@ -101,16 +105,57 @@ ejecuta los comandos en el orden más cómodo confirma lo que ya creías.** El
 de B7 encadenaba dos `start` seguidos, el único orden en el que su límite
 funcionaba, y por eso el fallo pasó su revisión.
 
-## Qué sigue: Fase C (2 de 8), ~11h
+## Qué acaba de pasar (sesión del 2026-09-06, segunda parte): C1
+
+**C1 (TASK-026)** — los cinco wrappers de Git-Flow: `taskctl diagnose`,
+`pause`, `resume`, `recover` y `abort-merge`. La §8.3 llevaba desde el
+diseño remitiendo a `taskctl pause` en su mensaje de workspace sucio; ahora
+ese comando existe, y el mensaje lo nombra.
+
+**Parecía enrutar a `bash` y no lo era: el nudo estaba en el stdin.** Cuatro
+de los cinco scripts preguntan con `read -rp`, y `runGitflowScript` invocaba
+con la entrada ignorada desde TASK-007. Con EOF, `pause` sobre un workspace
+sucio moría con `Opcion no reconocida` y `abort-merge` con un merge en curso
+**no abortaba nada y salía con 0**: los dos comandos que más falta hacen
+harían lo contrario de lo que dicen.
+
+La regla que queda para cualquier invocación futura, en `HALLAZGOS.md`:
+**stdin heredado solo cuando hay terminal, ignorado cuando no la hay**, más
+un guard que corta antes de invocar si el valor por defecto del script sería
+inaceptable.
+
+**Dos rondas de revisión por pares.** La primera, APROBADO CON CAMBIOS: 2
+importantes y 7 menores. Los dos importantes fueron de fondo — (a) `pause`
+preguntaba igual con el workspace limpio, porque **todos los scripts se
+escriben el registro en `logs/gitflow/` dentro del repo** y se ensucian el
+workspace ellos mismos; (b) heredar stdin siempre **reintroducía el cuelgue
+indefinido** que motivó el `'ignore'` de TASK-007 — con una tubería abierta
+que nadie cierra (cualquier arnés de agente, y también `node --test`) el
+comando esperaba para siempre, reproducido con el proceso vivo a los 15 s y
+el repo a medias. La segunda ronda, APROBADO: 3 menores, uno corregido (el
+guard nuevo daba falsos positivos porque preguntaba por `logs/` en vez de
+por el fichero que se escribe).
+
+**Lo que C1 le descubrió a C6**, ya anotado en su entrada del checklist: el
+registro dentro del repo deja `taskctl resume` inservible en repos que no lo
+ignoren; los mensajes de los scripts siguen remitiendo a los menús de
+IntelliJ ("usa GitFlow 16 Pause Work") ahora que esos comandos existen; y
+`abort-merge.sh` dice "estado normal" con un cherry-pick o un revert a
+medias.
+
+**Limitación que queda a propósito**: `taskctl pause` sigue sin servirle a un
+agente sin terminal, que es quien más lo necesitaría. Resolverlo pide un
+`pause --stash` / `--commit`, o sea tocar los scripts, que es la capa que la
+§7.1 declara única fuente de verdad. No se hizo por cuenta propia.
+
+## Qué sigue: Fase C (3 de 8), ~8h
 
 Con A y B cerradas, **el corte mínimo defendible ya solo depende de la
 Fase C**: lo que la metodología da por hecho y no existe.
 
-El siguiente item libre es **C1**. C2 y C4 siguen bloqueados.
+El siguiente item libre es **C3**. C2 y C4 siguen bloqueados.
 
-1. **C1** — wrappers `diagnose`, `pause`, `resume`, `recover` y
-   `abort-merge` (~3h). La §8.3 ya le dice al usuario "guárdalos con
-   `taskctl pause`", un comando que no existe.
+1. ~~**C1**~~ — hecho el 2026-09-06 (TASK-026), ver arriba.
 2. **C2** — el paso 5 de la §8.3 (¿`taskctl` commitea y sube por la
    persona?). **Bloqueado por la decisión #14.** La evidencia a favor no
    para de crecer: sin él, `import` no se puede ejecutar dos veces
@@ -123,7 +168,10 @@ El siguiente item libre es **C1**. C2 y C4 siguen bloqueados.
    #9**, que ya tiene dos candidatos claros a contenido salidos de B7 y C7:
    el tamaño del límite de WIP y qué cuenta como una misma persona.
 5. **C5** — la primera skill del plugin (~1h).
-6. **C6** — bug de `origin` en los 3 scripts que siguen sin guard.
+6. **C6** — bug de `origin` en los 3 scripts que siguen sin guard, **más
+   las tres cosas que le dejó C1** (registro dentro del repo, mensajes que
+   remiten a los menús de IntelliJ, cherry-pick que `abort-merge.sh` no ve).
+   Ha crecido: cuenta ~2h, no 1h.
 
 ## Decisiones abiertas que dependen de Carlos
 
