@@ -18,7 +18,8 @@ import {
   PISTA_VACIO_ESCRITURA,
 } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, listTareasEnEstados } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
+import { escanearWip } from '../fs/wip-scan.js';
 import {
   ESTADOS_QUE_OCUPAN_WIP,
   tareasQueBloquean,
@@ -28,7 +29,13 @@ import {
   personaDeTarea,
 } from '../core/wip.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail } from '../fs/git.js';
+import {
+  isWorkspaceClean,
+  currentBranch,
+  isValidBranchName,
+  gitUserEmail,
+  resolveBaseBranchForTipo,
+} from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 
 export class StartCommandError extends Error {}
@@ -59,6 +66,8 @@ export interface StartCommandResult {
   avisoIdentidad: string | null;
   /** Aviso si la tarea que se arranca esta asignada a otra persona; null si no aplica. */
   avisoAtribucion: string | null;
+  /** tarea.md ilegibles hallados DENTRO de otras ramas: avisan, no bloquean. */
+  avisosWip: string[];
 }
 
 export async function runStartCommand(
@@ -151,10 +160,25 @@ export async function runStartCommand(
   // espacios de B7) pero real: plan y start tocan ese campo aunque
   // nadie se lo haya pedido (hallazgo MENOR de revision, TASK-024).
   const personaParaWip = personaDeTarea(asignadoFinal);
+  // Ilegibles dentro de OTRAS ramas: avisan, no bloquean (hallazgo
+  // IMPORTANTE de revision por pares). Se acumulan aqui para que el CLI
+  // los saque por stderr.
+  const avisosWip: string[] = [];
+
   if (personaParaWip !== null) {
     let wip;
     try {
-      wip = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
+      // escanearWip (TASK-025) mira el arbol activo Y las ramas de
+      // trabajo abiertas. Sin lo segundo el limite no protegia nada: el
+      // paso a 02-en-curso se commitea en la rama de la tarea, y start
+      // se ejecuta desde la rama base, donde ninguna tarea esta nunca
+      // en curso.
+      wip = await escanearWip(
+        tareasRoot,
+        deps.repoCwd,
+        resolveBaseBranchForTipo(task.tipo, deps.repoCwd),
+        ESTADOS_QUE_OCUPAN_WIP
+      );
     } catch (e: unknown) {
       // Sin esto, un ENOTDIR/EACCES al escanear tareas/ escapaba como
       // Error crudo y el usuario lo veia como "taskctl no pudo
@@ -167,11 +191,15 @@ export async function runStartCommand(
           `trabajo en curso: ${msg}. Revisa que "${tareasRoot}" sea una carpeta legible.`
       );
     }
-    const { tareas, ilegibles } = wip;
+    const { tareas, ilegibles, avisos } = wip;
+    avisosWip.push(...avisos);
     // Fail-closed acotado: un tarea.md ilegible en las carpetas de
     // ejecucion podria ser justo el que bloquea, y no hay forma de
     // saberlo. Solo esas dos carpetas: una tarea rota en
     // 00-planificadas no ocupa hueco, asi que no debe bloquear a nadie.
+    // Solo los del ARBOL ACTIVO bloquean: estan delante de quien
+    // ejecuta y se arreglan editando el fichero. Los de otras ramas van
+    // a avisosWip.
     if (ilegibles.length > 0) {
       throw new StartCommandError(mensajeWipIndeterminado(task.id, ilegibles));
     }
@@ -244,5 +272,6 @@ export async function runStartCommand(
     asignadoCambiado,
     avisoIdentidad,
     avisoAtribucion,
+    avisosWip,
   };
 }

@@ -144,25 +144,35 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
   extensión ni un alias, es **un límite entero de la metodología que no se
   implementa**. Quien lea la §8.2 y compruebe que `plan` no corta nada
   está viendo una decisión, no un bug.
-- **El límite de WIP no ve las ramas de trabajo, así que no protege nada**
-  (destapado por el smoke test de TASK-024 y confirmado por su revisión).
-  `taskctl start` mueve la tarea a `02-en-curso` y ese movimiento se
-  commitea **en la rama de la tarea**. Pero `plan`, `new` e `import`
-  devuelven el repo a la rama base con `ensureBaseBranchReady`, y
-  `create-<tipo>.sh` también parte de ahí — y en `develop` **ninguna tarea
-  está nunca en `02-en-curso`**. La comprobación de B7 lee el árbol de la
-  rama activa, así que en el flujo real no encuentra nada y deja abrir
-  tantas ramas como quieras.
+- **El límite de WIP mira las RAMAS, no el árbol** (resuelto en C8 y
+  TASK-025, 2026-09-06). B7 lo comprobaba leyendo `02-en-curso` del working
+  tree, y eso **no protegía nada**: el paso a `02-en-curso` se commitea en
+  la rama de la tarea, mientras `plan`, `new` e `import` devuelven el repo
+  a la rama base, donde ninguna tarea está nunca en curso. Ahora se
+  pregunta si la persona tiene alguna **rama local sin mergear** con una
+  tarea suya en curso, leyéndola con `git show`.
 
-  El smoke test de B7 no lo detectó porque encadenaba dos `start` seguidos
-  sin pasar por ningún comando que volviera a la rama base — el único orden
-  en el que el límite sí funciona. **Lección**: un smoke test que ejecuta
-  los comandos en el orden más cómodo confirma lo que ya creías.
+  **Dos lecciones que costaron dos revisiones enteras:**
+  1. Un smoke test que ejecuta los comandos en el orden más cómodo
+     confirma lo que ya creías. El de B7 encadenaba dos `start` seguidos —
+     el único orden en el que el límite funcionaba — y por eso el fallo
+     pasó la revisión. **El smoke test tiene que reproducir el flujo
+     real**, con los `plan` y los cambios de rama de por medio.
+  2. La pregunta puede ser la correcta y la referencia la equivocada. Pasó
+     dos veces seguidas: primero mirando el árbol en vez de las ramas, y
+     luego (hallazgo CRÍTICO de la revisión de C8) decidiendo "mergeada"
+     contra un conjunto de referencias que **dependía del tipo de tarea**:
+     para un `hotfix` la base es `main` y la principal también, así que
+     `develop` desaparecía y las 18 ramas ya cerradas del repo pasaban por
+     abiertas.
 
-  TASK-024 (identidad Git) es condición **necesaria pero no suficiente**:
-  rellena `asignado_a`, que hacía falta, pero no cambia dónde mira la
-  comprobación. Pendiente en el item **C8**: mirar las ramas locales sin
-  mergear y leer el `tarea.md` de cada una en su propia rama con `git show`.
+  **Limitaciones que quedan, a propósito**: solo ve ramas **locales** (nada
+  de `fetch`, para no meter la red en un comando que hoy funciona sin
+  conexión), y una rama cuyo movimiento de tarea no esté commiteado no
+  cuenta — otra evidencia a favor del auto-commit del paso 5 (item C2). El
+  coste crece con las ramas abiertas: 2 ramas dan un `start` de 1,6 s; 50
+  abiertas con tarea en curso, 8 s. Las mergeadas se filtran antes de
+  leerlas, así que la política de no borrar ramas no lo empeora.
 - **La identidad de una persona es su `git config user.email`** (decisión
   de Carlos, 2026-09-05, implementada en TASK-024). Resuelve la duplicidad
   `charlie.bk` / `carlos` que dejó abierta B7: las 12 tareas que tenían

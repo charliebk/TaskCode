@@ -125,6 +125,20 @@ export function gitUserEmail(cwd: string): string | null {
   return email === '' ? null : email;
 }
 
+/**
+ * Nombres de todas las ramas LOCALES (TASK-025). Solo locales a
+ * proposito: mirar las remotas obligaria a un "fetch" — red, lentitud
+ * y un modo de fallo nuevo en un comando que hoy funciona sin
+ * conexion — y convertiria el limite de WIP, que es personal, en uno
+ * de equipo que nadie ha decidido.
+ */
+export function localBranches(cwd: string): string[] {
+  return runGit(['for-each-ref', '--format=%(refname:short)', 'refs/heads'], cwd)
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 /** SHA completo del commit en HEAD. */
 export function headCommit(cwd: string): string {
   return runGit(['rev-parse', 'HEAD'], cwd);
@@ -138,7 +152,11 @@ export function headCommit(cwd: string): string {
  * — mismo principio "evidencia, no suposicion" de TASK-007/009.
  */
 export function isAncestor(ancestor: string, descendant: string, cwd: string): boolean {
-  const args = ['merge-base', '--is-ancestor', ancestor, descendant] as const;
+  // --end-of-options: sin el, una rama llamada -x (Git la permite via
+  // update-ref aunque git branch la rechace) se parsea como opcion y el
+  // comando muere con un error enganoso que ademas culpa a tareasRoot
+  // (hallazgo MENOR de revision por pares, TASK-025).
+  const args = ['merge-base', '--is-ancestor', '--end-of-options', ancestor, descendant] as const;
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
   if (result.error) {
     throw new GitLaunchError(result.error);
@@ -167,7 +185,7 @@ export function diffRange(desde: string, hasta: string, cwd: string): string {
  * develop/main antes de mergear.
  */
 export function lsTreeNames(ref: string, prefix: string, cwd: string): string[] {
-  return runGit(['ls-tree', '-r', '--name-only', ref, '--', prefix], cwd)
+  return runGit(['ls-tree', '-r', '--name-only', '--end-of-options', ref, '--', prefix], cwd)
     .split('\n')
     .filter((line) => line !== '');
 }
