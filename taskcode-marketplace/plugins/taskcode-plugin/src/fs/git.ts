@@ -125,6 +125,20 @@ export function gitUserEmail(cwd: string): string | null {
   return email === '' ? null : email;
 }
 
+/**
+ * Nombres de todas las ramas LOCALES (TASK-025). Solo locales a
+ * proposito: mirar las remotas obligaria a un "fetch" — red, lentitud
+ * y un modo de fallo nuevo en un comando que hoy funciona sin
+ * conexion — y convertiria el limite de WIP, que es personal, en uno
+ * de equipo que nadie ha decidido.
+ */
+export function localBranches(cwd: string): string[] {
+  return runGit(['for-each-ref', '--format=%(refname:short)', 'refs/heads'], cwd)
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 /** SHA completo del commit en HEAD. */
 export function headCommit(cwd: string): string {
   return runGit(['rev-parse', 'HEAD'], cwd);

@@ -18,7 +18,8 @@ import {
   PISTA_VACIO_ESCRITURA,
 } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, listTareasEnEstados } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
+import { escanearWip } from '../fs/wip-scan.js';
 import {
   ESTADOS_QUE_OCUPAN_WIP,
   tareasQueBloquean,
@@ -28,7 +29,14 @@ import {
   personaDeTarea,
 } from '../core/wip.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail } from '../fs/git.js';
+import {
+  isWorkspaceClean,
+  currentBranch,
+  isValidBranchName,
+  gitUserEmail,
+  resolveBaseBranchForTipo,
+  resolveMainBranch,
+} from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 
 export class StartCommandError extends Error {}
@@ -154,7 +162,18 @@ export async function runStartCommand(
   if (personaParaWip !== null) {
     let wip;
     try {
-      wip = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
+      // escanearWip (TASK-025) mira el arbol activo Y las ramas de
+      // trabajo abiertas. Sin lo segundo el limite no protegia nada: el
+      // paso a 02-en-curso se commitea en la rama de la tarea, y start
+      // se ejecuta desde la rama base, donde ninguna tarea esta nunca
+      // en curso.
+      wip = await escanearWip(
+        tareasRoot,
+        deps.repoCwd,
+        resolveBaseBranchForTipo(task.tipo, deps.repoCwd),
+        resolveMainBranch(deps.repoCwd),
+        ESTADOS_QUE_OCUPAN_WIP
+      );
     } catch (e: unknown) {
       // Sin esto, un ENOTDIR/EACCES al escanear tareas/ escapaba como
       // Error crudo y el usuario lo veia como "taskctl no pudo
