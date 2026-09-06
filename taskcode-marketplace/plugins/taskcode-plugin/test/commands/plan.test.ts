@@ -211,6 +211,56 @@ test('taskctl plan: con plan-final.md en la raiz Y en planificacion/ aborta sin 
   });
 });
 
+test('taskctl plan: si "planificacion" existe como FICHERO, el error dice que hacer y no mueve la tarea', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 1): el EEXIST crudo
+    // del mkdir salia como "taskctl no pudo arrancar", que ni es cierto
+    // ni dice que hacer.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    const taskDir = path.join(tareasRoot, '00-planificadas', 'TASK-700');
+    await writeFile(path.join(taskDir, PLANIFICACION_DIRNAME), 'no soy una carpeta\n', 'utf8');
+    commitAll(repoRoot, 'tarea TASK-700 con planificacion ocupada');
+
+    await assert.rejects(
+      () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(err instanceof PlanCommandError);
+        // Dice donde esta el problema y como salir de el.
+        assert.match(err.message, new RegExp(PLANIFICACION_DIRNAME));
+        assert.match(err.message, /renombralo o borralo/);
+        return true;
+      }
+    );
+
+    // La tarea sigue donde estaba.
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.estado, 'planificada');
+    await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-700')));
+  });
+});
+
+test('taskctl plan: un DIRECTORIO llamado plan-final.md no cuenta como plan (no se "migra" ni se anuncia como movido)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 1): con un stat
+    // pelado, "plan" renombraba el directorio y anunciaba "el plan se ha
+    // movido intacto".
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    const taskDir = path.join(tareasRoot, '00-planificadas', 'TASK-700');
+    await mkdir(path.join(taskDir, PLAN_FINAL_FILENAME), { recursive: true });
+    commitAll(repoRoot, 'tarea TASK-700 con plan-final.md como directorio');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-06', { repoCwd: repoRoot });
+
+    assert.equal(result.planMigrado, false);
+    // Se crea un scaffold de verdad en la ubicacion canonica.
+    assert.equal(result.planCreated, true);
+    assert.match(await readFile(result.planPath, 'utf8'), /# Plan — TASK-700/);
+    // Y el directorio raro se queda donde estaba, sin tocar.
+    const raro = await stat(path.join(path.dirname(result.filePath), PLAN_FINAL_FILENAME));
+    assert.ok(raro.isDirectory());
+  });
+});
+
 test('taskctl plan: planificacion/ viaja con la tarea al cambiar de carpeta de estado', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Una tarea "planificada" con artefactos previos en planificacion/
@@ -426,7 +476,9 @@ test('taskctl plan: la rama base real tiene la tarea en un estado distinto al de
     // ve "en-diseno" con plan_aprobado false: sigue siendo una
     // re-planificacion legitima, PERO sobre el contenido real de
     // develop, no sobre el de la rama vieja — y sin pisar el
-    // plan-final.md real que ya existe ahi (writeFile con 'wx').
+    // plan-final.md real que ya existe ahi. Desde TASK-027 el plan de
+    // develop esta suelto en la raiz, asi que este caso entra por la
+    // rama de MIGRACION (rename), no por el writeFile con 'wx'.
     const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-05', { repoCwd: repoRoot });
 
     assert.equal(result.planCreated, false);

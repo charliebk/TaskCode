@@ -53,10 +53,15 @@ export const PLAN_FINAL_FILENAME = 'plan-final.md';
  */
 export const PLANIFICACION_DIRNAME = 'planificacion';
 
+/**
+ * isFile(), no "existe" a secas (hallazgo MENOR de revision por pares,
+ * TASK-027): un DIRECTORIO llamado plan-final.md no es un plan. Con un
+ * stat pelado, "plan" anunciaba "el plan se ha movido intacto" tras
+ * renombrar un directorio, y "approve" lo daba por bueno.
+ */
 async function existeFichero(p: string): Promise<boolean> {
   try {
-    await stat(p);
-    return true;
+    return (await stat(p)).isFile();
   } catch (e: unknown) {
     if (isEnoent(e)) return false;
     throw e;
@@ -242,7 +247,22 @@ export async function runPlanCommand(
   // especificas de tarea.md) — pero SI reusa isEexist de task-store.ts
   // en vez de duplicar la comprobacion (hallazgo de revision por
   // pares, TASK-010).
-  await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME), { recursive: true });
+  // Si "planificacion" existe pero como FICHERO, mkdir falla con un
+  // EEXIST/ENOTDIR crudo que el CLI presentaba como "taskctl no pudo
+  // arrancar" — ni cierto ni accionable (hallazgo MENOR de revision por
+  // pares, TASK-027; CONVENCIONES: los errores dicen que hacer).
+  const planificacionDir = path.join(taskDir, PLANIFICACION_DIRNAME);
+  try {
+    await mkdir(planificacionDir, { recursive: true });
+  } catch (e: unknown) {
+    throw new PlanCommandError(
+      `[ERROR] ${task.id}: no se pudo crear "${planificacionDir}" (${
+        (e as { code?: string }).code ?? 'error desconocido'
+      }). Si ahi hay un fichero llamado "${PLANIFICACION_DIRNAME}", renombralo o borralo: ` +
+        'esa ruta tiene que ser la carpeta de artefactos de diseno de la tarea. ' +
+        'La tarea no se ha movido.'
+    );
+  }
   let planCreated = false;
   let planMigrado = false;
   if (ubicacion.legadaExiste) {
@@ -252,16 +272,20 @@ export async function runPlanCommand(
     // exactamente el fallo que este item viene a evitar.
     await rename(ubicacion.legada, ubicacion.canonica);
     planMigrado = true;
-  } else if (!ubicacion.canonicaExiste) {
+  } else {
+    // Sin un "else if (!canonicaExiste)" delante A PROPOSITO (hallazgo
+    // IMPORTANTE de revision por pares, TASK-027): esa condicion hacia
+    // inalcanzable el flag 'wx', que es justo el guardian contra pisar
+    // un plan ya redactado, y con el se perdia la unica red de
+    // regresion sobre un camino de perdida de datos. El 'wx' hace las
+    // dos cosas — decide y protege — y ademas cierra la ventana entre
+    // el stat de resolverPlanFinal y esta escritura.
     try {
-      // flag 'wx': falla si ya existe, en vez de arriesgarse a pisar un
-      // plan-final.md de una vuelta anterior (re-planificacion). La
-      // comprobacion previa no lo hace redundante: entre stat y write
-      // puede aparecer el fichero, y aqui perder contenido es el peor
-      // resultado posible.
       await writeFile(ubicacion.canonica, planTemplate(task), { encoding: 'utf8', flag: 'wx' });
       planCreated = true;
     } catch (e: unknown) {
+      // EEXIST = re-planificacion normal: el plan ya estaba ahi y se
+      // deja intacto.
       if (!isEexist(e)) throw e;
     }
   }

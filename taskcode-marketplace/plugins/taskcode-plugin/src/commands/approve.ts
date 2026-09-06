@@ -32,9 +32,24 @@ export class ApproveCommandError extends Error {}
  * la carpeta (legado del CLI anterior). Mirar solo la canonica dejaria
  * sin poder aprobarse a toda tarea planificada antes del cambio, que
  * es justo el caso que tiene el plan ya redactado.
+ *
+ * Con los DOS a la vez rechaza, en lugar de aprobar el primero que
+ * encuentra (hallazgo MENOR de revision por pares, TASK-027): "plan" ya
+ * trata ese estado como irresoluble y aborta, y dos merges --no-ff sin
+ * conflicto bastan para producirlo. Aprobar a ciegas un estado con dos
+ * planes divergentes es marcar como revisado un plan que quiza nadie
+ * ha leido.
  */
-async function planFinalFileExists(taskDir: string): Promise<boolean> {
+async function planFinalFileExists(id: string, taskDir: string): Promise<boolean> {
   const ubicacion = await resolverPlanFinal(taskDir);
+  if (ubicacion.canonicaExiste && ubicacion.legadaExiste) {
+    throw new ApproveCommandError(
+      `[ERROR] ${id}: hay un plan-final.md en la raiz de la carpeta y otro en ` +
+        `planificacion/. No se puede aprobar sin saber cual es el plan bueno. Compara ` +
+        `"${ubicacion.legada}" con "${ubicacion.canonica}", deja solo el de planificacion/ ` +
+        'y reintenta. No se ha tocado nada.'
+    );
+  }
   return ubicacion.canonicaExiste || ubicacion.legadaExiste;
 }
 
@@ -71,7 +86,7 @@ export async function runApproveCommand(
   // lectura hecha en una rama vieja, tras el cambio automatico).
   const initial = await readTareaFile(tareasRoot, id);
   const planFinalExisteInicial = initial
-    ? await planFinalFileExists(path.dirname(initial.filePath))
+    ? await planFinalFileExists(id, path.dirname(initial.filePath))
     : false;
   assertTransitionAllowed('approve', initial ? initial.task : null, {
     planFinalExiste: planFinalExisteInicial,
@@ -88,7 +103,7 @@ export async function runApproveCommand(
   // como estuvieran en la rama vieja de la lectura preliminar).
   const existing = await readTareaFile(tareasRoot, id);
   const planFinalExiste = existing
-    ? await planFinalFileExists(path.dirname(existing.filePath))
+    ? await planFinalFileExists(id, path.dirname(existing.filePath))
     : false;
   assertTransitionAllowed('approve', existing ? existing.task : null, { planFinalExiste });
   const { task, body, filePath } = existing as NonNullable<typeof existing>;

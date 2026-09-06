@@ -120,6 +120,29 @@ test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-disen
 
 // --- item C3 (TASK-027): compatibilidad con el plan legado ---
 
+test('taskctl approve: con plan-final.md en la raiz Y en planificacion/ rechaza en vez de aprobar a ciegas', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 1): "plan" trata ese
+    // estado como irresoluble y aborta, pero "approve" marcaba
+    // plan_aprobado: true sin mencionar que hay dos planes divergentes.
+    // Dos merges --no-ff sin conflicto bastan para producirlo.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800', '# Plan B (planificacion)\n');
+    await writePlanFinalLegado(tareasRoot, 'TASK-800', '# Plan A (raiz)\n');
+    commitAll(repoRoot, 'tarea TASK-800 con dos planes');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      ApproveCommandError
+    );
+
+    // No se aprobo nada.
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, false);
+    assert.equal(read?.task.actualizado, '2026-09-03');
+  });
+});
+
 test('taskctl approve: acepta el plan-final.md legado suelto en la raiz (tareas planificadas antes de TASK-027)', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Sin esta compatibilidad, cualquier tarea que se planifico con el

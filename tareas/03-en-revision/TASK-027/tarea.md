@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-027-subcarpetas-planificacion-y-revision-en
 asignado_a: charlie.bk@gmail.com
