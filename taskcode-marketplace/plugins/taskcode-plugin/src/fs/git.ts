@@ -110,8 +110,10 @@ export function isRemoteAvailable(cwd: string): boolean {
  * estado legitimo — la tarea se queda sin asignar, como antes de
  * TASK-024 — y no un error que deba abortar el comando.
  *
- * Un fallo real de lanzamiento (no hay binario de git) SI se propaga:
- * eso no es "no hay identidad", es que no hay Git.
+ * Un fallo de lanzamiento de spawnSync SI se propaga como
+ * GitLaunchError. Ojo con su mensaje, que es el generico del modulo y
+ * culpa a Git: la causa habitual no es que falte el binario, sino que
+ * el cwd no exista (hallazgo MENOR de revision por pares, TASK-024).
  */
 export function gitUserEmail(cwd: string): string | null {
   const result = spawnSync('git', ['config', 'user.email'], { cwd, encoding: 'utf8' });

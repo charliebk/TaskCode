@@ -144,18 +144,39 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
   extensión ni un alias, es **un límite entero de la metodología que no se
   implementa**. Quien lea la §8.2 y compruebe que `plan` no corta nada
   está viendo una decisión, no un bug.
-- **El límite de WIP es opt-in, y este repo ya tiene dos grafías para la
-  misma persona** (B7, hallazgo de la revisión por pares). El límite solo
-  actúa sobre tareas con `asignado_a` no vacío, y `new` e `import` las
-  crean con `null`: hoy, en este mismo repo, **más de la mitad de las
-  tareas caen en el camino que no comprueba nada**. Además la identidad es
-  la cadena exacta, y ya está rota en la práctica: `carlos` (TASK-015) y
-  `charlie.bk` (TASK-004 a TASK-012) son la misma persona con dos grafías.
-  No colisiona todavía porque esas nueve están en `00-planificadas`, pero
-  el día que dos convivan con una `carlos` en curso o en revisión, el
-  límite las verá como dos personas distintas. Sin corregir: normalizar
-  identidades exige decidir antes qué es una persona en este sistema
-  (candidato natural para `.taskcode/config.yml`, item C4).
+- **El límite de WIP no ve las ramas de trabajo, así que no protege nada**
+  (destapado por el smoke test de TASK-024 y confirmado por su revisión).
+  `taskctl start` mueve la tarea a `02-en-curso` y ese movimiento se
+  commitea **en la rama de la tarea**. Pero `plan`, `new` e `import`
+  devuelven el repo a la rama base con `ensureBaseBranchReady`, y
+  `create-<tipo>.sh` también parte de ahí — y en `develop` **ninguna tarea
+  está nunca en `02-en-curso`**. La comprobación de B7 lee el árbol de la
+  rama activa, así que en el flujo real no encuentra nada y deja abrir
+  tantas ramas como quieras.
+
+  El smoke test de B7 no lo detectó porque encadenaba dos `start` seguidos
+  sin pasar por ningún comando que volviera a la rama base — el único orden
+  en el que el límite sí funciona. **Lección**: un smoke test que ejecuta
+  los comandos en el orden más cómodo confirma lo que ya creías.
+
+  TASK-024 (identidad Git) es condición **necesaria pero no suficiente**:
+  rellena `asignado_a`, que hacía falta, pero no cambia dónde mira la
+  comprobación. Pendiente en el item **C8**: mirar las ramas locales sin
+  mergear y leer el `tarea.md` de cada una en su propia rama con `git show`.
+- **La identidad de una persona es su `git config user.email`** (decisión
+  de Carlos, 2026-09-05, implementada en TASK-024). Resuelve la duplicidad
+  `charlie.bk` / `carlos` que dejó abierta B7: las 12 tareas que tenían
+  alguna de las dos grafías están migradas. `new` e `import` siguen creando
+  con `null` a propósito: quien da de alta una tarea no tiene por qué ser
+  quien la haga.
+
+  Dos consecuencias que conviene tener presentes: **no hay forma de
+  desasignar desde el CLI** (editar `asignado_a: null` a mano tampoco vale,
+  porque el siguiente `plan` o `start` lo vuelve a rellenar), y **`plan`
+  marca al planificador, no al ejecutor** — si otra persona ejecuta `start`
+  sin flag, la tarea sigue siendo de quien la planificó y el límite se
+  comprueba contra esa persona. `start` avisa cuando ocurre, pero no lo
+  corrige solo, a propósito: quedarse una tarea ajena debe ser explícito.
 - **`taskctl start` escribe `asignado_a` desde una lectura anterior al
   checkout** (preexistente, ampliado por B6). `start` tiene que leer la
   tarea *antes* de invocar `create-<tipo>.sh` (necesita `task.rama`), así que

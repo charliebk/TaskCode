@@ -12,6 +12,8 @@ import {
   ASIGNADO_FLAG_ALIAS,
   ASIGNADO_MAX_LONGITUD,
   PISTA_VACIO_ESCRITURA,
+  identidadUsable,
+  motivoValorInvalido,
 } from '../../src/cli/asignado.js';
 
 class FlagError extends Error {}
@@ -111,7 +113,7 @@ test('parseAsignadoAFlag: el tope se mide DESPUES de recortar espacios', () => {
 test('parseAsignadoAFlag: la pista del error de vacio es opcional (board no la pasa)', () => {
   assert.throws(
     () => parseAsignadoAFlag(['--asignado-a='], fail, PISTA_VACIO_ESCRITURA),
-    esFlagError('omite el flag')
+    esFlagError('NO desasigna')
   );
   // Sin la pista, el mensaje sigue siendo correcto pero no habla de
   // desasignar: en board el flag no escribe nada.
@@ -120,6 +122,52 @@ test('parseAsignadoAFlag: la pista del error de vacio es opcional (board no la p
     (err: unknown) =>
       err instanceof FlagError &&
       (err as Error).message.includes('no puede estar vacio') &&
-      !(err as Error).message.includes('omite el flag')
+      !(err as Error).message.includes('NO desasigna')
   );
+});
+
+// --- TASK-024: la identidad Git pasa por las MISMAS reglas que el flag ---
+
+test('identidadUsable: una identidad normal se usa tal cual, sin aviso', () => {
+  const r = identidadUsable('ana@example.com');
+  assert.equal(r.identidad, 'ana@example.com');
+  assert.equal(r.aviso, null);
+});
+
+test('identidadUsable: sin identidad, ni valor ni aviso', () => {
+  const r = identidadUsable(null);
+  assert.equal(r.identidad, null);
+  assert.equal(r.aviso, null);
+});
+
+test('identidadUsable: un salto de linea NO se usa y avisa (hallazgo CRITICO)', () => {
+  // Sin esto, un user.email con un salto de linea dentro inyectaba
+  // claves en el frontmatter y llegaba a pisar 'estado', dejando la
+  // tarea en 01-en-diseno pero declarandose terminada, y ladrillada.
+  const r = identidadUsable('ana@x.com\nestado: terminada # ');
+  assert.equal(r.identidad, null);
+  assert.ok(r.aviso?.includes('saltos de linea'), String(r.aviso));
+  assert.ok(r.aviso?.includes('user.email'), String(r.aviso));
+});
+
+test('identidadUsable: un correo mas largo que el tope NO se usa y avisa', () => {
+  const largo = 'x'.repeat(ASIGNADO_MAX_LONGITUD + 1) + '@example.com';
+  const r = identidadUsable(largo);
+  assert.equal(r.identidad, null);
+  assert.ok(r.aviso?.includes('64 caracteres'), String(r.aviso));
+});
+
+test('identidadUsable: recorta, y una identidad en blanco no se usa ni avisa como invalida', () => {
+  assert.equal(identidadUsable('  ana@example.com  ').identidad, 'ana@example.com');
+  const r = identidadUsable('   ');
+  assert.equal(r.identidad, null);
+  assert.ok(r.aviso?.includes('vacio'), String(r.aviso));
+});
+
+test('motivoValorInvalido: mismas reglas para las dos vias', () => {
+  // Es lo que garantiza que el flag y la identidad no diverjan otra vez.
+  assert.equal(motivoValorInvalido('ana@example.com'), null);
+  assert.ok(motivoValorInvalido('')?.includes('vacio'));
+  assert.ok(motivoValorInvalido('a\nb')?.includes('saltos de linea'));
+  assert.ok(motivoValorInvalido('x'.repeat(65))?.includes('64 caracteres'));
 });

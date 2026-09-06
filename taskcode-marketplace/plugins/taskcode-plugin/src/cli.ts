@@ -91,6 +91,19 @@ function asignacionNotice(result: { asignadoA: string | null; asignadoCambiado: 
   return `Asignada a "${result.asignadoA}".\n`;
 }
 
+/**
+ * Avisos de asignacion (TASK-024) por stderr: no son errores, el
+ * comando ha hecho su trabajo, pero la persona necesita enterarse.
+ * Uno se emite cuando su "git config user.email" no sirve como
+ * asignado_a; el otro, cuando arranca una tarea que esta a nombre de
+ * otra persona.
+ */
+function printAvisos(...avisos: readonly (string | null | undefined)[]): void {
+  for (const aviso of avisos) {
+    if (aviso) process.stderr.write(`[AVISO] ${aviso}\n`);
+  }
+}
+
 export async function main(argv: readonly string[]): Promise<number> {
   const cmd = argv[0];
 
@@ -195,6 +208,7 @@ export async function main(argv: readonly string[]): Promise<number> {
         repoCwd,
         scriptsDir: resolveGitflowScriptsDir(),
       });
+      printAvisos(result.avisoIdentidad, result.avisoAtribucion);
       process.stdout.write(
         `Tarea ${result.id} en curso: rama ${result.rama} creada y confirmada, ` +
           `tarea movida a ${result.filePath}\n${asignacionNotice(result)}`
@@ -223,6 +237,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     try {
       const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
       printBaseBranchSwitchNotice(result.baseBranchGuard);
+      printAvisos(result.avisoIdentidad);
       const scaffoldMsg = result.planCreated
         ? `Scaffold creado en ${result.planPath} — redactalo antes de "taskctl approve".`
         : `${result.planPath} ya existia (re-planificacion) — se dejo intacto.`;
