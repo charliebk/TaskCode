@@ -7,6 +7,8 @@
  * scripts .sh siguen siendo la unica fuente de verdad para eso).
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import type { Task } from '../core/task.js';
 
 export class GitCommandError extends Error {
@@ -56,6 +58,87 @@ function runGit(args: readonly string[], cwd: string): string {
 /** true si `git status --porcelain` no devuelve nada (workspace limpio). */
 export function isWorkspaceClean(cwd: string): boolean {
   return runGit(['status', '--porcelain'], cwd) === '';
+}
+
+/**
+ * true si `cwd` esta dentro del ARBOL DE TRABAJO de un repositorio
+ * Git (TASK-026). No pasa por runGit a proposito, igual que
+ * gitUserEmail: "esto no es un repo" es una respuesta valida, no un
+ * error que deba propagarse como GitCommandError.
+ *
+ * Es `--is-inside-work-tree` y no `--git-dir` porque los cinco
+ * wrappers de Git-Flow trabajan sobre ficheros del arbol: en un repo
+ * bare, o con el cwd dentro de `.git/`, `--git-dir` habria dicho que
+ * si y el comando habria muerto un proceso mas abajo con el "fatal"
+ * crudo de Git, o peor, diagnose-repo.sh habria declarado limpio un
+ * workspace que no existe (hallazgo MENOR de revision por pares).
+ */
+export function isInsideWorkTree(cwd: string): boolean {
+  const result = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], {
+    cwd,
+    encoding: 'utf8',
+  });
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  return result.status === 0 && (result.stdout ?? '').trim() === 'true';
+}
+
+/**
+ * true si `relPath` (relativo a la raiz del repo) caeria bajo las
+ * reglas de gitignore vigentes. Lo usa el wrapper de `pause` para
+ * saber si el propio script va a ensuciar el workspace al escribir su
+ * registro.
+ *
+ * Dos detalles que no son opcionales (hallazgos MENOR de revision por
+ * pares, TASK-026, rondas 1 y 2):
+ *
+ * - Se resuelve la raiz primero: `git check-ignore` interpreta las
+ *   rutas relativas contra el cwd, y taskctl puede estar invocado
+ *   desde un subdirectorio.
+ * - `--no-index`: sin el, si algo bajo esa ruta esta ya en el indice
+ *   (un `logs/.gitkeep` trackeado, por ejemplo) check-ignore se salta
+ *   la consulta y contesta "no ignorado" aunque el .gitignore diga lo
+ *   contrario. Aqui la pregunta es por las REGLAS, no por el estado
+ *   del indice.
+ *
+ * Y hay que preguntar por el fichero concreto que se va a escribir, no
+ * por el directorio de mas arriba: `.gitignore` con `logs/gitflow/` o
+ * con `*.log` ignora el registro y no ignora `logs/`.
+ */
+export function isIgnored(relPath: string, cwd: string): boolean {
+  const toplevel = runGit(['rev-parse', '--show-toplevel'], cwd);
+  const args = ['check-ignore', '-q', '--no-index', '--', relPath] as const;
+  const result = spawnSync('git', args, { cwd: toplevel, encoding: 'utf8' });
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  if (result.status === 0) return true;
+  // 1 = no esta ignorado (respuesta valida). Cualquier otro codigo es
+  // un error real, mismo criterio que isAncestor.
+  if (result.status === 1) return false;
+  throw new GitCommandError(args, result.stderr ?? '');
+}
+
+export type OperacionGitEnCurso = 'merge' | 'rebase';
+
+/**
+ * Que operacion multi-paso hay a medias en el repo, si es que hay
+ * alguna (TASK-026). Mira exactamente los mismos tres testigos que
+ * `abort-merge.sh` (MERGE_HEAD, rebase-merge, rebase-apply), pero
+ * resolviendo cada ruta con `git rev-parse --git-path` en vez de
+ * concatenar sobre --git-dir: asi sigue valiendo dentro de un
+ * worktree enlazado, donde MERGE_HEAD no vive en el .git principal.
+ *
+ * `--git-path` devuelve una ruta relativa al cwd de Git, no al
+ * proceso: se resuelve contra `cwd` antes de mirar el disco.
+ */
+export function operacionEnCurso(cwd: string): OperacionGitEnCurso | null {
+  const gitPath = (nombre: string): string =>
+    path.resolve(cwd, runGit(['rev-parse', '--git-path', nombre], cwd));
+  if (existsSync(gitPath('MERGE_HEAD'))) return 'merge';
+  if (existsSync(gitPath('rebase-merge')) || existsSync(gitPath('rebase-apply'))) return 'rebase';
+  return null;
 }
 
 /** Nombre de la rama activa (equivalente a `git branch --show-current`). */
@@ -291,11 +374,13 @@ export function ensureBaseBranchReady(tipo: Task['tipo'], cwd: string): BaseBran
   // (hallazgo menor de revision por pares, TASK-012). El mensaje no
   // menciona la rama base esperada a proposito: es literalmente el
   // ejemplo de la seccion 8.3 de la metodologia, que tampoco la
-  // menciona.
+  // menciona. Desde TASK-026 tambien nombra "taskctl pause", como el
+  // ejemplo de la 8.3 — hasta entonces se omitia porque ese comando
+  // no existia (hallazgo MENOR de revision por pares, TASK-026).
   if (!isWorkspaceClean(cwd)) {
     throw new BaseBranchGuardError(
-      `[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos o comitealos antes de ` +
-        'continuar.'
+      `[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos ("taskctl pause") o ` +
+        'comitealos antes de continuar.'
     );
   }
 

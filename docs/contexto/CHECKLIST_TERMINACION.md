@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 25 / 42 items terminados (60%)** · última actualización: 2026-09-06
+**Progreso global: 26 / 42 items terminados (62%)** · última actualización: 2026-09-06
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 8 | **2** | ~15h |
+| C — Tapar huecos | 8 | **3** | ~15h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **30** | **13** | **~84h** |
+| **Total pendiente** | **30** | **14** | **~84h** |
 
 ---
 
@@ -151,8 +151,20 @@ del proceso, no lo habilita.
 
 Lo que la metodología da por hecho y no existe.
 
-- [ ] **C1** · Wrappers `taskctl diagnose` / `pause` / `resume` / `recover` / `abort-merge` — ~3h
-      *§8.3 ya le dice al usuario "guárdalos con `taskctl pause`" — un comando que no existe.*
+- [x] **C1** · TASK-026 — Wrappers `taskctl diagnose` / `pause` / `resume` / `recover` / `abort-merge` — ~3h
+      *Cerrado el 2026-09-06. El nudo no era enrutar a `bash`: cuatro de
+      los cinco scripts preguntan con `read -rp`, y con EOF `pause` moría
+      con "Opcion no reconocida" y `abort-merge` no abortaba nada saliendo
+      con 0. Regla nueva del proyecto: **stdin heredado solo cuando hay
+      terminal**, ignorado cuando no la hay, y guard que corta antes de
+      invocar si el valor por defecto haría lo contrario de lo que dice el
+      comando. La §8.3 ya nombra `taskctl pause` en su mensaje, que era la
+      premisa de la tarea. Dos rondas de revisión: **APROBADO CON CAMBIOS**
+      (2 importantes, 7 menores) y **APROBADO** (3 menores). Los dos
+      importantes: `pause` preguntaba igual con el workspace limpio porque
+      los scripts se escriben el registro dentro del repo, y heredar stdin
+      siempre **colgaba el comando para siempre** ante una tubería abierta.
+      27 tests nuevos (417).*
 - [ ] **C2** · Paso 5 de §8.3: ¿comitea y sube `taskctl` por la persona? — ~3h
       *Decisión abierta + implementación. Sin esto, una tarea nueva no llega
       al equipo sola. **Evidencia nueva (A2)**: sin el paso 5, `taskctl
@@ -165,7 +177,15 @@ Lo que la metodología da por hecho y no existe.
 - [ ] **C5** · `skills/task-workflow/SKILL.md` — ~1h
       *La primera skill del plugin: hoy no expone ninguna a Claude Code.*
 - [ ] **C6** · Bug de `origin` en `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` — ~1h
-      *Los dos últimos los envuelve C1.*
+      *Los dos últimos ya los envuelve C1, así que el bug se ve desde
+      `taskctl`. **Trabajo nuevo que le añadió C1** (todo en `HALLAZGOS.md`):
+      los scripts escriben su registro en `logs/gitflow/` dentro del repo
+      del usuario y se ensucian el workspace ellos mismos, lo que deja
+      `taskctl resume` inservible en un repo que no lo ignore; sus mensajes
+      siguen remitiendo a los menús de IntelliJ ("usa GitFlow 16 Pause
+      Work") ahora que esos comandos existen en `taskctl`; y
+      `abort-merge.sh` dice "estado normal" con un cherry-pick o un revert
+      a medias.*
 - [x] **C7** · TASK-024 — `asignado_a` por defecto desde la identidad Git — ~2h
       *Cerrado el 2026-09-05. Precedencia: `--asignado-a` > `asignado_a`
       previo > `git config user.email` > `null`; que el previo gane a la
