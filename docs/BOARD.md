@@ -1,6 +1,6 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl board --escribir el 2026-09-06. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-09-06. No editar a mano.
 
 ## Planificadas (00-planificadas) — 20
 
@@ -29,15 +29,7 @@ TASK-022  Documentación de equipo e incorporación de colaboradores            
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
 ```
 
-## En revision (03-en-revision) — 1
-
-```text
-ID        Titulo                                         Asignado
---------  ---------------------------------------------  --------------------
-TASK-024  asignado_a por defecto desde la identidad Git  charlie.bk@gmail.com
-```
-
-## Terminadas (04-terminadas) — 3
+## Terminadas (04-terminadas) — 4
 
 ```text
 ID        Titulo                                                              Asignado
@@ -45,4 +37,5 @@ ID        Titulo                                                              As
 TASK-013  Comando taskctl review (revisión por pares de un solo agente)       charlie.bk@gmail.com
 TASK-014  Comando taskctl finish (merge, cierre y actualización del tablero)  charlie.bk@gmail.com
 TASK-015  Límite de trabajo en curso por persona                              charlie.bk@gmail.com
+TASK-024  asignado_a por defecto desde la identidad Git                       charlie.bk@gmail.com
 ```
