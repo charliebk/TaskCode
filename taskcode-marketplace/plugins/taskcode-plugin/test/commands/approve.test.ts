@@ -5,13 +5,13 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, stat, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import { runApproveCommand, ApproveCommandError } from '../../src/commands/approve.js';
-import { PLAN_FINAL_FILENAME } from '../../src/commands/plan.js';
+import { PLAN_FINAL_FILENAME, PLANIFICACION_DIRNAME } from '../../src/commands/plan.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
@@ -72,11 +72,27 @@ async function withTempRepo(fn: (repoRoot: string, tareasRoot: string) => Promis
   }
 }
 
+/** Plan en la ubicacion canonica desde TASK-027: planificacion/plan-final.md. */
 async function writePlanFinal(tareasRoot: string, id: string, content = '# Plan real\n'): Promise<void> {
+  const dir = path.join(tareasRoot, '01-en-diseno', id, PLANIFICACION_DIRNAME);
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, PLAN_FINAL_FILENAME), content, 'utf8');
+}
+
+/**
+ * Plan como lo dejaba el CLI ANTERIOR a TASK-027: suelto en la raiz de
+ * la carpeta de la tarea. Es el estado en el que quedo cualquier tarea
+ * planificada antes del cambio, y approve tiene que seguir aceptandolo.
+ */
+async function writePlanFinalLegado(
+  tareasRoot: string,
+  id: string,
+  content = '# Plan real legado\n'
+): Promise<void> {
   await writeFile(path.join(tareasRoot, '01-en-diseno', id, PLAN_FINAL_FILENAME), content, 'utf8');
 }
 
-test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-diseno y plan-final.md existe', async () => {
+test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-diseno y planificacion/plan-final.md existe', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nAlgo.\n');
     await writePlanFinal(tareasRoot, 'TASK-800');
@@ -95,6 +111,34 @@ test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-disen
     assert.equal(read?.task.actualizado, '2026-09-05');
 
     // plan-final.md no se toco.
+    const plan = await stat(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-800', PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME)
+    );
+    assert.ok(plan.isFile());
+  });
+});
+
+// --- item C3 (TASK-027): compatibilidad con el plan legado ---
+
+test('taskctl approve: acepta el plan-final.md legado suelto en la raiz (tareas planificadas antes de TASK-027)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Sin esta compatibilidad, cualquier tarea que se planifico con el
+    // CLI anterior se quedaria sin poder aprobarse: approve diria "no
+    // hay plan" sobre una tarea que tiene el plan redactado.
+    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nAlgo.\n');
+    await writePlanFinalLegado(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan legado');
+
+    const result = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.id, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, true);
+
+    // approve no reorganiza la carpeta (eso lo hace "plan"): el fichero
+    // legado sigue donde estaba.
     const plan = await stat(path.join(tareasRoot, '01-en-diseno', 'TASK-800', PLAN_FINAL_FILENAME));
     assert.ok(plan.isFile());
   });

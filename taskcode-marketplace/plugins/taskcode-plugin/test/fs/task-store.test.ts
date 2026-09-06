@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -148,6 +148,37 @@ test('moveTareaFile: cambia de carpeta cuando el estado cambia y borra la carpet
 
     // La carpeta vieja (01-en-diseno/TASK-060) ya no debe contener nada.
     await assert.rejects(() => stat(path.dirname(filePath)));
+  });
+});
+
+test('moveTareaFile: se lleva planificacion/ y revision/ enteras al cambiar de carpeta (item C3)', async () => {
+  await withTempRoot(async (root) => {
+    // Las dos subcarpetas de la seccion 2 de la metodologia son
+    // artefactos de la tarea, no del estado: tienen que viajar con
+    // ella. moveTareaFile renombra el directorio completo justo por
+    // esto, pero hasta TASK-027 solo lo cubria revision/ de rebote.
+    const original = sampleTask({ id: 'TASK-062', estado: 'en-diseno' });
+    const filePath = await writeTareaFile(root, original, '');
+    const taskDir = path.dirname(filePath);
+    await mkdir(path.join(taskDir, 'planificacion'), { recursive: true });
+    await mkdir(path.join(taskDir, 'revision'), { recursive: true });
+    await writeFile(path.join(taskDir, 'planificacion', 'plan-final.md'), '# Plan\n', 'utf8');
+    await writeFile(path.join(taskDir, 'revision', 'informe-revision-1.md'), '# Informe\n', 'utf8');
+
+    const updated = { ...original, estado: 'en-curso' as const };
+    const newFilePath = await moveTareaFile(root, filePath, updated, '');
+
+    const nuevoDir = path.dirname(newFilePath);
+    assert.equal(
+      await readFile(path.join(nuevoDir, 'planificacion', 'plan-final.md'), 'utf8'),
+      '# Plan\n'
+    );
+    assert.equal(
+      await readFile(path.join(nuevoDir, 'revision', 'informe-revision-1.md'), 'utf8'),
+      '# Informe\n'
+    );
+    // Y no queda nada en la carpeta vieja.
+    await assert.rejects(() => stat(taskDir));
   });
 });
 

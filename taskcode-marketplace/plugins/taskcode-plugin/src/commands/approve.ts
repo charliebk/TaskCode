@@ -1,7 +1,9 @@
 /**
  * taskctl approve — TASK-011 de PLAN_SPRINTS.md. Checkpoint humano de
  * la fase de diseno (seccion 6 de la metodologia): marca
- * plan_aprobado: true una vez que plan-final.md existe.
+ * plan_aprobado: true una vez que plan-final.md existe, este en
+ * `planificacion/` (ubicacion canonica desde TASK-027) o suelto en la
+ * raiz de la carpeta (legado).
  *
  * NO evalua la CALIDAD del plan (sigue siendo scaffold vacio vs.
  * redactado de verdad) — ese juicio lo hace la persona antes de
@@ -16,23 +18,24 @@
  * seccion 8.3 (ensureBaseBranchReady) antes de escribir nada.
  */
 import path from 'node:path';
-import { stat } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { PLAN_FINAL_FILENAME } from './plan.js';
+import { resolverPlanFinal } from './plan.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 
 export class ApproveCommandError extends Error {}
 
-async function planFinalFileExists(planPath: string): Promise<boolean> {
-  try {
-    await stat(planPath);
-    return true;
-  } catch (e: unknown) {
-    if (isEnoent(e)) return false;
-    throw e;
-  }
+/**
+ * Acepta el plan en CUALQUIERA de sus dos ubicaciones (TASK-027, item
+ * C3): `planificacion/plan-final.md` (canonica) o suelto en la raiz de
+ * la carpeta (legado del CLI anterior). Mirar solo la canonica dejaria
+ * sin poder aprobarse a toda tarea planificada antes del cambio, que
+ * es justo el caso que tiene el plan ya redactado.
+ */
+async function planFinalFileExists(taskDir: string): Promise<boolean> {
+  const ubicacion = await resolverPlanFinal(taskDir);
+  return ubicacion.canonicaExiste || ubicacion.legadaExiste;
 }
 
 export interface ApproveCommandResult {
@@ -68,7 +71,7 @@ export async function runApproveCommand(
   // lectura hecha en una rama vieja, tras el cambio automatico).
   const initial = await readTareaFile(tareasRoot, id);
   const planFinalExisteInicial = initial
-    ? await planFinalFileExists(path.join(path.dirname(initial.filePath), PLAN_FINAL_FILENAME))
+    ? await planFinalFileExists(path.dirname(initial.filePath))
     : false;
   assertTransitionAllowed('approve', initial ? initial.task : null, {
     planFinalExiste: planFinalExisteInicial,
@@ -85,7 +88,7 @@ export async function runApproveCommand(
   // como estuvieran en la rama vieja de la lectura preliminar).
   const existing = await readTareaFile(tareasRoot, id);
   const planFinalExiste = existing
-    ? await planFinalFileExists(path.join(path.dirname(existing.filePath), PLAN_FINAL_FILENAME))
+    ? await planFinalFileExists(path.dirname(existing.filePath))
     : false;
   assertTransitionAllowed('approve', existing ? existing.task : null, { planFinalExiste });
   const { task, body, filePath } = existing as NonNullable<typeof existing>;

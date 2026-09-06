@@ -6,12 +6,17 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile, writeFile, stat, chmod } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, readFile, writeFile, stat, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
-import { runPlanCommand, PlanCommandError, PLAN_FINAL_FILENAME } from '../../src/commands/plan.js';
+import {
+  runPlanCommand,
+  PlanCommandError,
+  PLAN_FINAL_FILENAME,
+  PLANIFICACION_DIRNAME,
+} from '../../src/commands/plan.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
@@ -79,7 +84,7 @@ async function withTempRepo(fn: (repoRoot: string, tareasRoot: string) => Promis
   }
 }
 
-test('taskctl plan: primera vez mueve la tarea a 01-en-diseno y crea el scaffold de plan-final.md', async () => {
+test('taskctl plan: primera vez mueve la tarea a 01-en-diseno y crea el scaffold en planificacion/', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nAlgo.\n');
     commitAll(repoRoot, 'tarea TASK-700');
@@ -88,8 +93,13 @@ test('taskctl plan: primera vez mueve la tarea a 01-en-diseno y crea el scaffold
 
     assert.equal(result.id, 'TASK-700');
     assert.match(result.filePath, /01-en-diseno[/\\]TASK-700[/\\]tarea\.md$/);
-    assert.equal(result.planPath, path.join(path.dirname(result.filePath), PLAN_FINAL_FILENAME));
+    // El plan vive en planificacion/, no suelto en la raiz (TASK-027).
+    assert.equal(
+      result.planPath,
+      path.join(path.dirname(result.filePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME)
+    );
     assert.equal(result.planCreated, true);
+    assert.equal(result.planMigrado, false);
     assert.equal(result.baseBranchGuard.switched, false);
     assert.equal(result.baseBranchGuard.baseBranch, 'develop');
 
@@ -104,21 +114,32 @@ test('taskctl plan: primera vez mueve la tarea a 01-en-diseno y crea el scaffold
 
     // La carpeta vieja (00-planificadas) ya no existe.
     await assert.rejects(() => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700')));
+
+    // Y no queda nada suelto en la raiz de la carpeta de la tarea.
+    await assert.rejects(() =>
+      stat(path.join(path.dirname(result.filePath), PLAN_FINAL_FILENAME))
+    );
   });
 });
 
-test('taskctl plan: re-planificacion (en-diseno, plan_aprobado false) no pisa un plan-final.md existente', async () => {
+test('taskctl plan: re-planificacion (en-diseno, plan_aprobado false) no pisa el plan-final.md existente', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    // Simula una primera vuelta ya hecha: tarea en en-diseno con un
-    // plan-final.md que ya tiene contenido real (no el scaffold).
+    // Simula una primera vuelta ya hecha con el CLI actual: el plan
+    // real (no el scaffold) ya vive en planificacion/.
     await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
     const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-700');
-    await writeFile(path.join(taskDir, PLAN_FINAL_FILENAME), '# Plan real ya redactado\n', 'utf8');
+    await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME), { recursive: true });
+    await writeFile(
+      path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME),
+      '# Plan real ya redactado\n',
+      'utf8'
+    );
     commitAll(repoRoot, 'tarea TASK-700 en diseno');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-05', { repoCwd: repoRoot });
 
     assert.equal(result.planCreated, false);
+    assert.equal(result.planMigrado, false);
     assert.match(result.filePath, /01-en-diseno[/\\]TASK-700[/\\]tarea\.md$/);
 
     const planContent = await readFile(result.planPath, 'utf8');
@@ -128,6 +149,87 @@ test('taskctl plan: re-planificacion (en-diseno, plan_aprobado false) no pisa un
     const read = await readTareaFile(tareasRoot, 'TASK-700');
     assert.equal(read?.task.actualizado, '2026-09-05');
     assert.equal(read?.task.estado, 'en-diseno');
+  });
+});
+
+// --- item C3 (TASK-027): planificacion/ y migracion del plan legado ---
+
+test('taskctl plan: migra a planificacion/ el plan-final.md legado suelto en la raiz, con su contenido intacto', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Tarea planificada con el CLI ANTERIOR a TASK-027: el plan real,
+    // ya redactado, esta suelto en la raiz de la carpeta.
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
+    const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-700');
+    await writeFile(path.join(taskDir, PLAN_FINAL_FILENAME), '# Plan legado redactado\n', 'utf8');
+    commitAll(repoRoot, 'tarea TASK-700 con plan legado');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-06', { repoCwd: repoRoot });
+
+    assert.equal(result.planMigrado, true);
+    // No se crea scaffold: el plan que ya habia es el que vale.
+    assert.equal(result.planCreated, false);
+    assert.equal(result.planPath, path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME));
+    assert.equal(await readFile(result.planPath, 'utf8'), '# Plan legado redactado\n');
+
+    // Se MOVIO: no queda una copia suelta que pueda divergir.
+    await assert.rejects(() => stat(path.join(taskDir, PLAN_FINAL_FILENAME)));
+  });
+});
+
+test('taskctl plan: con plan-final.md en la raiz Y en planificacion/ aborta sin tocar nada', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Estado ambiguo: dos planes distintos, ninguno obviamente el bueno.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    const taskDirOrigen = path.join(tareasRoot, '00-planificadas', 'TASK-700');
+    await writeFile(path.join(taskDirOrigen, PLAN_FINAL_FILENAME), '# Plan A (raiz)\n', 'utf8');
+    await mkdir(path.join(taskDirOrigen, PLANIFICACION_DIRNAME), { recursive: true });
+    await writeFile(
+      path.join(taskDirOrigen, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME),
+      '# Plan B (planificacion)\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'tarea TASK-700 con dos planes');
+
+    await assert.rejects(
+      () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-06', { repoCwd: repoRoot }),
+      PlanCommandError
+    );
+
+    // Fail-closed de verdad: la tarea NO se movio de carpeta y los dos
+    // ficheros siguen donde estaban, con su contenido original.
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.estado, 'planificada');
+    await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-700')));
+    assert.equal(
+      await readFile(path.join(taskDirOrigen, PLAN_FINAL_FILENAME), 'utf8'),
+      '# Plan A (raiz)\n'
+    );
+    assert.equal(
+      await readFile(path.join(taskDirOrigen, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME), 'utf8'),
+      '# Plan B (planificacion)\n'
+    );
+  });
+});
+
+test('taskctl plan: planificacion/ viaja con la tarea al cambiar de carpeta de estado', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Una tarea "planificada" con artefactos previos en planificacion/
+    // (p. ej. notas de una vuelta anterior): el cambio de estado tiene
+    // que llevarse la subcarpeta entera, no solo tarea.md.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    const origen = path.join(tareasRoot, '00-planificadas', 'TASK-700', PLANIFICACION_DIRNAME);
+    await mkdir(origen, { recursive: true });
+    await writeFile(path.join(origen, 'notas.md'), '# Notas previas\n', 'utf8');
+    commitAll(repoRoot, 'tarea TASK-700 con notas');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-06', { repoCwd: repoRoot });
+
+    const destino = path.join(path.dirname(result.filePath), PLANIFICACION_DIRNAME);
+    assert.equal(await readFile(path.join(destino, 'notas.md'), 'utf8'), '# Notas previas\n');
+    // Y el scaffold nuevo convive con lo que ya habia.
+    assert.equal(result.planCreated, true);
+    await stat(result.planPath);
+    await assert.rejects(() => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700')));
   });
 });
 
@@ -178,11 +280,14 @@ test('taskctl plan: propaga cualquier error de escritura que NO sea EEXIST (no l
     await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
     commitAll(repoRoot, 'tarea TASK-700 en diseno');
     const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-700');
-    // Carpeta de la tarea sin permiso de escritura: writeFile de
+    // planificacion/ existe pero sin permiso de escritura: writeFile de
     // plan-final.md falla con EACCES, no con EEXIST — debe
     // propagarse tal cual, no tratarse como "ya existe, re-planificacion
-    // normal".
-    await chmod(taskDir, 0o555);
+    // normal". Desde TASK-027 el chmod va sobre la subcarpeta, no sobre
+    // la raiz de la tarea: con la raiz en 0555 el mkdir de
+    // planificacion/ todavia funciona y el fichero se acaba escribiendo.
+    await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME), { recursive: true });
+    await chmod(path.join(taskDir, PLANIFICACION_DIRNAME), 0o555);
     try {
       await assert.rejects(
         () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-04', { repoCwd: repoRoot }),
@@ -194,7 +299,7 @@ test('taskctl plan: propaga cualquier error de escritura que NO sea EEXIST (no l
       );
     } finally {
       // Restaura permisos para que withTempRepo pueda limpiar el directorio.
-      await chmod(taskDir, 0o755);
+      await chmod(path.join(taskDir, PLANIFICACION_DIRNAME), 0o755);
     }
   });
 });
