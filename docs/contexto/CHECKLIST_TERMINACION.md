@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 24 / 42 items terminados (57%)** · última actualización: 2026-09-05
+**Progreso global: 25 / 42 items terminados (60%)** · última actualización: 2026-09-06
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 8 | **1** | ~15h |
+| C — Tapar huecos | 8 | **2** | ~15h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **30** | **12** | **~84h** |
+| **Total pendiente** | **30** | **13** | **~84h** |
 
 ---
 
@@ -147,7 +147,7 @@ del proceso, no lo habilita.
       la misma persona con dos grafías — normalizar identidades es material
       de C4). 38 tests reales nuevos (345).*
 
-## Fase C — Tapar huecos (1/8) · ~15h
+## Fase C — Tapar huecos (2/8) · ~15h
 
 Lo que la metodología da por hecho y no existe.
 
@@ -178,14 +178,20 @@ Lo que la metodología da por hecho y no existe.
       efectivo el límite de WIP, contra lo que decía su plan — rellenar
       `asignado_a` es necesario pero no suficiente (ver C8). 24 tests
       nuevos (369).*
-- [ ] **C8** · Corregir el límite de WIP: hoy no ve las ramas de trabajo — ~3h
-      *Destapado por el smoke test de C7 y confirmado por su revisión.
-      `start` mueve la tarea a `02-en-curso` y ese movimiento se commitea
-      **en la rama de la tarea**, pero `plan`/`new`/`import` devuelven el
-      repo a `develop` (vía `ensureBaseBranchReady`), y en `develop` ninguna
-      tarea está nunca en curso. **El límite de B7 es inoperante en el flujo
-      real.** La corrección: mirar las ramas locales sin mergear y leer el
-      `tarea.md` de cada una en su propia rama (`git show`).*
+- [x] **C8** · TASK-025 — El límite de WIP mira las ramas de trabajo — ~3h
+      *Cerrado el 2026-09-06. El límite de B7 **no protegía nada**: leía el
+      árbol de la rama activa, y el paso a `02-en-curso` se commitea en la
+      rama de la tarea mientras `plan`/`new` devuelven el repo a `develop`.
+      Ahora pregunta si la persona tiene una **rama de trabajo abierta**
+      (local, sin mergear), leyendo el `tarea.md` de cada una con
+      `git show`. Verificado en el flujo real, que es lo que le faltó a B7.
+      El smoke test destapó un fallo antes que la revisión (en un clon,
+      `main` solo existe como remota). **Revisión: RECHAZADO** en la
+      primera ronda — 1 CRÍTICO, 2 importantes y 4 menores. El crítico:
+      para un `hotfix` las referencias dejaban fuera a `develop`, así que
+      **18 ramas ya cerradas** contaban como abiertas y el camino urgente
+      quedaba inutilizable, acusando a tareas terminadas y proponiendo un
+      remedio imposible. Todos corregidos. 20 tests nuevos (387).*
 
 ## Fase D — Inteligencia del proceso (0/7) · ~38h
 
