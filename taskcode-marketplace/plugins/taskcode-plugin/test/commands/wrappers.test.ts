@@ -305,10 +305,33 @@ test('pause sin terminal aborta si el repo no ignora logs/, aunque el workspace 
     const error = capturaError(() => run('pause', [], repoRoot));
 
     assert.ok(error instanceof WrapperCommandError);
-    assert.match((error as Error).message, /no ignora "logs\/"/);
+    assert.match((error as Error).message, /este repo no lo ignora/);
     assert.match((error as Error).message, /\.gitignore/);
     // Y no se llego a invocar el script: el repo sigue sin logs/.
     assert.equal(git(['status', '--porcelain'], repoRoot), '');
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('pause sin terminal NO aborta si el registro esta ignorado por un patron que no es "logs/"', async () => {
+  // El guard pregunta por el fichero que escriben los scripts, no por
+  // la carpeta: un .gitignore con "logs/gitflow/" ignora el registro
+  // igual de bien, y abortar ahi seria un falso positivo (hallazgo
+  // MENOR de revision por pares, ronda 2).
+  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-otroignore-'));
+  try {
+    git(['init', '-q', '-b', 'main'], repoRoot);
+    git(['config', 'user.email', 'test@example.com'], repoRoot);
+    git(['config', 'user.name', 'Test'], repoRoot);
+    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/gitflow/\n', 'utf8');
+    await writeFile(path.join(repoRoot, 'README.md'), '# otro patron\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'inicial'], repoRoot);
+
+    const result = run('pause', [], repoRoot);
+    assert.equal(result.code, 0);
+    assert.equal(git(['status', '--porcelain'], repoRoot), '', 'el registro quedo ignorado');
   } finally {
     await rm(repoRoot, { recursive: true, force: true });
   }

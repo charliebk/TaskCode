@@ -68,6 +68,18 @@ const WRAPPERS: Record<WrapperName, WrapperSpec> = {
 
 export const WRAPPER_NAMES = Object.keys(WRAPPERS) as readonly WrapperName[];
 
+/**
+ * El registro que `initialize_gitflow_log` escribe dentro del repo del
+ * usuario, en todos los scripts. El nombre real lleva la fecha; para
+ * preguntarle a Git si esta ignorado basta uno representativo.
+ *
+ * Se pregunta por el FICHERO y no por `logs/` (hallazgo MENOR de
+ * revision por pares, ronda 2): un `.gitignore` con `logs/gitflow/` o
+ * con `*.log` ignora el registro sin ignorar `logs/`, y el guard
+ * abortaba de mas acusando al repo de algo que no era verdad.
+ */
+const REGISTRO_DE_LOS_SCRIPTS = 'logs/gitflow/gitflow-2026-01-01.log';
+
 export function isWrapperCommand(cmd: string): cmd is WrapperName {
   return Object.prototype.hasOwnProperty.call(WRAPPERS, cmd);
 }
@@ -190,12 +202,12 @@ function assertPuedeSeguirSinTerminal(
     // comando venia a quitar de en medio (hallazgo IMPORTANTE de
     // revision por pares). Mejor decirlo antes, y decir como
     // arreglarlo de raiz.
-    if (!isIgnored('logs/', repoCwd)) {
+    if (!isIgnored(REGISTRO_DE_LOS_SCRIPTS, repoCwd)) {
       throw new WrapperCommandError(
-        '[ERROR] taskctl pause preguntaria igualmente aunque el workspace este limpio: este ' +
-          'repo no ignora "logs/", y los scripts de Git-Flow escriben ahi su registro nada ' +
-          'mas arrancar. Anade "logs/" al .gitignore del repo (es lo que espera el plugin), ' +
-          'o ejecuta el comando desde una terminal.'
+        '[ERROR] taskctl pause preguntaria igualmente aunque el workspace este limpio: los ' +
+          'scripts de Git-Flow escriben su registro en "logs/gitflow/" nada mas arrancar, y ' +
+          'este repo no lo ignora. Anade "logs/" al .gitignore del repo (es lo que espera el ' +
+          'plugin), o ejecuta el comando desde una terminal.'
       );
     }
   }

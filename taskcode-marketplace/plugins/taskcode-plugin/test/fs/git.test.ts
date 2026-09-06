@@ -397,18 +397,49 @@ test('isInsideWorkTree: false dentro de .git y false en un repo bare', async () 
   }
 });
 
+const REGISTRO = 'logs/gitflow/gitflow-2026-01-01.log';
+
 test('isIgnored: distingue una ruta ignorada de una que no lo esta', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile, mkdir } = await import('node:fs/promises');
-    assert.equal(isIgnored('logs/', repoRoot), false);
+    assert.equal(isIgnored(REGISTRO, repoRoot), false);
     await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
-    assert.equal(isIgnored('logs/', repoRoot), true);
-    assert.equal(isIgnored('src/', repoRoot), false);
+    assert.equal(isIgnored(REGISTRO, repoRoot), true);
+    assert.equal(isIgnored('src/main.ts', repoRoot), false);
     // Y desde un subdirectorio la respuesta no cambia: la ruta se
     // resuelve contra la raiz del repo, no contra el cwd.
     const sub = path.join(repoRoot, 'a', 'b');
     await mkdir(sub, { recursive: true });
-    assert.equal(isIgnored('logs/', sub), true);
+    assert.equal(isIgnored(REGISTRO, sub), true);
+  });
+});
+
+test('isIgnored: acierta con los patrones que ignoran el fichero sin ignorar su carpeta', async () => {
+  // Los tres los encontro la revision por pares (ronda 2) como falsos
+  // positivos del guard de "pause", que preguntaba por "logs/".
+  for (const patron of ['logs/gitflow/', '*.log', 'logs/**']) {
+    await withTempRepo(async (repoRoot) => {
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(path.join(repoRoot, '.gitignore'), `${patron}\n`, 'utf8');
+      assert.equal(isIgnored(REGISTRO, repoRoot), true, patron);
+    });
+  }
+});
+
+test('isIgnored: un fichero trackeado bajo la ruta no cambia la respuesta (--no-index)', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile, mkdir } = await import('node:fs/promises');
+    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
+    await mkdir(path.join(repoRoot, 'logs'), { recursive: true });
+    await writeFile(path.join(repoRoot, 'logs', '.gitkeep'), '', 'utf8');
+    // Trackeado a la fuerza, que es como se conserva una carpeta
+    // ignorada en el repo.
+    git(['add', '-f', 'logs/.gitkeep'], repoRoot);
+    git(['commit', '-q', '-m', 'conserva la carpeta de logs'], repoRoot);
+    // Sin --no-index, check-ignore se salta la consulta por estar la
+    // ruta en el indice y contesta "no ignorado", con el .gitignore
+    // diciendo justo lo contrario.
+    assert.equal(isIgnored(REGISTRO, repoRoot), true);
   });
 });
 

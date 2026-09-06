@@ -5,6 +5,22 @@ por lo que más probablemente te muerda hoy.
 
 ## Patrones a reutilizar
 
+### Sin terminal, stdin se ignora; con terminal, se hereda (TASK-026)
+
+Regla del proyecto para cualquier comando que invoque un script que pueda
+preguntar: `stdin: 'inherit'` **solo** si `process.stdin.isTTY`, y
+`'ignore'` en cualquier otro caso. Heredar siempre parece lo natural y es
+un error: quien lanza `taskctl` puede dejarle una tubería abierta que nadie
+cierra —lo hace cualquier arnés de agente, y también `node --test`— y
+entonces el `read -rp` del script espera **para siempre**. Con EOF el
+comportamiento es determinista, y es el que documentan los avisos.
+
+Corolario para los tests: el stdin del proceso de test **no está bajo
+control**, así que un test hecho en ese mismo proceso no distingue las dos
+opciones (y con `'inherit'` puede colgar la suite entera). Para
+distinguirlas hay que lanzar un **proceso hijo con stdin controlado** — el
+patrón está en `test/fs/gitflow-runner.test.ts`.
+
 ### Doble lectura cuando un comando cambia de rama a mitad (TASK-012)
 
 Los dos únicos CRÍTICOS de Sprint 1 salieron de aquí, y uno era **pérdida de
@@ -70,6 +86,28 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
 
 ## Git-Flow: deuda conocida
 
+- **Los scripts se escriben su propio registro dentro del repo del
+  usuario** (`initialize_gitflow_log` crea `logs/gitflow/` nada más
+  arrancar, en cualquiera de ellos). En un repo que no ignore `logs/`, el
+  script **ensucia el workspace por su cuenta antes de mirarlo**: es por eso
+  que `pause-work.sh` acaba preguntando qué hacer con un directorio que
+  acaba de crear él. Está documentado desde TASK-007 y lo destapó otra vez
+  la revisión de TASK-026. El repo TaskCode lo ignora (`.gitignore`, línea
+  14) y los tests de comandos replican ese `.gitignore` en sus repos
+  temporales **a propósito**, no por adorno. `taskctl pause` sin terminal lo
+  comprueba con `git check-ignore` y aborta explicándolo.
+- **Los mensajes de los scripts siguen remitiendo a los menús de IntelliJ**
+  (*"usa GitFlow 16 Pause Work"*, *"GitFlow 17 Resume Work"*, *"GitFlow 18
+  Recover Branch"*, *"GitFlow 19 Abort Merge"*) aunque desde TASK-026 esos
+  cuatro comandos existan ya como `taskctl pause` / `resume` / `recover` /
+  `abort-merge`. Sin corregir: envolver y reescribir los scripts son dos
+  trabajos distintos, y el segundo es del item C6.
+- **`abort-merge.sh` solo conoce merge y rebase.** Con un `cherry-pick` o un
+  `revert` a medias dice *"El workspace está en estado normal"* y sale 0 —
+  mensaje falso. `operacionEnCurso` (TASK-026) mira exactamente los mismos
+  tres testigos que el script, a propósito: hacer que taskctl detectara más
+  que él daría dos comportamientos distintos según haya terminal o no. Para
+  C6.
 - **Bug de `origin` sin guard** en 3 scripts que siguen sin corregir:
   `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` (item C6). Los
   dos `merge-*-to-main` se corrigieron en B2 (2026-09-05) con un matiz que

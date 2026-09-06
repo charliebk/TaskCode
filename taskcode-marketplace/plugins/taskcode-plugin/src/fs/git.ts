@@ -85,18 +85,30 @@ export function isInsideWorkTree(cwd: string): boolean {
 }
 
 /**
- * true si `relPath` (relativo a la raiz del repo) esta ignorado por
- * las reglas de gitignore vigentes. Lo usa el wrapper de `pause` para
+ * true si `relPath` (relativo a la raiz del repo) caeria bajo las
+ * reglas de gitignore vigentes. Lo usa el wrapper de `pause` para
  * saber si el propio script va a ensuciar el workspace al escribir su
- * registro en `logs/`.
+ * registro.
  *
- * Se resuelve la raiz primero porque `git check-ignore` interpreta las
- * rutas relativas contra el cwd, y taskctl puede estar invocado desde
- * un subdirectorio.
+ * Dos detalles que no son opcionales (hallazgos MENOR de revision por
+ * pares, TASK-026, rondas 1 y 2):
+ *
+ * - Se resuelve la raiz primero: `git check-ignore` interpreta las
+ *   rutas relativas contra el cwd, y taskctl puede estar invocado
+ *   desde un subdirectorio.
+ * - `--no-index`: sin el, si algo bajo esa ruta esta ya en el indice
+ *   (un `logs/.gitkeep` trackeado, por ejemplo) check-ignore se salta
+ *   la consulta y contesta "no ignorado" aunque el .gitignore diga lo
+ *   contrario. Aqui la pregunta es por las REGLAS, no por el estado
+ *   del indice.
+ *
+ * Y hay que preguntar por el fichero concreto que se va a escribir, no
+ * por el directorio de mas arriba: `.gitignore` con `logs/gitflow/` o
+ * con `*.log` ignora el registro y no ignora `logs/`.
  */
 export function isIgnored(relPath: string, cwd: string): boolean {
   const toplevel = runGit(['rev-parse', '--show-toplevel'], cwd);
-  const args = ['check-ignore', '-q', '--', relPath] as const;
+  const args = ['check-ignore', '-q', '--no-index', '--', relPath] as const;
   const result = spawnSync('git', args, { cwd: toplevel, encoding: 'utf8' });
   if (result.error) {
     throw new GitLaunchError(result.error);
