@@ -4,11 +4,13 @@
  * scripts de scripts/gitflow/ tal cual estan en el repo, y un merge
  * en conflicto y un stash de verdad donde hacen falta.
  *
- * El test que da sentido a la tarea entera es el ultimo: lanza
- * bin/taskctl como proceso hijo con la respuesta escrita en su stdin
- * y comprueba que llega hasta el `read -rp` del script. Con la opcion
- * `stdin: 'ignore'` de antes de esta tarea, las dos variantes (`n` y
- * `s`) darian el mismo resultado.
+ * Que 'inherit' deja llegar una respuesta al ead -rp del script,
+ * y que el default 'ignore' no, se distingue en
+ * test/fs/gitflow-runner.test.ts, con un proceso hijo de stdin
+ * controlado. Lo que se comprueba aqui es el contrato del wrapper:
+ * sin terminal se toma el valor por defecto de cada pregunta,
+ * avisando de cual, y se corta antes de invocar cuando ese valor
+ * haria lo contrario de lo que anuncia el comando.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -36,6 +38,11 @@ const TASKCTL = path.join(PLUGIN_ROOT, 'bin', 'taskctl');
  *  Es la forma de aseverar "aborto ANTES de invocar bash". */
 const SCRIPTS_DIR_INEXISTENTE = path.join(tmpdir(), 'taskctl-scripts-que-no-existen');
 
+/** Doble mudo: un script que no pregunta nada y contesta 21. Es lo que
+ *  permite recorrer la rama interactiva (interactivo: true, sin
+ *  guards) en un test, donde no hay terminal de verdad: con el script
+ *  real, su `read -rp` se quedaria esperando una respuesta que no
+ *  llega nunca y colgaria la suite. */
 const DOBLE_MUDO_21 = `#!/usr/bin/env bash
 exit 21
 `;
@@ -138,7 +145,7 @@ test('los cinco abortan fuera de un repositorio Git, sin llegar a lanzar bash', 
         run(nombre, argv, dir, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
       );
       assert.ok(error instanceof WrapperCommandError, `${nombre}: ${String(error)}`);
-      assert.match((error as Error).message, /solo funciona dentro de un repositorio Git/);
+      assert.match((error as Error).message, /dentro del arbol de trabajo de un repositorio Git/);
       assert.match((error as Error).message, new RegExp(`taskctl ${nombre}`));
     }
   });
@@ -277,6 +284,34 @@ test('pause sin terminal y con el workspace sucio aborta y no toca nada', async 
     assert.equal(git(['rev-parse', 'HEAD'], repoRoot), headAntes);
     assert.equal(git(['stash', 'list'], repoRoot), '');
   });
+});
+
+test('pause sin terminal aborta si el repo no ignora logs/, aunque el workspace este limpio', async () => {
+  // Repo SIN "logs/" en .gitignore: el propio pause-work.sh crea
+  // logs/gitflow/ al arrancar y despues ve el workspace sucio por su
+  // culpa, pregunta, y con EOF por respuesta muere con "Opcion no
+  // reconocida" y exit 1 — el fallo que este comando venia a quitar
+  // de en medio (hallazgo IMPORTANTE de revision por pares).
+  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-sinlogs-'));
+  try {
+    git(['init', '-q', '-b', 'main'], repoRoot);
+    git(['config', 'user.email', 'test@example.com'], repoRoot);
+    git(['config', 'user.name', 'Test'], repoRoot);
+    await writeFile(path.join(repoRoot, 'README.md'), '# sin ignorar logs\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'inicial'], repoRoot);
+    assert.equal(git(['status', '--porcelain'], repoRoot), '', 'el workspace parte limpio');
+
+    const error = capturaError(() => run('pause', [], repoRoot));
+
+    assert.ok(error instanceof WrapperCommandError);
+    assert.match((error as Error).message, /no ignora "logs\/"/);
+    assert.match((error as Error).message, /\.gitignore/);
+    // Y no se llego a invocar el script: el repo sigue sin logs/.
+    assert.equal(git(['status', '--porcelain'], repoRoot), '');
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
 });
 
 test('abort-merge sin terminal y sin nada en curso informa y sale 0', async () => {
@@ -421,24 +456,18 @@ function taskctl(argv: string[], cwd: string, input: string): { status: number; 
   return { status: result.status ?? -1, salida: `${result.stdout ?? ''}${result.stderr ?? ''}` };
 }
 
-test('taskctl resume: la respuesta escrita en stdin llega al read del script (contesta "n")', async () => {
+test('taskctl resume sin terminal: NO usa lo que venga por la tuberia, toma el default y no se cuelga', async () => {
   await withRepoConStash(async (repoRoot, rama) => {
-    const { status } = taskctl(['resume', rama], repoRoot, 'n\n');
+    // Se le escribe "n" (no apliques el stash) por stdin. Sin
+    // terminal, taskctl invoca con stdin ignorado a proposito: si lo
+    // heredara, una tuberia abierta que nadie cierra colgaria el
+    // comando para siempre (hallazgo IMPORTANTE de revision por
+    // pares). Asi que la respuesta se descarta y manda el valor por
+    // defecto del script, que es justo el que anuncia el aviso.
+    const { status, salida } = taskctl(['resume', rama], repoRoot, 'n\n');
     assert.equal(status, 0);
-    // Contesto que NO: el stash sigue guardado y el workspace limpio.
-    assert.match(git(['stash', 'list'], repoRoot), /pause: feature\/con-stash/);
-    assert.equal(git(['status', '--porcelain'], repoRoot), '');
-  });
-});
-
-test('taskctl resume: contestando "s" el stash SI se aplica (misma prueba, respuesta contraria)', async () => {
-  await withRepoConStash(async (repoRoot, rama) => {
-    const { status } = taskctl(['resume', rama], repoRoot, 's\n');
-    assert.equal(status, 0);
-    // Contesto que SI: el stash desaparece de la lista y sus cambios
-    // vuelven al working tree. Con stdin ignorado, este test y el
-    // anterior darian el mismo resultado.
-    assert.equal(git(['stash', 'list'], repoRoot), '');
+    assert.match(salida, /\[AVISO\].*aplicara sin preguntar/s);
+    assert.equal(git(['stash', 'list'], repoRoot), '', 'el default aplica el stash');
     assert.notEqual(git(['status', '--porcelain'], repoRoot), '');
   });
 });

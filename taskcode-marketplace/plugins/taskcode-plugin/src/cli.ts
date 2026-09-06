@@ -55,8 +55,9 @@ Comandos: new, import, board, start, plan, approve, review, finish.
 Wrappers de Git-Flow: diagnose, pause, resume, recover, abort-merge.
 --asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
 Los wrappers preguntan (guardar como commit o stash, confirmar un abort...):
-ejecutalos desde una terminal. Sin ella, taskctl aborta con instrucciones en
-vez de dejar que el script conteste solo.
+ejecutalos desde una terminal. Sin ella toman el valor por defecto de cada
+pregunta, avisando de cual; y cuando ese valor haria lo contrario de lo que
+dice el comando, taskctl aborta antes con instrucciones.
 Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -386,10 +387,23 @@ export async function main(argv: readonly string[]): Promise<number> {
         // realidad (una tuberia con las respuestas escritas tambien
         // valdria), y es deliberado: distinguir "tuberia con
         // respuestas" de "tuberia vacia" solo se puede hacer leyendo,
-        // y leer stdin aqui le robaria al script su respuesta.
+        // y leer stdin aqui le robaria al script su respuesta. Con
+        // una tuberia abierta y vacia, ademas, heredarla colgaria el
+        // comando para siempre.
         interactivo: process.stdin.isTTY === true,
         onAviso: (aviso) => printAvisos(aviso),
       });
+      // Una senal (un Ctrl-C sobre el script, por ejemplo) no deja
+      // codigo de salida util: se dice y se sale con 1, igual que
+      // hacen start/review/finish (hallazgo MENOR de revision por
+      // pares).
+      if (result.signal !== null) {
+        process.stderr.write(
+          `[ERROR] ${result.script} termino por senal ${result.signal}. Revisa el estado del ` +
+            'repo con "taskctl diagnose" antes de reintentar.\n'
+        );
+        return 1;
+      }
       // El codigo del script se propaga tal cual: un "pause"
       // cancelado sale 0 y uno con opcion no reconocida sale 1.
       return result.code;

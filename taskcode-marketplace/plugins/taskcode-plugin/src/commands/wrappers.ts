@@ -2,13 +2,12 @@
  * Los cinco "wrappers directos" de la tabla de la seccion 8 de la
  * metodologia (item C1, TASK-026): taskctl diagnose / pause / resume /
  * recover / abort-merge sobre los scripts que ya existen en
- * scripts/gitflow/. La seccion 8.3 ya remite a `taskctl pause` en su
+ * scripts/gitflow/. La seccion 8.3 ya remitia a `taskctl pause` en su
  * mensaje de workspace sucio, asi que el comando le hacia falta al
  * sistema desde antes de existir.
  *
  * Envolverlos NO es solo enrutar a bash. Cuatro de los cinco scripts
- * preguntan con `read -rp`, y runGitflowScript invoca por defecto con
- * stdin ignorado (a proposito, ver su cabecera). Con EOF inmediato:
+ * preguntan con `read -rp`, y con EOF inmediato contestan asi:
  *
  *   - pause-work.sh    -> respuesta vacia, "Opcion no reconocida", exit 1
  *   - abort-merge.sh   -> no confirma: NO aborta nada, y sale 0
@@ -16,11 +15,20 @@
  *   - recover-branch.sh-> cancela sin sobreescribir (default no)
  *   - diagnose-repo.sh -> no pregunta nada
  *
- * De ahi los dos trabajos de este modulo: los scripts se invocan con
- * stdin heredado (para que en una terminal se puedan contestar), y
- * cuando NO hay terminal se corta antes de invocar en los casos en
- * que el valor por defecto del script haria lo contrario de lo que
- * anuncia el comando.
+ * De ahi las dos reglas de este modulo:
+ *
+ * 1. **Con terminal, stdin heredado; sin terminal, stdin ignorado.**
+ *    Heredar siempre parecia lo natural, pero reintroduce justo el
+ *    modo de fallo que motivo el `stdin: 'ignore'` de TASK-007: si
+ *    quien lanza taskctl le deja una tuberia abierta que nadie cierra
+ *    (lo hace cualquier arnes de agente, y tambien `node --test`), el
+ *    script se queda esperando una respuesta que no va a llegar y el
+ *    comando cuelga indefinidamente. Sin terminal el script recibe
+ *    EOF, que es determinista, y taskctl avisa antes de que valor por
+ *    defecto va a tomar (hallazgo IMPORTANTE de revision por pares).
+ * 2. **Sin terminal se corta antes de invocar** en los casos en que
+ *    ese valor por defecto haria lo contrario de lo que anuncia el
+ *    comando.
  *
  * Lo que estos comandos NO hacen, a proposito: no leen ni escriben
  * `tareas/`, no pasan por la maquina de estados y no aplican la
@@ -30,7 +38,8 @@
  * definicion.
  */
 import {
-  isGitRepo,
+  isIgnored,
+  isInsideWorkTree,
   isValidBranchName,
   isWorkspaceClean,
   operacionEnCurso,
@@ -88,6 +97,8 @@ export interface WrapperCommandResult {
   script: string;
   /** Codigo de salida del script, tal cual, sin colapsarlo a 0 o 1. */
   code: number;
+  /** Senal que mato al script, si fue el caso (p. ej. un Ctrl-C). */
+  signal: NodeJS.Signals | null;
   avisos: string[];
 }
 
@@ -153,21 +164,40 @@ function parseWrapperArgs(
 /**
  * Guarda de no-interactividad: solo corta cuando el script iba a
  * preguntar algo Y su respuesta por defecto es inaceptable. Si no hay
- * nada que preguntar (diagnose, pause con el workspace limpio), el
- * comando sigue igual de bien sin terminal.
+ * nada que preguntar (diagnose, pause con el workspace limpio en un
+ * repo que ignora logs/), el comando sigue igual de bien sin terminal.
  */
 function assertPuedeSeguirSinTerminal(
   nombre: WrapperName,
   rama: string | null,
   repoCwd: string
 ): void {
-  if (nombre === 'pause' && !isWorkspaceClean(repoCwd)) {
-    throw new WrapperCommandError(
-      '[ERROR] taskctl pause tiene que preguntarte si guardar los cambios como commit o como ' +
-        'stash, y no hay terminal interactiva. Ejecutalo desde una terminal, o guardalos tu: ' +
-        '"git stash push -u" para apartarlos, "git add -A && git commit" para dejarlos en la ' +
-        'rama.'
-    );
+  if (nombre === 'pause') {
+    if (!isWorkspaceClean(repoCwd)) {
+      throw new WrapperCommandError(
+        '[ERROR] taskctl pause tiene que preguntarte si guardar los cambios como commit o ' +
+          'como stash, y no hay terminal interactiva. Ejecutalo desde una terminal, o ' +
+          'guardalos tu: "git stash push -u" para apartarlos, "git add -A && git commit" ' +
+          'para dejarlos en la rama.'
+      );
+    }
+    // El workspace esta limpio AHORA, pero todos los scripts de
+    // Git-Flow crean logs/gitflow/ dentro del repo nada mas arrancar
+    // (initialize_gitflow_log). Si el repo no ignora logs/, para
+    // cuando pause-work.sh mire el workspace lo vera sucio por su
+    // propia culpa y preguntara igual, con EOF por respuesta:
+    // "Opcion no reconocida" y exit 1, exactamente el fallo que este
+    // comando venia a quitar de en medio (hallazgo IMPORTANTE de
+    // revision por pares). Mejor decirlo antes, y decir como
+    // arreglarlo de raiz.
+    if (!isIgnored('logs/', repoCwd)) {
+      throw new WrapperCommandError(
+        '[ERROR] taskctl pause preguntaria igualmente aunque el workspace este limpio: este ' +
+          'repo no ignora "logs/", y los scripts de Git-Flow escriben ahi su registro nada ' +
+          'mas arrancar. Anade "logs/" al .gitignore del repo (es lo que espera el plugin), ' +
+          'o ejecuta el comando desde una terminal.'
+      );
+    }
   }
 
   if (nombre === 'abort-merge') {
@@ -214,10 +244,15 @@ export function runWrapperCommand(
   const spec = WRAPPERS[nombre];
   const { rama, opciones } = parseWrapperArgs(nombre, spec, argv);
 
-  if (!isGitRepo(opts.repoCwd)) {
+  // --is-inside-work-tree y no --git-dir: los cinco scripts trabajan
+  // sobre ficheros del arbol de trabajo, asi que un repo bare o un
+  // cwd dentro de .git/ no valen aunque Git los reconozca como repo
+  // (hallazgo MENOR de revision por pares: alli "pause" moria con el
+  // fatal crudo de git y "diagnose" declaraba el workspace limpio).
+  if (!isInsideWorkTree(opts.repoCwd)) {
     throw new WrapperCommandError(
-      `[ERROR] taskctl ${nombre} solo funciona dentro de un repositorio Git, y ` +
-        `"${opts.repoCwd}" no lo es. Ejecutalo desde la carpeta del repo.`
+      `[ERROR] taskctl ${nombre} solo funciona dentro del arbol de trabajo de un repositorio ` +
+        `Git, y "${opts.repoCwd}" no lo es. Ejecutalo desde la carpeta del repo.`
     );
   }
 
@@ -240,11 +275,11 @@ export function runWrapperCommand(
   }
 
   const args = rama === null ? opciones : [...opciones, rama];
-  const { code } = runGitflowScript(spec.script, args, {
+  const { code, signal } = runGitflowScript(spec.script, args, {
     scriptsDir: opts.scriptsDir,
     cwd: opts.repoCwd,
-    stdin: 'inherit',
+    stdin: opts.interactivo ? 'inherit' : 'ignore',
   });
 
-  return { nombre, script: spec.script, code, avisos };
+  return { nombre, script: spec.script, code, signal, avisos };
 }

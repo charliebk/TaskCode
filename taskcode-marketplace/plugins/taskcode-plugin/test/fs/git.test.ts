@@ -9,7 +9,8 @@ import {
   currentBranch,
   isValidBranchName,
   isRemoteAvailable,
-  isGitRepo,
+  isInsideWorkTree,
+  isIgnored,
   operacionEnCurso,
   localBranchExists,
   resolveMainBranch,
@@ -360,25 +361,55 @@ test('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only f
   });
 });
 
-// ── isGitRepo / operacionEnCurso (TASK-026) ─────────────────────────
+// ── isInsideWorkTree / isIgnored / operacionEnCurso (TASK-026) ──────
 
-test('isGitRepo: true dentro de un repo y en un subdirectorio suyo', async () => {
+test('isInsideWorkTree: true dentro de un repo y en un subdirectorio suyo', async () => {
   await withTempRepo(async (repoRoot) => {
     const { mkdir } = await import('node:fs/promises');
     const sub = path.join(repoRoot, 'a', 'b');
     await mkdir(sub, { recursive: true });
-    assert.equal(isGitRepo(repoRoot), true);
-    assert.equal(isGitRepo(sub), true);
+    assert.equal(isInsideWorkTree(repoRoot), true);
+    assert.equal(isInsideWorkTree(sub), true);
   });
 });
 
-test('isGitRepo: false en un directorio que no es un repo (sin lanzar)', async () => {
+test('isInsideWorkTree: false en un directorio que no es un repo (sin lanzar)', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-norepo-'));
   try {
-    assert.equal(isGitRepo(dir), false);
+    assert.equal(isInsideWorkTree(dir), false);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('isInsideWorkTree: false dentro de .git y false en un repo bare', async () => {
+  await withTempRepo(async (repoRoot) => {
+    // Git reconoce los dos como repositorio (--git-dir diria que si),
+    // pero ninguno tiene arbol de trabajo sobre el que operar.
+    assert.equal(isInsideWorkTree(path.join(repoRoot, '.git')), false);
+  });
+  const bareRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-bare-'));
+  try {
+    git(['init', '-q', '--bare', '-b', 'main'], bareRoot);
+    assert.equal(isInsideWorkTree(bareRoot), false);
+  } finally {
+    await rm(bareRoot, { recursive: true, force: true });
+  }
+});
+
+test('isIgnored: distingue una ruta ignorada de una que no lo esta', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile, mkdir } = await import('node:fs/promises');
+    assert.equal(isIgnored('logs/', repoRoot), false);
+    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
+    assert.equal(isIgnored('logs/', repoRoot), true);
+    assert.equal(isIgnored('src/', repoRoot), false);
+    // Y desde un subdirectorio la respuesta no cambia: la ruta se
+    // resuelve contra la raiz del repo, no contra el cwd.
+    const sub = path.join(repoRoot, 'a', 'b');
+    await mkdir(sub, { recursive: true });
+    assert.equal(isIgnored('logs/', sub), true);
+  });
 });
 
 test('operacionEnCurso: null cuando no hay nada a medias', async () => {

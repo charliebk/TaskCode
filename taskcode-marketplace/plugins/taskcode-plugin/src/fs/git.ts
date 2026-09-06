@@ -61,23 +61,51 @@ export function isWorkspaceClean(cwd: string): boolean {
 }
 
 /**
- * true si `cwd` esta dentro de un repositorio Git (TASK-026). No pasa
- * por runGit a proposito, igual que gitUserEmail: "esto no es un
- * repo" es una respuesta valida, no un error que deba propagarse
- * como GitCommandError.
+ * true si `cwd` esta dentro del ARBOL DE TRABAJO de un repositorio
+ * Git (TASK-026). No pasa por runGit a proposito, igual que
+ * gitUserEmail: "esto no es un repo" es una respuesta valida, no un
+ * error que deba propagarse como GitCommandError.
  *
- * Lo usan los cinco wrappers de Git-Flow, que son los unicos comandos
- * de taskctl que se pueden invocar en un repo cualquiera sin tareas.
- * Sin esta comprobacion, cada script reacciona a su manera a no estar
- * en un repo: diagnose-repo.sh imprime un informe con los campos
- * vacios, pause-work.sh dice "No estas en ninguna rama".
+ * Es `--is-inside-work-tree` y no `--git-dir` porque los cinco
+ * wrappers de Git-Flow trabajan sobre ficheros del arbol: en un repo
+ * bare, o con el cwd dentro de `.git/`, `--git-dir` habria dicho que
+ * si y el comando habria muerto un proceso mas abajo con el "fatal"
+ * crudo de Git, o peor, diagnose-repo.sh habria declarado limpio un
+ * workspace que no existe (hallazgo MENOR de revision por pares).
  */
-export function isGitRepo(cwd: string): boolean {
-  const result = spawnSync('git', ['rev-parse', '--git-dir'], { cwd, encoding: 'utf8' });
+export function isInsideWorkTree(cwd: string): boolean {
+  const result = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], {
+    cwd,
+    encoding: 'utf8',
+  });
   if (result.error) {
     throw new GitLaunchError(result.error);
   }
-  return result.status === 0;
+  return result.status === 0 && (result.stdout ?? '').trim() === 'true';
+}
+
+/**
+ * true si `relPath` (relativo a la raiz del repo) esta ignorado por
+ * las reglas de gitignore vigentes. Lo usa el wrapper de `pause` para
+ * saber si el propio script va a ensuciar el workspace al escribir su
+ * registro en `logs/`.
+ *
+ * Se resuelve la raiz primero porque `git check-ignore` interpreta las
+ * rutas relativas contra el cwd, y taskctl puede estar invocado desde
+ * un subdirectorio.
+ */
+export function isIgnored(relPath: string, cwd: string): boolean {
+  const toplevel = runGit(['rev-parse', '--show-toplevel'], cwd);
+  const args = ['check-ignore', '-q', '--', relPath] as const;
+  const result = spawnSync('git', args, { cwd: toplevel, encoding: 'utf8' });
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  if (result.status === 0) return true;
+  // 1 = no esta ignorado (respuesta valida). Cualquier otro codigo es
+  // un error real, mismo criterio que isAncestor.
+  if (result.status === 1) return false;
+  throw new GitCommandError(args, result.stderr ?? '');
 }
 
 export type OperacionGitEnCurso = 'merge' | 'rebase';
@@ -334,11 +362,13 @@ export function ensureBaseBranchReady(tipo: Task['tipo'], cwd: string): BaseBran
   // (hallazgo menor de revision por pares, TASK-012). El mensaje no
   // menciona la rama base esperada a proposito: es literalmente el
   // ejemplo de la seccion 8.3 de la metodologia, que tampoco la
-  // menciona.
+  // menciona. Desde TASK-026 tambien nombra "taskctl pause", como el
+  // ejemplo de la 8.3 — hasta entonces se omitia porque ese comando
+  // no existia (hallazgo MENOR de revision por pares, TASK-026).
   if (!isWorkspaceClean(cwd)) {
     throw new BaseBranchGuardError(
-      `[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos o comitealos antes de ` +
-        'continuar.'
+      `[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos ("taskctl pause") o ` +
+        'comitealos antes de continuar.'
     );
   }
 
