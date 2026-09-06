@@ -195,3 +195,31 @@ test('escanearWip: la misma tarea en el arbol y en su rama ocupa un solo hueco',
     assert.equal(r.tareas.length, 1);
   });
 });
+
+test('ramasDeTrabajoAbiertas: tolera que la rama principal no exista en local', async () => {
+  await withRepo(async (repoRoot, tareasRoot) => {
+    // En un clon recien hecho, main suele estar solo como origin-main
+    // hasta que alguien le hace checkout. Antes de esta guarda,
+    // merge-base --is-ancestor reventaba con 'Not a valid object name'
+    // y tumbaba el comando entero. Lo destapo el smoke test de
+    // TASK-025 sobre un clon limpio; los repos de estos tests si
+    // tenian las dos ramas, asi que no lo veian.
+    await ramaConTarea(repoRoot, tareasRoot, 'feature/abierta', tarea({ id: 'TASK-901' }));
+    git(['branch', '-D', 'main'], repoRoot);
+
+    const abiertas = ramasDeTrabajoAbiertas(repoRoot, 'develop', 'main');
+
+    assert.deepEqual(abiertas, ['feature/abierta']);
+  });
+});
+
+test('escanearWip: sigue funcionando sin la rama principal en local', async () => {
+  await withRepo(async (repoRoot, tareasRoot) => {
+    await ramaConTarea(repoRoot, tareasRoot, 'feature/abierta', tarea({ id: 'TASK-901' }));
+    git(['branch', '-D', 'main'], repoRoot);
+
+    const r = await escanearWip(tareasRoot, repoRoot, 'develop', 'main', ESTADOS_QUE_OCUPAN_WIP);
+
+    assert.deepEqual(r.tareas.map((t) => t.task.id), ['TASK-901']);
+  });
+});

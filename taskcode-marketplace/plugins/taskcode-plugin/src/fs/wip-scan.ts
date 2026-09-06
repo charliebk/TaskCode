@@ -26,7 +26,13 @@ import path from 'node:path';
 import { STATE_FOLDER, type TareaUbicada, type TaskState } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { listTareasEnEstados, type TareasEnEstadosResult } from './task-store.js';
-import { isAncestor, localBranches, lsTreeNames, showFileAtRef } from './git.js';
+import {
+  isAncestor,
+  localBranchExists,
+  localBranches,
+  lsTreeNames,
+  showFileAtRef,
+} from './git.js';
 
 const TASK_ID_RE = /^TASK-\d{3,}$/;
 
@@ -49,11 +55,19 @@ export function ramasDeTrabajoAbiertas(
   baseBranch: string,
   mainBranch: string
 ): string[] {
+  // Solo se compara contra las referencias que EXISTEN en local. En un
+  // clon recien hecho, "main" suele estar unicamente como origin/main
+  // hasta que alguien le hace checkout, y "git merge-base --is-ancestor
+  // <rama> main" revienta con "Not a valid object name" y tumbaba el
+  // comando entero (detectado por el smoke test de TASK-025, sobre un
+  // clon limpio; los repos de los tests si tenian las dos ramas).
+  const referencias = [baseBranch, mainBranch].filter(
+    (ref, i, todas) => todas.indexOf(ref) === i && localBranchExists(ref, repoCwd)
+  );
+
   return localBranches(repoCwd).filter((rama) => {
-    if (rama === baseBranch || rama === mainBranch) return false;
-    if (isAncestor(rama, baseBranch, repoCwd)) return false;
-    if (mainBranch !== baseBranch && isAncestor(rama, mainBranch, repoCwd)) return false;
-    return true;
+    if (referencias.includes(rama)) return false;
+    return !referencias.some((ref) => isAncestor(rama, ref, repoCwd));
   });
 }
 
