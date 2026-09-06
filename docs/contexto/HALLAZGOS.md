@@ -95,7 +95,17 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
   la revisión de TASK-026. El repo TaskCode lo ignora (`.gitignore`, línea
   14) y los tests de comandos replican ese `.gitignore` en sus repos
   temporales **a propósito**, no por adorno. `taskctl pause` sin terminal lo
-  comprueba con `git check-ignore` y aborta explicándolo.
+  comprueba con `git check-ignore` y aborta explicándolo — preguntando por el
+  fichero que se escribe y con `--no-index`, que si no un `.gitignore` con
+  `logs/gitflow/` o con `*.log`, o un `logs/.gitkeep` trackeado, dan la
+  respuesta contraria a la verdadera.
+
+  La misma trampa deja **`taskctl resume` inservible** en un repo que no
+  ignore el registro: aborta con *"El workspace no está limpio"* cuando la
+  única suciedad es la que acaba de crear el propio script, y remite a un
+  `pause` que también abortaría. Ahí no hay guard, a propósito: el arreglo
+  de raíz es del lado de los scripts (C6), y taparlo desde el wrapper
+  extendería su guard a un caso que no tiene que ver con la interactividad.
 - **Los mensajes de los scripts siguen remitiendo a los menús de IntelliJ**
   (*"usa GitFlow 16 Pause Work"*, *"GitFlow 17 Resume Work"*, *"GitFlow 18
   Recover Branch"*, *"GitFlow 19 Abort Merge"*) aunque desde TASK-026 esos
@@ -312,3 +322,12 @@ no de Windows, y en IntelliJ nativo no deberían aparecer:
   `git config user.email/user.name` local, cualquier commit falla con
   `exit 128` — y si va encadenado con `&&`, el fallo aparece más tarde y
   despista.
+- **`plan.test.ts` tiene tests intermitentes bajo carga** (visto dos veces
+  en TASK-026, con tests distintos, y una tercera el revisor con un `EBUSY`
+  en `main.test.ts`): fallan en la suite completa y pasan al correr el
+  fichero aislado. Antes de acusar a un cambio, **volver a correr el fichero
+  solo**.
+- El stdin del proceso de test **no está bajo control**: bajo `node --test`
+  es una tubería abierta que nadie cierra. Un test que llegue a un `read`
+  de un script no falla — **cuelga la suite entera**. Ver el patrón del
+  proceso hijo en la sección "Patrones a reutilizar".
