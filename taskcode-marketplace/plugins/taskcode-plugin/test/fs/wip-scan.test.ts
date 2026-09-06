@@ -15,6 +15,7 @@ import {
   ramasDeTrabajoAbiertas,
   tareasEnRamasAbiertas,
   escanearWip,
+  referenciasDeCierre,
 } from '../../src/fs/wip-scan.js';
 import { ESTADOS_QUE_OCUPAN_WIP } from '../../src/core/wip.js';
 import type { Task } from '../../src/core/task.js';
@@ -82,7 +83,7 @@ async function ramaConTarea(
 
 test('ramasDeTrabajoAbiertas: excluye la base y la principal', async () => {
   await withRepo(async (repoRoot) => {
-    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'develop', 'main'), []);
+    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'develop'), []);
   });
 });
 
@@ -94,7 +95,7 @@ test('ramasDeTrabajoAbiertas: una rama sin mergear cuenta; una mergeada no', asy
 
     // La mergeada sigue existiendo (politica IECA: las ramas no se
     // borran), pero ya no es trabajo en curso.
-    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'develop', 'main'), ['feature/abierta']);
+    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'develop'), ['feature/abierta']);
   });
 });
 
@@ -108,7 +109,7 @@ test('ramasDeTrabajoAbiertas: una rama mergeada solo en main tampoco cuenta', as
     git(['merge', '--no-ff', '-q', '-m', 'merge a main', 'hotfix/urgente'], repoRoot);
     git(['checkout', '-q', 'develop'], repoRoot);
 
-    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'develop', 'main'), []);
+    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'develop'), []);
   });
 });
 
@@ -172,7 +173,7 @@ test('escanearWip: une el arbol activo y las ramas, sin contar dos veces', async
     git(['add', '-A'], repoRoot);
     git(['commit', '-q', '-m', 'una en curso en la propia base'], repoRoot);
 
-    const r = await escanearWip(tareasRoot, repoRoot, 'develop', 'main', ESTADOS_QUE_OCUPAN_WIP);
+    const r = await escanearWip(tareasRoot, repoRoot, 'develop', ESTADOS_QUE_OCUPAN_WIP);
 
     assert.deepEqual(
       r.tareas.map((t) => t.task.id).sort(),
@@ -190,7 +191,7 @@ test('escanearWip: la misma tarea en el arbol y en su rama ocupa un solo hueco',
     git(['commit', '-q', '--allow-empty', '-m', 'algo mas en la rama'], repoRoot);
     git(['checkout', '-q', 'develop'], repoRoot);
 
-    const r = await escanearWip(tareasRoot, repoRoot, 'develop', 'main', ESTADOS_QUE_OCUPAN_WIP);
+    const r = await escanearWip(tareasRoot, repoRoot, 'develop', ESTADOS_QUE_OCUPAN_WIP);
 
     assert.equal(r.tareas.length, 1);
   });
@@ -207,7 +208,7 @@ test('ramasDeTrabajoAbiertas: tolera que la rama principal no exista en local', 
     await ramaConTarea(repoRoot, tareasRoot, 'feature/abierta', tarea({ id: 'TASK-901' }));
     git(['branch', '-D', 'main'], repoRoot);
 
-    const abiertas = ramasDeTrabajoAbiertas(repoRoot, 'develop', 'main');
+    const abiertas = ramasDeTrabajoAbiertas(repoRoot, 'develop');
 
     assert.deepEqual(abiertas, ['feature/abierta']);
   });
@@ -218,8 +219,46 @@ test('escanearWip: sigue funcionando sin la rama principal en local', async () =
     await ramaConTarea(repoRoot, tareasRoot, 'feature/abierta', tarea({ id: 'TASK-901' }));
     git(['branch', '-D', 'main'], repoRoot);
 
-    const r = await escanearWip(tareasRoot, repoRoot, 'develop', 'main', ESTADOS_QUE_OCUPAN_WIP);
+    const r = await escanearWip(tareasRoot, repoRoot, 'develop', ESTADOS_QUE_OCUPAN_WIP);
 
     assert.deepEqual(r.tareas.map((t) => t.task.id), ['TASK-901']);
+  });
+});
+
+// --- correcciones de la revision por pares ---
+
+test('ramasDeTrabajoAbiertas: con base main, una rama mergeada SOLO a develop no cuenta (CRITICO)', async () => {
+  await withRepo(async (repoRoot, tareasRoot) => {
+    // El caso de un hotfix, cuya base es main. Cuando las referencias
+    // dependian del tipo, develop desaparecia del conjunto: como
+    // entre release y release ninguna rama es antepasado de main,
+    // TODAS pasaban por abiertas (18 en el repo real) y el hotfix
+    // quedaba bloqueado acusando a tareas ya terminadas.
+    await ramaConTarea(repoRoot, tareasRoot, 'feature/ya-cerrada', tarea({ id: 'TASK-901' }));
+    git(['merge', '--no-ff', '-q', '-m', 'merge a develop', 'feature/ya-cerrada'], repoRoot);
+    // main se queda atras, como entre release y release.
+
+    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'main'), []);
+  });
+});
+
+test('referenciasDeCierre: incluye develop aunque la base sea otra, y solo las que existen', async () => {
+  await withRepo(async (repoRoot) => {
+    assert.deepEqual(referenciasDeCierre(repoRoot, 'main').sort(), ['develop', 'main']);
+    git(['branch', '-D', 'main'], repoRoot);
+    assert.deepEqual(referenciasDeCierre(repoRoot, 'main'), ['develop']);
+  });
+});
+
+test('ramasDeTrabajoAbiertas: sin ninguna referencia local no se escanea nada', async () => {
+  await withRepo(async (repoRoot, tareasRoot) => {
+    // Sin referencia, TODA rama pareceria abierta. Bloquear a todo el
+    // mundo por no poder mirar es peor que no mirar.
+    await ramaConTarea(repoRoot, tareasRoot, 'feature/abierta', tarea({ id: 'TASK-901' }));
+    git(['checkout', '-q', 'feature/abierta'], repoRoot);
+    git(['branch', '-D', 'develop'], repoRoot);
+    git(['branch', '-D', 'main'], repoRoot);
+
+    assert.deepEqual(ramasDeTrabajoAbiertas(repoRoot, 'develop'), []);
   });
 });

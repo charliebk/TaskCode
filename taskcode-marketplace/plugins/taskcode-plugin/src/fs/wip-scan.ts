@@ -50,20 +50,42 @@ const TASK_ID_RE = /^TASK-\d{3,}$/;
  * backmerge fallo): bloquear por eso seria un falso positivo con una
  * causa dificilisima de adivinar desde el mensaje de error.
  */
-export function ramasDeTrabajoAbiertas(
-  repoCwd: string,
-  baseBranch: string,
-  mainBranch: string
-): string[] {
-  // Solo se compara contra las referencias que EXISTEN en local. En un
-  // clon recien hecho, "main" suele estar unicamente como origin/main
-  // hasta que alguien le hace checkout, y "git merge-base --is-ancestor
-  // <rama> main" revienta con "Not a valid object name" y tumbaba el
-  // comando entero (detectado por el smoke test de TASK-025, sobre un
-  // clon limpio; los repos de los tests si tenian las dos ramas).
-  const referencias = [baseBranch, mainBranch].filter(
+/**
+ * Ramas que, si contienen una rama de trabajo, significan que esa rama
+ * ya esta cerrada. Es SIEMPRE el mismo conjunto, no depende del tipo de
+ * la tarea que arranca.
+ *
+ * Que dependiera del tipo era un hallazgo CRITICO de revision por
+ * pares: para un hotfix la base es "main" y la principal tambien, asi
+ * que develop desaparecia del conjunto. Como entre release y release
+ * ninguna rama de tarea es antepasado de main, TODAS pasaban por
+ * abiertas: en el repo real eran 18, y "taskctl start" de un hotfix
+ * quedaba bloqueado acusando a tareas ya terminadas de seguir en curso,
+ * con un remedio ("taskctl finish") que respondia "ya esta terminada".
+ * El camino urgente, inutilizable.
+ *
+ * Solo refs LOCALES, y sin preguntar al remoto: resolveMainBranch hace
+ * hasta dos "git ls-remote", ~2,3 s por invocacion (medido en la
+ * revision), para un valor que ademas se descartaba si main no era
+ * local. Y contradecia la razon por la que este modulo no mira ramas
+ * remotas: no meter la red en un comando que funciona sin conexion.
+ */
+export function referenciasDeCierre(repoCwd: string, baseBranch: string): string[] {
+  return [baseBranch, 'develop', 'main', 'master'].filter(
     (ref, i, todas) => todas.indexOf(ref) === i && localBranchExists(ref, repoCwd)
   );
+}
+
+export function ramasDeTrabajoAbiertas(repoCwd: string, baseBranch: string): string[] {
+  const referencias = referenciasDeCierre(repoCwd, baseBranch);
+
+  // Sin ninguna referencia local no se puede saber que esta mergeado, y
+  // entonces TODA rama pareceria abierta: en vez de bloquear a todo el
+  // mundo por no poder mirar, no se escanea ninguna. Es un falso
+  // negativo en un caso rarisimo (un checkout sin develop, main ni
+  // master en local), preferible a falsos positivos en masa que ademas
+  // no se podrian arreglar cerrando nada.
+  if (referencias.length === 0) return [];
 
   return localBranches(repoCwd).filter((rama) => {
     if (referencias.includes(rama)) return false;
@@ -101,12 +123,17 @@ export function tareasEnRamasAbiertas(
       for (const ruta of lsTreeNames(rama, prefijo, repoCwd)) {
         if (path.basename(ruta) !== 'tarea.md') continue;
         if (idDesdeRuta(ruta) === null) continue;
+        // El "show" va FUERA del try de parseo: si falla Git (una ref
+        // corrupta, un fichero que revienta el maxBuffer) eso no es una
+        // tarea dudosa, es un problema de Git, y su error debe salir
+        // con su mensaje en vez de disfrazarse de "arregla el
+        // frontmatter" (hallazgo MENOR de revision por pares).
+        const contenido = showFileAtRef(rama, ruta, repoCwd);
         try {
-          tareas.push({ task: parseTareaFile(showFileAtRef(rama, ruta, repoCwd)).task, estadoCarpeta: estado });
+          tareas.push({ task: parseTareaFile(contenido).task, estadoCarpeta: estado });
         } catch {
           // Frontmatter roto o Task invalido dentro de esa rama. No se
-          // propaga: el llamador decide (fail-closed en start). Un
-          // fallo del propio Git si se propaga, con su mensaje.
+          // propaga: el llamador decide.
           ilegibles.push(`${rama}:${ruta}`);
         }
       }
@@ -125,25 +152,51 @@ export function tareasEnRamasAbiertas(
  * en la propia rama base (lo que pasa con las tareas del
  * bootstrapping), que ninguna rama de trabajo reflejaria.
  */
+export interface EscaneoWip {
+  tareas: TareaUbicada[];
+  /**
+   * Ilegibles del ARBOL ACTIVO. Bloquean (fail-closed): estan delante
+   * de quien ejecuta y se arreglan editando el fichero.
+   */
+  ilegibles: string[];
+  /**
+   * Ilegibles dentro de OTRAS RAMAS. Solo avisan.
+   *
+   * Hallazgo IMPORTANTE de revision por pares: al pasar a escanear
+   * ramas, el fail-closed de B7 dejo de cubrir el working tree para
+   * cubrir el historial de todas las ramas locales sin mergear — 18 en
+   * este repo, muchas de auditoria que nadie va a tocar por politica.
+   * Un solo tarea.md corrupto en cualquiera de ellas dejaba a TODO el
+   * mundo sin poder arrancar nada, y "arregla su frontmatter" era
+   * inaplicable: hay que hacer checkout de esa rama, corregir y
+   * commitear alli. El coste de la duda lo pagaba quien no la creo.
+   */
+  avisos: string[];
+}
+
 export async function escanearWip(
   tareasRoot: string,
   repoCwd: string,
   baseBranch: string,
-  mainBranch: string,
   estados: readonly TaskState[]
-): Promise<TareasEnEstadosResult> {
+): Promise<EscaneoWip> {
   const enArbol = await listTareasEnEstados(tareasRoot, estados);
-  const ramas = ramasDeTrabajoAbiertas(repoCwd, baseBranch, mainBranch);
+  const ramas = ramasDeTrabajoAbiertas(repoCwd, baseBranch);
   const enRamas = tareasEnRamasAbiertas(repoCwd, ramas, estados);
 
   const porId = new Map<string, TareaUbicada>();
-  for (const t of [...enArbol.tareas, ...enRamas.tareas]) {
-    // Gana la primera vista: el arbol activo antes que las ramas. Da
-    // igual cual, porque solo se usa para saber de quien es y en que
-    // carpeta esta, y en ambas fuentes ocupa un unico hueco.
+  // Las ramas van PRIMERO y ganan: su copia es la fresca. La del arbol
+  // de la rama base puede estar desactualizada, y decide de QUIEN es la
+  // tarea — hallazgo MENOR de revision por pares, que reprodujo una
+  // tarea reasignada dentro de su rama y bloqueando a la persona
+  // equivocada.
+  for (const t of [...enRamas.tareas, ...enArbol.tareas]) {
     if (!porId.has(t.task.id)) porId.set(t.task.id, t);
   }
 
-  const ilegibles = [...enArbol.ilegibles, ...enRamas.ilegibles].sort();
-  return { tareas: [...porId.values()], ilegibles };
+  return {
+    tareas: [...porId.values()],
+    ilegibles: [...enArbol.ilegibles].sort(),
+    avisos: [...enRamas.ilegibles].sort(),
+  };
 }

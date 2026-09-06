@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: [cli, wip, git]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-025-el-limite-de-wip-mira-las-ramas-de-traba
 asignado_a: charlie.bk@gmail.com

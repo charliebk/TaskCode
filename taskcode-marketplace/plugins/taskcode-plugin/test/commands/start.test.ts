@@ -955,3 +955,34 @@ test('taskctl start: reintentar una tarea cuya rama ya existe no la bloquea cont
     );
   });
 });
+
+test('taskctl start: un tarea.md roto en OTRA rama avisa, pero no bloquea', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo IMPORTANTE de revision por pares: al pasar a escanear
+    // ramas, un fichero corrupto en cualquier rama ajena o abandonada
+    // dejaba a TODO el mundo sin poder arrancar nada, y el remedio
+    // ('arregla su frontmatter') era inaplicable sin hacer checkout de
+    // esa rama. El coste de la duda lo pagaba quien no la creo.
+    git(['checkout', '-q', '-b', 'feature/experimento-de-otro'], repoRoot);
+    const rota = path.join(tareasRoot, '02-en-curso', 'TASK-777');
+    await mkdir(rota, { recursive: true });
+    await writeFile(path.join(rota, 'tarea.md'), 'basura', 'utf8');
+    commitAll(repoRoot, 'una tarea rota en una rama ajena');
+    git(['checkout', '-q', 'develop'], repoRoot);
+
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'carlos@example.com' }), '');
+    commitAll(repoRoot, 'tarea de carlos');
+
+    const result = await runStartCommand(tareasRoot, ['TASK-500'], '2026-09-06', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    // Arranca...
+    assert.equal(result.id, 'TASK-500');
+    // ...pero lo dice, con la rama delante para poder llegar al fichero.
+    assert.equal(result.avisosWip.length, 1);
+    assert.ok(result.avisosWip[0]?.includes('TASK-777'), result.avisosWip[0]);
+    assert.ok(result.avisosWip[0]?.includes('experimento-de-otro'), result.avisosWip[0]);
+  });
+});
