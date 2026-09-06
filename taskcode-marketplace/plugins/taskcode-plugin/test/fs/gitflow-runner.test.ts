@@ -46,6 +46,30 @@ test('runGitflowScript: devuelve code y signal para un script real', () => {
   assert.equal(result.signal, null);
 });
 
+test('runGitflowScript: sin opcion stdin, un script que lee de la entrada recibe EOF (default "ignore")', async () => {
+  const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-runner-'));
+  try {
+    // Devuelve 0 si "read" fallo (EOF) y 1 si consiguio leer algo: al
+    // reves de lo intuitivo, para que el test distinga los dos casos
+    // sin depender del texto de salida.
+    await writeFile(
+      path.join(dir, 'lee-stdin.sh'),
+      '#!/usr/bin/env bash\nif read -r linea; then exit 1; fi\nexit 0\n',
+      'utf8'
+    );
+    const result = runGitflowScript('lee-stdin.sh', [], { scriptsDir: dir, cwd: dir });
+    assert.equal(
+      result.code,
+      0,
+      'el default sigue siendo "ignore": el ciclo de vida no debe heredar stdin'
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('GitflowScriptLaunchError: mensaje incluye el nombre del script y el error original', () => {
   const original = new Error('spawnSync bash ENOENT');
   const err = new GitflowScriptLaunchError('create-feature.sh', original);

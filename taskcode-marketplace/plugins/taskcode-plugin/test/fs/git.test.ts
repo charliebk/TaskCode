@@ -9,6 +9,8 @@ import {
   currentBranch,
   isValidBranchName,
   isRemoteAvailable,
+  isGitRepo,
+  operacionEnCurso,
   localBranchExists,
   resolveMainBranch,
   resolveBaseBranchForTipo,
@@ -355,5 +357,66 @@ test('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only f
       // revision por pares, TASK-012).
       assert.equal(currentBranch(repoRoot), 'develop');
     });
+  });
+});
+
+// ── isGitRepo / operacionEnCurso (TASK-026) ─────────────────────────
+
+test('isGitRepo: true dentro de un repo y en un subdirectorio suyo', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { mkdir } = await import('node:fs/promises');
+    const sub = path.join(repoRoot, 'a', 'b');
+    await mkdir(sub, { recursive: true });
+    assert.equal(isGitRepo(repoRoot), true);
+    assert.equal(isGitRepo(sub), true);
+  });
+});
+
+test('isGitRepo: false en un directorio que no es un repo (sin lanzar)', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-norepo-'));
+  try {
+    assert.equal(isGitRepo(dir), false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('operacionEnCurso: null cuando no hay nada a medias', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile(path.join(repoRoot, 'a.txt'), 'uno\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'inicial'], repoRoot);
+    assert.equal(operacionEnCurso(repoRoot), null);
+  });
+});
+
+test('operacionEnCurso: "merge" con un merge en conflicto de verdad, y null tras abortarlo', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile } = await import('node:fs/promises');
+    const fichero = path.join(repoRoot, 'a.txt');
+    await writeFile(fichero, 'base\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'base'], repoRoot);
+
+    git(['checkout', '-q', '-b', 'otra'], repoRoot);
+    await writeFile(fichero, 'version de otra\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'cambio en otra'], repoRoot);
+
+    git(['checkout', '-q', 'main'], repoRoot);
+    await writeFile(fichero, 'version de main\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'cambio en main'], repoRoot);
+
+    // Merge que conflicta a proposito: git sale != 0, por eso no se
+    // usa el helper git() de este fichero, que asevera status 0.
+    const merge = spawnSync('git', ['merge', 'otra'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.notEqual(merge.status, 0, 'el merge deberia haber conflictado');
+
+    assert.equal(operacionEnCurso(repoRoot), 'merge');
+
+    git(['merge', '--abort'], repoRoot);
+    assert.equal(operacionEnCurso(repoRoot), null);
   });
 });

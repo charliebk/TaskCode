@@ -7,6 +7,8 @@
  * scripts .sh siguen siendo la unica fuente de verdad para eso).
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import type { Task } from '../core/task.js';
 
 export class GitCommandError extends Error {
@@ -56,6 +58,47 @@ function runGit(args: readonly string[], cwd: string): string {
 /** true si `git status --porcelain` no devuelve nada (workspace limpio). */
 export function isWorkspaceClean(cwd: string): boolean {
   return runGit(['status', '--porcelain'], cwd) === '';
+}
+
+/**
+ * true si `cwd` esta dentro de un repositorio Git (TASK-026). No pasa
+ * por runGit a proposito, igual que gitUserEmail: "esto no es un
+ * repo" es una respuesta valida, no un error que deba propagarse
+ * como GitCommandError.
+ *
+ * Lo usan los cinco wrappers de Git-Flow, que son los unicos comandos
+ * de taskctl que se pueden invocar en un repo cualquiera sin tareas.
+ * Sin esta comprobacion, cada script reacciona a su manera a no estar
+ * en un repo: diagnose-repo.sh imprime un informe con los campos
+ * vacios, pause-work.sh dice "No estas en ninguna rama".
+ */
+export function isGitRepo(cwd: string): boolean {
+  const result = spawnSync('git', ['rev-parse', '--git-dir'], { cwd, encoding: 'utf8' });
+  if (result.error) {
+    throw new GitLaunchError(result.error);
+  }
+  return result.status === 0;
+}
+
+export type OperacionGitEnCurso = 'merge' | 'rebase';
+
+/**
+ * Que operacion multi-paso hay a medias en el repo, si es que hay
+ * alguna (TASK-026). Mira exactamente los mismos tres testigos que
+ * `abort-merge.sh` (MERGE_HEAD, rebase-merge, rebase-apply), pero
+ * resolviendo cada ruta con `git rev-parse --git-path` en vez de
+ * concatenar sobre --git-dir: asi sigue valiendo dentro de un
+ * worktree enlazado, donde MERGE_HEAD no vive en el .git principal.
+ *
+ * `--git-path` devuelve una ruta relativa al cwd de Git, no al
+ * proceso: se resuelve contra `cwd` antes de mirar el disco.
+ */
+export function operacionEnCurso(cwd: string): OperacionGitEnCurso | null {
+  const gitPath = (nombre: string): string =>
+    path.resolve(cwd, runGit(['rev-parse', '--git-path', nombre], cwd));
+  if (existsSync(gitPath('MERGE_HEAD'))) return 'merge';
+  if (existsSync(gitPath('rebase-merge')) || existsSync(gitPath('rebase-apply'))) return 'rebase';
+  return null;
 }
 
 /** Nombre de la rama activa (equivalente a `git branch --show-current`). */

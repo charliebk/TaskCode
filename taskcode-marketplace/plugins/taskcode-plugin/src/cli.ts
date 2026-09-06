@@ -11,6 +11,11 @@ import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
+import {
+  isWrapperCommand,
+  runWrapperCommand,
+  WrapperCommandError,
+} from './commands/wrappers.js';
 import { resolveGitflowScriptsDir, GitflowScriptLaunchError } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
@@ -40,9 +45,18 @@ Uso:
   taskctl approve TASK-NNN
   taskctl review TASK-NNN
   taskctl finish TASK-NNN
+  taskctl diagnose
+  taskctl pause [--push]
+  taskctl resume [<rama>]
+  taskctl recover [<rama>]
+  taskctl abort-merge
 
 Comandos: new, import, board, start, plan, approve, review, finish.
+Wrappers de Git-Flow: diagnose, pause, resume, recover, abort-merge.
 --asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
+Los wrappers preguntan (guardar como commit o stash, confirmar un abort...):
+ejecutalos desde una terminal. Sin ella, taskctl aborta con instrucciones en
+vez de dejar que el script conteste solo.
 Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
@@ -350,6 +364,41 @@ export async function main(argv: readonly string[]): Promise<number> {
         e instanceof GitLaunchError ||
         e instanceof GitCommandError ||
         e instanceof GitflowScriptLaunchError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  // Los cinco wrappers de Git-Flow (TASK-026). Van al final a
+  // proposito: son los unicos comandos que no tocan "tareas/", asi
+  // que ninguna de las precondiciones de arriba (maquina de estados,
+  // rama base de la 8.3) les aplica.
+  if (isWrapperCommand(cmd)) {
+    const repoCwd = process.cwd();
+    try {
+      const result = runWrapperCommand(cmd, argv.slice(1), {
+        repoCwd,
+        scriptsDir: resolveGitflowScriptsDir(),
+        // Sin TTY no hay a quien preguntar. Es mas estricto que la
+        // realidad (una tuberia con las respuestas escritas tambien
+        // valdria), y es deliberado: distinguir "tuberia con
+        // respuestas" de "tuberia vacia" solo se puede hacer leyendo,
+        // y leer stdin aqui le robaria al script su respuesta.
+        interactivo: process.stdin.isTTY === true,
+        onAviso: (aviso) => printAvisos(aviso),
+      });
+      // El codigo del script se propaga tal cual: un "pause"
+      // cancelado sale 0 y uno con opcion no reconocida sale 1.
+      return result.code;
+    } catch (e) {
+      if (
+        e instanceof WrapperCommandError ||
+        e instanceof GitflowScriptLaunchError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError
       ) {
         printCliError(e);
         return 1;

@@ -8,13 +8,21 @@
  *    fichero: el bit +x no sobrevive en este repo (`core.fileMode`
  *    en false — ver scripts/gitflow/README.md), y es mas robusto en
  *    general (NTFS tampoco preserva permisos Unix).
- * 2. `stdin: 'ignore'`, nunca `'inherit'`: si por lo que sea el script
- *    SI llega a un `read -rp` (no deberia, taskctl comprueba workspace
- *    limpio antes de invocar), TASK-007 establecio que `read` con
- *    stdin no interactivo recibe EOF de inmediato (no bloquea el
- *    proceso) — ignorar stdin explicitamente hace ese comportamiento
+ * 2. `stdin: 'ignore'` POR DEFECTO, nunca `'inherit'` por descuido: si
+ *    por lo que sea un script del ciclo de vida SI llega a un
+ *    `read -rp` (no deberia, taskctl comprueba workspace limpio antes
+ *    de invocar), TASK-007 establecio que `read` con stdin no
+ *    interactivo recibe EOF de inmediato (no bloquea el proceso) —
+ *    ignorar stdin explicitamente hace ese comportamiento
  *    determinista en vez de heredar lo que sea que tenga el proceso
- *    padre.
+ *    padre, y evita que un `taskctl finish` se quede colgado
+ *    esperando en una tuberia que nadie va a cerrar.
+ *
+ * Los cinco wrappers de TASK-026 (`diagnose`, `pause`, `resume`,
+ * `recover`, `abort-merge`) son la excepcion, y por eso la opcion
+ * existe: sus scripts SI preguntan, y preguntar es justamente lo que
+ * se espera de ellos. Pasan `stdin: 'inherit'` de forma explicita;
+ * `start`, `review` y `finish` no la pasan y se quedan con 'ignore'.
  */
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -45,6 +53,12 @@ export function resolveGitflowScriptsDir(): string {
 export interface RunGitflowScriptOptions {
   scriptsDir: string;
   cwd: string;
+  /**
+   * Que hacer con la entrada estandar del script. Omitirlo significa
+   * 'ignore', que es lo que quiere todo el ciclo de vida; 'inherit'
+   * es para los wrappers interactivos de TASK-026 (ver cabecera).
+   */
+  stdin?: 'ignore' | 'inherit';
 }
 
 export interface GitflowScriptResult {
@@ -80,7 +94,7 @@ export function runGitflowScript(
   const scriptPath = path.join(opts.scriptsDir, scriptName);
   const result = spawnSync('bash', [scriptPath, ...args], {
     cwd: opts.cwd,
-    stdio: ['ignore', 'inherit', 'inherit'],
+    stdio: [opts.stdin ?? 'ignore', 'inherit', 'inherit'],
   });
   if (result.error) {
     throw new GitflowScriptLaunchError(scriptName, result.error);
