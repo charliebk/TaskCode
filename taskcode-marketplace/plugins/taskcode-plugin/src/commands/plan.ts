@@ -21,11 +21,16 @@
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
-import { parseAsignadoAFlag, PISTA_VACIO_ESCRITURA } from '../cli/asignado.js';
+import {
+  parseAsignadoAFlag,
+  identidadUsable,
+  PISTA_VACIO_ESCRITURA,
+} from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
+import { ensureBaseBranchReady, gitUserEmail, type BaseBranchGuardResult } from '../fs/git.js';
+import { resolverAsignado } from '../core/wip.js';
 
 export class PlanCommandError extends Error {}
 
@@ -54,6 +59,8 @@ export interface PlanCommandResult {
   asignadoA: string | null;
   /** true si esta invocacion cambio asignado_a (se paso --asignado-a con otro valor). */
   asignadoCambiado: boolean;
+  /** Aviso si la identidad Git existe pero no sirve como asignado_a; null si no aplica. */
+  avisoIdentidad: string | null;
   baseBranchGuard: BaseBranchGuardResult;
 }
 
@@ -125,9 +132,18 @@ export async function runPlanCommand(
   // rama base mientras tanto, y decidir "cambio o no" con la lectura
   // vieja daria un asignadoCambiado mentiroso — la misma regla de doble
   // lectura que obliga TASK-012.
-  // Sin flag se CONSERVA lo que hubiera: "no lo has mencionado" no es
-  // "quitalo".
-  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+  // Precedencia (TASK-024): flag > asignado_a previo > identidad Git >
+  // null. Sin flag se CONSERVA lo que hubiera ("no lo has mencionado"
+  // no es "quitalo"), y solo si no habia nada entra la identidad de
+  // quien ejecuta.
+  // identidadUsable filtra la identidad Git con las MISMAS reglas que
+  // el flag (hallazgo CRITICO de revision por pares, TASK-024): un
+  // user.email con un salto de linea dentro inyectaba claves en el
+  // frontmatter y llegaba a pisar 'estado'. Una identidad invalida no
+  // aborta el comando — quien ejecuta no ha pedido nada raro — pero se
+  // ignora y se avisa.
+  const { identidad, aviso: avisoIdentidad } = identidadUsable(gitUserEmail(deps.repoCwd));
+  const asignadoFinal = resolverAsignado(asignadoA, task.asignado_a, identidad);
   const asignadoCambiado = asignadoFinal !== task.asignado_a;
 
   const updated: Task = {
@@ -161,6 +177,7 @@ export async function runPlanCommand(
     planCreated,
     asignadoA: asignadoFinal,
     asignadoCambiado,
+    avisoIdentidad,
     baseBranchGuard,
   };
 }

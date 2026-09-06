@@ -9,7 +9,7 @@ modelo_sugerido: sonnet
 estado: terminada
 plan_aprobado: true
 rama: feature/task-013-comando-taskctl-review-revision-por-pare
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
 skills_recomendados: []
 ultimo_commit_revisado: null

@@ -12,18 +12,23 @@
  * llamar al script, en vez de delegar en su prompt interactivo.
  */
 import { parseArgs } from '../cli/args.js';
-import { parseAsignadoAFlag, PISTA_VACIO_ESCRITURA } from '../cli/asignado.js';
+import {
+  parseAsignadoAFlag,
+  identidadUsable,
+  PISTA_VACIO_ESCRITURA,
+} from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, listTareasEnEstados } from '../fs/task-store.js';
 import {
   ESTADOS_QUE_OCUPAN_WIP,
   tareasQueBloquean,
+  resolverAsignado,
   mensajeWipExcedido,
   mensajeWipIndeterminado,
   personaDeTarea,
 } from '../core/wip.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, isValidBranchName } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail } from '../fs/git.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 
 export class StartCommandError extends Error {}
@@ -50,6 +55,10 @@ export interface StartCommandResult {
   asignadoA: string | null;
   /** true si esta invocacion cambio asignado_a (se paso --asignado-a con otro valor). */
   asignadoCambiado: boolean;
+  /** Aviso si la identidad Git existe pero no sirve como asignado_a; null si no aplica. */
+  avisoIdentidad: string | null;
+  /** Aviso si la tarea que se arranca esta asignada a otra persona; null si no aplica. */
+  avisoAtribucion: string | null;
 }
 
 export async function runStartCommand(
@@ -106,7 +115,28 @@ export async function runStartCommand(
   // esto, un start --asignado-a otra-persona comprobaria el limite
   // contra quien la tenia asignada antes y luego escribiria a otra: se
   // comprobaria a la persona equivocada.
-  const asignadoFinal = asignadoA !== undefined ? asignadoA : task.asignado_a;
+  // Precedencia (TASK-024): flag > asignado_a previo > identidad Git >
+  // null. Que el previo gane a la identidad es lo que evita que
+  // ejecutar start sobre la tarea de otra persona se la quede: el
+  // limite de WIP se sigue comprobando contra quien tiene la rama.
+  // identidadUsable aplica a la identidad Git las mismas reglas que al
+  // flag (hallazgo CRITICO de revision por pares, TASK-024). Ver el
+  // comentario equivalente en plan.ts.
+  const { identidad, aviso: avisoIdentidad } = identidadUsable(gitUserEmail(deps.repoCwd));
+  const asignadoFinal = resolverAsignado(asignadoA, task.asignado_a, identidad);
+
+  // Aviso de atribucion (hallazgo IMPORTANTE de revision por pares,
+  // TASK-024): quien abre la rama puede no ser quien planifico la
+  // tarea, y como el asignado previo gana a la identidad, el trabajo
+  // queda registrado a nombre de otra persona sin que nadie lo note —
+  // y el limite de WIP se comprueba contra esa otra persona. No se
+  // cambia la semantica (quedarse una tarea ajena debe ser explicito),
+  // pero se dice en voz alta.
+  const avisoAtribucion =
+    asignadoA === undefined && identidad !== null && asignadoFinal !== identidad
+      ? `${task.id} esta asignada a "${asignadoFinal}", no a ti (${identidad}). ` +
+        `La rama la abres tu; si te la quedas, usa --asignado-a ${identidad}.`
+      : null;
 
   // Una tarea sin asignar no tiene a quien aplicarle un limite. Es el
   // caso de todo lo anterior a B6 (asignado_a nace a null), asi que
@@ -114,8 +144,12 @@ export async function runStartCommand(
   // personaDeTarea recorta y trata la cadena vacia como sin asignar:
   // el flag recorta su valor, pero un asignado_a editado a mano en el
   // frontmatter puede llegar con espacios o vacio (dos hallazgos MENOR
-  // de revision por pares). Solo para COMPARAR: lo que se escribe
-  // sigue siendo asignadoFinal tal cual, que start no debe reformatear.
+  // de revision por pares). Se usa tanto para comparar como para
+  // escribir: resolverAsignado devuelve el valor ya recortado, asi que
+  // un asignado_a escrito a mano con espacios queda normalizado al
+  // pasar por aqui. Efecto secundario deseable (cierra el hallazgo de
+  // espacios de B7) pero real: plan y start tocan ese campo aunque
+  // nadie se lo haya pedido (hallazgo MENOR de revision, TASK-024).
   const personaParaWip = personaDeTarea(asignadoFinal);
   if (personaParaWip !== null) {
     let wip;
@@ -208,5 +242,7 @@ export async function runStartCommand(
     filePath: newFilePath,
     asignadoA: asignadoFinal,
     asignadoCambiado,
+    avisoIdentidad,
+    avisoAtribucion,
   };
 }

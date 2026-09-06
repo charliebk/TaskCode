@@ -35,8 +35,10 @@ export const ASIGNADO_FLAG_ALIAS = 'asignado_a';
  * asignar. En "board", que solo filtra, sobraria.
  */
 export const PISTA_VACIO_ESCRITURA =
-  ' Para dejar la tarea sin asignar, omite el flag (se conserva el asignado_a actual) o ' +
-  'edita "asignado_a: null" a mano en tarea.md.';
+  ' Omitir el flag NO desasigna: conserva a quien estuviera y, si no habia nadie, pone la ' +
+  'identidad de "git config user.email" (TASK-024). Hoy no hay forma de dejar una tarea sin ' +
+  'asignar desde el CLI: editar "asignado_a: null" a mano tampoco basta, porque el siguiente ' +
+  'plan o start volveria a rellenarlo con tu identidad.';
 
 /**
  * Devuelve el valor de --asignado-a (o de su alias --asignado_a) ya
@@ -58,6 +60,63 @@ export const PISTA_VACIO_ESCRITURA =
  * frontmatter a mano para conseguirlo; ahora seria un flag.
  */
 export const ASIGNADO_MAX_LONGITUD = 64;
+
+/**
+ * Reglas que debe cumplir CUALQUIER valor que acabe en el campo
+ * "asignado_a", venga del flag o de la identidad Git. Devuelve el
+ * motivo por el que no vale, o null si vale.
+ *
+ * Extraida de parseAsignadoAFlag por un hallazgo CRITICO de revision
+ * por pares (TASK-024): la identidad Git entraba por otra puerta y no
+ * pasaba por ninguna de estas comprobaciones. Un
+ * "git config user.email" con un salto de linea dentro producia un
+ * tarea.md con una clave INYECTADA que pisaba "estado", dejando la
+ * tarea fisicamente en 01-en-diseno pero declarandose "terminada" — y
+ * ladrillada, porque ningun comando aceptaba ya ese estado. Exit 0 y
+ * sin un solo aviso.
+ */
+export function motivoValorInvalido(bruto: string): string | null {
+  const valor = bruto.trim();
+  if (valor === '') return 'no puede estar vacio';
+  if (valor.length > ASIGNADO_MAX_LONGITUD) {
+    return (
+      `no puede pasar de ${ASIGNADO_MAX_LONGITUD} caracteres (recibidos ${valor.length}): ` +
+      'el valor se pinta como columna en "taskctl board" y acaba dentro de docs/BOARD.md, ' +
+      'que es un fichero versionado'
+    );
+  }
+  // Un salto de linea romperia el frontmatter YAML al escribirlo (una
+  // linea "asignado_a: a\nb" deja de ser un mapa valido) y, peor,
+  // permite inyectar claves nuevas que pisan las de verdad.
+  if (/[\r\n]/.test(valor)) {
+    return 'no puede contener saltos de linea: romperia el frontmatter de tarea.md';
+  }
+  return null;
+}
+
+/**
+ * Filtra la identidad Git antes de usarla como asignado_a (TASK-024).
+ * A diferencia del flag, una identidad invalida NO aborta el comando:
+ * quien ejecuta no ha pedido nada raro, es su configuracion de Git la
+ * que no sirve para esto. Se ignora (la tarea queda como estuviera) y
+ * se devuelve un aviso para que el CLI lo saque por stderr, en vez de
+ * corromper el fichero o de plantarle un error en la cara por algo que
+ * no ha hecho en este comando.
+ */
+export function identidadUsable(bruto: string | null): {
+  identidad: string | null;
+  aviso: string | null;
+} {
+  if (bruto === null) return { identidad: null, aviso: null };
+  const problema = motivoValorInvalido(bruto);
+  if (problema === null) return { identidad: bruto.trim(), aviso: null };
+  return {
+    identidad: null,
+    aviso:
+      `tu "git config user.email" ${problema}, asi que no se usa para asignar la tarea. ` +
+      `Corrigelo, o asigna a mano con --${ASIGNADO_FLAG}.`,
+  };
+}
 
 export function parseAsignadoAFlag(
   argv: readonly string[],
@@ -94,29 +153,13 @@ export function parseAsignadoAFlag(
     );
   }
 
-  const valor = raw.trim();
-  if (valor === '') {
-    throw fail(`[ERROR] --${ASIGNADO_FLAG} no puede estar vacio.${pistaVacio}`);
+  const problema = motivoValorInvalido(raw);
+  if (problema !== null) {
+    // pistaVacio solo tiene sentido en el caso del valor vacio: en los
+    // demas, "omite el flag" no es la salida.
+    const pista = raw.trim() === '' ? pistaVacio : '';
+    throw fail(`[ERROR] --${ASIGNADO_FLAG} ${problema}.${pista}`);
   }
 
-  if (valor.length > ASIGNADO_MAX_LONGITUD) {
-    throw fail(
-      `[ERROR] --${ASIGNADO_FLAG} no puede pasar de ${ASIGNADO_MAX_LONGITUD} caracteres ` +
-        `(recibidos ${valor.length}): el valor se pinta como columna en "taskctl board" y ` +
-        'acaba dentro de docs/BOARD.md, que es un fichero versionado.'
-    );
-  }
-
-  // Un salto de linea en el valor romperia el frontmatter YAML al
-  // escribirlo (una linea "asignado_a: a\nb" deja de ser un mapa
-  // valido y la tarea dejaria de poder leerse). Se rechaza en la
-  // entrada en vez de producir un fichero corrupto.
-  if (/[\r\n]/.test(valor)) {
-    throw fail(
-      `[ERROR] --${ASIGNADO_FLAG} no puede contener saltos de linea: romperia el frontmatter ` +
-        'de tarea.md.'
-    );
-  }
-
-  return valor;
+  return raw.trim();
 }

@@ -9,7 +9,7 @@ modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
 rama: feature/task-006-empaquetado-plugin
-asignado_a: charlie.bk
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 ultimo_commit_revisado: 655879a

@@ -9,7 +9,7 @@ modelo_sugerido: haiku
 estado: planificada
 plan_aprobado: false
 rama: feature/task-005-taskctl-board
-asignado_a: charlie.bk
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 ultimo_commit_revisado: null

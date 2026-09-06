@@ -135,9 +135,26 @@ test('main: taskctl plan --asignado-a confirma la asignacion y la deja en tarea.
   });
 });
 
-test('main: sin --asignado-a no se imprime ninguna linea de asignacion', async () => {
+test('main: sin --asignado-a y sin identidad Git no se imprime linea de asignacion', async () => {
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Sin asignar', '--tipo', 'feature']));
+    assert.equal(creada.code, 0);
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+    // Se vacia la identidad DESPUES de commitear (TASK-024): sin
+    // ella, plan deja la tarea sin asignar, como antes.
+    git(['config', 'user.email', ''], repoRoot);
+
+    const { code, stdout } = await captureOutput(() => main(['plan', 'TASK-001']));
+
+    assert.equal(code, 0);
+    assert.ok(!stdout.includes('Asignada a'), stdout);
+  });
+});
+
+test('main: sin --asignado-a pero CON identidad Git, la tarea se autoasigna y se dice', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() => main(['new', '--titulo', 'Con identidad', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
     git(['add', '-A'], repoRoot);
     git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
@@ -145,7 +162,13 @@ test('main: sin --asignado-a no se imprime ninguna linea de asignacion', async (
     const { code, stdout } = await captureOutput(() => main(['plan', 'TASK-001']));
 
     assert.equal(code, 0);
-    assert.ok(!stdout.includes('Asignada a'), stdout);
+    assert.ok(stdout.includes('Asignada a "test@example.com".'), stdout);
+
+    const md = await readFile(
+      path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'tarea.md'),
+      'utf8'
+    );
+    assert.ok(md.includes('asignado_a: test@example.com'), md);
   });
 });
 

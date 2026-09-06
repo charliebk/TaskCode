@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 23 / 41 items terminados (56%)** · última actualización: 2026-09-05
+**Progreso global: 24 / 42 items terminados (57%)** · última actualización: 2026-09-05
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 7 | 0 | ~12h |
+| C — Tapar huecos | 8 | **1** | ~15h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **29** | **11** | **~81h** |
+| **Total pendiente** | **30** | **12** | **~84h** |
 
 ---
 
@@ -147,7 +147,7 @@ del proceso, no lo habilita.
       la misma persona con dos grafías — normalizar identidades es material
       de C4). 38 tests reales nuevos (345).*
 
-## Fase C — Tapar huecos (0/7) · ~12h
+## Fase C — Tapar huecos (1/8) · ~15h
 
 Lo que la metodología da por hecho y no existe.
 
@@ -166,12 +166,26 @@ Lo que la metodología da por hecho y no existe.
       *La primera skill del plugin: hoy no expone ninguna a Claude Code.*
 - [ ] **C6** · Bug de `origin` en `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` — ~1h
       *Los dos últimos los envuelve C1.*
-- [ ] **C7** · TASK-024 — `asignado_a` por defecto desde la identidad Git — ~2h
-      *Decidido por Carlos el 2026-09-05: la identidad es
-      `git config user.email`. Sin esto el límite de WIP de B7 es opt-in y
-      no protege a nadie que no se acuerde del flag: hoy más de la mitad
-      de las tareas de este repo tienen `asignado_a: null`. Incluye migrar
-      las 10 tareas que hoy dicen `charlie.bk` o `carlos`.*
+- [x] **C7** · TASK-024 — `asignado_a` por defecto desde la identidad Git — ~2h
+      *Cerrado el 2026-09-05. Precedencia: `--asignado-a` > `asignado_a`
+      previo > `git config user.email` > `null`; que el previo gane a la
+      identidad evita el robo silencioso de tareas ajenas. Migradas 12
+      tareas a `charlie.bk@gmail.com`. Revisión por pares: **1 CRÍTICO**,
+      4 importantes y 3 menores, todos corregidos. El crítico: la identidad
+      Git esquivaba la validación del flag, y un `user.email` con un salto
+      de línea **inyectaba una clave que pisaba `estado`** y dejaba la tarea
+      ladrillada, con exit 0 y sin aviso. **Ojo**: esta tarea NO hace
+      efectivo el límite de WIP, contra lo que decía su plan — rellenar
+      `asignado_a` es necesario pero no suficiente (ver C8). 24 tests
+      nuevos (369).*
+- [ ] **C8** · Corregir el límite de WIP: hoy no ve las ramas de trabajo — ~3h
+      *Destapado por el smoke test de C7 y confirmado por su revisión.
+      `start` mueve la tarea a `02-en-curso` y ese movimiento se commitea
+      **en la rama de la tarea**, pero `plan`/`new`/`import` devuelven el
+      repo a `develop` (vía `ensureBaseBranchReady`), y en `develop` ninguna
+      tarea está nunca en curso. **El límite de B7 es inoperante en el flujo
+      real.** La corrección: mirar las ramas locales sin mergear y leer el
+      `tarea.md` de cada una en su propia rama (`git show`).*
 
 ## Fase D — Inteligencia del proceso (0/7) · ~38h
 

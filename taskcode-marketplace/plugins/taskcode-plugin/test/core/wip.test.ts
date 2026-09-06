@@ -11,6 +11,7 @@ import {
   mensajeWipExcedido,
   mensajeWipIndeterminado,
   personaDeTarea,
+  resolverAsignado,
 } from '../../src/core/wip.js';
 import type { Task, TareaUbicada, TaskState } from '../../src/core/task.js';
 
@@ -199,4 +200,37 @@ test('mensajeWipExcedido: no promete un taskctl finish que todavia fallaria', ()
   assert.ok(msg.includes('su revision'), msg);
   assert.ok(msg.includes('taskctl finish TASK-901'), msg);
   assert.ok(msg.includes('--asignado-a'), msg);
+});
+
+// --- TASK-024 (item C7): precedencia del asignado ---
+
+test('resolverAsignado: el flag manda sobre todo lo demas', () => {
+  assert.equal(resolverAsignado('flag@x.com', 'previo@x.com', 'git@x.com'), 'flag@x.com');
+  assert.equal(resolverAsignado('flag@x.com', null, null), 'flag@x.com');
+});
+
+test('resolverAsignado: sin flag gana el asignado previo, NO la identidad Git', () => {
+  // Esto es lo que evita el robo silencioso: ejecutar un comando
+  // sobre la tarea de otra persona no se la queda.
+  assert.equal(resolverAsignado(undefined, 'previo@x.com', 'git@x.com'), 'previo@x.com');
+});
+
+test('resolverAsignado: sin flag ni previo, entra la identidad Git', () => {
+  assert.equal(resolverAsignado(undefined, null, 'git@x.com'), 'git@x.com');
+});
+
+test('resolverAsignado: sin nada de lo tres, null (comportamiento anterior a TASK-024)', () => {
+  assert.equal(resolverAsignado(undefined, null, null), null);
+});
+
+test('resolverAsignado: un previo vacio o en blanco no cuenta y deja pasar la identidad', () => {
+  // Coherente con personaDeTarea: '' y '   ' son 'sin asignar'.
+  assert.equal(resolverAsignado(undefined, '', 'git@x.com'), 'git@x.com');
+  assert.equal(resolverAsignado(undefined, '   ', 'git@x.com'), 'git@x.com');
+});
+
+test('resolverAsignado: recorta los tres escalones', () => {
+  assert.equal(resolverAsignado('  flag@x.com  ', null, null), 'flag@x.com');
+  assert.equal(resolverAsignado(undefined, '  previo@x.com  ', null), 'previo@x.com');
+  assert.equal(resolverAsignado(undefined, null, '  git@x.com  '), 'git@x.com');
 });
