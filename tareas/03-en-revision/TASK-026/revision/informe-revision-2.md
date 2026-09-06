@@ -9,7 +9,14 @@
 - Entorno: Windows 11 nativo, **clon nuevo** en
   `%TEMP%/.../scratchpad/clon026r2`, con `C:\Program Files\Git\usr\bin`
   prependido al PATH, `npm install && npm run build && npm test`.
-- Veredicto: **APROBADO**
+- Veredicto: aprobada
+
+> Nota de cierre (la escribe quien implementa, no el revisor): el revisor
+> lo redacto como **APROBADO**; se normaliza a "aprobada" porque es la
+> palabra que lee `taskctl finish`, misma convencion que en TASK-025. De
+> los tres MENOR de esta ronda, el 1 (falsos positivos del guard del
+> registro) quedo corregido despues de este informe, en el commit e1f62fe;
+> los otros dos se documentan sin corregir en el Resultado de la tarea.
 
 ## Resumen
 
