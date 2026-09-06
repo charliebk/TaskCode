@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: [cli, gitflow, wrappers]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-026-wrappers-de-git-flow-en-taskctl-diagnose
 asignado_a: charlie.bk@gmail.com
