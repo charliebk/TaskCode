@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-025 — El limite de WIP mira las ramas de trabajo, no el arbol activo · etiquetas: cli, wip, git · rama fix/task-025-el-limite-de-wip-mira-las-ramas-de-traba · terminada 2026-09-06 · tareas/04-terminadas/TASK-025/
 - TASK-024 — asignado_a por defecto desde la identidad Git · etiquetas: cli, identidad · rama feature/task-024-asignado-a-por-defecto-desde-la-identida · terminada 2026-09-06 · tareas/04-terminadas/TASK-024/
 - TASK-015 — Límite de trabajo en curso por persona · etiquetas: (sin etiquetas) · rama feature/task-015-limite-de-trabajo-en-curso-por-persona · terminada 2026-09-05 · tareas/04-terminadas/TASK-015/
 
