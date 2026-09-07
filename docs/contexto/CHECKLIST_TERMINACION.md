@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 31 / 43 items terminados (72%)** · última actualización: 2026-09-07
+**Progreso global: 32 / 43 items terminados (74%)** · última actualización: 2026-09-07
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
@@ -19,8 +19,8 @@
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
-| E — Cierre | 6 | **1** | ~9h |
-| **Total pendiente** | **31** | **19** | **~96h** |
+| E — Cierre | 6 | **2** | ~9h |
+| **Total pendiente** | **31** | **20** | **~96h** |
 
 ---
 
@@ -322,7 +322,7 @@ ella, con un revisor genérico y un `plan` de un solo agente.
 - [ ] **D6** · Redactar las 4 skills revisoras (java-spring, angular-vue, csharp-autocad-ifc, code-quality) — ~6h
 - [ ] **D7** · Redactar `agents/` (roles de brainstorm) + `scripts/heuristica-complejidad.yml` — ~4h
 
-## Fase E — Cierre (1/6) · ~9h
+## Fase E — Cierre (2/6) · ~9h
 
 - [ ] **E1** · TASK-022 — Documentación de equipo + invitar colaboradores — ~2h
 - [ ] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — ~5h
@@ -336,7 +336,34 @@ ella, con un revisor genérico y un `plan` de un solo agente.
       glob de `npm test` no era portable a `cmd.exe`.*
 - [ ] **E4** · Decidir el cierre de las 12 tareas con `estado: planificada` pese a estar hechas
 - [ ] **E5** · Decidir qué hacer con `runConfigurations.zip` en la raíz
-- [ ] **E6** · Distribución del CLI: un clon recién hecho no trae un `taskctl` que funcione — ~2h
+- [x] **E6** · Distribución del CLI: un clon recién hecho no trae un `taskctl` que funcione — ~2h estimadas, **~6h reales**
+      *Cerrado el 2026-09-07 (TASK-031). `dist/src/` se versiona: un clon de
+      `develop` ya arranca sin compilar (`node bin/taskctl --version` → `0.1.0`,
+      antes exit 1). El enunciado del item se equivocaba en un punto y se
+      corrigió: `package.json` **sí** declara `bin`, y que `plugin.json` no lo
+      haga es correcto — el PATH funciona por convención de directorio. La
+      causa era solo `dist/` ignorado.*
+      *El plan se quedó corto en su premisa central: `newLine: "lf"` no basta,
+      porque las plantillas multilínea de `src/` viajan tal cual al build (34
+      CRLF medidos, los 34 dentro del literal `HELP`). Y la primera medición no
+      lo vio porque comparaba Windows contra Windows. De ahí `*.ts text eol=lf`
+      además de `dist/**` y `bin/*`.*
+      ***Tres rondas de revisión, 34 hallazgos, cero críticos**: 5 importantes
+      + 16 menores (3 revisores en paralelo), 2 + 5 (uno en clon propio), y 0 +
+      5 en la ronda de cierre, **APROBADA**. El guard de CI resultó estar mal
+      por **cinco** motivos distintos, ninguno visto por quien lo escribió — el
+      último, que su propio mensaje de error prescribía un remedio imposible de
+      seguir. Y dos importantes de la ronda 2 eran defectos de las correcciones
+      de la ronda 1, no del trabajo original: el patrón que ya registró C6.*
+      ***AC7 queda a medias, y a propósito**: la instalación real se ejecutó
+      (`plugin marketplace add` + `install` con el CLI 2.1.226), la copia
+      cacheada arranca, y se confirmó por primera vez en este proyecto que el
+      mecanismo de `bin/` en PATH existe de verdad. Pero `taskctl` como comando
+      suelto **no se ha visto funcionar**: cuesta un comando en la próxima
+      sesión, `taskctl --version`. La evidencia que se presentó primero para
+      este AC no probaba lo que decía, y lo cazó la revisión: la caché de un
+      marketplace `directory` copia el árbol de trabajo con ignorados incluidos.*
+      *537 tests (534 verdes y los 3 rojos conocidos de Windows), 5 nuevos.*
       *Item nuevo, abierto por la revisión por pares de C5 (MENOR, no
       bloqueante, **preexistente** y fuera del alcance de aquella tarea).
       `dist/` está en `.gitignore`, `.claude-plugin/plugin.json` no declara
