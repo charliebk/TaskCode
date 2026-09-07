@@ -28,7 +28,7 @@ import {
   PISTA_VACIO_ESCRITURA,
 } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, isEexist, isEnoent } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { ensureBaseBranchReady, gitUserEmail, type BaseBranchGuardResult } from '../fs/git.js';
 import { resolverAsignado } from '../core/wip.js';
@@ -63,7 +63,17 @@ async function existeFichero(p: string): Promise<boolean> {
   try {
     return (await stat(p)).isFile();
   } catch (e: unknown) {
-    if (isEnoent(e)) return false;
+    // ENOTDIR ademas de ENOENT (hallazgo IMPORTANTE de revision por
+    // pares ronda 2, TASK-027): si "planificacion" lo ocupa un FICHERO,
+    // stat("planificacion/plan-final.md") contesta ENOTDIR en POSIX y
+    // ENOENT en Windows. Absorber solo ENOENT hacia que el fix del
+    // mkdir de la ronda 1 fuese un fix solo de Windows: en Linux el
+    // fallo ocurre ANTES, aqui, y salia crudo por "plan" y tambien por
+    // "approve" (que ni siquiera hace mkdir). Semanticamente ENOTDIR es
+    // lo mismo que ENOENT para esta pregunta: ahi no hay ningun
+    // fichero. Quien tenga que quejarse de la ruta ocupada es el mkdir
+    // de "plan", que ya lo hace con un mensaje accionable.
+    if (isEnoent(e) || isEnotdir(e)) return false;
     throw e;
   }
 }
@@ -284,9 +294,29 @@ export async function runPlanCommand(
       await writeFile(ubicacion.canonica, planTemplate(task), { encoding: 'utf8', flag: 'wx' });
       planCreated = true;
     } catch (e: unknown) {
-      // EEXIST = re-planificacion normal: el plan ya estaba ahi y se
-      // deja intacto.
       if (!isEexist(e)) throw e;
+      // EEXIST con "wx" NO siempre es una re-planificacion: open() con
+      // O_CREAT|O_EXCL contesta EEXIST tambien cuando la ruta la ocupa
+      // un DIRECTORIO (comprobado en Windows, y es lo que manda POSIX).
+      // Y aqui sabemos que canonicaExiste era false, o sea que el stat
+      // no vio un fichero regular. Tragarse ese EEXIST dejaba a la
+      // persona en un callejon sin salida: "plan" decia "ya existia --
+      // se dejo intacto" con exit 0 sin haber plan ninguno, y "approve"
+      // contestaba "todavia no tiene un plan-final.md que aprobar.
+      // Ejecuta taskctl plan primero" -- un consejo que no lleva a
+      // ningun sitio, porque "plan" vuelve a decir que todo esta bien
+      // (hallazgo MENOR del smoke test manual, TASK-027).
+      // Se distingue re-stateando: fichero regular = la carrera contra
+      // la ventana entre resolverPlanFinal y esta escritura, que es
+      // justo lo que el "wx" protege, y se deja intacto; cualquier otra
+      // cosa = ruta ocupada, y se dice que hacer.
+      if (!(await existeFichero(ubicacion.canonica))) {
+        throw new PlanCommandError(
+          `[ERROR] ${task.id}: "${ubicacion.canonica}" existe pero no es un fichero ` +
+            '(¿una carpeta con ese nombre?), asi que ahi no hay ningun plan que redactar ' +
+            'ni que aprobar. Renombra o borra esa ruta y reintenta. La tarea no se ha movido.'
+        );
+      }
     }
   }
 

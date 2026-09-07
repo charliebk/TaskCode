@@ -261,6 +261,40 @@ test('taskctl plan: un DIRECTORIO llamado plan-final.md no cuenta como plan (no 
   });
 });
 
+test('taskctl plan: un DIRECTORIO en la ubicacion canonica falla diciendo que hacer, no finge una re-planificacion', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR del smoke test manual (TASK-027), simetrico del
+    // test de arriba pero en la ruta canonica. writeFile con "wx" sobre
+    // un directorio devuelve EEXIST, igual que sobre un fichero; el
+    // catch se lo tragaba como re-planificacion y "plan" salia 0
+    // diciendo "ya existia -- se dejo intacto" SIN plan ninguno,
+    // mientras "approve" contestaba "todavia no tiene un plan-final.md
+    // que aprobar. Ejecuta taskctl plan primero". Bucle sin salida.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    const taskDir = path.join(tareasRoot, '00-planificadas', 'TASK-700');
+    await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME), { recursive: true });
+    commitAll(repoRoot, 'tarea TASK-700 con planificacion/plan-final.md como directorio');
+
+    await assert.rejects(
+      () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(err instanceof PlanCommandError);
+        assert.match(err.message, /no es un fichero/);
+        assert.match(err.message, /Renombra o borra/);
+        return true;
+      }
+    );
+
+    // Fail-closed de verdad: la tarea no se ha movido de carpeta y el
+    // directorio raro sigue intacto donde estaba.
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.equal(read?.task.estado, 'planificada');
+    await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-700')));
+    const raro = await stat(path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME));
+    assert.ok(raro.isDirectory());
+  });
+});
+
 test('taskctl plan: planificacion/ viaja con la tarea al cambiar de carpeta de estado', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Una tarea "planificada" con artefactos previos en planificacion/

@@ -404,3 +404,65 @@ test('taskctl approve: NO sobrescribe con datos viejos el contenido real de la r
     assert.equal(read?.task.actualizado, '2026-09-06');
   });
 });
+
+test('taskctl approve: "planificacion" ocupado por un FICHERO no revienta con un error crudo (ENOTDIR en POSIX, ENOENT en Windows)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo IMPORTANTE de revision por pares (ronda 2, TASK-027): la
+    // ronda 1 envolvio el mkdir de "plan", pero approve no hace mkdir —
+    // llega directo al stat. En POSIX ese stat contesta ENOTDIR y
+    // existeFichero solo absorbia ENOENT, asi que approve moria con un
+    // "taskctl no pudo arrancar: ENOTDIR" en Linux mientras en Windows
+    // se comportaba bien. Este test da el MISMO veredicto en las dos
+    // plataformas: sea cual sea el errno, aqui no hay plan y lo que
+    // toca es el error de dominio, no el de libc.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeFile(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-800', PLANIFICACION_DIRNAME),
+      'soy un fichero, no una carpeta\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'tarea TASK-800 con planificacion ocupado por un fichero');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(
+          err instanceof StateMachineError,
+          `se esperaba el error de dominio, no uno crudo del sistema: ${String(err)}`
+        );
+        assert.match((err as Error).message, /plan-final\.md/);
+        return true;
+      }
+    );
+
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, false);
+  });
+});
+
+test('taskctl approve: con la tarea en un estado no aprobable Y dos plan-final.md, el error habla del ESTADO, no de la ambiguedad', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 2, TASK-027): la
+    // comprobacion de ambiguedad iba ANTES de assertTransitionAllowed y
+    // tapaba el motivo real, mandando a comparar dos planes que no
+    // desbloquean nada. El estado manda primero.
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-curso', plan_aprobado: true }), '');
+    const taskDir = path.join(tareasRoot, '02-en-curso', 'TASK-800');
+    await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME), { recursive: true });
+    await writeFile(path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME), '# A\n', 'utf8');
+    await writeFile(path.join(taskDir, PLAN_FINAL_FILENAME), '# B distinto\n', 'utf8');
+    commitAll(repoRoot, 'tarea TASK-800 en-curso con los dos plan-final.md');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(
+          err instanceof StateMachineError,
+          `se esperaba el error de estado, no el de ambiguedad: ${String(err)}`
+        );
+        assert.match((err as Error).message, /en-curso/);
+        return true;
+      }
+    );
+  });
+});

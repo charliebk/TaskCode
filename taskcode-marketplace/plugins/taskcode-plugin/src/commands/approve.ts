@@ -21,7 +21,7 @@ import path from 'node:path';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { resolverPlanFinal } from './plan.js';
+import { resolverPlanFinal, type PlanFinalUbicacion } from './plan.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 
 export class ApproveCommandError extends Error {}
@@ -40,17 +40,28 @@ export class ApproveCommandError extends Error {}
  * planes divergentes es marcar como revisado un plan que quiza nadie
  * ha leido.
  */
-async function planFinalFileExists(id: string, taskDir: string): Promise<boolean> {
-  const ubicacion = await resolverPlanFinal(taskDir);
-  if (ubicacion.canonicaExiste && ubicacion.legadaExiste) {
+/** true si hay un plan que aprobar en cualquiera de las dos ubicaciones. */
+function planFinalExisteEn(u: PlanFinalUbicacion | null): boolean {
+  return u !== null && (u.canonicaExiste || u.legadaExiste);
+}
+
+/**
+ * Se llama DESPUES de assertTransitionAllowed, no antes (hallazgo MENOR
+ * de revision por pares ronda 2, TASK-027): con la tarea en un estado
+ * que no se puede aprobar, quejarse primero de la ambiguedad tapaba el
+ * motivo real y mandaba a la persona a comparar dos planes que no
+ * desbloquean nada. El estado manda; la ambiguedad es el siguiente
+ * obstaculo, no el primero.
+ */
+function assertPlanNoAmbiguo(id: string, u: PlanFinalUbicacion): void {
+  if (u.canonicaExiste && u.legadaExiste) {
     throw new ApproveCommandError(
       `[ERROR] ${id}: hay un plan-final.md en la raiz de la carpeta y otro en ` +
         `planificacion/. No se puede aprobar sin saber cual es el plan bueno. Compara ` +
-        `"${ubicacion.legada}" con "${ubicacion.canonica}", deja solo el de planificacion/ ` +
+        `"${u.legada}" con "${u.canonica}", deja solo el de planificacion/ ` +
         'y reintenta. No se ha tocado nada.'
     );
   }
-  return ubicacion.canonicaExiste || ubicacion.legadaExiste;
 }
 
 export interface ApproveCommandResult {
@@ -85,12 +96,11 @@ export async function runApproveCommand(
   // silencio el contenido real de la rama base con los datos de una
   // lectura hecha en una rama vieja, tras el cambio automatico).
   const initial = await readTareaFile(tareasRoot, id);
-  const planFinalExisteInicial = initial
-    ? await planFinalFileExists(id, path.dirname(initial.filePath))
-    : false;
+  const ubicacionInicial = initial ? await resolverPlanFinal(path.dirname(initial.filePath)) : null;
   assertTransitionAllowed('approve', initial ? initial.task : null, {
-    planFinalExiste: planFinalExisteInicial,
+    planFinalExiste: planFinalExisteEn(ubicacionInicial),
   });
+  assertPlanNoAmbiguo(id, ubicacionInicial!);
 
   // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
   // tiene cambios sin commitear, o si no puede cambiar de forma
@@ -102,10 +112,11 @@ export async function runApproveCommand(
   // asignado_a, etc. se preservan tal cual esten en la rama base, no
   // como estuvieran en la rama vieja de la lectura preliminar).
   const existing = await readTareaFile(tareasRoot, id);
-  const planFinalExiste = existing
-    ? await planFinalFileExists(id, path.dirname(existing.filePath))
-    : false;
-  assertTransitionAllowed('approve', existing ? existing.task : null, { planFinalExiste });
+  const ubicacion = existing ? await resolverPlanFinal(path.dirname(existing.filePath)) : null;
+  assertTransitionAllowed('approve', existing ? existing.task : null, {
+    planFinalExiste: planFinalExisteEn(ubicacion),
+  });
+  assertPlanNoAmbiguo(id, ubicacion!);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
   const updated: Task = { ...task, plan_aprobado: true, actualizado: today };
