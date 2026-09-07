@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-028 — Primera skill del plugin: task-workflow/SKILL.md · etiquetas: (sin etiquetas) · rama feature/task-028-primera-skill-del-plugin-task-workflow-s · terminada 2026-09-07 · tareas/04-terminadas/TASK-028/
 - TASK-027 — Subcarpetas planificacion y revision en cada carpeta de tarea · etiquetas: (sin etiquetas) · rama feature/task-027-subcarpetas-planificacion-y-revision-en · terminada 2026-09-07 · tareas/04-terminadas/TASK-027/
 - TASK-026 — Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge · etiquetas: cli, gitflow, wrappers · rama feature/task-026-wrappers-de-git-flow-en-taskctl-diagnose · terminada 2026-09-06 · tareas/04-terminadas/TASK-026/
 - TASK-025 — El limite de WIP mira las ramas de trabajo, no el arbol activo · etiquetas: cli, wip, git · rama fix/task-025-el-limite-de-wip-mira-las-ramas-de-traba · terminada 2026-09-06 · tareas/04-terminadas/TASK-025/

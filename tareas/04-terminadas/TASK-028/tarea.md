@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-028-primera-skill-del-plugin-task-workflow-s
 asignado_a: charlie.bk@gmail.com
