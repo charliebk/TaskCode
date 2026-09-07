@@ -1,6 +1,6 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-09-06. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-09-07. No editar a mano.
 
 ## Planificadas (00-planificadas) — 20
 
@@ -29,7 +29,7 @@ TASK-022  Documentación de equipo e incorporación de colaboradores            
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 6
+## Terminadas (04-terminadas) — 7
 
 ```text
 ID        Titulo                                                                           Asignado
@@ -40,4 +40,5 @@ TASK-015  Límite de trabajo en curso por persona                               
 TASK-024  asignado_a por defecto desde la identidad Git                                    charlie.bk@gmail.com
 TASK-025  El limite de WIP mira las ramas de trabajo, no el arbol activo                   charlie.bk@gmail.com
 TASK-026  Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge  charlie.bk@gmail.com
+TASK-027  Subcarpetas planificacion y revision en cada carpeta de tarea                    charlie.bk@gmail.com
 ```

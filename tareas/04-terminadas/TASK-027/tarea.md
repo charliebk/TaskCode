@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-027-subcarpetas-planificacion-y-revision-en
 asignado_a: charlie.bk@gmail.com
@@ -15,7 +15,7 @@ skills_recomendados: []
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-06
-actualizado: 2026-09-06
+actualizado: 2026-09-07
 dependencias: []
 ---
 ## Objetivo

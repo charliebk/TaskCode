@@ -4,6 +4,7 @@ Registro de tareas terminadas. Lo actualiza taskctl finish; una linea
 por tarea, renderizada desde su frontmatter.
 
 ## Sin publicar
+- TASK-027 (feature) — Subcarpetas planificacion y revision en cada carpeta de tarea (2026-09-07)
 - TASK-026 (feature) — Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge (2026-09-06)
 - TASK-025 (fix) — El limite de WIP mira las ramas de trabajo, no el arbol activo (2026-09-06)
 - TASK-024 (feature) — asignado_a por defecto desde la identidad Git (2026-09-06)
