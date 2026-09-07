@@ -17,14 +17,21 @@ documentación oficial (`https://code.claude.com/docs/en/plugins`,
 sección "Test your plugins locally"):
 
 ```bash
-npm install
-npm run build
 claude --plugin-dir /ruta/absoluta/a/TaskCode/taskcode-marketplace/plugins/taskcode-plugin
 ```
 
-Hay que compilar (`npm run build`) antes: `dist/` está en `.gitignore` y
-`bin/taskctl` importa `../dist/src/cli.js`, así que un checkout limpio sin
-build previo falla al arrancar.
+**No hay que compilar nada primero.** Desde TASK-031 (item E6) el build de
+producción, `dist/src/`, se versiona: un clon recién hecho ya trae un
+`taskctl` que arranca. `npm install && npm run build` sigue haciendo falta
+para *desarrollar* el plugin y para correr la suite, que compila también
+`dist/test/` — ese sí queda fuera del repo.
+
+Hasta esa tarea era al revés, y el texto de este README lo decía: `dist/`
+entero estaba en `.gitignore` y `bin/taskctl` importa `../dist/src/cli.js`,
+así que cualquiera que clonara el repo —o instalara el plugin desde el
+marketplace, que es una copia, no un checkout donde uno pueda compilar—
+recibía un CLI que moría con `Cannot find module ...dist/src/cli.js` y
+código 1.
 
 Con el plugin cargado, dentro de la sesión de Claude Code:
 
@@ -32,12 +39,60 @@ Con el plugin cargado, dentro de la sesión de Claude Code:
   siguiente sección).
 - `/reload-plugins` recarga el plugin tras cambios sin reiniciar la sesión.
 
-Si en el futuro se quiere una instalación persistente vía
-`/plugin install <nombre>@<marketplace>` (no solo para la sesión actual),
-hace falta además un `.claude-plugin/marketplace.json` en la raíz de
-`taskcode-marketplace/` que hoy no existe. Se ha dejado fuera del alcance
-de TASK-006 a propósito: el objetivo literal de la tarea es la carga local
-y el PATH del Bash tool, que no requieren marketplace.
+Para una instalación persistente vía `/plugin install <nombre>@<marketplace>`
+(no solo para la sesión actual) hace falta además un
+`.claude-plugin/marketplace.json` en la raíz del marketplace. **Ya existe**,
+en la raíz del repo, desde TASK-021 (item A1) — este README afirmó durante un
+tiempo que no, y era falso.
+
+## Cómo se distribuye: por qué `dist/src/` está versionado
+
+Instalar un plugin **no es un checkout donde el usuario pueda compilar**.
+Según la referencia oficial (`plugin-marketplaces`), Claude Code *copia* el
+plugin a su caché (`~/.claude/plugins/cache`). Sobre esa copia sí instala las
+dependencias npm —`npm ci --ignore-scripts`, porque el plugin trae
+`package.json` y `package-lock.json`—, pero ese `--ignore-scripts` es
+literal: **`postinstall` y `prepare` no se ejecutan nunca**. Compilar al
+instalar no es una opción que se descartara por criterio; la plataforma no la
+ofrece.
+
+De ahí que el build viaje ya hecho. Dos piezas lo sostienen, y conviene no
+tocarlas por separado:
+
+- `tsconfig.json` fija `"newLine": "lf"`, y `.gitattributes` fija
+  `*.ts text eol=lf` **además de** `dist/** text eol=lf`. Lo segundo no es
+  redundante: las plantillas multilínea de `src/` viajan tal cual al build,
+  así que con `core.autocrlf=true` el checkout de Windows mete CRLF dentro de
+  un literal y el mismo `src/` compila distinto que en Linux. Medido en su
+  día: 34 CRLF en `dist/src/cli.js`, todos dentro del literal `HELP`.
+- El CI recompila y falla si `dist/src` no coincide con lo commiteado, **en
+  Linux y en Windows**. Un guard en una sola plataforma no vería justo el
+  fallo que motiva lo anterior.
+
+Si cambias algo de `src/`, recompila y commitea `dist/src` en el mismo
+commit. El guard existe precisamente porque es fácil olvidarlo.
+
+### Limitación conocida: `bin/` y las organization settings de claude.ai
+
+El mecanismo por el que `taskctl` se invoca como comando suelto es tener el
+ejecutable en `bin/`, en la raíz del plugin (referencia oficial,
+`plugins-reference`: *"Executables added to the Bash tool's PATH and invokable
+as bare commands while the plugin is enabled"*). No pasa por ningún campo de
+`plugin.json`.
+
+Esa misma página avisa de que **un plugin con `bin/` de nivel superior no se
+puede distribuir por organization settings de claude.ai** (*"You can't include
+this directory in a plugin you distribute through claude.ai organization
+settings"*), y enlaza a `plugin-marketplaces`, que es donde está el detalle: el
+sync del marketplace y la subida directa lo rechazan con
+`Plugin contains a top-level bin/ directory`, y la alternativa que prescribe
+es mover los ejecutables a `scripts/` e invocarlos por
+`${CLAUDE_PLUGIN_ROOT}/scripts/<nombre>`.
+
+Hoy no bloquea nada: la distribución es un marketplace privado por Git. Queda
+anotado porque condiciona **E1** (invitar colaboradores) y cualquier intento
+futuro de distribuir por esa vía, que obligaría a renunciar a `taskctl` como
+comando suelto o a reestructurar el plugin.
 
 ## `taskctl` en el PATH del Bash tool
 
@@ -139,8 +194,9 @@ Claude Code depende exactamente de esto.
 
 Se repitió el patrón de smoke test de TASK-004/TASK-005: `git clone` a un
 directorio temporal separado, checkout de esta rama, `npm install && npm
-run build` en el clon (nunca se hereda `dist/`/`node_modules/` de un
-`git clone`), y ejecución real:
+run build` en el clon (entonces `dist/` estaba entero en `.gitignore`, así
+que no se heredaba entre clones — **desde TASK-031 `dist/src` sí se hereda**;
+`node_modules/` sigue sin heredarse), y ejecución real:
 
 ```
 $ ls -la bin/taskctl          # tras un clon limpio, sin tocar permisos a mano
@@ -159,6 +215,12 @@ empaquetado no rompió nada del resto del CLI — ambos funcionaron igual
 que en TASK-004/TASK-005.
 
 ### Lo que NO se ha podido verificar en esta sesión (limitación de entorno)
+
+> **Histórico (TASK-006, 2026-09-05).** Se conserva por trazabilidad, pero
+> está superado dos veces: por la sección *RESUELTO (2026-09-05)* y por
+> *RESUELTO (2026-09-07, TASK-031)*, más abajo. Ya hay un CLI real de Claude
+> Code y la instalación se ejecutó de verdad. La receta de `npm install &&
+> npm run build` que aparece aquí tampoco hace ya falta para arrancar.
 
 Ni el contenedor cloud de esta sesión ni el bridge hacia el equipo del
 usuario (`device_bash`) exponen un CLI interactivo real de Claude Code —
@@ -217,8 +279,72 @@ script `test` de `package.json` expandía los globs en el shell, y `cmd.exe`
 no expande globs, así que la suite entera fallaba en Windows. Con el glob
 entrecomillado lo expande Node y funciona en ambos sistemas.
 
-Lo que **sigue** sin poder comprobarse desde una sesión no interactiva:
-`claude --plugin-dir` en modo interactivo y el `/plugin install` real.
+### RESUELTO (2026-09-07, TASK-031): el `/plugin install` real, por fin ejecutado
+
+TASK-006 y TASK-021 dejaron pendiente comprobar la instalación de verdad por
+no haber un CLI de Claude Code disponible. Ya lo hay (2.1.226), y esto es lo
+que se ejecutó:
+
+```
+$ claude plugin validate .                      # marketplace  -> ✔ passed
+$ claude plugin validate ./taskcode-marketplace/plugins/taskcode-plugin
+                                                # plugin       -> ✔ passed
+$ claude plugin marketplace add "C:\...\TaskCode"
+✔ Successfully added marketplace: taskcode-marketplace
+$ claude plugin install taskcode-plugin@taskcode-marketplace
+✔ Successfully installed plugin: taskcode-plugin@taskcode-marketplace (scope: user)
+```
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿El plugin se instala desde el marketplace? | **Sí**, `enabled`, scope `user` |
+| ¿`taskctl` arranca desde la caché, sin compilar? | **Sí**: `node <cache>/bin/taskctl --version` → `0.1.0` |
+| ¿La copia cacheada trae `dist/`? | Sí, **pero esta instalación no lo demuestra** — ver abajo |
+| ¿Claude Code instala las deps npm en la copia? | Sí, **pero no por la razón que parece** — ver abajo |
+| ¿Existe de verdad el mecanismo de `bin/` en PATH? | **Sí** — confirmado abajo |
+
+**Las dos filas del medio necesitan una advertencia, y la revisión por pares
+la encontró.** Este marketplace se añadió como fuente `directory` apuntando al
+propio working tree, y esa clase de caché es **una copia del árbol de trabajo,
+ficheros ignorados por Git incluidos**. Prueba: en la caché hay 34 ficheros de
+`dist/test/`, que Git no versiona (`git ls-files dist/test` → 0). Es decir,
+**esa tabla habría contestado "sí" también antes de esta tarea**, con `dist/`
+entero ignorado, porque lo que se copió fue un árbol ya compilado. La
+conclusión de fondo sigue siendo correcta —en un marketplace por Git, quien
+hace que la copia arranque es `dist/src` versionado— pero quien la demuestra
+es el test de AC1 de `test/empaquetado/distribucion.test.ts`, que exporta HEAD
+y por tanto solo ve lo commiteado. No esta instalación.
+
+Lo mismo con `node_modules/`: también viaja en la copia, así que su presencia
+no prueba nada. Lo que sí lo prueba es que el `.package-lock.json` de la caché
+tiene el `mtime` del instante del install y no el del working tree — ahí sí
+corrió un `npm ci` de verdad, el que documenta `plugins-reference`.
+
+Lo último merece detalle, porque hasta ahora era una cita de la documentación
+que este proyecto nunca había visto ocurrir (el CI la *simula* metiendo `bin/`
+en el `PATH` a mano, que no prueba lo mismo). En el `PATH` de una sesión real
+aparecen entradas como:
+
+```
+.../.claude/plugins/cache/claude-plugins-official/figma/2.2.90/bin
+.../.claude/plugins/cache/karpathy-skills/andrej-karpathy-skills/1.0.0/bin
+```
+
+es decir, el mecanismo existe y opera sobre plugins instalados.
+
+**Lo que queda sin confirmar, y no se da por bueno**: en la sesión donde se
+hizo la instalación, `taskctl` como comando suelto seguía dando
+`command not found`, y el `bin/` de este plugin no estaba en el `PATH`. La
+explicación coherente con la evidencia es que el `PATH` se compone al arrancar
+la sesión y el plugin se instaló después — pero *eso no se ha comprobado*.
+Confirmarlo cuesta un comando en la siguiente sesión:
+
+```bash
+taskctl --version   # deberia imprimir 0.1.0 sin ruta ni node delante
+```
+
+Mientras tanto, lo que sí está probado es que el ejecutable de la caché es
+válido: con su directorio en el `PATH`, `taskctl --version` responde `0.1.0`.
 
 ### Segunda limitación, específica de este repo: `core.fileMode=false`
 

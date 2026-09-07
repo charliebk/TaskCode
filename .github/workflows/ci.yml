@@ -23,6 +23,59 @@ jobs:
       - run: npm ci
       - run: npm test
 
+      # Guard de E6 (TASK-031). dist/src se versiona para que un clon
+      # traiga un taskctl que arranque, y el precio de eso es que se
+      # puede desincronizar de src/. Este step lo impide.
+      #
+      # Corre en los DOS jobs a proposito: el modo de fallo es
+      # cross-plataforma (tsc emite CRLF en Windows y las plantillas
+      # multilinea de src/ viajan tal cual al build), asi que un guard
+      # que solo corriera en Linux no discriminaria justo el caso que
+      # motivo el .gitattributes.
+      - name: "Guard E6: dist/src commiteado == dist/src recompilado"
+        shell: bash
+        run: |
+          # rm -rf antes de compilar: tsc no purga outDir, asi que sin esto
+          # un modulo borrado de src/ dejaria su .js commiteado para siempre
+          # y el guard seguiria en verde (hallazgo de revision por pares).
+          rm -rf dist/src
+          npm run build
+          # Se compara contra el INDICE, no con "git status --porcelain".
+          # En un worktree heredado los .ts pueden seguir en CRLF en disco,
+          # tsc los arrastra a las plantillas del build, y status marca " M"
+          # aunque el blob normalizado sea identico: falso positivo que
+          # ademas deja el workspace sucio y bloquea el guard de la 8.3 de
+          # taskctl. El "add" aplica el filtro clean y desambigua. Y a
+          # diferencia de "git diff --exit-code" a secas, esto SI ve los
+          # ficheros nuevos y los borrados.
+          #
+          # El -f es necesario: sin el, "git add -A" salta en silencio lo que
+          # cualquier .gitignore excluya, y los patrones de directorio sin
+          # ancla ("tareas/", "logs/", "node_modules/") casan a cualquier
+          # profundidad, tambien DENTRO de dist/src. Un modulo en src/tareas/
+          # no llegaria al commit y el guard diria "al dia" mientras el clon
+          # queda roto.
+          git add -A -f -- dist/src
+          rc=0
+          if ! git diff --cached --quiet -- dist/src; then
+            echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
+            git --no-pager diff --cached --stat -- dist/src
+            # Cuando la deriva es de fin de linea el diff sale vacio, asi
+            # que se imprime tambien el eol real de cada fichero.
+            git ls-files --eol -- dist/src | grep -v 'w/lf' || true
+            rc=1
+          else
+            echo "dist/src esta al dia."
+          fi
+          # Se deshace el "add" para no dejar dist/src preparado. Ojo con lo
+          # que esto NO es: pone el indice a HEAD, no lo restaura "como
+          # estaba". En CI da igual, porque el checkout es limpio y efimero.
+          # En una maquina de desarrollo este snippet no es para copiarlo tal
+          # cual: el "rm -rf" de arriba ya se lleva por delante cualquier
+          # cambio sin commitear que hubiera en dist/src.
+          git reset -q -- dist/src
+          exit $rc
+
   test-windows:
     name: Tests + validacion nativa (Windows)
     runs-on: windows-latest
@@ -33,6 +86,47 @@ jobs:
           node-version: '22'
       - run: npm ci
       - run: npm run build
+
+      # Mismo guard que en Linux, y autocontenido igual que aquel: compila
+      # el mismo, sin apoyarse en el step anterior. Si dependiera de el,
+      # bastaria con reordenarlo o condicionarlo para que este siguiera en
+      # verde sin haber recompilado nada — sobre un checkout limpio la
+      # comparacion es trivialmente vacia.
+      #
+      # Aqui es donde de verdad se juega: si el .gitattributes no fijara el
+      # eol, este step se pondria rojo con todo dist/src cambiado aunque
+      # nadie hubiera tocado src/.
+      - name: "Guard E6: dist/src commiteado == dist/src recompilado"
+        shell: bash
+        run: |
+          rm -rf dist/src
+          npm run build
+          # El -f es necesario: sin el, "git add -A" salta en silencio lo que
+          # cualquier .gitignore excluya, y los patrones de directorio sin
+          # ancla ("tareas/", "logs/", "node_modules/") casan a cualquier
+          # profundidad, tambien DENTRO de dist/src. Un modulo en
+          # src/tareas/ no llegaria al commit y el guard diria "al dia"
+          # mientras el clon queda roto.
+          git add -A -f -- dist/src
+          rc=0
+          if ! git diff --cached --quiet -- dist/src; then
+            echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
+            git --no-pager diff --cached --stat -- dist/src
+            # Cuando la deriva es de fin de linea el diff sale vacio, asi
+            # que se imprime tambien el eol real de cada fichero.
+            git ls-files --eol -- dist/src | grep -v 'w/lf' || true
+            rc=1
+          else
+            echo "dist/src esta al dia."
+          fi
+          # Se deshace el "add" para no dejar dist/src preparado. Ojo con lo
+          # que esto NO es: pone el indice a HEAD, no lo restaura "como
+          # estaba". En CI da igual, porque el checkout es limpio y efimero.
+          # En una maquina de desarrollo este snippet no es para copiarlo tal
+          # cual: el "rm -rf" de arriba ya se lleva por delante cualquier
+          # cambio sin commitear que hubiera en dist/src.
+          git reset -q -- dist/src
+          exit $rc
 
       # Cada pregunta abierta es un step que ASEVERA su hipotesis: el
       # verde/rojo del step ES la respuesta, legible por la API sin

@@ -14,9 +14,18 @@ casi todas salieron de algo que salió mal una vez.
 - `main` solo recibe releases y hotfixes.
 - Los mensajes de commit van **en español y sin tildes** (los scripts de
   Git-Flow procesan texto de commits).
+- **Si `git status` te marca ficheros modificados sin que hayas tocado nada**,
+  y `git diff` sale vacío: es el `.gitattributes` con `eol=lf` que llegó en
+  TASK-031. Git no rematerializa lo que ya tenías, así que esos ficheros
+  siguen en CRLF en disco. Se arregla con un `git add --renormalize .`, que no
+  crea ningún commit — pero **prepara todo lo tracked**, así que revisa el
+  índice después si tenías trabajo a medias. `git update-index
+  --really-refresh` no sirve para esto.
+  *(Cuándo aparece exactamente no está cerrado: la revisión de TASK-031 lo
+  reprodujo por un camino y no por otros dos. Si te pasa, ya sabes qué es.)*
 - Atribución al final de cada commit:
   ```
-  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+  Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
   ```
 
 ## Ciclo de una tarea de verdad
@@ -69,7 +78,7 @@ git clone <repo> /tmp/smoke-NNN && cd /tmp/smoke-NNN
 git config user.email "smoke@example.com" && git config user.name "Smoke"
 git checkout <rama>
 cd taskcode-marketplace/plugins/taskcode-plugin
-npm install && npm run build     # dist/ y node_modules/ NUNCA se heredan de un clon
+npm install && npm run build     # node_modules/ y dist/test/ no se heredan de un clon
 ```
 
 Y **rebuild otra vez** si cambias de rama dentro del mismo clon: cada rama

@@ -106,9 +106,14 @@ poner un guard que impida que se desincronice. Decidido con Carlos el
       Windows**.
 - [ ] **AC4** — Se versiona `dist/src/` y **solo** eso: `dist/test/` sigue
       ignorado y no entra ni un fichero de test compilado.
-- [ ] **AC5** — `npm test` sigue en verde: los 472 tests actuales mas los
-      nuevos, con los 3 rojos conocidos de este entorno Windows y ningun
-      cuarto.
+- [ ] **AC5** — `npm test` sigue en verde: los tests actuales mas los nuevos,
+      con los 3 rojos conocidos de este entorno Windows y ningun cuarto.
+      *(Correccion post-revision: este criterio decia "los 472 tests
+      actuales". El 472 estaba copiado de `ESTADO.md`, que iba desfasado; la
+      cifra real en `develop` era 532, y son 537 al cerrar. Es el mismo
+      patron de afirmar sin medir que la tarea vino a corregir en otros
+      sitios, cometido aqui mismo. La transcripcion al `tarea.md` quito el
+      numero sin decir que lo estaba corrigiendo, y eso tambien se anota.)*
 - [ ] **AC6** — El README del plugin describe el arranque real tras el cambio,
       y `skills/task-workflow/SKILL.md` dice en una linea como se pone
       `taskctl` disponible.
@@ -131,6 +136,13 @@ poner un guard que impida que se desincronice. Decidido con Carlos el
   de implementacion y el de `dist/` vayan juntos, no separados.
 - **El `.gitattributes` podria renormalizar ficheros ajenos** si se escribiera
   con un patron amplio. Se acota a `dist/**` y se pone dentro del plugin.
+  *(Correccion post-implementacion: acotarlo a `dist/**` resulto insuficiente
+  y el plan se equivocaba aqui. Los saltos que emite `tsc` si salen en LF,
+  pero las plantillas multilinea de `src/` viajan tal cual al build, asi que
+  hubo que anadir `*.ts text eol=lf` — y despues `bin/* text eol=lf`, por el
+  shebang. La renormalizacion alcanzo a un fichero fuera de `dist/`:
+  `test/commands/wrappers.test.ts`, el unico `.ts` que estaba commiteado con
+  CRLF. Sigue sin tocar `.md`, `.json` ni los `.sh` de Git-Flow.)*
 - **Pregunta que solo AC7 puede contestar**: que `bin/` acabe en el PATH esta
   documentado, pero este proyecto nunca lo ha visto ocurrir en una sesion real
   — el CI lo simula poniendo `bin/` en el PATH a mano, que no es lo mismo. Si

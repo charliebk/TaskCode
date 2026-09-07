@@ -1,6 +1,10 @@
 # Artefactos de build / dependencias — nunca se versionan
 node_modules/
 dist/
+# ...salvo el build de produccion del plugin, que SI se versiona: sin el, un
+# clon recien hecho no trae un taskctl que arranque (item E6 / TASK-031). Los
+# tests compilados siguen fuera, via el .gitignore del propio plugin.
+!taskcode-marketplace/plugins/taskcode-plugin/dist/
 
 # Ficheros de IDE
 .idea/
@@ -11,7 +15,7 @@ dist/
 Thumbs.db
 
 # Logs de los scripts Git-Flow (ver guia original: nunca se comparten)
-logs/
+/logs/
 
 # Evidencia/cache de los toolchains propios. No son fuente y, sin ignorarlas,
 # dejan el workspace permanentemente sucio -> el guard de la seccion 8.3
