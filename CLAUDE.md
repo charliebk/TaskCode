@@ -39,11 +39,13 @@ procesan).
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test     # compila y corre 226 tests con cobertura
+npm test     # compila y corre 429 tests con cobertura
 ```
 
-El CLI: `taskctl new | import | board | plan | approve | start`.
-`review` y `finish` todavía no existen — son la Fase B.
+El CLI: `taskctl new | import | board | plan | approve | start | review |
+finish`, más los cinco wrappers de Git-Flow: `diagnose | pause | resume |
+recover | abort-merge`. El ciclo de vida está completo: Fases A y B
+cerradas.
 
 ## Trampas que ya nos han mordido
 
@@ -55,5 +57,9 @@ El CLI: `taskctl new | import | board | plan | approve | start`.
   medio, por lo mismo.
 - El glob de `npm test` va entrecomillado a propósito: lo expande Node, no el
   shell. Sin comillas, la suite entera falla en `cmd.exe`.
+- En Windows nativo **fallan 3 tests y no son regresiones** (dos por el truco
+  del symlink, uno por finales de línea); en el CI de Linux pasan. Aquí «suite
+  en verde» significa que fallan solo esos tres: si aparece un cuarto, es
+  tuyo.
 
 El resto, en `docs/contexto/HALLAZGOS.md`.
