@@ -1,6 +1,10 @@
 # Artefactos de build / dependencias — nunca se versionan
 node_modules/
 dist/
+# ...salvo el build de produccion del plugin, que SI se versiona: sin el, un
+# clon recien hecho no trae un taskctl que arranque (item E6 / TASK-031). Los
+# tests compilados siguen fuera, via el .gitignore del propio plugin.
+!taskcode-marketplace/plugins/taskcode-plugin/dist/
 
 # Ficheros de IDE
 .idea/

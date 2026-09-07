@@ -1,0 +1,10 @@
+# Los fuentes TypeScript se materializan con LF en toda plataforma. No es
+# cosmetico: las plantillas multilinea de src/ viajan tal cual al build, asi
+# que con CRLF en el checkout de Windows el mismo src/ compila distinto que
+# en Linux y dist/src deja de ser reproducible (item E6 / TASK-031).
+*.ts text eol=lf
+
+# El build de produccion (dist/src) se versiona: sin el, un clon recien
+# hecho no trae un taskctl que arranque. Mismo motivo para fijar su eol:
+# tsc emite LF (newLine: lf en tsconfig) y aqui se fija que asi se quede.
+dist/** text eol=lf
