@@ -39,7 +39,7 @@ procesan).
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test     # compila y corre 472 tests con cobertura
+npm test     # compila y corre 532 tests con cobertura
 ```
 
 El CLI: `taskctl new | import | board | plan | approve | start | review |

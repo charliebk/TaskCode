@@ -5,6 +5,26 @@ por lo que más probablemente te muerda hoy.
 
 ## Patrones a reutilizar
 
+### El auto-commit solo toca lo que escribe (TASK-030)
+
+`taskctl` commitea **una a una** las rutas que acaba de escribir, y en
+ningún sitio hay un `git add -A` sin pathspec. La primera justificación que
+escribimos era medio falsa y conviene no repetirla: se dijo que `start`,
+`review` y `finish` no comprueban el workspace porque no aplican
+`ensureBaseBranchReady`. Sí lo comprueban — llaman a `isWorkspaceClean` por
+su cuenta y abortan con el árbol sucio.
+
+La razón verdadera es la **ventana entre esa comprobación y el commit**: ahí
+corren scripts de Git-Flow que pueden disparar hooks del repo, y sobre todo
+puede haber **otro proceso escribiendo**. En este proyecto eso no es un caso
+exótico sino el normal: varios agentes en paralelo sobre la misma copia de
+trabajo. Un `git add -A` dentro de esa ventana se lleva trabajo ajeno a un
+commit que la persona no ha escrito.
+
+La contraprueba que vale no es "los tests pasan": es sustituir el pathspec
+por un `add -A` global y comprobar que **caen exactamente los tests que
+aseveran la regla**. Eso prueba el diseño, no solo el cableado.
+
 ### Medir no basta si mides lo que no discrimina (TASK-029)
 
 Al corregir un hallazgo de la revisión —`abort-merge.sh` decía *"workspace
@@ -142,16 +162,20 @@ Descubiertas usándolo de verdad para crear TASK-013…TASK-023:
    tienen distinto sprint o complejidad, hacen falta varias pasadas.
 2. **No sabe expresar `dependencias` en absoluto.** Hay que editar el
    frontmatter a mano después.
-3. **No se puede ejecutar dos veces seguidas.** Las carpetas que crea dejan el
-   workspace sucio, y el guard de §8.3 aborta la siguiente invocación — la
-   herramienta genera justo la suciedad que bloquea su próximo uso. Hay que
-   commitear en medio.
+3. ~~**No se puede ejecutar dos veces seguidas.**~~ **Cerrado en TASK-030
+   (item C2, 2026-09-07.)** Las carpetas que creaba dejaban el workspace
+   sucio y el guard de §8.3 abortaba la siguiente invocación: la herramienta
+   generaba justo la suciedad que bloqueaba su próximo uso. Ahora `import`
+   commitea lo que crea, así que dos pasadas seguidas funcionan sin tocar
+   nada a mano. Fijado por test en `test/commands/auto-commit.test.ts`.
 
-La (3) es evidencia directa a favor de implementar el paso 5 de §8.3
-(auto-commit), que es el item **C2** del checklist.
+Las (1) y (2) siguen abiertas. La (3) fue la evidencia que empujó el paso 5
+de §8.3.
 
-Corolario operativo: **los ficheros que le pases a `import` van fuera del
-repo.** Dentro, ensucian el workspace y abortan el propio import.
+Corolario operativo que **sigue en pie**: los ficheros que le pases a
+`import` van fuera del repo. Dentro son un fichero sin trackear que el guard
+de §8.3 ve como workspace sucio, y eso el auto-commit no lo arregla — no es
+suciedad que genere `taskctl`, es un fichero tuyo.
 
 ## Git-Flow: deuda conocida
 
@@ -336,7 +360,8 @@ sigue valiendo, y porque dos de ellos cambiaron la solución al medirla.
   **Limitaciones que quedan, a propósito**: solo ve ramas **locales** (nada
   de `fetch`, para no meter la red en un comando que hoy funciona sin
   conexión), y una rama cuyo movimiento de tarea no esté commiteado no
-  cuenta — otra evidencia a favor del auto-commit del paso 5 (item C2). El
+  cuenta — cosa que **desde TASK-030 ya no pasa en el flujo normal**, porque
+  `start` commitea el movimiento antes de terminar (item C2). El
   coste crece con las ramas abiertas: 2 ramas dan un `start` de 1,6 s; 50
   abiertas con tarea en curso, 8 s. Las mergeadas se filtran antes de
   leerlas, así que la política de no borrar ramas no lo empeora.
@@ -380,9 +405,15 @@ sigue valiendo, y porque dos de ellos cambiaron la solución al medirla.
   `merge-base --is-ancestor` contra una ref inexistente si algún día se
   intentan cerrar con el comando. `docs/INDEX.md` ya lo deja por escrito en
   sus tres entradas.
-- **Paso 5 de §8.3** (que `taskctl` commitee y suba lo que genera): sin
-  implementar y sin decidir. Mientras no exista, una tarea nueva no llega al
-  resto del equipo sola.
+- ~~**Paso 5 de §8.3**~~ (que `taskctl` commitee y suba lo que genera):
+  **decidido y a medias implementado en TASK-030** (decisión #14, item C2).
+  `taskctl` **commitea** lo que escribe; **subir sigue siendo explícito**,
+  con `--push`. La divergencia con la §8.3 es deliberada y está escrita: el
+  paso 5 pide también subir, con el argumento de que si no, el equipo no ve
+  la tarea nueva hasta que alguien la suba a mano. Se aceptó esa pérdida a
+  cambio de que publicar sea un acto consciente. Así que **la mitad de este
+  punto sigue siendo verdad**: una tarea nueva no llega al resto del equipo
+  sola.
 - **Un flag mal escrito se ignora en silencio** (preexistente, global al
   CLI): `parseArgs` no rechaza flags desconocidos, así que
   `taskctl board --escrivir` lista por pantalla y sale con 0 sin escribir

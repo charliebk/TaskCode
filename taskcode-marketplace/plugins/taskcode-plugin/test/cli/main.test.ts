@@ -19,6 +19,20 @@ function git(args: string[], cwd: string): void {
   assert.equal(result.status, 0, `git ${args.join(' ')} fallo: ${result.stderr}`);
 }
 
+/**
+ * Commit de SETUP del test. Desde TASK-030 (item C2) taskctl commitea
+ * lo que el mismo escribe, asi que buena parte de estos commits a mano
+ * ya no tienen nada que registrar (los de "new" si, hasta que se
+ * cablee): `git commit` saldria 1 con "nothing to commit" y el assert
+ * de `git()` lo daria por fallo del test. Se commitea solo si queda
+ * algo — y que no quede es la senal de que el auto-commit funciono.
+ */
+function commitAll(repoRoot: string, message: string): void {
+  git(['add', '-A'], repoRoot);
+  if (spawnSync('git', ['diff', '--cached', '--quiet'], { cwd: repoRoot }).status === 0) return;
+  git(['commit', '-q', '-m', message], repoRoot);
+}
+
 async function withTempRepoCwd(fn: (repoRoot: string) => Promise<void>): Promise<void> {
   const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-cli-'));
   const cwdAntes = process.cwd();
@@ -33,8 +47,7 @@ async function withTempRepoCwd(fn: (repoRoot: string) => Promise<void>): Promise
     // taskctl start (TASK-015); mismo patron que start.test.ts.
     await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
     await writeFile(path.join(repoRoot, 'README.md'), '# repo de prueba\n', 'utf8');
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'inicial'], repoRoot);
+    commitAll(repoRoot, 'inicial');
     git(['checkout', '-q', '-b', 'develop'], repoRoot);
     process.chdir(repoRoot);
     await fn(repoRoot);
@@ -117,8 +130,7 @@ test('main: taskctl plan --asignado-a confirma la asignacion y la deja en tarea.
     assert.equal(creada.code, 0);
     // plan exige workspace limpio, asi que se commitea lo que dejo
     // new (misma secuencia que en uso real).
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+    commitAll(repoRoot, 'tarea nueva');
 
     const { code, stdout } = await captureOutput(() =>
       main(['plan', 'TASK-001', '--asignado-a', 'carlos'])
@@ -139,8 +151,7 @@ test('main: sin --asignado-a y sin identidad Git no se imprime linea de asignaci
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Sin asignar', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+    commitAll(repoRoot, 'tarea nueva');
     // Se vacia la identidad DESPUES de commitear (TASK-024): sin
     // ella, plan deja la tarea sin asignar, como antes.
     git(['config', 'user.email', ''], repoRoot);
@@ -156,8 +167,7 @@ test('main: sin --asignado-a pero CON identidad Git, la tarea se autoasigna y se
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Con identidad', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+    commitAll(repoRoot, 'tarea nueva');
 
     const { code, stdout } = await captureOutput(() => main(['plan', 'TASK-001']));
 
@@ -176,8 +186,7 @@ test('main: un --asignado-a sin valor sale con codigo 1 y mensaje util, no con u
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Flag roto', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'tarea nueva'], repoRoot);
+    commitAll(repoRoot, 'tarea nueva');
 
     const { code, stderr } = await captureOutput(() => main(['plan', 'TASK-001', '--asignado-a']));
 
@@ -198,30 +207,25 @@ test('main: taskctl start sale con codigo 1 y mensaje util cuando el limite esta
     // documentada en HALLAZGOS.md para taskctl import).
     const uno = await captureOutput(() => main(['new', '--titulo', 'Primera de carlos', '--tipo', 'feature', '--complejidad', 'simple']));
     assert.equal(uno.code, 0, uno.stderr);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'primera tarea'], repoRoot);
+    commitAll(repoRoot, 'primera tarea');
 
     const dos = await captureOutput(() => main(['new', '--titulo', 'Segunda de carlos', '--tipo', 'feature', '--complejidad', 'simple']));
     assert.equal(dos.code, 0, dos.stderr);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'segunda tarea'], repoRoot);
+    commitAll(repoRoot, 'segunda tarea');
 
     const p1 = await captureOutput(() => main(['plan', 'TASK-001', '--asignado-a', 'carlos']));
     assert.equal(p1.code, 0, p1.stderr);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'primera en diseno'], repoRoot);
+    commitAll(repoRoot, 'primera en diseno');
 
     const p2 = await captureOutput(() => main(['plan', 'TASK-002', '--asignado-a', 'carlos']));
     // Esta es la otra mitad de la decision #13: dos tareas en diseno
     // de la misma persona a la vez son legales.
     assert.equal(p2.code, 0, p2.stderr);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'segunda en diseno'], repoRoot);
+    commitAll(repoRoot, 'segunda en diseno');
 
     const primera = await captureOutput(() => main(['start', 'TASK-001']));
     assert.equal(primera.code, 0, primera.stderr);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'primera en curso'], repoRoot);
+    commitAll(repoRoot, 'primera en curso');
 
     const segunda = await captureOutput(() => main(['start', 'TASK-002']));
 

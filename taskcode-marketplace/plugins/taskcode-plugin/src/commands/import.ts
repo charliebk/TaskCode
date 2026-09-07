@@ -25,7 +25,14 @@
  * validar los argumentos de entrada.
  */
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { parseArgs } from '../cli/args.js';
+import {
+  autoCommit,
+  extraerPushFlag,
+  mensajeChore,
+  type AutoCommitResult,
+} from '../fs/git-commit.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 import { TASK_TYPES, TASK_COMPLEXITIES, TaskValidationError, type TaskType, type TaskComplexity } from '../core/task.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
@@ -38,6 +45,7 @@ import {
 } from '../fs/task-store.js';
 import { parseImportMarkdown } from '../core/import-parser.js';
 import { slugify, buildNewTask, SLUG_FALLBACK } from './new.js';
+import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 
 export class ImportCommandError extends Error {}
 
@@ -53,15 +61,25 @@ export interface ImportOptions {
 const DEFAULT_SPRINT = 0;
 const DEFAULT_COMPLEJIDAD: TaskComplexity = 'media';
 const DEFAULT_MODELO = 'sonnet';
-const DEFAULT_AGENTE_REVISOR = 'general-purpose';
 
 /**
  * Un unico --tipo/--sprint/--complejidad para todo el fichero (no hay
  * sintaxis por entrada): mismo enfoque deliberadamente simple que el
  * resto de Sprint 0 — "taskctl import docs/sprint-N-propuesta.md"
  * importa un lote homogeneo (un sprint, un tipo de trabajo).
+ *
+ * `agenteRevisorPorDefecto` (TASK-030, item C4): hasta C4 este fichero
+ * tenia su propia constante DEFAULT_AGENTE_REVISOR = 'general-purpose',
+ * copia literal de la de new.ts. Dos copias del mismo default en dos
+ * comandos que crean la misma clase de tarea es precisamente lo que la
+ * decision #9 mandaba eliminar. La unica fuente es ahora
+ * CONFIG_DEFAULTS, y el valor efectivo lo decide
+ * `.taskcode/config.yml`.
  */
-export function parseImportArgs(argv: readonly string[]): ImportOptions {
+export function parseImportArgs(
+  argv: readonly string[],
+  agenteRevisorPorDefecto: string = CONFIG_DEFAULTS.agente_revisor_por_defecto
+): ImportOptions {
   const { positional, flags } = parseArgs(argv);
 
   const filePath = positional[0];
@@ -110,7 +128,7 @@ export function parseImportArgs(argv: readonly string[]): ImportOptions {
   const agenteRevisor =
     typeof flags['agente-revisor'] === 'string'
       ? (flags['agente-revisor'] as string)
-      : DEFAULT_AGENTE_REVISOR;
+      : agenteRevisorPorDefecto;
 
   return { filePath, tipo, sprint, complejidad, modeloSugerido, agenteRevisor };
 }
@@ -155,6 +173,7 @@ export interface ImportErrorEntry {
 
 export interface ImportCommandResult {
   baseBranchGuard: BaseBranchGuardResult;
+  autoCommit: AutoCommitResult;
   creadas: ImportCreatedEntry[];
   omitidas: ImportSkippedEntry[];
   errores: ImportErrorEntry[];
@@ -178,7 +197,14 @@ export async function runImportCommand(
   today: string,
   deps: ImportCommandDeps
 ): Promise<ImportCommandResult> {
-  const opts = parseImportArgs(argv);
+  // Igual que en new.ts (TASK-030, item C4): el config se resuelve lo
+  // primero, para que un `.taskcode/config.yml` roto aborte antes de
+  // leer el fichero a importar y antes de cualquier cambio de rama.
+  const config = resolverConfig(deps.repoCwd);
+  // --push fuera de parseArgs, mismo motivo que en new.ts: ese parser
+  // trata "--flag valor" como par y se comeria la ruta del fichero.
+  const { push, resto } = extraerPushFlag(argv);
+  const opts = parseImportArgs(resto, config.agente_revisor_por_defecto);
 
   let content: string;
   try {
@@ -292,5 +318,29 @@ export async function runImportCommand(
     usedSlugs.add(key);
   }
 
-  return { baseBranchGuard, creadas, omitidas, errores, advertencias };
+  // Auto-commit (TASK-030, item C2). Aqui esta la razon original del
+  // item: sin commitear, "import" no se podia ejecutar dos veces
+  // seguidas — las carpetas que creaba la primera vez dejaban el
+  // workspace sucio y el guard de la §8.3 abortaba la segunda
+  // (HALLAZGOS.md). Se commitean solo las carpetas creadas en ESTA
+  // pasada; si no se creo ninguna (todo omitido o con error), no hay
+  // nada que commitear y no se crea un commit vacio.
+  const autoCommitResult = autoCommit({
+    cwd: deps.repoCwd,
+    rutas: creadas.map((c) => path.dirname(c.filePath)),
+    mensaje: mensajeChore(
+      'taskctl',
+      `import de ${creadas.length} tarea(s): ${creadas.map((c) => c.id).join(', ')}`
+    ),
+    push,
+  });
+
+  return {
+    baseBranchGuard,
+    autoCommit: autoCommitResult,
+    creadas,
+    omitidas,
+    errores,
+    advertencias,
+  };
 }

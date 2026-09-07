@@ -10,7 +10,14 @@
  * commitear, o cambia automaticamente a la rama base esperada segun
  * --tipo si el workspace esta limpio pero no esta ya ahi.
  */
+import path from 'node:path';
 import { parseArgs } from '../cli/args.js';
+import {
+  autoCommit,
+  extraerPushFlag,
+  mensajeChore,
+  type AutoCommitResult,
+} from '../fs/git-commit.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 import {
   TASK_TYPES,
@@ -21,6 +28,7 @@ import {
 } from '../core/task.js';
 import { nextTaskId } from '../core/task-id.js';
 import { listExistingTaskIds, writeTareaFile } from '../fs/task-store.js';
+import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 
 export class NewTaskArgError extends Error {}
 
@@ -37,10 +45,25 @@ export interface NewTaskOptions {
 const DEFAULT_SPRINT = 0;
 const DEFAULT_COMPLEJIDAD: TaskComplexity = 'media';
 const DEFAULT_MODELO = 'sonnet';
-const DEFAULT_AGENTE_REVISOR = 'general-purpose';
 export const DEFAULT_BODY = '## Objetivo\n\n\n## Criterios de aceptacion\n- [ ] \n';
 
-export function parseNewTaskArgs(argv: readonly string[]): NewTaskOptions {
+/**
+ * `agenteRevisorPorDefecto` (TASK-030, item C4) es lo que se usa
+ * cuando no se pasa --agente-revisor. Antes de C4 era una constante
+ * DUPLICADA aqui y en import.ts; ahora la unica fuente es
+ * CONFIG_DEFAULTS y el valor efectivo lo decide
+ * `.taskcode/config.yml` (clave `agente_revisor_por_defecto`).
+ *
+ * Es un parametro y no una lectura del fichero aqui dentro porque esta
+ * funcion es pura y testeable sin disco (esa separacion es el motivo
+ * de que exista). Quien resuelve el config es runNewCommand, que ya
+ * tiene el cwd del repo. El default del parametro conserva el
+ * comportamiento de las llamadas de un solo argumento.
+ */
+export function parseNewTaskArgs(
+  argv: readonly string[],
+  agenteRevisorPorDefecto: string = CONFIG_DEFAULTS.agente_revisor_por_defecto
+): NewTaskOptions {
   const { positional, flags } = parseArgs(argv);
 
   const tituloFlag = flags['titulo'];
@@ -100,7 +123,7 @@ export function parseNewTaskArgs(argv: readonly string[]): NewTaskOptions {
   const agenteRevisor =
     typeof flags['agente-revisor'] === 'string'
       ? (flags['agente-revisor'] as string)
-      : DEFAULT_AGENTE_REVISOR;
+      : agenteRevisorPorDefecto;
 
   return { titulo, tipo: tipoRaw as TaskType, sprint, etiquetas, complejidad, modeloSugerido, agenteRevisor };
 }
@@ -154,6 +177,7 @@ export interface NewCommandResult {
   id: string;
   filePath: string;
   baseBranchGuard: BaseBranchGuardResult;
+  autoCommit: AutoCommitResult;
 }
 
 export interface NewCommandDeps {
@@ -167,7 +191,18 @@ export async function runNewCommand(
   today: string,
   deps: NewCommandDeps
 ): Promise<NewCommandResult> {
-  const opts = parseNewTaskArgs(argv);
+  // El config se resuelve ANTES de parsear los argumentos (TASK-030,
+  // item C4): si esta roto, se aborta sin haber tocado nada y sin
+  // haber cambiado de rama. Un `.taskcode/config.yml` invalido es un
+  // fallo del repo, no del comando, y enterarse de el despues de que
+  // ensureBaseBranchReady te haya movido de rama seria peor.
+  const config = resolverConfig(deps.repoCwd);
+  // --push se saca ANTES de parseArgs a proposito (hallazgo del frente
+  // C2): ese parser trata "--flag valor" como par, asi que
+  // "taskctl new --push \"Titulo\"" habria leido push="Titulo" y el
+  // titulo habria desaparecido.
+  const { push, resto } = extraerPushFlag(argv);
+  const opts = parseNewTaskArgs(resto, config.agente_revisor_por_defecto);
   // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
   // tiene cambios sin commitear, o si no puede cambiar de forma
   // automatica a la rama base esperada segun opts.tipo — en ambos
@@ -177,5 +212,14 @@ export async function runNewCommand(
   const id = nextTaskId(existingIds);
   const task = buildNewTask(id, opts, today);
   const filePath = await writeTareaFile(tareasRoot, task, DEFAULT_BODY, { failIfExists: true });
-  return { id, filePath, baseBranchGuard };
+  // Auto-commit (TASK-030, item C2): se commitea la CARPETA de la tarea
+  // recien creada, no el arbol. La decision #14 fijo commitear si y
+  // subir solo con --push.
+  const autoCommitResult = autoCommit({
+    cwd: deps.repoCwd,
+    rutas: [path.dirname(filePath)],
+    mensaje: mensajeChore(id, 'tarea creada'),
+    push,
+  });
+  return { id, filePath, baseBranchGuard, autoCommit: autoCommitResult };
 }

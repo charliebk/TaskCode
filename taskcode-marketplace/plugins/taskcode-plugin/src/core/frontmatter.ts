@@ -10,6 +10,12 @@
  * de escribir, de revisar y de mantener que tirar de una libreria
  * completa para un formato que nosotros mismos controlamos.
  *
+ * Desde TASK-030 (item C4) el bucle `clave: valor` vive extraido en
+ * parseBloqueClaveValor() y lo comparten este modulo y
+ * src/core/config.ts (`.taskcode/config.yml`), que usa exactamente el
+ * mismo subconjunto. Es un unico parser a proposito: dos parsers YAML
+ * escritos a mano del mismo subconjunto acaban discrepando.
+ *
  * Nota de robustez (hallazgo de revision por pares, Sprint 0):
  * cualquier string que se serializa se cita SIEMPRE que, sin comillas,
  * se re-parsearia como otra cosa (numero, boolean, null, o un
@@ -32,6 +38,104 @@ export class FrontmatterParseError extends Error {
   }
 }
 
+/** Un par `clave: valor` ya parseado, con la linea (1-based) donde salio. */
+export interface ParClaveValor {
+  clave: string;
+  valor: unknown;
+  numeroLinea: number;
+}
+
+export interface OpcionesBloqueClaveValor {
+  /**
+   * Palabra que aparece en los mensajes de error ("frontmatter",
+   * "config"). Sin esto, un `.taskcode/config.yml` malformado se
+   * quejaria de "frontmatter", que no es lo que el usuario esta
+   * editando.
+   */
+  etiqueta: string;
+  /** Constructor del error de cada caller (FrontmatterParseError, ConfigError...). */
+  crearError: (mensaje: string) => Error;
+  /** Si devuelve true, el bloque termina ahi (esa linea no se parsea como par). */
+  esFin?: (linea: string) => boolean;
+  /**
+   * Saltarse las lineas que empiezan por "#". Apagado por defecto a
+   * proposito: el frontmatter de tarea.md nunca las ha admitido (una
+   * linea sin ":" es un error) y encenderlas ahi seria un cambio de
+   * comportamiento colado por la puerta de atras. En config.yml, en
+   * cambio, un fichero de configuracion sin comentarios de linea seria
+   * inservible.
+   */
+  permitirComentariosDeLinea?: boolean;
+}
+
+export interface BloqueClaveValor {
+  /** Ultimo valor de cada clave (una clave repetida se pisa: ver `pares`). */
+  data: Record<string, unknown>;
+  /**
+   * Los pares EN ORDEN y con repeticiones. `data` pierde los
+   * duplicados; quien necesite detectarlos (config.ts, donde un
+   * `limite_wip` escrito dos veces es un fallo que hay que gritar)
+   * mira aqui.
+   */
+  pares: ParClaveValor[];
+  /** Indice de la linea SIGUIENTE a la que cerro el bloque. */
+  siguiente: number;
+  /** true si se encontro la linea de fin (solo relevante con `esFin`). */
+  cerrado: boolean;
+}
+
+/**
+ * El bucle `clave: valor` compartido — extraido de parseFrontmatter en
+ * TASK-030 (item C4) para que `.taskcode/config.yml` NO tenga un
+ * segundo parser de YAML. Dos parsers a mano del mismo subconjunto
+ * divergen; este es el unico sitio donde se decide que es una linea
+ * valida, que es un comentario y como se tipa un escalar.
+ *
+ * No conoce ni frontmatter ni config: recibe por donde empezar, como
+ * saber que el bloque termino y como construir sus errores.
+ */
+export function parseBloqueClaveValor(
+  lineas: readonly string[],
+  desde: number,
+  opciones: OpcionesBloqueClaveValor
+): BloqueClaveValor {
+  const data: Record<string, unknown> = {};
+  const pares: ParClaveValor[] = [];
+  let i = desde;
+  let cerrado = false;
+
+  for (; i < lineas.length; i++) {
+    const line = lineas[i] ?? '';
+    if (opciones.esFin !== undefined && opciones.esFin(line)) {
+      cerrado = true;
+      i++;
+      break;
+    }
+    const trimmed = line.trim();
+    if (trimmed === '') continue;
+    if (opciones.permitirComentariosDeLinea === true && trimmed.startsWith('#')) continue;
+
+    const colonIdx = line.indexOf(':');
+    if (colonIdx === -1) {
+      throw opciones.crearError(
+        `Linea de ${opciones.etiqueta} invalida (falta ":"): "${line}"`
+      );
+    }
+    const clave = line.slice(0, colonIdx).trim();
+    if (clave === '') {
+      throw opciones.crearError(
+        `Linea de ${opciones.etiqueta} con clave vacia: "${line}"`
+      );
+    }
+    const rawValue = stripInlineComment(line.slice(colonIdx + 1).trim());
+    const valor = parseScalarOrArray(rawValue);
+    data[clave] = valor;
+    pares.push({ clave, valor, numeroLinea: i + 1 });
+  }
+
+  return { data, pares, siguiente: i, cerrado };
+}
+
 export function parseFrontmatter(content: string): ParsedFrontmatter {
   const lines = content.split(/\r?\n/);
   if ((lines[0] ?? '').trim() !== FRONTMATTER_DELIM) {
@@ -40,37 +144,17 @@ export function parseFrontmatter(content: string): ParsedFrontmatter {
     );
   }
 
-  const data: Record<string, unknown> = {};
-  let i = 1;
-  let closed = false;
-  for (; i < lines.length; i++) {
-    const line = lines[i] ?? '';
-    if (line.trim() === FRONTMATTER_DELIM) {
-      closed = true;
-      i++;
-      break;
-    }
-    if (line.trim() === '') continue;
+  const { data, siguiente, cerrado } = parseBloqueClaveValor(lines, 1, {
+    etiqueta: 'frontmatter',
+    crearError: (mensaje) => new FrontmatterParseError(mensaje),
+    esFin: (linea) => linea.trim() === FRONTMATTER_DELIM,
+  });
 
-    const colonIdx = line.indexOf(':');
-    if (colonIdx === -1) {
-      throw new FrontmatterParseError(
-        `Linea de frontmatter invalida (falta ":"): "${line}"`
-      );
-    }
-    const key = line.slice(0, colonIdx).trim();
-    if (key === '') {
-      throw new FrontmatterParseError(`Linea de frontmatter con clave vacia: "${line}"`);
-    }
-    const rawValue = stripInlineComment(line.slice(colonIdx + 1).trim());
-    data[key] = parseScalarOrArray(rawValue);
-  }
-
-  if (!closed) {
+  if (!cerrado) {
     throw new FrontmatterParseError('El bloque frontmatter no se cierra con "---".');
   }
 
-  const body = lines.slice(i).join('\n').replace(/^\n+/, '');
+  const body = lines.slice(siguiente).join('\n').replace(/^\n+/, '');
   return { data, body };
 }
 

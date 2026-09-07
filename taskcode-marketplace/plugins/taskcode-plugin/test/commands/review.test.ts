@@ -50,8 +50,17 @@ function git(args: string[], cwd: string): string {
   return result.stdout;
 }
 
+/**
+ * Commit de SETUP del test. Desde TASK-030 (item C2) taskctl commitea
+ * lo que el mismo escribe, asi que llamar a esto justo despues de un
+ * comando puede no tener ya nada que registrar: `git commit` sale 1
+ * con "nothing to commit" y el assert de `git()` lo daria por fallo
+ * del test. Se commitea solo si queda algo — y que no quede es
+ * exactamente la senal de que el auto-commit hizo su trabajo.
+ */
 function commitAll(repoRoot: string, message: string): void {
   git(['add', '-A'], repoRoot);
+  if (spawnSync('git', ['diff', '--cached', '--quiet'], { cwd: repoRoot }).status === 0) return;
   git(['commit', '-q', '-m', message], repoRoot);
 }
 
@@ -133,8 +142,17 @@ test('taskctl review: camino feliz sin origin — update real, evidencia de merg
     assert.doesNotMatch(peticion, /cambio-develop\.txt/);
     assert.match(peticion, /trabajo\.txt/);
     assert.ok(peticion.includes(result.commitRevisado));
-    const headSha = git(['rev-parse', 'HEAD'], repoRoot).trim();
-    assert.equal(result.commitRevisado, headSha);
+    // Desde TASK-030 (item C2), "review" commitea la peticion y el
+    // scaffold del informe, asi que HEAD avanza DESPUES de calcular
+    // commitRevisado: el commit revisado es el padre de HEAD, no HEAD.
+    // Y es lo correcto, no un efecto colateral: lo que el revisor tiene
+    // que revisar es el codigo de la tarea, no el commit que contiene
+    // la peticion de revision de si mismo.
+    assert.equal(result.commitRevisado, git(['rev-parse', 'HEAD~1'], repoRoot).trim());
+    assert.equal(
+      git(['log', '--format=%s', '-1'], repoRoot).trim(),
+      'chore(TASK-600): peticion de revision ronda 1'
+    );
 
     const informe = await readFile(result.informePath, 'utf8');
     assert.match(informe, /Informe de revision — TASK-600 \(ronda 1\)/);

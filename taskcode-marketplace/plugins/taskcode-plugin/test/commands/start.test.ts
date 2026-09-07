@@ -62,8 +62,17 @@ function git(args: string[], cwd: string): void {
  * commitean aqui para dejar el workspace limpio antes de invocar
  * runStartCommand, igual que estaria en un uso real.
  */
+/**
+ * Commit de SETUP del test. Desde TASK-030 (item C2) taskctl commitea
+ * lo que el mismo escribe, asi que llamar a esto justo despues de un
+ * comando puede no tener ya nada que registrar: `git commit` sale 1
+ * con "nothing to commit" y el assert de `git()` lo daria por fallo
+ * del test. Se commitea solo si queda algo — y que no quede es
+ * exactamente la senal de que el auto-commit hizo su trabajo.
+ */
 function commitAll(repoRoot: string, message: string): void {
   git(['add', '-A'], repoRoot);
+  if (spawnSync('git', ['diff', '--cached', '--quiet'], { cwd: repoRoot }).status === 0) return;
   git(['commit', '-q', '-m', message], repoRoot);
 }
 
@@ -396,6 +405,61 @@ test('taskctl start --asignado-a invalido: falla ANTES de crear la rama', async 
 });
 
 // --- TASK-015 (item B7): limite de trabajo en curso ---
+
+// El cableado del limite configurable (TASK-030, item C4) vive aqui y
+// no en config.test.ts a proposito: los tests de alli son puros sobre
+// tareasQueBloquean y pasaban igual con start.ts sin cablear — el
+// hallazgo IMPORTANTE de la revision por pares fue justo ese, que
+// deshacer la linea de start.ts no rompia ni un test. Esto pasa por
+// runStartCommand de verdad.
+
+test('taskctl start: limite_wip de .taskcode/config.yml manda de verdad (no solo en wip.ts)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({ id: 'TASK-511', estado: 'en-curso', asignado_a: 'carlos', rama: 'feature/task-511-ya-abierta', titulo: 'La que ocupa hueco' }),
+      ''
+    );
+    await writeTareaFile(tareasRoot, sampleTask({ id: 'TASK-512', asignado_a: 'carlos' }), '');
+    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), 'limite_wip: 2\n', 'utf8');
+    commitAll(repoRoot, 'tareas y config con limite 2');
+
+    // Con limite 2 cabe una segunda tarea: arranca y crea su rama.
+    const r = await runStartCommand(tareasRoot, ['TASK-512'], '2026-09-07', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+    assert.equal(r.id, 'TASK-512');
+    assert.equal(
+      spawnSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' }).stdout.trim(),
+      r.rama
+    );
+  });
+});
+
+test('taskctl start: con limite_wip 1 explicito en la config bloquea igual que sin fichero', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({ id: 'TASK-521', estado: 'en-curso', asignado_a: 'carlos', rama: 'feature/task-521-ya-abierta', titulo: 'La que bloquea' }),
+      ''
+    );
+    await writeTareaFile(tareasRoot, sampleTask({ id: 'TASK-522', asignado_a: 'carlos' }), '');
+    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), 'limite_wip: 1\n', 'utf8');
+    commitAll(repoRoot, 'tareas y config con limite 1');
+
+    await assert.rejects(
+      () =>
+        runStartCommand(tareasRoot, ['TASK-522'], '2026-09-07', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      (e: unknown) => e instanceof StartCommandError && (e as Error).message.includes('TASK-521')
+    );
+  });
+});
 
 test('taskctl start: bloquea si la persona ya tiene otra tarea en curso, y NO crea la rama', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {

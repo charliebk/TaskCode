@@ -53,8 +53,17 @@ function branchNow(cwd: string): string {
   return spawnSync('git', ['branch', '--show-current'], { cwd, encoding: 'utf8' }).stdout.trim();
 }
 
+/**
+ * Commit de SETUP del test. Desde TASK-030 (item C2) taskctl commitea
+ * lo que el mismo escribe, asi que llamar a esto justo despues de un
+ * comando puede no tener ya nada que registrar: `git commit` sale 1
+ * con "nothing to commit" y el assert de `git()` lo daria por fallo
+ * del test. Se commitea solo si queda algo — y que no quede es
+ * exactamente la senal de que el auto-commit hizo su trabajo.
+ */
 function commitAll(repoRoot: string, message: string): void {
   git(['add', '-A'], repoRoot);
+  if (spawnSync('git', ['diff', '--cached', '--quiet'], { cwd: repoRoot }).status === 0) return;
   git(['commit', '-q', '-m', message], repoRoot);
 }
 

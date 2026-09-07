@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 29 / 43 items terminados (67%)** · última actualización: 2026-09-07
+**Progreso global: 31 / 43 items terminados (72%)** · última actualización: 2026-09-07
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 8 | **6** | ~19h |
+| ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 6 | **1** | ~9h |
-| **Total pendiente** | **31** | **17** | **~90h** |
+| **Total pendiente** | **31** | **19** | **~96h** |
 
 ---
 
@@ -169,10 +169,28 @@ Lo que la metodología da por hecho y no existe.
       los scripts se escriben el registro dentro del repo, y heredar stdin
       siempre **colgaba el comando para siempre** ante una tubería abierta.
       27 tests nuevos (417).*
-- [ ] **C2** · Paso 5 de §8.3: ¿comitea y sube `taskctl` por la persona? — ~3h
-      ***Desbloqueado el 2026-09-07*** *(decisión #14, ver abajo): commitea
-      sí, sube solo con `--push`. Divergencia con la §8.3, que pide también
-      subir: hay que documentarla al implementar.*
+- [x] **C2** · Paso 5 de §8.3: `taskctl` comitea; sube solo con `--push` — ~3h
+      ***Divergencia con la §8.3, deliberada***: *el paso 5 pide tambien
+      subir. Se acepta la perdida —una tarea nueva no llega al equipo sola—
+      a cambio de que publicar sea un acto consciente.*
+      *Cerrado el 2026-09-07 (TASK-030, junto con C4 en la misma rama: el
+      limite de WIP es 1 y lo aplica `start`, asi que dos tareas simultaneas
+      habrian hecho abortar la segunda). `taskctl` commitea las rutas que
+      escribe **una a una**, y en ningun sitio hay un `add -A` sin pathspec.
+      Al cablearlo **se cayeron 14 tests existentes**, que era la senal que el
+      plan pedia vigilar: casi todos hacian `git add -A && git commit` a mano
+      para sortear el workspace sucio, o sea que documentaban el defecto que
+      esto quita. Se les quito el commit manual en vez de hacerlos tolerantes.
+      El plan estaba a medias equivocado sobre por que hace falta la regla:
+      `start`/`review`/`finish` **si** comprueban el workspace; lo que la
+      justifica es la ventana entre esa comprobacion y el commit, donde puede
+      escribir otro proceso — que aqui es el caso normal, con varios agentes
+      sobre la misma copia. Dos rondas: **cambios-solicitados** (2
+      importantes) y **APROBADA**. El importante que mas ensena: la lista de
+      ficheros se calculaba antes del commit, asi que con un hook de
+      pre-commit el CLI decia "1 fichero" con 2 registrados — en el unico
+      escenario donde la regla se rompe, la herramienta afirmaba lo
+      contrario.*
       *Decisión abierta + implementación. Sin esto, una tarea nueva no llega
       al equipo sola. **Evidencia nueva (A2)**: sin el paso 5, `taskctl
       import` no se puede ejecutar dos veces seguidas — crea las carpetas que
@@ -201,13 +219,21 @@ Lo que la metodología da por hecho y no existe.
       porque POSIX no lo ofrece—, documentada sin corregir. 8 tests nuevos
       (429; 426 verdes y los 3 rojos conocidos de este entorno Windows).
       Dos rondas de revisión: **APROBADO CON CAMBIOS** (1 importante, 4 menores) y **cambios solicitados → APROBADA** (1 importante, 3 menores). El importante de la ronda 2: el fix de la ronda 1 era un fix solo de Windows —en POSIX el `stat` falla antes con `ENOTDIR`— y el test escrito para certificarlo habría caído en el job `ubuntu-latest`.*
-- [ ] **C4** · `.taskcode/config.yml` — ~3h
-      ***Desbloqueado el 2026-09-07*** *(decisión #9, ver abajo): tres claves
-      opcionales — `rama_base`, `agente_revisor_por_defecto`, `limite_wip`.
-      La estimación sube de ~1h a ~3h porque lo que se acordó no es un
-      fichero, es el mecanismo: carga con defaults, fallo cerrado ante valor
-      o clave invalida, reutilización del parser de frontmatter (extrayendo
-      su bucle `clave: valor`) y un único punto de resolución.*
+- [x] **C4** · `.taskcode/config.yml` — ~3h
+      *Cerrado el 2026-09-07 (TASK-030). Tres claves opcionales: `rama_base`
+      (unico hardcode indetectable), `agente_revisor_por_defecto` (que ademas
+      estaba duplicado en `new.ts` e `import.ts`) y `limite_wip`. Sin fichero,
+      comportamiento identico al de hoy. **Un solo parser**: el bucle
+      `clave: valor` de `frontmatter.ts` se extrajo en vez de escribir un
+      segundo YAML a mano — y ahi aparecio que el parser NO soportaba
+      comentarios de linea entera, solo inline, asi que se anadieron opt-in
+      para no cambiar en silencio lo que acepta `tarea.md`. La revision
+      encontro que **`limite_wip` era la unica clave sin prueba de cableado**:
+      se habia verificado a mano con el CLI y deshacer la linea de `start.ts`
+      no rompia ningun test. Y un menor con reencuentro: un `.taskcode` que es
+      un fichero caia al default **en silencio en Windows** (`ENOENT`, no
+      `ENOTDIR`) — la misma trampa de TASK-027, resuelta preguntandole al
+      sistema de ficheros y no al errno.*
 - [x] **C5** · TASK-028 — `skills/task-workflow/SKILL.md`, la primera skill del plugin — ~1h
       *Cerrado el 2026-09-07. El plugin ya expone una skill a Claude Code —
       `taskcode-plugin:task-workflow`, 272 líneas—; antes no exponía

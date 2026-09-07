@@ -136,9 +136,9 @@ test('runImportCommand: idempotente por titulo normalizado — reimportar el mis
 
     const r1 = await runImportCommand(tareasRoot, [md], '2026-09-03', { repoCwd: repoRoot });
     assert.equal(r1.creadas.length, 1);
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'import inicial'], repoRoot);
-
+    // Sin commit manual en medio desde TASK-030 (item C2): lo comitea
+    // el propio import. Era la razon original del item — la trampa de
+    // "import no se puede ejecutar dos veces seguidas" de HALLAZGOS.md.
     const r2 = await runImportCommand(tareasRoot, [md], '2026-09-03', { repoCwd: repoRoot });
     assert.equal(r2.creadas.length, 0);
     assert.equal(r2.omitidas.length, 1);
