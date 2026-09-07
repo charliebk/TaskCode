@@ -405,9 +405,15 @@ sigue valiendo, y porque dos de ellos cambiaron la solución al medirla.
   `merge-base --is-ancestor` contra una ref inexistente si algún día se
   intentan cerrar con el comando. `docs/INDEX.md` ya lo deja por escrito en
   sus tres entradas.
-- **Paso 5 de §8.3** (que `taskctl` commitee y suba lo que genera): sin
-  implementar y sin decidir. Mientras no exista, una tarea nueva no llega al
-  resto del equipo sola.
+- ~~**Paso 5 de §8.3**~~ (que `taskctl` commitee y suba lo que genera):
+  **decidido y a medias implementado en TASK-030** (decisión #14, item C2).
+  `taskctl` **commitea** lo que escribe; **subir sigue siendo explícito**,
+  con `--push`. La divergencia con la §8.3 es deliberada y está escrita: el
+  paso 5 pide también subir, con el argumento de que si no, el equipo no ve
+  la tarea nueva hasta que alguien la suba a mano. Se aceptó esa pérdida a
+  cambio de que publicar sea un acto consciente. Así que **la mitad de este
+  punto sigue siendo verdad**: una tarea nueva no llega al resto del equipo
+  sola.
 - **Un flag mal escrito se ignora en silencio** (preexistente, global al
   CLI): `parseArgs` no rechaza flags desconocidos, así que
   `taskctl board --escrivir` lista por pantalla y sale con 0 sin escribir

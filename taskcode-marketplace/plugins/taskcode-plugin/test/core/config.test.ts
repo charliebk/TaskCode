@@ -546,3 +546,18 @@ test('ubicacion: la busqueda PARA en la raiz del repo (un config de mas arriba n
     await rm(contenedor, { recursive: true, force: true });
   }
 });
+
+test('resolverConfig: un .taskcode que es un FICHERO aborta (no cae al default en silencio)', async () => {
+  await withTempRepo(async (repoRoot) => {
+    // Hallazgo MENOR de la revision por pares (TASK-030): el comentario
+    // decia que este caso aborta, y en Windows caia al default. Leer
+    // ".taskcode/config.yml" con ".taskcode" siendo un fichero da
+    // ENOTDIR en POSIX pero ENOENT en Windows, asi que el errno no
+    // sirve para distinguirlo de "no hay configuracion". Es la misma
+    // trampa de TASK-027: se le pregunta al sistema de ficheros, que
+    // contesta igual en las dos plataformas.
+    await writeFile(path.join(repoRoot, '.taskcode'), 'no soy una carpeta', 'utf8');
+    assert.throws(() => resolverConfig(repoRoot), ConfigError);
+    assert.throws(() => resolverConfig(repoRoot), /existe pero no es una carpeta/);
+  });
+});

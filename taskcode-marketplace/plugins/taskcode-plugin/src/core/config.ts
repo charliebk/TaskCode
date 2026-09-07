@@ -40,7 +40,7 @@
  * del plugin: no hay un escenario de "clave nueva leida por un plugin
  * viejo" que justifique tragarsela.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
 
@@ -151,7 +151,35 @@ export function resolverConfig(cwd: string): TaskcodeConfig {
   try {
     contenido = readFileSync(ruta, 'utf8');
   } catch (e: unknown) {
-    if ((e as { code?: string }).code === 'ENOENT') return { ...CONFIG_DEFAULTS };
+    if ((e as { code?: string }).code === 'ENOENT') {
+      // ENOENT no basta para concluir "no hay configuracion": si
+      // `.taskcode` resulta ser un FICHERO, leer `.taskcode/config.yml`
+      // falla con ENOTDIR en POSIX pero con ENOENT en Windows, y ahi
+      // caiamos al default en silencio contradiciendo lo que dice el
+      // comentario de arriba (hallazgo MENOR de la revision por pares,
+      // TASK-030). Es la misma trampa que costo una ronda entera en
+      // TASK-027: un fix de errno validado en una sola plataforma no
+      // esta validado. Por eso se le pregunta al sistema de ficheros,
+      // que contesta igual en las dos.
+      const dir = path.dirname(ruta);
+      let esDirectorio: boolean;
+      try {
+        esDirectorio = statSync(dir).isDirectory();
+      } catch {
+        // `.taskcode` no existe: no hay configuracion, que es legitimo.
+        return { ...CONFIG_DEFAULTS };
+      }
+      if (!esDirectorio) {
+        throw new ConfigError(
+          `[ERROR] "${dir}" existe pero no es una carpeta, asi que ahi no puede haber ` +
+            'ninguna configuracion.\n' +
+            '        Renombralo o borralo: taskctl no sigue con una configuracion que no ' +
+            'puede leer.'
+        );
+      }
+      // `.taskcode/` existe y no tiene config.yml: todo por defecto.
+      return { ...CONFIG_DEFAULTS };
+    }
     const msg = e instanceof Error ? e.message : String(e);
     throw new ConfigError(
       `[ERROR] No se pudo leer la configuracion "${ruta}": ${msg}\n` +

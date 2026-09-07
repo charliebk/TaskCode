@@ -44,6 +44,7 @@ import type { Task } from '../../src/core/task.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // dist/test/commands -> dist/test -> dist -> raiz del paquete -> scripts/gitflow
 const SCRIPTS_DIR = path.join(HERE, '..', '..', '..', 'scripts', 'gitflow');
+const LF = String.fromCharCode(10);
 
 function git(args: string[], cwd: string): string {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -377,5 +378,51 @@ test('taskctl plan --push sin remoto: avisa, no lanza y sale con la tarea commit
     assert.equal(r.autoCommit.commiteado, true);
     assert.equal(r.autoCommit.push, 'sin-remoto');
     assert.equal(r.autoCommit.avisos.length, 1);
+  });
+});
+
+// --- Hallazgo IMPORTANTE de la revision por pares (TASK-030) ---
+
+test('autoCommit: si un hook pre-commit mete ficheros ajenos, el resultado NO miente y avisa', async () => {
+  await withTempRepo(async (repoRoot) => {
+    // Un hook de pre-commit que hace "git add" por su cuenta
+    // (lint-staged, prettier) mete ficheros que taskctl no pidio. Eso
+    // es semantica de Git en modo --only y se reproduce con
+    // "git commit -- ruta" a pelo, sin taskctl: no lo podemos impedir.
+    // Lo que SI era nuestro es que el CLI dijera "1 fichero" cuando Git
+    // habia registrado 2 — en el unico escenario donde la regla se
+    // rompe, la herramienta afirmaba lo contrario. Este test fija que
+    // la lista se relee del commit real y que sale un aviso.
+    const hook = path.join(repoRoot, '.git', 'hooks', 'pre-commit');
+    await writeFile(hook, '#!/bin/sh' + LF + 'git add intruso.txt' + LF, 'utf8');
+    await chmod(hook, 0o755);
+
+    await writeFile(path.join(repoRoot, 'intruso.txt'), 'no lo escribio taskctl' + LF, 'utf8');
+    await mkdir(path.join(repoRoot, 'tareas', '00-planificadas', 'TASK-940'), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, 'tareas', '00-planificadas', 'TASK-940', 'tarea.md'),
+      'contenido' + LF,
+      'utf8'
+    );
+
+    const r = autoCommit({
+      cwd: repoRoot,
+      rutas: [path.join(repoRoot, 'tareas', '00-planificadas', 'TASK-940')],
+      mensaje: mensajeChore('TASK-940', 'tarea creada'),
+    });
+
+    assert.equal(r.commiteado, true);
+    // Lo que Git registro de verdad, no lo que taskctl pidio.
+    const registrados = git(['show', '--name-only', '--format=', 'HEAD'], repoRoot)
+      .split(LF)
+      .map((l) => l.trim())
+      .filter((l) => l !== '');
+    assert.deepEqual([...r.ficheros].sort(), registrados.sort());
+    assert.ok(r.ficheros.includes('intruso.txt'), 'el resultado deberia reflejar al intruso');
+    // Y no se calla: el aviso nombra al fichero y senala al hook.
+    assert.ok(
+      r.avisos.some((a) => a.includes('intruso.txt') && a.includes('pre-commit')),
+      'deberia avisar del fichero que metio el hook: ' + JSON.stringify(r.avisos)
+    );
   });
 });

@@ -229,6 +229,32 @@ export function autoCommit(opts: AutoCommitOptions): AutoCommitResult {
       }
       commiteado = true;
       commit = runGit(['rev-parse', '--short', 'HEAD'], cwd);
+
+      // Hallazgo IMPORTANTE de la revision por pares (TASK-030): la
+      // lista de arriba es lo que taskctl PIDIO commitear, no lo que
+      // Git registro. Un hook de pre-commit que haga "git add" por su
+      // cuenta (lint-staged, prettier) mete ficheros ajenos en el
+      // commit — eso es semantica de Git en modo --only y se reproduce
+      // con "git commit -- ruta" a pelo, sin taskctl de por medio. Lo
+      // que si era nuestro es que el CLI dijera "1 fichero" cuando Git
+      // habia registrado 2: en el unico escenario donde la regla se
+      // rompe, la herramienta afirmaba lo contrario. Asi que la lista
+      // se relee del commit y, si no coincide, se avisa.
+      const pedidos = ficheros;
+      ficheros = runGit(['show', '--name-only', '--format=', 'HEAD'], cwd)
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l !== '');
+
+      const intrusos = ficheros.filter((f) => !pedidos.includes(f));
+      if (intrusos.length > 0) {
+        avisos.push(
+          `El commit ${commit} incluye ${intrusos.length} fichero(s) que taskctl no pidio ` +
+            `commitear: ${intrusos.join(', ')}. Casi seguro los ha anadido un hook de ` +
+            'pre-commit de este repo (lint-staged, prettier o similar). Revisa el commit: ' +
+            'taskctl solo pidio registrar lo que escribio el mismo.'
+        );
+      }
     }
   }
 
