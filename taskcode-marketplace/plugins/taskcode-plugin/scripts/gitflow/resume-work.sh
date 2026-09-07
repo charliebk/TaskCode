@@ -24,32 +24,65 @@ fi
 status_raw=$(git status --porcelain 2>/dev/null)
 if [ -n "$status_raw" ]; then
     log_error "El workspace no está limpio. Guarda o descarta los cambios primero."
-    log_info  "Usa GitFlow 16 Pause Work para guardar tu trabajo actual."
+    log_info  "Usa taskctl pause para guardar tu trabajo actual."
     exit 1
 fi
 
 log_info "Retomando trabajo en rama: $NAME"
 
-invoke_git "No se pudo hacer fetch de origin." fetch origin
+# Ajuste TASK-029 (item C6, frente S1): antes se hacia "fetch origin" y dos
+# "ls-remote origin" sin comprobar disponibilidad, y el script moria con el
+# "fatal: 'origin' does not appear to be a git repository" crudo de Git.
+detect_origin_available
+
+# Decision sobre REMOTE_CONFIGURED vs REMOTE_AVAILABLE: aqui NO se
+# distinguen para decidir el comportamiento, y es deliberado. A diferencia
+# de los merge a main (donde un origin caido puede dejar un tag sobre
+# historia divergente) o de create-develop (donde se crearia una rama
+# divergente), retomar una rama que YA existe en local no escribe historia
+# ni publica nada: en el peor caso se trabaja sobre una copia desactualizada,
+# que es exactamente lo que avisa el log_warn. Abortar aqui romperia el caso
+# de uso central de resume-work: volver a tu rama con la VPN caida o sin
+# red. La distincion si se usa para el TEXTO de los avisos, porque lo que
+# hay que hacer despues no es lo mismo.
+if [ "$REMOTE_AVAILABLE" = true ]; then
+    invoke_git "No se pudo hacer fetch de origin." fetch origin
+elif [ "$REMOTE_CONFIGURED" = true ]; then
+    log_warn "Sincronizacion omitida: origin esta configurado pero no responde. Se trabaja con la copia local, que puede estar desactualizada."
+else
+    log_warn "Sincronizacion omitida: este repo no tiene remoto 'origin'. Se trabaja solo en local."
+fi
 
 # Cambiar a la rama (local o desde origin)
+NAME_REMOTE=false
+if [ "$REMOTE_AVAILABLE" = true ]; then
+    git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
+        && NAME_REMOTE=true || true
+fi
+
 if git show-ref --verify --quiet "refs/heads/$NAME" 2>/dev/null; then
     invoke_git "No se pudo cambiar a $NAME." checkout "$NAME"
-elif git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME"; then
+elif [ "$NAME_REMOTE" = true ]; then
     log_info "Rama $NAME solo existe en origin. Creando copia local..."
     invoke_git "No se pudo crear $NAME desde origin/$NAME." checkout -b "$NAME" "origin/$NAME"
-else
+elif [ "$REMOTE_AVAILABLE" = true ]; then
     log_error "La rama '$NAME' no existe ni localmente ni en origin."
-    log_info  "Si la rama se perdió, usa GitFlow 18 Recover Branch from Origin."
+    log_info  "Si la rama se perdió, usa taskctl recover."
+    exit 1
+else
+    log_error "La rama '$NAME' no existe localmente y no hay conexion con origin para buscarla."
+    log_info  "Comprueba el nombre con git branch, o recupera la conexion y usa taskctl recover."
     exit 1
 fi
 
 # Actualizar desde origin si tiene tracking remoto
-if git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME"; then
+if [ "$NAME_REMOTE" = true ]; then
     invoke_git "No se pudo actualizar $NAME desde origin." pull --ff-only origin "$NAME"
     log_ok "Rama $NAME actualizada desde origin."
-else
+elif [ "$REMOTE_AVAILABLE" = true ]; then
     log_warn "La rama $NAME no tiene copia en origin. Trabajando solo en local."
+else
+    log_warn "Rama $NAME retomada sin sincronizar con origin."
 fi
 
 # Buscar stash relacionado con esta rama

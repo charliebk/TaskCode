@@ -38,7 +38,6 @@
  * definicion.
  */
 import {
-  isIgnored,
   isInsideWorkTree,
   isValidBranchName,
   isWorkspaceClean,
@@ -67,18 +66,6 @@ const WRAPPERS: Record<WrapperName, WrapperSpec> = {
 };
 
 export const WRAPPER_NAMES = Object.keys(WRAPPERS) as readonly WrapperName[];
-
-/**
- * El registro que `initialize_gitflow_log` escribe dentro del repo del
- * usuario, en todos los scripts. El nombre real lleva la fecha; para
- * preguntarle a Git si esta ignorado basta uno representativo.
- *
- * Se pregunta por el FICHERO y no por `logs/` (hallazgo MENOR de
- * revision por pares, ronda 2): un `.gitignore` con `logs/gitflow/` o
- * con `*.log` ignora el registro sin ignorar `logs/`, y el guard
- * abortaba de mas acusando al repo de algo que no era verdad.
- */
-const REGISTRO_DE_LOS_SCRIPTS = 'logs/gitflow/gitflow-2026-01-01.log';
 
 export function isWrapperCommand(cmd: string): cmd is WrapperName {
   return Object.prototype.hasOwnProperty.call(WRAPPERS, cmd);
@@ -176,8 +163,8 @@ function parseWrapperArgs(
 /**
  * Guarda de no-interactividad: solo corta cuando el script iba a
  * preguntar algo Y su respuesta por defecto es inaceptable. Si no hay
- * nada que preguntar (diagnose, pause con el workspace limpio en un
- * repo que ignora logs/), el comando sigue igual de bien sin terminal.
+ * nada que preguntar (diagnose, o pause con el workspace limpio), el
+ * comando sigue igual de bien sin terminal.
  */
 function assertPuedeSeguirSinTerminal(
   nombre: WrapperName,
@@ -193,23 +180,18 @@ function assertPuedeSeguirSinTerminal(
           'para dejarlos en la rama.'
       );
     }
-    // El workspace esta limpio AHORA, pero todos los scripts de
-    // Git-Flow crean logs/gitflow/ dentro del repo nada mas arrancar
-    // (initialize_gitflow_log). Si el repo no ignora logs/, para
-    // cuando pause-work.sh mire el workspace lo vera sucio por su
-    // propia culpa y preguntara igual, con EOF por respuesta:
-    // "Opcion no reconocida" y exit 1, exactamente el fallo que este
-    // comando venia a quitar de en medio (hallazgo IMPORTANTE de
-    // revision por pares). Mejor decirlo antes, y decir como
-    // arreglarlo de raiz.
-    if (!isIgnored(REGISTRO_DE_LOS_SCRIPTS, repoCwd)) {
-      throw new WrapperCommandError(
-        '[ERROR] taskctl pause preguntaria igualmente aunque el workspace este limpio: los ' +
-          'scripts de Git-Flow escriben su registro en "logs/gitflow/" nada mas arrancar, y ' +
-          'este repo no lo ignora. Anade "logs/" al .gitignore del repo (es lo que espera el ' +
-          'plugin), o ejecuta el comando desde una terminal.'
-      );
-    }
+    // Aqui habia un segundo guard (TASK-026): con el workspace limpio,
+    // `pause` abortaba igualmente si el repo no ignoraba el registro
+    // que los scripts de Git-Flow escribian en "logs/gitflow/", porque
+    // `initialize_gitflow_log` lo creaba nada mas arrancar y
+    // pause-work.sh acababa viendo sucio un workspace que habia
+    // ensuciado el mismo. Ese guard tapaba una suciedad autoinfligida,
+    // no un problema del repo del usuario. TASK-029 movio el registro
+    // a `.git/taskcode/gitflow/` (git rev-parse --git-path), que
+    // `git status` no ve nunca, asi que el guard se ha quedado sin
+    // motivo y se elimina con su constante. Comprobado empiricamente:
+    // repo sin ".gitignore", workspace limpio y stdin cerrado ->
+    // pause-work.sh informa "Workspace limpio", sale 0 y no pregunta.
   }
 
   if (nombre === 'abort-merge') {

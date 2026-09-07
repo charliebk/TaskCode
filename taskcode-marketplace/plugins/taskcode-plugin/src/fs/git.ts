@@ -7,7 +7,7 @@
  * scripts .sh siguen siendo la unica fuente de verdad para eso).
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Task } from '../core/task.js';
 
@@ -84,60 +84,66 @@ export function isInsideWorkTree(cwd: string): boolean {
   return result.status === 0 && (result.stdout ?? '').trim() === 'true';
 }
 
-/**
- * true si `relPath` (relativo a la raiz del repo) caeria bajo las
- * reglas de gitignore vigentes. Lo usa el wrapper de `pause` para
- * saber si el propio script va a ensuciar el workspace al escribir su
- * registro.
- *
- * Dos detalles que no son opcionales (hallazgos MENOR de revision por
- * pares, TASK-026, rondas 1 y 2):
- *
- * - Se resuelve la raiz primero: `git check-ignore` interpreta las
- *   rutas relativas contra el cwd, y taskctl puede estar invocado
- *   desde un subdirectorio.
- * - `--no-index`: sin el, si algo bajo esa ruta esta ya en el indice
- *   (un `logs/.gitkeep` trackeado, por ejemplo) check-ignore se salta
- *   la consulta y contesta "no ignorado" aunque el .gitignore diga lo
- *   contrario. Aqui la pregunta es por las REGLAS, no por el estado
- *   del indice.
- *
- * Y hay que preguntar por el fichero concreto que se va a escribir, no
- * por el directorio de mas arriba: `.gitignore` con `logs/gitflow/` o
- * con `*.log` ignora el registro y no ignora `logs/`.
- */
-export function isIgnored(relPath: string, cwd: string): boolean {
-  const toplevel = runGit(['rev-parse', '--show-toplevel'], cwd);
-  const args = ['check-ignore', '-q', '--no-index', '--', relPath] as const;
-  const result = spawnSync('git', args, { cwd: toplevel, encoding: 'utf8' });
-  if (result.error) {
-    throw new GitLaunchError(result.error);
-  }
-  if (result.status === 0) return true;
-  // 1 = no esta ignorado (respuesta valida). Cualquier otro codigo es
-  // un error real, mismo criterio que isAncestor.
-  if (result.status === 1) return false;
-  throw new GitCommandError(args, result.stderr ?? '');
-}
-
-export type OperacionGitEnCurso = 'merge' | 'rebase';
+export type OperacionGitEnCurso = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
 
 /**
  * Que operacion multi-paso hay a medias en el repo, si es que hay
- * alguna (TASK-026). Mira exactamente los mismos tres testigos que
- * `abort-merge.sh` (MERGE_HEAD, rebase-merge, rebase-apply), pero
- * resolviendo cada ruta con `git rev-parse --git-path` en vez de
+ * alguna (TASK-026, ampliada en TASK-029). Mira exactamente los mismos
+ * testigos que `abort-merge.sh` — y eso es deliberado: si taskctl
+ * detectara mas que el script habria dos comportamientos distintos
+ * segun haya terminal o no.
+ *
+ * Cada ruta se resuelve con `git rev-parse --git-path` en vez de
  * concatenar sobre --git-dir: asi sigue valiendo dentro de un
- * worktree enlazado, donde MERGE_HEAD no vive en el .git principal.
+ * worktree enlazado, donde estos ficheros no viven en el .git
+ * principal (comprobado: en un worktree enlazado con un cherry-pick a
+ * medias, --git-path devuelve .git/worktrees/<nombre>/CHERRY_PICK_HEAD
+ * y el fichero esta ahi).
  *
  * `--git-path` devuelve una ruta relativa al cwd de Git, no al
  * proceso: se resuelve contra `cwd` antes de mirar el disco.
+ *
+ * Sobre los dos testigos de TASK-029, medidos en git 2.55 y no
+ * supuestos:
+ *
+ * - Un cherry-pick en conflicto deja `CHERRY_PICK_HEAD`; un revert en
+ *   conflicto deja `REVERT_HEAD`. Ninguno de los dos deja `MERGE_HEAD`,
+ *   ni siquiera al revertir un commit de merge con `-m 1`.
+ * - Una secuencia multi-commit deja ademas `.git/sequencer/`, y puede
+ *   quedar viva SIN ninguno de los dos ficheros anteriores: si se
+ *   resuelve el conflicto y se hace `git commit` a mano en vez de
+ *   `--continue`, Git borra CHERRY_PICK_HEAD pero deja el sequencer con
+ *   los commits pendientes, y `--abort` sigue funcionando. Sin mirar el
+ *   directorio, ese estado se reportaria como "normal", que es
+ *   justamente el mensaje falso que TASK-029 viene a quitar.
+ * - Un rebase (interactivo o no) NO deja CHERRY_PICK_HEAD ni sequencer:
+ *   usa `rebase-merge` y `REBASE_HEAD`. No hay colision entre los dos
+ *   grupos de testigos.
+ * - `git cherry-pick -n` en conflicto no deja NINGUN testigo, y Git
+ *   mismo responde "no cherry-pick or revert in progress" a `--abort`.
+ *   No hay nada que abortar y aqui se devuelve null, igual que Git.
  */
 export function operacionEnCurso(cwd: string): OperacionGitEnCurso | null {
   const gitPath = (nombre: string): string =>
     path.resolve(cwd, runGit(['rev-parse', '--git-path', nombre], cwd));
   if (existsSync(gitPath('MERGE_HEAD'))) return 'merge';
   if (existsSync(gitPath('rebase-merge')) || existsSync(gitPath('rebase-apply'))) return 'rebase';
+  if (existsSync(gitPath('CHERRY_PICK_HEAD'))) return 'cherry-pick';
+  if (existsSync(gitPath('REVERT_HEAD'))) return 'revert';
+  const sequencer = gitPath('sequencer');
+  if (existsSync(sequencer)) {
+    // La primera linea del "todo" distingue las dos: "pick <sha>" para
+    // cherry-pick, "revert <sha>" para revert. Si no se puede leer se
+    // asume cherry-pick, que es inofensivo: `git revert --abort` aborta
+    // un cherry-pick y viceversa (misma maquinaria del sequencer).
+    let todo = '';
+    try {
+      todo = readFileSync(path.join(sequencer, 'todo'), 'utf8');
+    } catch {
+      todo = '';
+    }
+    return /^revert /m.test(todo) ? 'revert' : 'cherry-pick';
+  }
   return null;
 }
 

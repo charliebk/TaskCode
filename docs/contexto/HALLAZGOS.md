@@ -136,45 +136,86 @@ repo.** Dentro, ensucian el workspace y abortan el propio import.
 
 ## Git-Flow: deuda conocida
 
-- **Los scripts se escriben su propio registro dentro del repo del
-  usuario** (`initialize_gitflow_log` crea `logs/gitflow/` nada más
-  arrancar, en cualquiera de ellos). En un repo que no ignore `logs/`, el
-  script **ensucia el workspace por su cuenta antes de mirarlo**: es por eso
-  que `pause-work.sh` acaba preguntando qué hacer con un directorio que
-  acaba de crear él. Está documentado desde TASK-007 y lo destapó otra vez
-  la revisión de TASK-026. El repo TaskCode lo ignora (`.gitignore`, línea
-  14) y los tests de comandos replican ese `.gitignore` en sus repos
-  temporales **a propósito**, no por adorno. `taskctl pause` sin terminal lo
-  comprueba con `git check-ignore` y aborta explicándolo — preguntando por el
-  fichero que se escribe y con `--no-index`, que si no un `.gitignore` con
-  `logs/gitflow/` o con `*.log`, o un `logs/.gitkeep` trackeado, dan la
-  respuesta contraria a la verdadera.
+**Los cuatro primeros puntos de esta sección se cerraron en TASK-029 (item
+C6, 2026-09-07).** Se dejan escritos porque el *porqué* de cada decisión
+sigue valiendo, y porque dos de ellos cambiaron la solución al medirla.
 
-  La misma trampa deja **`taskctl resume` inservible** en un repo que no
-  ignore el registro: aborta con *"El workspace no está limpio"* cuando la
-  única suciedad es la que acaba de crear el propio script, y remite a un
-  `pause` que también abortaría. Ahí no hay guard, a propósito: el arreglo
-  de raíz es del lado de los scripts (C6), y taparlo desde el wrapper
-  extendería su guard a un caso que no tiene que ver con la interactividad.
-- **Los mensajes de los scripts siguen remitiendo a los menús de IntelliJ**
-  (*"usa GitFlow 16 Pause Work"*, *"GitFlow 17 Resume Work"*, *"GitFlow 18
-  Recover Branch"*, *"GitFlow 19 Abort Merge"*) aunque desde TASK-026 esos
-  cuatro comandos existan ya como `taskctl pause` / `resume` / `recover` /
-  `abort-merge`. Sin corregir: envolver y reescribir los scripts son dos
-  trabajos distintos, y el segundo es del item C6.
-- **`abort-merge.sh` solo conoce merge y rebase.** Con un `cherry-pick` o un
-  `revert` a medias dice *"El workspace está en estado normal"* y sale 0 —
-  mensaje falso. `operacionEnCurso` (TASK-026) mira exactamente los mismos
-  tres testigos que el script, a propósito: hacer que taskctl detectara más
-  que él daría dos comportamientos distintos según haya terminal o no. Para
-  C6.
-- **Bug de `origin` sin guard** en 3 scripts que siguen sin corregir:
-  `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` (item C6). Los
-  dos `merge-*-to-main` se corrigieron en B2 (2026-09-05) con un matiz que
-  añadió la revisión por pares: distinguen "sin origin configurado" (modo
-  local, como los merge a develop) de "origin configurado que no responde"
-  (abortan con instrucción, porque el tag de release se crearía sobre una
-  `main` posiblemente obsoleta respecto al remoto).
+- **El registro ya no se escribe en el workspace del usuario.**
+  `initialize_gitflow_log` creaba `logs/gitflow/` en el repo del usuario nada
+  más arrancar, en los 24 scripts: **ensuciaba el workspace antes de
+  mirarlo**, por eso `pause-work.sh` acababa preguntando qué hacer con un
+  directorio que acababa de crear él, y por eso `taskctl resume` era
+  inservible ahí (abortaba con *"El workspace no está limpio"* y remitía a un
+  `pause` que también abortaría). Documentado desde TASK-007, redestapado por
+  la revisión de TASK-026.
+
+  Ahora va a `.git/taskcode/gitflow/`, resuelto con `git rev-parse
+  --git-path` — no concatenando sobre `--git-dir`, para que siga valiendo en
+  un worktree enlazado. `.git/` no forma parte del árbol de trabajo, así que
+  `git status` no lo ve **nunca**, con `.gitignore` o sin él: la clase entera
+  de problema desaparece en vez de taparse. Detalle que costó un `mkdir`:
+  `--git-path` devuelve la ruta **relativa al cwd**, hay que absolutizarla.
+
+  Consecuencia: **el segundo guard de `taskctl pause` se quitó**, con sus
+  tests y con `isIgnored` entera (`src/fs/git.ts`), que se quedó sin ningún
+  consumidor. Existía solo por la suciedad autoinfligida. Se recupera con
+  `git show` si vuelve a hacer falta; llevaba dentro dos detalles que
+  costaron una ronda de revisión en TASK-026: `--no-index` (sin él, algo ya
+  en el índice hace que `check-ignore` conteste lo contrario de lo que dice
+  el `.gitignore`) y preguntar por el fichero y no por su carpeta (`*.log`
+  ignora el registro sin ignorar `logs/`). El primer guard —no hay terminal
+  interactiva— sigue en pie: ese sí es real.
+- **Los mensajes ya no remiten a los menús de IntelliJ.** Decían *"usa
+  GitFlow 16 Pause Work"* y compañía, herencia de las run configurations de
+  las que salieron los scripts. Los cuatro con equivalente real ahora citan
+  `taskctl pause` / `resume` / `recover` / `abort-merge`.
+
+  Los de "GitFlow 20/21" (mirror y switch) **no se tradujeron a un comando**:
+  no existen en `taskctl`, y los cinco wrappers son exactamente `diagnose`,
+  `pause`, `resume`, `recover` y `abort-merge`. Ahí se nombra el script. Es
+  la misma disciplina que la sección "Lo que NO existe" de la skill:
+  documentar un comando inexistente ya nos ha costado tiempo.
+- **`abort-merge.sh` ya conoce cherry-pick y revert — y un tercer testigo que
+  el plan no había previsto.** Antes decía *"El workspace está en estado
+  normal"* y salía 0 con cualquiera de los dos a medias.
+
+  Al medirlo (no al razonarlo) apareció que `CHERRY_PICK_HEAD` y
+  `REVERT_HEAD` **no bastan**: si resuelves el conflicto y haces `git commit`
+  en vez de `--continue`, Git borra el testigo, la secuencia sigue viva,
+  `--abort` sigue funcionando y lo único que queda es el directorio
+  `.git/sequencer/`. Se añadió como tercer testigo; la primera línea de su
+  `todo` (`pick` / `revert`) distingue cuál es. En sentido contrario,
+  `cherry-pick -n` no deja **ningún** rastro y el propio Git se niega a
+  abortar: ahí decir "estado normal" es correcto, y hay un test que lo fija.
+
+  `operacionEnCurso` mira los mismos testigos que el script, en el mismo
+  orden, y eso sigue siendo deliberado desde TASK-026: si taskctl detectara
+  más que él, habría dos comportamientos según haya terminal o no.
+- **El bug de `origin` sin guard está cerrado en los tres scripts que
+  quedaban**: `create-develop.sh`, `recover-branch.sh` y `resume-work.sh`,
+  con `detect_origin_available` y cubiertos por
+  `test/gitflow/origin-guard.test.ts`. La respuesta correcta resultó ser
+  distinta por script, y no "modo local" en los tres:
+
+  - `create-develop` **aborta** con origin caído: no se puede saber si
+    `develop` ya existe en el remoto, y crearla desde una principal
+    posiblemente obsoleta dejaría una divergencia que el push haría
+    permanente. Misma clase de daño que el tag de B2.
+  - `recover-branch` **falla siempre** sin remoto: su propósito entero es
+    traerse una rama de `origin`, así que no hay modo local posible. El
+    arreglo aquí es fallar con un mensaje que se entienda, no fingir éxito.
+  - `resume-work` **no aborta** nunca: retomar una rama local no publica
+    nada, y abortar rompería el caso central de volver a tu rama con la VPN
+    caída. Solo avisa.
+
+  **Lo que queda vivo**: `create-hotfix.sh` y `create-release.sh` llevan su
+  copia inline de TASK-009, anterior a la extracción de B2, así que detectan
+  si hay remoto pero **no distinguen "sin origin" de "origin caído"**. No es
+  el bug original —no mueren con el `fatal:` de Git— pero es la misma lógica
+  duplicada en dos sitios y con menos criterio que la compartida. Y
+  `detect_origin_available` imprime *"Se continuara en modo local"* también
+  cuando quien la llama aborta acto seguido, así que en `recover-branch` y en
+  `create-develop` sale una línea que contradice a la siguiente.
 - **Confirmado por la revisión de B2 (preexistente, sin corregir)**: ejecutar
   dos veces un `merge-*-to-main` con el mismo nombre muere en el tag
   duplicado (`exit 1`, sin mensaje de guía), y un conflicto en el backmerge

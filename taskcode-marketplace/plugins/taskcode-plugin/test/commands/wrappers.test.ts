@@ -15,6 +15,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,13 +85,13 @@ function capturaError(fn: () => unknown): unknown {
 }
 
 /**
- * El `.gitignore` con `logs/` NO es decorado: todos los scripts de
- * Git-Flow llaman a `initialize_gitflow_log`, que crea `logs/gitflow/`
- * dentro del repo. Sin ignorarlo, el propio script deja el workspace
- * sucio y `pause-work.sh` acaba preguntando que hacer con un
- * directorio que acaba de crear el. El repo TaskCode ya lo ignora
- * (.gitignore, linea 14) y el resto de tests de comandos hacen lo
- * mismo.
+ * Repo temporal deliberadamente SIN `.gitignore`. Hasta TASK-029 hacia
+ * falta uno con `logs/`, porque `initialize_gitflow_log` creaba
+ * `logs/gitflow/` dentro del repo nada mas arrancar cualquier script y
+ * el propio script se ensuciaba el workspace antes de mirarlo. Desde
+ * que el registro vive en `.git/taskcode/gitflow/` no hace falta nada:
+ * que estos repos no ignoren absolutamente nada es la red de
+ * regresion de ese cambio.
  */
 async function withTempRepo(fn: (repoRoot: string) => Promise<void>): Promise<void> {
   const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-wrap-'));
@@ -98,7 +99,6 @@ async function withTempRepo(fn: (repoRoot: string) => Promise<void>): Promise<vo
     git(['init', '-q', '-b', 'main'], repoRoot);
     git(['config', 'user.email', 'test@example.com'], repoRoot);
     git(['config', 'user.name', 'Test'], repoRoot);
-    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
     await writeFile(path.join(repoRoot, 'README.md'), '# repo de prueba\n', 'utf8');
     git(['add', '-A'], repoRoot);
     git(['commit', '-q', '-m', 'inicial'], repoRoot);
@@ -286,52 +286,44 @@ test('pause sin terminal y con el workspace sucio aborta y no toca nada', async 
   });
 });
 
-test('pause sin terminal aborta si el repo no ignora logs/, aunque el workspace este limpio', async () => {
-  // Repo SIN "logs/" en .gitignore: el propio pause-work.sh crea
-  // logs/gitflow/ al arrancar y despues ve el workspace sucio por su
-  // culpa, pregunta, y con EOF por respuesta muere con "Opcion no
-  // reconocida" y exit 1 — el fallo que este comando venia a quitar
-  // de en medio (hallazgo IMPORTANTE de revision por pares).
-  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-sinlogs-'));
+test('pause sin terminal sigue adelante en un repo SIN .gitignore, y no ensucia nada', async () => {
+  // Regresion de TASK-029, y la razon de que aqui ya no haya un guard
+  // de "el repo no ignora logs/". Hasta TASK-029,
+  // `initialize_gitflow_log` creaba <repo>/logs/gitflow/ nada mas
+  // arrancar: en un repo sin ese patron en el .gitignore, pause-work.sh
+  // veia el workspace sucio POR SU PROPIA CULPA, preguntaba, y con EOF
+  // por respuesta moria con "Opcion no reconocida" y exit 1 — el fallo
+  // que este comando venia a quitar de en medio. El wrapper lo tapaba
+  // abortando antes con un mensaje que pedia tocar el .gitignore.
+  //
+  // Ahora el registro vive en `.git/taskcode/gitflow/`, que `git status`
+  // no mira nunca, asi que el caso deja de existir: el repo de este test
+  // no tiene .gitignore en absoluto.
+  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-sinignore-'));
   try {
     git(['init', '-q', '-b', 'main'], repoRoot);
     git(['config', 'user.email', 'test@example.com'], repoRoot);
     git(['config', 'user.name', 'Test'], repoRoot);
-    await writeFile(path.join(repoRoot, 'README.md'), '# sin ignorar logs\n', 'utf8');
+    await writeFile(path.join(repoRoot, 'README.md'), '# sin gitignore\n', 'utf8');
     git(['add', '-A'], repoRoot);
     git(['commit', '-q', '-m', 'inicial'], repoRoot);
     assert.equal(git(['status', '--porcelain'], repoRoot), '', 'el workspace parte limpio');
 
-    const error = capturaError(() => run('pause', [], repoRoot));
-
-    assert.ok(error instanceof WrapperCommandError);
-    assert.match((error as Error).message, /este repo no lo ignora/);
-    assert.match((error as Error).message, /\.gitignore/);
-    // Y no se llego a invocar el script: el repo sigue sin logs/.
-    assert.equal(git(['status', '--porcelain'], repoRoot), '');
-  } finally {
-    await rm(repoRoot, { recursive: true, force: true });
-  }
-});
-
-test('pause sin terminal NO aborta si el registro esta ignorado por un patron que no es "logs/"', async () => {
-  // El guard pregunta por el fichero que escriben los scripts, no por
-  // la carpeta: un .gitignore con "logs/gitflow/" ignora el registro
-  // igual de bien, y abortar ahi seria un falso positivo (hallazgo
-  // MENOR de revision por pares, ronda 2).
-  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-otroignore-'));
-  try {
-    git(['init', '-q', '-b', 'main'], repoRoot);
-    git(['config', 'user.email', 'test@example.com'], repoRoot);
-    git(['config', 'user.name', 'Test'], repoRoot);
-    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/gitflow/\n', 'utf8');
-    await writeFile(path.join(repoRoot, 'README.md'), '# otro patron\n', 'utf8');
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'inicial'], repoRoot);
-
     const result = run('pause', [], repoRoot);
-    assert.equal(result.code, 0);
-    assert.equal(git(['status', '--porcelain'], repoRoot), '', 'el registro quedo ignorado');
+
+    assert.equal(result.code, 0, 'pause-work.sh no pregunta ni muere con exit 1');
+    assert.deepEqual(result.avisos, []);
+    assert.equal(
+      git(['status', '--porcelain'], repoRoot),
+      '',
+      'el script no dejo nada en el arbol de trabajo'
+    );
+    // Y el registro se escribio de verdad, solo que fuera del arbol.
+    const dirRegistro = path.join(
+      repoRoot,
+      git(['rev-parse', '--git-path', 'taskcode/gitflow'], repoRoot).trim()
+    );
+    assert.ok(existsSync(dirRegistro), `el registro deberia estar en ${dirRegistro}`);
   } finally {
     await rm(repoRoot, { recursive: true, force: true });
   }
@@ -396,10 +388,15 @@ test('resume y recover con rama y sin terminal avisan del valor por defecto ANTE
     assert.equal(resume.avisos.length, 1);
     assert.deepEqual(resume.emitidos, resume.avisos);
     assert.match(resume.avisos[0] as string, /aplicara sin preguntar/);
-    // Sin "origin" configurado, resume-work.sh muere en su "fetch
-    // origin" sin guard: es el bug conocido del item C6, que esta
-    // tarea NO tapa a proposito.
-    assert.notEqual(resume.code, 0);
+    // Aqui habia un `assert.notEqual(resume.code, 0)`: sin "origin"
+    // configurado, resume-work.sh moria en su "fetch origin" sin guard,
+    // el bug conocido que TASK-026 NO tapaba a proposito. TASK-029 (S1)
+    // lo corrige, asi que el codigo de salida de resume-work.sh sin
+    // remoto ya no es este el sitio donde se fija: lo cubre
+    // test/gitflow/origin-guard.test.ts. Lo que este test comprueba es
+    // el contrato del WRAPPER — que el aviso del valor por defecto se
+    // emite ANTES de lanzar el script —, y eso no depende del codigo
+    // de salida.
 
     const recover = run('recover', ['main'], repoRoot);
     assert.equal(recover.avisos.length, 1);
@@ -445,7 +442,8 @@ async function withRepoConStash(
     git(['config', 'user.email', 'test@example.com'], repoRoot);
     git(['config', 'user.name', 'Test'], repoRoot);
     git(['remote', 'add', 'origin', originRoot], repoRoot);
-    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
+    // Sin .gitignore, igual que withTempRepo y por el mismo motivo
+    // (TASK-029): el registro de los scripts ya no toca el arbol.
     await writeFile(path.join(repoRoot, 'README.md'), '# repo con stash\n', 'utf8');
     git(['add', '-A'], repoRoot);
     git(['commit', '-q', '-m', 'inicial'], repoRoot);

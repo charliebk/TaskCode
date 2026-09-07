@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -10,7 +11,6 @@ import {
   isValidBranchName,
   isRemoteAvailable,
   isInsideWorkTree,
-  isIgnored,
   operacionEnCurso,
   localBranchExists,
   resolveMainBranch,
@@ -361,7 +361,14 @@ test('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only f
   });
 });
 
-// ── isInsideWorkTree / isIgnored / operacionEnCurso (TASK-026) ──────
+// ── isInsideWorkTree / operacionEnCurso (TASK-026) ──────────────────
+// isIgnored vivia aqui y se fue en TASK-029: su unico consumidor era el
+// guard de `taskctl pause` que comprobaba si el repo ignoraba el
+// registro de los scripts, y ese guard dejo de tener sentido cuando el
+// registro se mudo dentro de `.git/`. Se recupera con `git show` si
+// alguna vez hace falta: llevaba dentro dos detalles que costaron una
+// ronda de revision (`--no-index`, y preguntar por el fichero y no por
+// su carpeta), documentados en HALLAZGOS.md.
 
 test('isInsideWorkTree: true dentro de un repo y en un subdirectorio suyo', async () => {
   await withTempRepo(async (repoRoot) => {
@@ -395,52 +402,6 @@ test('isInsideWorkTree: false dentro de .git y false en un repo bare', async () 
   } finally {
     await rm(bareRoot, { recursive: true, force: true });
   }
-});
-
-const REGISTRO = 'logs/gitflow/gitflow-2026-01-01.log';
-
-test('isIgnored: distingue una ruta ignorada de una que no lo esta', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const { writeFile, mkdir } = await import('node:fs/promises');
-    assert.equal(isIgnored(REGISTRO, repoRoot), false);
-    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
-    assert.equal(isIgnored(REGISTRO, repoRoot), true);
-    assert.equal(isIgnored('src/main.ts', repoRoot), false);
-    // Y desde un subdirectorio la respuesta no cambia: la ruta se
-    // resuelve contra la raiz del repo, no contra el cwd.
-    const sub = path.join(repoRoot, 'a', 'b');
-    await mkdir(sub, { recursive: true });
-    assert.equal(isIgnored(REGISTRO, sub), true);
-  });
-});
-
-test('isIgnored: acierta con los patrones que ignoran el fichero sin ignorar su carpeta', async () => {
-  // Los tres los encontro la revision por pares (ronda 2) como falsos
-  // positivos del guard de "pause", que preguntaba por "logs/".
-  for (const patron of ['logs/gitflow/', '*.log', 'logs/**']) {
-    await withTempRepo(async (repoRoot) => {
-      const { writeFile } = await import('node:fs/promises');
-      await writeFile(path.join(repoRoot, '.gitignore'), `${patron}\n`, 'utf8');
-      assert.equal(isIgnored(REGISTRO, repoRoot), true, patron);
-    });
-  }
-});
-
-test('isIgnored: un fichero trackeado bajo la ruta no cambia la respuesta (--no-index)', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const { writeFile, mkdir } = await import('node:fs/promises');
-    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
-    await mkdir(path.join(repoRoot, 'logs'), { recursive: true });
-    await writeFile(path.join(repoRoot, 'logs', '.gitkeep'), '', 'utf8');
-    // Trackeado a la fuerza, que es como se conserva una carpeta
-    // ignorada en el repo.
-    git(['add', '-f', 'logs/.gitkeep'], repoRoot);
-    git(['commit', '-q', '-m', 'conserva la carpeta de logs'], repoRoot);
-    // Sin --no-index, check-ignore se salta la consulta por estar la
-    // ruta en el indice y contesta "no ignorado", con el .gitignore
-    // diciendo justo lo contrario.
-    assert.equal(isIgnored(REGISTRO, repoRoot), true);
-  });
 });
 
 test('operacionEnCurso: null cuando no hay nada a medias', async () => {
@@ -479,6 +440,186 @@ test('operacionEnCurso: "merge" con un merge en conflicto de verdad, y null tras
     assert.equal(operacionEnCurso(repoRoot), 'merge');
 
     git(['merge', '--abort'], repoRoot);
+    assert.equal(operacionEnCurso(repoRoot), null);
+  });
+});
+
+// ── operacionEnCurso: cherry-pick y revert (TASK-029) ───────────────
+//
+// Los testigos que deja Git NO son simetricos entre las dos
+// operaciones, asi que estos tests provocan cada estado de verdad
+// (repo temporal, conflicto real) en vez de fabricar ficheros a mano
+// dentro de .git/: lo que se afirma es lo que hace Git, no lo que
+// suponemos que hace.
+
+test('operacionEnCurso: "cherry-pick" con un cherry-pick en conflicto de verdad, y null tras abortarlo', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile } = await import('node:fs/promises');
+    const fichero = path.join(repoRoot, 'a.txt');
+    await writeFile(fichero, 'base\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'base'], repoRoot);
+
+    git(['checkout', '-q', '-b', 'otra'], repoRoot);
+    await writeFile(fichero, 'version de otra\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'cambio en otra'], repoRoot);
+
+    git(['checkout', '-q', 'main'], repoRoot);
+    await writeFile(fichero, 'version de main\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'cambio en main'], repoRoot);
+
+    // Conflicta a proposito: git sale != 0, por eso no se usa el helper
+    // git() de este fichero, que asevera status 0.
+    const cp = spawnSync('git', ['cherry-pick', 'otra'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.notEqual(cp.status, 0, 'el cherry-pick deberia haber conflictado');
+
+    assert.equal(operacionEnCurso(repoRoot), 'cherry-pick');
+
+    git(['cherry-pick', '--abort'], repoRoot);
+    assert.equal(operacionEnCurso(repoRoot), null);
+  });
+});
+
+test('operacionEnCurso: "revert" con un revert en conflicto de verdad, y null tras abortarlo', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile } = await import('node:fs/promises');
+    const fichero = path.join(repoRoot, 'a.txt');
+    await writeFile(fichero, 'l1\nl2\nl3\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'base'], repoRoot);
+    await writeFile(fichero, 'l1\nDOS\nl3\n', 'utf8');
+    git(['commit', '-q', '-am', 'segundo'], repoRoot);
+    await writeFile(fichero, 'l1\nTRES\nl3\n', 'utf8');
+    git(['commit', '-q', '-am', 'tercero'], repoRoot);
+
+    // Revertir "segundo" choca con lo que hizo "tercero" en esa linea.
+    const rv = spawnSync('git', ['revert', '--no-edit', 'HEAD~1'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+    assert.notEqual(rv.status, 0, 'el revert deberia haber conflictado');
+
+    // El testigo es REVERT_HEAD, no MERGE_HEAD (comprobado: un revert
+    // en conflicto no deja MERGE_HEAD ni siquiera al revertir un merge
+    // con -m 1). Si se confundieran, el wrapper propondria el --abort
+    // equivocado.
+    assert.equal(operacionEnCurso(repoRoot), 'revert');
+
+    git(['revert', '--abort'], repoRoot);
+    assert.equal(operacionEnCurso(repoRoot), null);
+  });
+});
+
+test('operacionEnCurso: "cherry-pick" cuando solo queda .git/sequencer (resuelto con "git commit" a mano)', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile } = await import('node:fs/promises');
+    const fichero = path.join(repoRoot, 'a.txt');
+    await writeFile(fichero, 'base\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'base'], repoRoot);
+
+    git(['checkout', '-q', '-b', 'otra'], repoRoot);
+    await writeFile(path.join(repoRoot, 'b.txt'), 'b\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'limpio'], repoRoot);
+    await writeFile(fichero, 'version de otra\n', 'utf8');
+    git(['commit', '-q', '-am', 'conflictivo'], repoRoot);
+    await writeFile(path.join(repoRoot, 'c.txt'), 'c\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'pendiente'], repoRoot);
+
+    git(['checkout', '-q', 'main'], repoRoot);
+    await writeFile(fichero, 'version de main\n', 'utf8');
+    git(['commit', '-q', '-am', 'cambio en main'], repoRoot);
+
+    const cp = spawnSync('git', ['cherry-pick', 'main..otra'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.notEqual(cp.status, 0, 'el cherry-pick deberia conflictar en el segundo commit');
+    assert.equal(operacionEnCurso(repoRoot), 'cherry-pick');
+
+    // Resolver y comitear A MANO en vez de "cherry-pick --continue":
+    // Git borra CHERRY_PICK_HEAD pero deja .git/sequencer con el commit
+    // que falta, y "--abort" sigue funcionando. Sin mirar el sequencer,
+    // este repo se reportaria como "normal" estando a medias.
+    await writeFile(fichero, 'resuelto\n', 'utf8');
+    git(['add', 'a.txt'], repoRoot);
+    git(['commit', '-q', '-m', 'resuelto a mano'], repoRoot);
+    assert.equal(
+      existsSync(path.join(repoRoot, '.git', 'CHERRY_PICK_HEAD')),
+      false,
+      'el commit a mano deberia haber borrado CHERRY_PICK_HEAD'
+    );
+    assert.equal(existsSync(path.join(repoRoot, '.git', 'sequencer')), true);
+
+    assert.equal(operacionEnCurso(repoRoot), 'cherry-pick');
+
+    const abort = spawnSync('git', ['cherry-pick', '--abort'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(abort.status, 0, `--abort deberia seguir funcionando aqui: ${abort.stderr}`);
+    assert.equal(operacionEnCurso(repoRoot), null);
+  });
+});
+
+test('operacionEnCurso: "revert" cuando solo queda .git/sequencer (lo distingue por su "todo")', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile } = await import('node:fs/promises');
+    const fichero = path.join(repoRoot, 'a.txt');
+    await writeFile(fichero, 'l1\nl2\nl3\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'base'], repoRoot);
+    await writeFile(path.join(repoRoot, 'b.txt'), 'b\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'c1'], repoRoot);
+    await writeFile(fichero, 'l1\nDOS\nl3\n', 'utf8');
+    git(['commit', '-q', '-am', 'c2'], repoRoot);
+    await writeFile(fichero, 'l1\nDOS\nTRES\n', 'utf8');
+    git(['commit', '-q', '-am', 'c3'], repoRoot);
+    await writeFile(fichero, 'l1\nDOS\nCUATRO\n', 'utf8');
+    git(['commit', '-q', '-am', 'c4'], repoRoot);
+
+    const rv = spawnSync('git', ['revert', '--no-edit', 'HEAD~3..HEAD~1'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+    assert.notEqual(rv.status, 0, 'revertir c3 deberia chocar con c4');
+    assert.equal(operacionEnCurso(repoRoot), 'revert');
+
+    await writeFile(fichero, 'l1\nDOS\nZ\n', 'utf8');
+    git(['add', 'a.txt'], repoRoot);
+    git(['commit', '-q', '-m', 'resuelto a mano'], repoRoot);
+    assert.equal(existsSync(path.join(repoRoot, '.git', 'REVERT_HEAD')), false);
+    assert.equal(existsSync(path.join(repoRoot, '.git', 'sequencer')), true);
+
+    // El directorio por si solo no dice si la secuencia es de
+    // cherry-pick o de revert: lo dice su "todo".
+    assert.equal(operacionEnCurso(repoRoot), 'revert');
+  });
+});
+
+test('operacionEnCurso: null tras un "cherry-pick -n" en conflicto (Git tampoco reconoce nada que abortar)', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const { writeFile } = await import('node:fs/promises');
+    const fichero = path.join(repoRoot, 'a.txt');
+    await writeFile(fichero, 'base\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'base'], repoRoot);
+    git(['checkout', '-q', '-b', 'otra'], repoRoot);
+    await writeFile(fichero, 'version de otra\n', 'utf8');
+    git(['commit', '-q', '-am', 'cambio en otra'], repoRoot);
+    git(['checkout', '-q', 'main'], repoRoot);
+    await writeFile(fichero, 'version de main\n', 'utf8');
+    git(['commit', '-q', '-am', 'cambio en main'], repoRoot);
+
+    const cp = spawnSync('git', ['cherry-pick', '-n', 'otra'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.notEqual(cp.status, 0);
+
+    // Con -n Git no escribe CHERRY_PICK_HEAD ni sequencer, y contesta
+    // "no cherry-pick or revert in progress" a --abort: no hay
+    // secuencia que abortar, solo un indice en conflicto. taskctl dice
+    // lo mismo que Git a proposito. (Asimetria real y medida: un
+    // "revert -n" en conflicto SI deja REVERT_HEAD.)
+    const abort = spawnSync('git', ['cherry-pick', '--abort'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.notEqual(abort.status, 0, 'Git deberia negarse a abortar aqui');
     assert.equal(operacionEnCurso(repoRoot), null);
   });
 });

@@ -217,12 +217,13 @@ En Windows hay una segunda capa: `bash` desde PowerShell puede resolver al de
 WSL y reventar; hace falta el `bash` de Git con su directorio de utilidades en
 el PATH, o se queda sin las herramientas que los scripts usan.
 
-**Los scripts escriben su registro dentro de tu repo.** Lo crean nada mas
-arrancar, antes de mirar si el workspace esta limpio: **se ensucian el
-workspace ellos mismos**. En un repo que no ignore esa ruta, el comando de
-guardar trabajo acaba preguntando por un directorio que acaba de crear el, y
-el de reanudar queda inservible. Anadir `logs/gitflow/` al `.gitignore` antes
-de nada.
+**Los scripts escriben un registro de cada ejecucion**, dentro de `.git/`
+(`.git/taskcode/gitflow/gitflow-FECHA.log`), que es donde hay que buscarlo
+cuando algo falla. Va ahi y no en el arbol de trabajo a proposito: durante
+mucho tiempo lo escribian dentro del repo, nada mas arrancar y antes de mirar
+si el workspace estaba limpio, asi que **se ensuciaban el workspace ellos
+mismos** y el comando de reanudar quedaba inservible en cualquier repo que no
+ignorara esa ruta. No hace falta anadir nada al `.gitignore`.
 
 **La herramienta no commitea lo que genera.** Consecuencia directa: `import`
 no se puede ejecutar dos veces seguidas sin commitear en medio, porque lo que

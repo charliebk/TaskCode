@@ -38,7 +38,7 @@ if [ -z "$NEW_ORIGIN" ]; then
     printf "${C_CYAN}  Remotos disponibles (excepto 'origin'):${C_RESET}\n"
     AVAILABLE=$(git remote | grep -v '^origin$' || true)
     if [ -z "$AVAILABLE" ]; then
-        log_error "No hay otros remotos configurados. Ejecuta antes 'GitFlow 20 Mirror to Remote'."
+        log_error "No hay otros remotos configurados. Ejecuta antes 'bash mirror-to-remote.sh', en esta misma carpeta."
         exit 1
     fi
     printf "%s\n" "$AVAILABLE" | while IFS= read -r line; do
@@ -56,7 +56,7 @@ if [ "$NEW_ORIGIN" = "origin" ]; then
 fi
 
 if ! git remote get-url "$NEW_ORIGIN" > /dev/null 2>&1; then
-    log_error "El remoto '$NEW_ORIGIN' no existe. Crealo primero con 'GitFlow 20 Mirror to Remote'."
+    log_error "El remoto '$NEW_ORIGIN' no existe. Crealo primero con 'bash mirror-to-remote.sh', en esta misma carpeta."
     exit 1
 fi
 
