@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [empaquetado, distribucion, cli]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-031-distribucion-del-cli-un-clon-debe-traer
 asignado_a: charlie.bk@gmail.com
