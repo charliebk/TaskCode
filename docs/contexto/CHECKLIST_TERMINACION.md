@@ -359,8 +359,25 @@ ella, con un revisor genérico y un `plan` de un solo agente.
 No son horas de trabajo mío, son respuestas tuyas — pero bloquean lo que
 está a su derecha.
 
-- [ ] **#1** · ¿Checkpoint humano siempre, o solo desde complejidad media? → bloquea D1
-- [ ] **#2** · Máximo de agentes en brainstorm paralelo (3 vs 4) → bloquea D1
+- [x] **#1** · ¿Checkpoint humano siempre, o solo desde complejidad media?
+      *Resuelta por Carlos el 2026-09-07: **siempre**. No es solo prudencia:
+      hoy ya es asi (`start` exige `plan_aprobado: true`), asi que "siempre"
+      cuesta **cero codigo** y auto-aprobar seria anadir una bifurcacion nueva
+      con una forma nueva de equivocarse. Y hay evidencia en contra de
+      abaratarlo: en la sesion del 2026-09-07, **tres planes llegaron a
+      aprobacion con premisas falsas** (que dos scripts usaban una funcion
+      compartida, que dos testigos bastaban, que el parser soportaba
+      comentarios de linea). Las cazo quien las toco despues, no el
+      checkpoint — pero quitar la lectura humana quita el unico control que
+      no es un agente. Divergencia con la §155, que lo describe como
+      "opcional, recomendado desde complejidad media": se documenta.*
+- [x] **#2** · Máximo de agentes en brainstorm paralelo (3 vs 4)
+      *Resuelta por Carlos el 2026-09-07: **escala con la complejidad** — 0 en
+      `trivial`, hasta 3 en `compleja`, **4 en `critica`**. Los 4 son los
+      cuatro roles que la §2 ya define (arquitectura, riesgos, testing,
+      dominio): con 3 habria que repartir uno entre los otros. El techo
+      importa porque el coste del unificador crece con las entradas, no solo
+      el de los agentes.*
 - [x] **#9** · Contenido de `.taskcode/config.yml`
       *Resuelta por Carlos el 2026-09-07: **tres claves**, todas opcionales
       — `rama_base` (hoy `'develop'` literal en `git.ts:352`, el unico
@@ -384,7 +401,16 @@ está a su derecha.
       **no se declara ninguna clave que nadie lea** todavia (`remoto`, las
       palabras clave de la heuristica): una clave escribible que no hace nada
       es peor que no tenerla, y este proyecto ya se quemo con `codex-review`.*
-- [ ] **#11** · Mecanismo determinista para saber qué plugins/skills hay instalados → bloquea D2
+- [x] **#11** · Mecanismo determinista para saber qué plugins/skills hay instalados
+      *Resuelta el 2026-09-07, **verificada ejecutandola**: `claude plugin
+      list --json` devuelve los plugins instalados en JSON estable (id,
+      version, scope, enabled, installPath), y `claude plugin details
+      <plugin>` da el inventario de componentes, incluidas las skills.*
+      ***Lo importante es lo que NO hay que usar**: `claude plugin validate`
+      solo nombra las skills que **fallan**, asi que un plugin sin ninguna
+      skill valida igual. Comprobado en TASK-028 con dos plugins sinteticos;
+      esta en `HALLAZGOS.md`. Aseverar sobre su salida para deducir que hay
+      instalado da la respuesta contraria a la verdadera.*
 - [x] **#12** · Señales del `relevance` en `marketplace.json`
       *Resuelta sin decisión: la documentación oficial dice que `relevance`
       solo surte efecto en marketplaces que un administrador incluya en
@@ -416,9 +442,39 @@ está a su derecha.
       paso 5 pide tambien subir, con el argumento de que si no, el equipo no
       ve la tarea nueva hasta que alguien la suba a mano. Se acepta esa
       perdida a cambio de que publicar siga siendo un acto consciente.*
-- [ ] **#15** · Pesos de la heurística de complejidad → bloquea D1/D2
-- [ ] **#16** · Umbral de dominios para caer a revisor único → bloquea D3
-- [ ] **#17** · ¿Revisión ligera solo para `trivial`, o también `simple`? → bloquea D4
+- [x] **#15** · Pesos de la heurística de complejidad
+      *Resuelta por Carlos el 2026-09-07: **se aceptan los pesos de la §16.1
+      tal cual**, como defaults del plugin, y se ajustan cuando haya datos.*
+      *El motivo de no "validarlos con datos reales" como pedia el enunciado
+      es que **no se puede**: medido el 2026-09-07 sobre las 10 tareas de
+      `04-terminadas/`, el historial entero es **6 `media` y 4 `simple`**. No
+      existe ni una tarea `trivial`, `compleja` ni `critica`, asi que tres de
+      los cinco niveles no tienen con que contrastarse. Fingir esa validacion
+      seria peor que declararla pendiente.*
+- [x] **#16** · Umbral de dominios para caer a revisor único
+      *Resuelta por Carlos el 2026-09-07: **3**, el punto de partida que
+      propone la §16.5. Con 2 se perderia el caso que motivo la seccion
+      (backend + el componente que lo consume), que es justo donde varios
+      revisores en paralelo aportan. **No se hace configurable todavia**:
+      seria una cuarta clave en `.taskcode/config.yml` que nadie lee hasta
+      que exista D3, y la decision #9 prohibe expresamente declarar claves
+      que no hacen nada.*
+- [x] **#17** · ¿Revisión ligera solo para `trivial`, o también `simple`?
+      *Resuelta por Carlos el 2026-09-07: **solo `trivial`**, contra lo que
+      sugeria la §16.6 con su "(y probablemente `simple`)".*
+      ***Decidida con datos, no con criterio***: *de las 4 tareas `simple`
+      cerradas, **una escondia un CRITICO** — TASK-024, donde un `user.email`
+      con un salto de linea inyectaba una clave que pisaba `estado` y dejaba
+      la tarea ladrillada con exit 0 y sin aviso — y **las cuatro** tuvieron
+      al menos un IMPORTANTE (TASK-027: el fix era solo de Windows y su test
+      habria caido en el CI de Linux; TASK-028: la correccion habria
+      reproducido el defecto que venia a arreglar; TASK-015: 3 importantes).
+      Abaratar la revision de `simple` habria dejado pasar el peor bug del
+      proyecto.*
+      *Efecto secundario que conviene saber: como tampoco existe ninguna
+      tarea `trivial` en el historial, **la regla casi nunca se activara**.
+      Eso hace D4 mucho menos valioso de lo que parecia — merece revisarse si
+      vale sus ~3h antes de implementarlo.*
 
 ---
 

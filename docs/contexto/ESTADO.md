@@ -288,12 +288,34 @@ con un CLI que funcione.
    y el primer arreglo de un hallazgo de revisión también: está en
    `HALLAZGOS.md`.
 
-## Decisiones abiertas que dependen de Carlos
+## Decisiones: ninguna abierta (2026-09-07)
 
-Están listadas con su bloqueo al final de `CHECKLIST_TERMINACION.md`. Van dos
-resueltas de once: la #12 y la #13 (límite de WIP, que cerró la Fase B). De
-las que quedan, **#14 y #9 bloquean la Fase C** (items C2 y C4); el resto
-bloquea la Fase D.
+**Las diez decisiones de la lista están resueltas.** Ya no queda ninguna
+bloqueando trabajo. Cronología: la #12 y la #13 cerraron la Fase B; la #14 y
+la #9 desbloquearon la Fase C el 2026-09-07; y ese mismo día se cerraron de
+una tanda las seis que bloqueaban la Fase D — **#1, #2, #11, #15, #16 y
+#17**. Están todas en `CHECKLIST_TERMINACION.md` con su razonamiento.
+
+Cuatro de esas seis se decidieron **con datos, no con criterio**, y conviene
+que eso no se pierda:
+
+- **#17** (revisión ligera solo para `trivial`): de las 4 tareas `simple`
+  cerradas, **una escondía un CRÍTICO** y las cuatro tuvieron importantes.
+  Abaratar `simple` habría dejado pasar el peor bug del proyecto.
+- **#15** (pesos de la heurística): no se pudieron validar con datos porque
+  **no los hay** — el historial entero son 6 `media` y 4 `simple`, sin una
+  sola tarea `trivial`, `compleja` ni `crítica`.
+- **#11** (plugins instalados): `claude plugin list --json` verificado
+  ejecutándolo. Y lo que **no** sirve: `plugin validate`, que solo nombra las
+  skills que fallan.
+- **#1** (checkpoint humano siempre): hoy ya es obligatorio, así que cuesta
+  cero código — y en la sesión del 2026-09-07 tres planes llegaron a
+  aprobación con premisas falsas.
+
+Consecuencia para la Fase D que conviene mirar antes de empezarla: como no
+existe ninguna tarea `trivial`, **la regla de la #17 casi nunca se activará**,
+lo que deja a **D4 (~3h) sin apenas valor**. Merece decidirse si se implementa
+antes de gastarlo.
 
 Decidido además el 2026-09-06, fuera de la lista numerada: **la identidad de
 una persona es su `git config user.email`** (implementado en C7).
