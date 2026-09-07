@@ -6,10 +6,10 @@
 
 ## Dónde estamos
 
-**28 de 43 items del plan de terminación (65%).** Sprint 0 y Sprint 1
-completos (TASK-001 a TASK-012), **las Fases A y B cerradas enteras**, y la
-Fase C empezada (5 de 8). El total sube de 42 a 43 items: la revisión de C5
-abrió uno nuevo, **E6** (la distribución del CLI del plugin).
+**31 de 43 items del plan de terminación (72%).** Sprint 0 y Sprint 1
+completos (TASK-001 a TASK-012), y **las Fases A, B y C cerradas enteras**.
+El total subió de 42 a 43 items: la revisión de C5 abrió uno nuevo, **E6**
+(la distribución del CLI del plugin).
 
 **El ciclo de vida está completo y con reglas de proceso encima que de
 verdad se aplican**: `import → plan → approve → start → review → finish`
@@ -27,14 +27,17 @@ vez de menus de IntelliJ, y `abort-merge` viendo cherry-picks y reverts a
 medias (C6). **472 tests** (469 verdes; los 3 rojos son los conocidos de
 este entorno Windows).
 
-Lo que queda son las Fases C (tapar huecos, 2 items), D (la cara y
-opcional) y E (cierre). **El corte mínimo defendible ya solo depende de la
-Fase C.**
+Lo que queda son las Fases D (la cara y opcional) y E (cierre). **El corte
+mínimo defendible —Fases A + B + C— está alcanzado**: el sistema es completo
+y usable, y lo que falta son mejoras y el empaquetado.
 
-**Pendiente de subir**: `develop` va 14 commits por delante de
-`origin/develop` y la rama `feature/task-028-…` no está en el remoto
-todavía (TASK-028 sigue en `03-en-revision`, ya aprobada y pendiente de
-`taskctl finish`). TASK-027 sí está mergeada en `develop`.
+**Pendiente de subir** (medido el 2026-09-07): `develop` va **34 commits**
+por delante de `origin/develop`, con 24 ramas locales. El remoto existe y
+responde (`github.com/charliebk/TaskCode.git`) — durante un tiempo estos
+documentos afirmaron que el repo no tenía `origin`, y era falso. Lo que falta
+no es el remoto, es el `push`; y la política IECA de no borrar ramas hace que
+el desfase crezca en vez de reabsorberse. Tiene tensión deliberada con la
+decisión #14: se eligió que subir fuese explícito.
 
 
 ## Qué acaba de pasar (sesión del 2026-09-05, segunda parte)
@@ -244,16 +247,23 @@ cerraron en B1 y B3) y se anotó la trampa de los 3 rojos de Windows.
 un `taskctl` que funcione (`dist/` ignorado, sin `bin` declarado). Es un
 problema de empaquetado, no del ciclo de vida, y va a la Fase E como **E6**.
 
-## Qué sigue: Fase C (5 de 8), ~6h
+## Qué sigue: Fases D y E
 
-Con A y B cerradas, **el corte mínimo defendible ya solo depende de la
-Fase C**: lo que la metodología da por hecho y no existe.
+**La Fase C se cerró entera el 2026-09-07** con TASK-030 (items C2 y C4), que
+fue lo último que le faltaba. Las decisiones #14 y #9 se resolvieron ese mismo
+día: la #14 con *commitea sí, sube solo con `--push`*; la #9 con tres claves
+opcionales (`rama_base`, `agente_revisor_por_defecto`, `limite_wip`) y, sobre
+todo, con la forma del mecanismo. Ver sus entradas en
+`CHECKLIST_TERMINACION.md`.
 
-**C2 y C4 se desbloquearon el 2026-09-07**, y son los dos únicos que le
-faltan a la Fase C. La #14 se cerró con *commitea sí, sube solo con
-`--push`*; la #9, con tres claves opcionales (`rama_base`,
-`agente_revisor_por_defecto`, `limite_wip`) y, sobre todo, con la forma del
-mecanismo. Ver sus entradas en `CHECKLIST_TERMINACION.md`.
+Con A, B y C cerradas, **el corte mínimo defendible está alcanzado**. Lo que
+queda es opcional (D, la inteligencia del proceso: brainstorm multi-agente,
+heurística de complejidad, revisión ligera) y el cierre (E), donde vive el
+item más urgente de los que quedan: **E6**, que el plugin no se distribuye
+con un CLI que funcione.
+
+**Decisiones abiertas que siguen bloqueando**: la Fase D depende de la #1,
+#2, #11, #15, #16 y #17. Ninguna bloquea la Fase E.
 
 1. ~~**C1**~~ — hecho el 2026-09-06 (TASK-026), ver arriba.
 2. **C2** — el paso 5 de la §8.3 (¿`taskctl` commitea y sube por la
