@@ -6,7 +6,7 @@ sprint: 3
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-032-roles-de-brainstorm-heuristica-de-comple
 asignado_a: charlie.bk@gmail.com
