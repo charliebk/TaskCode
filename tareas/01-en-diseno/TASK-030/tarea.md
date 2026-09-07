@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-030-auto-commit-de-taskctl-y-taskcode-config
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
