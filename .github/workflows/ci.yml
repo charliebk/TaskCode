@@ -48,16 +48,30 @@ jobs:
           # taskctl. El "add" aplica el filtro clean y desambigua. Y a
           # diferencia de "git diff --exit-code" a secas, esto SI ve los
           # ficheros nuevos y los borrados.
-          git add -A -- dist/src
+          #
+          # El -f es necesario: sin el, "git add -A" salta en silencio lo que
+          # cualquier .gitignore excluya, y los patrones de directorio sin
+          # ancla ("tareas/", "logs/", "node_modules/") casan a cualquier
+          # profundidad, tambien DENTRO de dist/src. Un modulo en src/tareas/
+          # no llegaria al commit y el guard diria "al dia" mientras el clon
+          # queda roto.
+          git add -A -f -- dist/src
+          rc=0
           if ! git diff --cached --quiet -- dist/src; then
             echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
             git --no-pager diff --cached --stat -- dist/src
             # Cuando la deriva es de fin de linea el diff sale vacio, asi
             # que se imprime tambien el eol real de cada fichero.
             git ls-files --eol -- dist/src | grep -v 'w/lf' || true
-            exit 1
+            rc=1
+          else
+            echo "dist/src esta al dia."
           fi
-          echo "dist/src esta al dia."
+          # El indice se deja como estaba: en CI da igual, pero este snippet
+          # se copia a maquinas de desarrollo y ahi no debe tocar el estado
+          # de git de nadie.
+          git reset -q -- dist/src
+          exit $rc
 
   test-windows:
     name: Tests + validacion nativa (Windows)
@@ -84,14 +98,29 @@ jobs:
         run: |
           rm -rf dist/src
           npm run build
-          git add -A -- dist/src
+          # El -f es necesario: sin el, "git add -A" salta en silencio lo que
+          # cualquier .gitignore excluya, y los patrones de directorio sin
+          # ancla ("tareas/", "logs/", "node_modules/") casan a cualquier
+          # profundidad, tambien DENTRO de dist/src. Un modulo en
+          # src/tareas/ no llegaria al commit y el guard diria "al dia"
+          # mientras el clon queda roto.
+          git add -A -f -- dist/src
+          rc=0
           if ! git diff --cached --quiet -- dist/src; then
             echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
             git --no-pager diff --cached --stat -- dist/src
+            # Cuando la deriva es de fin de linea el diff sale vacio, asi
+            # que se imprime tambien el eol real de cada fichero.
             git ls-files --eol -- dist/src | grep -v 'w/lf' || true
-            exit 1
+            rc=1
+          else
+            echo "dist/src esta al dia."
           fi
-          echo "dist/src esta al dia."
+          # El indice se deja como estaba: en CI da igual, pero este snippet
+          # se copia a maquinas de desarrollo y ahi no debe tocar el estado
+          # de git de nadie.
+          git reset -q -- dist/src
+          exit $rc
 
       # Cada pregunta abierta es un step que ASEVERA su hipotesis: el
       # verde/rojo del step ES la respuesta, legible por la API sin

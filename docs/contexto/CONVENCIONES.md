@@ -72,6 +72,19 @@ cd taskcode-marketplace/plugins/taskcode-plugin
 npm install && npm run build     # node_modules/ y dist/test/ no se heredan de un clon
 ```
 
+**Si traes esta rama a un worktree que ya tenías**, ejecuta una vez:
+
+```bash
+git add --renormalize .
+```
+
+Desde TASK-031 hay un `.gitattributes` con `eol=lf`, y git **no** rematerializa
+los ficheros que ya tienes: se quedan en CRLF en disco y `git status` los marca
+modificados aunque su contenido normalizado sea idéntico. Con el árbol así,
+todo `taskctl` aborta por el guard de §8.3 y no puedes limpiarlo commiteando,
+porque no hay nada que commitear. `git update-index --really-refresh` tampoco
+sirve. El `--renormalize` sí, y no crea ningún commit.
+
 Y **rebuild otra vez** si cambias de rama dentro del mismo clon: cada rama
 compila un `cli.ts` distinto.
 

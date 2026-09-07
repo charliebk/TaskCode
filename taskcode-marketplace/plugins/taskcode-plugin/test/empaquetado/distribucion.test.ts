@@ -157,10 +157,18 @@ test('CONTRAPRUEBA: sin dist/src el mismo arbol vuelve a fallar como antes de E6
       /no pudo arrancar/,
       'y decirlo por stderr, no morir en silencio',
     );
-    // Y por LA razon que se quiere probar. El catch de bin/taskctl
-    // convierte cualquier error en "no pudo arrancar" + codigo 1, asi que
-    // sin esto la contraprueba pasaria tambien si taskctl muriera por un
-    // motivo ajeno — incluso si bin/taskctl no existiese.
+    // Y por LA razon que se quiere probar: el catch de bin/taskctl
+    // convierte en "no pudo arrancar" + codigo 1 cualquier error de la
+    // cadena de import, asi que sin esto pasaria tambien un cli.js que
+    // estuviera presente y muriese por otra cosa.
+    //
+    // Lo que esta asercion NO cubre, aunque la primera version de este
+    // comentario lo afirmaba y la ronda 2 de la revision lo desmintio: el
+    // caso de que falte el propio bin/taskctl. Ahi quien falla es Node
+    // antes de entrar al catch, no imprime "no pudo arrancar", y es la
+    // asercion anterior la que ya lo cazaba. Node ademas escribe su propio
+    // "Cannot find module", asi que esta linea no habria discriminado ese
+    // caso ni queriendo.
     assert.match(
       r.stderr,
       /Cannot find module/,
@@ -204,6 +212,10 @@ test('el eol de fuentes y build esta fijado, o dist/src no seria reproducible (A
   const attrs = await readFile(path.join(PLUGIN_ROOT, '.gitattributes'), 'utf8');
   assert.match(attrs, /^\*\.ts\s+text\s+eol=lf$/m, 'los fuentes .ts, con eol=lf');
   assert.match(attrs, /^dist\/\*\*\s+text\s+eol=lf$/m, 'y el build generado tambien');
+  // El lanzador. Su regla es la unica de las tres cuyo fallo no es sutil:
+  // el fichero esta en modo 100755 y un CR detras del shebang deja al
+  // kernel de Unix sin interprete que invocar.
+  assert.match(attrs, /^bin\/\*\s+text\s+eol=lf$/m, 'y el lanzador, por el shebang');
 
   const tsconfig = await readFile(path.join(PLUGIN_ROOT, 'tsconfig.json'), 'utf8');
   assert.match(tsconfig, /"newLine"\s*:\s*"lf"/, 'tsc tiene que emitir LF en toda plataforma');

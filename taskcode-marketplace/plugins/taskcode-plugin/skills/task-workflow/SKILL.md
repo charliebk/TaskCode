@@ -26,11 +26,18 @@ version. Si no responde, en este orden:
 
 1. Reinicia la sesion de Claude Code. El PATH se compone al arrancar, asi que
    un plugin instalado a mitad de sesion no aparece hasta la siguiente.
-2. Si sigue sin responder, invocalo por ruta:
-   `node "$CLAUDE_PLUGIN_ROOT/bin/taskctl" --version`. Todos los comandos de
-   esta skill funcionan igual por esa via.
-3. Solo si eso tampoco responde, el plugin no esta activo y ningun paso de
-   esta skill va a funcionar.
+2. Si sigue sin responder, mira **primero** si la variable tiene valor:
+   `echo "$CLAUDE_PLUGIN_ROOT"`.
+   - Si imprime una ruta, invocalo por ahi:
+     `node "$CLAUDE_PLUGIN_ROOT/bin/taskctl" --version`. Todos los comandos de
+     esta skill funcionan igual por esa via.
+   - **Si sale vacia, este paso no aplica y no dice nada** sobre si el plugin
+     esta activo: esa variable no esta exportada en todos los entornos, y
+     usarla vacia construye una ruta que no existe (`/bin/taskctl`) y falla
+     por un motivo que no tiene nada que ver.
+3. Solo si el paso 2 llego a ejecutarse **con una ruta de verdad** y aun asi
+   no respondio, el plugin no esta activo y ningun paso de esta skill va a
+   funcionar.
 
 No des por hecho el paso 3 al primer `command not found`: el caso normal es
 el 1.

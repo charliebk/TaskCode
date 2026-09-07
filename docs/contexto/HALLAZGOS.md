@@ -180,6 +180,22 @@ normalizado es **idéntico** (mismo hash, `git diff` vacío). Sobrevive a
   §8.3 aborta todo `taskctl`, y **no se puede limpiar commiteando** porque no
   hay nada que commitear. Mismo síntoma que motivó ignorar `.topoplanet/`.
 
+**Sí tiene salida, y hay que decirla porque no es evidente**: un solo
+`git add --renormalize .` deja el árbol limpio, sin commitear nada.
+`git update-index --really-refresh` **no** vale — se comprobó, y el fantasma
+sobrevive.
+
+> **Nota de migración, y precisión sobre a quién culpar.** Esto le pasa a
+> quien traiga a un worktree **preexistente** una rama que estrena
+> `.gitattributes` con `eol=lf`: sus ficheros siguen en CRLF en disco porque
+> git no rematerializa lo que, normalizado, no ha cambiado. Lo provoca el
+> `.gitattributes`, **no el guard** — el guard es un step de CI y no toca la
+> máquina de nadie. La ronda 1 de la revisión de TASK-031 usó este efecto
+> local para justificar la gravedad del fallo del guard, y la ronda 2 demostró
+> que son dos cosas distintas: corregir el guard estaba bien, pero no hacía
+> desaparecer esto. Tras un `git pull` de una rama así: `git add --renormalize .`,
+> una vez.
+
 Para comparar «generado == commiteado», lo que desambigua es pasar por el
 índice: `git add -A -- <ruta>` y luego `git diff --cached`. Aplica el filtro
 `clean` y, a diferencia de `git diff --exit-code` a secas, **ve los ficheros

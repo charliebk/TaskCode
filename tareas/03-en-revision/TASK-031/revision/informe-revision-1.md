@@ -43,10 +43,19 @@ nothing to commit, working tree clean
 ```
 
 Workspace permanentemente sucio, `taskctl` bloqueado por su propio guard de la
-§8.3, y sin salida: no se puede limpiar commiteando porque no hay nada que
-commitear. Es el mismo modo de fallo que el `.gitignore` de la raiz ya advierte
-para `.topoplanet/`, reintroducido por otra via. Afecta a maquinas de
+§8.3, y sin salida aparente: no se puede limpiar commiteando porque no hay nada
+que commitear. Es el mismo modo de fallo que el `.gitignore` de la raiz ya
+advierte para `.topoplanet/`, reintroducido por otra via. Afecta a maquinas de
 desarrollo con worktree heredado, que es el publico de E1.
+
+> **Corregido por la ronda 2, y conviene no dejarlo mal escrito.** Este efecto
+> local **no lo causa el guard** —que es un step de CI y no toca la maquina de
+> nadie— sino el `*.ts text eol=lf` que introduce esta misma tarea. Son dos
+> problemas distintos que la ronda 1 fundio en uno: arreglar el guard estaba
+> bien y era necesario, pero no hacia desaparecer esto. Y si hay salida, que
+> la ronda 1 dio por inexistente: **`git add --renormalize .`**, una vez, sin
+> commitear nada. Queda como nota de migracion en `HALLAZGOS.md` y en
+> `CONVENCIONES.md`.
 
 **(b) Ciego a los artefactos huerfanos.** `tsc` no purga `outDir`, asi que un
 modulo borrado de `src/` deja su `.js` commiteado para siempre y el guard sigue
@@ -132,9 +141,16 @@ activo—, sin marcas de este repo.
 4. `exportarHead()` limpia su temporal si falla a mitad: el `try/finally` del
    llamador aun no existe, asi que un fallo dejaba un clon entero huerfano.
 5. La contraprueba asevera ahora `Cannot find module`, no solo "no pudo
-   arrancar": el `catch` de `bin/taskctl` convierte cualquier error en codigo
-   1, asi que pasaba tambien por motivos ajenos. El revisor lo demostro sin
-   buscarlo, ejecutandola donde `bin/taskctl` ni existia.
+   arrancar": el `catch` de `bin/taskctl` convierte cualquier error de la
+   cadena de import en codigo 1, asi que pasaba tambien con un `cli.js`
+   presente que muriera por otra cosa.
+   > **Rectificacion de la ronda 2**: la justificacion de arriba decia ademas
+   > "incluso si `bin/taskctl` no existiese", y **es falsa**. En ese caso quien
+   > falla es Node antes de entrar al `catch`, no se imprime "no pudo
+   > arrancar", y lo cazaba ya la asercion anterior. Node escribe encima su
+   > propio `Cannot find module`, asi que la linea nueva no habria
+   > discriminado ese caso ni queriendo. La asercion sigue valiendo por el
+   > motivo correcto; el comentario del test esta corregido.
 6. La contraprueba comprueba que existe lo que va a borrar (`rm` con `force`
    es un no-op silencioso si la ruta cambia).
 7. Comentarios corregidos donde atribuian a `newLine: "lf"` un efecto que hoy
@@ -176,6 +192,16 @@ activo—, sin marcas de este repo.
     contraprueba al test principal y una rotura del primero arrastraria al
     segundo. El aislamiento vale los cuatro segundos. En las corridas completas
     la limpieza funciono y no quedaron temporales huerfanos.
+    > **Matiz de la ronda 2**: la disyuntiva estaba mal planteada. No es
+    > "compartir el export o pagar los cuatro segundos" — hay una tercera via
+    > que conserva los dos arboles independientes y ademas evita borrar un
+    > `.git` entero, que es lo que alimenta los `EBUSY ... rmdir` de Windows:
+    > `git archive HEAD | tar -x`, medido en **0,30 s frente a 1,80 s**, con la
+    > misma semantica de "solo lo commiteado". Sin `tar`, el equivalente es
+    > `GIT_INDEX_FILE=<tmp> git read-tree HEAD && git checkout-index -a
+    > --prefix=<dir>/`. Sigue sin hacerse en esta tarea —no bloquea nada y el
+    > cambio no es trivial— pero queda anotado como mejora concreta, no como
+    > coste inevitable.
 
 ---
 
