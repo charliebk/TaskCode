@@ -23,6 +23,28 @@ jobs:
       - run: npm ci
       - run: npm test
 
+      # Guard de E6 (TASK-031). dist/src se versiona para que un clon
+      # traiga un taskctl que arranque, y el precio de eso es que se
+      # puede desincronizar de src/. Este step lo impide.
+      #
+      # Corre en los DOS jobs a proposito: el modo de fallo es
+      # cross-plataforma (tsc emite CRLF en Windows y las plantillas
+      # multilinea de src/ viajan tal cual al build), asi que un guard
+      # que solo corriera en Linux no discriminaria justo el caso que
+      # motivo el .gitattributes.
+      - name: "Guard E6: dist/src commiteado == dist/src recompilado"
+        shell: bash
+        run: |
+          npm run build
+          sucio="$(git status --porcelain -- dist/src)"
+          if [ -n "$sucio" ]; then
+            echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
+            echo "$sucio"
+            git --no-pager diff -- dist/src | head -50
+            exit 1
+          fi
+          echo "dist/src esta al dia."
+
   test-windows:
     name: Tests + validacion nativa (Windows)
     runs-on: windows-latest
@@ -33,6 +55,21 @@ jobs:
           node-version: '22'
       - run: npm ci
       - run: npm run build
+
+      # Mismo guard que en Linux. Aqui es donde de verdad se juega: si el
+      # .gitattributes no fijara el eol, este step se pondria rojo con un
+      # diff de todo dist/src aunque nadie hubiera tocado src/.
+      - name: "Guard E6: dist/src commiteado == dist/src recompilado"
+        shell: bash
+        run: |
+          sucio="$(git status --porcelain -- dist/src)"
+          if [ -n "$sucio" ]; then
+            echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
+            echo "$sucio"
+            git --no-pager diff -- dist/src | head -50
+            exit 1
+          fi
+          echo "dist/src esta al dia."
 
       # Cada pregunta abierta es un step que ASEVERA su hipotesis: el
       # verde/rojo del step ES la respuesta, legible por la API sin
