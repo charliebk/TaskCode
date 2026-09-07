@@ -181,9 +181,20 @@ normalizado es **idéntico** (mismo hash, `git diff` vacío). Sobrevive a
   hay nada que commitear. Mismo síntoma que motivó ignorar `.topoplanet/`.
 
 **Sí tiene salida, y hay que decirla porque no es evidente**: un solo
-`git add --renormalize .` deja el árbol limpio, sin commitear nada.
-`git update-index --really-refresh` **no** vale — se comprobó, y el fantasma
+`git add --renormalize .` deja el árbol limpio, sin commitear nada — aunque
+**prepara de paso todo lo tracked**, así que conviene mirar el índice después.
+`git update-index --really-refresh` **no** vale: se comprobó, y el fantasma
 sobrevive.
+
+**Con qué precondición aparece, no está cerrado.** La ronda 3 de la revisión
+intentó reconstruirlo por dos caminos —clon de `develop` con `autocrlf=true` y
+después checkout de la rama; y worktree preexistente con `merge`— y en los dos
+`git status` salió limpio y `taskctl` funcionó, pese a que los 59 ficheros
+estaban efectivamente en `w/crlf`. O sea: el diagnóstico de por qué los
+ficheros se quedan en CRLF es correcto y está verificado, pero **el salto de
+ahí al workspace sucio necesita algo más que ninguna de las tres rondas supo
+enunciar**. Queda escrito así, a medias, en vez de como una certeza que no lo
+es.
 
 > **Nota de migración, y precisión sobre a quién culpar.** Esto le pasa a
 > quien traiga a un worktree **preexistente** una rama que estrena

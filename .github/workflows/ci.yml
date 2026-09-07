@@ -67,9 +67,12 @@ jobs:
           else
             echo "dist/src esta al dia."
           fi
-          # El indice se deja como estaba: en CI da igual, pero este snippet
-          # se copia a maquinas de desarrollo y ahi no debe tocar el estado
-          # de git de nadie.
+          # Se deshace el "add" para no dejar dist/src preparado. Ojo con lo
+          # que esto NO es: pone el indice a HEAD, no lo restaura "como
+          # estaba". En CI da igual, porque el checkout es limpio y efimero.
+          # En una maquina de desarrollo este snippet no es para copiarlo tal
+          # cual: el "rm -rf" de arriba ya se lleva por delante cualquier
+          # cambio sin commitear que hubiera en dist/src.
           git reset -q -- dist/src
           exit $rc
 
@@ -116,9 +119,12 @@ jobs:
           else
             echo "dist/src esta al dia."
           fi
-          # El indice se deja como estaba: en CI da igual, pero este snippet
-          # se copia a maquinas de desarrollo y ahi no debe tocar el estado
-          # de git de nadie.
+          # Se deshace el "add" para no dejar dist/src preparado. Ojo con lo
+          # que esto NO es: pone el indice a HEAD, no lo restaura "como
+          # estaba". En CI da igual, porque el checkout es limpio y efimero.
+          # En una maquina de desarrollo este snippet no es para copiarlo tal
+          # cual: el "rm -rf" de arriba ya se lleva por delante cualquier
+          # cambio sin commitear que hubiera en dist/src.
           git reset -q -- dist/src
           exit $rc
 

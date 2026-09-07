@@ -35,9 +35,10 @@ version. Si no responde, en este orden:
      esta activo: esa variable no esta exportada en todos los entornos, y
      usarla vacia construye una ruta que no existe (`/bin/taskctl`) y falla
      por un motivo que no tiene nada que ver.
-3. Solo si el paso 2 llego a ejecutarse **con una ruta de verdad** y aun asi
-   no respondio, el plugin no esta activo y ningun paso de esta skill va a
-   funcionar.
+3. Solo si el paso 2 llego a ejecutarse con una ruta que **contiene de verdad
+   `bin/taskctl`** y aun asi no respondio, el plugin no esta activo y ningun
+   paso de esta skill va a funcionar. Si la ruta apuntaba a otro sitio, el
+   fallo no dice nada: vuelve al paso 1.
 
 No des por hecho el paso 3 al primer `command not found`: el caso normal es
 el 1.

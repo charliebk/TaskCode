@@ -121,6 +121,14 @@ instalado y abandonado la skill. **Corregido**: tres pasos en orden —reiniciar
 invocar por `$CLAUDE_PLUGIN_ROOT`, y solo entonces concluir que no esta
 activo—, sin marcas de este repo.
 
+> **Rectificacion de la ronda 2: esa correccion estaba rota.** El paso 2 usaba
+> `CLAUDE_PLUGIN_ROOT`, que no esta exportada en el entorno del Bash tool.
+> Vacia, la ruta colapsa a `/bin/taskctl`, falla por un motivo ajeno, y el
+> agente llega al paso 3 — **la misma conclusion falsa que este hallazgo venia
+> a eliminar**, solo que con un paso mas de por medio. El paso 2 comprueba
+> ahora la variable antes de usarla, y el 3 exige ademas que la ruta
+> contuviera `bin/taskctl` de verdad (residuo que cerro la ronda 3).
+
 ---
 
 ## Menores

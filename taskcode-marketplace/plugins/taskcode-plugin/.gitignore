@@ -1,8 +1,15 @@
 node_modules/
+
+# Anclado con "/": sin la barra inicial, un patron de directorio casa a
+# CUALQUIER profundidad, tambien dentro de dist/src. Un modulo en
+# src/tareas/ se compilaria a dist/src/tareas/ y git lo ignoraria en
+# silencio: no llegaria al commit y el clon quedaria roto, que es el
+# defecto que esta tarea vino a arreglar (E6 / TASK-031).
+/tareas/
+
 # Lista blanca: de dist/ solo se versiona el build de produccion. Enumerar
 # lo que se excluye (antes: "dist/test/") dejaba entrar cualquier artefacto
 # futuro sin que nadie lo notara -- un tsconfig.tsbuildinfo, por ejemplo, el
 # dia que alguien active "incremental".
 dist/*
 !dist/src/
-tareas/

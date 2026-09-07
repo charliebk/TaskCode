@@ -14,6 +14,15 @@ casi todas salieron de algo que salió mal una vez.
 - `main` solo recibe releases y hotfixes.
 - Los mensajes de commit van **en español y sin tildes** (los scripts de
   Git-Flow procesan texto de commits).
+- **Si `git status` te marca ficheros modificados sin que hayas tocado nada**,
+  y `git diff` sale vacío: es el `.gitattributes` con `eol=lf` que llegó en
+  TASK-031. Git no rematerializa lo que ya tenías, así que esos ficheros
+  siguen en CRLF en disco. Se arregla con un `git add --renormalize .`, que no
+  crea ningún commit — pero **prepara todo lo tracked**, así que revisa el
+  índice después si tenías trabajo a medias. `git update-index
+  --really-refresh` no sirve para esto.
+  *(Cuándo aparece exactamente no está cerrado: la revisión de TASK-031 lo
+  reprodujo por un camino y no por otros dos. Si te pasa, ya sabes qué es.)*
 - Atribución al final de cada commit:
   ```
   Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
@@ -71,19 +80,6 @@ git checkout <rama>
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install && npm run build     # node_modules/ y dist/test/ no se heredan de un clon
 ```
-
-**Si traes esta rama a un worktree que ya tenías**, ejecuta una vez:
-
-```bash
-git add --renormalize .
-```
-
-Desde TASK-031 hay un `.gitattributes` con `eol=lf`, y git **no** rematerializa
-los ficheros que ya tienes: se quedan en CRLF en disco y `git status` los marca
-modificados aunque su contenido normalizado sea idéntico. Con el árbol así,
-todo `taskctl` aborta por el guard de §8.3 y no puedes limpiarlo commiteando,
-porque no hay nada que commitear. `git update-index --really-refresh` tampoco
-sirve. El `--renormalize` sí, y no crea ningún commit.
 
 Y **rebuild otra vez** si cambias de rama dentro del mismo clon: cada rama
 compila un `cli.ts` distinto.
