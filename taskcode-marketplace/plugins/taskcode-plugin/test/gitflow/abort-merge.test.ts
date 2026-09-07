@@ -53,9 +53,11 @@ function runScript(cwd: string, respuesta = ''): { status: number | null; output
 }
 
 /**
- * Repo temporal con un commit inicial en main. logs/ va en .gitignore
- * ANTES del primer commit (hallazgo 2 de TASK-007: el propio registro
- * de Git-Flow ensuciaria el workspace).
+ * Repo temporal con un commit inicial en main, y **sin .gitignore a
+ * proposito**: desde TASK-029 el registro de Git-Flow se escribe dentro
+ * de `.git/`, asi que ya no ensucia el arbol de trabajo y no hay nada
+ * que ignorar. Que estos repos no ignoren nada es la red que detecta una
+ * regresion si el registro volviera a salir de `.git/`.
  */
 async function withTempRepo(fn: (repoRoot: string) => Promise<void>): Promise<void> {
   const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-abort-merge-'));
@@ -63,7 +65,6 @@ async function withTempRepo(fn: (repoRoot: string) => Promise<void>): Promise<vo
     git(['init', '-q', '-b', 'main'], repoRoot);
     git(['config', 'user.email', 'test@example.com'], repoRoot);
     git(['config', 'user.name', 'Test'], repoRoot);
-    await writeFile(path.join(repoRoot, '.gitignore'), 'logs/\n', 'utf8');
     await writeFile(path.join(repoRoot, 'a.txt'), 'l1\nl2\nl3\n', 'utf8');
     git(['add', '-A'], repoRoot);
     git(['commit', '-q', '-m', 'base'], repoRoot);
@@ -164,38 +165,86 @@ test(`${SCRIPT}: confirmando, aborta el revert de verdad y deja el workspace lim
 
 // ── Secuencia a medias sin CHERRY_PICK_HEAD / REVERT_HEAD ───────────
 
+/**
+ * Deja el repo con una secuencia de cherry-pick a medias cuyo UNICO
+ * testigo es .git/sequencer: se provoca el conflicto en el segundo
+ * commit de tres y se resuelve con "git commit" a mano en vez de con
+ * "cherry-pick --continue", que es lo que hace que Git borre
+ * CHERRY_PICK_HEAD y deje la cola pendiente por su cuenta.
+ */
+async function provocarSequencerHuerfano(repoRoot: string): Promise<void> {
+  git(['checkout', '-q', '-b', 'otra'], repoRoot);
+  await writeFile(path.join(repoRoot, 'b.txt'), 'b\n', 'utf8');
+  git(['add', '-A'], repoRoot);
+  git(['commit', '-q', '-m', 'limpio'], repoRoot);
+  await writeFile(path.join(repoRoot, 'a.txt'), 'l1\nOTRA\nl3\n', 'utf8');
+  git(['commit', '-q', '-am', 'conflictivo'], repoRoot);
+  await writeFile(path.join(repoRoot, 'c.txt'), 'c\n', 'utf8');
+  git(['add', '-A'], repoRoot);
+  git(['commit', '-q', '-m', 'pendiente'], repoRoot);
+  git(['checkout', '-q', 'main'], repoRoot);
+  await writeFile(path.join(repoRoot, 'a.txt'), 'l1\nMAIN\nl3\n', 'utf8');
+  git(['commit', '-q', '-am', 'cambio en main'], repoRoot);
+
+  const cp = gitRaw(['cherry-pick', 'main..otra'], repoRoot);
+  assert.notEqual(cp.status, 0, `deberia conflictar en el segundo commit:\n${cp.output}`);
+
+  await writeFile(path.join(repoRoot, 'a.txt'), 'l1\nRESUELTO\nl3\n', 'utf8');
+  git(['add', 'a.txt'], repoRoot);
+  git(['commit', '-q', '-m', 'resuelto a mano'], repoRoot);
+  assert.equal(existsSync(path.join(repoRoot, '.git', 'CHERRY_PICK_HEAD')), false);
+  assert.equal(existsSync(path.join(repoRoot, '.git', 'sequencer')), true);
+}
+
 test(`${SCRIPT}: detecta una secuencia a medias cuando el unico testigo es .git/sequencer`, async () => {
   await withTempRepo(async (repoRoot) => {
-    git(['checkout', '-q', '-b', 'otra'], repoRoot);
-    await writeFile(path.join(repoRoot, 'b.txt'), 'b\n', 'utf8');
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'limpio'], repoRoot);
-    await writeFile(path.join(repoRoot, 'a.txt'), 'l1\nOTRA\nl3\n', 'utf8');
-    git(['commit', '-q', '-am', 'conflictivo'], repoRoot);
-    await writeFile(path.join(repoRoot, 'c.txt'), 'c\n', 'utf8');
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'pendiente'], repoRoot);
-    git(['checkout', '-q', 'main'], repoRoot);
-    await writeFile(path.join(repoRoot, 'a.txt'), 'l1\nMAIN\nl3\n', 'utf8');
-    git(['commit', '-q', '-am', 'cambio en main'], repoRoot);
-
-    const cp = gitRaw(['cherry-pick', 'main..otra'], repoRoot);
-    assert.notEqual(cp.status, 0, `deberia conflictar en el segundo commit:\n${cp.output}`);
-
-    // Resolver y comitear a mano en vez de "cherry-pick --continue":
-    // Git borra CHERRY_PICK_HEAD y deja .git/sequencer con lo que falta.
-    await writeFile(path.join(repoRoot, 'a.txt'), 'l1\nRESUELTO\nl3\n', 'utf8');
-    git(['add', 'a.txt'], repoRoot);
-    git(['commit', '-q', '-m', 'resuelto a mano'], repoRoot);
-    assert.equal(existsSync(path.join(repoRoot, '.git', 'CHERRY_PICK_HEAD')), false);
-    assert.equal(existsSync(path.join(repoRoot, '.git', 'sequencer')), true);
+    await provocarSequencerHuerfano(repoRoot);
 
     const { status, output } = runScript(repoRoot);
 
     assert.equal(status, 0, `salida:\n${output}`);
     assert.doesNotMatch(output, /estado normal/, `salida:\n${output}`);
     assert.match(output, /Cherry-pick en curso detectado/);
-    assert.match(output, /Commits pendientes en la secuencia/);
+    assert.match(output, /Entradas pendientes en la secuencia/);
+  });
+});
+
+test(`${SCRIPT}: confirmando en el caso del sequencer, descarta la cola y NO dice que haya restaurado nada`, async () => {
+  await withTempRepo(async (repoRoot) => {
+    await provocarSequencerHuerfano(repoRoot);
+    const headAntes = git(['rev-parse', 'HEAD'], repoRoot).trim();
+
+    const { status, output } = runScript(repoRoot, 's\n');
+
+    assert.equal(status, 0, `salida:\n${output}`);
+    // Hallazgo IMPORTANTE de la revision por pares (TASK-029): aqui
+    // "git cherry-pick --abort" sale 0 pero avisa "You seem to have moved
+    // HEAD. Not rewinding" y no rebobina. Decir "workspace restaurado al
+    // estado previo" seria falso, y era lo que decia.
+    assert.doesNotMatch(output, /restaurado al estado previo/, `salida:\n${output}`);
+    assert.match(output, /se ha descartado la cola/);
+    assert.match(output, /nada que rebobinar/);
+    assert.equal(git(['rev-parse', 'HEAD'], repoRoot).trim(), headAntes);
+    assert.equal(existsSync(path.join(repoRoot, '.git', 'sequencer')), false);
+  });
+});
+
+test(`${SCRIPT}: un cherry-pick normal en conflicto SI dice que ha restaurado (el discriminante no es HEAD)`, async () => {
+  await withTempRepo(async (repoRoot) => {
+    // HEAD tampoco se mueve al abortar un cherry-pick de un solo commit
+    // en conflicto: nunca llego a commitear. Comparar HEAD antes/despues
+    // daba aqui el mensaje del caso raro; el discriminante correcto es la
+    // ausencia del testigo CHERRY_PICK_HEAD.
+    await provocarCherryPick(repoRoot);
+    const headAntes = git(['rev-parse', 'HEAD'], repoRoot).trim();
+
+    const { status, output } = runScript(repoRoot, 's\n');
+
+    assert.equal(status, 0, `salida:\n${output}`);
+    assert.match(output, /restaurado al estado previo/);
+    assert.doesNotMatch(output, /nada que rebobinar/, `salida:\n${output}`);
+    assert.equal(git(['rev-parse', 'HEAD'], repoRoot).trim(), headAntes);
+    assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
   });
 });
 
@@ -277,5 +326,50 @@ test(`${SCRIPT}: un "cherry-pick -n" en conflicto no se reporta como secuencia (
 
     assert.equal(status, 0, `salida:\n${output}`);
     assert.match(output, /estado normal/);
+  });
+});
+
+// -- diagnose-repo.sh: el mismo punto ciego, en otro script ----------
+
+test('diagnose-repo.sh: ve el cherry-pick a medias (antes: "Sin operaciones en curso")', async () => {
+  await withTempRepo(async (repoRoot) => {
+    await provocarCherryPick(repoRoot);
+
+    const r = spawnSync('bash', [path.join(SCRIPTS_DIR, 'diagnose-repo.sh')], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      input: '',
+    });
+    const output = `${r.stdout}
+${r.stderr}`;
+
+    // Hallazgo IMPORTANTE de la revision por pares (TASK-029): diagnose se
+    // habia quedado con merge y rebase, asi que cantaba "Sin operaciones en
+    // curso" tres lineas encima de su propio "UU a.txt" y contradecia a
+    // abort-merge sobre el mismo repo.
+    assert.doesNotMatch(output, /Sin operaciones en curso/, `salida:\n${output}`);
+    assert.match(output, /CHERRY-PICK EN CURSO/);
+  });
+});
+
+test('diagnose-repo.sh: ve el revert a medias, y sigue diciendo "sin operaciones" cuando no hay ninguna', async () => {
+  await withTempRepo(async (repoRoot) => {
+    await provocarRevert(repoRoot);
+    const conRevert = spawnSync('bash', [path.join(SCRIPTS_DIR, 'diagnose-repo.sh')], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      input: '',
+    });
+    assert.match(`${conRevert.stdout}`, /REVERT EN CURSO/);
+  });
+
+  // No regresion: sin nada a medias el mensaje verde sigue saliendo.
+  await withTempRepo(async (repoRoot) => {
+    const limpio = spawnSync('bash', [path.join(SCRIPTS_DIR, 'diagnose-repo.sh')], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      input: '',
+    });
+    assert.match(`${limpio.stdout}`, /Sin operaciones en curso/);
   });
 });

@@ -5,6 +5,25 @@ por lo que más probablemente te muerda hoy.
 
 ## Patrones a reutilizar
 
+### Medir no basta si mides lo que no discrimina (TASK-029)
+
+Al corregir un hallazgo de la revisión —`abort-merge.sh` decía *"workspace
+restaurado al estado previo"* en un caso donde Git no rebobina nada— se
+eligió como discriminante **comparar HEAD antes y después** del `--abort`.
+Suena empírico: se mide el estado real en vez de suponerlo. Y estaba mal.
+
+En un cherry-pick **de un solo commit** en conflicto, HEAD tampoco se mueve
+al abortar: la operación nunca llegó a commitear. Así que la comparación
+daba el mensaje del caso raro en el caso normal — precisamente el tipo de
+mentira que la corrección venía a quitar. El discriminante correcto era otro:
+la **ausencia del testigo** `CHERRY_PICK_HEAD`, que es lo que distingue "esto
+lo confirmaste tú a mano" de "esto no llegó a aplicarse".
+
+Lo destapó probar **el caso que se daba por bueno**, no el que se estaba
+arreglando. Corolario para este proyecto: cuando un arreglo mete una
+bifurcación nueva, hay que ejecutar las dos ramas. Verificar solo la que
+motivó el cambio deja la otra sin mirar, y es donde cae la regresión.
+
 ### Sin terminal, stdin se ignora; con terminal, se hereda (TASK-026)
 
 Regla del proyecto para cualquier comando que invoque un script que pueda
@@ -191,6 +210,14 @@ sigue valiendo, y porque dos de ellos cambiaron la solución al medirla.
   `operacionEnCurso` mira los mismos testigos que el script, en el mismo
   orden, y eso sigue siendo deliberado desde TASK-026: si taskctl detectara
   más que él, habría dos comportamientos según haya terminal o no.
+
+  La revisión por pares encontró que **el punto ciego estaba también en
+  `diagnose-repo.sh`**, que se había quedado con merge y rebase: cantaba
+  *"Sin operaciones en curso"* tres líneas encima de su propio `UU a.txt` y
+  contradecía a `abort-merge` sobre el mismo repo. Corregido con los mismos
+  cinco testigos. La lección general: cuando dos comandos leen el mismo
+  estado, arreglar uno **obliga** a mirar el otro, o la herramienta empieza a
+  contradecirse a sí misma.
 - **El bug de `origin` sin guard está cerrado en los tres scripts que
   quedaban**: `create-develop.sh`, `recover-branch.sh` y `resume-work.sh`,
   con `detect_origin_available` y cubiertos por

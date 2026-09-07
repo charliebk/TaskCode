@@ -217,9 +217,12 @@ En Windows hay una segunda capa: `bash` desde PowerShell puede resolver al de
 WSL y reventar; hace falta el `bash` de Git con su directorio de utilidades en
 el PATH, o se queda sin las herramientas que los scripts usan.
 
-**Los scripts escriben un registro de cada ejecucion**, dentro de `.git/`
-(`.git/taskcode/gitflow/gitflow-FECHA.log`), que es donde hay que buscarlo
-cuando algo falla. Va ahi y no en el arbol de trabajo a proposito: durante
+**Los scripts escriben un registro de cada ejecucion** dentro del directorio
+de Git, en `taskcode/gitflow/gitflow-FECHA.log`. La ruta exacta la da
+`git rev-parse --git-path taskcode/gitflow`, y preguntarla es mejor que
+componerla: en un repo normal sale bajo `.git/`, pero en un **worktree
+enlazado** el directorio de Git es otro y el registro vive ahi. Va fuera del
+arbol de trabajo a proposito: durante
 mucho tiempo lo escribian dentro del repo, nada mas arrancar y antes de mirar
 si el workspace estaba limpio, asi que **se ensuciaban el workspace ellos
 mismos** y el comando de reanudar quedaba inservible en cualquier repo que no

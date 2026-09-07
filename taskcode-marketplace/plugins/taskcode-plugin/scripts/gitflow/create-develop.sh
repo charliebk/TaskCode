@@ -32,6 +32,7 @@ detect_origin_available
 # aborta y decide la persona, igual que en los merge a main.
 if [ "$REMOTE_CONFIGURED" = true ] && [ "$REMOTE_AVAILABLE" = false ]; then
     log_error "origin esta configurado pero no responde. No se puede comprobar si $DEVELOP_BRANCH ya existe en el remoto, y crearla en local podria dejarla divergente. Revisa conexion/credenciales; si de verdad quieres operar sin remoto, ejecuta git remote remove origin y reintenta."
+    log_summary "FALLIDO" "$DEVELOP_BRANCH no creado: origin configurado pero inaccesible"
     exit 1
 fi
 
