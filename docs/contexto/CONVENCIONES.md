@@ -16,7 +16,7 @@ casi todas salieron de algo que salió mal una vez.
   Git-Flow procesan texto de commits).
 - Atribución al final de cada commit:
   ```
-  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+  Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
   ```
 
 ## Ciclo de una tarea de verdad
@@ -69,7 +69,7 @@ git clone <repo> /tmp/smoke-NNN && cd /tmp/smoke-NNN
 git config user.email "smoke@example.com" && git config user.name "Smoke"
 git checkout <rama>
 cd taskcode-marketplace/plugins/taskcode-plugin
-npm install && npm run build     # dist/ y node_modules/ NUNCA se heredan de un clon
+npm install && npm run build     # node_modules/ y dist/test/ no se heredan de un clon
 ```
 
 Y **rebuild otra vez** si cambias de rama dentro del mismo clon: cada rama

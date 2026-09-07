@@ -8,3 +8,8 @@
 # hecho no trae un taskctl que arranque. Mismo motivo para fijar su eol:
 # tsc emite LF (newLine: lf en tsconfig) y aqui se fija que asi se quede.
 dist/** text eol=lf
+
+# El lanzador tiene shebang y se ejecuta directo en Unix (esta en modo 100755).
+# Un CR delante del salto de la primera linea hace que el kernel no encuentre
+# el interprete, asi que su eol tampoco puede quedar al azar del checkout.
+bin/* text eol=lf

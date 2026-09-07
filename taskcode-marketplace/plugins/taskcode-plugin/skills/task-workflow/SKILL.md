@@ -19,10 +19,21 @@ aplica.
 Comprobar el estado real antes de nada: `taskctl board`.
 
 **Prerrequisito 1 — `taskctl` disponible**: lo aporta este mismo plugin. Su
-ejecutable vive en `bin/`, y Claude Code lo anade al PATH del Bash tool
-mientras el plugin este habilitado, asi que se invoca como comando suelto sin
-compilar ni instalar nada aparte. Comprobarlo con `taskctl --version`: si no
-responde, el plugin no esta activo y ningun paso de esta skill va a funcionar.
+ejecutable vive en `bin/`, que Claude Code anade al PATH del Bash tool
+mientras el plugin este habilitado, y no hay que compilar ni instalar nada
+aparte. Comprobarlo con `taskctl --version`, que debe imprimir un numero de
+version. Si no responde, en este orden:
+
+1. Reinicia la sesion de Claude Code. El PATH se compone al arrancar, asi que
+   un plugin instalado a mitad de sesion no aparece hasta la siguiente.
+2. Si sigue sin responder, invocalo por ruta:
+   `node "$CLAUDE_PLUGIN_ROOT/bin/taskctl" --version`. Todos los comandos de
+   esta skill funcionan igual por esa via.
+3. Solo si eso tampoco responde, el plugin no esta activo y ningun paso de
+   esta skill va a funcionar.
+
+No des por hecho el paso 3 al primer `command not found`: el caso normal es
+el 1.
 
 **Prerrequisito 2**: el repo necesita una rama `develop`. Los comandos la
 esperan por nombre para las tareas de tipo `feature`, `fix` y `release`; las

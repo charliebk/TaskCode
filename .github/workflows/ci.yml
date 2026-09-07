@@ -35,12 +35,26 @@ jobs:
       - name: "Guard E6: dist/src commiteado == dist/src recompilado"
         shell: bash
         run: |
+          # rm -rf antes de compilar: tsc no purga outDir, asi que sin esto
+          # un modulo borrado de src/ dejaria su .js commiteado para siempre
+          # y el guard seguiria en verde (hallazgo de revision por pares).
+          rm -rf dist/src
           npm run build
-          sucio="$(git status --porcelain -- dist/src)"
-          if [ -n "$sucio" ]; then
+          # Se compara contra el INDICE, no con "git status --porcelain".
+          # En un worktree heredado los .ts pueden seguir en CRLF en disco,
+          # tsc los arrastra a las plantillas del build, y status marca " M"
+          # aunque el blob normalizado sea identico: falso positivo que
+          # ademas deja el workspace sucio y bloquea el guard de la 8.3 de
+          # taskctl. El "add" aplica el filtro clean y desambigua. Y a
+          # diferencia de "git diff --exit-code" a secas, esto SI ve los
+          # ficheros nuevos y los borrados.
+          git add -A -- dist/src
+          if ! git diff --cached --quiet -- dist/src; then
             echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
-            echo "$sucio"
-            git --no-pager diff -- dist/src | head -50
+            git --no-pager diff --cached --stat -- dist/src
+            # Cuando la deriva es de fin de linea el diff sale vacio, asi
+            # que se imprime tambien el eol real de cada fichero.
+            git ls-files --eol -- dist/src | grep -v 'w/lf' || true
             exit 1
           fi
           echo "dist/src esta al dia."
@@ -56,17 +70,25 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      # Mismo guard que en Linux. Aqui es donde de verdad se juega: si el
-      # .gitattributes no fijara el eol, este step se pondria rojo con un
-      # diff de todo dist/src aunque nadie hubiera tocado src/.
+      # Mismo guard que en Linux, y autocontenido igual que aquel: compila
+      # el mismo, sin apoyarse en el step anterior. Si dependiera de el,
+      # bastaria con reordenarlo o condicionarlo para que este siguiera en
+      # verde sin haber recompilado nada — sobre un checkout limpio la
+      # comparacion es trivialmente vacia.
+      #
+      # Aqui es donde de verdad se juega: si el .gitattributes no fijara el
+      # eol, este step se pondria rojo con todo dist/src cambiado aunque
+      # nadie hubiera tocado src/.
       - name: "Guard E6: dist/src commiteado == dist/src recompilado"
         shell: bash
         run: |
-          sucio="$(git status --porcelain -- dist/src)"
-          if [ -n "$sucio" ]; then
+          rm -rf dist/src
+          npm run build
+          git add -A -- dist/src
+          if ! git diff --cached --quiet -- dist/src; then
             echo "::error::dist/src no coincide con lo que produce src/. Ejecuta 'npm run build' y commitea dist/src."
-            echo "$sucio"
-            git --no-pager diff -- dist/src | head -50
+            git --no-pager diff --cached --stat -- dist/src
+            git ls-files --eol -- dist/src | grep -v 'w/lf' || true
             exit 1
           fi
           echo "dist/src esta al dia."

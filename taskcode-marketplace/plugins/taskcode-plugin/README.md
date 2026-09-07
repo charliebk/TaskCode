@@ -80,8 +80,10 @@ ejecutable en `bin/`, en la raíz del plugin (referencia oficial,
 as bare commands while the plugin is enabled"*). No pasa por ningún campo de
 `plugin.json`.
 
-Pero esa misma referencia avisa de que **un plugin con `bin/` de nivel
-superior no se puede distribuir por organization settings de claude.ai**: el
+Esa misma página avisa de que **un plugin con `bin/` de nivel superior no se
+puede distribuir por organization settings de claude.ai** (*"You can't include
+this directory in a plugin you distribute through claude.ai organization
+settings"*), y enlaza a `plugin-marketplaces`, que es donde está el detalle: el
 sync del marketplace y la subida directa lo rechazan con
 `Plugin contains a top-level bin/ directory`, y la alternativa que prescribe
 es mover los ejecutables a `scripts/` e invocarlos por
@@ -192,8 +194,9 @@ Claude Code depende exactamente de esto.
 
 Se repitió el patrón de smoke test de TASK-004/TASK-005: `git clone` a un
 directorio temporal separado, checkout de esta rama, `npm install && npm
-run build` en el clon (nunca se hereda `dist/`/`node_modules/` de un
-`git clone`), y ejecución real:
+run build` en el clon (entonces `dist/` estaba entero en `.gitignore`, así
+que no se heredaba entre clones — **desde TASK-031 `dist/src` sí se hereda**;
+`node_modules/` sigue sin heredarse), y ejecución real:
 
 ```
 $ ls -la bin/taskctl          # tras un clon limpio, sin tocar permisos a mano
@@ -212,6 +215,12 @@ empaquetado no rompió nada del resto del CLI — ambos funcionaron igual
 que en TASK-004/TASK-005.
 
 ### Lo que NO se ha podido verificar en esta sesión (limitación de entorno)
+
+> **Histórico (TASK-006, 2026-09-05).** Se conserva por trazabilidad, pero
+> está superado dos veces: por la sección *RESUELTO (2026-09-05)* y por
+> *RESUELTO (2026-09-07, TASK-031)*, más abajo. Ya hay un CLI real de Claude
+> Code y la instalación se ejecutó de verdad. La receta de `npm install &&
+> npm run build` que aparece aquí tampoco hace ya falta para arrancar.
 
 Ni el contenedor cloud de esta sesión ni el bridge hacia el equipo del
 usuario (`device_bash`) exponen un CLI interactivo real de Claude Code —
@@ -289,10 +298,27 @@ $ claude plugin install taskcode-plugin@taskcode-marketplace
 | Pregunta | Respuesta |
 |---|---|
 | ¿El plugin se instala desde el marketplace? | **Sí**, `enabled`, scope `user` |
-| ¿La copia cacheada trae `dist/`? | **Sí** — es lo que arregla E6 |
 | ¿`taskctl` arranca desde la caché, sin compilar? | **Sí**: `node <cache>/bin/taskctl --version` → `0.1.0` |
-| ¿Claude Code instala las deps npm en la copia? | **Sí**, hay `node_modules/` en la caché |
+| ¿La copia cacheada trae `dist/`? | Sí, **pero esta instalación no lo demuestra** — ver abajo |
+| ¿Claude Code instala las deps npm en la copia? | Sí, **pero no por la razón que parece** — ver abajo |
 | ¿Existe de verdad el mecanismo de `bin/` en PATH? | **Sí** — confirmado abajo |
+
+**Las dos filas del medio necesitan una advertencia, y la revisión por pares
+la encontró.** Este marketplace se añadió como fuente `directory` apuntando al
+propio working tree, y esa clase de caché es **una copia del árbol de trabajo,
+ficheros ignorados por Git incluidos**. Prueba: en la caché hay 34 ficheros de
+`dist/test/`, que Git no versiona (`git ls-files dist/test` → 0). Es decir,
+**esa tabla habría contestado "sí" también antes de esta tarea**, con `dist/`
+entero ignorado, porque lo que se copió fue un árbol ya compilado. La
+conclusión de fondo sigue siendo correcta —en un marketplace por Git, quien
+hace que la copia arranque es `dist/src` versionado— pero quien la demuestra
+es el test de AC1 de `test/empaquetado/distribucion.test.ts`, que exporta HEAD
+y por tanto solo ve lo commiteado. No esta instalación.
+
+Lo mismo con `node_modules/`: también viaja en la copia, así que su presencia
+no prueba nada. Lo que sí lo prueba es que el `.package-lock.json` de la caché
+tiene el `mtime` del instante del install y no el del working tree — ahí sí
+corrió un `npm ci` de verdad, el que documenta `plugins-reference`.
 
 Lo último merece detalle, porque hasta ahora era una cita de la documentación
 que este proyecto nunca había visto ocurrir (el CI la *simula* metiendo `bin/`

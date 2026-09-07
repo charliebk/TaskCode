@@ -1,3 +1,8 @@
 node_modules/
-dist/test/
+# Lista blanca: de dist/ solo se versiona el build de produccion. Enumerar
+# lo que se excluye (antes: "dist/test/") dejaba entrar cualquier artefacto
+# futuro sin que nadie lo notara -- un tsconfig.tsbuildinfo, por ejemplo, el
+# dia que alguien active "incremental".
+dist/*
+!dist/src/
 tareas/

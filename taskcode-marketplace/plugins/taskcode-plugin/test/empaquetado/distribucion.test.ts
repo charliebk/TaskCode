@@ -76,14 +76,26 @@ function hayRepo(): boolean {
  * poder hacer pasar este test.
  */
 async function exportarHead(): Promise<string> {
-  const destino = await mkdtemp(path.join(tmpdir(), 'e6-dist-'));
+  // El sha se valida ANTES de crear nada: en un repo sin commits
+  // `git rev-parse HEAD` imprime la cadena literal "HEAD" en stdout, y sin
+  // esta comprobacion el fallo llegaria disfrazado de "no se pudo hacer
+  // checkout de HEAD", como si hablara de una ref normal.
   const sha = git(['rev-parse', 'HEAD'], REPO_ROOT).stdout.trim();
+  assert.match(sha, /^[0-9a-f]{40}$/, `HEAD no resuelve a un sha (devolvio "${sha}")`);
 
-  const clone = git(['clone', '--quiet', '--no-checkout', REPO_ROOT, destino], REPO_ROOT);
-  assert.equal(clone.status, 0, `no se pudo clonar el repo: ${clone.stderr}`);
+  const destino = await mkdtemp(path.join(tmpdir(), 'e6-dist-'));
+  try {
+    const clone = git(['clone', '--quiet', '--no-checkout', REPO_ROOT, destino], REPO_ROOT);
+    assert.equal(clone.status, 0, `no se pudo clonar el repo: ${clone.stderr}`);
 
-  const checkout = git(['checkout', '--quiet', sha], destino);
-  assert.equal(checkout.status, 0, `no se pudo hacer checkout de ${sha}: ${checkout.stderr}`);
+    const checkout = git(['checkout', '--quiet', sha], destino);
+    assert.equal(checkout.status, 0, `no se pudo hacer checkout de ${sha}: ${checkout.stderr}`);
+  } catch (e) {
+    // Sin esto, un fallo a mitad deja un clon entero del repo huerfano en
+    // el temporal: el try/finally del llamador no llega a existir todavia.
+    await rm(destino, { recursive: true, force: true });
+    throw e;
+  }
 
   return destino;
 }
@@ -127,11 +139,15 @@ test('CONTRAPRUEBA: sin dist/src el mismo arbol vuelve a fallar como antes de E6
 
   const arbol = await exportarHead();
   try {
+    const dist = path.join(arbol, ...PLUGIN_REL.split('/'), 'dist');
+
+    // Se comprueba que existe ANTES de borrarlo: `rm` con force es un
+    // no-op silencioso si la ruta cambia, y entonces esta contraprueba
+    // pasaria sin haber reproducido nada.
+    assert.ok(existsSync(dist), 'el arbol exportado deberia traer dist/');
+
     // Se reproduce el estado anterior a la tarea: build ausente.
-    await rm(path.join(arbol, ...PLUGIN_REL.split('/'), 'dist'), {
-      recursive: true,
-      force: true,
-    });
+    await rm(dist, { recursive: true, force: true });
 
     const r = taskctlEn(arbol, ['--version']);
 
@@ -140,6 +156,15 @@ test('CONTRAPRUEBA: sin dist/src el mismo arbol vuelve a fallar como antes de E6
       r.stderr,
       /no pudo arrancar/,
       'y decirlo por stderr, no morir en silencio',
+    );
+    // Y por LA razon que se quiere probar. El catch de bin/taskctl
+    // convierte cualquier error en "no pudo arrancar" + codigo 1, asi que
+    // sin esto la contraprueba pasaria tambien si taskctl muriera por un
+    // motivo ajeno — incluso si bin/taskctl no existiese.
+    assert.match(
+      r.stderr,
+      /Cannot find module/,
+      'el fallo tiene que ser el modulo ausente, no otro cualquiera',
     );
   } finally {
     await rm(arbol, { recursive: true, force: true });
@@ -169,6 +194,13 @@ test('el eol de fuentes y build esta fijado, o dist/src no seria reproducible (A
   // No es cosmetico: las plantillas multilinea de src/ viajan tal cual al
   // build. Con CRLF en el checkout de Windows, el mismo src/ compila
   // distinto que en Linux y el guard de CI daria falsos positivos.
+  //
+  // Quien fija el eol DE VERDAD es el .gitattributes. Medido en revision
+  // por pares: con TypeScript 5.9.3, quitar "newLine" del tsconfig produce
+  // salida byte a byte identica, o sea que hoy la opcion es inerte. Se
+  // mantiene, y se asevera aqui, como cinturon y tirantes ante un cambio
+  // de version de tsc que reintrodujera el default del sistema — pero no
+  // hay que atribuirle un efecto que en esta version no tiene.
   const attrs = await readFile(path.join(PLUGIN_ROOT, '.gitattributes'), 'utf8');
   assert.match(attrs, /^\*\.ts\s+text\s+eol=lf$/m, 'los fuentes .ts, con eol=lf');
   assert.match(attrs, /^dist\/\*\*\s+text\s+eol=lf$/m, 'y el build generado tambien');
@@ -179,6 +211,14 @@ test('el eol de fuentes y build esta fijado, o dist/src no seria reproducible (A
 
 test('ningun fichero de dist/src commiteado lleva CR', (t) => {
   if (!hayRepo()) return t.skip('REPO_ROOT no es un repo git');
+
+  // Alcance real de este test, para que nadie lo lea como la red que
+  // atrapa el CRLF de Windows: mientras `dist/** text eol=lf` este en su
+  // sitio, git normaliza al hacer `add` y commitear un CRLF aqui es
+  // IMPOSIBLE. Lo que si detecta es (a) un CR suelto, que el filtro no
+  // toca, y (b) un CRLF que entrase despues de que alguien rompiera el
+  // .gitattributes. La invariante principal la garantiza git, no este
+  // test; esto es la comprobacion de que el filtro sigue puesto.
 
   // Se lee del INDICE (git show), no del disco: es lo que viaja al clon.
   const ficheros = git(['ls-files', '--', `${PLUGIN_REL}/dist/src`], REPO_ROOT)
