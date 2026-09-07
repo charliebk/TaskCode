@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-030-auto-commit-de-taskctl-y-taskcode-config
 asignado_a: charlie.bk@gmail.com
