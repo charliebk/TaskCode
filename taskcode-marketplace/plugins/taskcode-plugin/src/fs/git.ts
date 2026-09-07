@@ -132,10 +132,12 @@ export function operacionEnCurso(cwd: string): OperacionGitEnCurso | null {
   if (existsSync(gitPath('REVERT_HEAD'))) return 'revert';
   const sequencer = gitPath('sequencer');
   if (existsSync(sequencer)) {
-    // La primera linea del "todo" distingue las dos: "pick <sha>" para
-    // cherry-pick, "revert <sha>" para revert. Si no se puede leer se
-    // asume cherry-pick, que es inofensivo: `git revert --abort` aborta
-    // un cherry-pick y viceversa (misma maquinaria del sequencer).
+    // El "todo" distingue las dos: sus entradas son "pick <sha>" para
+    // cherry-pick y "revert <sha>" para revert. Se mira el fichero
+    // entero, no solo su primera linea: Git no mezcla los dos verbos en
+    // una misma secuencia, asi que basta con encontrar uno. Si no se
+    // puede leer se asume cherry-pick, que es inofensivo: `git revert
+    // --abort` aborta un cherry-pick y viceversa (misma maquinaria).
     let todo = '';
     try {
       todo = readFileSync(path.join(sequencer, 'todo'), 'utf8');

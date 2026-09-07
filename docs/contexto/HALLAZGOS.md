@@ -202,8 +202,9 @@ sigue valiendo, y porque dos de ellos cambiaron la solución al medirla.
   `REVERT_HEAD` **no bastan**: si resuelves el conflicto y haces `git commit`
   en vez de `--continue`, Git borra el testigo, la secuencia sigue viva,
   `--abort` sigue funcionando y lo único que queda es el directorio
-  `.git/sequencer/`. Se añadió como tercer testigo; la primera línea de su
-  `todo` (`pick` / `revert`) distingue cuál es. En sentido contrario,
+  `.git/sequencer/`. Se añadió como tercer testigo; las entradas de su `todo`
+  (`pick` / `revert`) distinguen cuál es — se mira el fichero entero, porque
+  Git no mezcla los dos verbos en una misma secuencia. En sentido contrario,
   `cherry-pick -n` no deja **ningún** rastro y el propio Git se niega a
   abortar: ahí decir "estado normal" es correcto, y hay un test que lo fija.
 
