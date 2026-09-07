@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 28 / 43 items terminados (65%)** · última actualización: 2026-09-07
+**Progreso global: 29 / 43 items terminados (67%)** · última actualización: 2026-09-07
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 8 | **5** | ~15h |
+| C — Tapar huecos | 8 | **6** | ~19h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 6 | **1** | ~9h |
-| **Total pendiente** | **31** | **16** | **~86h** |
+| **Total pendiente** | **31** | **17** | **~90h** |
 
 ---
 
@@ -228,16 +228,26 @@ Lo que la metodología da por hecho y no existe.
       tests nuevos (444; 441 verdes y los 3 rojos conocidos de este entorno
       Windows). La ronda 2 dejó además un menor documentado sin corregir, que
       se registra como item propio: **E6**, la distribución del CLI.*
-- [ ] **C6** · Bug de `origin` en `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` — ~1h
-      *Los dos últimos ya los envuelve C1, así que el bug se ve desde
-      `taskctl`. **Trabajo nuevo que le añadió C1** (todo en `HALLAZGOS.md`):
-      los scripts escriben su registro en `logs/gitflow/` dentro del repo
-      del usuario y se ensucian el workspace ellos mismos, lo que deja
-      `taskctl resume` inservible en un repo que no lo ignore; sus mensajes
-      siguen remitiendo a los menús de IntelliJ ("usa GitFlow 16 Pause
-      Work") ahora que esos comandos existen en `taskctl`; y
-      `abort-merge.sh` dice "estado normal" con un cherry-pick o un revert
-      a medias.*
+- [x] **C6** · Bug de `origin` en `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` — ~5h
+      *Cerrado el 2026-09-07 (TASK-029). El item nacio siendo solo el bug de
+      `origin` y C1 le anadio tres frentes mas: los ~1h de la estimacion
+      original eran de entonces. Cuatro agentes en paralelo dentro de la
+      misma rama, con propiedad exclusiva de ficheros. La respuesta al bug de
+      `origin` resulto ser **distinta por script**: `create-develop` aborta
+      con origin caido, `recover-branch` falla siempre sin remoto (su
+      proposito entero es traerse una rama de ahi) y `resume-work` no aborta
+      nunca. El registro se muda a `.git/taskcode/gitflow/`, lo que deja sin
+      motivo al segundo guard de `taskctl pause` y se lleva por delante
+      `isIgnored`. Dos afirmaciones del plan resultaron falsas al medirlas:
+      `create-hotfix`/`create-release` no usan la funcion compartida (deuda
+      viva), y `CHERRY_PICK_HEAD`+`REVERT_HEAD` no bastaban — falta
+      `.git/sequencer/`. Dos rondas: **cambios-solicitados** (2 importantes,
+      5 menores) y **APROBADA** (2 menores). Lo que queda en `HALLAZGOS.md`
+      es que mi primer arreglo de un importante era falso: use "comparar HEAD
+      antes y despues" como discriminante y en un cherry-pick de un solo
+      commit HEAD tampoco se mueve, asi que daba el mensaje del caso raro en
+      el caso normal. Lo destapo probar el caso que daba por bueno. 31 tests
+      nuevos (472; 469 verdes y los 3 rojos conocidos de Windows).*
 - [x] **C7** · TASK-024 — `asignado_a` por defecto desde la identidad Git — ~2h
       *Cerrado el 2026-09-05. Precedencia: `--asignado-a` > `asignado_a`
       previo > `git config user.email` > `null`; que el previo gane a la
