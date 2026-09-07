@@ -18,7 +18,13 @@ aplica.
 
 Comprobar el estado real antes de nada: `taskctl board`.
 
-**Prerrequisito**: el repo necesita una rama `develop`. Los comandos la
+**Prerrequisito 1 — `taskctl` disponible**: lo aporta este mismo plugin. Su
+ejecutable vive en `bin/`, y Claude Code lo anade al PATH del Bash tool
+mientras el plugin este habilitado, asi que se invoca como comando suelto sin
+compilar ni instalar nada aparte. Comprobarlo con `taskctl --version`: si no
+responde, el plugin no esta activo y ningun paso de esta skill va a funcionar.
+
+**Prerrequisito 2**: el repo necesita una rama `develop`. Los comandos la
 esperan por nombre para las tareas de tipo `feature`, `fix` y `release`; las
 de tipo `hotfix` van contra la principal (`main` o `master`, lo que exista).
 Sin `develop`, el primer comando que escriba en `tareas/` ya falla.

@@ -17,14 +17,21 @@ documentación oficial (`https://code.claude.com/docs/en/plugins`,
 sección "Test your plugins locally"):
 
 ```bash
-npm install
-npm run build
 claude --plugin-dir /ruta/absoluta/a/TaskCode/taskcode-marketplace/plugins/taskcode-plugin
 ```
 
-Hay que compilar (`npm run build`) antes: `dist/` está en `.gitignore` y
-`bin/taskctl` importa `../dist/src/cli.js`, así que un checkout limpio sin
-build previo falla al arrancar.
+**No hay que compilar nada primero.** Desde TASK-031 (item E6) el build de
+producción, `dist/src/`, se versiona: un clon recién hecho ya trae un
+`taskctl` que arranca. `npm install && npm run build` sigue haciendo falta
+para *desarrollar* el plugin y para correr la suite, que compila también
+`dist/test/` — ese sí queda fuera del repo.
+
+Hasta esa tarea era al revés, y el texto de este README lo decía: `dist/`
+entero estaba en `.gitignore` y `bin/taskctl` importa `../dist/src/cli.js`,
+así que cualquiera que clonara el repo —o instalara el plugin desde el
+marketplace, que es una copia, no un checkout donde uno pueda compilar—
+recibía un CLI que moría con `Cannot find module ...dist/src/cli.js` y
+código 1.
 
 Con el plugin cargado, dentro de la sesión de Claude Code:
 
@@ -32,12 +39,58 @@ Con el plugin cargado, dentro de la sesión de Claude Code:
   siguiente sección).
 - `/reload-plugins` recarga el plugin tras cambios sin reiniciar la sesión.
 
-Si en el futuro se quiere una instalación persistente vía
-`/plugin install <nombre>@<marketplace>` (no solo para la sesión actual),
-hace falta además un `.claude-plugin/marketplace.json` en la raíz de
-`taskcode-marketplace/` que hoy no existe. Se ha dejado fuera del alcance
-de TASK-006 a propósito: el objetivo literal de la tarea es la carga local
-y el PATH del Bash tool, que no requieren marketplace.
+Para una instalación persistente vía `/plugin install <nombre>@<marketplace>`
+(no solo para la sesión actual) hace falta además un
+`.claude-plugin/marketplace.json` en la raíz del marketplace. **Ya existe**,
+en la raíz del repo, desde TASK-021 (item A1) — este README afirmó durante un
+tiempo que no, y era falso.
+
+## Cómo se distribuye: por qué `dist/src/` está versionado
+
+Instalar un plugin **no es un checkout donde el usuario pueda compilar**.
+Según la referencia oficial (`plugin-marketplaces`), Claude Code *copia* el
+plugin a su caché (`~/.claude/plugins/cache`). Sobre esa copia sí instala las
+dependencias npm —`npm ci --ignore-scripts`, porque el plugin trae
+`package.json` y `package-lock.json`—, pero ese `--ignore-scripts` es
+literal: **`postinstall` y `prepare` no se ejecutan nunca**. Compilar al
+instalar no es una opción que se descartara por criterio; la plataforma no la
+ofrece.
+
+De ahí que el build viaje ya hecho. Dos piezas lo sostienen, y conviene no
+tocarlas por separado:
+
+- `tsconfig.json` fija `"newLine": "lf"`, y `.gitattributes` fija
+  `*.ts text eol=lf` **además de** `dist/** text eol=lf`. Lo segundo no es
+  redundante: las plantillas multilínea de `src/` viajan tal cual al build,
+  así que con `core.autocrlf=true` el checkout de Windows mete CRLF dentro de
+  un literal y el mismo `src/` compila distinto que en Linux. Medido en su
+  día: 34 CRLF en `dist/src/cli.js`, todos dentro del literal `HELP`.
+- El CI recompila y falla si `dist/src` no coincide con lo commiteado, **en
+  Linux y en Windows**. Un guard en una sola plataforma no vería justo el
+  fallo que motiva lo anterior.
+
+Si cambias algo de `src/`, recompila y commitea `dist/src` en el mismo
+commit. El guard existe precisamente porque es fácil olvidarlo.
+
+### Limitación conocida: `bin/` y las organization settings de claude.ai
+
+El mecanismo por el que `taskctl` se invoca como comando suelto es tener el
+ejecutable en `bin/`, en la raíz del plugin (referencia oficial,
+`plugins-reference`: *"Executables added to the Bash tool's PATH and invokable
+as bare commands while the plugin is enabled"*). No pasa por ningún campo de
+`plugin.json`.
+
+Pero esa misma referencia avisa de que **un plugin con `bin/` de nivel
+superior no se puede distribuir por organization settings de claude.ai**: el
+sync del marketplace y la subida directa lo rechazan con
+`Plugin contains a top-level bin/ directory`, y la alternativa que prescribe
+es mover los ejecutables a `scripts/` e invocarlos por
+`${CLAUDE_PLUGIN_ROOT}/scripts/<nombre>`.
+
+Hoy no bloquea nada: la distribución es un marketplace privado por Git. Queda
+anotado porque condiciona **E1** (invitar colaboradores) y cualquier intento
+futuro de distribuir por esa vía, que obligaría a renunciar a `taskctl` como
+comando suelto o a reestructurar el plugin.
 
 ## `taskctl` en el PATH del Bash tool
 
