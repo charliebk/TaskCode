@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 27 / 42 items terminados (64%)** · última actualización: 2026-09-06
+**Progreso global: 28 / 43 items terminados (65%)** · última actualización: 2026-09-07
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 8 | **4** | ~15h |
+| C — Tapar huecos | 8 | **5** | ~15h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
-| E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **30** | **15** | **~84h** |
+| E — Cierre | 6 | **1** | ~9h |
+| **Total pendiente** | **31** | **16** | **~86h** |
 
 ---
 
@@ -98,13 +98,17 @@ del proceso, no lo habilita.
       INDEX y BOARD renderizados desde el frontmatter. 1 crítico + 2
       importantes + 4 menores de revisión, los 7 corregidos. 19 tests
       nuevos (266). De propina cubre la mitad de B4: los tres ficheros los
-      crea finish si no existen.*- [x] **B4** · Crear `CHANGELOG.md`, `INDEX.md` y `BOARD.md` — ~1h
+      crea finish si no existen.*
+
+- [x] **B4** · Crear `CHANGELOG.md`, `INDEX.md` y `BOARD.md` — ~1h
       *Los tres los creó `taskctl finish` al cerrar TASK-014 (B3). B4 añadió
       el histórico que faltaba: las 12 tareas de Sprint 0 y 1 en CHANGELOG e
       INDEX, compuestas leyendo sus `tarea.md` reales, apuntando a su ruta
       real en `00-planificadas` (siguen ahí por la paradoja de
       bootstrapping, E4). De paso quedó por escrito que TASK-001, 002 y 003
-      declaran una `rama` que no existe en Git.*- [x] **B5** · Resolver la divergencia de `board` — ~1h
+      declaran una `rama` que no existe en Git.*
+
+- [x] **B5** · Resolver la divergencia de `board` — ~1h
       *Resuelta a favor de la metodología: `taskctl board --escribir`
       regenera `docs/BOARD.md`; sin el flag sigue siendo de solo lectura,
       porque escribir siempre ensuciaría el workspace y dispararía el guard
@@ -147,7 +151,7 @@ del proceso, no lo habilita.
       la misma persona con dos grafías — normalizar identidades es material
       de C4). 38 tests reales nuevos (345).*
 
-## Fase C — Tapar huecos (4/8) · ~15h
+## Fase C — Tapar huecos (5/8) · ~15h
 
 Lo que la metodología da por hecho y no existe.
 
@@ -196,8 +200,34 @@ Lo que la metodología da por hecho y no existe.
       Dos rondas de revisión: **APROBADO CON CAMBIOS** (1 importante, 4 menores) y **cambios solicitados → APROBADA** (1 importante, 3 menores). El importante de la ronda 2: el fix de la ronda 1 era un fix solo de Windows —en POSIX el `stat` falla antes con `ENOTDIR`— y el test escrito para certificarlo habría caído en el job `ubuntu-latest`.*
 - [ ] **C4** · `.taskcode/config.yml` — ~1h
       *Decisión #9 de la sección 14: nadie ha definido qué va dentro.*
-- [ ] **C5** · `skills/task-workflow/SKILL.md` — ~1h
-      *La primera skill del plugin: hoy no expone ninguna a Claude Code.*
+- [x] **C5** · TASK-028 — `skills/task-workflow/SKILL.md`, la primera skill del plugin — ~1h
+      *Cerrado el 2026-09-07. El plugin ya expone una skill a Claude Code —
+      `taskcode-plugin:task-workflow`, 272 líneas—; antes no exponía
+      ninguna. **El fichero es corto y el riesgo estaba entero en el
+      contenido**: un agente se cree lo que lee en una skill, así que un flag
+      inventado no es una errata, es una fuente de errores *con autoridad*.
+      Por eso la superficie del CLI se extrajo del **código** (`cli.ts`,
+      `state-machine.ts`, `wip.ts`, `git.ts`) y no del README ni de la
+      metodología, que en tres puntos ya no la describen. Las tres
+      divergencias detectadas y **no** heredadas: `taskctl codex-review` no
+      existe pese a estar en la máquina de estados y en la tabla de la §8
+      —y `revision_codex: true` deja la tarea imposible de cerrar—, el guard
+      de §8.3 solo lo aplican 4 de los 8 comandos, y `plan` no es
+      multi-agente. Frontmatter con solo `name` y `description`: la
+      intersección entre lo que acepta Claude Code y lo que admite el spec
+      portable. La skill viaja a otros proyectos, así que no lleva nada de
+      este repo dentro (el revisor buscó 20 marcas: cero coincidencias). Lo
+      que queda en `HALLAZGOS.md` es el test que casi nace invertido: `claude
+      plugin validate` solo nombra las skills que **fallan**, de modo que
+      aseverar sobre su salida habría pasado justo con la skill rota; la
+      prueba correcta es la contraprueba sobre una copia con el frontmatter
+      roto. Dos rondas de revisión: **cambios solicitados** (1 importante, 5
+      menores, todos corregidos) y **APROBADA**. El importante: `CLAUDE.md`
+      decía 429 tests y en esta rama son 444 — mergearlo así habría
+      reproducido el defecto que la propia corrección venía a arreglar. 15
+      tests nuevos (444; 441 verdes y los 3 rojos conocidos de este entorno
+      Windows). La ronda 2 dejó además un menor documentado sin corregir, que
+      se registra como item propio: **E6**, la distribución del CLI.*
 - [ ] **C6** · Bug de `origin` en `create-develop.sh`, `recover-branch.sh`, `resume-work.sh` — ~1h
       *Los dos últimos ya los envuelve C1, así que el bug se ve desde
       `taskctl`. **Trabajo nuevo que le añadió C1** (todo en `HALLAZGOS.md`):
@@ -248,7 +278,7 @@ ella, con un revisor genérico y un `plan` de un solo agente.
 - [ ] **D6** · Redactar las 4 skills revisoras (java-spring, angular-vue, csharp-autocad-ifc, code-quality) — ~6h
 - [ ] **D7** · Redactar `agents/` (roles de brainstorm) + `scripts/heuristica-complejidad.yml` — ~4h
 
-## Fase E — Cierre (1/5) · ~7h
+## Fase E — Cierre (1/6) · ~9h
 
 - [ ] **E1** · TASK-022 — Documentación de equipo + invitar colaboradores — ~2h
 - [ ] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — ~5h
@@ -262,6 +292,21 @@ ella, con un revisor genérico y un `plan` de un solo agente.
       glob de `npm test` no era portable a `cmd.exe`.*
 - [ ] **E4** · Decidir el cierre de las 12 tareas con `estado: planificada` pese a estar hechas
 - [ ] **E5** · Decidir qué hacer con `runConfigurations.zip` en la raíz
+- [ ] **E6** · Distribución del CLI: un clon recién hecho no trae un `taskctl` que funcione — ~2h
+      *Item nuevo, abierto por la revisión por pares de C5 (MENOR, no
+      bloqueante, **preexistente** y fuera del alcance de aquella tarea).
+      `dist/` está en `.gitignore`, `.claude-plugin/plugin.json` no declara
+      `bin` y `package.json` tampoco, así que en un clon recién hecho
+      `bin/taskctl` —que hace `import('../dist/src/cli.js')`— muere con
+      `[ERROR] taskctl no pudo arrancar: Cannot find module
+      '...\dist\src\cli.js'` y sale con código 1 mientras nadie ejecute
+      `npm install && npm run build` dentro del plugin; y ni aun después
+      queda `taskctl` en el PATH de otro proyecto. No es un hueco del ciclo
+      de vida sino una decisión de **empaquetado**: compilar al empaquetar,
+      versionar `dist/`, o documentar el arranque en el README del plugin.
+      Condiciona a E1 —invitar colaboradores que clonan y no pueden
+      ejecutar nada— y, cuando se cierre, la skill de C5 debería acabar
+      diciendo en una línea cómo se pone `taskctl` disponible.*
 
 ---
 
@@ -300,6 +345,6 @@ está a su derecha.
 
 ## Corte mínimo defendible
 
-**Fases A + B + C = 16 items, ~34h.** Dejan un sistema completo y usable,
+**Fases A + B + C = 18 items, ~39h.** Dejan un sistema completo y usable,
 con la metodología cumplida en lo esencial y el brainstorm multi-agente
 pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.

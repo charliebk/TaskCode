@@ -1,33 +1,36 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-06** (tras cerrar C3). Este documento se
+> Última actualización: **2026-09-07** (tras cerrar C5). Este documento se
 > actualiza al cerrar cada fase. Si lo que dice no cuadra con el repo, gana
 > el repo — y hay que corregir esto.
 
 ## Dónde estamos
 
-**27 de 42 items del plan de terminación (64%).** Sprint 0 y Sprint 1
+**28 de 43 items del plan de terminación (65%).** Sprint 0 y Sprint 1
 completos (TASK-001 a TASK-012), **las Fases A y B cerradas enteras**, y la
-Fase C empezada (4 de 8).
+Fase C empezada (5 de 8). El total sube de 42 a 43 items: la revisión de C5
+abrió uno nuevo, **E6** (la distribución del CLI del plugin).
 
 **El ciclo de vida está completo y con reglas de proceso encima que de
 verdad se aplican**: `import → plan → approve → start → review → finish`
 funciona de punta a punta contra un repo Git real, y TASK-013, 014, 015,
-024, 025, 026 y 027 se gestionaron enteras con la propia herramienta.
+024, 025, 026, 027 y 028 se gestionaron enteras con la propia herramienta.
 `asignado_a` se rellena solo con `git config user.email` (C7), el límite de
 una rama de trabajo por persona funciona mirando las ramas reales (C8), los
-cinco wrappers de Git-Flow ya existen (C1), y la carpeta de tarea tiene ya
+cinco wrappers de Git-Flow ya existen (C1), la carpeta de tarea tiene ya
 la forma que describe la sección 2 de la metodología: `tarea.md` +
-`planificacion/` + `revision/` (C3). **429 tests** (426 verdes; los 3 rojos
-son los conocidos de este entorno Windows).
+`planificacion/` + `revision/` (C3), y **el plugin por fin expone algo a
+Claude Code**: la skill `task-workflow` (C5). **444 tests** (441 verdes;
+los 3 rojos son los conocidos de este entorno Windows).
 
-Lo que queda son las Fases C (tapar huecos, 4 items), D (la cara y
+Lo que queda son las Fases C (tapar huecos, 3 items), D (la cara y
 opcional) y E (cierre). **El corte mínimo defendible ya solo depende de la
 Fase C.**
 
-**Pendiente de subir**: `develop` va 4 commits por delante de
-`origin/develop` y la rama `feature/task-027-…` no está en el remoto
-todavía (TASK-027 sigue en `03-en-revision`, con la ronda 2 en curso).
+**Pendiente de subir**: `develop` va 14 commits por delante de
+`origin/develop` y la rama `feature/task-028-…` no está en el remoto
+todavía (TASK-028 sigue en `03-en-revision`, ya aprobada y pendiente de
+`taskctl finish`). TASK-027 sí está mergeada en `develop`.
 
 
 ## Qué acaba de pasar (sesión del 2026-09-05, segunda parte)
@@ -185,12 +188,67 @@ ofrece), documentada sin corregir. 12 tests nuevos, **429 en total**.
 
 La **ronda 2** pidió cambios y, tras corregirlos, aprobó. Su hallazgo importante es el que deja poso: el fix de la ronda 1 estaba validado solo en Windows. En POSIX `stat("planificacion/plan-final.md")` devuelve `ENOTDIR` cuando `planificacion` es un fichero, no `ENOENT`, así que en Linux morían con un error crudo tanto `plan` como `approve` — y **el propio test escrito para certificar ese fix habría fallado en el job `ubuntu-latest`**. El revisor lo confirmó corriendo el código en Linux de verdad. Está en `HALLAZGOS.md`: un fix de errno validado en una sola plataforma no está validado.
 
-## Qué sigue: Fase C (4 de 8), ~7h
+## Qué acaba de pasar (sesión del 2026-09-07): C5
+
+**C5 (TASK-028)** — `skills/task-workflow/SKILL.md`, la primera skill del
+plugin. Hasta ahora el plugin era, en la práctica, un CLI y unos scripts
+Bash: **no exponía ni un solo artefacto a Claude Code**, así que todo el
+discurso de la metodología sobre "el agente sabe qué hacer" no estaba
+respaldado por nada. Ahora hay una skill, `taskcode-plugin:task-workflow`,
+de 272 líneas: cuándo aplica y su prerrequisito, el ciclo de vida con sus
+precondiciones, los comandos reales con su firma exacta, la lista de lo que
+**no** existe, 9 reglas de proceso con su motivo, la revisión por pares, la
+tabla literal de qué líneas de veredicto acepta `finish`, y las trampas.
+
+**El fichero es corto; el riesgo estaba entero en el contenido.** Un agente
+se cree lo que lee en una skill, así que un flag inventado o un estado mal
+ordenado no es una errata: es una fuente de errores *con autoridad*. Por eso
+la superficie del CLI se extrajo del **código** —`cli.ts`,
+`state-machine.ts`, `wip.ts`, `git.ts`—, no del README ni de la metodología,
+que en tres puntos ya no la describen. Las tres divergencias, detectadas y
+**no** heredadas: (a) `taskctl codex-review` no existe pese a estar modelado
+en la máquina de estados y en la tabla de la §8 —y `revision_codex: true`
+deja la tarea **imposible de cerrar**, porque `finish` la rechaza y remite a
+un comando inexistente—; (b) el guard de la §8.3 solo lo aplican 4 de los 8
+comandos; (c) `plan` no es multi-agente.
+
+**Lo que viaja y lo que no.** La skill se distribuye a proyectos que no son
+este, así que se quedó fuera todo lo de TaskCode: el checklist,
+`docs/contexto/`, los nombres de helpers internos. Viaja la regla, no la
+instancia — el revisor lo comprobó buscando 20 marcas del repo, con cero
+coincidencias. El frontmatter lleva solo `name` y `description`: la
+intersección entre lo que acepta Claude Code y lo que admite el spec
+portable.
+
+**La lección, ya en `HALLAZGOS.md`: una prueba que solo puede pasar cuando
+algo está roto no es una prueba.** La especificación inicial decía
+"comprobar que `claude plugin validate` imprime `Validating skill:`", y está
+invertida: el validador solo nombra las skills que **fallan**, así que ese
+test habría pasado únicamente con la skill rota. Se detectó porque el
+validador pasó limpio sin mencionarla y esa ausencia, en vez de darse por
+buena, se convirtió en la pregunta. La prueba correcta es la contraprueba:
+romper el frontmatter de una *copia*.
+
+**Dos rondas de revisión por pares**: la primera pidió cambios (1
+importante, 5 menores) y la segunda aprobó. El importante era de los que
+duelen: `CLAUDE.md` decía 429 tests y en esta rama son 444 — la cifra se
+midió en `develop`, antes de que existieran los 15 tests de la propia tarea,
+y mergearla así **habría reproducido el defecto que la corrección venía a
+arreglar**. De paso se corrigió que `review` y `finish` "no existen" (se
+cerraron en B1 y B3) y se anotó la trampa de los 3 rojos de Windows.
+**15 tests nuevos, 444 en total.**
+
+**Item nuevo que deja abierto**: en un clon recién hecho el plugin no trae
+un `taskctl` que funcione (`dist/` ignorado, sin `bin` declarado). Es un
+problema de empaquetado, no del ciclo de vida, y va a la Fase E como **E6**.
+
+## Qué sigue: Fase C (5 de 8), ~6h
 
 Con A y B cerradas, **el corte mínimo defendible ya solo depende de la
 Fase C**: lo que la metodología da por hecho y no existe.
 
-El siguiente item libre es **C5**. C2 y C4 siguen bloqueados.
+El siguiente item libre es **C6**. C2 y C4 siguen bloqueados por las
+decisiones #14 y #9.
 
 1. ~~**C1**~~ — hecho el 2026-09-06 (TASK-026), ver arriba.
 2. **C2** — el paso 5 de la §8.3 (¿`taskctl` commitea y sube por la
@@ -203,7 +261,7 @@ El siguiente item libre es **C5**. C2 y C4 siguen bloqueados.
 4. **C4** — `.taskcode` con su `config.yml`. **Bloqueado por la decisión
    #9**, que ya tiene dos candidatos claros a contenido salidos de B7 y C7:
    el tamaño del límite de WIP y qué cuenta como una misma persona.
-5. **C5** — la primera skill del plugin (~1h).
+5. ~~**C5**~~ — hecho el 2026-09-07 (TASK-028), ver arriba.
 6. **C6** — bug de `origin` en los 3 scripts que siguen sin guard, **más
    las tres cosas que le dejó C1** (registro dentro del repo, mensajes que
    remiten a los menús de IntelliJ, cherry-pick que `abort-merge.sh` no ve).
