@@ -184,22 +184,19 @@ valida; inventar hallazgos para tener algo que reportar, no.
 ## Estructura del informe
 
 `taskctl review` deja el esqueleto del informe en la carpeta de revision de
-la tarea, numerado por ronda. Se rellena con esta estructura, sin anadir
-prosa por encima:
+la tarea, numerado por ronda. **Se rellena ese esqueleto, respetando su
+cabecera**: el titulo tal cual, la linea `- Commit revisado:` con el sha, la
+linea `- Revisor:` con el nombre de esta skill, y la linea `- Veredicto:`,
+que se **sustituye** en su sitio — nunca se borra de la cabecera ni se
+repite mas abajo. Las secciones propias de este revisor van **despues** de
+`## Hallazgos`, donde no chocan con lo que el esqueleto ya trae:
 
 ```markdown
-# Informe de revision <N> — <ID de la tarea>
+# Informe de revision — <ID de la tarea> (ronda <N>)
 
-## Alcance
+- Commit revisado: <sha>
 - Revisor: java-spring-reviewer
-- Ficheros revisados: <los del diff que casaron con los patrones>
-- Contexto adicional pedido: <ninguno, o que y por que>
-
-## Reproduccion
-- Clon: <ruta temporal y rama>
-- Build: <comando y resultado>
-- Suite: <comando, resultado, y linea base antes del diff>
-- Casos construidos: <que se ejecuto para demostrar cada hallazgo>
+- Veredicto: aprobada
 
 ## Hallazgos
 
@@ -216,13 +213,24 @@ prosa por encima:
 ### MENOR-1 — <titulo corto>
 <mismos campos, mas si se propone no corregirlo y por que>
 
+## Alcance
+- Ficheros revisados: <los del diff que casaron con los patrones>
+- Contexto adicional pedido: <ninguno, o que y por que>
+
+## Reproduccion
+- Clon: <ruta temporal y rama>
+- Build: <comando y resultado>
+- Suite: <comando, resultado, y linea base antes del diff>
+- Casos construidos: <que se ejecuto para demostrar cada hallazgo>
+
 ## Revisado sin hallazgos
 <areas del diff que se miraron y salieron limpias, para que conste que se
 miraron>
-
-## Veredicto
-- Veredicto: aprobada
 ```
+
+Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
+forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
+llegar a esa conclusion.
 
 Dos rondas es lo normal, no una excepcion: la ronda 2 revisa las
 correcciones de la ronda 1, que es justo donde entran los fallos nuevos. En

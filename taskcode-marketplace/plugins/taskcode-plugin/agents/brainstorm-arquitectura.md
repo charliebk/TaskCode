@@ -27,6 +27,12 @@ defendible y decirla, no en cubrir todo el terreno.
   contrato, qué queda público y qué se queda dentro.
 - **El orden**: qué pieza tiene que existir antes que cuál para que el trabajo
   se pueda entregar por partes en vez de en un único salto grande.
+- **Lo que la forma elegida cuesta ejecutar**: cuántas veces se recorre o se
+  pide lo mismo, qué crece cuando crecen los datos o los usuarios, y qué parte
+  de eso queda fijada por la estructura. Rendimiento y escalabilidad son tuyos
+  y se deciden aquí, como parte del diseño: lo que la forma fija no se
+  optimiza después sin rehacerla. No mides ni afinas nada; dices qué coste
+  trae de serie cada opción y por qué eso inclina la elección.
 - **Alternativas reales**: al menos una que descartas, con el motivo. "No hay
   alternativa" casi siempre significa que no se buscó.
 

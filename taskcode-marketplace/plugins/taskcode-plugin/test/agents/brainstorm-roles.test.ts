@@ -56,9 +56,32 @@ const FICHEROS = ROLES.map((r) => `${r}.md`);
 /** Claves que se admiten en el frontmatter de un agente. Nada mas. */
 const CLAVES_PERMITIDAS = new Set(['name', 'description', 'tools', 'model']);
 
+/**
+ * Herramientas que ninguno de los cuatro roles puede declarar. Los
+ * cuatro ficheros PROMETEN por escrito no modificar nada (lo asevera el
+ * test 11), pero una promesa en prosa no impide nada: lo unico que de
+ * verdad lo impide es la lista de `tools` del frontmatter. Sin esta
+ * comprobacion, cambiar `tools: Read, Grep, Glob` por `Write, Edit,
+ * Bash` deja la suite entera en verde con cuatro agentes que pueden
+ * escribir en el repositorio del usuario.
+ *
+ * `Task` esta en la lista por un motivo distinto: los roles se lanzan ya
+ * en paralelo desde fuera, y dejar que ademas se lancen entre si
+ * convierte el presupuesto acotado de agentes en un arbol sin tope.
+ */
+const HERRAMIENTAS_PROHIBIDAS = ['Write', 'Edit', 'NotebookEdit', 'Bash', 'Task'];
+
 const MAX_LONGITUD_NAME = 64;
 const MAX_LONGITUD_DESCRIPTION = 1024;
 const MAX_LINEAS_CUERPO = 300;
+
+/**
+ * Minimo de viñetas bajo cada una de las dos cabeceras de contexto. Con
+ * las cabeceras solas, la seccion promete un reparto de contexto que no
+ * hace: el rol acabaria recibiendo el paquete completo, que es justo el
+ * gasto que el diseño evita.
+ */
+const MIN_VINETAS_CONTEXTO = 3;
 
 const BOM_UTF8 = Buffer.from([0xef, 0xbb, 0xbf]);
 
@@ -111,6 +134,94 @@ const rutaDe = (fichero: string): string => path.join(AGENTS_DIR, fichero);
  * test fallaria por como esta maquetado el texto, no por lo que dice.
  */
 const normalizar = (s: string): string => s.replace(/\s+/g, ' ');
+
+/**
+ * Trozo de texto entre dos marcas. Si la de cierre no aparece, hasta el
+ * final. Se usa para aislar cada una de las dos listas de contexto sin
+ * depender de cuantas secciones haya despues.
+ */
+function entre(texto: string, desde: string, hasta: string): string {
+  const i = texto.indexOf(desde);
+  if (i === -1) return '';
+  const j = texto.indexOf(hasta, i + desde.length);
+  return j === -1 ? texto.slice(i) : texto.slice(i, j);
+}
+
+const cuentaVinetas = (s: string): number => (s.match(/^- /gm) ?? []).length;
+
+/**
+ * Formas en que una seccion de la plantilla de salida declara cuanto
+ * ocupa como maximo. `grupo` dice cual de las capturas es ese maximo.
+ *
+ *   (maximo 6) | (minimo 1, maximo 2)   -> lista con tope
+ *   (0 a 3; ...) | (0 a 5)              -> lista con rango
+ *   <2 lineas como maximo: ...>         -> prosa acotada
+ *
+ * Se toleran las variantes con tilde aunque hoy las plantillas se
+ * escriban sin ellas: el dia que alguien acentue una, el test tiene que
+ * seguir midiendo, no volverse silenciosamente inaplicable.
+ */
+const TOPES_DE_SECCION: ReadonlyArray<{ re: RegExp; grupo: number }> = [
+  { re: /\((?:m[ií]nimo \d+, )?m[aá]ximo (\d+)\)/, grupo: 1 },
+  { re: /\((\d+) a (\d+)[;)]/, grupo: 2 },
+  { re: /<(\d+) l[ií]neas como m[aá]ximo/, grupo: 1 },
+];
+
+/**
+ * Lineas que la plantilla del PROPIO rol necesita en su peor caso, para
+ * poder contrastarlas con el tope que el fichero declara. Un tope de 5
+ * lineas sobre una plantilla que necesita 36 es el fallo que el tope
+ * existia para evitar, y contra un rango fijo (1..100) pasa inadvertido.
+ *
+ * La cuenta es: suma de los maximos declarados por cada seccion + una
+ * linea de cabecera por seccion + una linea en blanco entre secciones.
+ *
+ * Es aritmetica fragil y conviene saber por que se acepta igual:
+ *
+ * - Da un MINIMO, no la longitud real. Asume "una linea por viñeta"
+ *   (que los cuatro ficheros exigen en prosa, pero eso no se puede
+ *   aseverar) y que nada se parte por ajuste de linea. Por eso la
+ *   asercion es `tope >= necesarias` y no una igualdad: detecta el tope
+ *   imposible de cumplir, no el generoso. Un tope holgado es una
+ *   decision editorial; uno imposible es un defecto.
+ * - Depende del formato literal de las anotaciones. Para que ese
+ *   acoplamiento no se vuelva silencioso, se exige que TODA seccion
+ *   declare su maximo de alguna de las tres formas: una seccion nueva
+ *   sin anotacion no reduce la cuenta sin avisar, hace fallar el test.
+ */
+function lineasQueNecesitaLaPlantilla(body: string, fichero: string): number {
+  const bloque = /```\r?\n(## [\s\S]*?)```/.exec(body);
+  assert.ok(bloque !== null, `${fichero}: no se puede aislar la plantilla de salida`);
+
+  const secciones: string[] = [];
+  for (const linea of (bloque[1] ?? '').split(/\r?\n/)) {
+    if (linea.startsWith('## ')) secciones.push(linea);
+    else if (secciones.length > 0) secciones[secciones.length - 1] += `\n${linea}`;
+  }
+  assert.ok(secciones.length > 0, `${fichero}: la plantilla de salida no tiene secciones`);
+
+  let contenido = 0;
+  for (const seccion of secciones) {
+    const cabecera = seccion.split('\n')[0];
+    let tope: number | undefined;
+    for (const { re, grupo } of TOPES_DE_SECCION) {
+      const m = re.exec(seccion);
+      if (m !== null) {
+        tope = Number(m[grupo]);
+        break;
+      }
+    }
+    assert.ok(
+      tope !== undefined,
+      `${fichero}: la seccion "${cabecera}" de la plantilla no declara cuanto ocupa ` +
+        'como maximo, asi que el tope del rol no se puede contrastar con ella'
+    );
+    contenido += tope;
+  }
+
+  // cabeceras + separadores en blanco entre secciones
+  return contenido + secciones.length + (secciones.length - 1);
+}
 
 async function leerTexto(fichero: string): Promise<string> {
   return readFile(rutaDe(fichero), 'utf8');
@@ -266,6 +377,34 @@ for (const fichero of FICHEROS) {
     );
   });
 
+  test(`6b. ${fichero}: tools declara herramientas, y ninguna de escritura o ejecucion`, async () => {
+    const { data } = parseFrontmatter(await leerTexto(fichero));
+    const tools = data.tools;
+
+    // Ausente no vale: sin la clave, el agente hereda TODAS las
+    // herramientas del contexto que lo lanza, escritura incluida.
+    assert.equal(
+      typeof tools,
+      'string',
+      `${fichero}: el frontmatter no declara "tools"; sin esa clave el rol ` +
+        'hereda todas las herramientas disponibles, incluidas las de escritura'
+    );
+
+    const declaradas = (tools as string)
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+    assert.ok(declaradas.length > 0, `${fichero}: "tools" esta declarado pero vacio`);
+
+    const prohibidas = declaradas.filter((t) => HERRAMIENTAS_PROHIBIDAS.includes(t));
+    assert.deepEqual(
+      prohibidas,
+      [],
+      `${fichero}: declara ${prohibidas.join(', ')} en "tools". El fichero promete ` +
+        'no modificar nada; lo unico que lo impide de verdad es esta lista'
+    );
+  });
+
   test(`7. ${fichero}: el cuerpo no esta vacio y cabe en ${MAX_LINEAS_CUERPO} lineas`, async () => {
     const { body } = parseFrontmatter(await leerTexto(fichero));
     assert.ok(body.trim().length > 0, `${fichero}: el cuerpo esta vacio`);
@@ -300,6 +439,20 @@ for (const fichero of FICHEROS) {
       plano.includes('**No necesitas'),
       `${fichero}: la seccion de contexto no lista lo que el rol NO necesita`
     );
+
+    // Y que ambas listen algo. Con las cabeceras solas el reparto de
+    // contexto es una promesa vacia, y este test la daba por buena.
+    const necesita = cuentaVinetas(entre(body, '**Necesitas:**', '**No necesitas'));
+    assert.ok(
+      necesita >= MIN_VINETAS_CONTEXTO,
+      `${fichero}: bajo "Necesitas:" hay ${necesita} viñetas (minimo ${MIN_VINETAS_CONTEXTO})`
+    );
+
+    const noNecesita = cuentaVinetas(entre(body, '**No necesitas', '\n## '));
+    assert.ok(
+      noNecesita >= MIN_VINETAS_CONTEXTO,
+      `${fichero}: bajo "No necesitas" hay ${noNecesita} viñetas (minimo ${MIN_VINETAS_CONTEXTO})`
+    );
   });
 
   test(`10. ${fichero}: la salida esta acotada con un tope numerico declarado`, async () => {
@@ -322,6 +475,17 @@ for (const fichero of FICHEROS) {
       body,
       /```\r?\n## /,
       `${fichero}: no hay plantilla de salida en bloque de codigo con secciones`
+    );
+
+    // Y el tope tiene que ser compatible con la plantilla de ESTE rol,
+    // no con un rango generico: un tope que la propia plantilla no puede
+    // respetar obliga a incumplir una de las dos instrucciones, y el rol
+    // no tiene forma de saber cual.
+    const necesarias = lineasQueNecesitaLaPlantilla(body, fichero);
+    assert.ok(
+      n >= necesarias,
+      `${fichero}: declara un tope de ${n} lineas, pero su propia plantilla necesita ` +
+        `${necesarias} en el peor caso (maximos declarados + cabeceras + separadores)`
     );
 
     const faltan = MARCADORES_DE_SALIDA.filter((m) => !body.includes(m));
@@ -364,7 +528,15 @@ for (const fichero of FICHEROS) {
   });
 }
 
-test('13. los cuatro roles se reparten el trabajo: ningun "Qué miras" es igual a otro', async () => {
+// Alcance real de este test, para que su nombre no prometa mas de lo que
+// mide: detecta la COPIA LITERAL de la seccion, no el solape semantico.
+// Dos roles que miren lo mismo con otras palabras —o con un carácter de
+// diferencia— pasan. Comprobar el solape de verdad exige comparar
+// significado, que no sale barato ni determinista; queda para el ojo del
+// revisor. Lo que este test si garantiza es que nadie duplique la
+// seccion por copiar y pegar un rol para crear otro, que es el descuido
+// que de verdad se ha visto.
+test('13. ningun "Qué miras" es copia literal de otro (no mide solape semantico)', async () => {
   const secciones = new Map<string, string>();
   for (const fichero of FICHEROS) {
     const { body } = parseFrontmatter(await leerTexto(fichero));

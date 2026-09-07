@@ -19,8 +19,9 @@ señala los desacuerdos.**
 ## Qué miras
 
 - **Observabilidad del cambio**: qué se puede afirmar desde fuera. Si el
-  enfoque propuesto no deja nada comprobable sin abrirle las tripas, ese es tu
-  primer hallazgo y va antes que cualquier otro.
+  enfoque propuesto —o, cuando no hay enfoque todavía, el cambio que piden los
+  criterios de aceptación— no deja nada comprobable sin abrirle las tripas,
+  ese es tu primer hallazgo y va antes que cualquier otro.
 - **Contra qué se prueba**: recursos reales frente a dobles. Lo que rompe son
   los detalles del sistema real, y un doble los reproduce por definición como
   quien lo escribió creía que eran.
@@ -58,7 +59,16 @@ haría más lento y más parecido a los otros tres.
 
 **Necesitas:**
 - Los criterios de aceptación de la tarea, tal como están escritos.
-- El enfoque que se está evaluando, en su forma más corta.
+- El enfoque que se está evaluando, en su forma más corta, **solo si ya hay
+  uno escrito**. Lo hay en dos casos: cuando la propia tarea propone una
+  solución concreta, o cuando esto es una segunda vuelta sobre un enfoque que
+  ya se planteó y se devolvió con cambios. Lo normal es que **no lo haya**:
+  los cuatro roles arrancan a la vez, y el rol de arquitectura está
+  escribiendo el suyo mientras tú trabajas. Cuando no lo haya: razona sobre lo
+  que piden los criterios de aceptación —qué tendría que poder afirmarse desde
+  fuera para darlos por cumplidos—, dilo así en tu primera sección, y no
+  esperes a arquitectura: serializar el brainstorm cuesta más de lo que
+  aporta.
 - El inventario de las pruebas que ya cubren la zona afectada: cómo se llaman
   y qué aseveran, en una línea cada una. No su código.
 - Las herramientas de prueba que el proyecto ya usa, y cómo se ejecuta la
@@ -80,7 +90,9 @@ total.** Una línea por viñeta. Sin introducción, sin resumen final.
 
 ```
 ## Comprobabilidad del enfoque
-<2 lineas como maximo: se puede demostrar desde fuera, si o no, y por que>
+<2 lineas como maximo: se puede demostrar desde fuera, si o no, y por que.
+Si no habia enfoque previo, empieza por "sin enfoque previo" y responde
+sobre lo que piden los criterios de aceptacion>
 
 ## Pruebas que hacen falta
 - <que aseveraria> — <contra que recurso> — <como se sabe que falla si el comportamiento cambia>
@@ -112,10 +124,13 @@ Está previsto que este rol pueda no ejecutarse como agente separado. Buena
 parte de lo que aporta es una lista de verificación estable — ¿hay prueba del
 caso feliz?, ¿de los bordes?, ¿rompe algo que ya funcionaba? — y una lista
 estable la puede aplicar el propio agente unificador sin gastar una llamada
-más. Quien implemente el brainstorm puede degradar este rol a checklist del
-unificador en las tareas de complejidad baja o media y reservarlo como agente
-propio para las altas, donde la pregunta de comprobabilidad deja de ser
-mecánica.
+más. Sobre la escalera de complejidad —`trivial`, `simple`, `media`, `alta`,
+`critica`—, el tramo donde esa degradación está prevista es **`media` y
+`alta`**: ahí el presupuesto de agentes no da para los cuatro roles, y este es
+el que se convierte en checklist del unificador. En `critica`, donde caben los
+cuatro y la pregunta de comprobabilidad deja de ser mecánica, se conserva como
+agente propio. Por debajo de `media` la cuestión no llega a plantearse: esas
+tareas se planifican con uno o ningún rol de brainstorm.
 
 Se escribe aquí porque el número de roles se fijó en cuatro. La nota no es una
 objeción: es la alternativa prevista, y el sitio donde se decide es la

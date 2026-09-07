@@ -15,15 +15,26 @@
  *    el objeto esperado falla si alguien cambia un peso, borra una
  *    clave, anade una que nadie ha discutido, o escribe un numero
  *    entre comillas (que el parser devolveria como texto).
- * 3. SE PROHIBE EL ANIDAMIENTO EXPLICITAMENTE. Es el fallo que mas
+ * 3. LOS NIVELES SON LOS DEL ENUM DEL PLUGIN. `TASK_COMPLEXITIES` se
+ *    importa de `src/core/task.js` y se contrasta contra los sufijos
+ *    de las claves: si el fichero nombra un nivel que `validateTask`
+ *    rechazaria (el caso real fue `compleja` frente a `alta`), el
+ *    consumidor buscaria una clave que no existe. Es la asercion de
+ *    una linea que cierra esa clase entera de fallo.
+ * 4. SE PROHIBE EL ANIDAMIENTO EXPLICITAMENTE. Es el fallo que mas
  *    caro sale: el parser NO soporta mapas anidados, pero tampoco los
  *    rechaza — se los traga aplanando la clave hija y perdiendo la
  *    madre. Un fichero anidado seguiria "parseando" y diria otra cosa
  *    de la que pone. Por eso se asevera sobre las lineas crudas: cero
  *    sangria, y ningun valor vacio.
- * 4. SE VIGILA QUE SIGA SIENDO GENERICO. El fichero viaja a proyectos
+ * 5. SE VIGILA QUE SIGA SIENDO GENERICO. El fichero viaja a proyectos
  *    que no son este; vocabulario de un dominio concreto ahi seria
  *    ruido en todos los demas.
+ * 6. SE FIJAN LAS REGLAS QUE SOLO VIVEN EN LOS COMENTARIOS. La regla
+ *    de conteo de palabras de riesgo no es un valor, es una decision
+ *    escrita en prosa; sin una asercion encima se puede reescribir
+ *    sin que nada se entere, y de ella depende que la misma tarea
+ *    puntue igual la implemente quien la implemente.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,6 +42,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { parseBloqueClaveValor } from '../../src/core/frontmatter.js';
+import { TASK_COMPLEXITIES, TASK_TYPES } from '../../src/core/task.js';
 
 /**
  * dist/test/core/ -> raiz del paquete. Se resuelve desde el modulo, no
@@ -42,6 +54,23 @@ const RUTA_YML = path.join(RAIZ_PAQUETE, 'scripts', 'heuristica-complejidad.yml'
 
 const CONTENIDO = readFileSync(RUTA_YML, 'utf8');
 const LINEAS = CONTENIDO.split(/\r?\n/);
+
+/**
+ * Los comentarios del fichero, sin la almohadilla y en una sola linea.
+ * Las reglas que no son un valor (como se cuentan las palabras de
+ * riesgo, o que la excepcion por tipo va antes que la tabla) solo
+ * viven ahi, y hay que poder aseverarlas sin que un salto de linea
+ * puesto en otro sitio rompa el test por motivos de maquetacion.
+ */
+const PROSA = CONTENIDO.replace(/^[ \t]*#[ \t]?/gm, '').replace(/\s+/g, ' ');
+
+/**
+ * La unica clave `agentes_brainstorm_*` cuyo sufijo NO es un nivel de
+ * complejidad: es un tipo de tarea, y se aplica antes que la tabla por
+ * nivel. Se nombra aqui para que la asercion del enum la trate aparte
+ * en vez de relajarse entera por su culpa.
+ */
+const SUFIJO_POR_TIPO = 'hotfix';
 
 /** El mismo parseo que hara el plugin: nada de un YAML paralelo. */
 function parsear(): ReturnType<typeof parseBloqueClaveValor> {
@@ -67,11 +96,13 @@ const ESPERADO: Record<string, unknown> = {
   peso_criterios_aceptacion: 1,
   umbral_criterios_aceptacion: 5,
   // Mapeo puntuacion -> nivel: 0-1 trivial, 2-3 simple, 4-5 media,
-  // 6-7 compleja, 8+ critica.
+  // 6-7 alta, 8+ critica. El cuarto nivel se llama `alta` y no
+  // `compleja` porque `alta` es lo que acepta el enum del plugin;
+  // divergencia con la 16.1 documentada en el propio fichero.
   nivel_trivial_hasta: 1,
   nivel_simple_hasta: 3,
   nivel_media_hasta: 5,
-  nivel_compleja_hasta: 7,
+  nivel_alta_hasta: 7,
   nivel_critica_desde: 8,
   palabras_alto_riesgo: [
     'migracion',
@@ -79,7 +110,7 @@ const ESPERADO: Record<string, unknown> = {
     'seguridad',
     'autenticacion',
     'autorizacion',
-    'esquema de base de datos',
+    'base de datos',
     'rollback',
     'cifrado',
     'datos personales',
@@ -94,11 +125,13 @@ const ESPERADO: Record<string, unknown> = {
   agentes_brainstorm_trivial: 0,
   agentes_brainstorm_simple: 1,
   agentes_brainstorm_media: 2,
-  agentes_brainstorm_compleja: 3,
+  agentes_brainstorm_alta: 3,
   agentes_brainstorm_critica: 4,
+  // Excepcion por tipo, no por nivel: un hotfix se planifica con un
+  // solo agente y sin brainstorm multi-agente.
+  agentes_brainstorm_hotfix: 1,
   // Tolerancia y asimetria.
   tolerancia_niveles: 1,
-  direccion_de_riesgo: 'heuristica_mayor',
   tolerancia_extra_si_heuristica_menor: 0,
   modelo_consulta_discrepancia: 'haiku',
 };
@@ -120,6 +153,69 @@ test('no hay claves repetidas: con dos, el fichero dice una cosa y el plugin usa
     vistas.add(par.clave);
   }
   assert.equal(pares.length, Object.keys(ESPERADO).length);
+});
+
+test('los niveles que nombra el fichero son los del enum del plugin, ni uno mas', () => {
+  const { data } = parsear();
+  const claves = Object.keys(data);
+  const complejidades = new Set<string>(TASK_COMPLEXITIES as readonly string[]);
+  const tipos = new Set<string>(TASK_TYPES as readonly string[]);
+
+  // `nivel_<X>_hasta` / `nivel_<X>_desde`: <X> tiene que ser un nivel
+  // que `validateTask` acepte. Con `compleja` el consumidor buscaria
+  // una clave que ninguna tarea real puede pedir.
+  const nivelesEnCortes = new Set<string>();
+  for (const clave of claves) {
+    const m = /^nivel_(.+)_(hasta|desde)$/.exec(clave);
+    if (!m) {
+      assert.equal(
+        clave.startsWith('nivel_'),
+        false,
+        `"${clave}" empieza por nivel_ pero no es nivel_<complejidad>_hasta|desde`
+      );
+      continue;
+    }
+    const sufijo = m[1] as string;
+    assert.equal(
+      complejidades.has(sufijo),
+      true,
+      `"${clave}" nombra el nivel "${sufijo}", que no esta en TASK_COMPLEXITIES (${[...complejidades].join(', ')})`
+    );
+    nivelesEnCortes.add(sufijo);
+  }
+
+  // `agentes_brainstorm_<X>`: <X> es un nivel, salvo la excepcion
+  // declarada por tipo de tarea, que tiene que seguir siendo un tipo
+  // valido y no colarse como si fuera un nivel.
+  const nivelesEnTabla = new Set<string>();
+  for (const clave of claves) {
+    if (!clave.startsWith('agentes_brainstorm_')) continue;
+    const sufijo = clave.slice('agentes_brainstorm_'.length);
+    if (sufijo === SUFIJO_POR_TIPO) {
+      assert.equal(
+        tipos.has(sufijo),
+        true,
+        `"${clave}" se acepta como excepcion por tipo, pero "${sufijo}" no esta en TASK_TYPES`
+      );
+      assert.equal(
+        complejidades.has(sufijo),
+        false,
+        `"${sufijo}" es a la vez tipo y nivel: la excepcion dejaria de distinguirse de la tabla`
+      );
+      continue;
+    }
+    assert.equal(
+      complejidades.has(sufijo),
+      true,
+      `"${clave}" nombra el nivel "${sufijo}", que no esta en TASK_COMPLEXITIES (${[...complejidades].join(', ')})`
+    );
+    nivelesEnTabla.add(sufijo);
+  }
+
+  // Y al reves: ningun nivel del enum puede quedarse sin corte ni sin
+  // numero de agentes, o una tarea real caeria en un hueco.
+  assert.deepEqual([...nivelesEnCortes].sort(), [...complejidades].sort());
+  assert.deepEqual([...nivelesEnTabla].sort(), [...complejidades].sort());
 });
 
 test('el fichero es PLANO: ni sangria, ni listas en bloque, ni claves sin valor', () => {
@@ -155,7 +251,7 @@ test('todos los pesos y umbrales son enteros, no textos entrecomillados', () => 
   const { data } = parsear();
   for (const clave of Object.keys(ESPERADO)) {
     if (clave === 'palabras_alto_riesgo') continue;
-    if (clave === 'direccion_de_riesgo' || clave === 'modelo_consulta_discrepancia') {
+    if (clave === 'modelo_consulta_discrepancia') {
       assert.equal(typeof data[clave], 'string', `"${clave}" deberia ser texto`);
       continue;
     }
@@ -171,19 +267,19 @@ test('el mapeo a niveles es una escala coherente y sin huecos', () => {
   const trivial = data['nivel_trivial_hasta'] as number;
   const simple = data['nivel_simple_hasta'] as number;
   const media = data['nivel_media_hasta'] as number;
-  const compleja = data['nivel_compleja_hasta'] as number;
+  const alta = data['nivel_alta_hasta'] as number;
   const critica = data['nivel_critica_desde'] as number;
 
   // Estrictamente creciente: si dos cortes se cruzan o se igualan, un
   // nivel entero deja de ser alcanzable.
   assert.equal(trivial < simple, true, 'trivial debe cortar antes que simple');
   assert.equal(simple < media, true, 'simple debe cortar antes que media');
-  assert.equal(media < compleja, true, 'media debe cortar antes que compleja');
+  assert.equal(media < alta, true, 'media debe cortar antes que alta');
   // Sin hueco entre el ultimo nivel cerrado y el abierto: una
-  // puntuacion de compleja+1 tiene que caer en critica y en nada mas.
-  assert.equal(critica, compleja + 1, 'entre compleja y critica no puede quedar ninguna puntuacion huerfana');
+  // puntuacion de alta+1 tiene que caer en critica y en nada mas.
+  assert.equal(critica, alta + 1, 'entre alta y critica no puede quedar ninguna puntuacion huerfana');
   // La escala de la 16.1, literal.
-  assert.deepEqual([trivial, simple, media, compleja, critica], [1, 3, 5, 7, 8]);
+  assert.deepEqual([trivial, simple, media, alta, critica], [1, 3, 5, 7, 8]);
 });
 
 test('la tabla de agentes de brainstorm es monotona y respeta los extremos de la decision #2', () => {
@@ -192,13 +288,13 @@ test('la tabla de agentes de brainstorm es monotona y respeta los extremos de la
     data['agentes_brainstorm_trivial'],
     data['agentes_brainstorm_simple'],
     data['agentes_brainstorm_media'],
-    data['agentes_brainstorm_compleja'],
+    data['agentes_brainstorm_alta'],
     data['agentes_brainstorm_critica'],
   ] as number[];
 
-  // Extremos dados: 0 en trivial, 3 en compleja, 4 en critica.
+  // Extremos dados: 0 en trivial, 3 en alta, 4 en critica.
   assert.equal(serie[0], 0, 'trivial no paga brainstorm');
-  assert.equal(serie[3], 3, 'compleja son 3 agentes');
+  assert.equal(serie[3], 3, 'alta son 3 agentes');
   assert.equal(serie[4], 4, 'critica son 4 agentes (los cuatro roles)');
   // Los intermedios los fija el fichero, pero la serie no puede bajar.
   for (let i = 1; i < serie.length; i++) {
@@ -212,16 +308,67 @@ test('la tabla de agentes de brainstorm es monotona y respeta los extremos de la
   for (const n of serie) assert.equal(n <= 4, true, `no hay mas de 4 roles: ${serie.join(', ')}`);
 });
 
+test('un hotfix se planifica con un solo agente, y esa excepcion es del tipo y no del nivel', () => {
+  const { data } = parsear();
+  // La tabla por nivel no cubre esto: un hotfix puede salir critica y
+  // aun asi se planifica con uno. Si la clave desaparece, el lookup
+  // deja de ser completo y alguien tiene que decidirlo en caliente.
+  assert.equal(
+    data['agentes_brainstorm_hotfix'],
+    1,
+    'un hotfix se planifica con un solo agente, sin brainstorm multi-agente'
+  );
+  // Y el fichero tiene que decir que se aplica ANTES que la tabla: sin
+  // esa precedencia escrita, un consumidor razonable haria lo
+  // contrario y un hotfix critica se llevaria 4 agentes.
+  assert.match(
+    PROSA,
+    /se aplica ANTES que la tabla/,
+    'falta escrito que la excepcion por tipo se aplica antes que la tabla por nivel'
+  );
+  // La excepcion abrevia el brainstorm previo, nunca la revision. Es
+  // la frase que impide leerla como una via para saltarse la revision
+  // por pares de un hotfix.
+  assert.match(
+    PROSA,
+    /revision por pares posterior no se toca/,
+    'falta escrito que la excepcion no toca la revision por pares'
+  );
+});
+
+test('la regla de conteo de palabras de riesgo esta escrita y cuadra con la lista', () => {
+  const { data } = parsear();
+  const lista = data['palabras_alto_riesgo'] as unknown[];
+  const peso = data['peso_palabra_alto_riesgo'] as number;
+
+  // La regla: una vez por ENTRADA DISTINTA presente en el texto, no
+  // por ocurrencia ni por seccion. Sin ella la misma tarea sale
+  // `simple` o `alta` segun quien implemente el consumidor.
+  assert.match(
+    PROSA,
+    /una vez por entrada distinta/i,
+    'el fichero no dice como se cuentan las palabras de riesgo: por entrada o por ocurrencia'
+  );
+
+  // Y la consecuencia aritmetica de la regla, escrita como numeros
+  // para que no pueda quedarse desfasada en silencio: contar por
+  // entrada acota la senal a (numero de entradas x peso).
+  const cota = /(\d+) entradas x (\d+) puntos = (\d+) como maximo/.exec(PROSA);
+  assert.notEqual(cota, null, 'falta la cota de la senal escrita como "N entradas x P puntos = T como maximo"');
+  const [, entradas, puntos, total] = cota as RegExpExecArray;
+  assert.equal(Number(entradas), lista.length, 'la cota escrita no cuadra con el numero de entradas de la lista');
+  assert.equal(Number(puntos), peso, 'la cota escrita no cuadra con peso_palabra_alto_riesgo');
+  assert.equal(Number(total), lista.length * peso, 'la cota escrita no es entradas x peso');
+});
+
 test('la tolerancia acepta la coincidencia y un nivel de distancia, y la asimetria queda declarada', () => {
   const { data } = parsear();
   assert.equal(data['tolerancia_niveles'], 1, 'se acepta hasta un nivel de distancia sin gastar modelo');
-  // La direccion que importa es que la heuristica sugiera MAS
-  // complejidad que la declarada: infraestimar es lo caro.
-  assert.equal(data['direccion_de_riesgo'], 'heuristica_mayor');
-  // La holgura extra solo aplica cuando la heuristica queda por
-  // debajo, y hoy arranca en 0: el comportamiento por defecto es
-  // simetrico, y abrirlo tiene que ser una decision consciente.
+  // La direccion que importa (heuristica por encima de lo declarado)
+  // ya la fija el nombre de esta clave: no hay una clave aparte para
+  // declararla porque solo podria valer una cosa.
   assert.equal(data['tolerancia_extra_si_heuristica_menor'], 0);
+  assert.equal(data['direccion_de_riesgo'], undefined, 'clave con un solo valor posible: va en comentario');
   assert.equal(typeof data['modelo_consulta_discrepancia'], 'string');
   assert.notEqual((data['modelo_consulta_discrepancia'] as string).trim(), '');
 });
@@ -245,13 +392,26 @@ test('las palabras de alto riesgo son genericas, sin vocabulario de ningun proye
   }
   assert.equal(new Set(lista).size, lista.length, 'hay palabras repetidas en la lista');
 
-  // Las seis que nombra la 16.1 tienen que seguir estando.
+  // Ninguna entrada puede ser subcadena de otra: con comparacion por
+  // subcadena la larga no puede disparar sin la corta, asi que solo
+  // seria peso muerto en la lista.
+  for (const a of lista as string[]) {
+    for (const b of lista as string[]) {
+      if (a === b) continue;
+      assert.equal(b.includes(a), false, `"${b}" nunca puede disparar sin "${a}": sobra una de las dos`);
+    }
+  }
+
+  // Las seis que nombra la 16.1 tienen que seguir estando. "esquema de
+  // base de datos" se lista por su nucleo, "base de datos": la
+  // redaccion natural ("esquema de LA base de datos") no casaba con la
+  // forma larga bajo comparacion por subcadena.
   for (const obligatoria of [
     'migracion',
     'breaking change',
     'seguridad',
     'autenticacion',
-    'esquema de base de datos',
+    'base de datos',
     'rollback',
   ]) {
     assert.equal(lista.includes(obligatoria), true, `falta la palabra "${obligatoria}"`);

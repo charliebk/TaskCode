@@ -42,6 +42,15 @@ En el caso 1 recibes el diff de la rama contra su base. En el caso 2 recibes
 el diff completo a proposito: partirlo por dominio es justo lo que se ha
 decidido no hacer.
 
+**Nota sobre el umbral de 3.** Hoy el camino 2 es teorico: el catalogo de
+revisores de dominio que viaja con este plugin tiene exactamente tres, asi
+que "mas de tres dominios" no puede darse y **no se puede ejercitar**. El
+umbral esta escrito para cuando el catalogo crezca —o cuando un proyecto
+anada revisores propios—, no como comportamiento observable hoy. Quede
+constancia: si alguien afirma haber llegado aqui por exceso de dominios con
+el catalogo actual, se equivoca de camino; llego por descarte (caso 1) o
+porque se lo pidieron (caso 3).
+
 ## Antes de revisar: la puerta determinista
 
 La revision **no empieza** hasta que pasan, en este orden:

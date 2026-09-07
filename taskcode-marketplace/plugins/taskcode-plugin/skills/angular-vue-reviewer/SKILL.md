@@ -1,6 +1,6 @@
 ---
 name: angular-vue-reviewer
-description: Revisor por pares de diffs de frontend Angular y Vue. Se usa cuando el diff de una tarea toca ficheros .vue, .component.ts, plantillas, composables o stores y hay que revisar reactividad y gestion de estado, fugas de suscripciones, limites entre componentes, accesibilidad, rendimiento de renderizado, tipado de props y entradas, y tests de componente antes de cerrar la tarea.
+description: Revisor por pares de diffs de frontend Angular y Vue. Se usa cuando el diff de una tarea toca ficheros .vue, .component.ts, plantillas de componente, directivas o composables y hay que revisar reactividad y gestion de estado, fugas de suscripciones, limites entre componentes, accesibilidad, rendimiento de renderizado, tipado de props y entradas, y tests de componente antes de cerrar la tarea.
 ---
 
 # Revision por pares de Angular y Vue
@@ -33,13 +33,38 @@ estilo flow para que un catalogo los recoja **tal cual**, sin reescribirlos:
 
 ```yaml
 rol: revisor
-patrones_archivo: ["**/*.vue", "**/*.component.ts", "**/*.component.html", "**/*.component.scss", "**/*.component.css", "**/*.directive.ts", "**/*.pipe.ts", "**/*.module.ts", "**/*.guard.ts", "**/*.resolver.ts", "**/*.spec.ts", "**/composables/**", "**/stores/**", "**/src/app/**", "**/angular.json", "**/nuxt.config.ts", "**/vue.config.js"]
+patrones_archivo: ["**/*.vue", "**/*.component.ts", "**/*.component.html", "**/*.component.scss", "**/*.component.css", "**/*.component.spec.ts", "**/*.directive.ts", "**/composables/**/*.ts", "**/composables/**/*.js", "**/angular.json", "**/nuxt.config.ts", "**/vue.config.js"]
 ```
 
-Un componente de React o de Svelte **no lo captura ninguno de esos
-patrones, a proposito**: buena parte de los criterios de accesibilidad y de
-rendimiento aplican igual, pero el enrutado automatico no lo va a mandar
-aqui.
+La lista es **deliberadamente estrecha**: solo entran convenciones que no
+comparte ningun otro ecosistema. Quedan fuera a proposito, aunque Angular o
+Vue tambien los usen:
+
+- `*.module.ts`, `*.guard.ts`, `*.pipe.ts` y `*.resolver.ts` — son
+  exactamente las convenciones de NestJS, que es backend.
+- `*.spec.ts` a secas — lo usa cualquier proyecto TypeScript con tests. Si
+  entra el sufijo `*.component.spec.ts`, que si es de Angular.
+- `src/app/**` — es tambien el enrutado por directorios de Next.js, y en
+  monorepos la ruta `apps/<lo-que-sea>/src/app/` la generan por igual un
+  proyecto de frontend y uno de backend.
+- `stores/**` — ese nombre de carpeta lo usan React, Go y cualquier otro; no
+  filtra por lenguaje siquiera.
+
+El motivo no es purismo. El enrutado da este revisor por bueno **en cuanto
+casa un patron**, y el revisor generico solo entra cuando **no** casa
+ninguno: un patron de mas no anade un revisor, **sustituye** al que tocaba.
+Un diff de backend capturado aqui acabaria revisado solo por una skill que
+se declara incompetente para el.
+
+La contrapartida, asumida: un diff que **solo** toca `auth.guard.ts`, un
+store de Pinia o un test que no es de componente no llega aqui, cae al
+revisor generico. Eso es degradacion, no perdida — el generico revisa
+correccion, casos borde, tests y limites. Si hace falta ademas esta revision
+sobre esos ficheros, se pide a mano.
+
+Un componente de React o de Svelte tampoco llega aqui: buena parte de los
+criterios de accesibilidad y de rendimiento le aplican igual, pero el
+enrutado automatico no lo va a mandar a este revisor.
 
 ## Reproducir antes de reportar
 
@@ -193,23 +218,19 @@ valida; inventar hallazgos para tener algo que reportar, no.
 ## Estructura del informe
 
 `taskctl review` deja el esqueleto del informe en la carpeta de revision de
-la tarea, numerado por ronda. Se rellena con esta estructura, sin anadir
-prosa por encima:
+la tarea, numerado por ronda. **Se rellena ese esqueleto, respetando su
+cabecera**: el titulo tal cual, la linea `- Commit revisado:` con el sha, la
+linea `- Revisor:` con el nombre de esta skill, y la linea `- Veredicto:`,
+que se **sustituye** en su sitio — nunca se borra de la cabecera ni se
+repite mas abajo. Las secciones propias de este revisor van **despues** de
+`## Hallazgos`, donde no chocan con lo que el esqueleto ya trae:
 
 ```markdown
-# Informe de revision <N> — <ID de la tarea>
+# Informe de revision — <ID de la tarea> (ronda <N>)
 
-## Alcance
+- Commit revisado: <sha>
 - Revisor: angular-vue-reviewer
-- Ficheros revisados: <los del diff que casaron con los patrones>
-- Contexto adicional pedido: <ninguno, o que y por que>
-
-## Reproduccion
-- Clon: <ruta temporal y rama>
-- Instalacion y build: <comandos y resultado>
-- Suite: <comando, resultado, y linea base antes del diff>
-- Vista ejercitada: <ruta, navegador, volumen de datos, recorrido de teclado>
-- Casos construidos: <que se ejecuto para demostrar cada hallazgo>
+- Veredicto: aprobada
 
 ## Hallazgos
 
@@ -226,13 +247,25 @@ prosa por encima:
 ### MENOR-1 — <titulo corto>
 <mismos campos, mas si se propone no corregirlo y por que>
 
+## Alcance
+- Ficheros revisados: <los del diff que casaron con los patrones>
+- Contexto adicional pedido: <ninguno, o que y por que>
+
+## Reproduccion
+- Clon: <ruta temporal y rama>
+- Instalacion y build: <comandos y resultado>
+- Suite: <comando, resultado, y linea base antes del diff>
+- Vista ejercitada: <ruta, navegador, volumen de datos, recorrido de teclado>
+- Casos construidos: <que se ejecuto para demostrar cada hallazgo>
+
 ## Revisado sin hallazgos
 <areas del diff que se miraron y salieron limpias, para que conste que se
 miraron>
-
-## Veredicto
-- Veredicto: aprobada
 ```
+
+Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
+forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
+llegar a esa conclusion.
 
 Dos rondas es lo normal, no una excepcion: la ronda 2 revisa las
 correcciones de la ronda 1, que es justo donde entran los fallos nuevos. En

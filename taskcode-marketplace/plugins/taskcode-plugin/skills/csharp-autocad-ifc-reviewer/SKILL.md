@@ -25,6 +25,25 @@ skill tiene poco que decir mas alla del apartado de referencias a los
 ensamblados de AutoCAD; si el diff no contiene C# ni IFC, dilo en el informe
 en vez de rellenar.
 
+**C# que no es de AutoCAD ni de IFC.** `**/*.cs` casa con cualquier C#:
+tambien con una API web, un servicio de fondo o un juego. Ese diff llega
+aqui igualmente, y —al haber casado un patron de dominio— **el revisor
+generico no entra**, asi que esta skill es la unica revision que ese cambio
+va a tener. La regla en ese caso:
+
+- **Si aplica**: la seccion "Trampas de C# que aparecen aqui" (cultura,
+  comparacion de dobles, precision, `catch` vacio, `async void`, nulos,
+  recursos no liberados) y todo el metodo — puerta determinista, clon,
+  suite, mutacion, caso que rompe.
+- **No aplica**: las secciones de interoperabilidad con AutoCAD, de modelo
+  de datos IFC y de rendimiento sobre modelos grandes. No se fuerzan
+  hallazgos sobre transacciones o unidades que el diff no tiene.
+- **Y se dice en el informe**, con esas palabras: que el C# revisado no toca
+  AutoCAD ni IFC, que criterios se aplicaron y cuales no, y que por tanto
+  conviene una revision generica adicional si el cambio es de peso. Un
+  informe que calla esto se lee como una revision de dominio completa
+  cuando fue media.
+
 Si el diff toca ademas otros dominios, cada revisor recibe **solo la parte que
 casa con su patron**. No pidas el resto del diff por comodidad; pidelo si un
 hallazgo concreto lo necesita para sostenerse.

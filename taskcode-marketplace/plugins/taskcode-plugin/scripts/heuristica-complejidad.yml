@@ -13,6 +13,14 @@
 # el fichero. Por eso los grupos se expresan con prefijos en el nombre
 # de la clave (peso_, nivel_, agentes_brainstorm_) y no con sangria.
 #
+# NOMBRES DE NIVEL - divergencia documentada. La metodologia de la que
+# sale esta heuristica llama "compleja" al cuarto nivel, y asi se
+# decidio en su dia. El modelo de datos que valida el frontmatter de
+# cada tarea lo llama "alta", y rechaza "compleja" como valor invalido.
+# Aqui manda el codigo: las claves de este fichero dicen "alta" porque
+# es lo unico que se puede leer de una tarea real. La divergencia se
+# deja escrita en vez de reescribir la metodologia o forzar el enum.
+#
 # Los valores de aqui son los defaults del plugin y valen para
 # cualquier proyecto. Son un punto de partida razonado, no una medida:
 # se ajustaran cuando haya suficientes tareas cerradas de los cinco
@@ -32,6 +40,16 @@ peso_etiqueta_adicional: 1
 # Cada palabra de alto riesgo encontrada en el objetivo o en los
 # criterios de aceptacion. Vale el doble que las demas senales porque
 # es la unica que habla del contenido del trabajo y no de su forma.
+#
+# COMO SE CUENTA: una vez por entrada distinta de palabras_alto_riesgo
+# que aparezca en el texto, sin importar cuantas veces aparece ni en
+# que seccion. Que "rendimiento" salga tres veces suma 2, no 6; y que
+# una entrada salga en el objetivo Y en los criterios tambien suma 2,
+# no 4. Sin esta regla escrita la misma tarea puntua distinto segun
+# quien la implemente. Consecuencia util: con ella la senal queda
+# acotada (14 entradas x 2 puntos = 28 como maximo) en vez de crecer
+# sin limite con el largo del texto, que es lo que la dejaria dominar
+# ella sola la puntuacion entera.
 peso_palabra_alto_riesgo: 2
 
 # Cada dependencia declarada de otra tarea. Depender de algo ajeno no
@@ -61,7 +79,7 @@ umbral_criterios_aceptacion: 5
 nivel_trivial_hasta: 1
 nivel_simple_hasta: 3
 nivel_media_hasta: 5
-nivel_compleja_hasta: 7
+nivel_alta_hasta: 7
 nivel_critica_desde: 8
 
 # ---------------------------------------------------------------------
@@ -70,8 +88,11 @@ nivel_critica_desde: 8
 # La lista es DELIBERADAMENTE generica y no debe crecer con vocabulario
 # de ningun dominio concreto: el plugin se instala en proyectos que no
 # comparten ni tecnologia ni jerga, y una palabra que solo significa
-# algo en uno de ellos seria ruido en todos los demas. El vocabulario
-# propio de cada repo se anade desde su propia configuracion, no aqui.
+# algo en uno de ellos seria ruido en todos los demas. Hoy no hay otro
+# sitio donde declarar vocabulario propio: no existe una clave de
+# configuracion para ampliarla, asi que un proyecto que lo necesite
+# edita su copia instalada de este fichero, a sabiendas de que eso es
+# una decision suya y no un punto de extension que el plugin ofrezca.
 #
 # Se escriben en minusculas y sin tildes a proposito: la comparacion
 # contra el texto de la tarea tiene que ser insensible a mayusculas y a
@@ -81,15 +102,21 @@ nivel_critica_desde: 8
 #
 # La comparacion es por subcadena, asi que una entrada corta cubre sus
 # variantes ("migracion" cubre "migraciones") y por eso no se listan.
-palabras_alto_riesgo: ["migracion", "breaking change", "seguridad", "autenticacion", "autorizacion", "esquema de base de datos", "rollback", "cifrado", "datos personales", "concurrencia", "rendimiento", "compatibilidad hacia atras", "integracion externa", "irreversible"]
+# Ojo con las entradas de varias palabras: son fragiles justo por eso,
+# porque cualquier palabra intercalada en la redaccion natural las deja
+# sin casar. "base de datos" casa dentro de "esquema de la base de
+# datos"; "esquema de base de datos" no habria casado nunca. Ante la
+# duda se lista el nucleo mas corto que siga siendo inequivoco, sin
+# acortarlo tanto que empiece a casar con texto inocente.
+palabras_alto_riesgo: ["migracion", "breaking change", "seguridad", "autenticacion", "autorizacion", "base de datos", "rollback", "cifrado", "datos personales", "concurrencia", "rendimiento", "compatibilidad hacia atras", "integracion externa", "irreversible"]
 
 # ---------------------------------------------------------------------
 # 4. Cuantos agentes de brainstorm en paralelo por nivel de complejidad.
 #    Es un lookup, no un juicio: nadie tiene que decidirlo en caliente.
 #
 #    Los extremos vienen dados: 0 en trivial (no se paga un brainstorm
-#    para algo trivial), 3 en compleja y 4 en critica, que son los
-#    cuatro roles definidos (arquitectura, riesgos, testing, dominio).
+#    para algo trivial), 3 en alta y 4 en critica, que son los cuatro
+#    roles definidos (arquitectura, riesgos, testing, dominio).
 #
 #    Los dos niveles intermedios se fijan AQUI, y son una decision de
 #    este fichero: 1 en simple y 2 en media. El criterio es que la serie
@@ -100,8 +127,21 @@ palabras_alto_riesgo: ["migracion", "breaking change", "seguridad", "autenticaci
 agentes_brainstorm_trivial: 0
 agentes_brainstorm_simple: 1
 agentes_brainstorm_media: 2
-agentes_brainstorm_compleja: 3
+agentes_brainstorm_alta: 3
 agentes_brainstorm_critica: 4
+
+# EXCEPCION POR TIPO DE TAREA, no por nivel. Un hotfix se planifica con
+# UN SOLO agente y sin brainstorm multi-agente, salga el nivel que
+# salga: esta clave se aplica ANTES que la tabla de arriba y la
+# sustituye. Su sufijo es un tipo de tarea, no un nivel de complejidad,
+# y por eso es la unica clave agentes_brainstorm_ cuyo sufijo no sale
+# del enum de niveles.
+#
+# No abre la puerta a saltarse nada mas: lo que un hotfix abrevia es el
+# brainstorm PREVIO, donde la urgencia sale mas cara que el beneficio
+# de cuatro puntos de vista. La revision por pares posterior no se
+# toca: un hotfix se revisa igual que cualquier otra tarea.
+agentes_brainstorm_hotfix: 1
 
 # ---------------------------------------------------------------------
 # 5. Tolerancia frente a la complejidad declarada por la persona.
@@ -122,8 +162,9 @@ tolerancia_niveles: 1
 # que en esa direccion se puede ser mas permisivo para reducir las
 # consultas. Esa holgura extra se suma a tolerancia_niveles solo cuando
 # la heuristica queda POR DEBAJO de lo declarado, y arranca en 0: hoy el
-# comportamiento es simetrico y subirla es una decision consciente.
-direccion_de_riesgo: heuristica_mayor
+# comportamiento es simetrico y subirla es una decision consciente. La
+# direccion no se declara en una clave aparte porque solo podria valer
+# una cosa: ya la fija el nombre de la clave que viene aqui debajo.
 tolerancia_extra_si_heuristica_menor: 0
 
 # Modelo al que se consulta la discrepancia. Barato a proposito: la

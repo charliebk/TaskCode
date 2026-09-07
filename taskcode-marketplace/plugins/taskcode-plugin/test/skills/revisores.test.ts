@@ -48,6 +48,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseBloqueClaveValor, parseFrontmatter } from '../../src/core/frontmatter.js';
 import { veredictoAprobado } from '../../src/commands/finish.js';
+import { informeTemplate } from '../../src/commands/review.js';
+import type { Task } from '../../src/core/task.js';
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.resolve(moduleDir, '..', '..', '..');
@@ -69,6 +71,12 @@ const REVISORES = [...REVISORES_DE_DOMINIO, REVISOR_GENERICO] as const;
  * son este: una ruta o un nombre de documento interno que se cuele no es
  * una errata, es una instruccion que el agente de otro equipo no puede
  * seguir. Se busca en el fichero ENTERO, frontmatter incluido.
+ *
+ * La lista tenia huecos (ronda 1, hallazgo 18): "Ver docs/PLAN_SPRINTS.md" o
+ * "usa veredictoAprobado() de src/commands/finish.ts" se colaban enteros.
+ * Se anaden el documento de plan y los nombres de simbolo que estas skills
+ * rozan de cerca, porque describen justo el codigo que las lee. Nota: los
+ * comandos `taskctl ...` SI pueden nombrarse — viajan con el plugin.
  */
 const MARCAS_DEL_REPO = [
   'taskcode',
@@ -76,11 +84,16 @@ const MARCAS_DEL_REPO = [
   'docs/contexto',
   'propuesta_metodologia',
   'checklist_terminacion',
+  'plan_sprints',
   'plan-final.md',
   'task-0',
   'ieca',
   'movetareafile',
   'printclierror',
+  'veredictoaprobado',
+  'informetemplate',
+  'src/commands/',
+  'src/core/',
 ];
 
 /** Rutas de maquina, mismo criterio que en task-workflow.test.ts. */
@@ -273,12 +286,66 @@ test('8. cada skill prescribe tambien la forma de NO aprobar, y finish.ts la rec
   }
 });
 
-test('9. las tres severidades estan definidas en las cuatro', async () => {
+/**
+ * Como se DEFINE una severidad, frente a como se la menciona de pasada.
+ *
+ * La version anterior de este test buscaba la palabra suelta
+ * (`texto.toUpperCase().includes('MENOR')`) y no discriminaba: la prosa
+ * "aprobada con correcciones menores" de la tabla de veredictos ya la
+ * satisfacia, de modo que se podia borrar la severidad MENOR entera de una
+ * skill y la suite seguia verde (reproducido en la ronda 1, hallazgo 17).
+ * El mismo agujero estaba abierto para IMPORTANTE ("no es una revision
+ * importante...") y para CRITICO.
+ *
+ * Se asevera sobre la FORMA de la definicion: la severidad en negrita, al
+ * principio de linea, seguida de un guion o una raya que introduce el
+ * criterio. Es la forma que usan las cuatro y la unica que un lector
+ * interpreta como "aqui se define que es esto".
+ */
+const DEFINICION_DE_SEVERIDAD: ReadonlyArray<readonly [string, RegExp]> = [
+  ['CRITICO', /^\*\*CRITICO\*\*\s*[—-]/m],
+  ['IMPORTANTE', /^\*\*IMPORTANTE\*\*\s*[—-]/m],
+  ['MENOR', /^\*\*MENOR\*\*\s*[—-]/m],
+];
+
+test('9. las tres severidades estan DEFINIDAS (no solo mencionadas) en las cuatro', async () => {
   for (const nombre of REVISORES) {
-    const texto = (await leer(nombre)).toUpperCase();
-    for (const severidad of ['CRITICO', 'IMPORTANTE', 'MENOR']) {
-      assert.ok(texto.includes(severidad), `${nombre}: no define la severidad ${severidad}`);
+    const texto = await leer(nombre);
+    for (const [severidad, definicion] of DEFINICION_DE_SEVERIDAD) {
+      assert.ok(
+        definicion.test(texto),
+        `${nombre}: no DEFINE la severidad ${severidad} (se espera una linea "**${severidad}** — ...");` +
+          ' mencionarla en prosa no cuenta'
+      );
     }
+  }
+});
+
+/**
+ * Contraprueba del test 9, en el propio test: se comprueba que la asercion
+ * nueva rechaza justo lo que la vieja aceptaba. Sin esto, "el 9 esta verde"
+ * no distingue entre "discrimina" y "vuelve a mirar la palabra suelta".
+ */
+test('9b. la definicion de severidad NO la satisface una mencion en prosa', () => {
+  const soloProsa = [
+    '| `- Veredicto: aprobada con correcciones menores` | aprueba |',
+    'No es una revision importante si solo se lee el diff.',
+    'Un fallo critico se reporta con reproduccion.',
+    '- **MENOR** dentro de una lista, no al principio de linea',
+    '**MENOR**: con dos puntos en vez de raya',
+  ].join('\n');
+  for (const [severidad, definicion] of DEFINICION_DE_SEVERIDAD) {
+    assert.equal(
+      definicion.test(soloProsa),
+      false,
+      `la definicion de ${severidad} da por buena una mencion en prosa: no discrimina`
+    );
+  }
+  // Y al reves: la forma real si la acepta, para que el test no este verde
+  // simplemente porque el patron no case con nada nunca.
+  const formaReal = '**CRITICO** — perdida de datos\n**IMPORTANTE** - caso real\n**MENOR** — el resto';
+  for (const [severidad, definicion] of DEFINICION_DE_SEVERIDAD) {
+    assert.ok(definicion.test(formaReal), `la definicion de ${severidad} no acepta la forma real`);
   }
 });
 
@@ -288,6 +355,126 @@ test('10. las cuatro exigen reproducir empiricamente, no leer el diff y opinar',
     assert.ok(
       texto.includes('reproduc'),
       `${nombre}: no exige reproducir; una revision que solo lee el diff no es una revision`
+    );
+  }
+});
+
+// --- 3bis. La estructura del informe, contra el esqueleto que genera el CLI ---
+
+/**
+ * Las cuatro skills prescriben una estructura de informe. `taskctl review`
+ * genera el esqueleto de verdad. En la ronda 1 (hallazgo 16) esas dos cosas
+ * no coincidian: dos skills reproducian el esqueleto y las otras dos
+ * inventaban otro titulo, PERDIAN la linea `- Commit revisado:` y movian el
+ * veredicto a una seccion al final. Consecuencia real: quien anadiera el
+ * veredicto al final sin borrar el de la cabecera dejaba DOS lineas de
+ * veredicto, y `taskctl finish` exige que aprueben todas.
+ *
+ * En vez de copiar aqui las cadenas del esqueleto —que es como se llego a
+ * la divergencia— se importa `informeTemplate` y se derivan de su salida.
+ * Si el CLI cambia el titulo o los campos de la cabecera, este test se pone
+ * rojo y obliga a mirar las skills.
+ *
+ * Limitacion asumida: `informeTemplate` pide un `Task` completo pero solo
+ * lee `task.id`, asi que se le pasa un objeto minimo con un cast. Si algun
+ * dia leyera mas campos, el cast fallaria en ejecucion, no en compilacion.
+ */
+const ID_MUESTRA = 'TASK-999';
+const RONDA_MUESTRA = 7;
+const ESQUELETO = informeTemplate(
+  { id: ID_MUESTRA } as unknown as Task,
+  'deadbee',
+  RONDA_MUESTRA
+).split('\n');
+
+/** '# Informe de revision — ', ' (ronda ', ')' — derivados, no copiados. */
+const [TITULO_ANTES = '', TITULO_RESTO = ''] = (ESQUELETO[0] ?? '').split(ID_MUESTRA);
+const [TITULO_ENTRE = '', TITULO_DESPUES = ''] = TITULO_RESTO.split(String(RONDA_MUESTRA));
+
+/** '- Commit revisado:', '- Revisor:', '- Veredicto:' — idem. */
+const CAMPOS_CABECERA = ESQUELETO.filter((l) => l.startsWith('- ') && l.includes(':')).map((l) =>
+  l.slice(0, l.indexOf(':') + 1)
+);
+
+/** '## Hallazgos' — idem. */
+const SECCION_HALLAZGOS = ESQUELETO.find((l) => l.startsWith('## ')) ?? '';
+
+const CAMPO_VEREDICTO = CAMPOS_CABECERA.find((c) => /veredicto/i.test(c)) ?? '';
+
+/** El bloque cercado que contiene el esqueleto del informe, sin las cercas. */
+function bloqueInforme(nombre: string, texto: string): string[] {
+  // Split tolerante a CRLF: estos ficheros se editan en Windows y un '\r'
+  // final romperia cualquier endsWith() sin decir por que.
+  const lineas = texto.split(/\r?\n/);
+  for (let i = 0; i < lineas.length; i++) {
+    if (!/^```/.test(lineas[i] ?? '')) continue;
+    const fin = lineas.findIndex((l, j) => j > i && l.trim() === '```');
+    if (fin === -1) break;
+    const cuerpo = lineas.slice(i + 1, fin);
+    if (cuerpo.some((l) => l.startsWith(TITULO_ANTES))) return cuerpo;
+    i = fin;
+  }
+  assert.fail(`${nombre}: no hay ningun bloque con el esqueleto del informe`);
+}
+
+test('10b. el esqueleto derivado del CLI trae lo que este test da por supuesto', () => {
+  // Guard de no-vacuidad: si informeTemplate dejara de tener titulo o
+  // campos de cabecera, los asserts de abajo pasarian sin comprobar nada.
+  assert.ok(TITULO_ANTES.length > 0, 'el titulo del esqueleto no contiene el ID de la tarea');
+  assert.ok(TITULO_ENTRE.length > 0, 'el titulo del esqueleto no contiene el numero de ronda');
+  assert.ok(CAMPOS_CABECERA.length >= 3, `cabecera inesperada: ${CAMPOS_CABECERA.join(' / ')}`);
+  assert.ok(CAMPO_VEREDICTO.length > 0, 'el esqueleto ya no trae linea de veredicto');
+  assert.ok(SECCION_HALLAZGOS.length > 0, 'el esqueleto ya no trae seccion de hallazgos');
+});
+
+test('10c. las cuatro prescriben el esqueleto que taskctl review genera de verdad', async () => {
+  for (const nombre of REVISORES) {
+    const bloque = bloqueInforme(nombre, await leer(nombre));
+
+    const titulo = bloque.find((l) => l.startsWith(TITULO_ANTES));
+    assert.ok(titulo !== undefined, `${nombre}: el bloque no tiene titulo`);
+    assert.ok(
+      titulo.includes(TITULO_ENTRE) && titulo.endsWith(TITULO_DESPUES),
+      `${nombre}: el titulo no tiene la forma que genera el CLI ("${ESQUELETO[0] ?? ''}"), es "${titulo}"`
+    );
+
+    for (const campo of CAMPOS_CABECERA) {
+      assert.ok(
+        bloque.some((l) => l.startsWith(campo)),
+        `${nombre}: el informe pierde el campo de cabecera "${campo}" que el CLI genera`
+      );
+    }
+
+    // El veredicto se SUSTITUYE en la cabecera. Dos lineas -> finish exige
+    // que aprueben las dos, y basta que una siga en PENDIENTE para que la
+    // tarea no cierre. Una sola, y antes de los hallazgos.
+    const iVeredicto = bloque
+      .map((l, i) => (l.startsWith(CAMPO_VEREDICTO) ? i : -1))
+      .filter((i) => i !== -1);
+    assert.equal(
+      iVeredicto.length,
+      1,
+      `${nombre}: el informe prescribe ${iVeredicto.length} lineas "${CAMPO_VEREDICTO}"; tiene que haber exactamente una`
+    );
+    const iHallazgos = bloque.indexOf(SECCION_HALLAZGOS);
+    assert.notEqual(iHallazgos, -1, `${nombre}: el informe no trae "${SECCION_HALLAZGOS}"`);
+    assert.ok(
+      (iVeredicto[0] ?? -1) < iHallazgos,
+      `${nombre}: el veredicto va en la cabecera, no en una seccion al final`
+    );
+
+    // Y que ese veredicto de ejemplo lo acepte de verdad quien lo lee.
+    const linea = bloque[iVeredicto[0] ?? 0] ?? '';
+    assert.ok(
+      veredictoAprobado(linea),
+      `${nombre}: la linea de ejemplo "${linea}" no la aprueba finish.ts`
+    );
+
+    // El revisor se identifica: el esqueleto deja "(rellenar por el agente)".
+    const revisor = bloque.find((l) => /^-\s*Revisor:/i.test(l)) ?? '';
+    assert.ok(
+      revisor.toLowerCase().includes(nombre),
+      `${nombre}: la linea "${revisor}" no nombra a la propia skill`
     );
   }
 });
