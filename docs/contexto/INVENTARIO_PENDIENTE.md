@@ -210,12 +210,19 @@ concretas**:
 
 Los puntos 3 y 6 son menores y se pueden cerrar sobre la marcha.
 
-## 5. Riesgo estructural: no hay remoto
+## 5. Riesgo estructural: hay remoto, pero no se está usando
 
-El repo **no tiene `origin`**. Todo el trabajo de Sprint 0 y 1 vive
-únicamente en el disco de una máquina, sin copia. TASK-021 está planificada
-para Sprint 4, la última fase — eso es tarde. Es la única tarea del plan
-cuyo orden yo movería sin dudar.
+**Corregido el 2026-09-07**: el repo **sí tiene `origin`**
+(`github.com/charliebk/TaskCode.git`) y responde. Lo que decía este punto
+—que no había remoto y todo vivía en el disco de una máquina— ya no es
+cierto.
+
+El riesgo se ha desplazado, no ha desaparecido: **`develop` va 30 commits
+por delante de `origin/develop`** y hay 24 ramas locales, así que en la
+práctica el trabajo de varias sesiones sigue sin copia fuera de esta
+máquina. La causa es distinta a la de antes: no falta el remoto, falta el
+`push`. Y la política IECA de no borrar ramas hace que el desfase crezca en
+vez de reabsorberse.
 
 ## 6. Propuesta de secuenciación realista
 

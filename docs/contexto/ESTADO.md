@@ -249,9 +249,11 @@ problema de empaquetado, no del ciclo de vida, y va a la Fase E como **E6**.
 Con A y B cerradas, **el corte mínimo defendible ya solo depende de la
 Fase C**: lo que la metodología da por hecho y no existe.
 
-No queda ningún item libre en la Fase C: **C2 y C4 están bloqueados** por
-las decisiones #14 y #9, y son los dos únicos que faltan. El siguiente
-trabajo desbloqueado está en la Fase E.
+**C2 y C4 se desbloquearon el 2026-09-07**, y son los dos únicos que le
+faltan a la Fase C. La #14 se cerró con *commitea sí, sube solo con
+`--push`*; la #9, con tres claves opcionales (`rama_base`,
+`agente_revisor_por_defecto`, `limite_wip`) y, sobre todo, con la forma del
+mecanismo. Ver sus entradas en `CHECKLIST_TERMINACION.md`.
 
 1. ~~**C1**~~ — hecho el 2026-09-06 (TASK-026), ver arriba.
 2. **C2** — el paso 5 de la §8.3 (¿`taskctl` commitea y sube por la

@@ -170,6 +170,9 @@ Lo que la metodología da por hecho y no existe.
       siempre **colgaba el comando para siempre** ante una tubería abierta.
       27 tests nuevos (417).*
 - [ ] **C2** · Paso 5 de §8.3: ¿comitea y sube `taskctl` por la persona? — ~3h
+      ***Desbloqueado el 2026-09-07*** *(decisión #14, ver abajo): commitea
+      sí, sube solo con `--push`. Divergencia con la §8.3, que pide también
+      subir: hay que documentarla al implementar.*
       *Decisión abierta + implementación. Sin esto, una tarea nueva no llega
       al equipo sola. **Evidencia nueva (A2)**: sin el paso 5, `taskctl
       import` no se puede ejecutar dos veces seguidas — crea las carpetas que
@@ -198,8 +201,13 @@ Lo que la metodología da por hecho y no existe.
       porque POSIX no lo ofrece—, documentada sin corregir. 8 tests nuevos
       (429; 426 verdes y los 3 rojos conocidos de este entorno Windows).
       Dos rondas de revisión: **APROBADO CON CAMBIOS** (1 importante, 4 menores) y **cambios solicitados → APROBADA** (1 importante, 3 menores). El importante de la ronda 2: el fix de la ronda 1 era un fix solo de Windows —en POSIX el `stat` falla antes con `ENOTDIR`— y el test escrito para certificarlo habría caído en el job `ubuntu-latest`.*
-- [ ] **C4** · `.taskcode/config.yml` — ~1h
-      *Decisión #9 de la sección 14: nadie ha definido qué va dentro.*
+- [ ] **C4** · `.taskcode/config.yml` — ~3h
+      ***Desbloqueado el 2026-09-07*** *(decisión #9, ver abajo): tres claves
+      opcionales — `rama_base`, `agente_revisor_por_defecto`, `limite_wip`.
+      La estimación sube de ~1h a ~3h porque lo que se acordó no es un
+      fichero, es el mecanismo: carga con defaults, fallo cerrado ante valor
+      o clave invalida, reutilización del parser de frontmatter (extrayendo
+      su bucle `clave: valor`) y un único punto de resolución.*
 - [x] **C5** · TASK-028 — `skills/task-workflow/SKILL.md`, la primera skill del plugin — ~1h
       *Cerrado el 2026-09-07. El plugin ya expone una skill a Claude Code —
       `taskcode-plugin:task-workflow`, 272 líneas—; antes no exponía
@@ -327,7 +335,29 @@ está a su derecha.
 
 - [ ] **#1** · ¿Checkpoint humano siempre, o solo desde complejidad media? → bloquea D1
 - [ ] **#2** · Máximo de agentes en brainstorm paralelo (3 vs 4) → bloquea D1
-- [ ] **#9** · Contenido de `.taskcode/config.yml` → bloquea C4
+- [x] **#9** · Contenido de `.taskcode/config.yml`
+      *Resuelta por Carlos el 2026-09-07: **tres claves**, todas opcionales
+      — `rama_base` (hoy `'develop'` literal en `git.ts:352`, el unico
+      hardcode que no se puede detectar), `agente_revisor_por_defecto` (hoy
+      `'general-purpose'` **duplicado** en `new.ts` e `import.ts`) y
+      `limite_wip` (hoy 1, fijo). **Descartada `politica_no_borrar_ramas`**:
+      solo puede valer `true`, asi que documenta en vez de configurar; si se
+      declarase habria que decidir que hace el plugin cuando alguien escriba
+      `false`, y "nada" envejece mal. **Descartada `rama_principal`**: ya la
+      detecta `resolveMainBranch` (main/master), y ponerla en config duplica
+      una deteccion que funciona. **Descartado `remoto`**: 18 scripts
+      hardcodean `origin` y eso es un trabajo mucho mayor que C4.*
+      *Forma acordada, que importa mas que las claves: sin fichero el
+      comportamiento es identico al de hoy (no-breaking, los 472 tests siguen
+      valiendo de red); **fallo cerrado** ante valor invalido o clave
+      desconocida, nunca caida al default en silencio (misma doctrina que el
+      `wx` de `plan.ts` y el parser de veredictos); **un solo parser** —el de
+      frontmatter ya cubre este subconjunto y su bucle `clave: valor` es
+      extraible—; **un solo punto de resolucion** (`resolverConfig(cwd)` con
+      defaults ya aplicados), para que la cuarta clave cueste una linea; y
+      **no se declara ninguna clave que nadie lea** todavia (`remoto`, las
+      palabras clave de la heuristica): una clave escribible que no hace nada
+      es peor que no tenerla, y este proyecto ya se quemo con `codex-review`.*
 - [ ] **#11** · Mecanismo determinista para saber qué plugins/skills hay instalados → bloquea D2
 - [x] **#12** · Señales del `relevance` en `marketplace.json`
       *Resuelta sin decisión: la documentación oficial dice que `relevance`
@@ -346,7 +376,20 @@ está a su derecha.
       *Divergencia con la §8.2 (congelada), que describe dos límites
       independientes y uno de ellos sobre el diseño: hay que documentarla al
       implementar B7, no reescribir la metodología.*
-- [ ] **#14 (paso 5)** · ¿`taskctl` comitea y sube por la persona? → bloquea C2
+- [x] **#14 (paso 5)** · ¿`taskctl` comitea y sube por la persona?
+      *Resuelta por Carlos el 2026-09-07: **commitea si, sube solo con
+      `--push`**. La pregunta eran en realidad dos con riesgos distintos:
+      commitear es local y se deshace con `git reset`, y solo toca `tareas/`
+      y `docs/`; subir publica al equipo. Evidencia medida: TASK-029 costo 9
+      commits y **4 existian solo porque `taskctl` no commitea lo que el
+      mismo escribe** (tarea creada, plan aprobado, peticion de revision,
+      artefactos de cierre); `import` sigue sin poder ejecutarse dos veces
+      seguidas; y una rama cuyo movimiento de tarea no este commiteado es
+      invisible para el limite de WIP (C8).*
+      *Divergencia con la §8.3 que hay que documentar al implementar C2: el
+      paso 5 pide tambien subir, con el argumento de que si no, el equipo no
+      ve la tarea nueva hasta que alguien la suba a mano. Se acepta esa
+      perdida a cambio de que publicar siga siendo un acto consciente.*
 - [ ] **#15** · Pesos de la heurística de complejidad → bloquea D1/D2
 - [ ] **#16** · Umbral de dominios para caer a revisor único → bloquea D3
 - [ ] **#17** · ¿Revisión ligera solo para `trivial`, o también `simple`? → bloquea D4
