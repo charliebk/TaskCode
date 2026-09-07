@@ -284,15 +284,18 @@ review`, sin borrar la peticion. Estructura fija:
 
 ## Hallazgos
 
-### CRITICO — <titulo corto>
-- Donde: <fichero>:<linea>
-- Que pasa: <una o dos frases>
-- Reproduccion: <los pasos exactos que ejecutaste, y su salida>
-- Impacto: <que le ocurre a quien use esto>
-- Sugerencia: <la direccion, no el parche>
+### CRITICO-1 — <titulo corto>
+- Donde: <fichero:linea>
+- Que pasa: <comportamiento observado, en una o dos frases>
+- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
+- Impacto: <la consecuencia concreta para quien use esto>
+- Sugerencia: <la direccion de la correccion, no el parche>
 
-### IMPORTANTE — ...
-### MENOR — ...
+### IMPORTANTE-1 — <titulo corto>
+<mismos campos>
+
+### MENOR-1 — <titulo corto>
+<mismos campos, mas si se propone no corregirlo y por que>
 ```
 
 Si no hay nada que reportar, la seccion de hallazgos dice **"sin hallazgos"**

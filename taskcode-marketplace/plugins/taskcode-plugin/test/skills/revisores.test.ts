@@ -23,6 +23,14 @@
  *    Las cuatro llegaron a la integracion con dos formatos distintos; el
  *    test existe para que no vuelva a pasar sin que nadie se entere.
  *
+ * 2bis. QUE CAPTURAN ESOS PATRONES, medido en las dos direcciones. Que la
+ *    lista parsee y no este vacia no dice nada sobre a donde va cada diff.
+ *    En la ronda 1 los patrones capturaban de mas (NestJS, Next.js); el
+ *    recorte que lo cerro abrio el simetrico (Angular 20, que retiro el
+ *    sufijo de tipo del nombre de fichero, dejo de llegar). Las dos veces
+ *    la suite siguio verde. Una tabla de rutas realistas contra los
+ *    patrones leidos de los propios SKILL.md cierra las dos direcciones.
+ *
  * 3. EL VEREDICTO, CONTRA EL CODIGO QUE LO LEE. La linea que cada skill
  *    prescribe se pasa por `veredictoAprobado` de finish.ts — la funcion
  *    real, no una copia de su regex. Una skill que prescriba una linea que
@@ -95,6 +103,14 @@ const MARCAS_DEL_REPO = [
   'src/commands/',
   'src/core/',
 ];
+
+/**
+ * Los documentos internos de un repo se nombran en MAYUSCULAS bajo `docs/`.
+ * Ampliar `MARCAS_DEL_REPO` de uno en uno se quedaba corto siempre: la lista
+ * dejaba pasar `docs/CONVENCIONES.md`, `docs/HALLAZGOS.md` y cualquier otro
+ * que naciera despues (ronda 2, menor 4). Se asevera el patron, no el caso.
+ */
+const DOCUMENTO_INTERNO = /docs\/[A-Z_]+\.md/;
 
 /** Rutas de maquina, mismo criterio que en task-workflow.test.ts. */
 const RUTAS_DE_MAQUINA = ['C:\\Users\\', '/Users/', '/home/', '~/'];
@@ -243,6 +259,226 @@ test('6. ningun revisor de dominio se solapa con otro en un patron identico', as
       vistos.set(patron, nombre);
     }
   }
+});
+
+// --- 2bis. El enrutado, MEDIDO: que ruta llega a que revisor -----------
+
+/**
+ * Los tests 5 y 6 miran la lista de patrones por encima: que no este vacia,
+ * y que dos revisores no declaren el mismo patron. Ninguno mira QUE captura
+ * esa lista, que es el dato de mas consecuencia de estas skills y el unico
+ * que ya ha fallado en dos rondas seguidas.
+ *
+ * Reproducido en la ronda 2 con dos sondas que dejaban la suite ENTERA en
+ * verde: (a) reintroducir en angular-vue el patron de modulos y el de la
+ * carpeta de aplicacion sin acotar —o sea, el defecto de la ronda 1 tal
+ * cual, que se llevaba NestJS y Next.js a un revisor de frontend—, y (b)
+ * reducir esa misma lista a un unico patron de ficheros de Vue, que deja a
+ * Angular entero sin revisor. Ninguna de las dos rompia nada.
+ *
+ * De ahi esta tabla. Se asevera en las dos direcciones —lo que TIENE que
+ * casar y lo que NO puede casar— con `path.matchesGlob` y con los patrones
+ * leidos de los propios SKILL.md, nunca copiados aqui: copiarlos daria
+ * verde sobre una lista que ya no es la que se instala.
+ *
+ * Las rutas van con barra normal a proposito: es lo que emite
+ * `git diff --name-only` en cualquier plataforma, incluida Windows.
+ */
+
+type RevisorDeDominio = (typeof REVISORES_DE_DOMINIO)[number];
+
+/** [ruta, revisor que TIENE que reclamarla, de donde sale la ruta] */
+const RUTAS_DE_DOMINIO: ReadonlyArray<readonly [string, RevisorDeDominio, string]> = [
+  // Angular hasta la 19: el sufijo de tipo va en el nombre del fichero.
+  ['src/app/user-profile/user-profile.component.ts', 'angular-vue-reviewer', 'angular<=19'],
+  ['src/app/user-profile/user-profile.component.html', 'angular-vue-reviewer', 'angular<=19'],
+  ['src/app/user-profile/user-profile.component.scss', 'angular-vue-reviewer', 'angular<=19'],
+  ['src/app/user-profile/user-profile.component.spec.ts', 'angular-vue-reviewer', 'angular<=19'],
+  ['src/app/shared/highlight.directive.ts', 'angular-vue-reviewer', 'angular<=19'],
+  ['angular.json', 'angular-vue-reviewer', 'angular<=19'],
+  ['libs/ui/src/lib/button/button.component.ts', 'angular-vue-reviewer', 'angular<=19 en libreria Nx'],
+  ['libs/ui/src/lib/button/button.component.html', 'angular-vue-reviewer', 'angular<=19 en libreria Nx'],
+
+  // Angular 20 o posterior: la guia de estilo retiro el sufijo de tipo, asi
+  // que el componente UserProfile vive en user-profile.ts / .html / .css.
+  // Lo que lo trae aqui es el corte de ruta, no el nombre del fichero.
+  ['src/app/user-profile/user-profile.html', 'angular-vue-reviewer', 'angular>=20'],
+  ['src/app/app.html', 'angular-vue-reviewer', 'angular>=20'],
+  ['src/app/app.routes.ts', 'angular-vue-reviewer', 'angular>=20'],
+  ['src/app/admin/admin.routes.ts', 'angular-vue-reviewer', 'angular>=20'],
+  ['src/app/app.config.ts', 'angular-vue-reviewer', 'angular>=20'],
+  ['apps/portal/src/app/user-profile/user-profile.html', 'angular-vue-reviewer', 'angular>=20 en Nx'],
+  ['apps/portal/src/app/app.routes.ts', 'angular-vue-reviewer', 'angular>=20 en Nx'],
+
+  // Vue 3 + Vite, y Nuxt 3.
+  ['src/App.vue', 'angular-vue-reviewer', 'vue3+vite'],
+  ['src/components/UserCard.vue', 'angular-vue-reviewer', 'vue3+vite'],
+  ['src/composables/useUser.ts', 'angular-vue-reviewer', 'vue3+vite'],
+  ['vue.config.js', 'angular-vue-reviewer', 'vue3+vite'],
+  ['pages/index.vue', 'angular-vue-reviewer', 'nuxt3'],
+  ['composables/useAuth.ts', 'angular-vue-reviewer', 'nuxt3'],
+  ['nuxt.config.ts', 'angular-vue-reviewer', 'nuxt3'],
+
+  // Java / Spring.
+  ['src/main/java/com/acme/UserService.java', 'java-spring-reviewer', 'spring boot'],
+  ['src/test/java/com/acme/UserServiceTest.java', 'java-spring-reviewer', 'spring boot'],
+  ['pom.xml', 'java-spring-reviewer', 'maven'],
+  ['build.gradle.kts', 'java-spring-reviewer', 'gradle'],
+  ['src/main/resources/application-prod.yml', 'java-spring-reviewer', 'spring boot'],
+  ['src/main/resources/db/migration/V3__add_col.sql', 'java-spring-reviewer', 'flyway'],
+
+  // C# / AutoCAD / IFC.
+  ['src/Exporter/IfcExporter.cs', 'csharp-autocad-ifc-reviewer', 'csharp'],
+  ['src/Exporter/Exporter.csproj', 'csharp-autocad-ifc-reviewer', 'csharp'],
+  ['Solucion.sln', 'csharp-autocad-ifc-reviewer', 'csharp'],
+  ['test/fixtures/minimal.ifc', 'csharp-autocad-ifc-reviewer', 'ifc'],
+];
+
+/**
+ * [ruta, ecosistema]. Ninguna puede casar con NINGUN revisor de dominio: si
+ * casa, el enrutado se da por servido y el diff acaba revisado por una
+ * skill que se declara incompetente para el, en lugar de por el generico.
+ */
+const RUTAS_AJENAS: ReadonlyArray<readonly [string, string]> = [
+  // NestJS: sus convenciones son las que angular-vue tuvo que soltar.
+  ['src/users/users.module.ts', 'nestjs'],
+  ['src/users/users.service.ts', 'nestjs'],
+  ['src/users/users.controller.ts', 'nestjs'],
+  ['src/auth/jwt.guard.ts', 'nestjs'],
+  ['src/common/pipes/validation.pipe.ts', 'nestjs'],
+  ['src/users/user.resolver.ts', 'nestjs'],
+  ['src/users/users.service.spec.ts', 'nestjs'],
+  ['src/config/app.config.ts', 'nestjs (config, no arranque de Angular)'],
+  ['nest-cli.json', 'nestjs'],
+  // NestJS generado por Nx: vive justo bajo la carpeta de aplicacion.
+  ['apps/api/src/app/app.module.ts', 'nestjs en Nx'],
+  ['apps/api/src/app/app.controller.ts', 'nestjs en Nx'],
+  ['apps/api/src/app/app.service.ts', 'nestjs en Nx'],
+  ['apps/api/src/app/app.controller.spec.ts', 'nestjs en Nx'],
+
+  // Next.js App Router: misma carpeta que Angular, otro ecosistema.
+  ['src/app/page.tsx', 'next.js app router'],
+  ['src/app/layout.tsx', 'next.js app router'],
+  ['src/app/globals.css', 'next.js app router'],
+  ['src/app/globals.scss', 'next.js app router con sass'],
+  ['src/app/api/users/route.ts', 'next.js app router'],
+  ['src/app/(dashboard)/settings/page.tsx', 'next.js app router'],
+  ['app/page.tsx', 'next.js app router sin src'],
+  ['next.config.js', 'next.js'],
+
+  // React, Go, Python, y backend TypeScript con tests .spec.ts.
+  ['src/components/Button.tsx', 'react'],
+  ['src/hooks/useUser.ts', 'react'],
+  ['src/App.jsx', 'react'],
+  ['src/components/Button.test.tsx', 'react'],
+  ['src/stores/userStore.ts', 'react'],
+  ['internal/stores/user.go', 'go'],
+  ['cmd/server/main.go', 'go'],
+  ['app/main.py', 'python'],
+  ['tests/test_users.py', 'python'],
+  ['src/services/billing.spec.ts', 'backend ts'],
+  ['src/lib/queue.spec.ts', 'backend ts'],
+  ['src/index.ts', 'backend ts'],
+  ['src/routes/auth.routes.ts', 'express ts'],
+  ['src/lib/templates/email.html', 'backend ts con plantilla de correo'],
+  ['public/index.html', 'sitio estatico'],
+  ['src/lib/components/Button.svelte', 'svelte'],
+];
+
+/** Patrones leidos de los SKILL.md, una sola vez. */
+async function patronesPorRevisor(): Promise<Map<RevisorDeDominio, string[]>> {
+  const mapa = new Map<RevisorDeDominio, string[]>();
+  for (const nombre of REVISORES_DE_DOMINIO) {
+    const { data } = bloqueYaml(await leer(nombre));
+    mapa.set(nombre, data['patrones_archivo'] as string[]);
+  }
+  return mapa;
+}
+
+function reclamantes(mapa: Map<RevisorDeDominio, string[]>, ruta: string): RevisorDeDominio[] {
+  return [...mapa]
+    .filter(([, patrones]) => patrones.some((glob) => path.matchesGlob(ruta, glob)))
+    .map(([nombre]) => nombre);
+}
+
+test('6b. la tabla de enrutado no esta vacia ni cojea (guard de no-vacuidad)', async () => {
+  assert.equal(
+    typeof path.matchesGlob,
+    'function',
+    'path.matchesGlob no existe en este Node: el test de enrutado no estaria midiendo nada'
+  );
+  assert.ok(RUTAS_DE_DOMINIO.length >= 30, 'la tabla positiva se ha quedado corta');
+  assert.ok(RUTAS_AJENAS.length >= 30, 'la tabla negativa se ha quedado corta');
+
+  // Los tres revisores de dominio tienen que estar representados; si no, la
+  // direccion positiva estaria verde por no mirar a dos de ellos.
+  for (const nombre of REVISORES_DE_DOMINIO) {
+    assert.ok(
+      RUTAS_DE_DOMINIO.some(([, esperado]) => esperado === nombre),
+      `la tabla de enrutado no tiene ninguna ruta para ${nombre}`
+    );
+  }
+
+  // Y las dos convenciones de Angular, que es donde estuvo el defecto.
+  for (const marca of ['angular<=19', 'angular>=20']) {
+    assert.ok(
+      RUTAS_DE_DOMINIO.some(([, , origen]) => origen.startsWith(marca)),
+      `la tabla no cubre la convencion ${marca}`
+    );
+  }
+
+  // Ninguna ruta puede estar en las dos tablas a la vez.
+  const ajenas = new Set(RUTAS_AJENAS.map(([r]) => r));
+  for (const [ruta] of RUTAS_DE_DOMINIO) {
+    assert.ok(!ajenas.has(ruta), `"${ruta}" esta en las dos tablas: la asercion seria contradictoria`);
+  }
+
+  // Y el corpus tiene que discriminar de verdad: si algun patron real
+  // capturase todo, esto seguiria verde. Se comprueba con un patron
+  // deliberadamente amplio que la tabla negativa lo detecta.
+  const todo = new Map<RevisorDeDominio, string[]>([['angular-vue-reviewer', ['**']]]);
+  assert.ok(
+    RUTAS_AJENAS.some(([ruta]) => reclamantes(todo, ruta).length > 0),
+    'la tabla negativa no detecta ni un patron que casa con todo: no discrimina'
+  );
+});
+
+test('6c. POSITIVA: cada ruta legitima llega al revisor que le toca', async () => {
+  const mapa = await patronesPorRevisor();
+  const fallos: string[] = [];
+  for (const [ruta, esperado, origen] of RUTAS_DE_DOMINIO) {
+    const casan = reclamantes(mapa, ruta);
+    if (!casan.includes(esperado)) {
+      fallos.push(
+        `  ${origen}: "${ruta}" deberia ir a ${esperado} y ` +
+          (casan.length === 0 ? 'no casa con ningun patron' : `solo casa con ${casan.join(', ')}`)
+      );
+    }
+  }
+  assert.equal(
+    fallos.length,
+    0,
+    `${fallos.length} de ${RUTAS_DE_DOMINIO.length} rutas legitimas se quedan sin su revisor ` +
+      `(un recorte de patrones de mas):\n${fallos.join('\n')}`
+  );
+});
+
+test('6d. NEGATIVA: ninguna ruta ajena llega a un revisor de dominio', async () => {
+  const mapa = await patronesPorRevisor();
+  const fugas: string[] = [];
+  for (const [ruta, ecosistema] of RUTAS_AJENAS) {
+    const casan = reclamantes(mapa, ruta);
+    if (casan.length > 0) {
+      fugas.push(`  ${ecosistema}: "${ruta}" la reclama ${casan.join(', ')}`);
+    }
+  }
+  assert.equal(
+    fugas.length,
+    0,
+    `${fugas.length} de ${RUTAS_AJENAS.length} rutas ajenas capturadas por un revisor de dominio ` +
+      `(una ampliacion de patrones de mas: el generico ya no entra y esa es la unica revision ` +
+      `que ese diff va a tener):\n${fugas.join('\n')}`
+  );
 });
 
 // --- 3. El veredicto, contra el codigo que lo lee -----------------------
@@ -438,10 +674,24 @@ test('10c. las cuatro prescriben el esqueleto que taskctl review genera de verda
       `${nombre}: el titulo no tiene la forma que genera el CLI ("${ESQUELETO[0] ?? ''}"), es "${titulo}"`
     );
 
+    const iHallazgos = bloque.indexOf(SECCION_HALLAZGOS);
+    assert.notEqual(iHallazgos, -1, `${nombre}: el informe no trae "${SECCION_HALLAZGOS}"`);
+
+    // No basta con que el campo EXISTA: tiene que estar en la cabecera.
+    // Con un simple some(), mover "- Commit revisado:" o "- Revisor:" a un
+    // apartado dentro de los hallazgos dejaba la suite verde (ronda 2,
+    // menor 3). El indice de la seccion ya estaba calculado para el
+    // veredicto; se reutiliza para los tres campos.
     for (const campo of CAMPOS_CABECERA) {
-      assert.ok(
-        bloque.some((l) => l.startsWith(campo)),
+      const i = bloque.findIndex((l) => l.startsWith(campo));
+      assert.notEqual(
+        i,
+        -1,
         `${nombre}: el informe pierde el campo de cabecera "${campo}" que el CLI genera`
+      );
+      assert.ok(
+        i < iHallazgos,
+        `${nombre}: el campo "${campo}" aparece por debajo de "${SECCION_HALLAZGOS}"; va en la cabecera, donde el CLI lo deja`
       );
     }
 
@@ -455,12 +705,6 @@ test('10c. las cuatro prescriben el esqueleto que taskctl review genera de verda
       iVeredicto.length,
       1,
       `${nombre}: el informe prescribe ${iVeredicto.length} lineas "${CAMPO_VEREDICTO}"; tiene que haber exactamente una`
-    );
-    const iHallazgos = bloque.indexOf(SECCION_HALLAZGOS);
-    assert.notEqual(iHallazgos, -1, `${nombre}: el informe no trae "${SECCION_HALLAZGOS}"`);
-    assert.ok(
-      (iVeredicto[0] ?? -1) < iHallazgos,
-      `${nombre}: el veredicto va en la cabecera, no en una seccion al final`
     );
 
     // Y que ese veredicto de ejemplo lo acepte de verdad quien lo lee.
@@ -493,9 +737,36 @@ test('11. ninguna skill arrastra marcas de este repo ni rutas de maquina', async
       );
     }
 
+    const doc = DOCUMENTO_INTERNO.exec(texto);
+    assert.equal(
+      doc,
+      null,
+      `${nombre}: nombra el documento interno "${doc?.[0]}", que no existe en el proyecto donde se instala`
+    );
+
     for (const ruta of RUTAS_DE_MAQUINA) {
       assert.ok(!texto.includes(ruta), `${nombre}: contiene la ruta de maquina "${ruta}"`);
     }
+  }
+});
+
+test('11b. la marca generica de documento interno discrimina (contraprueba del menor 4)', () => {
+  for (const caso of [
+    'Ver docs/CONVENCIONES.md para el detalle.',
+    'esta en docs/HALLAZGOS.md',
+    'segun docs/PLAN_SPRINTS.md',
+    'lo describe docs/ESTADO.md',
+  ]) {
+    assert.ok(DOCUMENTO_INTERNO.test(caso), `la marca generica deja pasar "${caso}"`);
+  }
+  // Y al reves: no puede morder texto legitimo de una skill portable.
+  for (const caso of [
+    'documenta el hallazgo en el informe',
+    'la carpeta docs/ del proyecto',
+    'un fichero docs/guia-de-estilo.md',
+    'README.md en la raiz',
+  ]) {
+    assert.equal(DOCUMENTO_INTERNO.test(caso), false, `la marca generica muerde texto legitimo: "${caso}"`);
   }
 });
 

@@ -1,6 +1,6 @@
 ---
 name: angular-vue-reviewer
-description: Revisor por pares de diffs de frontend Angular y Vue. Se usa cuando el diff de una tarea toca ficheros .vue, .component.ts, plantillas de componente, directivas o composables y hay que revisar reactividad y gestion de estado, fugas de suscripciones, limites entre componentes, accesibilidad, rendimiento de renderizado, tipado de props y entradas, y tests de componente antes de cerrar la tarea.
+description: Revisor por pares de diffs de frontend Angular y Vue. Se usa cuando el diff de una tarea toca ficheros .vue, ficheros .component.ts o .directive.ts de Angular hasta la version 19, plantillas, ficheros de rutas o configuracion de arranque bajo src/app en Angular 20 o posterior, o composables, y hay que revisar reactividad y gestion de estado, fugas de suscripciones, limites entre componentes, accesibilidad, rendimiento de renderizado, tipado de props y entradas, y tests de componente antes de cerrar la tarea.
 ---
 
 # Revision por pares de Angular y Vue
@@ -33,20 +33,30 @@ estilo flow para que un catalogo los recoja **tal cual**, sin reescribirlos:
 
 ```yaml
 rol: revisor
-patrones_archivo: ["**/*.vue", "**/*.component.ts", "**/*.component.html", "**/*.component.scss", "**/*.component.css", "**/*.component.spec.ts", "**/*.directive.ts", "**/composables/**/*.ts", "**/composables/**/*.js", "**/angular.json", "**/nuxt.config.ts", "**/vue.config.js"]
+patrones_archivo: ["**/*.vue", "**/*.component.ts", "**/*.component.html", "**/*.component.scss", "**/*.component.css", "**/*.component.spec.ts", "**/*.directive.ts", "**/composables/**/*.ts", "**/composables/**/*.js", "**/src/app/**/*.html", "**/src/app/**/*.routes.ts", "**/src/app/app.config.ts", "**/angular.json", "**/nuxt.config.ts", "**/vue.config.js"]
 ```
 
-La lista es **deliberadamente estrecha**: solo entran convenciones que no
-comparte ningun otro ecosistema. Quedan fuera a proposito, aunque Angular o
-Vue tambien los usen:
+La lista es **deliberadamente estrecha**. El criterio, en una frase: **se
+acota el patron cuando existe un sufijo o un corte de ruta que discrimina;
+cuando no lo hay, no se amplia — se documenta el hueco.** Quedan fuera a
+proposito, aunque Angular o Vue tambien los usen:
 
 - `*.module.ts`, `*.guard.ts`, `*.pipe.ts` y `*.resolver.ts` — son
   exactamente las convenciones de NestJS, que es backend.
 - `*.spec.ts` a secas — lo usa cualquier proyecto TypeScript con tests. Si
   entra el sufijo `*.component.spec.ts`, que si es de Angular.
-- `src/app/**` — es tambien el enrutado por directorios de Next.js, y en
-  monorepos la ruta `apps/<lo-que-sea>/src/app/` la generan por igual un
-  proyecto de frontend y uno de backend.
+- `src/app/**` **sin acotar** — es tambien el enrutado por directorios de
+  Next.js, y en monorepos la ruta `apps/<lo-que-sea>/src/app/` la generan
+  por igual un proyecto de frontend y uno de backend: un NestJS de Nx pone
+  ahi su `app.module.ts` y su `app.service.ts`. Por eso entran solo tres
+  cortes de esa ruta, los que ningun ecosistema vecino produce: `*.html`
+  (Next.js sirve `.tsx` o `.jsx` bajo `src/app/`, nunca `.html`),
+  `*.routes.ts` y `app.config.ts`.
+- `src/app/**/*.css` y `src/app/**/*.scss` — **medido**: casan con el
+  `src/app/globals.css` que genera Next.js con App Router. Fuera.
+- `*.routes.ts` a secas — casa con `src/routes/auth.routes.ts`, que es
+  convencion corriente de un Express en TypeScript. Por eso va acotado a
+  `src/app/`.
 - `stores/**` — ese nombre de carpeta lo usan React, Go y cualquier otro; no
   filtra por lenguaje siquiera.
 
@@ -56,11 +66,39 @@ ninguno: un patron de mas no anade un revisor, **sustituye** al que tocaba.
 Un diff de backend capturado aqui acabaria revisado solo por una skill que
 se declara incompetente para el.
 
-La contrapartida, asumida: un diff que **solo** toca `auth.guard.ts`, un
-store de Pinia o un test que no es de componente no llega aqui, cae al
-revisor generico. Eso es degradacion, no perdida — el generico revisa
-correccion, casos borde, tests y limites. Si hace falta ademas esta revision
-sobre esos ficheros, se pide a mano.
+### Que cubre esta lista de verdad, y que no
+
+Angular cambio su guia de estilo en la version 20: el sufijo de tipo
+desaparecio del nombre del fichero. Un componente `UserProfile` ya no vive
+en `user-profile.component.ts`, sino en `user-profile.ts`, con
+`user-profile.html`, `user-profile.css` y `user-profile.spec.ts` al lado; y
+una directiva es un `highlight.ts` a secas. **Ninguno de los patrones por
+sufijo los captura**: medido sobre los ficheros por defecto de un proyecto
+Angular 20, los sufijos `*.component.*` aciertan 0 de 9.
+
+De ahi los tres cortes de `src/app/`. Con ellos, un diff de Angular 20 o
+posterior llega aqui **si toca una plantilla, un fichero de rutas o la
+configuracion de arranque**, que es lo que toca casi todo trabajo de vista o
+de formulario. Lo que sigue sin llegar, y conviene saberlo:
+
+- Un diff que **solo** toca TypeScript bajo `src/app/` y ninguna plantilla:
+  una directiva (`highlight.ts`), un servicio, un guard, o un `*.spec.ts` de
+  la convencion nueva. No hay forma de distinguir esos nombres de un
+  `app.service.ts` de NestJS, asi que no se intenta.
+- Los proyectos que no ponen el codigo bajo `src/app/`. Las librerias de un
+  monorepo Nx viven en `libs/<lo-que-sea>/src/lib/`, y ahi solo llegan los
+  ficheros con sufijo `*.component.*` — es decir, Angular hasta la 19.
+  Acotar por `src/lib/**/*.html` se probo y se descarto: casa igual con la
+  plantilla de correo de cualquier backend.
+- Un diff que solo toca `auth.guard.ts`, un store de Pinia o un test que no
+  es de componente.
+
+Todo eso cae al revisor generico. Es degradacion, no perdida — el generico
+revisa correccion, casos borde, tests y limites; pero **no** revisa
+reactividad, fugas de suscripcion, deteccion de cambios ni accesibilidad. Si
+un cambio de esos lo necesita, esta revision se pide a mano. Y si el
+proyecto es Angular 20 o posterior y trabaja mucho fuera de `src/app/`, lo
+barato es anadir su propia ruta a esta lista en la copia instalada.
 
 Un componente de React o de Svelte tampoco llega aqui: buena parte de los
 criterios de accesibilidad y de rendimiento le aplican igual, pero el
@@ -236,10 +274,10 @@ repite mas abajo. Las secciones propias de este revisor van **despues** de
 
 ### CRITICO-1 — <titulo corto>
 - Donde: <fichero:linea>
-- Que hace hoy: <comportamiento observado>
-- Como se ha reproducido: <pasos o test, y la medida obtenida>
-- Por que es CRITICO: <consecuencia concreta>
-- Que deberia hacer: <la correccion propuesta, no aplicada>
+- Que pasa: <comportamiento observado, en una o dos frases>
+- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
+- Impacto: <la consecuencia concreta para quien use esto>
+- Sugerencia: <la direccion de la correccion, no el parche>
 
 ### IMPORTANTE-1 — <titulo corto>
 <mismos campos>

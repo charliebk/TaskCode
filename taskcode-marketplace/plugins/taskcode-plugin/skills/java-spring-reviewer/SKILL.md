@@ -202,10 +202,10 @@ repite mas abajo. Las secciones propias de este revisor van **despues** de
 
 ### CRITICO-1 — <titulo corto>
 - Donde: <fichero:linea>
-- Que hace hoy: <comportamiento observado>
-- Como se ha reproducido: <comando o test, y su salida>
-- Por que es CRITICO: <consecuencia concreta>
-- Que deberia hacer: <la correccion propuesta, no aplicada>
+- Que pasa: <comportamiento observado, en una o dos frases>
+- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
+- Impacto: <la consecuencia concreta para quien use esto>
+- Sugerencia: <la direccion de la correccion, no el parche>
 
 ### IMPORTANTE-1 — <titulo corto>
 <mismos campos>

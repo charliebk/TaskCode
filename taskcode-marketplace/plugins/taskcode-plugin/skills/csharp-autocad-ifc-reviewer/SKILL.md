@@ -44,6 +44,17 @@ va a tener. La regla en ese caso:
   informe que calla esto se lee como una revision de dominio completa
   cuando fue media.
 
+Por que aqui se conserva `**/*.cs` entero y el revisor de frontend, en
+cambio, retiro sus patrones ambiguos: es el mismo criterio resuelto al
+reves, porque el dato es distinto. **Se acota el patron cuando existe un
+sufijo o un corte de ruta que discrimina; cuando no lo hay, no se amplia ni
+se recorta a ciegas — se conserva la cobertura y se documenta el hueco en el
+informe.** En Angular y Vue ese discriminante existe (`*.vue`,
+`*.component.ts`, `src/app/**/*.html`), asi que alli se acota. En C# no hay
+ningun sufijo ni ruta que separe un `.cs` de AutoCAD de un `.cs` de una API
+web: renunciar a `**/*.cs` dejaria sin revisor a todo el dominio, asi que se
+conserva y el aviso va en el informe.
+
 Si el diff toca ademas otros dominios, cada revisor recibe **solo la parte que
 casa con su patron**. No pidas el resto del diff por comodidad; pidelo si un
 hallazgo concreto lo necesita para sostenerse.
@@ -271,15 +282,18 @@ review`, sin borrar la peticion. Estructura fija:
 
 ## Hallazgos
 
-### CRITICO — <titulo corto>
-- Donde: <fichero>:<linea>
-- Que pasa: <una o dos frases>
-- Reproduccion: <los pasos exactos que ejecutaste, y su salida>
-- Impacto: <que le ocurre a quien use esto>
-- Sugerencia: <la direccion, no el parche>
+### CRITICO-1 — <titulo corto>
+- Donde: <fichero:linea>
+- Que pasa: <comportamiento observado, en una o dos frases>
+- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
+- Impacto: <la consecuencia concreta para quien use esto>
+- Sugerencia: <la direccion de la correccion, no el parche>
 
-### IMPORTANTE — ...
-### MENOR — ...
+### IMPORTANTE-1 — <titulo corto>
+<mismos campos>
+
+### MENOR-1 — <titulo corto>
+<mismos campos, mas si se propone no corregirlo y por que>
 ```
 
 Si no hay nada que reportar, la seccion de hallazgos dice **"sin hallazgos"**
