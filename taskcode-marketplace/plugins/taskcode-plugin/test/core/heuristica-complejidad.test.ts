@@ -65,6 +65,40 @@ const LINEAS = CONTENIDO.split(/\r?\n/);
 const PROSA = CONTENIDO.replace(/^[ \t]*#[ \t]?/gm, '').replace(/\s+/g, ' ');
 
 /**
+ * Los comentarios que preceden inmediatamente a una clave, en una sola
+ * linea y sin almohadillas — desde la ultima linea en blanco anterior.
+ *
+ * `PROSA` colapsa el fichero entero, asi que una regla buscada ahi se
+ * satisface aunque este escrita en la seccion de otra clave, o aunque
+ * venga negada. Un revisor de la ronda 2 lo demostro con tres sondas
+ * que dejaban la suite verde: negar la frase ("NO se aplica antes que
+ * la tabla") y moverla a otra seccion. Anclar al bloque de la clave
+ * cierra las dos: la regla tiene que estar donde la va a leer quien
+ * mire esa clave.
+ */
+function bloqueDeComentarioDe(clave: string): string {
+  const iClave = LINEAS.findIndex((l) => l.startsWith(`${clave}:`));
+  assert.notEqual(iClave, -1, `la clave "${clave}" no existe en el fichero`);
+
+  let inicio = iClave;
+  while (inicio > 0) {
+    const anterior = (LINEAS[inicio - 1] ?? '').trim();
+    if (anterior === '' || !anterior.startsWith('#')) break;
+    inicio--;
+  }
+  assert.notEqual(
+    inicio,
+    iClave,
+    `la clave "${clave}" no lleva ningun comentario delante que explique su regla`
+  );
+
+  return LINEAS.slice(inicio, iClave)
+    .map((l) => l.replace(/^[ \t]*#[ \t]?/, ''))
+    .join(' ')
+    .replace(/\s+/g, ' ');
+}
+
+/**
  * La unica clave `agentes_brainstorm_*` cuyo sufijo NO es un nivel de
  * complejidad: es un tipo de tarea, y se aplica antes que la tabla por
  * nivel. Se nombra aqui para que la asercion del enum la trate aparte
@@ -318,19 +352,35 @@ test('un hotfix se planifica con un solo agente, y esa excepcion es del tipo y n
     1,
     'un hotfix se planifica con un solo agente, sin brainstorm multi-agente'
   );
-  // Y el fichero tiene que decir que se aplica ANTES que la tabla: sin
-  // esa precedencia escrita, un consumidor razonable haria lo
-  // contrario y un hotfix critica se llevaria 4 agentes.
+
+  // Las tres frases de abajo se buscan en EL BLOQUE DE COMENTARIO DE
+  // ESTA CLAVE, no en el fichero entero. Buscarlas sueltas dejaba pasar
+  // dos cosas que un revisor de la ronda 2 demostro: negar la frase
+  // ("NO se aplica antes que la tabla") y moverla a la seccion de otra
+  // clave. Las dos dejaban la suite verde (hallazgo MENOR 3, ronda 2).
+  const bloque = bloqueDeComentarioDe('agentes_brainstorm_hotfix');
+
+  // Es un TOPE, no una sustitucion. La diferencia solo se ve en el
+  // extremo barato: un hotfix que puntua trivial se queda en 0, no sube
+  // a 1. Escrito como sustitucion, la clave que existe para abreviar el
+  // brainstorm anadia un agente donde la tabla no pedia ninguno
+  // (hallazgo MENOR 1, ronda 2).
   assert.match(
-    PROSA,
-    /se aplica ANTES que la tabla/,
-    'falta escrito que la excepcion por tipo se aplica antes que la tabla por nivel'
+    bloque,
+    /\bes un TOPE, no una sustitucion\b/i,
+    'la excepcion de hotfix debe declararse como tope (el menor de los dos), no como sustitucion'
   );
+  assert.equal(
+    data['agentes_brainstorm_trivial'],
+    0,
+    'un hotfix trivial se queda en 0 agentes: el tope no puede subir lo que la tabla ya dejo a cero'
+  );
+
   // La excepcion abrevia el brainstorm previo, nunca la revision. Es
   // la frase que impide leerla como una via para saltarse la revision
   // por pares de un hotfix.
   assert.match(
-    PROSA,
+    bloque,
     /revision por pares posterior no se toca/,
     'falta escrito que la excepcion no toca la revision por pares'
   );
@@ -344,16 +394,27 @@ test('la regla de conteo de palabras de riesgo esta escrita y cuadra con la list
   // La regla: una vez por ENTRADA DISTINTA presente en el texto, no
   // por ocurrencia ni por seccion. Sin ella la misma tarea sale
   // `simple` o `alta` segun quien implemente el consumidor.
+  //
+  // Anclada al bloque de comentario de la propia clave, no a la prosa
+  // del fichero entero: una sonda de la ronda 2 dejo la suite verde
+  // negando la frase ("NO se cuenta una vez por entrada distinta, sino
+  // por ocurrencia"), porque la subcadena seguia ahi.
+  const bloque = bloqueDeComentarioDe('peso_palabra_alto_riesgo');
   assert.match(
-    PROSA,
+    bloque,
     /una vez por entrada distinta/i,
     'el fichero no dice como se cuentan las palabras de riesgo: por entrada o por ocurrencia'
+  );
+  assert.doesNotMatch(
+    bloque,
+    /\bNO se cuenta una vez por entrada distinta\b/,
+    'la regla de conteo esta escrita en negativo: dice lo contrario de lo que el test da por bueno'
   );
 
   // Y la consecuencia aritmetica de la regla, escrita como numeros
   // para que no pueda quedarse desfasada en silencio: contar por
   // entrada acota la senal a (numero de entradas x peso).
-  const cota = /(\d+) entradas x (\d+) puntos = (\d+) como maximo/.exec(PROSA);
+  const cota = /(\d+) entradas x (\d+) puntos = (\d+)/.exec(bloque);
   assert.notEqual(cota, null, 'falta la cota de la senal escrita como "N entradas x P puntos = T como maximo"');
   const [, entradas, puntos, total] = cota as RegExpExecArray;
   assert.equal(Number(entradas), lista.length, 'la cota escrita no cuadra con el numero de entradas de la lista');

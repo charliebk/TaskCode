@@ -13,6 +13,11 @@
 # el fichero. Por eso los grupos se expresan con prefijos en el nombre
 # de la clave (peso_, nivel_, agentes_brainstorm_) y no con sangria.
 #
+# Un aviso para quien lo lea desde codigo: los comentarios de linea van
+# APAGADOS por defecto en ese parser. Hay que pedirlos de forma
+# explicita; sin ellos, la lectura falla en la primera linea de este
+# mismo fichero.
+#
 # NOMBRES DE NIVEL - divergencia documentada. La metodologia de la que
 # sale esta heuristica llama "compleja" al cuarto nivel, y asi se
 # decidio en su dia. El modelo de datos que valida el frontmatter de
@@ -46,10 +51,14 @@ peso_etiqueta_adicional: 1
 # que seccion. Que "rendimiento" salga tres veces suma 2, no 6; y que
 # una entrada salga en el objetivo Y en los criterios tambien suma 2,
 # no 4. Sin esta regla escrita la misma tarea puntua distinto segun
-# quien la implemente. Consecuencia util: con ella la senal queda
-# acotada (14 entradas x 2 puntos = 28 como maximo) en vez de crecer
-# sin limite con el largo del texto, que es lo que la dejaria dominar
-# ella sola la puntuacion entera.
+# quien la implemente. Con ella la senal queda acotada en 14 entradas x
+# 2 puntos = 28, en vez de crecer sin limite con el largo del texto.
+#
+# Ojo con lo que esa cota NO significa: la escala termina en 8, asi que
+# 4 entradas distintas ya saturan el nivel maximo por si solas. La cota
+# ordena el conteo, no impide que esta senal domine la puntuacion. Si
+# eso resulta demasiado agresivo con datos reales, lo que se ajusta es
+# el peso, no la cota.
 peso_palabra_alto_riesgo: 2
 
 # Cada dependencia declarada de otra tarea. Depender de algo ajeno no
@@ -131,11 +140,15 @@ agentes_brainstorm_alta: 3
 agentes_brainstorm_critica: 4
 
 # EXCEPCION POR TIPO DE TAREA, no por nivel. Un hotfix se planifica con
-# UN SOLO agente y sin brainstorm multi-agente, salga el nivel que
-# salga: esta clave se aplica ANTES que la tabla de arriba y la
-# sustituye. Su sufijo es un tipo de tarea, no un nivel de complejidad,
-# y por eso es la unica clave agentes_brainstorm_ cuyo sufijo no sale
-# del enum de niveles.
+# UN SOLO agente y sin brainstorm multi-agente. Es un TOPE, no una
+# sustitucion: el numero de agentes de un hotfix es el MENOR entre lo
+# que diga la tabla de arriba y este valor. La diferencia importa en el
+# extremo barato: un hotfix que puntua trivial se queda en 0 agentes,
+# no sube a 1: seria absurdo que la clave que existe para abreviar el
+# brainstorm acabase anadiendo uno donde la tabla no pedia ninguno.
+# Su sufijo es un tipo de tarea, no un nivel de complejidad, y por eso
+# es la unica clave agentes_brainstorm_ cuyo sufijo no sale del enum de
+# niveles.
 #
 # No abre la puerta a saltarse nada mas: lo que un hotfix abrevia es el
 # brainstorm PREVIO, donde la urgencia sale mas cara que el beneficio
