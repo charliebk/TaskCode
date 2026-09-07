@@ -85,7 +85,7 @@ alguien lo haga a mano, que es justo el "depender de que la gente se
 acuerde" del que arrancó todo el diseño. Es decisión abierta (punto 14 de
 la sección 14) + implementación (~3h).
 
-### 2.5 Falta la mitad del contenido del plugin
+### 2.5 Falta la mitad del contenido del plugin — PARCIALMENTE RESUELTO (C5, 2026-09-07)
 
 Layout objetivo (sección 2) vs. lo que hay hoy:
 
@@ -96,7 +96,7 @@ Layout objetivo (sección 2) vs. lo que hay hoy:
 | `scripts/gitflow/` | ✅ (TASK-008) |
 | `scripts/catalogo-skills.yml` | ❌ no existe (lo necesita TASK-017) |
 | `scripts/heuristica-complejidad.yml` | ❌ no existe (pesos de §16.1) |
-| `skills/task-workflow/SKILL.md` | ❌ no existe |
+| `skills/task-workflow/SKILL.md` | ✅ (C5 / TASK-028, 2026-09-07) |
 | `skills/java-spring-reviewer/` | ❌ no existe |
 | `skills/angular-vue-reviewer/` | ❌ no existe |
 | `skills/csharp-autocad-ifc-reviewer/` | ❌ no existe |
@@ -104,12 +104,24 @@ Layout objetivo (sección 2) vs. lo que hay hoy:
 | `agents/` (roles de brainstorm) | ❌ no existe |
 | `commands/` (slash-commands, opcional) | ❌ no existe |
 
-Hoy el plugin es, en la práctica, **un CLI y unos scripts Bash**: no expone
-ni una sola skill ni un solo agente a Claude Code. Todo el discurso de
-"agentes especializados por dominio" de la metodología no tiene todavía
-ningún artefacto. TASK-017 cubre el catálogo, pero **escribir las 5 skills y
-los agentes de brainstorm no está estimado en ninguna tarea** (~8-10h, y es
-trabajo de redacción de prompts, no de código).
+**Parcialmente resuelto.** Hasta el 2026-09-07 el plugin era, en la
+práctica, **un CLI y unos scripts Bash**: no exponía ni una sola skill ni un
+solo agente a Claude Code, y todo el discurso de "agentes especializados por
+dominio" de la metodología no tenía ningún artefacto detrás. C5 (TASK-028)
+escribió la primera, `skills/task-workflow/SKILL.md` —el ciclo de vida, los
+comandos reales con su firma exacta, lo que **no** existe, las reglas de
+proceso y la revisión por pares—, extraída del código y no del README ni de
+la metodología, que en tres puntos ya no describen el CLI. Es genérica a
+propósito: viaja a proyectos que no son este.
+
+**Siguen faltando las otras 4 skills del catálogo** (java-spring,
+angular-vue, csharp-autocad-ifc, code-quality) y los agentes de brainstorm,
+que son los que dan sentido al enrutado por dominio. TASK-017 cubre el
+catálogo, pero **escribir esas 4 skills y los agentes no está estimado en
+ninguna tarea del plan original**, y es trabajo de redacción de prompts, no
+de código: viven ya como items propios en `CHECKLIST_TERMINACION.md` — D6
+(las 4 skills revisoras, ~6h) y D7 (`agents/` + la heurística de
+complejidad, ~4h).
 
 ### 2.6 Falta la estructura de datos del lado del repo — PARCIALMENTE RESUELTO (B3/B4 y C3)
 
@@ -165,6 +177,18 @@ plan porque son horas reales:
   cuando `finish` exista.
 - **`runConfigurations.zip` sigue en la raíz** del repo tras la migración de
   TASK-008. Decidir si se queda como referencia histórica o se borra.
+- **En un clon recién hecho el plugin no trae un `taskctl` que funcione**
+  (destapado por la revisión por pares de C5, 2026-09-07; menor y
+  preexistente, ajeno a aquella tarea). `dist/` está en `.gitignore`,
+  `.claude-plugin/plugin.json` no declara `bin` y `package.json` tampoco, así
+  que `bin/taskctl` —que hace `import('../dist/src/cli.js')`— falla con
+  `[ERROR] taskctl no pudo arrancar: Cannot find module
+  '...\dist\src\cli.js'` y sale con código 1 hasta que alguien ejecute `npm
+  install && npm run build` dentro del plugin; y ni aun así queda `taskctl`
+  en el PATH de otro proyecto. Es un problema de **distribución**, no del
+  ciclo de vida: nada de lo que hay implementado está mal, simplemente no
+  llega ejecutable a quien clona. Recogido como item **E6** (~2h) en
+  `CHECKLIST_TERMINACION.md`, porque condiciona a E1 (invitar colaboradores).
 
 ## 4. Decisiones abiertas que bloquean diseño (sección 14)
 
@@ -213,7 +237,7 @@ Todo lo posterior mejora la calidad del proceso, no lo habilita.
 **Fase C — tapar los huecos (~10h).** Los 5 wrappers, el paso 5 de §8.3,
 las subcarpetas `planificacion/`/`revision/`, `.taskcode/config.yml`, y una
 primera skill `task-workflow/SKILL.md` que le explique el ciclo a Claude
-Code (hoy no hay ninguna).
+Code (no había ninguna; **escrita el 2026-09-07**, ver §2.5).
 
 **Fase D — inteligencia del proceso (~28h + 10h de redacción de
 skills/agentes).** Sprint 3 completo: TASK-016 a TASK-020. Es la fase cara

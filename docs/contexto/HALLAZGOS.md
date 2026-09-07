@@ -21,6 +21,34 @@ opciones (y con `'inherit'` puede colgar la suite entera). Para
 distinguirlas hay que lanzar un **proceso hijo con stdin controlado** — el
 patrón está en `test/fs/gitflow-runner.test.ts`.
 
+### Una prueba que solo puede pasar cuando algo está roto no es una prueba (TASK-028)
+
+Al validar la primera skill del plugin, la especificación del test decía:
+*"comprobar que `claude plugin validate` imprime `Validating skill:`"*. Suena
+razonable y está exactamente al revés: **el validador solo nombra las skills
+que fallan**. Con la skill correcta no la menciona, así que ese test habría
+pasado únicamente con el fichero roto.
+
+El error no fue de implementación, fue **de especificación**, que es más
+difícil de ver: el test estaba bien escrito respecto a lo que pedía.
+
+Lo que lo destapó fue no aceptar un verde sin entenderlo. El validador pasó
+**sin mencionar la skill**, y esa ausencia se convirtió en la pregunta en vez
+de ignorarse. El silencio de una herramienta es ambiguo entre *"lo revisó y
+está bien"* y *"nunca lo miró"*, y esa ambigüedad hay que resolverla, no
+asumirla a favor.
+
+La forma correcta de probar un descubrimiento es la **contraprueba**: romper a
+propósito una *copia* y comprobar que entonces sí se detecta. Si el veredicto
+cambia solo por la ruta o el nombre del fichero, lo que se está midiendo es
+que la herramienta mira ahí. Con el mismo frontmatter roto,
+`skills/x/SKILL.md` da error y `skills/x/SKILL.markdown` sale 0 en silencio.
+
+Corolario para las skills de plugin: `claude plugin validate` **no** prueba
+descubrimiento —solo mira el manifiesto y saldría 0 sin ninguna skill—. Quien
+sí lo prueba es `claude --plugin-dir <ruta> plugin details <plugin>`, que
+imprime el inventario de componentes.
+
 ### Un fix de errno validado en una sola plataforma no está validado (TASK-027)
 
 `ENOENT` y `ENOTDIR` describen el mismo hecho para la pregunta *"¿existe

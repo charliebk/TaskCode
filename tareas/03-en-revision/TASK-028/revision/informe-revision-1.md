@@ -1,343 +1,127 @@
 # Informe de revision — TASK-028 (ronda 1)
 
-- Commit revisado: e2db7aaf5b380cf3ba58dcd7a890d0864892a4ff
+- Commit revisado: 517ddb8f1f95dec25a26ddf4bc11f1cd4550f083
 - Revisor: agente general-purpose independiente (no implemento TASK-028)
-- Veredicto: cambios-solicitados
+- Veredicto: aprobada
+
+Informe definitivo. Cubre las dos pasadas: la auditoria original sobre
+`e2db7aa` (6 hallazgos) y la verificacion del delta `e2db7aa..517ddb8`
+que los corrige. El registro de los 6 hallazgos se conserva integro mas
+abajo, cada uno con como quedo.
 
 ## Como se ha revisado
 
-Todo fuera del arbol de trabajo. Clon nuevo en `C:\temp\tc028\clon`
-(rama de la tarea) y otro en `C:\temp\tc028\dev` (develop), ambos con
-`npm install && npm run build`. Repos Git temporales desechables en
-`C:\temp\tc028\{smoke,wip,repocodex,repocodex2,nodev}` para ejercitar el
-CLI real. Copia mutable en `C:\temp\tc028\mut` para las mutaciones. El
-repo original no se ha tocado salvo este fichero.
+Todo fuera del arbol de trabajo. El repo original no se ha tocado salvo
+este fichero.
 
-1. **Auditoria frase por frase del SKILL.md contra `src/`**. Cada
-   afirmacion factual (comandos, flags, defaults, estados, carpetas,
-   precondiciones, guard, WIP, veredicto) contrastada contra
-   `cli.ts`, `commands/*.ts`, `core/state-machine.ts`, `core/task.ts`,
-   `core/wip.ts`, `cli/args.ts`, `fs/git.ts`, `fs/gitflow-runner.ts`, y
-   despues **reproducida ejecutando el CLI**.
-2. **Tabla del veredicto**: las 7 filas pasadas por `veredictoAprobado`
-   real, importada de `dist/src/commands/finish.js`.
-3. **`codex-review` y `revision_codex`**: repos temporales completos,
-   `taskctl finish` real.
-4. **Mutacion propia de los 15 tests** (19 mutantes construidos por mi,
-   sin mirar la tabla del implementador), mas contraprueba de la
-   contraprueba (test 14) y del guard de no-vacuidad.
-5. **Linea base**: suite completa en los dos clones.
-6. `claude plugin validate` y simulacion de ausencia de `claude`.
+**Pasada 1 (`e2db7aa`)** — clon limpio + `npm install && npm run build`;
+auditoria frase por frase del SKILL.md contra `src/`, reproduciendo cada
+afirmacion con el CLI real en repos Git temporales; las 7 filas de la
+tabla del veredicto pasadas por `veredictoAprobado` importada de
+`dist/`; `codex-review` y `revision_codex` ejercitados de punta a punta;
+19 mutantes propios sobre los 15 tests; contraprueba de la contraprueba
+(test 14) y del guard de no-vacuidad; simulacion de ausencia de
+`claude`; linea base en dos clones.
 
-### Linea base (no hay regresiones)
+**Pasada 2 (`517ddb8`)** — **clon nuevo** en `C:\temp\tc028\r2`, con
+`npm install && npm run build` desde cero (rebuild obligatorio; no
+reutilice el clon anterior). Sobre el: suite completa, los 15 tests de
+la skill, `claude plugin validate`, 7 clases de mutantes rehechas sobre
+el SKILL.md **modificado**, y verificacion contra `src/` de cada frase
+nueva mas su reproduccion empirica en repos temporales.
 
-| Rama | tests | pass | fail |
+### Linea base — sin regresiones
+
+| Rama / commit | tests | pass | fail |
 |---|---|---|---|
 | `develop` (clon limpio) | 429 | 426 | 3 |
-| `feature/task-028-...` (clon limpio) | 444 | 441 | 3 |
+| `e2db7aa` (clon limpio) | 444 | 441 | 3 |
+| **`517ddb8` (clon limpio)** | **444** | **441** | **3** |
 
-Los 3 rojos son **los mismos tres** en ambas ramas y son los conocidos
-del entorno Windows:
+Los 3 rojos son **los mismos tres** en las tres filas, y son los
+deterministas del entorno Windows:
 
 ```
 not ok 44  - taskctl approve: propaga cualquier error de stat que NO sea ENOENT
              EPERM: operation not permitted, symlink 'plan-final.md' -> ...
 not ok 150 - taskctl plan: propaga cualquier error de escritura que NO sea EEXIST
-             'Missing expected rejection.'  (chmod 0o555 sobre un directorio
-             no tiene efecto en NTFS: el writeFile funciona y no hay EACCES)
+             'Missing expected rejection.'  (chmod 0o555 sobre un directorio no
+             tiene efecto en NTFS: el writeFile funciona y no llega el EACCES)
 not ok 156 - taskctl plan: la rama base real tiene la tarea en un estado distinto...
-             + '# Plan real en develop\r\n'   - '# Plan real en develop\n'
+             finales de linea: se esperaba \n y llega \r\n
 ```
 
-Delta exacto: **+15 tests, los 15 en verde. Ningun rojo nuevo.**
+El delta `517ddb8` no cambia el conteo (444) ni introduce ningun rojo
+nuevo.
 
-> **Aviso sobre el arbol de trabajo.** Cuando empece la revision el
-> workspace estaba limpio en `e2db7aa`. A mitad de la revision
-> `CLAUDE.md` aparecio **modificado sin commitear** por algo ajeno a mi
-> (yo solo he escrito este informe). Ese cambio no commiteado reescribe
-> justamente la linea del hallazgo MENOR 6 y **lo corrige**. Mi revision
-> es del commit `e2db7aa`, asi que el hallazgo 6 se reporta contra lo
-> que hay commiteado; si ese edit se commitea, el 6 queda resuelto de
-> oficio. El resto de hallazgos no le afectan.
+## Verificacion del delta e2db7aa..517ddb8
 
-## Lo que se ha verificado y esta bien
+El delta toca 3 ficheros: `CLAUDE.md` (+8/−5), el `SKILL.md` (+14/−5) y
+este informe. Nada de `src/` ni de `test/`.
 
-**La tabla del veredicto: 7/7 filas correctas.** Ejecutada contra el
-parser real:
+### El SKILL.md sigue sano tras el cambio
 
-```
-OK | "- Veredicto: aprobada"                  | skill: pasa  | real: pasa
-OK | "- Veredicto: aprobada con correcciones" | skill: pasa  | real: pasa
-OK | "- Veredicto: **APROBADO**"              | skill: falla | real: falla
-OK | "- Veredicto: APROBADO CON CAMBIOS"      | skill: falla | real: falla
-OK | "- Veredicto: cambios-solicitados"       | skill: falla | real: falla
-OK | "- Veredicto: PENDIENTE (...)"           | skill: falla | real: falla
-OK | "Veredicto: aprobada" (sin guion)        | skill: falla | real: falla
-Filas incorrectas: 0
-```
+| Comprobacion | Resultado |
+|---|---|
+| Los 15 tests de la skill | `# tests 15  # pass 15  # fail 0` |
+| Lineas de cuerpo | **268** (limite 500) — 272 el fichero entero |
+| `description` | 427 caracteres, **sin cambios** respecto a `e2db7aa` |
+| Palabras | ~2.096 |
+| `claude plugin validate .` | `✔ Validation passed` |
 
-Comprobado ademas que la explicacion de cada fila es la correcta y no
-una coincidencia: `- Veredicto: **aprobada**` tambien falla, asi que
-"los asteriscos rompen el inicio" es exacto; y `aprobada` + `PENDIENTE`
-en dos lineas da `false`, que respalda el "no anadir otra debajo".
-
-**`codex-review` y `revision_codex`, verificado de punta a punta.** Repo
-temporal con TASK-777 en `en-revision`, `revision_codex: true` e
-`informe-revision-1.md` con veredicto aprobado:
-
-```
-$ taskctl finish TASK-777
-[ERROR] TASK-777 tiene revision_codex activada pero esa revision independiente no esta aprobada.
-        Ejecuta: taskctl codex-review TASK-777
-exit=1
-```
-
-...y ese comando no existe (`[ERROR] Comando desconocido: "codex-review"`;
-`cli.ts` no menciona `codex` en absoluto; el unico `informe-codex` de
-`src/` es el `INFORME_CODEX_RE` que **lee** `finish.ts`, nadie lo
-escribe). Con `revision_codex: false` la misma tarea cierra a la
-primera. Y con el informe escrito **a mano** (TASK-778) tambien cierra
-— que es justo el matiz que la skill deja dicho ("salvo que se vaya a
-redactar a mano"). La afirmacion de la skill es exacta, incluida su
-puerta de escape.
-
-**Los 12 comandos de "Lo que NO existe" no existen.** Los 12
-(`codex-review, status, list, show, reject, reopen, assign, delete,
-edit, init, commit, push`) devuelven `[ERROR] Comando desconocido`.
-
-**El resto de afirmaciones factuales, comprobadas ejecutando:**
-
-- Carpetas y estados: coinciden con `STATE_FOLDER` uno a uno. Enums
-  `feature|fix|hotfix|release` y `trivial|simple|media|alta|critica`
-  exactos (`core/task.ts`).
-- Precondiciones de `plan`/`approve`/`start`/`review`/`finish`:
-  coinciden con `assertTransitionAllowed`, incluido el `salvo que la
-  complejidad sea trivial o simple` (`TRIVIAL_SIN_APROBACION`).
-- `approve` no mueve la tarea (sigue en `01-en-diseno/`). Verificado.
-- `plan` deja `planificacion/plan-final.md` con secciones vacias;
-  `review` crea `revision/` con peticion + scaffold del informe, cuya
-  plantilla trae literalmente `- Veredicto: PENDIENTE (...)`. Las dos
-  subcarpetas se crean bajo demanda. Verificado.
-- Defaults: `sprint: 0`, `complejidad: media`, `etiquetas: []` en el
-  frontmatter generado. `new` sin `--tipo` → `[ERROR] Falta --tipo`;
-  `import` sin `--tipo` usa `feature`. Verificado.
-- `taskctl approve --loquesea TASK-001` → `"--loquesea" no es un ID de
-  tarea valido`. `approve`/`review`/`finish` leen `argv[0]` crudo;
-  `plan`/`start` usan posicionales. Verificado en codigo y ejecutando.
-- Flags desconocidos ignorados en silencio: `new --titulo X --tipo
-  feature --inventado xyz` crea la tarea sin rechistar.
-- `board` sin `--escribir` no crea `docs/BOARD.md`; con `--escribir`,
-  si.
-- Guard §8.3 aplicado por exactamente 4 comandos (`ensureBaseBranchReady`
-  solo en `new`, `import`, `plan`, `approve`); `start`/`review`/`finish`
-  solo `isWorkspaceClean`. Con workspace sucio aborta; con workspace
-  limpio: `Workspace limpio -> cambiado automaticamente de "otra-rama" a
-  "develop".` — "cambian de rama solos y lo dicen despues", literal.
-  `isWorkspaceClean` es `git status --porcelain === ''`, asi que los
-  ficheros sin trackear cuentan como sucio. Verificado.
-- Limite de WIP en `start`: bloquea la segunda tarea de la misma
-  persona, y usa el asignado de la TAREA, no la identidad de quien
-  ejecuta. Ejecutar `start` sobre la tarea de otro **no** roba
-  `asignado_a`. Verificado.
-- `logs/gitflow/`: `_gitflow-common.sh` hace
-  `log_dir="$repo_root/logs/gitflow"`. Exacto.
-- `stdin` sin TTY: `cli.ts` pasa `interactivo: process.stdin.isTTY === true`
-  y `gitflow-runner.ts` documenta el `'ignore'` por defecto. Exacto.
-
-**Los 15 tests son tests de verdad.** 19 mutantes propios, todos
-muertos por el test que dicen cubrir:
+Mutacion rehecha **sobre el fichero nuevo** (7 clases, todas muertas por
+el test que dicen cubrir; control sin mutar = `fail=0`):
 
 | Mutante | Muere en |
 |---|---|
 | BOM UTF-8 | 2 (+14) |
-| linea en blanco antes de `---` | 2 (+8 mas) |
-| sin `---` de cierre | 3 (+9 mas) |
-| `name` != directorio | 5 |
-| `name` no kebab-case | 4, 5 |
 | clave `version:` | 7 |
-| `description` vacia / con `<` / con `" #"` | 6 |
-| cuerpo vacio | 8 |
-| cuerpo > 500 lineas | 8 |
-| rutas de maquina (`C:\Users\`, `/Users/`, `/home/`, `~/`) | 9 (las 4) |
+| rutas de maquina (`C:\Users\`, `/Users/`, `/home/`, `~/`) | 9, las cuatro |
 | enlace relativo roto | 10 |
-| `SKILL.md` → `skill.md` | 1 |
-| `plugin.json` con `bin` | 11 |
-| `plugin.json` con `skills` objeto | 11 (+13, +14) |
-| `skills/` dentro de `.claude-plugin/` | 12 |
+| cuerpo > 500 lineas | 8 |
+| `name` distinto del directorio | 5 |
 
-Aviso metodologico: mi primer mutante de rutas de maquina **sobrevivio**,
-y era culpa mia — GNU sed se comio el `\U` y el `\r` de
-`C:\Users\pepe\repo` y escribio `C:SERSPEPE^MEPO`. Rehecho con Node, el
-test 9 mata las cuatro variantes. Merece la pena dejarlo escrito porque
-es exactamente el modo en que una campana de mutacion da un falso
-"test vacuo".
+La red de regresion sigue intacta. El margen del test 8 baja de 238 a
+232 lineas libres: sin acercarse al limite.
 
-**El guard de no-vacuidad sirve.** Con `PLUGIN_ROOT` resuelto un nivel
-de mas, no se cuela ni uno: `# tests 15 / pass 0 / fail 15`, y el guard
-muere el primero con `PLUGIN_ROOT resuelto a "...", que no es el
-plugin`. No hay forma de que estos tests pasen apuntando a otro sitio.
+Tabla del veredicto re-ejecutada contra el `dist/` de `517ddb8`:
+**7/7 filas correctas, 0 incorrectas.**
 
-**El test 14 discrimina de verdad.** Lo verifique redirigiendo la
-mutacion a un fichero que el validador no escanea
-(`skills/task-workflow/OTRO.md`) dejando el `SKILL.md` de la copia
-intacto. El test se pone rojo con el mensaje correcto:
+### Cada frase nueva, contrastada con `src/`
+
+**Bloque de prerrequisito** (`git.ts:332-345`). `RAMA_BASE_ES_DEVELOP`
+es `{feature:true, fix:true, release:true, hotfix:false}` y
+`resolveBaseBranchForTipo` devuelve el literal `'develop'` o
+`resolveMainBranch(cwd)`. Reproducido en cuatro repos temporales:
 
 ```
-not ok 15 - 14. contraprueba de descubrimiento...
-  error: romper el frontmatter no hizo fallar al validador: no esta mirando esa ruta.
-         Validating plugin manifest: ...\taskcode-skill-WNV8h0\.claude-plugin\plugin.json
+A) feature, repo con solo 'main'   -> [ERROR] La rama base "develop" no existe en
+                                      local y no hay conexion con origin para crearla.
+B) hotfix,  repo con solo 'main'   -> Tarea TASK-001 creada   (usa main)
+C) hotfix,  repo con solo 'master' -> Tarea TASK-001 creada   (usa master)
+D) hotfix,  con main Y master      -> "cambiado automaticamente de master a main"
 ```
 
-No pasa por accidente. Y es la comprobacion de mas valor de la tarea:
-confirme que `claude plugin validate` **en el caso bueno no imprime
-ninguna linea `Validating skill:`** (solo `Validating plugin manifest`
-+ `✔ Validation passed`), asi que romper la skill es la unica evidencia
-disponible de que Claude Code descubre el fichero en esa ruta. El
-diseno del test es correcto por ese motivo.
+Las cuatro frases del bloque son exactas, incluido «Sin `develop`, el
+primer comando que escriba en `tareas/` ya falla» (caso A).
 
-**El skip de integracion es visible, no un pase silencioso.** Con el
-PATH reducido al directorio de `node`:
+**Sobre la pregunta concreta de si te pasas de afirmacion en `hotfix`:
+no, pero simplificas la precedencia.** `resolveMainBranch` tiene un
+orden declarado — `origin/main` → `origin/master` → `main` local →
+`master` local → `'master'` por defecto. Es decir: (a) `main` gana a
+`master` cuando existen los dos, y el caso D lo confirma; (b) el remoto
+gana al local; y (c) si **no existe ninguna de las dos** devuelve
+`'master'` igualmente, que es el unico punto donde «lo que exista» se
+queda corto. Nada de eso hace falsa la frase: no promete un orden, y en
+el caso (c) el CLI corta con un error accionable (`rama base "master" no
+existe en local...`). Para el cuerpo de una skill me parece la
+simplificacion correcta; deletrear la cadena de cinco pasos costaria mas
+de lo que aporta. **Observacion, no hallazgo.**
 
-```
-ok 14 - 13. `claude plugin validate` ... # SKIP el binario "claude" no esta en el PATH: ...
-ok 15 - 14. contraprueba de descubrimiento ... # SKIP el binario "claude" no esta en el PATH: ...
-# pass 13   # skipped 2
-```
-
-El motivo se imprime en la propia linea y el resumen contabiliza
-`skipped`. Correcto.
-
-**El SKILL.md como artefacto.** `claude plugin validate .` sobre el
-plugin sale 0 sin errores. Frontmatter minimo (`name` + `description`),
-sin `version:` — correcto para el spec portable. `name` = 13 chars,
-kebab-case, coincide con el directorio. `description` = 427 chars (muy
-por debajo del limite). Cuerpo 262 lineas / ~2.000 palabras, dentro de
-lo recomendado. CRLF en el arbol de trabajo pero **LF en el blob de
-Git** (`git show HEAD:...` sale sin `^M`), consistente con el resto del
-repo (no hay `.gitattributes`, `README.md` igual): no es un problema.
-
-**Juicio sobre la `description` como gatillo: me parece suficiente.** No
-es vaga: abre con el caso de uso, y luego enumera gatillos *literales y
-entrecomillados* ("crear una tarea", "planificar una tarea", "aprobar
-un plan", "empezar una tarea", "revisar por pares", "cerrar una
-tarea") mas tres anclas de alta especificidad y baja ambiguedad —
-`taskctl`, `TASK-NNN` y la estructura `tareas/` con `00-planificadas ..
-04-terminadas`. Esas tres son las que de verdad la van a disparar: son
-cadenas que practicamente no aparecen en otro contexto, asi que dan
-recall alto sin falsos positivos. La condicion estructural ("cuando el
-proyecto tiene una carpeta tareas/ con...") es ademas justo lo que un
-agente puede comprobar solo. Dos limitaciones que asumo, no hallazgos:
-esta solo en espanol (coherente con un plugin cuya metodologia es en
-espanol, y `taskctl`/`TASK-NNN` son neutros al idioma), y no lleva
-gatillos para "board"/"tablero" en ingles ni para los nombres de estado
-sueltos. No lo veo suficiente motivo para pedir cambios.
-
-**Alcance: sin filtraciones.** Busque las 20 marcas de TaskCode que no
-deberian viajar. Cero coincidencias en `docs/contexto`, `CHECKLIST`,
-`CONVENCIONES`, `ESTADO.md`, `cero dependencias`, `npm test`,
-`npm install`, `TaskCode`, `PLAN_SPRINTS`, `parseFrontmatter`,
-`state-machine`, `IECA`, `Carlos`, `42 items`, `decision #`. Las tres
-coincidencias de "hallazgos" son el sustantivo comun; la de "TASK-0" es
-el ejemplo `TASK-001`. `develop` y `master` no aparecen (ver hallazgo
-3). Las unicas rutas citadas — `docs/BOARD.md` y `logs/gitflow/` — son
-del propio CLI y de los scripts, o sea que viajan con la herramienta:
-correcto que esten. La regla 4 esta generalizada bien ("actualizar el
-registro de progreso que use el proyecto") y la politica de no borrar
-ramas se presenta como condicional. **Sin hallazgos de alcance.**
-
-## Hallazgos
-
-### IMPORTANTE 1 — `CLAUDE.md` dice 429 tests; en esta rama son 444
-
-El cambio de `CLAUDE.md` existe precisamente para corregir una cifra
-desfasada (226) y se mergea con otra cifra desfasada. 429 es el numero
-de **develop**, medido antes de anadir los 15 tests de esta misma
-tarea; el numero correcto al cerrarla es **444**.
-
-Reproduccion (clones limpios, `npm test`):
-
-```
-develop:                 # tests 429  # pass 426  # fail 3
-feature/task-028-...:    # tests 444  # pass 441  # fail 3
-```
-
-444 − 429 = 15, exactamente los tests que anade
-`test/skills/task-workflow.test.ts`.
-
-Es IMPORTANTE y no MENOR por tres razones: es el unico entregable
-verificable de la parte de `CLAUDE.md`; es falso en el instante del
-merge, no dentro de N tareas; y reproduce literalmente el defecto que
-la tarea se propuso arreglar. Choca ademas con la regla 9 que la propia
-skill enuncia ("un mensaje que ha dejado de ser cierto es peor que no
-tenerlo").
-
-**Correccion:** `429` → `444` en `CLAUDE.md`.
-
-### MENOR 2 — "si aparece un cuarto, es tuyo" es demasiado absoluto
-
-La linea nueva de `CLAUDE.md` dice: «Aqui «suite en verde» significa que
-fallan solo esos tres: **si aparece un cuarto, es tuyo**».
-
-Lo he falsificado en esta misma maquina. En una de mis cuatro pasadas de
-la suite aparecieron dos rojos adicionales que no tienen nada que ver
-con ningun cambio de codigo:
-
-```
-not ok 159 - taskctl plan --asignado-a: reasignar a la MISMA persona no cuenta como cambio
-  error: "EBUSY: resource busy or locked, rmdir 'C:\...\taskctl-plan-hHMeUN\tareas'"
-not ok 161 - taskctl plan: el ID se lee de los posicionales...
-  error: "EBUSY: resource busy or locked, rmdir 'C:\...\taskctl-plan-2SYcKq\tareas\01-e...'"
-```
-
-`EBUSY ... rmdir` en la limpieza del directorio temporal es el bloqueo
-de fichero clasico de Windows (indexador/antivirus). Los mismos dos
-tests pasaron en las otras tres ejecuciones. Un agente que se crea la
-frase tal cual gastara una tarde buscando una regresion inexistente —
-que es el coste que esa nota pretendia evitar.
-
-**Correccion sugerida:** matizar a algo como «si aparece un cuarto,
-reejecuta; si persiste, es tuyo. Los `EBUSY` al borrar temporales son
-flakes del sistema de ficheros de Windows, no regresiones».
-
-### MENOR 3 — la skill nunca dice que la rama base es literalmente `develop`
-
-La skill habla siempre de "la rama base" en abstracto y nunca dice cual
-es. Pero el codigo la tiene **hardcodeada**:
-`resolveBaseBranchForTipo()` devuelve el literal `'develop'` para
-`feature`/`fix`/`release` (solo `hotfix` resuelve a main/master), y
-`finish.ts` arranca con `const DEVELOP_BRANCH = 'develop'`.
-
-Consecuencia en un repo sin `develop`, que es el caso de cualquier
-proyecto no Git-Flow al que se distribuya la skill:
-
-```
-$ git init -b main && ... && taskctl new --titulo "Prueba" --tipo feature
-[ERROR] La rama base "develop" no existe en local y no hay conexion con origin
-        para crearla. Revisa el repo antes de continuar.
-```
-
-Falla el **primer** comando del ciclo de vida y la skill no da ninguna
-pista de por que. Nada de lo que la skill dice es falso, y el mensaje de
-error del CLI es accionable (por eso es MENOR y no IMPORTANTE), pero la
-seccion "Cuando aplica" define el contrato de aplicabilidad y se queda
-corta: le falta que el repo necesita una rama `develop`.
-
-Conviene ademas dejar constancia de que la premisa del plan es
-incorrecta: D5 afirma «la rama base **no se hardcodea** como `develop`
-(es configurable, hay repos con `master`)». No es configurable hoy. La
-decision de que no viaje `develop` en el texto es defendible, pero su
-motivo declarado no se sostiene contra el codigo.
-
-**Correccion sugerida:** una linea en "Cuando aplica" o en el bullet de
-la rama base: la base es `develop` para `feature`/`fix`/`release` y
-`main`/`master` para `hotfix`; sin `develop` los comandos que escriben
-en `tareas/` abortan.
-
-### MENOR 4 — la sinopsis de `board` sugiere una combinacion que el CLI rechaza
-
-La skill escribe `taskctl board [--sprint N] [--asignado-a <persona>]
-[--escribir]`, que en notacion de sinopsis significa que los tres son
-opcionales e independientes. No lo son:
+**Sinopsis y bullet de `board`** (`board.ts:119-127`). El codigo rechaza
+la combinacion y su comentario dice «docs/BOARD.md es el tablero
+COMPLETO del repo»; la skill dice «el fichero es la foto completa, no
+una vista filtrada». Coinciden. Empirico:
 
 ```
 $ taskctl board --escribir --sprint 0
@@ -345,106 +129,164 @@ $ taskctl board --escribir --sprint 0
         es el tablero completo del repo. ...
 ```
 
-El `--help` del propio CLI arrastra la misma imprecision, asi que la
-skill es fiel a la fuente; pero la skill se vende como mas exacta que la
-documentacion, y este es justo un caso donde podia serlo. Impacto real
-bajo: el mensaje de error es excelente y se corrige solo.
-
-**Correccion sugerida:** partir la linea en dos, o una nota junto al
-bullet de `board` que ya existe.
-
-### MENOR 5 — "`asignado_a` se rellena solo" no dice que comandos lo hacen
-
-El bullet dice «`asignado_a` se rellena solo con `git config user.email`
-si la tarea no tenia a nadie», sin acotar. Solo lo hacen `plan` y
-`start`. Comprobado:
+**Bullet de `asignado_a`.** Verificado que **no hay un tercer comando**
+que lo toque: solo `plan.ts` y `start.ts` importan `resolverAsignado` y
+`gitUserEmail` y lo escriben; `new.ts:142` fija `asignado_a: null`;
+`import.ts` no lo menciona en absoluto; `approve.ts:112` lo preserva
+explicitamente. Ciclo completo en un repo temporal:
 
 ```
-$ taskctl new --titulo "Prueba" --tipo feature   →  asignado_a: null
-$ taskctl plan TASK-001                          →  Asignada a "smoke@t.t"
+tras new:                          asignado_a: null
+tras plan:                         asignado_a: a@t.t      (auto, git config)
+tras approve:                      asignado_a: a@t.t      (conservado)
+tras start --asignado-a otra@t.t:  asignado_a: otra@t.t   (el flag SI reasigna)
 ```
 
-Un agente que cuente con que `new`/`import` dejan la tarea asignada se
-llevara una sorpresa (el tablero la muestra sin asignar). La segunda
-mitad del bullet — que ejecutar un comando sobre la tarea de otra
-persona no se la queda — la he verificado y es cierta.
+La frase acota el auto-relleno («y solo si la tarea no tenia a nadie»),
+que es exactamente el comportamiento; el flag explicito va documentado
+aparte en la sinopsis. Precisa.
 
-**Correccion sugerida:** «`plan` y `start` rellenan `asignado_a` con
-`git config user.email` si la tarea no tenia a nadie».
+**`CLAUDE.md`.** `444` es la cifra correcta de esta rama, medida en clon
+limpio. Barri el resto del fichero: la unica otra cifra es «3 tests» de
+la nota de Windows, tambien correcta. **No queda ninguna cifra
+desfasada.**
 
-### MENOR 6 — `CLAUDE.md` atribuye mal uno de los 3 fallos de Windows
+## Los 6 hallazgos de la primera pasada, y como quedaron
 
-La linea nueva dice «(**dos** por el truco del symlink, uno por finales
-de línea)». Solo uno es el truco del symlink. Los tres, con su causa
-real:
+| # | Sev. | Hallazgo sobre `e2db7aa` | Estado en `517ddb8` |
+|---|---|---|---|
+| 1 | IMPORTANTE | `CLAUDE.md` decia 429 tests; son 444 | **Resuelto.** 444, verificado en clon limpio |
+| 2 | MENOR | «si aparece un cuarto, es tuyo» era absoluto | **Resuelto.** Ver detalle abajo |
+| 3 | MENOR | La skill callaba que la rama base es `develop` | **Resuelto.** Bloque de prerrequisito, verificado en 4 repos |
+| 4 | MENOR | Sinopsis de `board` sugeria una combinacion invalida | **Resuelto.** Partida en dos lineas + motivo |
+| 5 | MENOR | «`asignado_a` se rellena solo» no decia que comandos | **Resuelto.** Acotado a `plan` y `start`; comprobado que no hay un tercero |
+| 6 | MENOR | `CLAUDE.md` decia «dos por el truco del symlink» | **Resuelto.** Uno symlink, uno `chmod`/NTFS, uno CRLF |
 
-| Test | Causa |
-|---|---|
-| 44 (`approve`) | `EPERM: operation not permitted, symlink ...` → **symlink** |
-| 150 (`plan`) | `Missing expected rejection.` → **`chmod` sobre un directorio no hace nada en NTFS**, asi que el `writeFile` funciona y nunca llega el `EACCES` que el test espera |
-| 156 (`plan`) | `+ '...\r\n'  - '...\n'` → **finales de linea** |
+### Detalle del 1 — era el unico bloqueante
 
-El test 150 (`test/commands/plan.test.ts:362`) hace
-`chmod(planificacion/, 0o555)` y espera `EACCES`; no toca ningun
-symlink. El unico test con `symlink()` que falla es el 44.
+Medido en clones limpios: `develop` = 429, esta rama = 444, y
+444 − 429 = 15, exactamente los tests que anade
+`test/skills/task-workflow.test.ts`. La cifra publicada se habia medido
+en `develop`, antes de que existieran los tests de la propia tarea.
+Corregida a 444 y re-verificada.
 
-Impacto bajo, pero es una nota escrita para que quien vea un rojo sepa
-si es suyo: si dice que hay dos symlinks y solo hay uno, quien mire el
-segundo no encontrara lo que la nota le prometio.
+### Detalle del 2 — la redaccion nueva me parece bien calibrada
 
-**Ya corregido en el arbol de trabajo, sin commitear** (ver el aviso de
-"Como se ha revisado"): el texto no commiteado dice «uno por el truco
-del symlink (`EPERM`), uno porque `chmod` sobre directorios no hace nada
-en NTFS, y uno por finales de línea (CRLF)», que es **exactamente lo que
-he medido**. Basta con commitearlo.
+El texto nuevo separa los 3 deterministas de los intermitentes de
+`EBUSY ... rmdir`, dice que estos fallan en el *teardown* y no en la
+asercion, y cierra con «Cualquier otro cuarto rojo si lo es».
 
-### Observacion, sin hallazgo
+Es exactamente la distincion que yo habia observado: en una de mis
+pasadas aparecieron los tests 159 y 161 en rojo con
+`EBUSY: resource busy or locked, rmdir 'C:\...\taskctl-plan-*'`, y
+pasaron en las otras tres. Ni demasiado absoluto ni demasiado laxo: da
+un criterio **verificable** (mirar si el fallo es de asercion o de
+limpieza) en vez de una lista cerrada de numeros de test, asi que
+seguira siendo util cuando el conteo cambie. Sin objeciones.
 
-- Tres de los 15 tests (10, 11 y el bucle de 12) hoy **no aseveran nada**
-  porque el cuerpo no tiene enlaces relativos, `plugin.json` no declara
+### Detalle del 6
+
+Confirmado de forma independiente: el unico test que falla con
+`symlink()` es el 44 (`EPERM`); el 150 falla con
+`Missing expected rejection` porque hace `chmod(planificacion/, 0o555)`
+y espera `EACCES`, que en NTFS no llega
+(`test/commands/plan.test.ts:362`); el 156 es CRLF. La clasificacion
+nueva es correcta.
+
+## Hallazgos de esta pasada
+
+### MENOR 7 — el prerrequisito que la skill sigue callando: el CLI no existe hasta compilarlo
+
+Respuesta a la pregunta de juicio. Recorri lo que hace alguien que
+instala el plugin en un proyecto desde cero, y **descarte** varios
+candidatos comprobandolos:
+
+```
+tareas/ no existe        -> taskctl new la crea sola. No es prerrequisito.
+sin identidad git local  -> taskctl new funciona. No bloquea.
+fuera de un repo git     -> corta con mensaje claro; la premisa de la skill es un repo.
+```
+
+Queda uno de verdad, y es **anterior** a `develop`: en un clon recien
+hecho del plugin **no hay CLI**. `dist/` esta en `.gitignore` (linea 2)
+y no se versiona; `plugin.json` no declara `bin` —y el test 11 asevera
+justamente que no lo tenga—; `package.json` tampoco. Resultado:
+
+```
+$ ls .../plugins/taskcode-plugin/
+README.md bin package-lock.json package.json scripts skills src test tsconfig.json
+$ ls .../taskcode-plugin/dist   ->  No such file or directory
+$ node .../bin/taskctl --version
+[ERROR] taskctl no pudo arrancar: Cannot find module '...\dist\src\cli.js'
+exit=1
+```
+
+`bin/taskctl` hace `import('../dist/src/cli.js')`, asi que hasta un
+`npm install && npm run build` dentro del plugin no hay nada que
+ejecutar — y aun despues `taskctl` no queda en el PATH de ningun
+proyecto.
+
+**No bloqueo por esto, y lo documento en vez de pedir su correccion**,
+por cuatro razones: (a) la skill ya condiciona su propia aplicabilidad a
+«y el comando `taskctl` esta disponible», asi que **no afirma nada
+falso**; (b) el arreglo no es una edicion del SKILL.md sino una decision
+de empaquetado —como se distribuye un CLI compilado en un plugin sin
+`bin`—, que excede el alcance del item C5; (c) el error es explicito y
+sale con codigo 1, no en silencio; (d) es preexistente, no lo introduce
+esta tarea.
+
+**Recomendacion:** abrir item propio para la distribucion del CLI
+(compilar en el empaquetado, versionar `dist/`, o documentar el arranque
+en el README del plugin). Cuando ese item se cierre, conviene que la
+skill acabe diciendo en una linea como se pone `taskctl` disponible.
+
+### Observaciones, sin hallazgo
+
+- La precedencia de `resolveMainBranch` (`main` gana a `master`, el
+  remoto gana al local, y el fallback es `'master'` aunque no exista)
+  queda simplificada en «`main` o `master`, lo que exista». Justificado
+  arriba: no lo considero un hallazgo.
+- Tres de los 15 tests (10, 11 y el bucle del 12) siguen sin aseverar
+  nada hoy: no hay enlaces relativos, `plugin.json` no declara
   `commands`/`skills` y `.claude-plugin/` solo contiene `plugin.json`.
-  No los cuento como hallazgo: son guardas de regresion honestas y mis
-  mutantes M10/M13/M14/M15 demuestran que disparan en cuanto la
-  condicion aparece. Es exactamente lo que D4 anticipaba para el dia que
-  la skill se parta en `references/`.
-- El mensaje de error de `finish` con `revision_codex: true` dice
-  `Ejecuta: taskctl codex-review TASK-NNN`, un comando que no existe.
-  Es un defecto **preexistente** del CLI (`state-machine.ts`), fuera del
-  alcance de TASK-028, y la skill lo documenta correctamente. Lo dejo
-  anotado por si merece item propio.
-- `claude plugin validate` sobre `taskcode-marketplace/` falla («No
-  manifest found... Expected .claude-plugin/marketplace.json»): ese
-  directorio solo contiene `plugins/`. Preexistente (nunca existio en
-  `develop`) y ajeno a esta tarea, pero condiciona que la skill llegue a
-  instalarse por esa via.
+  Son guardas de regresion honestas; mis mutantes demuestran que
+  disparan en cuanto la condicion aparece.
+- El mensaje de `finish` con `revision_codex: true` sigue remitiendo a
+  `taskctl codex-review`, que no existe. Defecto **preexistente** del
+  CLI (`state-machine.ts`), fuera del alcance de TASK-028; la skill lo
+  documenta correctamente.
+- `claude plugin validate` sobre `taskcode-marketplace/` sigue fallando
+  («No manifest found... Expected .claude-plugin/marketplace.json»): ese
+  directorio solo contiene `plugins/`. Preexistente y ajeno a esta tarea.
+- Nota metodologica: dos de mis mutantes de rutas de maquina murieron
+  por culpa mia y no del codigo (GNU sed interpretando `\U` y `\r`, y el
+  shell comiendose los backslashes antes de `node -e`). Rehechos desde
+  un fichero de script, el test 9 mata las cuatro variantes. Lo dejo
+  escrito porque es justo el modo en que una campana de mutacion produce
+  un falso «test vacuo».
 
 ## Veredicto
 
-El SKILL.md es solido en lo que mas importaba: **no miente**. Audite
-todas sus afirmaciones factuales contra el codigo y reproduciendolas con
-el CLI real, y no encontre ni un comando inventado, ni un flag
-equivocado, ni un estado mal ordenado, ni una precondicion mal descrita.
-La tabla del veredicto, que es lo que la gente va a copiar, es correcta
-en sus 7 filas contra el parser real. El aviso sobre `codex-review` y
-`revision_codex` es exacto hasta el matiz de la puerta de escape. Los 15
-tests resisten la mutacion, el guard de no-vacuidad impide que pasen en
-falso, el test 14 discrimina de verdad y el skip de integracion es
-visible. No hay regresiones: +15 tests, todos verdes, los mismos 3
-rojos de entorno que en `develop`.
+Los 6 hallazgos estan **efectivamente corregidos**, no solo redactados:
+verifique cada uno contra `src/` y reproduciendolo, en un clon nuevo
+recompilado desde cero. El unico bloqueante de la pasada anterior —la
+cifra de `CLAUDE.md`— es ahora correcto, y no queda ninguna otra cifra
+desfasada en el fichero. La correccion del hallazgo 3, la sustancial, no
+se limita a tapar el hueco: describe bien el reparto `develop` /
+principal por tipo de tarea, y lo he confirmado en cuatro repos
+distintos, incluido el caso con `main` y `master` a la vez.
 
-Pido cambios por un solo motivo de peso: **el hallazgo IMPORTANTE 1**.
-La correccion de `CLAUDE.md` se mergea con la cifra equivocada — 429
-cuando son 444 —, que es literalmente el defecto que esa correccion
-existia para arreglar, y es trivial de arreglar.
+El cambio **no ha introducido nada nuevo**: mismos 444 tests con los
+mismos 3 rojos deterministas de entorno, los 15 de la skill en verde, el
+validador limpio, 268 lineas de cuerpo frente al limite de 500, la
+`description` intacta, la tabla del veredicto 7/7 y la red de mutacion
+igual de tupida sobre el fichero modificado. Ninguna de las frases
+nuevas es falsa contra el codigo: las contraste todas con el mismo
+liston que el resto.
 
-Los cinco MENOR son opcionales. Recomiendo cerrar tambien el **6**
-(esta ya escrito sin commitear, solo hay que commitearlo), el **3** (la
-rama base `develop`, porque la skill viaja a proyectos ajenos y es
-donde antes se va a topar un agente) y el **2** (afirma una regla que he
-falsificado empiricamente). Los tres hallazgos de `CLAUDE.md` (1, 2 y 6)
-caen en la misma seccion de cuatro lineas, asi que se corrigen de una
-pasada.
+Queda abierto el **MENOR 7**, que documento sin pedir correccion y con
+el motivo explicito: no es un defecto del SKILL.md ni algo que una
+edicion suya pueda resolver, sino una decision de empaquetado del plugin
+que merece item propio.
 
-Ninguno de ellos toca el SKILL.md, que es el entregable central de la
-tarea y que, en lo esencial —su veracidad—, ha resistido todo lo que le
-he echado.
+Apruebo.
