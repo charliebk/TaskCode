@@ -39,7 +39,7 @@ procesan).
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test     # compila y corre 429 tests con cobertura
+npm test     # compila y corre 444 tests con cobertura
 ```
 
 El CLI: `taskctl new | import | board | plan | approve | start | review |
@@ -57,9 +57,12 @@ cerradas.
   medio, por lo mismo.
 - El glob de `npm test` va entrecomillado a propósito: lo expande Node, no el
   shell. Sin comillas, la suite entera falla en `cmd.exe`.
-- En Windows nativo **fallan 3 tests y no son regresiones** (dos por el truco
-  del symlink, uno por finales de línea); en el CI de Linux pasan. Aquí «suite
-  en verde» significa que fallan solo esos tres: si aparece un cuarto, es
-  tuyo.
+- En Windows nativo **fallan 3 tests y no son regresiones**: uno por el truco
+  del symlink (`EPERM`), uno porque `chmod` sobre directorios no hace nada en
+  NTFS, y uno por finales de línea (CRLF). En el CI de Linux pasan. Aquí
+  «suite en verde» significa que fallan solo esos tres. Ojo: bajo carga
+  aparecen además rojos intermitentes de `EBUSY ... rmdir` al limpiar los
+  repos temporales; fallan en el *teardown*, no en la aserción, y no son
+  tuyos. Cualquier otro cuarto rojo sí lo es.
 
 El resto, en `docs/contexto/HALLAZGOS.md`.

@@ -18,6 +18,11 @@ aplica.
 
 Comprobar el estado real antes de nada: `taskctl board`.
 
+**Prerrequisito**: el repo necesita una rama `develop`. Los comandos la
+esperan por nombre para las tareas de tipo `feature`, `fix` y `release`; las
+de tipo `hotfix` van contra la principal (`main` o `master`, lo que exista).
+Sin `develop`, el primer comando que escriba en `tareas/` ya falla.
+
 ## El ciclo de vida
 
 Cada estado corresponde a una carpeta. El comando mueve la carpeta entera de
@@ -62,7 +67,8 @@ taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release>
             [--modelo-sugerido X] [--agente-revisor Y]
 
 taskctl import <fichero.md> [--tipo ...] [--sprint N] [--complejidad ...]
-taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
+taskctl board [--sprint N] [--asignado-a <persona>]
+taskctl board --escribir          # no se combina con los filtros de arriba
 taskctl plan    TASK-NNN [--asignado-a <persona>]
 taskctl approve TASK-NNN
 taskctl start   TASK-NNN [--asignado-a <persona>]
@@ -83,10 +89,13 @@ Detalles que muerden:
 - **Los flags desconocidos se ignoran en silencio** en el resto de comandos.
   Un flag mal escrito no da error: simplemente no hace nada. Comprobar la
   salida, no suponer.
-- `board` solo escribe `docs/BOARD.md` si se le pasa `--escribir`.
-- `asignado_a` se rellena solo con `git config user.email` si la tarea no
-  tenia a nadie. Ejecutar un comando sobre la tarea de otra persona **no** se
-  la queda.
+- `board` solo escribe `docs/BOARD.md` si se le pasa `--escribir`, y ese
+  flag **no se combina** con `--sprint` ni `--asignado-a`: el fichero es la
+  foto completa, no una vista filtrada.
+- `asignado_a` lo rellenan **solo `plan` y `start`**, con `git config
+  user.email`, y solo si la tarea no tenia a nadie: recien creada con `new`
+  queda sin asignar. Ejecutar un comando sobre la tarea de otra persona **no**
+  se la queda.
 
 ### Lo que NO existe
 
