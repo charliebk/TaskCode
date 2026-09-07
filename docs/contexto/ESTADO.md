@@ -31,13 +31,17 @@ Lo que queda son las Fases D (la cara y opcional) y E (cierre). **El corte
 mínimo defendible —Fases A + B + C— está alcanzado**: el sistema es completo
 y usable, y lo que falta son mejoras y el empaquetado.
 
-**Pendiente de subir** (medido el 2026-09-07): `develop` va **34 commits**
-por delante de `origin/develop`, con 24 ramas locales. El remoto existe y
-responde (`github.com/charliebk/TaskCode.git`) — durante un tiempo estos
-documentos afirmaron que el repo no tenía `origin`, y era falso. Lo que falta
-no es el remoto, es el `push`; y la política IECA de no borrar ramas hace que
-el desfase crezca en vez de reabsorberse. Tiene tensión deliberada con la
-decisión #14: se eligió que subir fuese explícito.
+**Todo subido** (2026-09-07): `develop` está a la par con `origin/develop` y
+las 24 ramas locales existen en el remoto. El repo tiene `origin`
+(`github.com/charliebk/TaskCode.git`) y responde — durante un tiempo estos
+documentos afirmaron que no lo tenía, y era falso.
+
+Hasta hoy el desfase llegó a **41 commits y 4 ramas** sin subir, acumulados en
+una sola sesión de trabajo. Es la tensión que trae la decisión #14, tomada a
+conciencia: `taskctl` commitea pero **no sube** sin `--push`, así que publicar
+depende de que alguien se acuerde. Con la política IECA de no borrar ramas,
+lo que se olvida no se reabsorbe: crece. Conviene subir al cerrar cada item,
+no al cerrar el sprint.
 
 
 ## Qué acaba de pasar (sesión del 2026-09-05, segunda parte)
