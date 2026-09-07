@@ -10,6 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Task } from '../core/task.js';
+import { resolverConfig } from '../core/config.js';
 
 export class GitCommandError extends Error {
   constructor(
@@ -44,7 +45,13 @@ export class GitLaunchError extends Error {
 // update ya consumado). 64 MB cubre cualquier diff razonable.
 const GIT_MAX_BUFFER = 64 * 1024 * 1024;
 
-function runGit(args: readonly string[], cwd: string): string {
+/**
+ * Exportada en TASK-030 (integracion): git-commit.ts la necesitaba y,
+ * al no poder tocar este fichero durante el trabajo en paralelo, llevo
+ * un clon de estas mismas diez lineas. Dos copias de la traduccion de
+ * errores de Git a excepciones es justo lo que acaba divergiendo.
+ */
+export function runGit(args: readonly string[], cwd: string): string {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: GIT_MAX_BUFFER });
   if (result.error) {
     throw new GitLaunchError(result.error);
@@ -345,11 +352,31 @@ const RAMA_BASE_ES_DEVELOP: Record<Task['tipo'], boolean> = {
 };
 
 /**
- * Rama base esperada para un tipo de tarea (seccion 8.3): "develop"
- * para feature/fix/release, resolveMainBranch() para hotfix.
+ * Rama base esperada para un tipo de tarea (seccion 8.3): la rama base
+ * configurada para feature/fix/release, resolveMainBranch() para
+ * hotfix.
+ *
+ * Hasta TASK-030 (item C4) "develop" era un literal aqui — el unico
+ * hardcode de los tres de la decision #9 que no se podia detectar
+ * solo. Ahora sale de `.taskcode/config.yml` (clave `rama_base`), y
+ * sin fichero resolverConfig devuelve exactamente "develop": el
+ * comportamiento no cambia.
+ *
+ * El config se lee AQUI y no se pasa por parametro a proposito: este
+ * es el unico punto por el que pasan los 8 comandos para saber su rama
+ * base (via ensureBaseBranchReady, start y review), asi que cablearlo
+ * aqui garantiza que ninguno se quede fuera. Un parametro opcional
+ * dejaria que un comando futuro se olvidara de pasarlo y volviera al
+ * default en silencio, que es justo lo que la regla 2 de C4 prohibe.
+ *
+ * Los hotfix NO usan `rama_base`: cuelgan de la rama principal, que
+ * resolveMainBranch detecta sola. La decision #9 descarta
+ * `rama_principal` como clave precisamente porque esa deteccion ya
+ * funciona.
  */
 export function resolveBaseBranchForTipo(tipo: Task['tipo'], cwd: string): string {
-  return RAMA_BASE_ES_DEVELOP[tipo] ? 'develop' : resolveMainBranch(cwd);
+  if (!RAMA_BASE_ES_DEVELOP[tipo]) return resolveMainBranch(cwd);
+  return resolverConfig(cwd).rama_base;
 }
 
 export class BaseBranchGuardError extends Error {}

@@ -25,6 +25,13 @@ import {
   GitLaunchError,
   type BaseBranchGuardResult,
 } from './fs/git.js';
+import { AutoCommitError, type AutoCommitResult } from './fs/git-commit.js';
+// ConfigError se captura en los mismos catch que AutoCommitError
+// (integracion TASK-030): sin esto cae al catch-all de bin/taskctl y
+// sale como "[ERROR] taskctl no pudo arrancar: ...", que miente —
+// taskctl arranco bien, lo que esta mal es el .taskcode/config.yml
+// del repo.
+import { ConfigError } from './core/config.js';
 
 const VERSION = '0.1.0';
 
@@ -40,11 +47,11 @@ Uso:
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
-  taskctl start TASK-NNN [--asignado-a <persona>]
-  taskctl plan TASK-NNN [--asignado-a <persona>]
-  taskctl approve TASK-NNN
-  taskctl review TASK-NNN
-  taskctl finish TASK-NNN
+  taskctl start TASK-NNN [--asignado-a <persona>] [--push]
+  taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
+  taskctl approve TASK-NNN [--push]
+  taskctl review TASK-NNN [--push]
+  taskctl finish TASK-NNN [--push]
   taskctl diagnose
   taskctl pause [--push]
   taskctl resume [<rama>]
@@ -54,6 +61,9 @@ Uso:
 Comandos: new, import, board, start, plan, approve, review, finish.
 Wrappers de Git-Flow: diagnose, pause, resume, recover, abort-merge.
 --asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
+taskctl commitea SOLO los ficheros que el mismo escribe (nunca "git add -A"):
+lo que tengas a medias en el arbol se queda como esta. --push sube ademas la
+rama actual a origin; sin origin alcanzable avisa y sigue.
 Los wrappers preguntan (guardar como commit o stash, confirmar un abort...):
 ejecutalos desde una terminal. Sin ella toman el valor por defecto de cada
 pregunta, avisando de cual; y cuando ese valor haria lo contrario de lo que
@@ -92,6 +102,29 @@ function printBaseBranchSwitchNotice(guard: BaseBranchGuardResult): void {
     `Workspace limpio -> cambiado automaticamente de "${guard.branchAntes}" a ` +
       `"${guard.baseBranch}".\n`
   );
+}
+
+/**
+ * Resultado del auto-commit (TASK-030, item C2). Se dice SIEMPRE, en
+ * los dos desenlaces: "no habia nada que commitear" no es silencio,
+ * porque la diferencia entre "taskctl lo registro" y "esto sigue sin
+ * registrar" es justo lo que la persona necesita saber para decidir si
+ * tiene que hacer algo. Los avisos (sin origin, HEAD desacoplado) van
+ * por stderr, como el resto de avisos del CLI.
+ */
+function printAutoCommit(r: AutoCommitResult): void {
+  printAvisos(...r.avisos);
+  if (r.commiteado) {
+    const n = r.ficheros.length;
+    process.stdout.write(
+      `Commiteado ${r.commit} en "${r.rama}" (${n} fichero${n === 1 ? '' : 's'}).\n`
+    );
+  } else {
+    process.stdout.write('Sin cambios que commitear (nada nuevo en disco).\n');
+  }
+  if (r.push === 'empujado') {
+    process.stdout.write(`Push completado: ${r.rama} -> origin/${r.rama}.\n`);
+  }
 }
 
 /**
@@ -138,9 +171,15 @@ export async function main(argv: readonly string[]): Promise<number> {
       const result = await runNewCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
       printBaseBranchSwitchNotice(result.baseBranchGuard);
       process.stdout.write(`Tarea ${result.id} creada: ${result.filePath}\n`);
+      printAutoCommit(result.autoCommit);
       return 0;
     } catch (e) {
-      if (e instanceof NewTaskArgError || e instanceof BaseBranchGuardError) {
+      if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof NewTaskArgError ||
+        e instanceof BaseBranchGuardError
+      ) {
         printCliError(e);
         return 1;
       }
@@ -176,9 +215,15 @@ export async function main(argv: readonly string[]): Promise<number> {
       // siempre devolvia 0, incluso si TODAS las entradas fallaban —
       // un "taskctl import x.md && siguiente_paso" en un script nunca
       // se enteraba de que el import no creo nada.
+      printAutoCommit(result.autoCommit);
       return result.errores.length > 0 ? 1 : 0;
     } catch (e) {
-      if (e instanceof ImportCommandError || e instanceof BaseBranchGuardError) {
+      if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof ImportCommandError ||
+        e instanceof BaseBranchGuardError
+      ) {
         printCliError(e);
         return 1;
       }
@@ -228,12 +273,15 @@ export async function main(argv: readonly string[]): Promise<number> {
         `Tarea ${result.id} en curso: rama ${result.rama} creada y confirmada, ` +
           `tarea movida a ${result.filePath}\n${asignacionNotice(result)}`
       );
+      printAutoCommit(result.autoCommit);
       return 0;
     } catch (e) {
       // GitflowScriptLaunchError incluido (hallazgo menor de revision
       // por pares, TASK-014, preexistente desde TASK-009): sin esto un
       // bash ilanzable caia al catch-all con "taskctl no pudo arrancar".
       if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
         e instanceof StartCommandError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
@@ -270,9 +318,12 @@ export async function main(argv: readonly string[]): Promise<number> {
         `Tarea ${result.id} en diseno: movida a ${result.filePath}. ${scaffoldMsg}\n` +
           asignacionNotice(result)
       );
+      printAutoCommit(result.autoCommit);
       return 0;
     } catch (e) {
       if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
         e instanceof PlanCommandError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
@@ -299,9 +350,12 @@ export async function main(argv: readonly string[]): Promise<number> {
       process.stdout.write(
         `Tarea ${result.id} aprobada (plan_aprobado: true): ${result.filePath}.\n`
       );
+      printAutoCommit(result.autoCommit);
       return 0;
     } catch (e) {
       if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
         e instanceof ApproveCommandError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
@@ -329,6 +383,7 @@ export async function main(argv: readonly string[]): Promise<number> {
           `Lanza el agente revisor con esa peticion y vuelca su salida en ` +
           `${result.informePath}.\n`
       );
+      printAutoCommit(result.autoCommit);
       return 0;
     } catch (e) {
       // GitLaunchError/GitCommandError tambien se capturan aqui
@@ -336,6 +391,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       // caian al catch-all de bin/taskctl con el prefijo enganoso
       // "taskctl no pudo arrancar".
       if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
         e instanceof ReviewCommandError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
@@ -362,13 +419,25 @@ export async function main(argv: readonly string[]): Promise<number> {
       process.stdout.write(
         `Tarea ${result.id} terminada: "${result.rama}" integrada en ` +
           `"${result.baseBranch}"${mainInfo}, tarea movida a ${result.filePath}.\n` +
-          `Actualizados: ${result.changelogPath}, ${result.indexPath} y ${result.boardPath}.\n` +
-          'Recuerda commitear y subir el resultado (el auto-commit es la decision #14, aun ' +
-          'abierta).\n'
+          `Actualizados: ${result.changelogPath}, ${result.indexPath} y ${result.boardPath}.\n`
       );
+      printAutoCommit(result.autoCommit);
+      // --push empuja LA RAMA ACTUAL, que tras "finish" es develop
+      // (misma doctrina que "taskctl pause --push"). En hotfix/release
+      // hay ademas un merge a main y un tag que NO se suben: callarlo
+      // dejaria creer que la publicacion esta completa.
+      if (result.mainBranch !== null && result.autoCommit.push === 'empujado') {
+        printAvisos(
+          `--push ha subido "${result.autoCommit.rama}", pero NO "${result.mainBranch}" ni el ` +
+            `tag de esta ${result.rama.split('/')[0]}: subelos tu ` +
+            `("git push origin ${result.mainBranch} --follow-tags").`
+        );
+      }
       return 0;
     } catch (e) {
       if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
         e instanceof FinishCommandError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||

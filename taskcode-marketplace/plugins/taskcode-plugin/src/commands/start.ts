@@ -11,6 +11,7 @@
  * deterministica: comprobar que el workspace esta limpio ANTES de
  * llamar al script, en vez de delegar en su prompt interactivo.
  */
+import path from 'node:path';
 import { parseArgs } from '../cli/args.js';
 import {
   parseAsignadoAFlag,
@@ -28,6 +29,7 @@ import {
   mensajeWipIndeterminado,
   personaDeTarea,
 } from '../core/wip.js';
+import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import {
   isWorkspaceClean,
@@ -36,6 +38,12 @@ import {
   gitUserEmail,
   resolveBaseBranchForTipo,
 } from '../fs/git.js';
+import {
+  autoCommit,
+  extraerPushFlag,
+  mensajeChore,
+  type AutoCommitResult,
+} from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 
 export class StartCommandError extends Error {}
@@ -68,6 +76,8 @@ export interface StartCommandResult {
   avisoAtribucion: string | null;
   /** tarea.md ilegibles hallados DENTRO de otras ramas: avisan, no bloquean. */
   avisosWip: string[];
+  /** Commit automatico del paso 5 de la 8.3 (TASK-030, item C2). */
+  autoCommit: AutoCommitResult;
 }
 
 export async function runStartCommand(
@@ -76,9 +86,12 @@ export async function runStartCommand(
   today: string,
   deps: StartCommandDeps
 ): Promise<StartCommandResult> {
+  // --push fuera antes de nada (TASK-030): parseArgs trata
+  // "--flag valor" como par y se habria comido el ID.
+  const { push, resto } = extraerPushFlag(argv);
   // El ID sale de los POSICIONALES, no de argv[0] a secas (item B6):
   // ver el comentario equivalente en plan.ts.
-  const { positional } = parseArgs(argv);
+  const { positional } = parseArgs(resto);
   const id = positional[0];
   if (id === undefined || id.trim() === '') {
     throw new StartCommandError('[ERROR] Falta el ID de la tarea: taskctl start TASK-NNN.');
@@ -88,7 +101,7 @@ export async function runStartCommand(
   // script de Git-Flow: un --asignado-a mal escrito no debe dejar una
   // rama creada a medias.
   const asignadoA = parseAsignadoAFlag(
-    argv,
+    resto,
     (m) => new StartCommandError(m),
     PISTA_VACIO_ESCRITURA
   );
@@ -203,9 +216,18 @@ export async function runStartCommand(
     if (ilegibles.length > 0) {
       throw new StartCommandError(mensajeWipIndeterminado(task.id, ilegibles));
     }
-    const bloqueantes = tareasQueBloquean(tareas, personaParaWip, task.id);
+    // El limite sale de .taskcode/config.yml (item C4). Se resuelve aqui
+    // y no dentro de wip.ts a proposito: ese modulo es puro — recibe el
+    // limite, no lee disco — y esa pureza es lo que deja probarlo sin
+    // montar un repo. Este es el UNICO punto donde el limite se aplica
+    // de verdad; sin esta linea el mecanismo funciona en sus tests y no
+    // hace nada en el CLI, que es justo como llego de los dos frentes.
+    const limiteWip = resolverConfig(deps.repoCwd).limite_wip;
+    const bloqueantes = tareasQueBloquean(tareas, personaParaWip, task.id, limiteWip);
     if (bloqueantes.length > 0) {
-      throw new StartCommandError(mensajeWipExcedido(task.id, personaParaWip, bloqueantes));
+      throw new StartCommandError(
+        mensajeWipExcedido(task.id, personaParaWip, bloqueantes, limiteWip)
+      );
     }
   }
 
@@ -264,6 +286,18 @@ export async function runStartCommand(
     tolerateMissingSource: true,
   });
 
+  // Paso 5 de la 8.3 (TASK-030, item C2). Se commitea sobre la rama de
+  // la tarea, que el script de Git-Flow acaba de crear y ya esta
+  // confirmada arriba. "start" NO aplica ensureBaseBranchReady: aqui
+  // puede haber trabajo de la persona en el arbol, y por eso el commit
+  // se limita a las dos carpetas de la tarea y a nada mas.
+  const commitResult = autoCommit({
+    cwd: deps.repoCwd,
+    rutas: [path.dirname(filePath), path.dirname(newFilePath)],
+    mensaje: mensajeChore(task.id, 'tarea en curso'),
+    push,
+  });
+
   return {
     id: task.id,
     rama: task.rama,
@@ -273,5 +307,6 @@ export async function runStartCommand(
     avisoIdentidad,
     avisoAtribucion,
     avisosWip,
+    autoCommit: commitResult,
   };
 }

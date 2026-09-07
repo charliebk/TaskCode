@@ -31,6 +31,12 @@ import {
   logOneline,
   diffRange,
 } from '../fs/git.js';
+import {
+  autoCommit,
+  extraerPushFlag,
+  mensajeChore,
+  type AutoCommitResult,
+} from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 
 export class ReviewCommandError extends Error {}
@@ -63,6 +69,8 @@ export interface ReviewCommandResult {
   filePath: string;
   peticionPath: string;
   informePath: string;
+  /** Commit automatico del paso 5 de la 8.3 (TASK-030, item C2). */
+  autoCommit: AutoCommitResult;
 }
 
 /**
@@ -164,7 +172,8 @@ export async function runReviewCommand(
   today: string,
   deps: ReviewCommandDeps
 ): Promise<ReviewCommandResult> {
-  const id = argv[0];
+  const { push, resto } = extraerPushFlag(argv);
+  const id = resto[0];
   if (id === undefined || id.trim() === '') {
     throw new ReviewCommandError('[ERROR] Falta el ID de la tarea: taskctl review TASK-NNN.');
   }
@@ -272,7 +281,21 @@ export async function runReviewCommand(
   const peticionPath = path.join(newRevisionDir, `peticion-revision-${ronda}.md`);
   const informePath = path.join(newRevisionDir, `informe-revision-${ronda}.md`);
 
+  // Paso 5 de la 8.3 (TASK-030, item C2). "review" NO aplica
+  // ensureBaseBranchReady, asi que en el arbol puede haber trabajo de
+  // la persona junto al de taskctl: solo entran las dos carpetas de la
+  // tarea (la de origen para que el movimiento se registre como tal, y
+  // la de destino, que ya contiene revision/ con la peticion y el
+  // scaffold del informe).
+  const commitResult = autoCommit({
+    cwd: deps.repoCwd,
+    rutas: [path.dirname(filePath), path.dirname(newFilePath)],
+    mensaje: mensajeChore(task.id, `peticion de revision ronda ${ronda}`),
+    push,
+  });
+
   return {
+    autoCommit: commitResult,
     id: task.id,
     rama,
     baseBranch,

@@ -10,9 +10,11 @@
  * docs/BOARD.md desde el frontmatter — plantillas deterministas, cero
  * LLM (correccion de la seccion 16 de la metodologia).
  *
- * El commit del resultado queda en manos de la persona: el paso 5 de
- * la seccion 8.3 (que taskctl comitee y suba lo que genera) es la
- * decision #14, todavia abierta (item C2 del checklist).
+ * Desde TASK-030 (item C2) tambien cumple el paso 5 de la seccion 8.3:
+ * commitea lo que acaba de escribir — la carpeta de la tarea y los tres
+ * artefactos de cierre, y nada mas — sobre develop, que es donde
+ * termina el comando. Con --push sube ademas la rama.
+ *
  */
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -32,6 +34,12 @@ import {
   mergeBase,
   checkoutBranch,
 } from '../fs/git.js';
+import {
+  autoCommit,
+  extraerPushFlag,
+  mensajeChore,
+  type AutoCommitResult,
+} from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { runBoardCommand, boardFilePath } from './board.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
@@ -256,6 +264,8 @@ export interface FinishCommandResult {
   changelogPath: string;
   indexPath: string;
   boardPath: string;
+  /** Commit automatico del paso 5 de la 8.3 (TASK-030, item C2). */
+  autoCommit: AutoCommitResult;
 }
 
 export async function runFinishCommand(
@@ -264,7 +274,8 @@ export async function runFinishCommand(
   today: string,
   deps: FinishCommandDeps
 ): Promise<FinishCommandResult> {
-  const id = argv[0];
+  const { push, resto } = extraerPushFlag(argv);
+  const id = resto[0];
   if (id === undefined || id.trim() === '') {
     throw new FinishCommandError('[ERROR] Falta el ID de la tarea: taskctl finish TASK-NNN.');
   }
@@ -421,6 +432,28 @@ export async function runFinishCommand(
     'utf8'
   );
 
+  // Paso 5 de la 8.3 (TASK-030, item C2). "finish" commitea sobre
+  // DEVELOP, no sobre la rama de la tarea: cuando llega aqui el merge
+  // ya esta consumado y el comando termina siempre en develop (se
+  // comprueba mas arriba). Es lo que se venia haciendo a mano; queda
+  // fijado con un test para que nadie lo "arregle" mas adelante.
+  // Ademas de las dos carpetas de la tarea entran los tres artefactos
+  // de cierre — y NADA mas: "finish" tampoco aplica
+  // ensureBaseBranchReady, asi que el resto del arbol puede tener
+  // trabajo de la persona.
+  const commitResult = autoCommit({
+    cwd: deps.repoCwd,
+    rutas: [
+      path.dirname(filePath),
+      path.dirname(newFilePath),
+      changelogPath,
+      indexPath,
+      boardPath,
+    ],
+    mensaje: mensajeChore(task.id, 'tarea terminada y artefactos de cierre'),
+    push,
+  });
+
   return {
     id: task.id,
     rama,
@@ -430,5 +463,6 @@ export async function runFinishCommand(
     changelogPath,
     indexPath,
     boardPath,
+    autoCommit: commitResult,
   };
 }

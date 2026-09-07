@@ -155,25 +155,29 @@ test('runNewCommand: crea tareas/00-planificadas/TASK-001/tarea.md desde cero', 
 
 test('runNewCommand: IDs consecutivos sin colision al crear varias tareas seguidas (misma rama base: develop)', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    // "new" no comitea por la persona (fuera de alcance de TASK-012):
-    // cada tarea.md creada queda sin commitear, asi que hay que
-    // comitearla antes de la siguiente llamada o ensureBaseBranchReady
-    // la rechaza por workspace sucio — igual que en uso real.
+    // Desde TASK-030 (item C2) "new" comitea lo que escribe, asi que
+    // tres llamadas seguidas funcionan SIN commit manual en medio.
+    // Antes habia aqui un "git add -A && git commit" entre llamadas,
+    // porque si no ensureBaseBranchReady rechazaba la segunda por
+    // workspace sucio — sucio por culpa de la primera. Que ya no haga
+    // falta es el item C2 funcionando; si alguien rompe el auto-commit,
+    // este test se cae.
     const r1 = await runNewCommand(
       tareasRoot, ['--titulo', 'Uno', '--tipo', 'feature'], '2026-09-03', { repoCwd: repoRoot }
     );
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'TASK-001'], repoRoot);
     const r2 = await runNewCommand(
       tareasRoot, ['--titulo', 'Dos', '--tipo', 'fix'], '2026-09-03', { repoCwd: repoRoot }
     );
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'TASK-002'], repoRoot);
     // release tambien resuelve a develop (igual que feature/fix).
     const r3 = await runNewCommand(
       tareasRoot, ['--titulo', 'Tres', '--tipo', 'release'], '2026-09-03', { repoCwd: repoRoot }
     );
     assert.deepEqual([r1.id, r2.id, r3.id], ['TASK-001', 'TASK-002', 'TASK-003']);
+    // Y el workspace queda limpio, no con tres tarea.md sueltos.
+    assert.equal(
+      spawnSync('git', ['status', '--porcelain'], { cwd: repoRoot, encoding: 'utf8' }).stdout.trim(),
+      ''
+    );
   });
 });
 
@@ -182,8 +186,7 @@ test('runNewCommand: hallazgo real (no corregido, fuera de alcance de TASK-012) 
     const r1 = await runNewCommand(
       tareasRoot, ['--titulo', 'Uno', '--tipo', 'feature'], '2026-09-03', { repoCwd: repoRoot }
     );
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'TASK-001'], repoRoot);
+    // Sin commit manual desde TASK-030: lo comitea "new" (item C2).
     assert.equal(r1.id, 'TASK-001');
 
     // Un hotfix resuelve la rama base a "main" (seccion 8.3). En este

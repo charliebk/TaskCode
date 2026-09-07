@@ -23,6 +23,12 @@ import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { resolverPlanFinal, type PlanFinalUbicacion } from './plan.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
+import {
+  autoCommit,
+  extraerPushFlag,
+  mensajeChore,
+  type AutoCommitResult,
+} from '../fs/git-commit.js';
 
 export class ApproveCommandError extends Error {}
 
@@ -68,6 +74,8 @@ export interface ApproveCommandResult {
   id: string;
   filePath: string;
   baseBranchGuard: BaseBranchGuardResult;
+  /** Commit automatico del paso 5 de la 8.3 (TASK-030, item C2). */
+  autoCommit: AutoCommitResult;
 }
 
 export interface ApproveCommandDeps {
@@ -81,7 +89,10 @@ export async function runApproveCommand(
   today: string,
   deps: ApproveCommandDeps
 ): Promise<ApproveCommandResult> {
-  const id = argv[0];
+  // --push se saca ANTES de leer el ID: es booleano puro y va delante
+  // o detras indistintamente ("taskctl approve --push TASK-030").
+  const { push, resto } = extraerPushFlag(argv);
+  const id = resto[0];
   if (id === undefined || id.trim() === '') {
     throw new ApproveCommandError('[ERROR] Falta el ID de la tarea: taskctl approve TASK-NNN.');
   }
@@ -122,5 +133,16 @@ export async function runApproveCommand(
   const updated: Task = { ...task, plan_aprobado: true, actualizado: today };
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
 
-  return { id: task.id, filePath: newFilePath, baseBranchGuard };
+  // Paso 5 de la 8.3 (TASK-030, item C2). "approve" no cambia el
+  // estado de la tarea, asi que origen y destino son la MISMA carpeta;
+  // se pasan las dos igualmente porque autoCommit deduplica y asi el
+  // dia que approve mueva algo esto no se queda corto en silencio.
+  const commitResult = autoCommit({
+    cwd: deps.repoCwd,
+    rutas: [path.dirname(filePath), path.dirname(newFilePath)],
+    mensaje: mensajeChore(task.id, 'plan aprobado'),
+    push,
+  });
+
+  return { id: task.id, filePath: newFilePath, baseBranchGuard, autoCommit: commitResult };
 }

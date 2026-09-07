@@ -31,6 +31,12 @@ import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { ensureBaseBranchReady, gitUserEmail, type BaseBranchGuardResult } from '../fs/git.js';
+import {
+  autoCommit,
+  extraerPushFlag,
+  mensajeChore,
+  type AutoCommitResult,
+} from '../fs/git-commit.js';
 import { resolverAsignado } from '../core/wip.js';
 
 export class PlanCommandError extends Error {}
@@ -140,6 +146,8 @@ export interface PlanCommandResult {
   /** Aviso si la identidad Git existe pero no sirve como asignado_a; null si no aplica. */
   avisoIdentidad: string | null;
   baseBranchGuard: BaseBranchGuardResult;
+  /** Commit automatico del paso 5 de la 8.3 (TASK-030, item C2). */
+  autoCommit: AutoCommitResult;
 }
 
 export interface PlanCommandDeps {
@@ -158,7 +166,11 @@ export async function runPlanCommand(
   // TASK-001" tiene que funcionar igual que con el flag detras. De
   // paso, un "taskctl plan --loquesea" ya no se cuela como ID para
   // morir mas abajo con un InvalidTaskIdError que cli.ts no captura.
-  const { positional } = parseArgs(argv);
+  // --push se saca del argv ANTES de parsear nada mas: es booleano
+  // puro y parseArgs, que trata "--flag valor" como par, se habria
+  // comido el ID en "taskctl plan --push TASK-030".
+  const { push, resto } = extraerPushFlag(argv);
+  const { positional } = parseArgs(resto);
   const id = positional[0];
   if (id === undefined || id.trim() === '') {
     throw new PlanCommandError('[ERROR] Falta el ID de la tarea: taskctl plan TASK-NNN.');
@@ -167,7 +179,7 @@ export async function runPlanCommand(
   // Se parsea ANTES de tocar Git: un flag mal escrito no debe llegar a
   // cambiar de rama ni a mover carpetas antes de fallar.
   const asignadoA = parseAsignadoAFlag(
-    argv,
+    resto,
     (m) => new PlanCommandError(m),
     PISTA_VACIO_ESCRITURA
   );
@@ -323,7 +335,20 @@ export async function runPlanCommand(
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
   const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
 
+  // Paso 5 de la 8.3 (TASK-030, item C2): la carpeta de ORIGEN entra
+  // tambien, para que el commit registre el movimiento (y el borrado
+  // de 00-planificadas/) en vez de una copia con la carpeta vieja
+  // huerfana. planificacion/plan-final.md ya cae dentro de la carpeta
+  // de destino, no hace falta nombrarlo aparte.
+  const commitResult = autoCommit({
+    cwd: deps.repoCwd,
+    rutas: [path.dirname(filePath), path.dirname(newFilePath)],
+    mensaje: mensajeChore(task.id, 'tarea en diseno'),
+    push,
+  });
+
   return {
+    autoCommit: commitResult,
     id: task.id,
     filePath: newFilePath,
     planPath,

@@ -25,13 +25,24 @@
  * codigo de una tarea en la rama Git de otra tarea", Carlos, #13).
  */
 import { STATE_FOLDER, type TareaUbicada, type TaskState } from './task.js';
+import { CONFIG_DEFAULTS } from './config.js';
 
 /**
- * Estados cuya carpeta ocupa el hueco de ejecucion. Un unico sitio
- * donde esta escrita la regla: el dia que exista .taskcode/config.yml
- * (item C4) y se quiera un limite configurable, se toca aqui.
+ * Estados cuya carpeta ocupa el hueco de ejecucion.
  */
 export const ESTADOS_QUE_OCUPAN_WIP: readonly TaskState[] = ['en-curso', 'en-revision'];
+
+/**
+ * Cuantas tareas ocupadas admite una persona antes de que la siguiente
+ * quede bloqueada. Desde TASK-030 (item C4) es configurable con
+ * `limite_wip` en `.taskcode/config.yml`; el valor por defecto vive en
+ * CONFIG_DEFAULTS y es 1, que es lo que este modulo hacia siempre.
+ *
+ * Este modulo SIGUE siendo puro: recibe el limite ya resuelto, no lee
+ * el fichero. Solo importa la constante del default para no reescribir
+ * el 1 aqui y que puedan divergir.
+ */
+export const LIMITE_WIP_POR_DEFECTO = CONFIG_DEFAULTS.limite_wip;
 
 /**
  * Normaliza un "asignado_a" para COMPARAR (nunca para escribir): lo
@@ -110,17 +121,30 @@ export function resolverAsignado(
  * "Carlos" y "carlos" como la misma persona — inventar aqui una
  * equivalencia que "taskctl board" no tiene crearia una incoherencia
  * nueva.
+ *
+ * `limite` (TASK-030, item C4) es cuantas tareas ocupadas se toleran.
+ * Devolver [] cuando todavia caben es lo que permite que el limite sea
+ * configurable sin que el llamante cambie su forma de preguntar: sigue
+ * siendo "si esta lista no esta vacia, no puedes arrancar". Con el
+ * valor por defecto (1) el resultado es identico al de antes de C4:
+ * cualquier otra tarea ocupada bloquea.
  */
 export function tareasQueBloquean(
   tareas: readonly TareaUbicada[],
   persona: string,
-  idQueArranca: string
+  idQueArranca: string,
+  limite: number = LIMITE_WIP_POR_DEFECTO
 ): TareaUbicada[] {
   const buscada = personaDeTarea(persona);
   if (buscada === null) return [];
-  return tareas
+  const ocupadas = tareas
     .filter((t) => t.task.id !== idQueArranca && personaDeTarea(t.task.asignado_a) === buscada)
     .sort((a, b) => a.task.id.localeCompare(b.task.id));
+  // Se devuelven TODAS las ocupadas, no solo las que sobran: el
+  // mensaje de error tiene que poder nombrar cual hay que cerrar, y
+  // con un limite de 3 y 3 abiertas no hay ninguna "sobrante" — hay
+  // tres candidatas.
+  return ocupadas.length >= limite ? ocupadas : [];
 }
 
 /** Una linea por tarea bloqueante: ID, titulo, carpeta REAL y rama. */
@@ -140,7 +164,8 @@ function describirBloqueante(t: TareaUbicada): string {
 export function mensajeWipExcedido(
   idQueArranca: string,
   persona: string,
-  bloqueantes: readonly TareaUbicada[]
+  bloqueantes: readonly TareaUbicada[],
+  limite: number = LIMITE_WIP_POR_DEFECTO
 ): string {
   const primera = bloqueantes[0] as TareaUbicada;
   const lineas: string[] = [];
@@ -151,18 +176,30 @@ export function mensajeWipExcedido(
         `(${STATE_FOLDER[primera.estadoCarpeta]}, rama ${primera.task.rama}).`
     );
   } else {
-    // Mas de una solo puede pasar si el repo ya estaba en un estado
-    // inconsistente (el limite es de una): se listan todas en vez de
-    // enganar nombrando solo la primera.
+    // Con el limite por defecto (1), mas de una solo puede pasar si el
+    // repo ya estaba en un estado inconsistente. Con un limite mayor es
+    // el caso normal. En los dos se listan todas en vez de enganar
+    // nombrando solo la primera.
     lineas.push(
       `[ERROR] ${idQueArranca}: ${persona} ya tiene ${bloqueantes.length} tareas sin cerrar:`
     );
     for (const t of bloqueantes) lineas.push(describirBloqueante(t));
   }
 
-  lineas.push(
-    '        Una sola tarea en curso por persona: esa rama sigue abierta y sin mergear,'
-  );
+  // El texto para limite 1 se conserva literal: es el que prueban los
+  // tests de B7 y el que la gente reconoce. Con un limite configurado
+  // mayor, decir "una sola tarea por persona" seria sencillamente
+  // mentira, asi que se dice el numero real y de donde sale.
+  if (limite === 1) {
+    lineas.push(
+      '        Una sola tarea en curso por persona: esa rama sigue abierta y sin mergear,'
+    );
+  } else {
+    lineas.push(
+      `        El limite es de ${limite} tareas por persona (limite_wip en ` +
+        '.taskcode/config.yml): esa rama sigue abierta y sin mergear,'
+    );
+  }
   lineas.push('        y ahi es donde se commitean las correcciones de su revision.');
   // El consejo NO dice "ejecuta taskctl finish" a secas (hallazgo MENOR
   // de revision por pares, TASK-015): si la bloqueante esta en
