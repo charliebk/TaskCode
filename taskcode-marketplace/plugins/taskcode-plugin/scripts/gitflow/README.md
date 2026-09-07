@@ -16,9 +16,18 @@ sino dentro del plugin instalado:
 
 1. **`log_dir`** (usado por `initialize_gitflow_log`): antes calculaba la
    raíz del proyecto contando 3 niveles de carpeta hacia arriba desde el
-   propio script. Ahora usa `git rev-parse --show-toplevel`, así que
-   `logs/gitflow/` siempre se escribe dentro del repo del usuario, sin
-   importar desde qué profundidad se invoque el script.
+   propio script. Ahora se lo pregunta a Git, así que el registro siempre
+   se escribe dentro del repo del usuario, sin importar desde qué
+   profundidad se invoque el script. **Desde TASK-029** esa ruta es
+   `$(git rev-parse --git-path taskcode/gitflow)/gitflow-YYYY-MM-DD.log`,
+   es decir dentro de `.git/`, y ya no `<repo>/logs/gitflow/`: el sitio
+   anterior estaba en el árbol de trabajo, así que el script ensuciaba el
+   workspace del usuario nada más arrancar y antes de mirarlo — por eso
+   `pause-work.sh` acababa preguntando qué hacer con un directorio que
+   acababa de crear él mismo. `.git/` no lo ve `git status` nunca, con
+   `.gitignore` o sin él, así que el repo del usuario no necesita ignorar
+   nada. Se usa `--git-path` y no se concatena sobre `--git-dir` para que
+   siga valiendo dentro de un *worktree* enlazado.
 2. **`invoke_merge_work_branch_to_develop`**: antes hacía `fetch origin`
    sin comprobar si el remoto existía, y fallaba duro (`exit 1`) en
    cualquier repo sin `origin` configurado — como el propio `TaskCode`
@@ -45,24 +54,30 @@ IntelliJ en Windows. Se recomienda una prueba rápida (`bash --version`, o
 `taskctl new` de verdad) la próxima vez que alguien del equipo tenga esa
 sesión abierta — ver `docs/spikes/TASK-007-resultado.md`.
 
-## Hallazgo abierto (parcialmente corregido en TASK-009): el mismo bug de `origin` existia en mas scripts
+## Hallazgo cerrado en TASK-029: el mismo bug de `origin` existia en mas scripts
 
 Al migrar (TASK-008) se encontro que el patron de "`fetch origin` sin
 comprobar disponibilidad" del hallazgo 4 **no estaba solo en
 `invoke_merge_work_branch_to_develop`**. Aparecia, con su propia copia de
-logica (no comparten la funcion corregida), en:
+logica, en seis scripts mas. Historia de como se cerro:
 
-- ~~`create-hotfix.sh`, `create-release.sh`~~ — **corregidos en TASK-009**
-  (mismo guard `REMOTE_AVAILABLE`), porque sin ellos `taskctl start`
-  fallaria siempre para tareas `hotfix`/`release` en un repo sin origin
-  como el propio TaskCode.
-- `create-develop.sh` — sin corregir. No lo toca ningun comando de
-  `taskctl` (no es un tipo de tarea; es un script de inicializacion de
-  repo, fuera del flujo por-tarea).
-- `merge-hotfix-to-main.sh`, `merge-release-to-main.sh` — sin corregir,
-  precondicion explicita de TASK-014 (`taskctl finish`).
-- `recover-branch.sh`, `resume-work.sh` — sin corregir, no forman parte
-  todavia del flujo de ningun comando de `taskctl`.
+- ~~`create-hotfix.sh`, `create-release.sh`~~ — **corregidos en TASK-009**,
+  porque sin ellos `taskctl start` fallaria siempre para tareas
+  `hotfix`/`release` en un repo sin origin como el propio TaskCode.
+- ~~`merge-hotfix-to-main.sh`, `merge-release-to-main.sh`~~ — **corregidos
+  en el item B2** (2026-09-05), que ademas extrajo la logica a
+  `detect_origin_available` en `_gitflow-common.sh` y le anadio la
+  distincion entre "sin origin configurado" y "origin configurado que no
+  responde".
+- ~~`create-develop.sh`, `recover-branch.sh`, `resume-work.sh`~~ —
+  **corregidos en TASK-029** (item C6), ya con la funcion compartida.
+  Cubiertos por `test/gitflow/origin-guard.test.ts`.
+
+**Lo que queda**: `create-hotfix.sh` y `create-release.sh` siguen llevando
+su copia inline de TASK-009, anterior a la extraccion de B2, asi que
+detectan si hay remoto pero **no distinguen "sin origin" de "origin caido"**.
+No es el bug original —no mueren con el `fatal:` de Git— pero es la misma
+logica duplicada en dos sitios y con menos criterio que la compartida.
 
 ## Hallazgo real de TASK-009: `moveTareaFile` y el checkout de hotfix/release
 

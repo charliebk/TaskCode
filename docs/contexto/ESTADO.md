@@ -20,10 +20,14 @@ una rama de trabajo por persona funciona mirando las ramas reales (C8), los
 cinco wrappers de Git-Flow ya existen (C1), la carpeta de tarea tiene ya
 la forma que describe la sección 2 de la metodología: `tarea.md` +
 `planificacion/` + `revision/` (C3), y **el plugin por fin expone algo a
-Claude Code**: la skill `task-workflow` (C5). **444 tests** (441 verdes;
-los 3 rojos son los conocidos de este entorno Windows).
+Claude Code**: la skill `task-workflow` (C5). Y los scripts de Git-Flow han
+dejado de arrastrar su deuda: guard de `origin` en los tres que faltaban, el
+registro fuera del workspace del usuario, los mensajes citando `taskctl` en
+vez de menus de IntelliJ, y `abort-merge` viendo cherry-picks y reverts a
+medias (C6). **472 tests** (469 verdes; los 3 rojos son los conocidos de
+este entorno Windows).
 
-Lo que queda son las Fases C (tapar huecos, 3 items), D (la cara y
+Lo que queda son las Fases C (tapar huecos, 2 items), D (la cara y
 opcional) y E (cierre). **El corte mínimo defendible ya solo depende de la
 Fase C.**
 
@@ -143,12 +147,10 @@ el repo a medias. La segunda ronda, APROBADO: 3 menores, uno corregido (el
 guard nuevo daba falsos positivos porque preguntaba por `logs/` en vez de
 por el fichero que se escribe).
 
-**Lo que C1 le descubrió a C6**, ya anotado en su entrada del checklist: el
-registro dentro del repo deja `taskctl resume` inservible en repos que no lo
-ignoren; los mensajes de los scripts siguen remitiendo a los menús de
-IntelliJ ("usa GitFlow 16 Pause Work") ahora que esos comandos existen; y
-`abort-merge.sh` dice "estado normal" con un cherry-pick o un revert a
-medias.
+**Lo que C1 le descubrió a C6** —registro dentro del repo, mensajes que
+remiten a los menús de IntelliJ, `abort-merge.sh` ciego a los cherry-picks—
+se cerró el 2026-09-07 con TASK-029, junto al bug de `origin` que era el
+enunciado original del item. Ver más abajo.
 
 **Limitación que queda a propósito**: `taskctl pause` sigue sin servirle a un
 agente sin terminal, que es quien más lo necesitaría. Resolverlo pide un
@@ -247,8 +249,9 @@ problema de empaquetado, no del ciclo de vida, y va a la Fase E como **E6**.
 Con A y B cerradas, **el corte mínimo defendible ya solo depende de la
 Fase C**: lo que la metodología da por hecho y no existe.
 
-El siguiente item libre es **C6**. C2 y C4 siguen bloqueados por las
-decisiones #14 y #9.
+No queda ningún item libre en la Fase C: **C2 y C4 están bloqueados** por
+las decisiones #14 y #9, y son los dos únicos que faltan. El siguiente
+trabajo desbloqueado está en la Fase E.
 
 1. ~~**C1**~~ — hecho el 2026-09-06 (TASK-026), ver arriba.
 2. **C2** — el paso 5 de la §8.3 (¿`taskctl` commitea y sube por la
@@ -262,10 +265,12 @@ decisiones #14 y #9.
    #9**, que ya tiene dos candidatos claros a contenido salidos de B7 y C7:
    el tamaño del límite de WIP y qué cuenta como una misma persona.
 5. ~~**C5**~~ — hecho el 2026-09-07 (TASK-028), ver arriba.
-6. **C6** — bug de `origin` en los 3 scripts que siguen sin guard, **más
-   las tres cosas que le dejó C1** (registro dentro del repo, mensajes que
-   remiten a los menús de IntelliJ, cherry-pick que `abort-merge.sh` no ve).
-   Ha crecido: cuenta ~2h, no 1h.
+6. ~~**C6**~~ — hecho el 2026-09-07 (TASK-029). Los cuatro frentes, con
+   cuatro agentes en paralelo dentro de la misma rama. Costó ~5h, no la ~1h
+   que decía la estimación original (que era de cuando el item era solo el
+   bug de `origin`). Dos afirmaciones del plan resultaron falsas al medirlas,
+   y el primer arreglo de un hallazgo de revisión también: está en
+   `HALLAZGOS.md`.
 
 ## Decisiones abiertas que dependen de Carlos
 

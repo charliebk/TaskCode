@@ -50,8 +50,24 @@ stash_count=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 
 git_dir=$(git rev-parse --git-dir 2>/dev/null)
 merge_in_progress=false; rebase_in_progress=false
+cherry_pick_in_progress=false; revert_in_progress=false
 [ -f "$git_dir/MERGE_HEAD" ]                                                && merge_in_progress=true
 { [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; }      && rebase_in_progress=true
+# Los mismos cinco testigos que mira abort-merge.sh, y por el mismo motivo
+# (hallazgo IMPORTANTE de la revision por pares, TASK-029): diagnose se
+# quedo con merge y rebase, asi que decia "Sin operaciones en curso" con un
+# cherry-pick a medias — tres lineas encima de su propio "UU fichero" — y
+# contradecia a abort-merge sobre el mismo repo. Un diagnostico que no ve
+# lo que el resto de la herramienta si ve es peor que no diagnosticar.
+[ -f "$git_dir/CHERRY_PICK_HEAD" ]                                          && cherry_pick_in_progress=true
+[ -f "$git_dir/REVERT_HEAD" ]                                               && revert_in_progress=true
+if ! $cherry_pick_in_progress && ! $revert_in_progress && [ -d "$git_dir/sequencer" ]; then
+    if grep -qE '^revert ' "$git_dir/sequencer/todo" 2>/dev/null; then
+        revert_in_progress=true
+    else
+        cherry_pick_in_progress=true
+    fi
+fi
 
 # ── Informe ───────────────────────────────────────────────────────────────────
 bar=$(printf '━%.0s' {1..54})
@@ -84,12 +100,19 @@ fi
 printf "${C_CYAN}  %s${C_RESET}\n" "$bar"
 printf "  %-20s %s\n" "Stashes guardados:" "$stash_count"
 if $merge_in_progress; then
-    printf "${C_RED}  ⚠  MERGE EN CURSO — usa GitFlow 19 Abort Merge para cancelar${C_RESET}\n"
+    printf "${C_RED}  ⚠  MERGE EN CURSO — para cancelarlo: 'taskctl abort-merge', o 'bash abort-merge.sh' desde scripts/gitflow/${C_RESET}\n"
 fi
 if $rebase_in_progress; then
     printf "${C_RED}  ⚠  REBASE EN CURSO — usa: git rebase --abort${C_RESET}\n"
 fi
-if ! $merge_in_progress && ! $rebase_in_progress; then
+if $cherry_pick_in_progress; then
+    printf "${C_RED}  ⚠  CHERRY-PICK EN CURSO — para cancelarlo: 'taskctl abort-merge', o 'bash abort-merge.sh' desde scripts/gitflow/${C_RESET}\n"
+fi
+if $revert_in_progress; then
+    printf "${C_RED}  ⚠  REVERT EN CURSO — para cancelarlo: 'taskctl abort-merge', o 'bash abort-merge.sh' desde scripts/gitflow/${C_RESET}\n"
+fi
+if ! $merge_in_progress && ! $rebase_in_progress \
+   && ! $cherry_pick_in_progress && ! $revert_in_progress; then
     printf "${C_GREEN}  ✓  Sin operaciones en curso${C_RESET}\n"
 fi
 printf "${C_CYAN}  %s${C_RESET}\n\n" "$bar"

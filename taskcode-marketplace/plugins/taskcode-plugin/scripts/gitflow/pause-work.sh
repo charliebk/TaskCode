@@ -46,14 +46,14 @@ case "${answer,,}" in
             invoke_git "No se pudo hacer push de $current." push origin "$current"
             log_ok "Push completado: $current → origin/$current"
         fi
-        log_info "Para retomar: usa GitFlow 17 Resume Work en la rama $current"
+        log_info "Para retomar: ejecuta 'taskctl resume $current' (o, sin el CLI a mano, 'bash resume-work.sh $current' desde esta misma carpeta)."
         log_summary "COMPLETADO" "Trabajo guardado como commit en $current"
         ;;
     stash|s)
         stash_msg="pause: $current $(date +%Y-%m-%d)"
         invoke_git "No se pudo crear el stash." stash push -u -m "$stash_msg"
         log_ok "Stash creado: $stash_msg"
-        log_info "Para retomar: usa GitFlow 17 Resume Work en la rama $current"
+        log_info "Para retomar: ejecuta 'taskctl resume $current' (o, sin el CLI a mano, 'bash resume-work.sh $current' desde esta misma carpeta)."
         log_summary "COMPLETADO" "Trabajo guardado como stash en $current"
         ;;
     cancelar|cancel|n|no)

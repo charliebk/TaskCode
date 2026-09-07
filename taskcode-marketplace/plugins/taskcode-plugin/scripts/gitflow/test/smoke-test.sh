@@ -37,15 +37,18 @@ cd "$TMP_REPO" || exit 1
 git init -q -b main
 git config user.name "smoke-test"
 git config user.email "smoke-test@example.invalid"
-# logs/ debe estar gitignorado ANTES de tocar cualquier script de
-# Git-Flow: el propio script escribe su log ahi al arrancar
-# (initialize_gitflow_log corre antes que ensure_workspace_ready), y
-# sin esto el primer uso en un repo nuevo se autobloquea con
-# "workspace no limpio" (hallazgo 2 de TASK-007, reproducido tambien
-# al escribir este mismo smoke test).
-printf 'logs/\n' > .gitignore
+# Repo temporal deliberadamente SIN .gitignore. Hasta TASK-029 hacia
+# falta uno con "logs/" antes de tocar ningun script de Git-Flow: el
+# propio script escribia su registro en <repo>/logs/gitflow/ al arrancar
+# (initialize_gitflow_log corre antes que ensure_workspace_ready) y sin
+# ignorarlo el primer uso en un repo nuevo se autobloqueaba con
+# "workspace no limpio" (hallazgo 2 de TASK-007, reproducido tambien al
+# escribir este mismo smoke test). Desde TASK-029 el registro vive en
+# .git/, que no forma parte del arbol de trabajo, asi que el repo no
+# necesita ignorar nada — y que aqui no haya .gitignore es justamente la
+# comprobacion (ver cheque 2).
 echo "init" > README.md
-git add README.md .gitignore
+git add README.md
 git commit -q -m "init"
 git checkout -q -b develop main
 
@@ -61,11 +64,17 @@ CURRENT_BRANCH="$(git branch --show-current)"
 assert "la rama activa es feature/smoke-test-feature" "$?"
 
 echo
-echo "== 2) el log interno se escribe DENTRO del repo temporal, no dentro de scripts/gitflow/ (hallazgo 1) =="
-[ -f "$TMP_REPO/logs/gitflow/gitflow-$(date +%Y-%m-%d).log" ]
-assert "logs/gitflow/*.log existe dentro del repo temporal" "$?"
+echo "== 2) el log interno se escribe en .git/ del repo temporal, fuera del arbol de trabajo (hallazgo 1 + TASK-029) =="
+[ -f "$TMP_REPO/.git/taskcode/gitflow/gitflow-$(date +%Y-%m-%d).log" ]
+assert ".git/taskcode/gitflow/*.log existe dentro del repo temporal" "$?"
 [ ! -d "$SCRIPT_DIR/logs" ]
 assert "NO se creo logs/ dentro de scripts/gitflow/ (log_dir ya no cuenta niveles de carpeta)" "$?"
+[ ! -d "$TMP_REPO/logs" ]
+assert "NO se creo logs/ en el arbol de trabajo del repo (TASK-029)" "$?"
+# Lo que define el frente S2 de TASK-029: el script no deja NADA en el
+# arbol de trabajo, en un repo que no ignora nada.
+[ -z "$(git status --porcelain)" ]
+assert "git status --porcelain queda vacio tras ejecutar el script" "$?"
 
 echo
 echo "== 3) merge-feature-to-develop.sh integra sin origin (hallazgo 4 - antes fallaba con exit 1) =="

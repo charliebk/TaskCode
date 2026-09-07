@@ -94,7 +94,8 @@ printf "${C_GREEN}    $REMOTE_NAME -> $DEST_URL${C_RESET}\n"
 printf "${C_GREEN}    $BRANCH_COUNT rama(s) + $TAG_COUNT tag(s) enviadas${C_RESET}\n\n"
 
 printf "${C_CYAN}  Siguiente paso opcional:${C_RESET}\n"
-printf "${C_DGRAY}    Ejecuta 'GitFlow 21 Switch Working Remote' si quieres que los 19${C_RESET}\n"
-printf "${C_DGRAY}    scripts existentes trabajen contra '$REMOTE_NAME' a partir de ahora.${C_RESET}\n\n"
+printf "${C_DGRAY}    Ejecuta 'bash switch-working-remote.sh' (en esta misma carpeta) si${C_RESET}\n"
+printf "${C_DGRAY}    quieres que los demas scripts de Git-Flow trabajen contra${C_RESET}\n"
+printf "${C_DGRAY}    '$REMOTE_NAME' a partir de ahora. No hay comando de taskctl para esto.${C_RESET}\n\n"
 
 log_summary "COMPLETADO" "mirror $REMOTE_NAME ($BRANCH_COUNT ramas, $TAG_COUNT tags)"

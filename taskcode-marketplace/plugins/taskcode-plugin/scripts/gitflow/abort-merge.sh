@@ -8,11 +8,32 @@ current=$(git branch --show-current 2>/dev/null || echo "(detached HEAD)")
 # ── Detectar operación en curso ───────────────────────────────────────────────
 merge_in_progress=false
 rebase_in_progress=false
+cherry_pick_in_progress=false
+revert_in_progress=false
 [ -f "$git_dir/MERGE_HEAD" ]                                            && merge_in_progress=true
 { [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; } && rebase_in_progress=true
+[ -f "$git_dir/CHERRY_PICK_HEAD" ]                                      && cherry_pick_in_progress=true
+[ -f "$git_dir/REVERT_HEAD" ]                                           && revert_in_progress=true
 
-if ! $merge_in_progress && ! $rebase_in_progress; then
-    log_info "No hay ningún merge ni rebase en curso en la rama '$current'."
+# Una secuencia multi-commit puede quedar a medias SIN ninguno de los dos
+# testigos de arriba: si se resuelve el conflicto y se hace "git commit" a
+# mano en vez de "--continue", Git borra CHERRY_PICK_HEAD pero deja
+# .git/sequencer con los commits que faltan, y "--abort" sigue funcionando
+# (medido en git 2.55). El testigo ahí es el directorio; si alguna entrada
+# de su "todo" empieza por "revert " es un revert, y si no, un cherry-pick.
+# Se mira el fichero entero y no solo su primera línea: Git no mezcla los
+# dos verbos en una misma secuencia, así que basta con encontrar uno.
+if ! $cherry_pick_in_progress && ! $revert_in_progress && [ -d "$git_dir/sequencer" ]; then
+    if grep -qE '^revert ' "$git_dir/sequencer/todo" 2>/dev/null; then
+        revert_in_progress=true
+    else
+        cherry_pick_in_progress=true
+    fi
+fi
+
+if ! $merge_in_progress && ! $rebase_in_progress \
+   && ! $cherry_pick_in_progress && ! $revert_in_progress; then
+    log_info "No hay ningún merge, rebase, cherry-pick ni revert en curso en la rama '$current'."
     printf "${C_DGRAY}  El workspace está en estado normal.${C_RESET}\n\n"
     log_summary "INFO" "Sin operaciones que abortar"
     exit 0
@@ -60,4 +81,82 @@ if $rebase_in_progress; then
     invoke_git "No se pudo abortar el rebase." rebase --abort
     log_ok "Rebase abortado. Workspace restaurado al estado previo al rebase."
     log_summary "COMPLETADO" "Rebase abortado en rama $current"
+    exit 0
+fi
+
+# ── Cherry-pick o revert en curso ─────────────────────────────────────────────
+# Los dos son la misma maquinaria de Git (el sequencer): se detectan igual, se
+# abortan igual y de hecho "git revert --abort" aborta un cherry-pick y
+# viceversa. De ahí que compartan bloque en vez de duplicarlo.
+if $cherry_pick_in_progress || $revert_in_progress; then
+    if $cherry_pick_in_progress; then
+        operacion="cherry-pick"
+        head_file="$git_dir/CHERRY_PICK_HEAD"
+    else
+        operacion="revert"
+        head_file="$git_dir/REVERT_HEAD"
+    fi
+
+    # true cuando el unico testigo es .git/sequencer/: no hay commit "en
+    # curso" y el abort no va a rebobinar nada. Se decide aqui, con el
+    # testigo todavia presente, y se usa despues para no mentir en el
+    # mensaje de cierre.
+    solo_sequencer=false
+    [ -f "$head_file" ] || solo_sequencer=true
+
+    printf "\n${C_YELLOW}  ${operacion^} en curso detectado:${C_RESET}\n"
+    printf "${C_DGRAY}    Rama actual     : %s${C_RESET}\n" "$current"
+    if [ -f "$head_file" ]; then
+        seq_head=$(cat "$head_file" 2>/dev/null || echo "desconocido")
+        printf "${C_DGRAY}    Commit entrante : %s${C_RESET}\n" "${seq_head:0:8}"
+    else
+        # Detectado solo por el sequencer: no hay un commit "en curso",
+        # queda cola sin aplicar. Se cuentan ENTRADAS del "todo", que no es
+        # exactamente lo mismo que commits: una entrada puede quedarse en
+        # nada si su contenido ya estaba aplicado. Es una pista de cuanto
+        # falta, y el texto no promete mas que eso (hallazgo MENOR de la
+        # revision por pares, TASK-029).
+        pendientes=$(grep -cE '^(pick|revert) ' "$git_dir/sequencer/todo" 2>/dev/null || true)
+        printf "${C_DGRAY}    Entradas pendientes en la secuencia : %s${C_RESET}\n" "${pendientes:-0}"
+    fi
+
+    conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null || true)
+    if [ -n "$conflicts" ]; then
+        printf "\n${C_RED}  Archivos en conflicto:${C_RESET}\n"
+        while IFS= read -r line; do
+            printf "${C_RED}    ✗ %s${C_RESET}\n" "$line"
+        done <<< "$conflicts"
+    fi
+
+    printf "\n"
+    read -rp "  ¿Abortar el $operacion y restaurar el estado anterior? [s/N]: " answer
+    if ! [[ "${answer,,}" =~ ^s ]]; then
+        log_info "Operación cancelada. El $operacion sigue en curso."
+        exit 0
+    fi
+
+    # Hallazgo IMPORTANTE de la revisión por pares (TASK-029): "abortar" no
+    # siempre rebobina. Si la secuencia se detectó SOLO por el sequencer —
+    # porque resolviste el conflicto con "git commit" en vez de con
+    # "--continue" — Git descarta la cola pendiente pero avisa "You seem to
+    # have moved HEAD. Not rewinding", sale 0, y deja tus commits donde
+    # estaban. Decir ahí "workspace restaurado al estado previo" sería
+    # mentir sobre lo que acaba de pasar.
+    #
+    # El discriminante es la ausencia del testigo, no comparar HEAD antes y
+    # después: en un cherry-pick de un solo commit en conflicto HEAD tampoco
+    # se mueve (la operación nunca llegó a commitear), y ahí el abort SÍ
+    # restaura de verdad — deshace el conflicto y deja el workspace limpio.
+    # Medido: comparar HEAD daba el mensaje del caso raro en el caso normal.
+    invoke_git "No se pudo abortar el $operacion." "$operacion" --abort
+
+    if [ "$solo_sequencer" = true ]; then
+        log_ok "${operacion^} cancelado: se ha descartado la cola de commits que quedaba por aplicar."
+        log_info "Lo que ya habías confirmado a mano se queda como está: aquí no hay nada que rebobinar."
+        log_summary "COMPLETADO" "Cola de $operacion descartada en rama $current (sin rebobinar)"
+    else
+        log_ok "${operacion^} abortado. Workspace restaurado al estado previo al $operacion."
+        log_summary "COMPLETADO" "${operacion^} abortado en rama $current"
+    fi
+    exit 0
 fi

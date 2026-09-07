@@ -14,20 +14,52 @@ C_CYAN="\033[36m";  C_WHITE="\033[97m";  C_DGRAY="\033[90m"; C_RESET="\033[0m"
 initialize_gitflow_log() {
     GF_OPERATION="$1"
     GF_START=$(date +%s)
-    # Ajuste TASK-008 (hallazgo 1 de TASK-007): antes se calculaba contando
-    # niveles de carpeta desde el script (valido solo en la ubicacion
-    # original .idea/runConfigurations/local_git-flow-actions/). Al vivir
-    # ahora dentro del plugin instalado, se usa la raiz real del repo del
-    # USUARIO, no la del script.
+    # Ajuste TASK-008 (hallazgo 1 de TASK-007): antes la ruta se calculaba
+    # contando niveles de carpeta desde el script (valido solo en la
+    # ubicacion original .idea/runConfigurations/local_git-flow-actions/).
+    # Al vivir ahora dentro del plugin instalado, se le pregunta a Git por
+    # el repo del USUARIO en vez de deducirlo de la ruta del script.
     # Hallazgo menor de revision por pares (TASK-008): si no hay repo Git
     # en absoluto en el cwd, no se escribe log a fichero (GF_LOG_FILE
-    # vacio) en vez de crear logs/gitflow/ como basura fuera de cualquier
-    # repo — el resto de funciones de log ya toleran GF_LOG_FILE vacio.
-    local log_dir repo_root
-    repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || repo_root=""
-    if [ -n "$repo_root" ]; then
-        log_dir="$repo_root/logs/gitflow"
-        mkdir -p "$log_dir"
+    # vacio) en vez de crear el directorio del registro como basura fuera
+    # de cualquier repo — el resto de funciones de log ya toleran
+    # GF_LOG_FILE vacio. Esa salvaguarda se conserva: aqui la da el
+    # propio `git rev-parse`, que sale 128 y deja log_dir vacio.
+    #
+    # Ajuste TASK-029 (item C6): el registro deja de escribirse en
+    # <repo>/logs/gitflow/ y pasa a vivir dentro de .git/. El sitio
+    # anterior ensuciaba el arbol de trabajo del usuario nada mas
+    # arrancar cualquiera de los 24 scripts, ANTES de que el script
+    # mirase el workspace: por eso pause-work.sh acababa preguntando
+    # que hacer con un directorio que acababa de crear el mismo, y por
+    # eso `taskctl resume` era inservible en un repo que no ignorase
+    # logs/ (abortaba con "El workspace no esta limpio" y remitia a un
+    # `pause` que tambien habria abortado). Razones de ESTA ruta:
+    #
+    #   - .git/ no forma parte del arbol de trabajo, asi que
+    #     `git status` no lo ve NUNCA, con .gitignore o sin el. La
+    #     clase entera de problema desaparece en vez de taparse con un
+    #     patron en el .gitignore de cada repo del usuario.
+    #   - Se usa `--git-path` y NO se concatena sobre `--git-dir`: asi
+    #     sigue valiendo dentro de un worktree enlazado, donde el
+    #     directorio propio del worktree cuelga de
+    #     .git/worktrees/<nombre>/ y no del .git principal. Es el mismo
+    #     criterio que usa `operacionEnCurso` en src/fs/git.ts, por el
+    #     mismo motivo.
+    #   - El registro sigue siendo por repo y auditable, que era lo que
+    #     se buscaba al meterlo dentro del repo.
+    #
+    # `--git-path` devuelve una ruta relativa al cwd (p. ej.
+    # ".git/taskcode/gitflow" desde la raiz), asi que se absolutiza tras
+    # crearla para que GF_LOG_FILE siga siendo valido pase lo que pase.
+    local log_dir=""
+    log_dir="$(git rev-parse --git-path taskcode/gitflow 2>/dev/null)" || log_dir=""
+    if [ -n "$log_dir" ] && mkdir -p "$log_dir" 2>/dev/null; then
+        log_dir="$(cd "$log_dir" && pwd)"
+    else
+        log_dir=""
+    fi
+    if [ -n "$log_dir" ]; then
         GF_LOG_FILE="$log_dir/gitflow-$(date +%Y-%m-%d).log"
         local sep
         sep=$(printf '=%.0s' {1..60})

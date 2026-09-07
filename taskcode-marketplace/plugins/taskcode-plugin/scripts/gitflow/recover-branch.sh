@@ -10,6 +10,29 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+# Ajuste TASK-029 (item C6, frente S1): antes se hacia "fetch origin" y
+# "ls-remote origin" sin comprobar disponibilidad, y el script moria con el
+# "fatal: 'origin' does not appear to be a git repository" crudo de Git.
+detect_origin_available
+
+# Decision sobre REMOTE_CONFIGURED vs REMOTE_AVAILABLE: aqui la distincion
+# NO cambia el comportamiento (ambos casos son exit 1) pero SI el mensaje,
+# que es todo el arreglo que cabe en este script. El proposito entero de
+# recover-branch es traerse una rama de origin: no existe modo local
+# posible, asi que fingir exito seria peor que el bug. Lo que si cambia es
+# que hacer despues: sin origin configurado hay que anadir el remoto; con
+# origin caido hay que arreglar la conexion y reintentar.
+if [ "$REMOTE_CONFIGURED" = false ]; then
+    log_error "Este repo no tiene un remoto 'origin' configurado y recover-branch solo sabe recuperar ramas DESDE origin. No hay nada que recuperar. Si la rama existe en algun repositorio remoto, anadelo primero con: git remote add origin <url>"
+    log_summary "FALLIDO" "sin remoto origin configurado"
+    exit 1
+fi
+if [ "$REMOTE_AVAILABLE" = false ]; then
+    log_error "origin esta configurado pero no responde, y recover-branch necesita leer la rama DESDE origin. Revisa conexion/credenciales (VPN, token, acceso al repositorio) y reintenta."
+    log_summary "FALLIDO" "origin configurado pero inaccesible"
+    exit 1
+fi
+
 invoke_git "No se pudo hacer fetch de origin." fetch origin
 
 if [ -z "$NAME" ]; then
