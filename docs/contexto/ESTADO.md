@@ -251,7 +251,64 @@ cerraron en B1 y B3) y se anotó la trampa de los 3 rojos de Windows.
 un `taskctl` que funcione (`dist/` ignorado, sin `bin` declarado). Es un
 problema de empaquetado, no del ciclo de vida, y va a la Fase E como **E6**.
 
-## Qué sigue: Fases D y E
+## Qué acaba de pasar (sesión del 2026-09-07, resto): C6, C2 y C4
+
+Tres items más en la misma sesión, todos con **agentes en paralelo dentro de
+una sola rama** (norma del proyecto) e integración en serie.
+
+**C6 (TASK-029)** cerró los cuatro frentes de deuda de los scripts de
+Git-Flow: guard de `origin` en los tres que faltaban, el registro fuera del
+workspace del usuario (`.git/taskcode/gitflow/`, resuelto con `--git-path`
+para que valga en worktrees), los mensajes citando `taskctl` en vez de menús
+de IntelliJ, y `abort-merge` viendo cherry-picks y reverts. Al medirlo
+apareció un **tercer testigo que el plan no preveía**: `.git/sequencer/`.
+
+**C2 + C4 (TASK-030)**, dos items en una rama porque el límite de WIP es 1.
+`taskctl` ya commitea lo que escribe —una ruta a una, nunca `add -A`— y
+`.taskcode/config.yml` existe con tres claves opcionales.
+
+**El patrón que más se repitió no fue un bug, fue una forma de equivocarse**:
+afirmar sin medir. Ocurrió cinco veces y las cinco lo cazó quien lo tocó
+después —
+
+- el plan decía que dos scripts usaban una función compartida, y no la usaban;
+- decía que dos testigos bastaban para detectar un cherry-pick, y faltaba uno;
+- decía que el parser soportaba comentarios `#`, y solo los inline;
+- decía que `start`/`review`/`finish` no comprueban el workspace, y sí lo hacen;
+- y `limite_wip` se dio por bueno tras probarlo a mano con el CLI, sin test:
+  deshacer la línea que lo cablaba no rompía nada.
+
+El último es el más incómodo y el más útil: **verificado a mano no es
+verificado**. Está en `HALLAZGOS.md` junto al patrón hermano de C6 (medir lo
+que no discrimina: comparar HEAD antes/después parecía empírico y daba el
+mensaje del caso raro en el caso normal).
+
+## Qué sigue: E6 primero, luego la Fase D
+
+**Decidido con Carlos el 2026-09-07, al cerrar la Fase C.** El orden no es
+negociable por dos motivos, uno de criterio y otro mecanico:
+
+1. **E6 va antes que toda la Fase D.** En un clon recien hecho el plugin no
+   trae un `taskctl` que arranque: `dist/` esta ignorado y nadie declara
+   `bin`. Toda la Fase D construye encima de una herramienta que, hoy, quien
+   clone el repo no puede ejecutar. Arreglar el escaparate antes de seguir
+   llenandolo.
+2. **El limite de WIP es 1**, asi que E6 tiene que estar cerrada (mergeada
+   con `taskctl finish`) antes de arrancar cualquier tarea de D. No es una
+   preferencia: `taskctl start` aborta si hay otra tarea abierta.
+
+E6 lleva **rama propia**, como cualquier tarea: la crea `taskctl start` y la
+mergea `finish` con `--no-ff`, sin borrarla (politica IECA).
+
+Orden sugerido dentro de la Fase D, una vez cerrada E6:
+
+- **D7 primero** (`heuristica-complejidad.yml` + los roles de `agents/`):
+  alimenta a D1 y D2, asi que hacerlo despues obligaria a rehacer trabajo.
+- **D6 en paralelo** (las 4 skills revisoras): no depende de nada.
+- **D4 al final, o no hacerlo.** La decision #17 lo dejo aplicando **solo a
+  `trivial`**, y en todo el historial no hay ni una tarea `trivial`: son ~3h
+  para un camino que en la practica no se recorre. Conviene decidir si vale
+  la pena antes de gastarlas.
 
 **La Fase C se cerró entera el 2026-09-07** con TASK-030 (items C2 y C4), que
 fue lo último que le faltaba. Las decisiones #14 y #9 se resolvieron ese mismo
