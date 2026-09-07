@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-029-bug-de-origin-sin-guard-y-deuda-de-los-s
 asignado_a: charlie.bk@gmail.com

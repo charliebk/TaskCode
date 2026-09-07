@@ -29,7 +29,7 @@ TASK-022  Documentación de equipo e incorporación de colaboradores            
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 8
+## Terminadas (04-terminadas) — 9
 
 ```text
 ID        Titulo                                                                           Asignado
@@ -42,4 +42,5 @@ TASK-025  El limite de WIP mira las ramas de trabajo, no el arbol activo        
 TASK-026  Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge  charlie.bk@gmail.com
 TASK-027  Subcarpetas planificacion y revision en cada carpeta de tarea                    charlie.bk@gmail.com
 TASK-028  Primera skill del plugin: task-workflow/SKILL.md                                 charlie.bk@gmail.com
+TASK-029  Bug de origin sin guard y deuda de los scripts de Git-Flow                       charlie.bk@gmail.com
 ```
