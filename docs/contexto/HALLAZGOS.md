@@ -132,6 +132,115 @@ trabajo, se convierte en **un step de CI propio que la asevera**, con
 por la API de jobs sin necesidad de bajar logs. Así se cerraron de golpe cinco
 preguntas que llevaban abiertas desde TASK-006/007.
 
+## Empaquetado y finales de línea (TASK-031 / item E6)
+
+### Una prueba de reproducibilidad hecha en una sola plataforma no prueba nada
+
+Al planificar E6 se comparó el hash agregado de `dist/src` del repo con el de
+un clon limpio recién compilado: **idénticos**, y se dio por buena la
+reproducibilidad. Estaban los dos en Windows. El fallo real solo aparece
+comparando Windows contra Linux, así que la medición confirmó exactamente lo
+que ya se creía y no podía haber salido de otra manera.
+
+Es la versión de empaquetado del hallazgo de C3 (un fix de errno validado en
+una sola plataforma no está validado) y del de B7 (un smoke test que ejecuta
+los comandos en el orden más cómodo confirma lo que ya creías).
+
+### `newLine: "lf"` no controla lo que parece, y hoy además es inerte
+
+Controla los saltos que **emite** `tsc`, no el contenido de las plantillas
+multilínea, que viaja tal cual desde el fuente. Con `core.autocrlf=true` el
+checkout de Windows mete CRLF dentro de un literal y el mismo `src/` compila
+distinto que en Linux: medido, 34 CRLF en `dist/src/cli.js`, **los 34 dentro
+del literal `HELP`**, mientras los 454 saltos del emisor ya salían en LF.
+
+Quien fija el eol de verdad es el `.gitattributes`. Y la revisión midió algo
+más incómodo: con TypeScript 5.9.3 la opción `newLine` es **inerte** — quitarla
+produce salida byte a byte idéntica. Se mantiene como red ante un cambio de
+versión de `tsc`, pero no se le puede atribuir un efecto que hoy no tiene.
+
+### Una conversión de EOL hecha a mano no equivale a la de git
+
+Git convierte CRLF→LF y **deja los CR sueltos**. Una regex ingenua
+(`replace(/\r/g, '\n')`) los destruye. Convirtiendo los `.ts` a LF a mano se
+partió en dos un comentario de `wrappers.test.ts` que llevaba un CR suelto
+dentro. Era un comentario; podría haber sido un literal de un test.
+
+Si hay que renormalizar, lo hace git: `git add --renormalize`, y el working
+tree se materializa con un checkout, no con un script.
+
+### `git status` y `git diff` no contestan lo mismo sobre ficheros con filtro de eol
+
+En un worktree heredado, `git status` puede marcar ` M` un fichero cuyo blob
+normalizado es **idéntico** (mismo hash, `git diff` vacío). Sobrevive a
+`git update-index --really-refresh`. Consecuencias, las dos reales:
+
+- Un guard de CI escrito con `git status --porcelain` da **falso positivo**.
+- Y en local es peor: el workspace queda permanentemente sucio, el guard de
+  §8.3 aborta todo `taskctl`, y **no se puede limpiar commiteando** porque no
+  hay nada que commitear. Mismo síntoma que motivó ignorar `.topoplanet/`.
+
+Para comparar «generado == commiteado», lo que desambigua es pasar por el
+índice: `git add -A -- <ruta>` y luego `git diff --cached`. Aplica el filtro
+`clean` y, a diferencia de `git diff --exit-code` a secas, **ve los ficheros
+nuevos y los borrados**.
+
+### `tsc` no purga `outDir`: todo guard de «generado == commiteado» es ciego a los huérfanos
+
+Un módulo borrado de `src/` deja su `.js` commiteado para siempre y el guard
+sigue en verde, que es lo contrario de lo que promete. Hay que `rm -rf` el
+directorio de salida **antes** de compilar.
+
+### Un guard que se apoya en un step anterior puede degradarse a vacuo
+
+El guard de Windows no compilaba: se apoyaba en el `npm run build` que lo
+precedía. Reordenar o condicionar aquel step lo habría dejado pasando en verde
+sin hacer nada, porque sobre un checkout limpio la comparación es trivialmente
+vacía. Cada guard compila lo suyo.
+
+### La caché de un marketplace `directory` copia el árbol de trabajo, ignorados incluidos
+
+Instalar el plugin desde una ruta local **no demuestra** que lo versionado
+baste: esa caché es una copia del directorio, no un export de Git. Se comprobó
+contando 34 ficheros de `dist/test/` en la caché cuando `git ls-files dist/test`
+devuelve 0. Es decir, la tabla de evidencia que se escribió habría contestado
+«sí» igual **antes** de versionar nada.
+
+Lo que sí discrimina es exportar HEAD (`git clone --no-checkout` + `checkout
+<sha>`), que solo ve lo commiteado. Es lo que hace el test de AC1.
+
+### Revisores en paralelo sobre el mismo working tree se contaminan
+
+Los tres revisores de la ronda 1 compartieron árbol. Uno mutaba ficheros para
+comprobar que los tests discriminaban mientras otro corría la suite, y este
+reportó una anomalía irreproducible: un cuarto rojo y un fichero fantasma en el
+índice. Los tres dejaron el repo limpio y ninguno hizo nada mal.
+
+La norma del proyecto es paralelizar agentes en tareas transversales, y sigue
+valiendo — pero **cada revisor con su propio clon**.
+
+### La instalación real del plugin: lo que quedó confirmado y lo que no
+
+Confirmado ejecutándolo (CLI 2.1.226): `plugin marketplace add` + `plugin
+install` funcionan, la copia cacheada arranca sin compilar, Claude Code
+instala las deps con `npm ci --ignore-scripts` — lo que **cierra la vía** de
+compilar en `postinstall` o `prepare`, verificado también con un paquete de
+prueba— y el mecanismo de `bin/` en PATH existe de verdad: en el PATH de una
+sesión aparecen los `bin/` de otros plugins cacheados.
+
+Sin confirmar: en la sesión donde se instaló, `taskctl` como comando suelto
+seguía dando `command not found`. La hipótesis es que el PATH se compone al
+arrancar la sesión. **No está comprobado**, y cuesta un comando en la siguiente:
+`taskctl --version`.
+
+### Limitación que condiciona E1: `bin/` de nivel superior y claude.ai
+
+Un plugin con `bin/` en la raíz **no se puede distribuir por organization
+settings de claude.ai** (`Plugin contains a top-level bin/ directory`). No
+afecta al marketplace privado por Git de hoy. El día que haga falta esa vía,
+habrá que renunciar a `taskctl` como comando suelto y pasar a
+`${CLAUDE_PLUGIN_ROOT}/scripts/<nombre>`.
+
 ## Windows: resuelto por CI el 2026-09-05
 
 Cinco preguntas que arrastraban TASK-006/007/008/009/010/011, todas
