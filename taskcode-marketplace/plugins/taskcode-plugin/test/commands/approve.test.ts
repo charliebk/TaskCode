@@ -11,7 +11,11 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import { runApproveCommand, ApproveCommandError } from '../../src/commands/approve.js';
-import { PLAN_FINAL_FILENAME, PLANIFICACION_DIRNAME } from '../../src/commands/plan.js';
+import {
+  PLAN_FINAL_FILENAME,
+  PLANIFICACION_DIRNAME,
+  resolverPlanFinal,
+} from '../../src/commands/plan.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
@@ -464,5 +468,51 @@ test('taskctl approve: con la tarea en un estado no aprobable Y dos plan-final.m
         return true;
       }
     );
+  });
+});
+
+
+test('taskctl approve: la ambiguedad que solo existe en la rama base tambien se detecta (lectura fresca, no solo la preliminar)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 2, TASK-027):
+    // assertPlanNoAmbiguo se llama en los DOS puntos, pero quitarla de la
+    // lectura fresca no rompia ningun test, porque los dos tests de
+    // ambiguedad ya arrancan en develop y cortan en la preliminar. Y es
+    // justo la fresca la que cubre el caso realista: la ambiguedad nace
+    // de dos merges --no-ff en develop, y quien ejecuta approve puede
+    // estar en su rama de feature, donde no se ve.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con un solo plan, el canonico');
+
+    // Rama de feature bifurcada AHORA: aqui solo se ve el plan canonico.
+    git(['checkout', '-q', '-b', 'feature/sin-ambiguedad-a-la-vista'], repoRoot);
+
+    // develop avanza y acaba con los dos ficheros (lo que dejan dos
+    // merges sin conflicto de dos ramas que planificaron distinto).
+    git(['checkout', '-q', 'develop'], repoRoot);
+    await writePlanFinalLegado(tareasRoot, 'TASK-800', '# Plan de la otra rama\n');
+    commitAll(repoRoot, 'develop acaba con los dos plan-final.md');
+
+    git(['checkout', '-q', 'feature/sin-ambiguedad-a-la-vista'], repoRoot);
+    // La lectura preliminar NO ve ambiguedad desde aqui.
+    const soloCanonico = await resolverPlanFinal(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-800')
+    );
+    assert.equal(soloCanonico.legadaExiste, false);
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(err instanceof ApproveCommandError, `error inesperado: ${String(err)}`);
+        assert.match((err as Error).message, /No se puede aprobar sin saber cual es el plan bueno/);
+        return true;
+      }
+    );
+
+    // Cambio de rama hecho, pero nada aprobado.
+    assert.equal(branchNow(repoRoot), 'develop');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, false);
   });
 });

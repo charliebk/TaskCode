@@ -10,17 +10,17 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 26 / 42 items terminados (62%)** · última actualización: 2026-09-06
+**Progreso global: 27 / 42 items terminados (64%)** · última actualización: 2026-09-06
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
 | ✅ Ya terminado (Sprint 0 + 1) | 12 | 12 | — |
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
-| C — Tapar huecos | 8 | **3** | ~15h |
+| C — Tapar huecos | 8 | **4** | ~15h |
 | D — Inteligencia del proceso | 7 | 0 | ~38h |
 | E — Cierre | 5 | **1** | ~7h |
-| **Total pendiente** | **30** | **14** | **~84h** |
+| **Total pendiente** | **30** | **15** | **~84h** |
 
 ---
 
@@ -147,7 +147,7 @@ del proceso, no lo habilita.
       la misma persona con dos grafías — normalizar identidades es material
       de C4). 38 tests reales nuevos (345).*
 
-## Fase C — Tapar huecos (2/8) · ~15h
+## Fase C — Tapar huecos (4/8) · ~15h
 
 Lo que la metodología da por hecho y no existe.
 
@@ -170,8 +170,30 @@ Lo que la metodología da por hecho y no existe.
       al equipo sola. **Evidencia nueva (A2)**: sin el paso 5, `taskctl
       import` no se puede ejecutar dos veces seguidas — crea las carpetas que
       luego bloquean su propia siguiente invocación.*
-- [ ] **C3** · Subcarpetas `planificacion/` y `revision/` en cada carpeta de tarea — ~1h
-      *Hoy `plan-final.md` queda suelto en la raíz de la carpeta.*
+- [x] **C3** · TASK-027 — Subcarpetas `planificacion/` y `revision/` en cada carpeta de tarea — ~1h
+      *Cerrado el 2026-09-06. `taskctl plan` crea `planificacion/` y escribe
+      ahí el scaffold de `plan-final.md`, que es la ubicación canónica según
+      la sección 2 de la metodología; `revision/` ya la creaba `review`
+      desde B1. **El nudo no era la ruta nueva, era el legado**: `approve`
+      sigue aceptando el plan suelto en la raíz —una tarea planificada con
+      la versión anterior del CLI no se queda sin poder aprobarse— y una
+      re-planificación lo **migra** a `planificacion/` con `rename`,
+      conservando el contenido en vez de pisarlo con el scaffold, y lo dice
+      en la salida. Si aparecen los dos a la vez (legado + canónico), tanto
+      `plan` como `approve` **fallan cerrado** sin tocar nada, en vez de
+      elegir por su cuenta cuál gana. Las 6 tareas ya cerradas en
+      `04-terminadas/` (TASK-013, 014, 015, 024, 025 y 026) se migraron con
+      `git mv` — rename puro, 0 líneas cambiadas —, así que **ya no queda
+      ningún `plan-final.md` suelto en el repo**. Revisión por pares ronda
+      1: **APROBADO CON CAMBIOS** (1 importante, 4 menores), sobre un clon
+      con smoke test propio y 7 mutantes. El importante: la reestructuración
+      había dejado sin cobertura una protección contra pérdida de datos que
+      `develop` sí tenía, demostrado ejecutando el mismo mutante en las dos
+      ramas. Aplicados todos salvo la parte (a) del hallazgo #4 —el `rename`
+      de la migración no tiene un equivalente exclusivo del flag `'wx'`
+      porque POSIX no lo ofrece—, documentada sin corregir. 8 tests nuevos
+      (429; 426 verdes y los 3 rojos conocidos de este entorno Windows).
+      Dos rondas de revisión: **APROBADO CON CAMBIOS** (1 importante, 4 menores) y **cambios solicitados → APROBADA** (1 importante, 3 menores). El importante de la ronda 2: el fix de la ronda 1 era un fix solo de Windows —en POSIX el `stat` falla antes con `ENOTDIR`— y el test escrito para certificarlo habría caído en el job `ubuntu-latest`.*
 - [ ] **C4** · `.taskcode/config.yml` — ~1h
       *Decisión #9 de la sección 14: nadie ha definido qué va dentro.*
 - [ ] **C5** · `skills/task-workflow/SKILL.md` — ~1h

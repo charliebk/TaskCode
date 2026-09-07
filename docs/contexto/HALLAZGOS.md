@@ -21,6 +21,28 @@ opciones (y con `'inherit'` puede colgar la suite entera). Para
 distinguirlas hay que lanzar un **proceso hijo con stdin controlado** — el
 patrón está en `test/fs/gitflow-runner.test.ts`.
 
+### Un fix de errno validado en una sola plataforma no está validado (TASK-027)
+
+`ENOENT` y `ENOTDIR` describen el mismo hecho para la pregunta *"¿existe
+este fichero?"*, y el reparto entre uno y otro **depende del sistema
+operativo**: con `planificacion` ocupado por un fichero,
+`stat("planificacion/plan-final.md")` devuelve `ENOENT` en Windows y
+`ENOTDIR` en POSIX. Un helper que absorbe solo `ENOENT` se comporta bien en
+Windows y revienta con un error crudo en Linux.
+
+Lo caro no fue el bug, fue que **el test escrito para cerrar el hueco heredó
+el mismo punto ciego**: se validó en Windows, pasó, y habría fallado en el
+job `ubuntu-latest` del CI. Un fix de errno se comprueba en las dos
+plataformas o no está comprobado. Si no hay Linux a mano, se inyecta la
+semántica POSIX (envolviendo el `stat` para convertir el errno) y se verifica
+por contraprueba que sin el fix el test cae — pero eso es una **simulación**,
+y hay que decirlo como tal: la palabra final la tiene el CI.
+
+Corolario: cualquier helper del estilo `existeFichero` que se pregunte por
+una ruta con directorios intermedios tiene que tratar `ENOTDIR` igual que
+`ENOENT`. Están `isEnoent`, `isEexist` e `isEnotdir` en `fs/task-store.ts`
+justamente para no repetir la comprobación a mano.
+
 ### Doble lectura cuando un comando cambia de rama a mitad (TASK-012)
 
 Los dos únicos CRÍTICOS de Sprint 1 salieron de aquí, y uno era **pérdida de
