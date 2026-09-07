@@ -270,8 +270,55 @@ script `test` de `package.json` expandía los globs en el shell, y `cmd.exe`
 no expande globs, así que la suite entera fallaba en Windows. Con el glob
 entrecomillado lo expande Node y funciona en ambos sistemas.
 
-Lo que **sigue** sin poder comprobarse desde una sesión no interactiva:
-`claude --plugin-dir` en modo interactivo y el `/plugin install` real.
+### RESUELTO (2026-09-07, TASK-031): el `/plugin install` real, por fin ejecutado
+
+TASK-006 y TASK-021 dejaron pendiente comprobar la instalación de verdad por
+no haber un CLI de Claude Code disponible. Ya lo hay (2.1.226), y esto es lo
+que se ejecutó:
+
+```
+$ claude plugin validate .                      # marketplace  -> ✔ passed
+$ claude plugin validate ./taskcode-marketplace/plugins/taskcode-plugin
+                                                # plugin       -> ✔ passed
+$ claude plugin marketplace add "C:\...\TaskCode"
+✔ Successfully added marketplace: taskcode-marketplace
+$ claude plugin install taskcode-plugin@taskcode-marketplace
+✔ Successfully installed plugin: taskcode-plugin@taskcode-marketplace (scope: user)
+```
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿El plugin se instala desde el marketplace? | **Sí**, `enabled`, scope `user` |
+| ¿La copia cacheada trae `dist/`? | **Sí** — es lo que arregla E6 |
+| ¿`taskctl` arranca desde la caché, sin compilar? | **Sí**: `node <cache>/bin/taskctl --version` → `0.1.0` |
+| ¿Claude Code instala las deps npm en la copia? | **Sí**, hay `node_modules/` en la caché |
+| ¿Existe de verdad el mecanismo de `bin/` en PATH? | **Sí** — confirmado abajo |
+
+Lo último merece detalle, porque hasta ahora era una cita de la documentación
+que este proyecto nunca había visto ocurrir (el CI la *simula* metiendo `bin/`
+en el `PATH` a mano, que no prueba lo mismo). En el `PATH` de una sesión real
+aparecen entradas como:
+
+```
+.../.claude/plugins/cache/claude-plugins-official/figma/2.2.90/bin
+.../.claude/plugins/cache/karpathy-skills/andrej-karpathy-skills/1.0.0/bin
+```
+
+es decir, el mecanismo existe y opera sobre plugins instalados.
+
+**Lo que queda sin confirmar, y no se da por bueno**: en la sesión donde se
+hizo la instalación, `taskctl` como comando suelto seguía dando
+`command not found`, y el `bin/` de este plugin no estaba en el `PATH`. La
+explicación coherente con la evidencia es que el `PATH` se compone al arrancar
+la sesión y el plugin se instaló después — pero *eso no se ha comprobado*.
+Confirmarlo cuesta un comando en la siguiente sesión:
+
+```bash
+taskctl --version   # deberia imprimir 0.1.0 sin ruta ni node delante
+```
+
+Mientras tanto, lo que sí está probado es que el ejecutable de la caché es
+válido: con su directorio en el `PATH`, `taskctl --version` responde `0.1.0`.
 
 ### Segunda limitación, específica de este repo: `core.fileMode=false`
 
