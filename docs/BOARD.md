@@ -29,7 +29,7 @@ TASK-022  Documentación de equipo e incorporación de colaboradores            
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 10
+## Terminadas (04-terminadas) — 11
 
 ```text
 ID        Titulo                                                                           Asignado
@@ -44,4 +44,5 @@ TASK-027  Subcarpetas planificacion y revision en cada carpeta de tarea         
 TASK-028  Primera skill del plugin: task-workflow/SKILL.md                                 charlie.bk@gmail.com
 TASK-029  Bug de origin sin guard y deuda de los scripts de Git-Flow                       charlie.bk@gmail.com
 TASK-030  Auto-commit de taskctl y .taskcode/config.yml (items C2 y C4)                    charlie.bk@gmail.com
+TASK-031  Distribucion del CLI: un clon debe traer un taskctl que arranque                 charlie.bk@gmail.com
 ```
