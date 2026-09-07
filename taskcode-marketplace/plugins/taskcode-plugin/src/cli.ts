@@ -253,9 +253,19 @@ export async function main(argv: readonly string[]): Promise<number> {
       const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
       printBaseBranchSwitchNotice(result.baseBranchGuard);
       printAvisos(result.avisoIdentidad);
-      const scaffoldMsg = result.planCreated
-        ? `Scaffold creado en ${result.planPath} — redactalo antes de "taskctl approve".`
-        : `${result.planPath} ya existia (re-planificacion) — se dejo intacto.`;
+      // Tres desenlaces posibles desde TASK-027 (item C3): scaffold
+      // nuevo, plan que ya estaba en planificacion/, o plan legado
+      // suelto en la raiz que esta invocacion acaba de mover ahi.
+      let scaffoldMsg: string;
+      if (result.planMigrado) {
+        scaffoldMsg =
+          `El plan estaba suelto en la raiz de la carpeta (formato anterior) y se ha movido ` +
+          `intacto a ${result.planPath}.`;
+      } else if (result.planCreated) {
+        scaffoldMsg = `Scaffold creado en ${result.planPath} — redactalo antes de "taskctl approve".`;
+      } else {
+        scaffoldMsg = `${result.planPath} ya existia (re-planificacion) — se dejo intacto.`;
+      }
       process.stdout.write(
         `Tarea ${result.id} en diseno: movida a ${result.filePath}. ${scaffoldMsg}\n` +
           asignacionNotice(result)

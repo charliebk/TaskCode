@@ -287,3 +287,15 @@ export function isEnoent(e: unknown): boolean {
 export function isEexist(e: unknown): boolean {
   return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'EEXIST';
 }
+
+/**
+ * ENOTDIR: un componente intermedio de la ruta existe pero no es un
+ * directorio (p. ej. stat("planificacion/plan-final.md") cuando
+ * "planificacion" es un fichero). POSIX lo devuelve aqui; Windows
+ * contesta ENOENT al mismo caso. Quien pregunte "existe este fichero?"
+ * tiene que tratar los dos igual si quiere comportarse igual en las dos
+ * plataformas (hallazgo IMPORTANTE de revision por pares, TASK-027).
+ */
+export function isEnotdir(e: unknown): boolean {
+  return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'ENOTDIR';
+}

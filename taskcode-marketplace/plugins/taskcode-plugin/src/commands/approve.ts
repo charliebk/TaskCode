@@ -1,7 +1,9 @@
 /**
  * taskctl approve — TASK-011 de PLAN_SPRINTS.md. Checkpoint humano de
  * la fase de diseno (seccion 6 de la metodologia): marca
- * plan_aprobado: true una vez que plan-final.md existe.
+ * plan_aprobado: true una vez que plan-final.md existe, este en
+ * `planificacion/` (ubicacion canonica desde TASK-027) o suelto en la
+ * raiz de la carpeta (legado).
  *
  * NO evalua la CALIDAD del plan (sigue siendo scaffold vacio vs.
  * redactado de verdad) — ese juicio lo hace la persona antes de
@@ -16,22 +18,49 @@
  * seccion 8.3 (ensureBaseBranchReady) antes de escribir nada.
  */
 import path from 'node:path';
-import { stat } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { PLAN_FINAL_FILENAME } from './plan.js';
+import { resolverPlanFinal, type PlanFinalUbicacion } from './plan.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 
 export class ApproveCommandError extends Error {}
 
-async function planFinalFileExists(planPath: string): Promise<boolean> {
-  try {
-    await stat(planPath);
-    return true;
-  } catch (e: unknown) {
-    if (isEnoent(e)) return false;
-    throw e;
+/**
+ * Acepta el plan en CUALQUIERA de sus dos ubicaciones (TASK-027, item
+ * C3): `planificacion/plan-final.md` (canonica) o suelto en la raiz de
+ * la carpeta (legado del CLI anterior). Mirar solo la canonica dejaria
+ * sin poder aprobarse a toda tarea planificada antes del cambio, que
+ * es justo el caso que tiene el plan ya redactado.
+ *
+ * Con los DOS a la vez rechaza, en lugar de aprobar el primero que
+ * encuentra (hallazgo MENOR de revision por pares, TASK-027): "plan" ya
+ * trata ese estado como irresoluble y aborta, y dos merges --no-ff sin
+ * conflicto bastan para producirlo. Aprobar a ciegas un estado con dos
+ * planes divergentes es marcar como revisado un plan que quiza nadie
+ * ha leido.
+ */
+/** true si hay un plan que aprobar en cualquiera de las dos ubicaciones. */
+function planFinalExisteEn(u: PlanFinalUbicacion | null): boolean {
+  return u !== null && (u.canonicaExiste || u.legadaExiste);
+}
+
+/**
+ * Se llama DESPUES de assertTransitionAllowed, no antes (hallazgo MENOR
+ * de revision por pares ronda 2, TASK-027): con la tarea en un estado
+ * que no se puede aprobar, quejarse primero de la ambiguedad tapaba el
+ * motivo real y mandaba a la persona a comparar dos planes que no
+ * desbloquean nada. El estado manda; la ambiguedad es el siguiente
+ * obstaculo, no el primero.
+ */
+function assertPlanNoAmbiguo(id: string, u: PlanFinalUbicacion): void {
+  if (u.canonicaExiste && u.legadaExiste) {
+    throw new ApproveCommandError(
+      `[ERROR] ${id}: hay un plan-final.md en la raiz de la carpeta y otro en ` +
+        `planificacion/. No se puede aprobar sin saber cual es el plan bueno. Compara ` +
+        `"${u.legada}" con "${u.canonica}", deja solo el de planificacion/ ` +
+        'y reintenta. No se ha tocado nada.'
+    );
   }
 }
 
@@ -67,12 +96,11 @@ export async function runApproveCommand(
   // silencio el contenido real de la rama base con los datos de una
   // lectura hecha en una rama vieja, tras el cambio automatico).
   const initial = await readTareaFile(tareasRoot, id);
-  const planFinalExisteInicial = initial
-    ? await planFinalFileExists(path.join(path.dirname(initial.filePath), PLAN_FINAL_FILENAME))
-    : false;
+  const ubicacionInicial = initial ? await resolverPlanFinal(path.dirname(initial.filePath)) : null;
   assertTransitionAllowed('approve', initial ? initial.task : null, {
-    planFinalExiste: planFinalExisteInicial,
+    planFinalExiste: planFinalExisteEn(ubicacionInicial),
   });
+  assertPlanNoAmbiguo(id, ubicacionInicial!);
 
   // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
   // tiene cambios sin commitear, o si no puede cambiar de forma
@@ -84,10 +112,11 @@ export async function runApproveCommand(
   // asignado_a, etc. se preservan tal cual esten en la rama base, no
   // como estuvieran en la rama vieja de la lectura preliminar).
   const existing = await readTareaFile(tareasRoot, id);
-  const planFinalExiste = existing
-    ? await planFinalFileExists(path.join(path.dirname(existing.filePath), PLAN_FINAL_FILENAME))
-    : false;
-  assertTransitionAllowed('approve', existing ? existing.task : null, { planFinalExiste });
+  const ubicacion = existing ? await resolverPlanFinal(path.dirname(existing.filePath)) : null;
+  assertTransitionAllowed('approve', existing ? existing.task : null, {
+    planFinalExiste: planFinalExisteEn(ubicacion),
+  });
+  assertPlanNoAmbiguo(id, ubicacion!);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
   const updated: Task = { ...task, plan_aprobado: true, actualizado: today };

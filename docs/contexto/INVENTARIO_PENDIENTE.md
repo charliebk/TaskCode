@@ -111,15 +111,28 @@ ningún artefacto. TASK-017 cubre el catálogo, pero **escribir las 5 skills y
 los agentes de brainstorm no está estimado en ninguna tarea** (~8-10h, y es
 trabajo de redacción de prompts, no de código).
 
-### 2.6 Falta la estructura de datos del lado del repo
+### 2.6 Falta la estructura de datos del lado del repo — PARCIALMENTE RESUELTO (B3/B4 y C3)
 
 Sección 2, "cada repo de proyecto": `docs/adr/`, `CHANGELOG.md`,
-`INDEX.md`, `BOARD.md`, `.taskcode/config.yml`. **Ninguno existe.**
-Además, cada carpeta de tarea debería ser `tarea.md` + `planificacion/` +
-`revision/`; hoy solo se crea `tarea.md` (`plan-final.md` lo deja TASK-010
-suelto en la raíz de la carpeta, no dentro de `planificacion/`).
-`.taskcode/config.yml` es además decisión abierta (punto 9 de la sección
-14): nadie ha definido qué va dentro.
+`INDEX.md`, `BOARD.md`, `.taskcode/config.yml`.
+
+**Parcialmente resuelto.** `CHANGELOG.md`, `docs/INDEX.md` y `docs/BOARD.md`
+existen desde B3/B4 (los crea `taskctl finish`) — ver §2.2. Siguen faltando
+`docs/adr/` y `.taskcode/config.yml`, este último decisión abierta (punto 9
+de la sección 14): nadie ha definido qué va dentro.
+
+**La forma de la carpeta de tarea sí está resuelta — RESUELTO (C3 /
+TASK-027, 2026-09-06).** Cada carpeta de tarea es ya `tarea.md` +
+`planificacion/` + `revision/`: `taskctl review` creaba la de revisión desde
+B1, y ahora `taskctl plan` crea `planificacion/` y escribe ahí el
+`plan-final.md`, que TASK-010 dejaba suelto en la raíz. El legado no se
+rompe —`approve` acepta las dos ubicaciones y una re-planificación migra el
+fichero suelto conservando su contenido—, y las 6 tareas ya cerradas en
+`04-terminadas/` se migraron con `git mv`: **ya no queda ningún
+`plan-final.md` suelto en el repo**. Divergencia literal deliberada con la
+sección 2: las subcarpetas se crean **bajo demanda**, cuando hay algo que
+escribir dentro, porque Git no versiona directorios vacíos y crearlos en
+`new`/`import` no llegaría al repo sin un `.gitkeep` que nadie ha pedido.
 
 ## 3. Deuda técnica documentada y sin corregir
 

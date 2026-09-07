@@ -5,13 +5,17 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, stat, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import { runApproveCommand, ApproveCommandError } from '../../src/commands/approve.js';
-import { PLAN_FINAL_FILENAME } from '../../src/commands/plan.js';
+import {
+  PLAN_FINAL_FILENAME,
+  PLANIFICACION_DIRNAME,
+  resolverPlanFinal,
+} from '../../src/commands/plan.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
@@ -72,11 +76,27 @@ async function withTempRepo(fn: (repoRoot: string, tareasRoot: string) => Promis
   }
 }
 
+/** Plan en la ubicacion canonica desde TASK-027: planificacion/plan-final.md. */
 async function writePlanFinal(tareasRoot: string, id: string, content = '# Plan real\n'): Promise<void> {
+  const dir = path.join(tareasRoot, '01-en-diseno', id, PLANIFICACION_DIRNAME);
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, PLAN_FINAL_FILENAME), content, 'utf8');
+}
+
+/**
+ * Plan como lo dejaba el CLI ANTERIOR a TASK-027: suelto en la raiz de
+ * la carpeta de la tarea. Es el estado en el que quedo cualquier tarea
+ * planificada antes del cambio, y approve tiene que seguir aceptandolo.
+ */
+async function writePlanFinalLegado(
+  tareasRoot: string,
+  id: string,
+  content = '# Plan real legado\n'
+): Promise<void> {
   await writeFile(path.join(tareasRoot, '01-en-diseno', id, PLAN_FINAL_FILENAME), content, 'utf8');
 }
 
-test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-diseno y plan-final.md existe', async () => {
+test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-diseno y planificacion/plan-final.md existe', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nAlgo.\n');
     await writePlanFinal(tareasRoot, 'TASK-800');
@@ -95,6 +115,57 @@ test('taskctl approve: marca plan_aprobado true cuando la tarea esta en en-disen
     assert.equal(read?.task.actualizado, '2026-09-05');
 
     // plan-final.md no se toco.
+    const plan = await stat(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-800', PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME)
+    );
+    assert.ok(plan.isFile());
+  });
+});
+
+// --- item C3 (TASK-027): compatibilidad con el plan legado ---
+
+test('taskctl approve: con plan-final.md en la raiz Y en planificacion/ rechaza en vez de aprobar a ciegas', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 1): "plan" trata ese
+    // estado como irresoluble y aborta, pero "approve" marcaba
+    // plan_aprobado: true sin mencionar que hay dos planes divergentes.
+    // Dos merges --no-ff sin conflicto bastan para producirlo.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800', '# Plan B (planificacion)\n');
+    await writePlanFinalLegado(tareasRoot, 'TASK-800', '# Plan A (raiz)\n');
+    commitAll(repoRoot, 'tarea TASK-800 con dos planes');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      ApproveCommandError
+    );
+
+    // No se aprobo nada.
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, false);
+    assert.equal(read?.task.actualizado, '2026-09-03');
+  });
+});
+
+test('taskctl approve: acepta el plan-final.md legado suelto en la raiz (tareas planificadas antes de TASK-027)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Sin esta compatibilidad, cualquier tarea que se planifico con el
+    // CLI anterior se quedaria sin poder aprobarse: approve diria "no
+    // hay plan" sobre una tarea que tiene el plan redactado.
+    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nAlgo.\n');
+    await writePlanFinalLegado(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con plan legado');
+
+    const result = await runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.id, 'TASK-800');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, true);
+
+    // approve no reorganiza la carpeta (eso lo hace "plan"): el fichero
+    // legado sigue donde estaba.
     const plan = await stat(path.join(tareasRoot, '01-en-diseno', 'TASK-800', PLAN_FINAL_FILENAME));
     assert.ok(plan.isFile());
   });
@@ -335,5 +406,113 @@ test('taskctl approve: NO sobrescribe con datos viejos el contenido real de la r
     assert.deepEqual(read?.task.etiquetas, ['real', 'editada-en-develop']);
     assert.equal(read?.task.plan_aprobado, true);
     assert.equal(read?.task.actualizado, '2026-09-06');
+  });
+});
+
+test('taskctl approve: "planificacion" ocupado por un FICHERO no revienta con un error crudo (ENOTDIR en POSIX, ENOENT en Windows)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo IMPORTANTE de revision por pares (ronda 2, TASK-027): la
+    // ronda 1 envolvio el mkdir de "plan", pero approve no hace mkdir —
+    // llega directo al stat. En POSIX ese stat contesta ENOTDIR y
+    // existeFichero solo absorbia ENOENT, asi que approve moria con un
+    // "taskctl no pudo arrancar: ENOTDIR" en Linux mientras en Windows
+    // se comportaba bien. Este test da el MISMO veredicto en las dos
+    // plataformas: sea cual sea el errno, aqui no hay plan y lo que
+    // toca es el error de dominio, no el de libc.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeFile(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-800', PLANIFICACION_DIRNAME),
+      'soy un fichero, no una carpeta\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'tarea TASK-800 con planificacion ocupado por un fichero');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(
+          err instanceof StateMachineError,
+          `se esperaba el error de dominio, no uno crudo del sistema: ${String(err)}`
+        );
+        assert.match((err as Error).message, /plan-final\.md/);
+        return true;
+      }
+    );
+
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, false);
+  });
+});
+
+test('taskctl approve: con la tarea en un estado no aprobable Y dos plan-final.md, el error habla del ESTADO, no de la ambiguedad', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 2, TASK-027): la
+    // comprobacion de ambiguedad iba ANTES de assertTransitionAllowed y
+    // tapaba el motivo real, mandando a comparar dos planes que no
+    // desbloquean nada. El estado manda primero.
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-curso', plan_aprobado: true }), '');
+    const taskDir = path.join(tareasRoot, '02-en-curso', 'TASK-800');
+    await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME), { recursive: true });
+    await writeFile(path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME), '# A\n', 'utf8');
+    await writeFile(path.join(taskDir, PLAN_FINAL_FILENAME), '# B distinto\n', 'utf8');
+    commitAll(repoRoot, 'tarea TASK-800 en-curso con los dos plan-final.md');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(
+          err instanceof StateMachineError,
+          `se esperaba el error de estado, no el de ambiguedad: ${String(err)}`
+        );
+        assert.match((err as Error).message, /en-curso/);
+        return true;
+      }
+    );
+  });
+});
+
+
+test('taskctl approve: la ambiguedad que solo existe en la rama base tambien se detecta (lectura fresca, no solo la preliminar)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // Hallazgo MENOR de revision por pares (ronda 2, TASK-027):
+    // assertPlanNoAmbiguo se llama en los DOS puntos, pero quitarla de la
+    // lectura fresca no rompia ningun test, porque los dos tests de
+    // ambiguedad ya arrancan en develop y cortan en la preliminar. Y es
+    // justo la fresca la que cubre el caso realista: la ambiguedad nace
+    // de dos merges --no-ff en develop, y quien ejecuta approve puede
+    // estar en su rama de feature, donde no se ve.
+    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writePlanFinal(tareasRoot, 'TASK-800');
+    commitAll(repoRoot, 'tarea TASK-800 con un solo plan, el canonico');
+
+    // Rama de feature bifurcada AHORA: aqui solo se ve el plan canonico.
+    git(['checkout', '-q', '-b', 'feature/sin-ambiguedad-a-la-vista'], repoRoot);
+
+    // develop avanza y acaba con los dos ficheros (lo que dejan dos
+    // merges sin conflicto de dos ramas que planificaron distinto).
+    git(['checkout', '-q', 'develop'], repoRoot);
+    await writePlanFinalLegado(tareasRoot, 'TASK-800', '# Plan de la otra rama\n');
+    commitAll(repoRoot, 'develop acaba con los dos plan-final.md');
+
+    git(['checkout', '-q', 'feature/sin-ambiguedad-a-la-vista'], repoRoot);
+    // La lectura preliminar NO ve ambiguedad desde aqui.
+    const soloCanonico = await resolverPlanFinal(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-800')
+    );
+    assert.equal(soloCanonico.legadaExiste, false);
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-06', { repoCwd: repoRoot }),
+      (err: unknown) => {
+        assert.ok(err instanceof ApproveCommandError, `error inesperado: ${String(err)}`);
+        assert.match((err as Error).message, /No se puede aprobar sin saber cual es el plan bueno/);
+        return true;
+      }
+    );
+
+    // Cambio de rama hecho, pero nada aprobado.
+    assert.equal(branchNow(repoRoot), 'develop');
+    const read = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(read?.task.plan_aprobado, false);
   });
 });

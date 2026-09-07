@@ -11,7 +11,8 @@
  * trabajo).
  *
  * Lo que SI hace: validar la transicion, mover la tarea a
- * 01-en-diseno/, y dejar un scaffold de plan-final.md listo para que
+ * 01-en-diseno/, y dejar un scaffold de planificacion/plan-final.md
+ * (la subcarpeta es de TASK-027, item C3) listo para que
  * un agente (o una persona, en uso interactivo real de Claude Code) lo
  * redacte — el mismo patron que "taskctl new" ya usa con el cuerpo de
  * tarea.md (Objetivo/Criterios en blanco para rellenar despues). El
@@ -19,7 +20,7 @@
  * de agentes aqui todavia.
  */
 import path from 'node:path';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, rename, stat, writeFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
 import {
   parseAsignadoAFlag,
@@ -27,7 +28,7 @@ import {
   PISTA_VACIO_ESCRITURA,
 } from '../cli/asignado.js';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { ensureBaseBranchReady, gitUserEmail, type BaseBranchGuardResult } from '../fs/git.js';
 import { resolverAsignado } from '../core/wip.js';
@@ -35,6 +36,78 @@ import { resolverAsignado } from '../core/wip.js';
 export class PlanCommandError extends Error {}
 
 export const PLAN_FINAL_FILENAME = 'plan-final.md';
+
+/**
+ * Subcarpeta de artefactos de diseno dentro de la carpeta de la tarea
+ * (TASK-027, item C3). La seccion 2 de la metodologia describe cada
+ * carpeta de tarea como `tarea.md` + `planificacion/` + `revision/`;
+ * `revision/` ya la crea "taskctl review" (REVISION_DIRNAME en
+ * review.ts) y esta es la otra mitad.
+ *
+ * Se crea BAJO DEMANDA, cuando hay algo que escribir dentro, no en
+ * "new"/"import": Git no versiona directorios vacios, asi que crearla
+ * al dar de alta la tarea no llegaria al repo sin un .gitkeep que
+ * nadie ha pedido, y de paso ensuciaria el workspace de quien solo
+ * queria dar de alta una tarea. Mismo criterio que ya sigue
+ * `revision/`.
+ */
+export const PLANIFICACION_DIRNAME = 'planificacion';
+
+/**
+ * isFile(), no "existe" a secas (hallazgo MENOR de revision por pares,
+ * TASK-027): un DIRECTORIO llamado plan-final.md no es un plan. Con un
+ * stat pelado, "plan" anunciaba "el plan se ha movido intacto" tras
+ * renombrar un directorio, y "approve" lo daba por bueno.
+ */
+async function existeFichero(p: string): Promise<boolean> {
+  try {
+    return (await stat(p)).isFile();
+  } catch (e: unknown) {
+    // ENOTDIR ademas de ENOENT (hallazgo IMPORTANTE de revision por
+    // pares ronda 2, TASK-027): si "planificacion" lo ocupa un FICHERO,
+    // stat("planificacion/plan-final.md") contesta ENOTDIR en POSIX y
+    // ENOENT en Windows. Absorber solo ENOENT hacia que el fix del
+    // mkdir de la ronda 1 fuese un fix solo de Windows: en Linux el
+    // fallo ocurre ANTES, aqui, y salia crudo por "plan" y tambien por
+    // "approve" (que ni siquiera hace mkdir). Semanticamente ENOTDIR es
+    // lo mismo que ENOENT para esta pregunta: ahi no hay ningun
+    // fichero. Quien tenga que quejarse de la ruta ocupada es el mkdir
+    // de "plan", que ya lo hace con un mensaje accionable.
+    if (isEnoent(e) || isEnotdir(e)) return false;
+    throw e;
+  }
+}
+
+export interface PlanFinalUbicacion {
+  /** Ruta canonica desde TASK-027: <carpeta>/planificacion/plan-final.md */
+  canonica: string;
+  /** Ruta legada (CLI anterior a TASK-027): <carpeta>/plan-final.md */
+  legada: string;
+  canonicaExiste: boolean;
+  legadaExiste: boolean;
+}
+
+/**
+ * Dice donde esta el plan de una tarea, mirando las DOS ubicaciones
+ * posibles. Existe porque toda tarea planificada antes de TASK-027
+ * tiene su `plan-final.md` suelto en la raiz de la carpeta: si el
+ * codigo nuevo mirase solo la ruta canonica, "taskctl approve" diria
+ * "todavia no hay plan que aprobar" sobre una tarea que si lo tiene, y
+ * la dejaria bloqueada en la maquina de estados.
+ *
+ * Lo comparten "plan" (que migra el legado) y "approve" (que acepta
+ * cualquiera de las dos), para que no puedan divergir.
+ */
+export async function resolverPlanFinal(taskDir: string): Promise<PlanFinalUbicacion> {
+  const canonica = path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
+  const legada = path.join(taskDir, PLAN_FINAL_FILENAME);
+  return {
+    canonica,
+    legada,
+    canonicaExiste: await existeFichero(canonica),
+    legadaExiste: await existeFichero(legada),
+  };
+}
 
 export function planTemplate(task: Task): string {
   return (
@@ -55,6 +128,11 @@ export interface PlanCommandResult {
   planPath: string;
   /** false si plan-final.md ya existia (re-planificacion) y se dejo intacto. */
   planCreated: boolean;
+  /**
+   * true si esta invocacion movio un plan-final.md legado (suelto en la
+   * raiz de la carpeta, CLI anterior a TASK-027) a `planificacion/`.
+   */
+  planMigrado: boolean;
   /** asignado_a resultante en el frontmatter (null si sigue sin asignar). */
   asignadoA: string | null;
   /** true si esta invocacion cambio asignado_a (se paso --asignado-a con otro valor). */
@@ -152,29 +230,105 @@ export async function runPlanCommand(
     asignado_a: asignadoFinal,
     actualizado: today,
   };
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+
+  // El plan se escribe/migra en la carpeta ACTUAL, ANTES de mover la
+  // tarea de estado — mismo orden y mismo motivo que "review" con
+  // revision/ (TASK-013): si una escritura falla, la tarea no se ha
+  // movido todavia y reintentar es posible, en vez de dejarla en
+  // en-diseno sin plan. El rename de moveTareaFile se lleva despues
+  // la subcarpeta entera.
+  const taskDir = path.dirname(filePath);
+  const ubicacion = await resolverPlanFinal(taskDir);
+
+  // Fail-closed (TASK-027): con los dos ficheros a la vez no hay forma
+  // de saber cual es el plan bueno, y elegir por nuestra cuenta puede
+  // tirar el que la persona redacto. Se aborta ANTES de tocar nada.
+  if (ubicacion.canonicaExiste && ubicacion.legadaExiste) {
+    throw new PlanCommandError(
+      `[ERROR] ${task.id}: hay un ${PLAN_FINAL_FILENAME} en la raiz de la carpeta y otro ` +
+        `en ${PLANIFICACION_DIRNAME}/. No se puede saber cual es el plan bueno. Compara ` +
+        `"${ubicacion.legada}" con "${ubicacion.canonica}", deja solo el de ` +
+        `${PLANIFICACION_DIRNAME}/ y reintenta. La tarea no se ha movido.`
+    );
+  }
 
   // plan-final.md no tiene frontmatter y no encaja en el modelo Task,
   // asi que no pasa por writeTareaFile/moveTareaFile (que son
   // especificas de tarea.md) — pero SI reusa isEexist de task-store.ts
   // en vez de duplicar la comprobacion (hallazgo de revision por
   // pares, TASK-010).
-  const planPath = path.join(path.dirname(newFilePath), PLAN_FINAL_FILENAME);
-  let planCreated = false;
+  // Si "planificacion" existe pero como FICHERO, mkdir falla con un
+  // EEXIST/ENOTDIR crudo que el CLI presentaba como "taskctl no pudo
+  // arrancar" — ni cierto ni accionable (hallazgo MENOR de revision por
+  // pares, TASK-027; CONVENCIONES: los errores dicen que hacer).
+  const planificacionDir = path.join(taskDir, PLANIFICACION_DIRNAME);
   try {
-    // flag 'wx': falla si ya existe, en vez de arriesgarse a pisar un
-    // plan-final.md de una vuelta anterior (re-planificacion).
-    await writeFile(planPath, planTemplate(task), { encoding: 'utf8', flag: 'wx' });
-    planCreated = true;
+    await mkdir(planificacionDir, { recursive: true });
   } catch (e: unknown) {
-    if (!isEexist(e)) throw e;
+    throw new PlanCommandError(
+      `[ERROR] ${task.id}: no se pudo crear "${planificacionDir}" (${
+        (e as { code?: string }).code ?? 'error desconocido'
+      }). Si ahi hay un fichero llamado "${PLANIFICACION_DIRNAME}", renombralo o borralo: ` +
+        'esa ruta tiene que ser la carpeta de artefactos de diseno de la tarea. ' +
+        'La tarea no se ha movido.'
+    );
   }
+  let planCreated = false;
+  let planMigrado = false;
+  if (ubicacion.legadaExiste) {
+    // Tarea planificada con el CLI anterior a TASK-027: el plan real
+    // (redactado o no) esta suelto en la raiz. Se MUEVE, no se copia
+    // ni se pisa con el scaffold — perder un plan redactado seria
+    // exactamente el fallo que este item viene a evitar.
+    await rename(ubicacion.legada, ubicacion.canonica);
+    planMigrado = true;
+  } else {
+    // Sin un "else if (!canonicaExiste)" delante A PROPOSITO (hallazgo
+    // IMPORTANTE de revision por pares, TASK-027): esa condicion hacia
+    // inalcanzable el flag 'wx', que es justo el guardian contra pisar
+    // un plan ya redactado, y con el se perdia la unica red de
+    // regresion sobre un camino de perdida de datos. El 'wx' hace las
+    // dos cosas — decide y protege — y ademas cierra la ventana entre
+    // el stat de resolverPlanFinal y esta escritura.
+    try {
+      await writeFile(ubicacion.canonica, planTemplate(task), { encoding: 'utf8', flag: 'wx' });
+      planCreated = true;
+    } catch (e: unknown) {
+      if (!isEexist(e)) throw e;
+      // EEXIST con "wx" NO siempre es una re-planificacion: open() con
+      // O_CREAT|O_EXCL contesta EEXIST tambien cuando la ruta la ocupa
+      // un DIRECTORIO (comprobado en Windows, y es lo que manda POSIX).
+      // Y aqui sabemos que canonicaExiste era false, o sea que el stat
+      // no vio un fichero regular. Tragarse ese EEXIST dejaba a la
+      // persona en un callejon sin salida: "plan" decia "ya existia --
+      // se dejo intacto" con exit 0 sin haber plan ninguno, y "approve"
+      // contestaba "todavia no tiene un plan-final.md que aprobar.
+      // Ejecuta taskctl plan primero" -- un consejo que no lleva a
+      // ningun sitio, porque "plan" vuelve a decir que todo esta bien
+      // (hallazgo MENOR del smoke test manual, TASK-027).
+      // Se distingue re-stateando: fichero regular = la carrera contra
+      // la ventana entre resolverPlanFinal y esta escritura, que es
+      // justo lo que el "wx" protege, y se deja intacto; cualquier otra
+      // cosa = ruta ocupada, y se dice que hacer.
+      if (!(await existeFichero(ubicacion.canonica))) {
+        throw new PlanCommandError(
+          `[ERROR] ${task.id}: "${ubicacion.canonica}" existe pero no es un fichero ` +
+            '(¿una carpeta con ese nombre?), asi que ahi no hay ningun plan que redactar ' +
+            'ni que aprobar. Renombra o borra esa ruta y reintenta. La tarea no se ha movido.'
+        );
+      }
+    }
+  }
+
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+  const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
 
   return {
     id: task.id,
     filePath: newFilePath,
     planPath,
     planCreated,
+    planMigrado,
     asignadoA: asignadoFinal,
     asignadoCambiado,
     avisoIdentidad,

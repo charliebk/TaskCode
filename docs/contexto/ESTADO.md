@@ -1,29 +1,33 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-06** (tras cerrar C1). Este documento se
+> Última actualización: **2026-09-06** (tras cerrar C3). Este documento se
 > actualiza al cerrar cada fase. Si lo que dice no cuadra con el repo, gana
 > el repo — y hay que corregir esto.
 
 ## Dónde estamos
 
-**26 de 42 items del plan de terminación (62%).** Sprint 0 y Sprint 1
+**27 de 42 items del plan de terminación (64%).** Sprint 0 y Sprint 1
 completos (TASK-001 a TASK-012), **las Fases A y B cerradas enteras**, y la
-Fase C empezada (3 de 8).
+Fase C empezada (4 de 8).
 
 **El ciclo de vida está completo y con reglas de proceso encima que de
 verdad se aplican**: `import → plan → approve → start → review → finish`
 funciona de punta a punta contra un repo Git real, y TASK-013, 014, 015,
-024, 025 y 026 se gestionaron enteras con la propia herramienta.
+024, 025, 026 y 027 se gestionaron enteras con la propia herramienta.
 `asignado_a` se rellena solo con `git config user.email` (C7), el límite de
-una rama de trabajo por persona funciona mirando las ramas reales (C8), y
-los cinco wrappers de Git-Flow ya existen (C1). **417 tests.**
+una rama de trabajo por persona funciona mirando las ramas reales (C8), los
+cinco wrappers de Git-Flow ya existen (C1), y la carpeta de tarea tiene ya
+la forma que describe la sección 2 de la metodología: `tarea.md` +
+`planificacion/` + `revision/` (C3). **429 tests** (426 verdes; los 3 rojos
+son los conocidos de este entorno Windows).
 
-Lo que queda son las Fases C (tapar huecos, 5 items), D (la cara y
+Lo que queda son las Fases C (tapar huecos, 4 items), D (la cara y
 opcional) y E (cierre). **El corte mínimo defendible ya solo depende de la
 Fase C.**
 
-**Nada pendiente de subir**: `develop` está a la par con `origin/develop` y
-las ramas de tarea de esta sesión también.
+**Pendiente de subir**: `develop` va 4 commits por delante de
+`origin/develop` y la rama `feature/task-027-…` no está en el remoto
+todavía (TASK-027 sigue en `03-en-revision`, con la ronda 2 en curso).
 
 
 ## Qué acaba de pasar (sesión del 2026-09-05, segunda parte)
@@ -148,12 +152,45 @@ agente sin terminal, que es quien más lo necesitaría. Resolverlo pide un
 `pause --stash` / `--commit`, o sea tocar los scripts, que es la capa que la
 §7.1 declara única fuente de verdad. No se hizo por cuenta propia.
 
-## Qué sigue: Fase C (3 de 8), ~8h
+## Qué acaba de pasar (sesión del 2026-09-06, tercera parte): C3
+
+**C3 (TASK-027)** — la carpeta de tarea tiene ya la forma que describe la
+sección 2 de la metodología: `tarea.md` + `planificacion/` + `revision/`.
+`taskctl plan` crea `planificacion/` y escribe ahí el `plan-final.md`;
+`revision/` la creaba `review` desde B1.
+
+**El nudo no era la ruta nueva, era el legado.** Toda tarea planificada con
+la versión anterior del CLI tiene su `plan-final.md` suelto en la raíz de la
+carpeta, y mirar solo la ruta nueva habría dejado a `approve` diciendo "no
+hay plan que aprobar" sobre una tarea que sí lo tiene. Así que `approve`
+acepta las dos ubicaciones, y una re-planificación **migra** el fichero
+legado a `planificacion/` con `rename`, conservando el contenido en vez de
+pisarlo con el scaffold. Si aparecen los dos a la vez, `plan` y `approve`
+**fallan cerrado** sin tocar nada: no eligen por su cuenta cuál gana.
+
+Las 6 tareas ya cerradas en `04-terminadas/` (TASK-013, 014, 015, 024, 025 y
+026) se migraron con `git mv` — rename puro, 0 líneas cambiadas —, así que
+**ya no queda ningún `plan-final.md` suelto en el repo**.
+
+**Revisión por pares ronda 1: APROBADO CON CAMBIOS** (1 importante, 4
+menores), reproducida sobre un clon con smoke test propio y 7 mutantes. El
+importante es la lección que queda: **una reestructuración puede quitar
+cobertura sin quitar comportamiento**. La escritura del scaffold iba con el
+flag `'wx'`, que protege contra pisar un plan existente; el camino nuevo de
+migración pasa por `rename`, y el revisor lo demostró ejecutando el mismo
+mutante en las dos ramas — en `develop` un test se ponía rojo, en la rama
+nueva no. Aplicados todos los hallazgos salvo la parte (a) del #4 (el
+`rename` no tiene un equivalente exclusivo del `'wx'` porque POSIX no lo
+ofrece), documentada sin corregir. 12 tests nuevos, **429 en total**.
+
+La **ronda 2** pidió cambios y, tras corregirlos, aprobó. Su hallazgo importante es el que deja poso: el fix de la ronda 1 estaba validado solo en Windows. En POSIX `stat("planificacion/plan-final.md")` devuelve `ENOTDIR` cuando `planificacion` es un fichero, no `ENOENT`, así que en Linux morían con un error crudo tanto `plan` como `approve` — y **el propio test escrito para certificar ese fix habría fallado en el job `ubuntu-latest`**. El revisor lo confirmó corriendo el código en Linux de verdad. Está en `HALLAZGOS.md`: un fix de errno validado en una sola plataforma no está validado.
+
+## Qué sigue: Fase C (4 de 8), ~7h
 
 Con A y B cerradas, **el corte mínimo defendible ya solo depende de la
 Fase C**: lo que la metodología da por hecho y no existe.
 
-El siguiente item libre es **C3**. C2 y C4 siguen bloqueados.
+El siguiente item libre es **C5**. C2 y C4 siguen bloqueados.
 
 1. ~~**C1**~~ — hecho el 2026-09-06 (TASK-026), ver arriba.
 2. **C2** — el paso 5 de la §8.3 (¿`taskctl` commitea y sube por la
@@ -162,8 +199,7 @@ El siguiente item libre es **C3**. C2 y C4 siguen bloqueados.
    seguidas, cada tarea necesita cuatro o cinco commits manuales, y una
    rama cuyo movimiento de tarea no esté commiteado es invisible para el
    límite de WIP (C8).
-3. **C3** — subcarpetas de planificación y revisión (~1h). `review` ya crea
-   la de revisión; falta la de planificación y mover ahí `plan-final.md`.
+3. ~~**C3**~~ — hecho el 2026-09-06 (TASK-027), ver arriba.
 4. **C4** — `.taskcode` con su `config.yml`. **Bloqueado por la decisión
    #9**, que ya tiene dos candidatos claros a contenido salidos de B7 y C7:
    el tamaño del límite de WIP y qué cuenta como una misma persona.
