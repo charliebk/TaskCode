@@ -39,13 +39,20 @@ procesan).
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test     # compila y corre 537 tests con cobertura
+npm test     # compila y corre 630 tests con cobertura
 ```
 
 El CLI: `taskctl new | import | board | plan | approve | start | review |
 finish`, más los cinco wrappers de Git-Flow: `diagnose | pause | resume |
-recover | abort-merge`. El ciclo de vida está completo: Fases A y B
+recover | abort-merge`. El ciclo de vida está completo: Fases A, B y C
 cerradas.
+
+El plugin además **expone contenido a Claude Code**: cinco skills
+(`task-workflow` y los cuatro revisores por dominio) y cuatro agentes (los
+roles del brainstorm), más `scripts/heuristica-complejidad.yml`. Todo eso se
+instala en proyectos que **no son este**, así que ninguno de esos ficheros
+puede mencionar TaskCode, sus rutas ni sus documentos internos — hay tests
+que lo comprueban.
 
 ## Trampas que ya nos han mordido
 

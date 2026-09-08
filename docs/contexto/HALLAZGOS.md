@@ -617,3 +617,143 @@ no de Windows, y en IntelliJ nativo no deberían aparecer:
   es una tubería abierta que nadie cierra. Un test que llegue a un `read`
   de un script no falla — **cuelga la suite entera**. Ver el patrón del
   proceso hijo en la sección "Patrones a reutilizar".
+
+## Contenido para agentes: lo que enseñó TASK-032 (items D6 y D7)
+
+Nueve artefactos de contenido —cuatro skills revisoras, cuatro roles de
+brainstorm y la heurística de complejidad—, cero líneas en `src/`, y aun así
+tres rondas de revisión con 31 hallazgos. El riesgo de este tipo de trabajo no
+está en la mecánica: **un agente se cree lo que lee, así que un dato mal
+puesto no es una errata, es una fuente de errores con autoridad.**
+
+### El patrón que se repitió las tres rondas
+
+**La corrección de un hallazgo llega sin la red que impide deshacerla.**
+
+Tres casos, los tres medidos:
+
+1. Los patrones de fichero de la skill de Angular se corrigieron midiendo con
+   `path.matchesGlob`, pero **la medición no quedó en la suite**. Se podía
+   revertir el arreglo entero —o reducir la lista a un solo patrón— y todo
+   seguía en 17/17 verde.
+2. La nota del rol de testing se podía revertir **literalmente** a la
+   redacción rota que un IMPORTANTE había corregido: 58/58 verde.
+3. El tope del hotfix se podía **negar en su sitio**: `NO es un TOPE` contiene
+   la subcadena que el `assert.match` buscaba, así que un revisor reescribió
+   el bloque diciendo el defecto ya corregido, con 13/13 verde.
+
+La regla que queda: **al corregir un hallazgo, escribe la aserción que se
+pondría roja si alguien deshace la corrección.** Si no se te ocurre ninguna
+que ate la regla en vez de la redacción, dilo explícitamente en el informe —
+eso es una respuesta legítima; dar por hecho que el arreglo se sostiene solo,
+no.
+
+### Sondas de vacuidad: mutaciones que *deberían* poner el test rojo
+
+Las tres rondas encontraron **siete aserciones incapaces de fallar**. La
+técnica que las descubre no es revisar el test, es mutar el fichero y ver si
+alguien se entera. Ejemplos reales, todos reproducidos:
+
+- **La peor**: el test que exigía «reproducir empíricamente, no leer el diff y
+  opinar» se satisfacía con la etiqueta `- Reproduccion:` del esqueleto del
+  informe… que **otro test obliga a que esté presente**. Borrar la sección
+  entera de método de una skill (2399 bytes: los seis pasos, las técnicas por
+  área) dejaba la suite verde.
+- Una lista negra de herramientas por igualdad exacta: `mcp__fs__write_file`,
+  `bash` en minúsculas y `Bash(git status:*)` la sorteaban. Se invirtió a
+  lista blanca, que es cerrada y no envejece.
+- Una aserción que exigía «nombra los cinco niveles de complejidad» se
+  cumplía con la enumeración decorativa del primer párrafo, así que la nota
+  podía apuntar al tramo equivocado y contradecir la tabla sin que nada lo
+  viera. Se cambió por derivar el tramo **de la propia tabla**.
+- Un `includes('MENOR')` que satisfacía la prosa «aprobada con correcciones
+  menores» de la tabla de veredictos: se podía borrar la severidad entera.
+- Cabeceras de sección presentes pero con la lista vacía debajo.
+
+**Un `assert` que busca una subcadena en el fichero colapsado casi nunca ata
+lo que crees.** Ancla al bloque que le corresponde, y añade el `doesNotMatch`
+de la negación.
+
+### Cuatro agentes cazaron un falso verde en su propia verificación
+
+Tres por mutar con `\n` ficheros que están en **CRLF**: la mutación no se
+aplicaba, el test pasaba, y ese verde no probaba nada. El cuarto por anclar
+mal un `replace`, que pilló la ocurrencia de un comentario en vez de la del
+dato.
+
+La regla: **un script de mutación tiene que abortar si el fichero no cambió.**
+Comprobar el md5 antes y después cuesta una línea y convierte una verificación
+decorativa en una real.
+
+### `claude plugin validate` comprueba mucho menos de lo que parece
+
+Medido en TASK-032, ampliando lo que ya sabíamos de C5:
+
+| Caso | Qué hace |
+|---|---|
+| Frontmatter que **no parsea** | error, exit 1, **nombra** el fichero |
+| Frontmatter **ausente** | warning, **exit 0** |
+| Falta la línea `name:` | **nada**: ni aviso ni mención |
+| Directorio de skill sin `SKILL.md` | **nada** |
+
+Y recorre `agents/` y `skills/` por **autodescubrimiento**, sin que
+`plugin.json` las declare. Consecuencia práctica: un `exit 0` no prueba nada,
+y las aserciones estructurales propias son la única red real. La contraprueba
+(romper una copia y ver que la nombra) sigue siendo la forma de saber si el
+validador mira siquiera esa ruta.
+
+### El dato se acomoda al lector, no al revés
+
+El único parser del repo lee pares `clave: valor` y listas **en línea**, y
+falla en seco ante una lista en bloque (`Linea de ... invalida (falta ":")`).
+Ante eso había dos caminos: ampliar el parser, o escribir el fichero en la
+forma que el parser ya entiende. Se eligió lo segundo: ampliar el parser es
+código nuevo en una tarea de redacción y rompe la regla de cero dependencias
+por comodidad de formato.
+
+Ojo con el matiz que midió un revisor: el parser **no rechaza** el
+anidamiento en todos los casos — una línea sangrada la `.trim()`ea y la
+registra como clave de primer nivel, perdiendo la clave madre. Un fichero
+anidado podría «parsear» y decir algo distinto de lo que pone. Por eso el test
+asevera también sobre las **líneas crudas**, no solo sobre el resultado.
+
+### Divergencia nueva: `compleja` (metodología) vs `alta` (código)
+
+El enum del plugin es `trivial | simple | media | **alta** | critica`
+(`src/core/task.ts`), y `validateTask` **rechaza** `compleja`. La §16.1 y la
+decisión #2 dicen `compleja`. Nadie lo había registrado hasta que D7 convirtió
+esa escalera en una tabla de lookup ejecutable, y entonces importó: **3 de las
+32 tareas del repo declaran `alta`**, y son TASK-016, 017 y 018 — justo las
+que más agentes de brainstorm pedirían.
+
+Aquí manda el código: es lo único que se puede leer del frontmatter de una
+tarea real. La divergencia queda documentada **dentro del propio fichero**,
+sin números de sección: el plugin no distribuye la metodología, así que una
+referencia a «§16.1» quedaría colgando en un proyecto instalado.
+
+### Un patrón de más no añade un revisor: sustituye al genérico
+
+Lo que convierte un patrón de enrutado demasiado ancho en un problema serio.
+`code-quality-reviewer` se dispara cuando **ningún** patrón de dominio casa;
+si uno casa de más, el genérico ya no entra, y el diff acaba revisado solo por
+una skill que puede declararse incompetente para él.
+
+Pasó en las dos direcciones, y las dos veces hubo que medirlo:
+
+- **Por exceso**: `**/*.module.ts`, `*.guard.ts`, `*.pipe.ts` y `*.spec.ts`
+  son exactamente las convenciones de **NestJS**, y `**/src/app/**` es el App
+  Router de **Next.js**. Un diff de backend acababa en el revisor de frontend.
+- **Por defecto**, al corregir lo anterior: la guía de estilo oficial de
+  Angular ≥20 eliminó el sufijo de tipo del nombre de fichero
+  (`user-profile.ts`, no `user-profile.component.ts`), así que el recorte dejó
+  **0 de 9** rutas de Angular moderno capturadas.
+
+Y al reponer, dos de los tres candidatos evidentes se cayeron **midiendo**:
+`src/app/**/*.scss` y `*.css` fugan a Next.js, que deja `globals.css` justo
+ahí. Solo `.html` discrimina — y ni eso del todo: captura plantillas de Flask,
+FastAPI, Express y Electron servidas desde `src/app/`, cosa que la skill ahora
+declara como captura aceptada a sabiendas en vez de negarla.
+
+**La lección de método**: cuando corrijas un enrutado, mide **las dos
+direcciones**. Un arreglo que deja de capturar lo ajeno a costa de no capturar
+lo propio no es un arreglo.

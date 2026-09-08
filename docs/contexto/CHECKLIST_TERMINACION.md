@@ -10,7 +10,11 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 32 / 43 items terminados (74%)** · última actualización: 2026-09-07
+**Progreso global: 35 / 42 items terminados (83%)** · última actualización: 2026-09-08
+
+El total baja de 43 a 42: **D4 se descarta** (ver su entrada). Y sube en 3 lo
+hecho: D6, D7 y el propio D4, que cuenta como resuelto porque la decisión está
+tomada y documentada, no aplazada.
 
 | Fase | Items | Hechos | Estimación |
 |---|---|---|---|
@@ -18,9 +22,9 @@
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
-| D — Inteligencia del proceso | 7 | 0 | ~38h |
+| D — Inteligencia del proceso | 6 | **3** | ~35h |
 | E — Cierre | 6 | **2** | ~9h |
-| **Total pendiente** | **31** | **20** | **~96h** |
+| **Total pendiente** | **7** | — | **~29h** |
 
 ---
 
@@ -309,18 +313,71 @@ Lo que la metodología da por hecho y no existe.
       quedaba inutilizable, acusando a tareas terminadas y proponiendo un
       remedio imposible. Todos corregidos. 20 tests nuevos (387).*
 
-## Fase D — Inteligencia del proceso (0/7) · ~38h
+## Fase D — Inteligencia del proceso (2/6) · ~35h
 
 La fase cara y la única genuinamente opcional: el sistema ya funciona sin
-ella, con un revisor genérico y un `plan` de un solo agente.
+ella, con un revisor genérico y un `plan` de un solo agente. **D6 y D7 están
+hechos** (TASK-032): el plugin ya expone cinco skills y cuatro agentes, y
+existe la heurística que D1 y D2 van a consumir como lookup.
 
 - [ ] **D1** · TASK-016 — Brainstorm paralelo por roles + agente unificador — ~8h
+      *Consume `agents/` y la tabla complejidad → nº de agentes del YML de D7,
+      que ya existen. Ojo a dos cosas que D7 dejó escritas y medidas: la
+      excepción de `hotfix` es un **tope**, no una sustitución (aplicarla como
+      sustitución sube de 0 a 1 los agentes de un hotfix trivial), y la tabla
+      da **cuántos** agentes, no **cuáles** — la elección en `simple`, `media`
+      y en un hotfix topado queda abierta a propósito.*
 - [ ] **D2** · TASK-017 — Catálogo de skills determinista + selección en dos pasos — ~6h
+      *Los `patrones_archivo` de los cuatro revisores ya están declarados en
+      cada `SKILL.md`, en lista inline para que el parser del repo los lea tal
+      cual. El catálogo debería recogerlos, no reinventarlos.*
 - [ ] **D3** · TASK-018 — Enrutado de revisor por diff real, multi-reviewer por dominio — ~6h
-- [ ] **D4** · TASK-019 — Revisión ligera para tareas `trivial`/`simple` (§16.6) — ~3h
+      *`code-quality-reviewer` ya se declara `fallback: true` con
+      `umbral_dominios: 3` (decisión #16). Aviso medido en TASK-032: un patrón
+      de más no añade un revisor, **sustituye** al genérico — por eso las
+      listas de patrones se acotaron y hay un test con tabla de rutas →
+      revisor esperado en las dos direcciones.*
+- [x] **D4** · TASK-019 — ~~Revisión ligera para tareas `trivial`/`simple`~~ — **NO SE HACE**
+      *Descartado por Carlos el 2026-09-07, antes de gastar las ~3h. La
+      decisión #17 lo dejó aplicando **solo a `trivial`**, y medido sobre las
+      32 tareas del repo **no existe ni una sola tarea `trivial`** (6 `media`,
+      4 `simple` entre las cerradas; el reparto completo es 13 `media`, 15
+      `simple`, 3 `alta`, 1 `trivial` sin cerrar). La regla casi nunca se
+      activaría, así que son ~3h para un camino que en la práctica no se
+      recorre. Si algún día aparecen tareas `trivial` de verdad, se reabre.*
 - [ ] **D5** · TASK-020 — `taskctl codex-review` opcional — ~5h
-- [ ] **D6** · Redactar las 4 skills revisoras (java-spring, angular-vue, csharp-autocad-ifc, code-quality) — ~6h
-- [ ] **D7** · Redactar `agents/` (roles de brainstorm) + `scripts/heuristica-complejidad.yml` — ~4h
+      *Sigue siendo el que cierra un agujero real detectado en C5:
+      `revision_codex: true` deja hoy la tarea **imposible de cerrar**, porque
+      `finish` la rechaza y remite a un comando que no existe.*
+- [x] **D6** · Redactar las 4 skills revisoras (java-spring, angular-vue, csharp-autocad-ifc, code-quality) — hecho el 2026-09-07 (TASK-032)
+      *Las cuatro con lo que revisan en su dominio, la exigencia de reproducir
+      empíricamente, la clasificación CRÍTICO/IMPORTANTE/MENOR con ejemplos
+      propios, la línea de veredicto **extraída del código** de `finish.ts` y
+      sus `patrones_archivo`. El enrutado se midió con `path.matchesGlob` en
+      las dos direcciones y quedó congelado en tests: 32/32 rutas legítimas
+      llegan a su revisor, 37/37 ajenas no casan con ninguno, y 6 capturas
+      aceptadas a sabiendas y documentadas.*
+- [x] **D7** · Redactar `agents/` (roles de brainstorm) + `scripts/heuristica-complejidad.yml` — hecho el 2026-09-07 (TASK-032)
+      *Los cuatro roles con su contexto acotado (§16.2) y su salida con topes
+      numéricos (§16.4.4), y el YML con los seis pesos de la §16.1, el mapeo
+      de niveles, la lista genérica de palabras de riesgo y la tabla de
+      agentes de la decisión #2. **Formato plano a propósito**: el único
+      parser del repo lee pares `clave: valor` y listas inline, y falla en
+      seco ante una lista en bloque — el dato se acomoda al lector en vez de
+      ampliar el lector.*
+      ***Divergencia documentada***: el fichero dice `alta` donde la §16.1 y
+      la decisión #2 dicen `compleja`, porque el enum del plugin
+      (`src/core/task.ts`) es `trivial | simple | media | alta | critica` y
+      `validateTask` **rechaza** `compleja`. Tres tareas reales declaran
+      `alta` — TASK-016, 017 y 018, justo las que más agentes pedirían.*
+
+*Las dos: **9 artefactos, cero líneas en `src/`**, 93 tests nuevos (537 → 630).
+Tres rondas de revisión por pares con tres revisores independientes cada una,
+31 hallazgos, **cero críticos**, todos aplicados. El patrón que dejan para
+`HALLAZGOS.md` se repitió las tres veces: la corrección de un hallazgo llega
+sin la red que impide deshacerla — de ahí salieron **siete aserciones que no
+podían fallar**, incluida la que exigía «reproducir empíricamente» y se
+satisfacía con una etiqueta que otro test obliga a estar presente.*
 
 ## Fase E — Cierre (2/6) · ~9h
 

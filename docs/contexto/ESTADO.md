@@ -1,15 +1,18 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-07** (tras cerrar C5). Este documento se
+> Última actualización: **2026-09-08** (tras cerrar D6 y D7). Este documento se
 > actualiza al cerrar cada fase. Si lo que dice no cuadra con el repo, gana
 > el repo — y hay que corregir esto.
 
 ## Dónde estamos
 
-**31 de 43 items del plan de terminación (72%).** Sprint 0 y Sprint 1
-completos (TASK-001 a TASK-012), y **las Fases A, B y C cerradas enteras**.
-El total subió de 42 a 43 items: la revisión de C5 abrió uno nuevo, **E6**
-(la distribución del CLI del plugin).
+**35 de 42 items del plan de terminación (83%).** Sprint 0 y Sprint 1
+completos (TASK-001 a TASK-012), **las Fases A, B y C cerradas enteras**, y
+la Fase D a medias: D6 y D7 hechos (TASK-032), D4 descartado.
+
+El total ha bailado dos veces: subió de 42 a 43 cuando la revisión de C5 abrió
+**E6** (la distribución del CLI del plugin, ya cerrada en TASK-031), y ha
+vuelto a 42 al descartarse **D4** con datos delante.
 
 **El ciclo de vida está completo y con reglas de proceso encima que de
 verdad se aplican**: `import → plan → approve → start → review → finish`
@@ -283,7 +286,54 @@ verificado**. Está en `HALLAZGOS.md` junto al patrón hermano de C6 (medir lo
 que no discrimina: comparar HEAD antes/después parecía empírico y daba el
 mensaje del caso raro en el caso normal).
 
-## Qué sigue: E6 primero, luego la Fase D
+## Qué acaba de pasar (sesión del 2026-09-07, final): D6 y D7
+
+**TASK-032** cerró de una vez los dos items de la Fase D que no dependían de
+nada: las cuatro skills revisoras (D6) y los roles de brainstorm más la
+heurística de complejidad (D7). Van juntos porque ninguno depende del otro y
+el límite de WIP es 1 — mismo precedente que TASK-030 (C2+C4).
+
+**El plugin pasa de exponer una skill a exponer cinco skills y cuatro
+agentes.** Nueve artefactos de contenido, **cero líneas en `src/`**, 93 tests
+nuevos: la suite va de 537 a **630** (627 verdes; los 3 rojos son los
+conocidos de Windows).
+
+**Cuatro agentes en paralelo dentro de la misma rama** para implementar, y
+tres rondas de revisión con **tres revisores independientes cada una**. 31
+hallazgos, **cero críticos**, todos aplicados.
+
+**Lo que deja para el futuro está en `HALLAZGOS.md`, y es lo mejor de la
+tarea**: el patrón de que *la corrección de un hallazgo llega sin la red que
+impide deshacerla* se repitió las tres rondas, y de ahí salieron **siete
+aserciones que no podían fallar**. La peor: el test que exigía «reproducir
+empíricamente» se satisfacía con una etiqueta que **otro test obliga a que
+esté presente**, así que borrar la sección entera de método de una skill
+—2399 bytes— dejaba la suite verde.
+
+Dos hallazgos fueron defectos **de las propias correcciones**, no del trabajo
+original: el recorte de patrones que dejó ciega a la skill de Angular ante la
+convención de Angular ≥20, y la excepción de `hotfix` que, escrita como
+sustitución, **subía** de 0 a 1 los agentes de un hotfix trivial — la clave
+que existe para abreviar el brainstorm añadiendo uno.
+
+**Divergencia nueva y documentada**: el YML dice `alta` donde la §16.1 y la
+decisión #2 dicen `compleja`, porque `validateTask` rechaza `compleja` y tres
+tareas reales (TASK-016, 017 y 018) declaran `alta`.
+
+**D4 descartado** por Carlos antes de empezar, con el dato delante: no existe
+ni una tarea `trivial` en el historial, así que la regla casi nunca se
+activaría. La Fase D baja de 7 a 6 items.
+
+## Qué sigue: el resto de la Fase D
+
+Quedan **D1, D2, D3 y D5**, en ese orden. D1 y D2 ya tienen debajo lo que
+necesitaban (`agents/`, la tabla de agentes por nivel y los
+`patrones_archivo` de los cuatro revisores), así que arrancan sin trabajo
+previo. **D5** sigue siendo el que cierra un agujero real: hoy
+`revision_codex: true` deja la tarea imposible de cerrar, porque `finish` la
+rechaza y remite a un comando que no existe.
+
+## Qué se hizo antes: E6 primero, luego la Fase D
 
 **Decidido con Carlos el 2026-09-07, al cerrar la Fase C.** El orden no es
 negociable por dos motivos, uno de criterio y otro mecanico:
