@@ -35,8 +35,8 @@ nadie desde `src/`, y los roles, de los cuatro `agents/` que ese mismo item
 redactó.
 
 ## Criterios de aceptacion
-- [ ] Lanza N agentes en paralelo, uno por rol (arquitectura, riesgos, testing, dominio), con el contexto acotado por rol de la sección 16.2 en vez de pasarles el repo entero.
-- [ ] Un agente unificador consolida las salidas en un único `plan-final.md`, señalando los desacuerdos entre roles en vez de promediarlos.
-- [ ] Sustituye al `plan` mínimo de TASK-010 sin romper su interfaz de línea de comandos ni la máquina de estados.
-- [ ] El número de agentes y la obligatoriedad del checkpoint humano salen de los puntos 1 y 2 de la sección 14.
-- [ ] Tests que no dependen de llamadas reales a agentes para el camino determinista (validación de estado, escritura de ficheros, límite de roles).
+- [x] Lanza N agentes en paralelo, uno por rol (arquitectura, riesgos, testing, dominio), con el contexto acotado por rol de la sección 16.2 en vez de pasarles el repo entero.
+- [x] Un agente unificador consolida las salidas en un único `plan-final.md`, señalando los desacuerdos entre roles en vez de promediarlos.
+- [x] Sustituye al `plan` mínimo de TASK-010 sin romper su interfaz de línea de comandos ni la máquina de estados.
+- [x] El número de agentes y la obligatoriedad del checkpoint humano salen de los puntos 1 y 2 de la sección 14.
+- [x] Tests que no dependen de llamadas reales a agentes para el camino determinista (validación de estado, escritura de ficheros, límite de roles).
