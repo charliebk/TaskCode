@@ -370,8 +370,30 @@ test('un hotfix se planifica con un solo agente, y esa excepcion es del tipo y n
     /\bes un TOPE, no una sustitucion\b/i,
     'la excepcion de hotfix debe declararse como tope (el menor de los dos), no como sustitucion'
   );
+  // El gemelo negativo, que faltaba. La subcadena que busca la asercion
+  // de arriba esta igual de presente en la frase y en su contraria, asi
+  // que "NO es un TOPE, sino una sustitucion" seguia dando verde en su
+  // propio sitio (ronda 3, menor 1). Va con /i y con la alternancia
+  // natural por el mismo motivo que la de peso_palabra_alto_riesgo:
+  // nadie escribe la negacion siempre en mayusculas.
+  assert.doesNotMatch(
+    bloque,
+    /\b(?:no|nunca|jamas) es un TOPE\b/i,
+    'la regla del tope esta escrita en negativo: el bloque dice lo contrario de lo que el test da por bueno'
+  );
+
+  // Y la aritmetica, que es lo unico que no depende de como este
+  // redactada la prosa. Un tope se aplica con un minimo: los agentes de
+  // un hotfix son min(lo que diga la tabla, este valor). Aseverar los
+  // dos numeros por separado no calcula esa interaccion — es lo que la
+  // ronda 2 ya habia senalado como insuficiente —; esto si la calcula, y
+  // se rompe tanto si la tabla sube el extremo barato como si el tope
+  // deja de poder bajarlo.
   assert.equal(
-    data['agentes_brainstorm_trivial'],
+    Math.min(
+      data['agentes_brainstorm_trivial'] as number,
+      data['agentes_brainstorm_hotfix'] as number
+    ),
     0,
     'un hotfix trivial se queda en 0 agentes: el tope no puede subir lo que la tabla ya dejo a cero'
   );
@@ -405,9 +427,13 @@ test('la regla de conteo de palabras de riesgo esta escrita y cuadra con la list
     /una vez por entrada distinta/i,
     'el fichero no dice como se cuentan las palabras de riesgo: por entrada o por ocurrencia'
   );
+  // El guard negativo iba sin /i y solo con "NO", porque se calco de la
+  // sonda de la ronda 2, que estaba en mayusculas. Escrita como la
+  // escribiria cualquiera ("No se cuenta...", "nunca se cuenta...") la
+  // negacion pasaba en verde (ronda 3, menor 2).
   assert.doesNotMatch(
     bloque,
-    /\bNO se cuenta una vez por entrada distinta\b/,
+    /\b(?:no|nunca|jamas) se cuenta una vez por entrada distinta\b/i,
     'la regla de conteo esta escrita en negativo: dice lo contrario de lo que el test da por bueno'
   );
 
@@ -429,7 +455,19 @@ test('la tolerancia acepta la coincidencia y un nivel de distancia, y la asimetr
   // ya la fija el nombre de esta clave: no hay una clave aparte para
   // declararla porque solo podria valer una cosa.
   assert.equal(data['tolerancia_extra_si_heuristica_menor'], 0);
-  assert.equal(data['direccion_de_riesgo'], undefined, 'clave con un solo valor posible: va en comentario');
+  // Se asevera el PREFIJO, no un nombre concreto. `direccion_de_riesgo`
+  // no ha existido nunca y el deepEqual del primer test ya prohibe
+  // cualquier clave no listada: aquel `undefined` no podia fallar sin
+  // que fallasen antes otros dos tests (ronda 3, menor 8). Lo que se
+  // quiere decir es que una direccion con un solo valor posible no se
+  // declara en ninguna clave, se escribe en el comentario de la de
+  // arriba; y eso si es aseverable.
+  const clavesDeDireccion = Object.keys(data).filter((c) => c.startsWith('direccion_'));
+  assert.deepEqual(
+    clavesDeDireccion,
+    [],
+    `"${clavesDeDireccion.join(', ')}": una direccion con un solo valor posible va en comentario, no en una clave`
+  );
   assert.equal(typeof data['modelo_consulta_discrepancia'], 'string');
   assert.notEqual((data['modelo_consulta_discrepancia'] as string).trim(), '');
 });

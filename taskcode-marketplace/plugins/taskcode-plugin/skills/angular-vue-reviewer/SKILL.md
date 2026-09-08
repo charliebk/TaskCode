@@ -36,10 +36,17 @@ rol: revisor
 patrones_archivo: ["**/*.vue", "**/*.component.ts", "**/*.component.html", "**/*.component.scss", "**/*.component.css", "**/*.component.spec.ts", "**/*.directive.ts", "**/composables/**/*.ts", "**/composables/**/*.js", "**/src/app/**/*.html", "**/src/app/**/*.routes.ts", "**/src/app/app.config.ts", "**/angular.json", "**/nuxt.config.ts", "**/vue.config.js"]
 ```
 
-La lista es **deliberadamente estrecha**. El criterio, en una frase: **se
-acota el patron cuando existe un sufijo o un corte de ruta que discrimina;
-cuando no lo hay, no se amplia — se documenta el hueco.** Quedan fuera a
-proposito, aunque Angular o Vue tambien los usen:
+La lista es **deliberadamente estrecha**. El criterio, en una frase:
+
+**Se acota el patron cuando existe un sufijo o un corte de ruta que
+discrimina; cuando no lo hay, la variable que decide es si renunciar deja el
+dominio sin revisor: si lo deja, se conserva la cobertura y se documenta el
+hueco en el informe; si el resto de la lista ya cubre el dominio, se
+renuncia al patron y se documenta el hueco igual.**
+
+Aqui el resto de la lista cubre el dominio —`*.vue`, `*.component.*`, las
+plantillas y las rutas bajo `src/app/`—, asi que los patrones ambiguos se
+renuncian. Quedan fuera a proposito, aunque Angular o Vue tambien los usen:
 
 - `*.module.ts`, `*.guard.ts`, `*.pipe.ts` y `*.resolver.ts` — son
   exactamente las convenciones de NestJS, que es backend.
@@ -49,9 +56,12 @@ proposito, aunque Angular o Vue tambien los usen:
   Next.js, y en monorepos la ruta `apps/<lo-que-sea>/src/app/` la generan
   por igual un proyecto de frontend y uno de backend: un NestJS de Nx pone
   ahi su `app.module.ts` y su `app.service.ts`. Por eso entran solo tres
-  cortes de esa ruta, los que ningun ecosistema vecino produce: `*.html`
-  (Next.js sirve `.tsx` o `.jsx` bajo `src/app/`, nunca `.html`),
-  `*.routes.ts` y `app.config.ts`.
+  cortes de esa ruta, medidos **frente a Next.js**, que es el vecino que
+  comparte la carpeta: `*.html` (Next.js sirve `.tsx` o `.jsx` bajo
+  `src/app/`, nunca `.html`), `*.routes.ts` y `app.config.ts`. Frente a
+  Next.js discriminan; frente a un backend que sirva plantillas desde
+  `src/app/`, no — y esa captura se acepta a sabiendas, con el detalle en
+  los huecos conocidos de mas abajo.
 - `src/app/**/*.css` y `src/app/**/*.scss` — **medido**: casan con el
   `src/app/globals.css` que genera Next.js con App Router. Fuera.
 - `*.routes.ts` a secas — casa con `src/routes/auth.routes.ts`, que es
@@ -103,6 +113,24 @@ barato es anadir su propia ruta a esta lista en la copia instalada.
 Un componente de React o de Svelte tampoco llega aqui: buena parte de los
 criterios de accesibilidad y de rendimiento le aplican igual, pero el
 enrutado automatico no lo va a mandar a este revisor.
+
+Y en la otra direccion, lo que llega **de mas** y se acepta a sabiendas:
+
+- **Plantillas de backend servidas desde `src/app/`.** `src/app/**/*.html`
+  casa —medido— con `src/app/templates/base.html` y
+  `src/app/templates/index.html` (Flask o FastAPI con src-layout), con
+  `src/app/static/index.html`, con `src/app/views/mail.html` (Express con
+  plantillas) y con `src/app/index.html` (Electron o un sitio estatico). Es
+  el mismo descalificador que dejo fuera a `src/lib/**/*.html`, resuelto al
+  reves, y la frase del criterio explica por que: bajo `src/lib/` renunciar
+  no cuesta cobertura, porque alli Angular ya llega por `*.component.*`;
+  aqui renunciar dejaria a Angular 20 o posterior sin ningun patron que lo
+  capture. Se conserva y se avisa.
+- **`app.config.ts` bajo la carpeta de aplicacion de un NestJS en Nx**
+  (`apps/api/src/app/app.config.ts`), que es territorio de NestJS. No forma
+  parte de lo que generan los esquematicos de Nest, y un diff de Nest que lo
+  tocase tocaria ademas `*.module.ts` o `*.service.ts`, que no casan con
+  ningun patron de aqui. Se conserva por el mismo motivo que el anterior.
 
 ## Reproducir antes de reportar
 

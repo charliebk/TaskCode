@@ -30,7 +30,7 @@ import { cp, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/pro
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseFrontmatter } from '../../src/core/frontmatter.js';
+import { parseBloqueClaveValor, parseFrontmatter } from '../../src/core/frontmatter.js';
 import { TASK_COMPLEXITIES } from '../../src/core/task.js';
 
 // --- Localizacion del plugin -------------------------------------------
@@ -43,6 +43,7 @@ const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.resolve(moduleDir, '..', '..', '..');
 
 const AGENTS_DIR = path.join(PLUGIN_ROOT, 'agents');
+const RUTA_HEURISTICA = path.join(PLUGIN_ROOT, 'scripts', 'heuristica-complejidad.yml');
 
 /** Los cuatro roles, con el nombre de fichero literal que deben tener. */
 const ROLES = [
@@ -213,6 +214,46 @@ function entre(texto: string, desde: string, hasta: string): string {
 const cuentaVinetas = (s: string): number => (s.match(/^- /gm) ?? []).length;
 
 /**
+ * Las frases de un texto ya normalizado. Corte por punto seguido de
+ * espacio: llega de sobra para lo unico que se usa, que es comprobar si
+ * dos palabras caen o no en la MISMA frase. Una mencion en dos frases
+ * distintas no es una cesion; es una coincidencia de vocabulario.
+ */
+const frasesDe = (texto: string): string[] => texto.split(/\.\s+/);
+
+/**
+ * La tabla "cuantos agentes de brainstorm por nivel" del fichero de
+ * heuristica, leida con el parser del plugin.
+ *
+ * Se lee en vez de copiarse porque la nota del rol de testing describe
+ * en QUE TRAMO de esa tabla el rol se degrada a checklist, y ese tramo
+ * es una consecuencia del reparto, no un literal: donde el presupuesto
+ * ya no da para los cuatro roles pero pasa de uno. Derivandolo, si
+ * manana el reparto cambia, el test falla y obliga a reescribir la nota
+ * — que es exactamente lo que se quiere.
+ */
+async function agentesPorNivel(): Promise<Record<string, number>> {
+  const lineas = (await readFile(RUTA_HEURISTICA, 'utf8')).split(/\r?\n/);
+  const { data } = parseBloqueClaveValor(lineas, 0, {
+    etiqueta: 'heuristica de complejidad',
+    crearError: (mensaje) => new Error(`[${RUTA_HEURISTICA}] ${mensaje}`),
+    permitirComentariosDeLinea: true,
+  });
+
+  const tabla: Record<string, number> = {};
+  for (const nivel of TASK_COMPLEXITIES) {
+    const valor = data[`agentes_brainstorm_${nivel}`];
+    assert.equal(
+      typeof valor,
+      'number',
+      `la heuristica no dice cuantos agentes lleva el nivel "${nivel}"`
+    );
+    tabla[nivel] = valor as number;
+  }
+  return tabla;
+}
+
+/**
  * Formas en que una seccion de la plantilla de salida declara cuanto
  * ocupa como maximo. `grupo` dice cual de las capturas es ese maximo.
  *
@@ -314,7 +355,7 @@ test('el test apunta de verdad a la raiz del plugin (guard de no-vacuidad)', asy
 
 // --- 1. Estructurales ---------------------------------------------------
 
-test('1. agents/ contiene los cuatro ficheros, con ese nombre y ese case exactos', async () => {
+test('1. agents/ contiene los cuatro ficheros de brainstorm, esos y solo esos', async () => {
   // En Windows el filesystem es case-insensitive: un stat() de la ruta NO
   // demuestra el case. El listado del directorio si lo demuestra.
   const enAgents = await readdir(AGENTS_DIR);
@@ -323,6 +364,20 @@ test('1. agents/ contiene los cuatro ficheros, con ese nombre y ese case exactos
     faltan,
     [],
     `agents/ no contiene ${faltan.join(', ')}. Hay: ${enAgents.join(', ')}`
+  );
+
+  // Y que no SOBRE ninguno. Comprobar solo que no faltan dejaba pasar un
+  // quinto rol: los tests parametrizados de abajo iteran sobre FICHEROS,
+  // asi que un `brainstorm-seguridad.md` no se validaba, no se comparaba
+  // con nadie, y el numero de agentes del nivel critica (4, "los cuatro
+  // roles definidos") pasaba a ser mentira sin que nada se enterase
+  // (ronda 3, menor 5). El conjunto es cerrado: anadir un rol obliga a
+  // tocar ROLES aqui arriba, que es la decision que se quiere a mano.
+  const brainstormEnDisco = enAgents.filter((f) => f.startsWith('brainstorm-')).sort();
+  assert.deepEqual(
+    brainstormEnDisco,
+    [...FICHEROS].sort(),
+    `agents/ tiene ficheros brainstorm-* que este test no conoce: ${brainstormEnDisco.join(', ')}`
   );
 });
 
@@ -679,10 +734,17 @@ test('13. ningun "Qué miras" es copia literal de otro (no mide solape semantico
  * rendimiento que puedes recibir" aparece en la seccion de contexto de
  * riesgos con otro sentido, y un `includes` sobre el fichero lo contaria
  * como si el rol reclamara el tema.
+ *
+ * Y la cesion se mide por FRASE, no por seccion (ronda 3, menor 4). Que
+ * la palabra "rendimiento" aparezca en "Qué NO miras" no es ceder nada:
+ * una viñeta como "tu rendimiento no se mide en cuántas viñetas
+ * escribes" satisfacia el test con el rol sin ceder el tema a nadie.
+ * Ceder es nombrar a QUIEN se cede, en la misma frase, y el nombre no se
+ * escribe aqui a mano: sale del rol que ha resultado reclamarlo.
  */
 test('13b. rendimiento y escalabilidad los reclama un solo rol y los ceden los otros tres', async () => {
   const reclaman: string[] = [];
-  const ceden: string[] = [];
+  const seccionNoMiras = new Map<string, string>();
 
   for (const fichero of FICHEROS) {
     const { body } = parseFrontmatter(await leerTexto(fichero));
@@ -691,14 +753,13 @@ test('13b. rendimiento y escalabilidad los reclama un solo rol y los ceden los o
     assert.ok(queMira !== '' && queNoMira !== '', `${fichero}: no se aislan las dos secciones`);
 
     const loReclama = /rendimiento/i.test(queMira);
-    const loCede = /rendimiento/i.test(queNoMira);
     assert.equal(
-      loReclama && loCede,
+      loReclama && /rendimiento/i.test(queNoMira),
       false,
       `${fichero}: nombra el rendimiento en "Qué miras" y en "Qué NO miras" a la vez`
     );
     if (loReclama) reclaman.push(fichero);
-    if (loCede) ceden.push(fichero);
+    seccionNoMiras.set(fichero, queNoMira);
   }
 
   assert.deepEqual(
@@ -707,12 +768,23 @@ test('13b. rendimiento y escalabilidad los reclama un solo rol y los ceden los o
     `el rendimiento lo reclaman ${reclaman.length} roles (${reclaman.join(', ') || 'ninguno'}): ` +
       'la convencion es uno lo mira y los otros tres lo ceden'
   );
-  const sinCeder = FICHEROS.filter((f) => !reclaman.includes(f) && !ceden.includes(f));
+
+  // A quien se cede. Se deriva del que lo reclama en vez de escribir
+  // "arquitectura" a mano: si manana el tema cambia de dueno, el test
+  // sigue midiendo la convencion y no un nombre caducado.
+  const dueno = (reclaman[0] as string).replace('brainstorm-', '').replace(/\.md$/, '');
+  const cede = (queNoMira: string): boolean =>
+    frasesDe(queNoMira).some(
+      (frase) => /rendimiento/i.test(frase) && new RegExp(`\\b${dueno}\\b`, 'i').test(frase)
+    );
+
+  const sinCeder = FICHEROS.filter((f) => !reclaman.includes(f) && !cede(seccionNoMiras.get(f) ?? ''));
   assert.deepEqual(
     sinCeder,
     [],
-    `${sinCeder.join(', ')}: no cede el rendimiento a ${reclaman[0]}, que si lo reclama. ` +
-      'Un tema reclamado en un solo sentido se acaba mirando dos veces o ninguna'
+    `${sinCeder.join(', ')}: no cede el rendimiento a ${reclaman[0]} en ninguna frase de ` +
+      '"Qué NO miras". Nombrar el tema sin nombrar a quien se le pasa no es cederlo: ' +
+      'un tema reclamado en un solo sentido se acaba mirando dos veces o ninguna'
   );
 });
 
@@ -764,6 +836,62 @@ test('14b. la nota del rol de testing nombra la escalera real, sin inventarse ni
     false,
     'la nota nombra el nivel "baja", que no esta en la escalera: ' +
       `los niveles son ${TASK_COMPLEXITIES.join(', ')}`
+  );
+
+  // Hasta aqui, la asercion se satisface con una ENUMERACION decorativa:
+  // la nota abre listando los cinco niveles, y esa lista sola ya la daba
+  // por buena aunque el tramo de degradacion dijera lo contrario de lo
+  // que dice la tabla de agentes. Verificado en la ronda 3: mover el
+  // tramo de "media y alta" a "trivial y simple" dejaba la suite entera
+  // verde, con la nota degradando el rol justo en los dos niveles donde
+  // la tabla da 0 y 1 agentes (menor 3).
+  //
+  // Asi que se asevera EL TRAMO, y contra la tabla en vez de contra
+  // literales: se degrada donde el presupuesto ya no da para los cuatro
+  // roles pero pasa de uno, y se conserva donde caben los cuatro.
+  const tabla = await agentesPorNivel();
+  const totalDeRoles = FICHEROS.length;
+  const tramoEsperado = TASK_COMPLEXITIES.filter((n) => {
+    const agentes = tabla[n] as number;
+    return agentes > 1 && agentes < totalDeRoles;
+  });
+  const conservaEsperado = TASK_COMPLEXITIES.filter((n) => tabla[n] === totalDeRoles);
+  const reparto = TASK_COMPLEXITIES.map((n) => `${n}=${String(tabla[n])}`).join(', ');
+  // Guards de no-vacuidad: sin ellos, una tabla degenerada dejaria las
+  // dos comparaciones de abajo satisfechas contra listas vacias.
+  assert.ok(tramoEsperado.length > 0, `la tabla no deja ningun nivel donde degradar (${reparto})`);
+  assert.equal(
+    conservaEsperado.length,
+    1,
+    `la tabla no deja exactamente un nivel con los ${totalDeRoles} roles (${reparto})`
+  );
+
+  const nivelesNombradosEn = (texto: string): string[] =>
+    TASK_COMPLEXITIES.filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(texto));
+
+  const declaracion = /tramo[^*]*\*\*([^*]+)\*\*/.exec(nota);
+  assert.ok(
+    declaracion !== null,
+    'la nota no declara en negrita el tramo de complejidad donde este rol se degrada'
+  );
+  assert.deepEqual(
+    nivelesNombradosEn(declaracion[1] as string),
+    [...tramoEsperado],
+    `la nota degrada el rol en "${String(declaracion[1])}", pero segun la tabla de agentes el ` +
+      `presupuesto solo aprieta en ${tramoEsperado.join(' y ')} (${reparto})`
+  );
+
+  const frasesQueConservan = frasesDe(nota).filter((f) => /\bse conserva\b/i.test(f));
+  assert.equal(
+    frasesQueConservan.length,
+    1,
+    'la nota no dice, en una sola frase, en que nivel se conserva el rol como agente propio'
+  );
+  assert.deepEqual(
+    nivelesNombradosEn(frasesQueConservan[0] as string),
+    [...conservaEsperado],
+    `la nota conserva el rol en "${String(frasesQueConservan[0])}", y la tabla solo deja sitio a ` +
+      `los ${totalDeRoles} roles en ${conservaEsperado.join(', ')} (${reparto})`
   );
 });
 

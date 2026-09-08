@@ -121,7 +121,15 @@ palabras_alto_riesgo: ["migracion", "breaking change", "seguridad", "autenticaci
 
 # ---------------------------------------------------------------------
 # 4. Cuantos agentes de brainstorm en paralelo por nivel de complejidad.
-#    Es un lookup, no un juicio: nadie tiene que decidirlo en caliente.
+#    Es un lookup, no un juicio: el numero no se decide en caliente.
+#
+#    Lo que fija es CUANTOS, no CUALES. En los extremos no hay nada que
+#    elegir: en trivial no se lanza a nadie y en critica entran los
+#    cuatro. En los niveles que piden entre uno y tres (y en un hotfix
+#    topado en uno) hay que elegir cual o cuales de los cuatro roles se
+#    lanzan, y esa eleccion queda abierta a proposito: depende de la
+#    tarea, y este fichero no la tiene delante. Lo que el lookup quita
+#    de encima es el numero, no el criterio.
 #
 #    Los extremos vienen dados: 0 en trivial (no se paga un brainstorm
 #    para algo trivial), 3 en alta y 4 en critica, que son los cuatro
@@ -140,12 +148,13 @@ agentes_brainstorm_alta: 3
 agentes_brainstorm_critica: 4
 
 # EXCEPCION POR TIPO DE TAREA, no por nivel. Un hotfix se planifica con
-# UN SOLO agente y sin brainstorm multi-agente. Es un TOPE, no una
-# sustitucion: el numero de agentes de un hotfix es el MENOR entre lo
-# que diga la tabla de arriba y este valor. La diferencia importa en el
-# extremo barato: un hotfix que puntua trivial se queda en 0 agentes,
-# no sube a 1: seria absurdo que la clave que existe para abreviar el
-# brainstorm acabase anadiendo uno donde la tabla no pedia ninguno.
+# UN SOLO agente COMO MUCHO y sin brainstorm multi-agente. Es un TOPE,
+# no una sustitucion: el numero de agentes de un hotfix es el MENOR
+# entre lo que diga la tabla de arriba y este valor. La diferencia
+# importa en el extremo barato: un hotfix que puntua trivial se queda
+# en 0 agentes, no sube a 1: seria absurdo que la clave que existe para
+# abreviar el brainstorm acabase anadiendo uno donde la tabla no pedia
+# ninguno.
 # Su sufijo es un tipo de tarea, no un nivel de complejidad, y por eso
 # es la unica clave agentes_brainstorm_ cuyo sufijo no sale del enum de
 # niveles.

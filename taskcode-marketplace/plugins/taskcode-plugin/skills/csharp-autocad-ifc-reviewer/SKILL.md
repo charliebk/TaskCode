@@ -46,14 +46,23 @@ va a tener. La regla en ese caso:
 
 Por que aqui se conserva `**/*.cs` entero y el revisor de frontend, en
 cambio, retiro sus patrones ambiguos: es el mismo criterio resuelto al
-reves, porque el dato es distinto. **Se acota el patron cuando existe un
-sufijo o un corte de ruta que discrimina; cuando no lo hay, no se amplia ni
-se recorta a ciegas — se conserva la cobertura y se documenta el hueco en el
-informe.** En Angular y Vue ese discriminante existe (`*.vue`,
-`*.component.ts`, `src/app/**/*.html`), asi que alli se acota. En C# no hay
-ningun sufijo ni ruta que separe un `.cs` de AutoCAD de un `.cs` de una API
-web: renunciar a `**/*.cs` dejaria sin revisor a todo el dominio, asi que se
-conserva y el aviso va en el informe.
+reves, porque el dato es distinto.
+
+**Se acota el patron cuando existe un sufijo o un corte de ruta que
+discrimina; cuando no lo hay, la variable que decide es si renunciar deja el
+dominio sin revisor: si lo deja, se conserva la cobertura y se documenta el
+hueco en el informe; si el resto de la lista ya cubre el dominio, se
+renuncia al patron y se documenta el hueco igual.**
+
+En C# no hay ningun sufijo ni ruta que separe un `.cs` de AutoCAD de un
+`.cs` de una API web, y renunciar a `**/*.cs` dejaria sin revisor a todo el
+dominio: se conserva la cobertura y el aviso va en el informe. En Angular y
+Vue el discriminante tampoco es completo —desde la version 20 el sufijo de
+tipo ya no va en el nombre del fichero—, pero alli el resto de la lista
+(`*.vue`, `*.component.*`, las plantillas y las rutas bajo `src/app/`) sigue
+cubriendo el dominio, asi que los patrones ambiguos se renuncian y el hueco
+se documenta igual. Misma frase, dos resultados, porque lo que cambia es si
+renunciar deja el dominio sin revisor.
 
 Si el diff toca ademas otros dominios, cada revisor recibe **solo la parte que
 casa con su patron**. No pidas el resto del diff por comodidad; pidelo si un

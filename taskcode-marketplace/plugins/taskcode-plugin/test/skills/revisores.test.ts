@@ -288,7 +288,7 @@ test('6. ningun revisor de dominio se solapa con otro en un patron identico', as
 type RevisorDeDominio = (typeof REVISORES_DE_DOMINIO)[number];
 
 /** [ruta, revisor que TIENE que reclamarla, de donde sale la ruta] */
-const RUTAS_DE_DOMINIO: ReadonlyArray<readonly [string, RevisorDeDominio, string]> = [
+const RUTAS_LEGITIMAS: ReadonlyArray<readonly [string, RevisorDeDominio, string]> = [
   // Angular hasta la 19: el sufijo de tipo va en el nombre del fichero.
   ['src/app/user-profile/user-profile.component.ts', 'angular-vue-reviewer', 'angular<=19'],
   ['src/app/user-profile/user-profile.component.html', 'angular-vue-reviewer', 'angular<=19'],
@@ -332,6 +332,52 @@ const RUTAS_DE_DOMINIO: ReadonlyArray<readonly [string, RevisorDeDominio, string
   ['src/Exporter/Exporter.csproj', 'csharp-autocad-ifc-reviewer', 'csharp'],
   ['Solucion.sln', 'csharp-autocad-ifc-reviewer', 'csharp'],
   ['test/fixtures/minimal.ifc', 'csharp-autocad-ifc-reviewer', 'ifc'],
+];
+
+/**
+ * CAPTURAS ACEPTADAS: rutas que NO son del dominio del revisor que las
+ * reclama, que aun asi casan, y cuya conservacion esta decidida y explicada
+ * en la propia skill.
+ *
+ * Es un tercer estado, y hace falta porque los otros dos mienten sobre
+ * ellas. En `RUTAS_AJENAS` la asercion es "no casa con nadie", y estas si
+ * casan: el test se pondria rojo por decir la verdad. En `RUTAS_LEGITIMAS`
+ * quedarian etiquetadas como ficheros de Angular o de Vue, y no lo son. Son
+ * fugas conocidas, medidas, y conservadas a proposito porque renunciar al
+ * patron cuesta mas cobertura de la que la fuga cuesta — que es justo lo que
+ * dice la frase del criterio que ahora comparten angular-vue y csharp.
+ *
+ * Se congelan aqui para que la decision no se pueda revertir en silencio: si
+ * alguien acota el patron y estas dejan de casar, el test 6c se pone rojo y
+ * obliga a volver a la skill a reescribir el hueco que documenta. Si alguien
+ * lo ancha, la tabla negativa sigue siendo la que muerde.
+ *
+ * Medidas con `path.matchesGlob` contra los dos patrones que las capturan
+ * (el de plantillas bajo la carpeta de aplicacion y el de configuracion de
+ * arranque), leidos del propio SKILL.md como el resto de la tabla.
+ */
+const CAPTURAS_ACEPTADAS: ReadonlyArray<readonly [string, RevisorDeDominio, string]> = [
+  // Plantillas de backend servidas desde la carpeta de aplicacion. El corte
+  // de ruta discrimina frente a Next.js —que sirve .tsx o .jsx, nunca
+  // .html— pero no frente a un backend con plantillas. Renunciar dejaria a
+  // Angular >= 20 sin ningun patron que lo capture, que es peor.
+  ['src/app/templates/base.html', 'angular-vue-reviewer', 'captura aceptada: flask/fastapi src-layout'],
+  ['src/app/templates/index.html', 'angular-vue-reviewer', 'captura aceptada: flask/fastapi src-layout'],
+  ['src/app/static/index.html', 'angular-vue-reviewer', 'captura aceptada: estatico servido por backend'],
+  ['src/app/views/mail.html', 'angular-vue-reviewer', 'captura aceptada: express con plantillas'],
+  ['src/app/index.html', 'angular-vue-reviewer', 'captura aceptada: electron o sitio estatico'],
+
+  // La carpeta de aplicacion de un NestJS en Nx, que es territorio de Nest.
+  // El fichero no lo genera ningun esquematico de Nest, y el resto de un
+  // diff suyo (modulos, servicios, controladores) no casa con nada de aqui:
+  // ya esta en RUTAS_AJENAS y sigue sin casar.
+  ['apps/api/src/app/app.config.ts', 'angular-vue-reviewer', 'captura aceptada: nestjs en Nx'],
+];
+
+/** Lo que TIENE que casar: porque le toca, o porque se decidio conservarlo. */
+const RUTAS_DE_DOMINIO: ReadonlyArray<readonly [string, RevisorDeDominio, string]> = [
+  ...RUTAS_LEGITIMAS,
+  ...CAPTURAS_ACEPTADAS,
 ];
 
 /**
@@ -410,6 +456,13 @@ test('6b. la tabla de enrutado no esta vacia ni cojea (guard de no-vacuidad)', a
   assert.ok(RUTAS_DE_DOMINIO.length >= 30, 'la tabla positiva se ha quedado corta');
   assert.ok(RUTAS_AJENAS.length >= 30, 'la tabla negativa se ha quedado corta');
 
+  // Las capturas aceptadas son una decision congelada: vaciar la tabla la
+  // descongela sin que nadie se entere.
+  assert.ok(
+    CAPTURAS_ACEPTADAS.length > 0,
+    'la tabla de capturas aceptadas esta vacia: los huecos conocidos dejarian de estar congelados'
+  );
+
   // Los tres revisores de dominio tienen que estar representados; si no, la
   // direccion positiva estaria verde por no mirar a dos de ellos.
   for (const nombre of REVISORES_DE_DOMINIO) {
@@ -443,7 +496,7 @@ test('6b. la tabla de enrutado no esta vacia ni cojea (guard de no-vacuidad)', a
   );
 });
 
-test('6c. POSITIVA: cada ruta legitima llega al revisor que le toca', async () => {
+test('6c. POSITIVA: cada ruta que tiene que casar llega al revisor que le toca', async () => {
   const mapa = await patronesPorRevisor();
   const fallos: string[] = [];
   for (const [ruta, esperado, origen] of RUTAS_DE_DOMINIO) {
@@ -458,8 +511,10 @@ test('6c. POSITIVA: cada ruta legitima llega al revisor que le toca', async () =
   assert.equal(
     fallos.length,
     0,
-    `${fallos.length} de ${RUTAS_DE_DOMINIO.length} rutas legitimas se quedan sin su revisor ` +
-      `(un recorte de patrones de mas):\n${fallos.join('\n')}`
+    `${fallos.length} de ${RUTAS_DE_DOMINIO.length} rutas que tenian que casar se quedan sin su ` +
+      `revisor (un recorte de patrones de mas). Si la que falla es una CAPTURA ACEPTADA, el ` +
+      `recorte puede ser deliberado: entonces hay que quitarla de esa tabla y reescribir el hueco ` +
+      `que la skill documenta, no relajar este test:\n${fallos.join('\n')}`
   );
 });
 
@@ -585,14 +640,139 @@ test('9b. la definicion de severidad NO la satisface una mencion en prosa', () =
   }
 });
 
-test('10. las cuatro exigen reproducir empiricamente, no leer el diff y opinar', async () => {
+/**
+ * La exigencia de reproducir empiricamente, ANCLADA A UNA SECCION REAL.
+ *
+ * La version anterior de este test buscaba la subcadena 'reproduc' sobre el
+ * fichero entero en minusculas. La satisfacia la etiqueta `- Reproduccion:`
+ * del esqueleto del informe — que el test 10c ADEMAS exige que este
+ * presente, asi que la asercion no podia ponerse roja por su cuenta.
+ * Reproducido: borrada de angular-vue la seccion `## Reproducir antes de
+ * reportar` entera (2399 bytes: los seis pasos y las tecnicas por area), la
+ * suite quedaba 21/21 en verde. Era el nucleo metodologico de estas skills
+ * —lo que las separa de leer el diff y opinar— sin ninguna red.
+ *
+ * Se asevera sobre la SECCION, no sobre la palabra:
+ *
+ * - Un encabezado `##` que hable de reproducir, y FUERA de los bloques
+ *   cercados. Dentro hay un `## Reproduccion` que es un apartado del informe
+ *   a rellenar, no el metodo; contarlo seria el mismo agujero con otra
+ *   forma.
+ * - Y con procedimiento de verdad: los pasos numerados. Una seccion que solo
+ *   diga "hay que reproducir" no distingue reproducir de opinar.
+ */
+const PASOS_MINIMOS = 3;
+
+/** Las lineas fuera de todo bloque cercado: el esqueleto vive dentro. */
+function sinBloquesCercados(texto: string): string[] {
+  const fuera: string[] = [];
+  let dentro = false;
+  // Split tolerante a CRLF: estos ficheros se editan en Windows.
+  for (const linea of texto.split(/\r?\n/)) {
+    if (/^\s*```/.test(linea)) {
+      dentro = !dentro;
+      continue;
+    }
+    if (!dentro) fuera.push(linea);
+  }
+  return fuera;
+}
+
+/** El cuerpo de la seccion de reproduccion, o null si no existe tal seccion. */
+function seccionDeReproduccion(texto: string): string[] | null {
+  const lineas = sinBloquesCercados(texto);
+  const ini = lineas.findIndex((l) => /^##\s+.*reproduc/i.test(l));
+  if (ini === -1) return null;
+  const siguiente = lineas.findIndex((l, i) => i > ini && /^##\s/.test(l));
+  return lineas.slice(ini + 1, siguiente === -1 ? lineas.length : siguiente);
+}
+
+function pasosNumerados(cuerpo: readonly string[]): number {
+  return cuerpo.filter((l) => /^\s*\d+\.\s/.test(l)).length;
+}
+
+test('10. las cuatro exigen reproducir en una SECCION con procedimiento, no de pasada', async () => {
   for (const nombre of REVISORES) {
-    const texto = (await leer(nombre)).toLowerCase();
+    const cuerpo = seccionDeReproduccion(await leer(nombre));
+    assert.notEqual(
+      cuerpo,
+      null,
+      `${nombre}: no hay ninguna seccion "## ...reproducir..." fuera de los bloques cercados; ` +
+        'la etiqueta "- Reproduccion:" del esqueleto es un campo del informe, no el metodo'
+    );
+    const pasos = pasosNumerados(cuerpo as string[]);
     assert.ok(
-      texto.includes('reproduc'),
-      `${nombre}: no exige reproducir; una revision que solo lee el diff no es una revision`
+      pasos >= PASOS_MINIMOS,
+      `${nombre}: la seccion de reproduccion tiene ${pasos} pasos numerados y se esperan al menos ` +
+        `${PASOS_MINIMOS}; una seccion sin procedimiento no separa reproducir de leer el diff y opinar`
     );
   }
+});
+
+/**
+ * Contraprueba del test 10, en el propio test: la asercion nueva tiene que
+ * rechazar justo lo que la vieja aceptaba. Mismo patron que el 9b.
+ */
+// Nombrado "10 bis" y no "10b": ese numero ya lo ocupa el guard del
+// esqueleto, mas abajo, y dos tests con el mismo nombre se confunden en la
+// salida de node --test justo cuando uno de los dos esta rojo.
+test('10 bis. la seccion de reproduccion NO la satisface la etiqueta del esqueleto', () => {
+  // Lo que la version anterior daba por bueno: la palabra aparece, pero solo
+  // como campo del informe, dentro del bloque cercado. Y con pasos
+  // numerados dentro, para que ni siquiera el umbral la salve.
+  const soloEsqueleto = [
+    '# Revisor de ejemplo',
+    '',
+    'Un hallazgo se reporta cuando existe el caso que lo demuestra.',
+    '',
+    '## Estructura del informe',
+    '',
+    '```markdown',
+    '## Reproduccion',
+    '- Clon: <ruta temporal y rama>',
+    '1. paso dentro del bloque',
+    '2. otro paso dentro del bloque',
+    '3. y un tercero',
+    '```',
+  ].join('\n');
+  assert.equal(
+    seccionDeReproduccion(soloEsqueleto),
+    null,
+    'el "## Reproduccion" del esqueleto del informe cuenta como metodo: no discrimina'
+  );
+
+  // Y una seccion de verdad pero vaciada de procedimiento tampoco basta.
+  const seccionSinPasos = [
+    '## Reproducir antes de reportar',
+    '',
+    'Esto no es leer el diff y opinar.',
+    '',
+    '## Que se revisa',
+  ].join('\n');
+  const vacia = seccionDeReproduccion(seccionSinPasos);
+  assert.notEqual(vacia, null, 'la seccion sin pasos ni se encuentra: el patron no casa con nada');
+  assert.ok(
+    pasosNumerados(vacia as string[]) < PASOS_MINIMOS,
+    'una seccion sin pasos numerados pasa el umbral: el umbral no mide nada'
+  );
+
+  // Y al reves: la forma real si la acepta, para que el test no este verde
+  // simplemente porque el patron no case con nada nunca.
+  const formaReal = [
+    '## Reproducir antes de reportar',
+    '',
+    '1. Clonar el repo a un directorio temporal.',
+    '2. Instalar con el lockfile.',
+    '3. Compilar y pasar el linter y los tipos.',
+    '',
+    '## Que se revisa',
+  ].join('\n');
+  const real = seccionDeReproduccion(formaReal);
+  assert.notEqual(real, null, 'la forma real no se reconoce como seccion');
+  assert.ok(
+    pasosNumerados(real as string[]) >= PASOS_MINIMOS,
+    'la forma real no pasa el umbral: el test 10 estaria rojo por construccion'
+  );
 });
 
 // --- 3bis. La estructura del informe, contra el esqueleto que genera el CLI ---

@@ -48,7 +48,8 @@ brainstorm no ha aportado nada.
   Es del rol de riesgos.
 - **No diseñas la estrategia de pruebas.** Es del rol de testing. Sí puedes
   aportar el ejemplo real que cualquier prueba debería reproducir.
-- **No opinas sobre estilo de código, rendimiento ni deuda técnica.**
+- **No opinas sobre estilo de código ni deuda técnica.** Rendimiento y
+  escalabilidad los lleva el rol de arquitectura.
 
 ## Qué contexto necesitas — y cuál no
 
