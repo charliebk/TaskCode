@@ -896,6 +896,111 @@ test('plan: brainstorm/ viaja con la tarea al cambiar de carpeta de estado', asy
   });
 });
 
+// ─── los hallazgos de la RONDA 3 de la revision ────────────────────────
+
+/**
+ * CRITICO de la ronda 3, y el mas incomodo de los tres: no hacia falta
+ * ningun estado corrupto para llegar a el. Bastaba el CAMINO FELIZ,
+ * tres veces.
+ *
+ * `rondaCompleta` exigia las peticiones de rol a TODA ronda, pero una
+ * ronda >= 2 no las escribe nunca por diseño. Resultado: ninguna ronda
+ * >= 2 podia estar completa, la ronda se quedaba clavada en 2 para
+ * siempre y del tercer `plan` en adelante el comando era un no-op con
+ * exit 0, reutilizando una peticion de unificador rancia.
+ *
+ * Mutacion que lo pone rojo: devolver `rondaCompleta` a exigir las
+ * peticiones de rol tambien cuando n > 1.
+ */
+test('plan: la ronda AVANZA en la tercera vuelta y en las siguientes (no se queda clavada en 2)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const rondas: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const r = await runPlanCommand(tareasRoot, ['TASK-800'], `2026-09-0${8 + i}`, {
+        repoCwd: repoRoot,
+      });
+      rondas.push(r.ronda);
+    }
+
+    assert.deepEqual(rondas, [1, 2, 3, 4]);
+
+    // Y cada vuelta deja su propia peticion de unificador: sin eso se
+    // pierde el rastro de las vueltas, que es el mecanismo con el que
+    // esta tarea cuenta las rondas.
+    const dir = brainstormDir(
+      path.join(tareasRoot, '01-en-diseno', 'TASK-800', 'tarea.md')
+    );
+    const enDisco = await readdir(dir);
+    for (const n of [1, 2, 3, 4]) {
+      assert.ok(
+        enDisco.includes(`peticion-unificador-${n}.md`),
+        `falta la peticion de la ronda ${n}`
+      );
+    }
+    // Las peticiones de rol siguen siendo solo las de la ronda 1: una
+    // re-planificacion no las relanza (16.3).
+    assert.equal(enDisco.filter((f) => f.startsWith('peticion-brainstorm-')).length, 2);
+  });
+});
+
+/**
+ * IMPORTANTE de la ronda 3. Si alguien BAJA la complejidad entre dos
+ * vueltas, `roles` se queda vacio y la lista de salidas — que se
+ * componia a partir de `roles` — salia vacia tambien. La peticion
+ * afirmaba "no hay salidas de brainstorm que consolidar" teniendo al
+ * lado, llenas, las que los agentes habian escrito. Y encima mentia
+ * sobre la causa ("el numero de roles sale del lookup, no de un
+ * descuido"): ahi si hubo brainstorm, y se estaba tirando.
+ *
+ * Mutacion que lo pone rojo: volver a componer la lista desde `roles`
+ * en vez de resolverla contra el disco.
+ */
+test('plan: bajar la complejidad no hace que el unificador ignore un brainstorm que existe', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const primera = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+    assert.equal(primera.roles.length, 2);
+
+    // Los agentes responden.
+    const dir = brainstormDir(primera.filePath);
+    for (const rol of ROLES_BRAINSTORM.slice(0, 2)) {
+      await writeFile(
+        path.join(dir, nombreSalidaRolTest(rol.id, 1)),
+        `# respuesta real de ${rol.titulo}\n`,
+        'utf8'
+      );
+    }
+
+    // Y la persona baja la complejidad a trivial (0 roles).
+    const tareaMd = primera.filePath;
+    const contenido = await readFile(tareaMd, 'utf8');
+    await writeFile(tareaMd, contenido.replace('complejidad: media', 'complejidad: trivial'), 'utf8');
+    commitAll(repoRoot, 'complejidad bajada');
+
+    const segunda = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', {
+      repoCwd: repoRoot,
+    });
+    assert.equal(segunda.roles.length, 0, 'precondicion: trivial sin senales resuelve 0 roles');
+
+    const peticion = await readFile(segunda.peticionUnificador, 'utf8');
+    // Las dos salidas reales se nombran, en vez de negarse.
+    for (const rol of ROLES_BRAINSTORM.slice(0, 2)) {
+      assert.ok(
+        peticion.includes(nombreSalidaRolTest(rol.id, 1)),
+        `el unificador no nombra la salida real de ${rol.titulo}`
+      );
+    }
+    assert.doesNotMatch(peticion, /No hay salidas de brainstorm que consolidar/);
+  });
+});
+
 // ─── el contrato de distribucion del plugin ────────────────────────────
 
 /**

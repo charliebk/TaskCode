@@ -169,6 +169,14 @@ export function peticionUnificadorTemplate(
   objetivo: string,
   criterios: readonly string[],
   roles: readonly RolBrainstorm[],
+  /**
+   * Las salidas a consolidar, YA RESUELTAS a nombres reales de fichero
+   * por quien mira el disco. No se componen aqui a partir de `roles`:
+   * si alguien baja la complejidad entre dos vueltas, `roles` se queda
+   * corto o vacio y la lista negaria un brainstorm que si existe
+   * (IMPORTANTE de la ronda 3 de la revision por pares).
+   */
+  salidas: readonly { nombre: string; titulo: string }[],
   ronda: number,
   /**
    * Ronda a la que pertenecen las SALIDAS que hay que consolidar. En la
@@ -188,16 +196,14 @@ export function peticionUnificadorTemplate(
   planFinalRelativo: string
 ): string {
   const listaSalidas =
-    roles.length === 0
-      ? '(ninguna: esta tarea no lanza brainstorm, ver el bloque de complejidad)\n'
-      : rondaSalidas === null
-        ? '**(ninguna: no queda en disco ningun juego completo de salidas de rondas ' +
+    salidas.length > 0
+      ? salidas.map((s) => `- \`${s.nombre}\` — rol ${s.titulo}\n`).join('')
+      : roles.length === 0
+        ? '(ninguna: esta tarea no lanza brainstorm, ver el bloque de complejidad)\n'
+        : '**(ninguna: no queda en disco ningun juego completo de salidas de rondas ' +
           'anteriores.** Puede que se borraran, o que los agentes de la ronda anterior no ' +
           'llegaran a responder. Redacta con lo que tengas y dilo en el plan; no supongas que ' +
-          'hubo un brainstorm que no puedes leer.)\n'
-        : roles
-            .map((r) => `- \`${nombreSalidaRol(r, rondaSalidas)}\` — rol ${r.titulo}\n`)
-            .join('');
+          'hubo un brainstorm que no puedes leer.)\n';
 
   // Las tres formas de este paso son distintas de verdad, no un mismo
   // texto con el numero cambiado. Con UN solo rol no puede haber
@@ -206,13 +212,18 @@ export function peticionUnificadorTemplate(
   // disparar una alarma falsa en casi la mitad de las tareas. Una
   // alarma que salta siempre deja de significar nada, que es justo lo
   // que arruinaria el criterio de "senalar los desacuerdos".
+  // La forma del texto la decide cuantas salidas hay QUE CONSOLIDAR de
+  // verdad, no cuantos roles resuelve la complejidad de hoy: pueden no
+  // coincidir si alguien la cambio entre dos vueltas, y quien lee esta
+  // peticion tiene delante las salidas, no la tabla.
+  const nSalidas = salidas.length;
   let comoConsolidas: string;
-  if (roles.length === 0) {
+  if (nSalidas === 0) {
     comoConsolidas =
       'No hay salidas de brainstorm que consolidar: redacta el plan directamente a partir del ' +
       'enunciado. Deja dicho en el plan que se redacto sin brainstorm y por que (el numero de ' +
       'roles sale del lookup de complejidad, no de un descuido).\n';
-  } else if (roles.length === 1) {
+  } else if (nSalidas === 1) {
     comoConsolidas =
       '**Esta tarea se planifico con un solo rol**, asi que aqui no hay desacuerdos que resolver: ' +
       'no te los inventes ni trates la ausencia de discrepancia como una senal de nada.\n\n' +
@@ -261,9 +272,9 @@ export function peticionUnificadorTemplate(
         'plan y que alguien decida relanzar el brainstorm.\n\n';
 
   const desacuerdosEnPlanFinal =
-    roles.length > 1
+    nSalidas > 1
       ? '- Los desacuerdos entre roles y como se resuelve cada uno.\n'
-      : roles.length === 1
+      : nSalidas === 1
         ? '- Lo que el rol no cubrio, contrastado contra los criterios de aceptacion.\n'
         : '';
 

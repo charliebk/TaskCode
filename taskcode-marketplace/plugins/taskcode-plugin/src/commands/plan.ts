@@ -22,7 +22,7 @@
  * (ensureBaseBranchReady, antes de mover nada).
  */
 import path from 'node:path';
-import { mkdir, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rename, stat, writeFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
 import {
   parseAsignadoAFlag,
@@ -47,7 +47,11 @@ import {
   resolverNumeroAgentes,
   type ResolucionAgentes,
 } from '../core/heuristica.js';
-import { seleccionarRoles, type RolBrainstorm } from '../core/roles-brainstorm.js';
+import {
+  seleccionarRoles,
+  ROLES_BRAINSTORM,
+  type RolBrainstorm,
+} from '../core/roles-brainstorm.js';
 import {
   nombrePeticionRol,
   nombreSalidaRol,
@@ -103,9 +107,12 @@ export const BRAINSTORM_DIRNAME = 'brainstorm';
  * asi que no se salia con ningun comando: habia que borrar la carpeta a
  * mano.
  *
- * Consecuencia buscada de las dos correcciones juntas: una ronda a
- * medias se REINTENTA con el mismo numero, y las escrituras que ya se
- * hicieron se toleran (ver escribirSiNoEstaYa).
+ * Consecuencia buscada de las correcciones juntas: una ronda a medias
+ * se REINTENTA con el mismo numero, y las escrituras que ya se hicieron
+ * se toleran (ver escribirSiNoEstaYa). "Ronda a medias" significa que
+ * NO produjo lo que a ella le tocaba, que no es lo mismo para la ronda
+ * 1 que para las siguientes — ver rondaCompleta, donde esa distincion
+ * costo un tercer CRITICO.
  */
 const RONDA_UNIFICADOR_RE = /^peticion-unificador-(\d+)\.md$/;
 
@@ -137,6 +144,16 @@ const SALIDA_ROL_RE = /^salida-brainstorm-[a-z0-9-]+-(\d+)\.md$/;
  * `revision/`.
  */
 export const PLANIFICACION_DIRNAME = 'planificacion';
+
+/** readdir tolerante: un directorio que no existe es "no hay nada". */
+async function listarDir(dir: string): Promise<string[]> {
+  try {
+    return await readdir(dir);
+  } catch (e: unknown) {
+    if (isEnoent(e) || isEnotdir(e)) return [];
+    throw e;
+  }
+}
 
 /**
  * Fichero regular Y con algo dentro. Un fichero de cero bytes es lo
@@ -526,24 +543,41 @@ export async function runPlanCommand(
   // peticiones, que es un callejon de la maquina de estados.
   const brainstormDir = path.join(planificacionDir, BRAINSTORM_DIRNAME);
 
-  /**
-   * Una ronda esta COMPLETA cuando estan, con contenido, su testigo y
-   * las peticiones de todos los roles que le tocaban. Se comprueba
-   * contra los roles que se van a lanzar ahora: si alguien subio la
-   * complejidad entre dos vueltas, la ronda anterior se ve incompleta
-   * y se completa con los roles nuevos, que es lo que la persona esta
-   * pidiendo al subirla.
-   */
-  const rondaCompleta = async (n: number): Promise<boolean> => {
-    if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(n))))) {
-      return false;
-    }
+  const peticionesRolCompletasDe = async (n: number): Promise<boolean> => {
     for (const rol of roles) {
       if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionRol(rol, n))))) {
         return false;
       }
     }
     return true;
+  };
+
+  /**
+   * Una ronda esta COMPLETA cuando produjo todo lo que a ELLA le
+   * tocaba producir. Y no a todas les toca lo mismo: **solo la ronda 1
+   * lanza los roles**; de la 2 en adelante el unico artefacto propio es
+   * la peticion del unificador (§16.3 — un "pide cambios" es una
+   * correccion incremental, no un reinicio).
+   *
+   * Esa asimetria es justo lo que se me paso, y la encontro la ronda 3
+   * de la revision por pares. Exigir peticiones de rol a TODA ronda
+   * hacia que ninguna ronda ≥2 pudiera estar completa nunca, con lo que
+   * la ronda se quedaba **clavada en 2 para siempre**: del tercer
+   * `plan` en adelante el comando era un no-op con exit 0, reutilizando
+   * una peticion de unificador rancia y sin dejar rastro de las vueltas
+   * posteriores. Y no hacia falta ningun estado corrupto para llegar
+   * ahi: bastaba el camino feliz, tres veces seguidas.
+   *
+   * La leccion de fondo: aqui vivian fusionadas dos preguntas distintas
+   * — "¿que ronda toca escribir?" y "¿hay que relanzar los roles?" —, y
+   * responderlas con una sola variable funcionaba justo hasta la
+   * tercera vuelta.
+   */
+  const rondaCompleta = async (n: number): Promise<boolean> => {
+    if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(n))))) {
+      return false;
+    }
+    return n > 1 ? true : peticionesRolCompletasDe(n);
   };
 
   // Ronda a escribir: la siguiente si la ultima quedo completa, y la
@@ -589,16 +623,67 @@ export async function runPlanCommand(
     return true;
   };
 
-  // null = no hay ningun juego de salidas que consolidar. La plantilla
-  // lo dice en vez de nombrar ficheros que el propio CLI sabe que no
-  // existen (MENOR de la ronda 2).
-  let rondaSalidas: number | null = ronda;
-  if (brainstormReutilizado) {
-    rondaSalidas = null;
-    for (let n = await ultimaRonda(brainstormDir, SALIDA_ROL_RE); n >= 1; n--) {
-      if (await salidasCompletasDe(n)) {
-        rondaSalidas = n;
-        break;
+  /**
+   * Las salidas que hay que consolidar, resueltas a NOMBRES REALES de
+   * fichero en vez de componerse a partir de `roles`.
+   *
+   * El cambio lo obliga un IMPORTANTE de la ronda 3: si alguien BAJA la
+   * complejidad entre dos vueltas, `roles` se queda vacio y la lista
+   * derivada salia vacia tambien — con lo que la peticion decia "no hay
+   * salidas de brainstorm que consolidar" teniendo al lado, llenas, las
+   * salidas que los agentes de la ronda anterior habian escrito. Y
+   * ademas mentia sobre la causa ("el numero de roles sale del lookup,
+   * no de un descuido"): aqui si hubo brainstorm, y se estaba tirando.
+   *
+   * Es el mismo sintoma que ya se corrigio dos veces — el unificador
+   * ignorando un brainstorm real — entrando por una tercera puerta. La
+   * unica forma de cerrarla del todo es preguntarle al disco que hay,
+   * en vez de deducirlo de un parametro que puede haber cambiado.
+   */
+  const salidasAConsolidar: { nombre: string; titulo: string }[] = [];
+  let rondaSalidas: number | null = null;
+
+  const tituloDeSalida = (nombre: string): string => {
+    const rol = ROLES_BRAINSTORM.find((r) => nombre.startsWith(`salida-${r.id}-`));
+    return rol?.titulo ?? 'rol desconocido';
+  };
+
+  if (!brainstormReutilizado) {
+    rondaSalidas = ronda;
+    for (const rol of roles) {
+      salidasAConsolidar.push({ nombre: nombreSalidaRol(rol, ronda), titulo: rol.titulo });
+    }
+  } else {
+    // Con roles, la ronda mas alta cuyo juego este COMPLETO: un fichero
+    // rezagado no puede secuestrar la lista (IMPORTANTE de la ronda 2).
+    for (let n = await ultimaRonda(brainstormDir, SALIDA_ROL_RE); n >= 1 && rondaSalidas === null; n--) {
+      if (await salidasCompletasDe(n)) rondaSalidas = n;
+    }
+    if (rondaSalidas !== null) {
+      for (const rol of roles) {
+        salidasAConsolidar.push({
+          nombre: nombreSalidaRol(rol, rondaSalidas),
+          titulo: rol.titulo,
+        });
+      }
+    } else {
+      // Sin roles con los que definir "juego completo" (complejidad
+      // bajada a 0 roles), se listan las salidas que de verdad hay en
+      // disco de la ronda mas alta que tenga alguna. Mejor nombrar un
+      // brainstorm real de forma imperfecta que negar que existe.
+      const enDisco = (await listarDir(brainstormDir))
+        .map((nombre) => ({ nombre, m: SALIDA_ROL_RE.exec(nombre) }))
+        .filter((x): x is { nombre: string; m: RegExpExecArray } => x.m !== null);
+      const maxN = enDisco.reduce((acc, x) => Math.max(acc, Number(x.m[1])), 0);
+      if (maxN > 0) {
+        for (const { nombre, m } of enDisco) {
+          if (Number(m[1]) !== maxN) continue;
+          if (await ficheroConContenido(path.join(brainstormDir, nombre))) {
+            salidasAConsolidar.push({ nombre, titulo: tituloDeSalida(nombre) });
+          }
+        }
+        if (salidasAConsolidar.length > 0) rondaSalidas = maxN;
+        salidasAConsolidar.sort((a, b) => a.nombre.localeCompare(b.nombre));
       }
     }
   }
@@ -676,6 +761,7 @@ export async function runPlanCommand(
       secciones.objetivo,
       secciones.criterios,
       roles,
+      salidasAConsolidar,
       ronda,
       rondaSalidas,
       today,
