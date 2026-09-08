@@ -1,0 +1,194 @@
+# Heuristica de complejidad - pesos por defecto del plugin.
+#
+# Estima la complejidad de una tarea contando senales que YA estan en
+# su fichero de tarea (etiquetas, tipo, dependencias, criterios de
+# aceptacion, palabras de riesgo en el objetivo). Es aritmetica sobre
+# datos estructurados: cero llamadas a un modelo para calcularla.
+#
+# FORMATO. Este fichero se lee con el mismo parser minimo que el resto
+# de metadatos del plugin: SOLO pares "clave: valor" de primer nivel,
+# listas en linea [a, b, c], comentarios de linea que empiezan por "#".
+# NO hay anidamiento. Un mapa dentro de una clave no se parsea: se
+# aplanaria en silencio y el consumidor leeria otra cosa de la que pone
+# el fichero. Por eso los grupos se expresan con prefijos en el nombre
+# de la clave (peso_, nivel_, agentes_brainstorm_) y no con sangria.
+#
+# Un aviso para quien lo lea desde codigo: los comentarios de linea van
+# APAGADOS por defecto en ese parser. Hay que pedirlos de forma
+# explicita; sin ellos, la lectura falla en la primera linea de este
+# mismo fichero.
+#
+# NOMBRES DE NIVEL - divergencia documentada. La metodologia de la que
+# sale esta heuristica llama "compleja" al cuarto nivel, y asi se
+# decidio en su dia. El modelo de datos que valida el frontmatter de
+# cada tarea lo llama "alta", y rechaza "compleja" como valor invalido.
+# Aqui manda el codigo: las claves de este fichero dicen "alta" porque
+# es lo unico que se puede leer de una tarea real. La divergencia se
+# deja escrita en vez de reescribir la metodologia o forzar el enum.
+#
+# Los valores de aqui son los defaults del plugin y valen para
+# cualquier proyecto. Son un punto de partida razonado, no una medida:
+# se ajustaran cuando haya suficientes tareas cerradas de los cinco
+# niveles con que contrastarlos.
+
+# ---------------------------------------------------------------------
+# 1. Pesos. Cada senal encontrada suma sus puntos; la puntuacion total
+#    es la suma de todas. No hay tope: una tarea con muchas senales
+#    debe poder salirse por arriba de la escala.
+# ---------------------------------------------------------------------
+
+# Cada etiqueta declarada MAS ALLA DE LA PRIMERA. La primera etiqueta
+# no puntua: toda tarea toca al menos un area, y eso no la complica.
+# Lo que complica es tocar varias a la vez.
+peso_etiqueta_adicional: 1
+
+# Cada palabra de alto riesgo encontrada en el objetivo o en los
+# criterios de aceptacion. Vale el doble que las demas senales porque
+# es la unica que habla del contenido del trabajo y no de su forma.
+#
+# COMO SE CUENTA: una vez por entrada distinta de palabras_alto_riesgo
+# que aparezca en el texto, sin importar cuantas veces aparece ni en
+# que seccion. Que "rendimiento" salga tres veces suma 2, no 6; y que
+# una entrada salga en el objetivo Y en los criterios tambien suma 2,
+# no 4. Sin esta regla escrita la misma tarea puntua distinto segun
+# quien la implemente. Con ella la senal queda acotada en 14 entradas x
+# 2 puntos = 28, en vez de crecer sin limite con el largo del texto.
+#
+# Ojo con lo que esa cota NO significa: la escala termina en 8, asi que
+# 4 entradas distintas ya saturan el nivel maximo por si solas. La cota
+# ordena el conteo, no impide que esta senal domine la puntuacion. Si
+# eso resulta demasiado agresivo con datos reales, lo que se ajusta es
+# el peso, no la cota.
+peso_palabra_alto_riesgo: 2
+
+# Cada dependencia declarada de otra tarea. Depender de algo ajeno no
+# hace la tarea mas grande, pero si mas dificil de coordinar.
+peso_dependencia: 1
+
+# La tarea es de tipo release.
+peso_tipo_release: 1
+
+# La tarea es de tipo hotfix Y ADEMAS aparece alguna palabra de alto
+# riesgo. Un hotfix no puntua por serlo: urgencia no es complejidad, y
+# tratarla como tal seria el error que esta senal existe para evitar.
+# Lo que puntua es un hotfix que toca ademas terreno delicado.
+peso_tipo_hotfix_con_palabra_riesgo: 2
+
+# La tarea declara umbral_criterios_aceptacion criterios o mas. Se paga
+# una sola vez, no por criterio: partir el mismo trabajo en mas casillas
+# no lo hace mas complejo, pero necesitar muchas suele indicar alcance.
+peso_criterios_aceptacion: 1
+umbral_criterios_aceptacion: 5
+
+# ---------------------------------------------------------------------
+# 2. Mapeo puntuacion -> nivel heuristico. Cada clave es el ultimo
+#    valor que TODAVIA cae en ese nivel; a partir de nivel_critica_desde
+#    la escala se abre y ya no crece mas.
+# ---------------------------------------------------------------------
+nivel_trivial_hasta: 1
+nivel_simple_hasta: 3
+nivel_media_hasta: 5
+nivel_alta_hasta: 7
+nivel_critica_desde: 8
+
+# ---------------------------------------------------------------------
+# 3. Palabras de alto riesgo (defecto generico).
+#
+# La lista es DELIBERADAMENTE generica y no debe crecer con vocabulario
+# de ningun dominio concreto: el plugin se instala en proyectos que no
+# comparten ni tecnologia ni jerga, y una palabra que solo significa
+# algo en uno de ellos seria ruido en todos los demas. Hoy no hay otro
+# sitio donde declarar vocabulario propio: no existe una clave de
+# configuracion para ampliarla, asi que un proyecto que lo necesite
+# edita su copia instalada de este fichero, a sabiendas de que eso es
+# una decision suya y no un punto de extension que el plugin ofrezca.
+#
+# Se escriben en minusculas y sin tildes a proposito: la comparacion
+# contra el texto de la tarea tiene que ser insensible a mayusculas y a
+# acentos, asi que la forma canonica de la lista es la mas simple. No
+# se declara una clave para activar esa normalizacion porque solo
+# podria valer "si": eso se documenta, no se configura.
+#
+# La comparacion es por subcadena, asi que una entrada corta cubre sus
+# variantes ("migracion" cubre "migraciones") y por eso no se listan.
+# Ojo con las entradas de varias palabras: son fragiles justo por eso,
+# porque cualquier palabra intercalada en la redaccion natural las deja
+# sin casar. "base de datos" casa dentro de "esquema de la base de
+# datos"; "esquema de base de datos" no habria casado nunca. Ante la
+# duda se lista el nucleo mas corto que siga siendo inequivoco, sin
+# acortarlo tanto que empiece a casar con texto inocente.
+palabras_alto_riesgo: ["migracion", "breaking change", "seguridad", "autenticacion", "autorizacion", "base de datos", "rollback", "cifrado", "datos personales", "concurrencia", "rendimiento", "compatibilidad hacia atras", "integracion externa", "irreversible"]
+
+# ---------------------------------------------------------------------
+# 4. Cuantos agentes de brainstorm en paralelo por nivel de complejidad.
+#    Es un lookup, no un juicio: el numero no se decide en caliente.
+#
+#    Lo que fija es CUANTOS, no CUALES. En los extremos no hay nada que
+#    elegir: en trivial no se lanza a nadie y en critica entran los
+#    cuatro. En los niveles que piden entre uno y tres (y en un hotfix
+#    topado en uno) hay que elegir cual o cuales de los cuatro roles se
+#    lanzan, y esa eleccion queda abierta a proposito: depende de la
+#    tarea, y este fichero no la tiene delante. Lo que el lookup quita
+#    de encima es el numero, no el criterio.
+#
+#    Los extremos vienen dados: 0 en trivial (no se paga un brainstorm
+#    para algo trivial), 3 en alta y 4 en critica, que son los cuatro
+#    roles definidos (arquitectura, riesgos, testing, dominio).
+#
+#    Los dos niveles intermedios se fijan AQUI, y son una decision de
+#    este fichero: 1 en simple y 2 en media. El criterio es que la serie
+#    sea monotona y sin saltos (0-1-2-3-4), de modo que subir un nivel
+#    de complejidad anada exactamente un punto de vista. Cualquier otro
+#    reparto tendria que justificar por que un escalon vale doble.
+# ---------------------------------------------------------------------
+agentes_brainstorm_trivial: 0
+agentes_brainstorm_simple: 1
+agentes_brainstorm_media: 2
+agentes_brainstorm_alta: 3
+agentes_brainstorm_critica: 4
+
+# EXCEPCION POR TIPO DE TAREA, no por nivel. Un hotfix se planifica con
+# UN SOLO agente COMO MUCHO y sin brainstorm multi-agente. Es un TOPE,
+# no una sustitucion: el numero de agentes de un hotfix es el MENOR
+# entre lo que diga la tabla de arriba y este valor. La diferencia
+# importa en el extremo barato: un hotfix que puntua trivial se queda
+# en 0 agentes, no sube a 1: seria absurdo que la clave que existe para
+# abreviar el brainstorm acabase anadiendo uno donde la tabla no pedia
+# ninguno.
+# Su sufijo es un tipo de tarea, no un nivel de complejidad, y por eso
+# es la unica clave agentes_brainstorm_ cuyo sufijo no sale del enum de
+# niveles.
+#
+# No abre la puerta a saltarse nada mas: lo que un hotfix abrevia es el
+# brainstorm PREVIO, donde la urgencia sale mas cara que el beneficio
+# de cuatro puntos de vista. La revision por pares posterior no se
+# toca: un hotfix se revisa igual que cualquier otra tarea.
+agentes_brainstorm_hotfix: 1
+
+# ---------------------------------------------------------------------
+# 5. Tolerancia frente a la complejidad declarada por la persona.
+#
+# El nivel heuristico NO manda: se compara con el declarado. Si
+# coinciden, o si distan como mucho tolerancia_niveles escalones, se
+# acepta el declarado sin consultar a ningun modelo. Solo si discrepan
+# mas que eso se consulta a uno barato, y se le pasan unicamente los
+# dos niveles y que senales dispararon la puntuacion: el calculo ya
+# esta hecho, reenviarle el objetivo entero seria pagarlo dos veces.
+# ---------------------------------------------------------------------
+tolerancia_niveles: 1
+
+# La discrepancia NO es simetrica. Que la heuristica sugiera MAS
+# complejidad que la declarada es el caso que importa capturar:
+# infraestimar deja la tarea con menos revision y un modelo mas flojo
+# de los que necesita. Que sugiera MENOS es barato de dejar pasar, asi
+# que en esa direccion se puede ser mas permisivo para reducir las
+# consultas. Esa holgura extra se suma a tolerancia_niveles solo cuando
+# la heuristica queda POR DEBAJO de lo declarado, y arranca en 0: hoy el
+# comportamiento es simetrico y subirla es una decision consciente. La
+# direccion no se declara en una clave aparte porque solo podria valer
+# una cosa: ya la fija el nombre de la clave que viene aqui debajo.
+tolerancia_extra_si_heuristica_menor: 0
+
+# Modelo al que se consulta la discrepancia. Barato a proposito: la
+# pregunta es un desempate entre dos etiquetas, no un analisis.
+modelo_consulta_discrepancia: haiku
