@@ -30,7 +30,6 @@ import { assertTransitionAllowed } from '../core/state-machine.js';
 import { ensureBaseBranchReady, gitUserEmail } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { resolverAsignado } from '../core/wip.js';
-import { ultimaRonda } from '../fs/rondas.js';
 import { extraerSecciones } from '../core/tarea-body.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
 import { seleccionarRoles, ROLES_BRAINSTORM, } from '../core/roles-brainstorm.js';
@@ -47,58 +46,22 @@ export const PLAN_FINAL_FILENAME = 'plan-final.md';
  */
 export const BRAINSTORM_DIRNAME = 'brainstorm';
 /**
- * QUE FICHERO DECIDE EN QUE RONDA VAMOS. El del unificador, que se
- * escribe SIEMPRE EL ULTIMO — pero NO basta con que exista: hay que
- * comprobar que la ronda que atestigua esta de verdad completa (ver
- * rondaCompleta).
+ * Los tres tipos de fichero que numera una ronda de brainstorm. El
+ * numero de ronda se DEDUCE del disco, no de una clave del frontmatter:
+ * un contador guardado seria un segundo sitio donde vive la misma
+ * verdad, y el dia que discrepara ganaria el equivocado.
  *
- * La ronda 2 de la revision por pares demostro por que. El primer
- * intento de arreglo se quedo en "la ronda sale solo del testigo", y
- * eso deja dos puertas abiertas por las que vuelve a entrar el mismo
- * fallo: (a) si lo que sobrevive a la interrupcion es justo el fichero
- * del unificador y NO las peticiones de rol, y (b) si el testigo
- * existe pero esta VACIO, que es exactamente lo que deja un `open()`
- * seguido de una muerte antes del volcado — el escenario que motivo
- * todo esto. En los dos casos volvia a pasar lo de antes: primera
- * planificacion sin una sola peticion de rol, exit 0, y sin salida por
- * comandos.
+ * Como se usa cada uno esta explicado donde se usa (ver el bloque "COMO
+ * SE MODELA EL ESTADO DE ESTA CARPETA" en runPlanCommand), que es donde
+ * se pagaron cuatro rondas de revision por pares.
  *
- * La leccion, y por eso queda escrita: **la existencia de un nombre de
- * fichero no es evidencia de que algo se completara.** El invariante
- * "se escribe el ultimo" solo ordena las escrituras; no dice nada de
- * si la ultima llego a terminar.
- *
- * De donde viene todo esto: la version original deducia la ronda de los
- * TRES tipos de fichero, y era el primer CRITICO de la ronda 1. Con
- * cualquier resto de una ronda interrumpida — un Ctrl+C entre dos
- * escrituras, un antivirus bloqueando un fichero — la ronda subia a 2
- * en la PRIMERA planificacion, el codigo la trataba como
- * re-planificacion y no escribia ni una sola peticion de rol. La tarea
- * pasaba a en-diseno con exit 0, anunciando una re-planificacion que
- * nunca habia ocurrido. Cada `plan` posterior repetia el diagnostico,
- * asi que no se salia con ningun comando: habia que borrar la carpeta a
- * mano.
- *
- * Consecuencia buscada de las correcciones juntas: una ronda a medias
- * se REINTENTA con el mismo numero, y las escrituras que ya se hicieron
- * se toleran (ver escribirSiNoEstaYa). "Ronda a medias" significa que
- * NO produjo lo que a ella le tocaba, que no es lo mismo para la ronda
- * 1 que para las siguientes — ver rondaCompleta, donde esa distincion
- * costo un tercer CRITICO.
+ * Los ids de rol admiten digitos y guiones, no solo `[a-z]+`: la
+ * primera version dejaba de casar en cuanto alguien añadiera un rol
+ * llamado `brainstorm-datos-externos`, y la numeracion se rompia en
+ * silencio.
  */
 const RONDA_UNIFICADOR_RE = /^peticion-unificador-(\d+)\.md$/;
-/**
- * Las salidas de rol, para saber de QUE ronda son las que el unificador
- * tiene que consolidar. No es lo mismo que la ronda en curso: en una
- * re-planificacion los roles no se relanzan, asi que la ronda 3 puede
- * tener que consolidar las salidas de la 1.
- *
- * Acepta digitos y guiones en el id del rol, no solo `[a-z]+`: la
- * version anterior dejaba de casar en cuanto alguien añadiera un rol
- * llamado `brainstorm-datos-externos`, y la numeracion se rompia en
- * silencio (hallazgo MENOR de la revision por pares).
- */
-const SALIDA_ROL_RE = /^salida-brainstorm-[a-z0-9-]+-(\d+)\.md$/;
+const PETICION_ROL_RE = /^peticion-brainstorm-[a-z0-9-]+-(\d+)\.md$/;
 /**
  * Subcarpeta de artefactos de diseno dentro de la carpeta de la tarea
  * (TASK-027, item C3). La seccion 2 de la metodologia describe cada
@@ -428,7 +391,56 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // escritura falla a mitad, la tarea sigue donde estaba y reintentar
     // es posible. El orden inverso dejaria el estado movido sin
     // peticiones, que es un callejon de la maquina de estados.
+    //
+    // ── COMO SE MODELA EL ESTADO DE ESTA CARPETA, y por que asi ────────
+    //
+    // Este bloque se reescribio entero tras CUATRO rondas de revision por
+    // pares, en las que el MISMO CRITICO se arreglo tres veces y volvio a
+    // aparecer por una puerta distinta cada vez. Los tres arreglos eran
+    // correctos para el caso que tenian delante; lo que fallaba era el
+    // modelo. Merece la pena que quede escrito, porque es la parte
+    // reutilizable:
+    //
+    //   1º intento — la ronda se deducia de los TRES tipos de fichero, y
+    //      un resto de una ronda interrumpida la subia: la primera
+    //      planificacion acababa sin peticiones de rol, con exit 0.
+    //   2º intento — se eligio "el testigo" (la peticion del unificador,
+    //      que se escribe la ultima), pero validado POR SU NOMBRE: un
+    //      testigo huerfano o de cero bytes contaba como ronda completa.
+    //   3º intento — se exigio a TODA ronda lo que solo la ronda 1
+    //      produce, con lo que ninguna ronda >=2 podia estar completa y
+    //      el contador se quedaba clavado en 2 para siempre.
+    //   4ª ronda — un testigo con numero >=2 volvia a dejar la tarea sin
+    //      brainstorm; subir el numero de roles dejaba la peticion del
+    //      unificador rancia y contradiciendo a las peticiones de rol; y
+    //      bajarlo sin llegar a cero seguia tirando salidas reales.
+    //
+    // La grieta comun: se estaba modelando la carpeta con DOS escalares
+    // ("en que ronda voy" y "reutilizo el brainstorm") derivados de UN
+    // solo fichero. Lo que la logica necesita saber son TRES cosas
+    // independientes, y aqui se preguntan por separado y contra el disco:
+    //
+    //   (a) ¿En que ronda escribo?  -> avanza con cada vuelta cerrada.
+    //   (b) ¿Hay un brainstorm reutilizable PARA LOS ROLES DE HOY?
+    //       -> no es lo mismo que "la ronda es > 1". Es una pregunta
+    //          sobre ficheros, y cambia si cambia el juego de roles.
+    //   (c) ¿Que salidas hay que consolidar? -> las que existan EN DISCO
+    //       de la ronda que lanzo esos roles; nunca una lista compuesta a
+    //       partir de `roles`, que puede haber cambiado desde entonces.
     const brainstormDir = path.join(planificacionDir, BRAINSTORM_DIRNAME);
+    // Mismo trato que el mkdir de `planificacion/` desde TASK-027: un
+    // EEXIST crudo aqui salia como "taskctl no pudo arrancar", que ni es
+    // cierto ni dice que hacer (MENOR de la ronda 4).
+    try {
+        await mkdir(brainstormDir, { recursive: true });
+    }
+    catch (e) {
+        throw new PlanCommandError(`[ERROR] ${task.id}: no se pudo crear "${brainstormDir}" (${e.code ?? 'error desconocido'}). Si ahi hay un fichero con ese nombre, renombralo o borralo: esa ruta tiene que ser la ` +
+            'carpeta del brainstorm de la tarea. La tarea no se ha movido.');
+    }
+    const enBrainstorm = await listarDir(brainstormDir);
+    const rondasConAlgo = (re) => [...new Set(enBrainstorm.map((f) => re.exec(f)).filter((m) => m !== null).map((m) => Number(m[1])))]
+        .sort((a, b) => b - a);
     const peticionesRolCompletasDe = async (n) => {
         for (const rol of roles) {
             if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionRol(rol, n))))) {
@@ -437,153 +449,44 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         }
         return true;
     };
-    /**
-     * Una ronda esta COMPLETA cuando produjo todo lo que a ELLA le
-     * tocaba producir. Y no a todas les toca lo mismo: **solo la ronda 1
-     * lanza los roles**; de la 2 en adelante el unico artefacto propio es
-     * la peticion del unificador (§16.3 — un "pide cambios" es una
-     * correccion incremental, no un reinicio).
-     *
-     * Esa asimetria es justo lo que se me paso, y la encontro la ronda 3
-     * de la revision por pares. Exigir peticiones de rol a TODA ronda
-     * hacia que ninguna ronda ≥2 pudiera estar completa nunca, con lo que
-     * la ronda se quedaba **clavada en 2 para siempre**: del tercer
-     * `plan` en adelante el comando era un no-op con exit 0, reutilizando
-     * una peticion de unificador rancia y sin dejar rastro de las vueltas
-     * posteriores. Y no hacia falta ningun estado corrupto para llegar
-     * ahi: bastaba el camino feliz, tres veces seguidas.
-     *
-     * La leccion de fondo: aqui vivian fusionadas dos preguntas distintas
-     * — "¿que ronda toca escribir?" y "¿hay que relanzar los roles?" —, y
-     * responderlas con una sola variable funcionaba justo hasta la
-     * tercera vuelta.
-     */
-    const rondaCompleta = async (n) => {
-        if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(n))))) {
-            return false;
-        }
-        return n > 1 ? true : peticionesRolCompletasDe(n);
-    };
-    // Ronda a escribir: la siguiente si la ultima quedo completa, y la
-    // MISMA si quedo a medias — reintentarla es lo que impide que una
-    // escritura interrumpida deje la tarea sin brainstorm para siempre.
-    const ultimaTestigo = await ultimaRonda(brainstormDir, RONDA_UNIFICADOR_RE);
-    const ronda = ultimaTestigo > 0 && (await rondaCompleta(ultimaTestigo))
-        ? ultimaTestigo + 1
-        : Math.max(ultimaTestigo, 1);
-    // Re-planificacion (bucle B9->B5 de la 16.3): si ya hubo una ronda
-    // COMPLETA, NO se relanza el brainstorm entero. El feedback de la
-    // persona sobre el plan es una correccion incremental, y tratarla
-    // como un reinicio es donde mas se gasta sin que nadie lo note,
-    // precisamente porque cada vuelta parece barata. Solo reprocesa el
-    // unificador.
-    const brainstormReutilizado = ronda > 1;
-    // De QUE ronda son las salidas que el unificador tiene que
-    // consolidar. En la ronda 1 son las suyas; en una re-planificacion
-    // son las de la ultima ronda que llego a escribirlas, que no es la
-    // actual. Componer la lista con la ronda en curso hacia que la
-    // peticion apuntase a ficheros inexistentes y el unificador
-    // concluyera que se habia perdido el brainstorm entero, teniendolo
-    // al lado sin leer — el segundo CRITICO de la revision por pares.
+    // (a) Ronda a escribir. El testigo se escribe el ultimo, asi que la
+    // ronda avanza cuando el ultimo testigo esta entero; si quedo vacio o
+    // no llego a escribirse, se reintenta ese mismo numero.
+    const ultimoTestigo = rondasConAlgo(RONDA_UNIFICADOR_RE)[0] ?? 0;
+    const testigoEntero = ultimoTestigo > 0 &&
+        (await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(ultimoTestigo))));
+    const ronda = testigoEntero ? ultimoTestigo + 1 : Math.max(ultimoTestigo, 1);
+    // (b) ¿Estan ya lanzados los roles DE HOY? Se busca la ronda mas alta
+    // que tenga la peticion de cada uno de ellos. Si el juego de roles
+    // cambio (subio la complejidad, o el enunciado gano criterios y la
+    // heuristica subio sola), esto da null y el brainstorm se relanza con
+    // el juego nuevo — que es lo que la persona esta pidiendo.
     //
-    // Se busca la ronda mas alta cuyo juego de salidas este COMPLETO, no
-    // el numero mas alto que aparezca. Tomar el maximo a secas dejaba que
-    // un fichero rezagado — una salida de una ronda vieja que sobrevivio
-    // sola, o una copiada a mano — secuestrara la lista: el unificador
-    // recibia la orden de consolidar esa ronda huerfana y las salidas
-    // reales no se nombraban en ninguna parte, asi que redactaba el plan
-    // ignorando el brainstorm que si se hizo. Fallaba en silencio y hacia
-    // arriba, que es la peor direccion (IMPORTANTE de la ronda 2).
-    const salidasCompletasDe = async (n) => {
-        if (roles.length === 0)
-            return false;
-        for (const rol of roles) {
-            if (!(await ficheroConContenido(path.join(brainstormDir, nombreSalidaRol(rol, n))))) {
-                return false;
+    // Con cero roles no hay nada que lanzar, pero puede haber un
+    // brainstorm anterior que consolidar: se busca la ronda mas alta que
+    // tenga ALGUNA peticion de rol, para no negar un trabajo que existe.
+    let rondaRoles = null;
+    if (roles.length > 0) {
+        for (const n of rondasConAlgo(PETICION_ROL_RE)) {
+            if (await peticionesRolCompletasDe(n)) {
+                rondaRoles = n;
+                break;
             }
-        }
-        return true;
-    };
-    /**
-     * Las salidas que hay que consolidar, resueltas a NOMBRES REALES de
-     * fichero en vez de componerse a partir de `roles`.
-     *
-     * El cambio lo obliga un IMPORTANTE de la ronda 3: si alguien BAJA la
-     * complejidad entre dos vueltas, `roles` se queda vacio y la lista
-     * derivada salia vacia tambien — con lo que la peticion decia "no hay
-     * salidas de brainstorm que consolidar" teniendo al lado, llenas, las
-     * salidas que los agentes de la ronda anterior habian escrito. Y
-     * ademas mentia sobre la causa ("el numero de roles sale del lookup,
-     * no de un descuido"): aqui si hubo brainstorm, y se estaba tirando.
-     *
-     * Es el mismo sintoma que ya se corrigio dos veces — el unificador
-     * ignorando un brainstorm real — entrando por una tercera puerta. La
-     * unica forma de cerrarla del todo es preguntarle al disco que hay,
-     * en vez de deducirlo de un parametro que puede haber cambiado.
-     */
-    const salidasAConsolidar = [];
-    let rondaSalidas = null;
-    const tituloDeSalida = (nombre) => {
-        const rol = ROLES_BRAINSTORM.find((r) => nombre.startsWith(`salida-${r.id}-`));
-        return rol?.titulo ?? 'rol desconocido';
-    };
-    if (!brainstormReutilizado) {
-        rondaSalidas = ronda;
-        for (const rol of roles) {
-            salidasAConsolidar.push({ nombre: nombreSalidaRol(rol, ronda), titulo: rol.titulo });
         }
     }
     else {
-        // Con roles, la ronda mas alta cuyo juego este COMPLETO: un fichero
-        // rezagado no puede secuestrar la lista (IMPORTANTE de la ronda 2).
-        for (let n = await ultimaRonda(brainstormDir, SALIDA_ROL_RE); n >= 1 && rondaSalidas === null; n--) {
-            if (await salidasCompletasDe(n))
-                rondaSalidas = n;
-        }
-        if (rondaSalidas !== null) {
-            for (const rol of roles) {
-                salidasAConsolidar.push({
-                    nombre: nombreSalidaRol(rol, rondaSalidas),
-                    titulo: rol.titulo,
-                });
-            }
-        }
-        else {
-            // Sin roles con los que definir "juego completo" (complejidad
-            // bajada a 0 roles), se listan las salidas que de verdad hay en
-            // disco de la ronda mas alta que tenga alguna. Mejor nombrar un
-            // brainstorm real de forma imperfecta que negar que existe.
-            const enDisco = (await listarDir(brainstormDir))
-                .map((nombre) => ({ nombre, m: SALIDA_ROL_RE.exec(nombre) }))
-                .filter((x) => x.m !== null);
-            const maxN = enDisco.reduce((acc, x) => Math.max(acc, Number(x.m[1])), 0);
-            if (maxN > 0) {
-                for (const { nombre, m } of enDisco) {
-                    if (Number(m[1]) !== maxN)
-                        continue;
-                    if (await ficheroConContenido(path.join(brainstormDir, nombre))) {
-                        salidasAConsolidar.push({ nombre, titulo: tituloDeSalida(nombre) });
-                    }
-                }
-                if (salidasAConsolidar.length > 0)
-                    rondaSalidas = maxN;
-                salidasAConsolidar.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            }
-        }
+        rondaRoles = rondasConAlgo(PETICION_ROL_RE)[0] ?? null;
     }
+    const brainstormReutilizado = rondaRoles !== null;
     /**
-     * Escribe con 'wx' y tolera que el fichero YA ESTE con el contenido
-     * de esta misma ronda. Es lo que hace reintentable una ronda
-     * interrumpida: si el proceso murio tras escribir dos de seis
-     * ficheros, el reintento completa los cuatro que faltan en vez de
-     * morir con EEXIST y dejar la tarea atascada para siempre.
+     * Escribe con 'wx' y tolera que el fichero YA ESTE, con contenido, de
+     * un intento anterior de esta misma ronda. Es lo que hace
+     * reintentable una ronda interrumpida a mitad.
      *
-     * Lo que NO se tolera es que la ruta este ocupada por otra cosa:
-     * open() con O_CREAT|O_EXCL contesta EEXIST tambien sobre un
-     * DIRECTORIO, y ahi no hay ninguna peticion que reaprovechar. Se
-     * distingue re-stateando, igual que hace plan-final.md desde
-     * TASK-027 — tragarse el EEXIST a secas era el callejon sin salida
-     * que aquel item ya pago.
+     * Un fichero VACIO no se respeta: es lo que deja una escritura
+     * cortada entre el `open()` y el volcado, y ahi no hay nada que
+     * conservar. Uno con contenido si, porque puede llevar dentro el
+     * trabajo de un agente.
      */
     const escribirSiNoEstaYa = async (nombre, contenido) => {
         const destino = path.join(brainstormDir, nombre);
@@ -593,36 +496,52 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         catch (e) {
             if (!isEexist(e))
                 throw e;
-            if (await ficheroConContenido(destino)) {
-                // Ya escrito en un intento anterior: se respeta tal cual. Puede
-                // llevar dentro el trabajo de un agente.
+            if (await ficheroConContenido(destino))
                 return;
-            }
             if (!(await existeFichero(destino))) {
                 throw new PlanCommandError(`[ERROR] ${task.id}: "${destino}" existe pero no es un fichero (¿una carpeta con ese ` +
                     'nombre?), asi que ahi no se puede escribir la peticion de brainstorm. Renombra o ' +
                     'borra esa ruta y reintenta. La tarea no se ha movido.');
             }
-            // Fichero regular pero VACIO: es la escritura que se corto entre
-            // el open() y el volcado. Aqui no hay nada que respetar, asi que
-            // se completa. Dejarlo como estaba era el bug que hacia que un
-            // testigo truncado siguiera truncado ronda tras ronda.
             await writeFile(destino, contenido, { encoding: 'utf8', flag: 'w' });
         }
     };
-    await mkdir(brainstormDir, { recursive: true });
     if (!brainstormReutilizado) {
         for (const rol of roles) {
             const otros = roles.filter((r) => r.id !== rol.id);
             await escribirSiNoEstaYa(nombrePeticionRol(rol, ronda), peticionRolTemplate(updated, secciones.objetivo, secciones.criterios, rol, otros, ronda, today));
             await escribirSiNoEstaYa(nombreSalidaRol(rol, ronda), salidaRolTemplate(updated, rol, ronda));
         }
+        if (roles.length > 0)
+            rondaRoles = ronda;
     }
-    // La peticion del unificador se escribe SIEMPRE la ULTIMA, y es el
-    // unico fichero del que se deduce la ronda (ver RONDA_UNIFICADOR_RE).
-    // Las dos cosas juntas son lo que hace que una interrupcion a mitad
-    // se pueda reintentar en vez de dejar la tarea sin brainstorm.
-    await escribirSiNoEstaYa(nombrePeticionUnificador(ronda), peticionUnificadorTemplate(updated, secciones.objetivo, secciones.criterios, roles, salidasAConsolidar, ronda, rondaSalidas, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)));
+    // (c) Las salidas a consolidar salen del DISCO, no de `roles`.
+    // Componerlas a partir de `roles` fue lo que hizo que bajar la
+    // complejidad tirase salidas reales — dos veces, por dos puertas
+    // distintas. Se listan las de la ronda que lanzo los roles, sean
+    // cuantas sean: si hoy hay menos roles que entonces, el unificador
+    // sigue viendo todo lo que se escribio.
+    const salidasAConsolidar = [];
+    if (rondaRoles !== null) {
+        const sufijo = `-${rondaRoles}.md`;
+        for (const nombre of [...enBrainstorm, ...(brainstormReutilizado ? [] : await listarDir(brainstormDir))]) {
+            if (!nombre.startsWith('salida-brainstorm-') || !nombre.endsWith(sufijo))
+                continue;
+            if (salidasAConsolidar.some((s) => s.nombre === nombre))
+                continue;
+            const rol = ROLES_BRAINSTORM.find((r) => nombre === nombreSalidaRol(r, rondaRoles));
+            salidasAConsolidar.push({ nombre, titulo: rol?.titulo ?? 'rol desconocido' });
+        }
+        salidasAConsolidar.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    }
+    // La peticion del unificador se REGENERA siempre, y se escribe la
+    // ultima. Es derivada: no lleva dentro trabajo de nadie, asi que
+    // tratarla como un reintento tolerante la dejaba rancia — describiendo
+    // un solo rol mientras al lado ya habia dos peticiones de rol
+    // contradiciendola (CRITICO de la ronda 4). Que se escriba la ultima
+    // sigue siendo lo que hace que la ronda avance solo cuando todo lo
+    // demas esta.
+    await writeFile(path.join(brainstormDir, nombrePeticionUnificador(ronda)), peticionUnificadorTemplate(updated, secciones.objetivo, secciones.criterios, roles, salidasAConsolidar, ronda, rondaRoles, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)), { encoding: 'utf8', flag: 'w' });
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
     const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
     // Paso 5 de la 8.3 (TASK-030, item C2): la carpeta de ORIGEN entra

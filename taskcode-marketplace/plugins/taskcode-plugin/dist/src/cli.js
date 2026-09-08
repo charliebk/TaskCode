@@ -142,14 +142,20 @@ function brainstormNotice(result) {
             `${result.resolucion.agentes === 1 ? '1 rol' : `${result.resolucion.agentes} roles`}, ` +
             'el mayor de los dos.');
     }
-    if (result.roles.length === 0) {
+    // El orden de estas ramas importa, y costo un IMPORTANTE en la cuarta
+    // ronda de revision: "0 roles" tenia precedencia sobre "hay una
+    // peticion de unificador que lanzar", asi que al bajar la complejidad
+    // en una re-planificacion el CLI decia "sin brainstorm, redacta el
+    // plan a mano" mientras acababa de escribir una peticion correcta que
+    // nombraba las salidas reales. El artefacto bueno quedaba invisible.
+    if (result.brainstormReutilizado) {
+        lineas.push(`Re-planificacion (ronda ${result.ronda}): NO se relanza el brainstorm. Lanza solo el ` +
+            `unificador con ${result.peticionUnificador}, que reprocesa las salidas anteriores mas ` +
+            'tu feedback.');
+    }
+    else if (result.roles.length === 0) {
         lineas.push(`Sin brainstorm (complejidad "${result.resolucion.nivelDeclarado}" resuelve 0 roles). ` +
             `Redacta el plan y aprueba con "taskctl approve ${result.id}".`);
-    }
-    else if (result.brainstormReutilizado) {
-        lineas.push(`Re-planificacion (ronda ${result.ronda}): NO se relanza el brainstorm. Lanza solo el ` +
-            `unificador con ${result.peticionUnificador}, que reprocesa las salidas de la ronda ` +
-            `anterior mas tu feedback.`);
     }
     else {
         lineas.push(`Brainstorm ronda ${result.ronda}, ${result.roles.length === 1 ? '1 rol' : `${result.roles.length} roles en paralelo`}. Lanza cada peticion con el agente que nombra y luego el unificador:`);
