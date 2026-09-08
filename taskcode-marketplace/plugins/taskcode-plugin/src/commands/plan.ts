@@ -71,28 +71,41 @@ export const PLAN_FINAL_FILENAME = 'plan-final.md';
 export const BRAINSTORM_DIRNAME = 'brainstorm';
 
 /**
- * QUE FICHERO DECIDE EN QUE RONDA VAMOS. Solo el del unificador, que se
- * escribe SIEMPRE EL ULTIMO y es por tanto el testigo de que una ronda
- * se escribio entera.
+ * QUE FICHERO DECIDE EN QUE RONDA VAMOS. El del unificador, que se
+ * escribe SIEMPRE EL ULTIMO — pero NO basta con que exista: hay que
+ * comprobar que la ronda que atestigua esta de verdad completa (ver
+ * rondaCompleta).
  *
- * Esto empezo mirando los tres tipos de fichero (peticion de rol,
- * salida de rol y unificador) y era un CRITICO que encontro la revision
- * por pares: con cualquier resto de una ronda interrumpida a mitad — un
- * Ctrl+C entre dos escrituras, un antivirus bloqueando un fichero — la
- * ronda subia a 2 en la PRIMERA planificacion, el codigo la trataba
- * como re-planificacion y no escribia ni una sola peticion de rol. La
- * tarea pasaba a en-diseno con exit 0, anunciando una re-planificacion
- * que nunca habia ocurrido, y sin brainstorm. Cada `plan` posterior
- * repetia el diagnostico, asi que no se salia con ningun comando: habia
- * que borrar la carpeta a mano.
+ * La ronda 2 de la revision por pares demostro por que. El primer
+ * intento de arreglo se quedo en "la ronda sale solo del testigo", y
+ * eso deja dos puertas abiertas por las que vuelve a entrar el mismo
+ * fallo: (a) si lo que sobrevive a la interrupcion es justo el fichero
+ * del unificador y NO las peticiones de rol, y (b) si el testigo
+ * existe pero esta VACIO, que es exactamente lo que deja un `open()`
+ * seguido de una muerte antes del volcado — el escenario que motivo
+ * todo esto. En los dos casos volvia a pasar lo de antes: primera
+ * planificacion sin una sola peticion de rol, exit 0, y sin salida por
+ * comandos.
  *
- * El invariante ya estaba diseñado ("la peticion del unificador es el
- * testigo barato de que el brainstorm se escribio entero") pero NO
- * estaba aplicado: nadie leia ese testigo. Ahora si.
+ * La leccion, y por eso queda escrita: **la existencia de un nombre de
+ * fichero no es evidencia de que algo se completara.** El invariante
+ * "se escribe el ultimo" solo ordena las escrituras; no dice nada de
+ * si la ultima llego a terminar.
  *
- * Consecuencia buscada: una ronda a medias se REINTENTA con el mismo
- * numero, y las escrituras que ya se hicieron se toleran (ver
- * escribirSiNoEstaYa).
+ * De donde viene todo esto: la version original deducia la ronda de los
+ * TRES tipos de fichero, y era el primer CRITICO de la ronda 1. Con
+ * cualquier resto de una ronda interrumpida — un Ctrl+C entre dos
+ * escrituras, un antivirus bloqueando un fichero — la ronda subia a 2
+ * en la PRIMERA planificacion, el codigo la trataba como
+ * re-planificacion y no escribia ni una sola peticion de rol. La tarea
+ * pasaba a en-diseno con exit 0, anunciando una re-planificacion que
+ * nunca habia ocurrido. Cada `plan` posterior repetia el diagnostico,
+ * asi que no se salia con ningun comando: habia que borrar la carpeta a
+ * mano.
+ *
+ * Consecuencia buscada de las dos correcciones juntas: una ronda a
+ * medias se REINTENTA con el mismo numero, y las escrituras que ya se
+ * hicieron se toleran (ver escribirSiNoEstaYa).
  */
 const RONDA_UNIFICADOR_RE = /^peticion-unificador-(\d+)\.md$/;
 
@@ -124,6 +137,22 @@ const SALIDA_ROL_RE = /^salida-brainstorm-[a-z0-9-]+-(\d+)\.md$/;
  * `revision/`.
  */
 export const PLANIFICACION_DIRNAME = 'planificacion';
+
+/**
+ * Fichero regular Y con algo dentro. Un fichero de cero bytes es lo
+ * que deja una escritura que se corto entre el `open()` y el volcado,
+ * asi que para decidir "esto ya estaba hecho" no vale preguntar solo
+ * si existe (CRITICO de la ronda 2 de la revision por pares).
+ */
+async function ficheroConContenido(p: string): Promise<boolean> {
+  try {
+    const s = await stat(p);
+    return s.isFile() && s.size > 0;
+  } catch (e: unknown) {
+    if (isEnoent(e) || isEnotdir(e)) return false;
+    throw e;
+  }
+}
 
 /**
  * isFile(), no "existe" a secas (hallazgo MENOR de revision por pares,
@@ -496,7 +525,35 @@ export async function runPlanCommand(
   // es posible. El orden inverso dejaria el estado movido sin
   // peticiones, que es un callejon de la maquina de estados.
   const brainstormDir = path.join(planificacionDir, BRAINSTORM_DIRNAME);
-  const ronda = (await ultimaRonda(brainstormDir, RONDA_UNIFICADOR_RE)) + 1;
+
+  /**
+   * Una ronda esta COMPLETA cuando estan, con contenido, su testigo y
+   * las peticiones de todos los roles que le tocaban. Se comprueba
+   * contra los roles que se van a lanzar ahora: si alguien subio la
+   * complejidad entre dos vueltas, la ronda anterior se ve incompleta
+   * y se completa con los roles nuevos, que es lo que la persona esta
+   * pidiendo al subirla.
+   */
+  const rondaCompleta = async (n: number): Promise<boolean> => {
+    if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(n))))) {
+      return false;
+    }
+    for (const rol of roles) {
+      if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionRol(rol, n))))) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Ronda a escribir: la siguiente si la ultima quedo completa, y la
+  // MISMA si quedo a medias — reintentarla es lo que impide que una
+  // escritura interrumpida deje la tarea sin brainstorm para siempre.
+  const ultimaTestigo = await ultimaRonda(brainstormDir, RONDA_UNIFICADOR_RE);
+  const ronda =
+    ultimaTestigo > 0 && (await rondaCompleta(ultimaTestigo))
+      ? ultimaTestigo + 1
+      : Math.max(ultimaTestigo, 1);
 
   // Re-planificacion (bucle B9->B5 de la 16.3): si ya hubo una ronda
   // COMPLETA, NO se relanza el brainstorm entero. El feedback de la
@@ -513,10 +570,38 @@ export async function runPlanCommand(
   // peticion apuntase a ficheros inexistentes y el unificador
   // concluyera que se habia perdido el brainstorm entero, teniendolo
   // al lado sin leer — el segundo CRITICO de la revision por pares.
-  const rondaSalidasPrevias = await ultimaRonda(brainstormDir, SALIDA_ROL_RE);
-  const rondaSalidas = brainstormReutilizado && rondaSalidasPrevias > 0
-    ? rondaSalidasPrevias
-    : ronda;
+  //
+  // Se busca la ronda mas alta cuyo juego de salidas este COMPLETO, no
+  // el numero mas alto que aparezca. Tomar el maximo a secas dejaba que
+  // un fichero rezagado — una salida de una ronda vieja que sobrevivio
+  // sola, o una copiada a mano — secuestrara la lista: el unificador
+  // recibia la orden de consolidar esa ronda huerfana y las salidas
+  // reales no se nombraban en ninguna parte, asi que redactaba el plan
+  // ignorando el brainstorm que si se hizo. Fallaba en silencio y hacia
+  // arriba, que es la peor direccion (IMPORTANTE de la ronda 2).
+  const salidasCompletasDe = async (n: number): Promise<boolean> => {
+    if (roles.length === 0) return false;
+    for (const rol of roles) {
+      if (!(await ficheroConContenido(path.join(brainstormDir, nombreSalidaRol(rol, n))))) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // null = no hay ningun juego de salidas que consolidar. La plantilla
+  // lo dice en vez de nombrar ficheros que el propio CLI sabe que no
+  // existen (MENOR de la ronda 2).
+  let rondaSalidas: number | null = ronda;
+  if (brainstormReutilizado) {
+    rondaSalidas = null;
+    for (let n = await ultimaRonda(brainstormDir, SALIDA_ROL_RE); n >= 1; n--) {
+      if (await salidasCompletasDe(n)) {
+        rondaSalidas = n;
+        break;
+      }
+    }
+  }
 
   /**
    * Escribe con 'wx' y tolera que el fichero YA ESTE con el contenido
@@ -538,6 +623,11 @@ export async function runPlanCommand(
       await writeFile(destino, contenido, { encoding: 'utf8', flag: 'wx' });
     } catch (e: unknown) {
       if (!isEexist(e)) throw e;
+      if (await ficheroConContenido(destino)) {
+        // Ya escrito en un intento anterior: se respeta tal cual. Puede
+        // llevar dentro el trabajo de un agente.
+        return;
+      }
       if (!(await existeFichero(destino))) {
         throw new PlanCommandError(
           `[ERROR] ${task.id}: "${destino}" existe pero no es un fichero (¿una carpeta con ese ` +
@@ -545,8 +635,11 @@ export async function runPlanCommand(
             'borra esa ruta y reintenta. La tarea no se ha movido.'
         );
       }
-      // Fichero regular ya presente: es el reintento de una ronda que
-      // se quedo a medias. Se deja el que hay y se sigue.
+      // Fichero regular pero VACIO: es la escritura que se corto entre
+      // el open() y el volcado. Aqui no hay nada que respetar, asi que
+      // se completa. Dejarlo como estaba era el bug que hacia que un
+      // testigo truncado siguiera truncado ronda tras ronda.
+      await writeFile(destino, contenido, { encoding: 'utf8', flag: 'w' });
     }
   };
 

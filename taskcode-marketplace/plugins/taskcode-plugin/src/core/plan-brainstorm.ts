@@ -177,8 +177,12 @@ export function peticionUnificadorTemplate(
    * la ronda en que corrieron. Componer la lista con `ronda` a secas
    * apuntaba a ficheros inexistentes — CRITICO de la revision por
    * pares.
+   *
+   * `null` = no hay ningun juego completo de salidas en disco. Se dice,
+   * en vez de nombrar ficheros que quien escribe la peticion ya sabe
+   * que no existen.
    */
-  rondaSalidas: number,
+  rondaSalidas: number | null,
   fecha: string,
   resolucion: ResolucionAgentes,
   planFinalRelativo: string
@@ -186,7 +190,14 @@ export function peticionUnificadorTemplate(
   const listaSalidas =
     roles.length === 0
       ? '(ninguna: esta tarea no lanza brainstorm, ver el bloque de complejidad)\n'
-      : roles.map((r) => `- \`${nombreSalidaRol(r, rondaSalidas)}\` — rol ${r.titulo}\n`).join('');
+      : rondaSalidas === null
+        ? '**(ninguna: no queda en disco ningun juego completo de salidas de rondas ' +
+          'anteriores.** Puede que se borraran, o que los agentes de la ronda anterior no ' +
+          'llegaran a responder. Redacta con lo que tengas y dilo en el plan; no supongas que ' +
+          'hubo un brainstorm que no puedes leer.)\n'
+        : roles
+            .map((r) => `- \`${nombreSalidaRol(r, rondaSalidas)}\` — rol ${r.titulo}\n`)
+            .join('');
 
   // Las tres formas de este paso son distintas de verdad, no un mismo
   // texto con el numero cambiado. Con UN solo rol no puede haber
@@ -238,7 +249,10 @@ export function peticionUnificadorTemplate(
       : '## Esto es una re-planificacion, no un primer pase\n\n' +
         `Ya existe un plan redactado en \`${planFinalRelativo}\` y una persona ha pedido ` +
         'cambios sobre el. **Leelo antes que nada.**\n\n' +
-        `Las salidas de brainstorm son las de la ronda ${rondaSalidas} y NO se han vuelto a ` +
+        (rondaSalidas === null
+          ? 'No queda ningun juego completo de salidas de brainstorm en disco (ver arriba), y '
+          : `Las salidas de brainstorm son las de la ronda ${rondaSalidas} y `) +
+        'NO se han vuelto a ' +
         'lanzar, a proposito: una vuelta de "pide cambios" es una correccion incremental, no un ' +
         'reinicio. Tu trabajo es incorporar el feedback de la persona al plan que ya hay, no ' +
         'reescribirlo entero — y menos volver a redactar desde el enunciado como si fuera la ' +
@@ -260,7 +274,7 @@ export function peticionUnificadorTemplate(
     `- Vuelca el resultado en: \`${planFinalRelativo}\`\n\n` +
     bloqueReplanificacion +
     `## Salidas que tienes que consolidar${
-      ronda === rondaSalidas ? '' : ` (de la ronda ${rondaSalidas})`
+      rondaSalidas === null || ronda === rondaSalidas ? '' : ` (de la ronda ${rondaSalidas})`
     }\n\n` +
     listaSalidas +
     '\n' +
