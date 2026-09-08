@@ -170,9 +170,9 @@ function brainstormNotice(result: PlanCommandResult): string {
   // nombraba las salidas reales. El artefacto bueno quedaba invisible.
   if (result.brainstormReutilizado) {
     lineas.push(
-      `Re-planificacion (ronda ${result.ronda}): NO se relanza el brainstorm. Lanza solo el ` +
-        `unificador con ${result.peticionUnificador}, que reprocesa las salidas anteriores mas ` +
-        'tu feedback.'
+      `Re-planificacion (ronda ${result.ronda}): NO se relanza el brainstorm, que es el de la ` +
+        `ronda ${result.rondaRoles}. Lanza solo el unificador con ${result.peticionUnificador}, ` +
+        'que reprocesa esas salidas mas tu feedback.'
     );
   } else if (result.roles.length === 0) {
     lineas.push(
@@ -180,8 +180,14 @@ function brainstormNotice(result: PlanCommandResult): string {
         `Redacta el plan y aprueba con "taskctl approve ${result.id}".`
     );
   } else {
+    // Mismo texto para "recien escritas" y "ya estaban de un intento
+    // anterior de esta misma vuelta": en los dos casos lo que la
+    // persona tiene que hacer es identico, y llamar re-planificacion al
+    // segundo caso hacia que el CLI hablara de "salidas anteriores" y
+    // "tu feedback" en una primera planificacion que nadie habia
+    // ejecutado (CRITICO de la ronda 5).
     lineas.push(
-      `Brainstorm ronda ${result.ronda}, ${
+      `Brainstorm ronda ${result.rondaRoles}, ${
         result.roles.length === 1 ? '1 rol' : `${result.roles.length} roles en paralelo`
       }. Lanza cada peticion con el agente que nombra y luego el unificador:`
     );

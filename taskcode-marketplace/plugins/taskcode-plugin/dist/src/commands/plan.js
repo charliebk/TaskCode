@@ -441,7 +441,26 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     const enBrainstorm = await listarDir(brainstormDir);
     const rondasConAlgo = (re) => [...new Set(enBrainstorm.map((f) => re.exec(f)).filter((m) => m !== null).map((m) => Number(m[1])))]
         .sort((a, b) => b - a);
-    const peticionesRolCompletasDe = async (n) => {
+    // (a) Ronda a escribir. El testigo (la peticion del unificador) se
+    // escribe el ultimo, asi que la ronda avanza cuando el ultimo testigo
+    // esta entero; si quedo vacio o no llego a escribirse, se reintenta
+    // ese mismo numero.
+    const ultimoTestigo = rondasConAlgo(RONDA_UNIFICADOR_RE)[0] ?? 0;
+    const testigoEntero = ultimoTestigo > 0 &&
+        (await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(ultimoTestigo))));
+    const ronda = testigoEntero ? ultimoTestigo + 1 : Math.max(ultimoTestigo, 1);
+    // (b) ¿Estan ya lanzados los roles DE HOY? Se busca la ronda mas alta
+    // que tenga la peticion de cada uno de ellos. Si el juego de roles
+    // cambio — subio la complejidad, o el enunciado gano criterios y la
+    // heuristica subio sola — esto da null y el brainstorm se relanza con
+    // el juego nuevo, que es lo que la persona esta pidiendo.
+    //
+    // Con cero roles no hay nada que lanzar, pero puede haber un
+    // brainstorm anterior que consolidar: se busca la ronda mas alta que
+    // tenga ALGUNA peticion, para no negar un trabajo que existe.
+    const rolesLanzadosEn = async (n) => {
+        if (roles.length === 0)
+            return false;
         for (const rol of roles) {
             if (!(await ficheroConContenido(path.join(brainstormDir, nombrePeticionRol(rol, n))))) {
                 return false;
@@ -449,26 +468,10 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         }
         return true;
     };
-    // (a) Ronda a escribir. El testigo se escribe el ultimo, asi que la
-    // ronda avanza cuando el ultimo testigo esta entero; si quedo vacio o
-    // no llego a escribirse, se reintenta ese mismo numero.
-    const ultimoTestigo = rondasConAlgo(RONDA_UNIFICADOR_RE)[0] ?? 0;
-    const testigoEntero = ultimoTestigo > 0 &&
-        (await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(ultimoTestigo))));
-    const ronda = testigoEntero ? ultimoTestigo + 1 : Math.max(ultimoTestigo, 1);
-    // (b) ¿Estan ya lanzados los roles DE HOY? Se busca la ronda mas alta
-    // que tenga la peticion de cada uno de ellos. Si el juego de roles
-    // cambio (subio la complejidad, o el enunciado gano criterios y la
-    // heuristica subio sola), esto da null y el brainstorm se relanza con
-    // el juego nuevo — que es lo que la persona esta pidiendo.
-    //
-    // Con cero roles no hay nada que lanzar, pero puede haber un
-    // brainstorm anterior que consolidar: se busca la ronda mas alta que
-    // tenga ALGUNA peticion de rol, para no negar un trabajo que existe.
     let rondaRoles = null;
     if (roles.length > 0) {
         for (const n of rondasConAlgo(PETICION_ROL_RE)) {
-            if (await peticionesRolCompletasDe(n)) {
+            if (await rolesLanzadosEn(n)) {
                 rondaRoles = n;
                 break;
             }
@@ -477,71 +480,117 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     else {
         rondaRoles = rondasConAlgo(PETICION_ROL_RE)[0] ?? null;
     }
-    const brainstormReutilizado = rondaRoles !== null;
+    const relanzarRoles = rondaRoles === null && roles.length > 0;
+    if (relanzarRoles)
+        rondaRoles = ronda;
     /**
-     * Escribe con 'wx' y tolera que el fichero YA ESTE, con contenido, de
-     * un intento anterior de esta misma ronda. Es lo que hace
-     * reintentable una ronda interrumpida a mitad.
+     * LA NATURALEZA DE CADA ARTEFACTO DECIDE COMO SE ESCRIBE, y esta es
+     * la distincion que la quinta ronda de revision obligo a hacer
+     * explicita:
      *
-     * Un fichero VACIO no se respeta: es lo que deja una escritura
-     * cortada entre el `open()` y el volcado, y ahi no hay nada que
-     * conservar. Uno con contenido si, porque puede llevar dentro el
-     * trabajo de un agente.
+     *   - La peticion de rol y la del unificador son DERIVADAS: se
+     *     calculan enteras a partir de la tarea y del juego de roles. No
+     *     llevan dentro el trabajo de nadie, asi que se REGENERAN. Antes
+     *     se toleraban por nombre, y eso dejaba peticiones rancias
+     *     conviviendo con las nuevas: una diciendo "eres el unico rol que
+     *     se lanza" y la de al lado, escrita en el mismo segundo,
+     *     diciendo "trabajan en paralelo contigo: arquitectura, testing".
+     *   - El scaffold de salida SI puede llevar trabajo dentro: es donde
+     *     el agente vuelca su respuesta. Ese se tolera si tiene contenido
+     *     y solo se crea cuando falta.
      */
-    const escribirSiNoEstaYa = async (nombre, contenido) => {
+    const regenerar = async (nombre, contenido) => {
         const destino = path.join(brainstormDir, nombre);
         try {
-            await writeFile(destino, contenido, { encoding: 'utf8', flag: 'wx' });
-        }
-        catch (e) {
-            if (!isEexist(e))
-                throw e;
-            if (await ficheroConContenido(destino))
-                return;
-            if (!(await existeFichero(destino))) {
-                throw new PlanCommandError(`[ERROR] ${task.id}: "${destino}" existe pero no es un fichero (¿una carpeta con ese ` +
-                    'nombre?), asi que ahi no se puede escribir la peticion de brainstorm. Renombra o ' +
-                    'borra esa ruta y reintenta. La tarea no se ha movido.');
-            }
             await writeFile(destino, contenido, { encoding: 'utf8', flag: 'w' });
         }
+        catch (e) {
+            // EISDIR si la ruta la ocupa una carpeta, EACCES/EPERM si el
+            // fichero es de solo lectura. Sin envolverlo salia como "taskctl
+            // no pudo arrancar", que ni es cierto ni dice que hacer — el
+            // mismo sintoma que este fichero dice haber arreglado ya dos
+            // veces, reintroducido en el unico artefacto que no pasaba por el
+            // guard (IMPORTANTE de la ronda 5).
+            throw new PlanCommandError(`[ERROR] ${task.id}: no se pudo escribir "${destino}" (${e.code ?? 'error desconocido'}). Si ahi hay una carpeta con ese nombre, o el fichero esta como solo lectura, ` +
+                'renombralo o corrige sus permisos y reintenta. La tarea no se ha movido.');
+        }
     };
-    if (!brainstormReutilizado) {
+    /**
+     * Crea el scaffold solo si falta o si quedo vacio. Un fichero de cero
+     * bytes es lo que deja una escritura cortada entre el `open()` y el
+     * volcado; uno con contenido puede ser la respuesta de un agente y no
+     * se toca jamas.
+     */
+    const asegurarScaffold = async (nombre, contenido) => {
+        const destino = path.join(brainstormDir, nombre);
+        if (await ficheroConContenido(destino))
+            return;
+        await regenerar(nombre, contenido);
+    };
+    if (relanzarRoles) {
         for (const rol of roles) {
             const otros = roles.filter((r) => r.id !== rol.id);
-            await escribirSiNoEstaYa(nombrePeticionRol(rol, ronda), peticionRolTemplate(updated, secciones.objetivo, secciones.criterios, rol, otros, ronda, today));
-            await escribirSiNoEstaYa(nombreSalidaRol(rol, ronda), salidaRolTemplate(updated, rol, ronda));
+            await regenerar(nombrePeticionRol(rol, ronda), peticionRolTemplate(updated, secciones.objetivo, secciones.criterios, rol, otros, ronda, today));
         }
-        if (roles.length > 0)
-            rondaRoles = ronda;
+    }
+    // Los roles que de verdad se lanzaron en `rondaRoles`, leidos del
+    // disco. No es lo mismo que `roles`: si hoy hay menos que entonces,
+    // los de entonces siguen contando — su trabajo existe.
+    const rolesDeLaRonda = rondaRoles === null
+        ? []
+        : ROLES_BRAINSTORM.filter((r) => [...enBrainstorm, ...(relanzarRoles ? roles.map((x) => nombrePeticionRol(x, ronda)) : [])]
+            .includes(nombrePeticionRol(r, rondaRoles)));
+    // Los scaffolds se aseguran SIEMPRE, se relancen los roles o no.
+    // Antes iban dentro del "si no se reutiliza", asi que un scaffold que
+    // faltara — por una muerte entre la peticion y su scaffold, o porque
+    // alguien lo borrara por parecer basura — no se recreaba nunca: el
+    // rol se quedaba con peticion y sin sitio donde escribir, y nadie lo
+    // decia (CRITICO de la ronda 5).
+    if (rondaRoles !== null) {
+        for (const rol of rolesDeLaRonda) {
+            await asegurarScaffold(nombreSalidaRol(rol, rondaRoles), salidaRolTemplate(updated, rol, rondaRoles));
+        }
     }
     // (c) Las salidas a consolidar salen del DISCO, no de `roles`.
     // Componerlas a partir de `roles` fue lo que hizo que bajar la
     // complejidad tirase salidas reales — dos veces, por dos puertas
     // distintas. Se listan las de la ronda que lanzo los roles, sean
-    // cuantas sean: si hoy hay menos roles que entonces, el unificador
-    // sigue viendo todo lo que se escribio.
+    // cuantas sean.
     const salidasAConsolidar = [];
     if (rondaRoles !== null) {
         const sufijo = `-${rondaRoles}.md`;
-        for (const nombre of [...enBrainstorm, ...(brainstormReutilizado ? [] : await listarDir(brainstormDir))]) {
+        for (const nombre of await listarDir(brainstormDir)) {
             if (!nombre.startsWith('salida-brainstorm-') || !nombre.endsWith(sufijo))
                 continue;
-            if (salidasAConsolidar.some((s) => s.nombre === nombre))
-                continue;
             const rol = ROLES_BRAINSTORM.find((r) => nombre === nombreSalidaRol(r, rondaRoles));
-            salidasAConsolidar.push({ nombre, titulo: rol?.titulo ?? 'rol desconocido' });
+            salidasAConsolidar.push({
+                nombre,
+                // Sin el "rol" delante salia "— rol rol desconocido" para una
+                // salida de un rol retirado o renombrado a mano.
+                titulo: rol !== undefined ? `rol ${rol.titulo}` : 'rol ya no declarado en el plugin',
+            });
         }
         salidasAConsolidar.sort((a, b) => a.nombre.localeCompare(b.nombre));
     }
-    // La peticion del unificador se REGENERA siempre, y se escribe la
-    // ultima. Es derivada: no lleva dentro trabajo de nadie, asi que
-    // tratarla como un reintento tolerante la dejaba rancia — describiendo
-    // un solo rol mientras al lado ya habia dos peticiones de rol
-    // contradiciendola (CRITICO de la ronda 4). Que se escriba la ultima
-    // sigue siendo lo que hace que la ronda avance solo cuando todo lo
-    // demas esta.
-    await writeFile(path.join(brainstormDir, nombrePeticionUnificador(ronda)), peticionUnificadorTemplate(updated, secciones.objetivo, secciones.criterios, roles, salidasAConsolidar, ronda, rondaRoles, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)), { encoding: 'utf8', flag: 'w' });
+    // Es una re-planificacion solo si el brainstorm que se reutiliza es
+    // de una vuelta ANTERIOR. Si `rondaRoles === ronda` estamos
+    // reintentando la misma vuelta, y llamar a eso "re-planificacion"
+    // hacia que el CLI hablara de "salidas anteriores" y "tu feedback" en
+    // una primera planificacion que nadie habia ejecutado todavia
+    // (CRITICO de la ronda 5).
+    const brainstormReutilizado = rondaRoles !== null && rondaRoles < ronda;
+    // La peticion del unificador se escribe la ULTIMA, y eso es lo que
+    // hace que la ronda solo avance cuando todo lo demas esta escrito.
+    //
+    // Matiz que costo una mutacion equivalente en la ronda 5: que se
+    // REGENERE (en vez de tolerarse) no es lo que arregla el critico de
+    // la ronda 4 — eso lo arregla que la ronda avance y que (b) mire los
+    // roles de hoy. Por construccion, el fichero de ESTA ronda casi nunca
+    // existe ya cuando llegamos aqui. Se regenera igualmente por dos
+    // motivos reales: es defensa en profundidad si alguna vez la ronda no
+    // avanza, y es lo coherente con su naturaleza (derivada, sin trabajo
+    // de nadie dentro).
+    await regenerar(nombrePeticionUnificador(ronda), peticionUnificadorTemplate(updated, secciones.objetivo, secciones.criterios, rolesDeLaRonda, salidasAConsolidar, ronda, rondaRoles, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)));
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
     const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
     // Paso 5 de la 8.3 (TASK-030, item C2): la carpeta de ORIGEN entra
@@ -570,13 +619,11 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         planMigrado,
         ronda,
         resolucion,
-        roles,
-        // Vacio en una re-planificacion: las peticiones de rol son las de
-        // la ronda anterior y llevan SU numero, no este. Componer aqui la
-        // ruta con la ronda actual devolveria ficheros que no existen.
-        peticionesRol: brainstormReutilizado
+        roles: rolesDeLaRonda,
+        rondaRoles,
+        peticionesRol: rondaRoles === null
             ? []
-            : roles.map((rol) => path.join(brainstormDirFinal, nombrePeticionRol(rol, ronda))),
+            : rolesDeLaRonda.map((rol) => path.join(brainstormDirFinal, nombrePeticionRol(rol, rondaRoles))),
         peticionUnificador: path.join(brainstormDirFinal, nombrePeticionUnificador(ronda)),
         brainstormReutilizado,
         asignadoA: asignadoFinal,

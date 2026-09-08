@@ -29,6 +29,11 @@ import {
   PLAN_FINAL_FILENAME as PLAN_FINAL_NOMBRE,
 } from '../../src/commands/plan.js';
 import { ROLES_BRAINSTORM } from '../../src/core/roles-brainstorm.js';
+import {
+  nombrePeticionRol,
+  nombreSalidaRol,
+  nombrePeticionUnificador,
+} from '../../src/core/plan-brainstorm.js';
 import type { Task, TaskComplexity } from '../../src/core/task.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -531,7 +536,11 @@ test('plan: una segunda vuelta NO relanza el brainstorm, solo pide otro pase al 
 
     assert.equal(segunda.ronda, 2);
     assert.equal(segunda.brainstormReutilizado, true);
-    assert.deepEqual(segunda.peticionesRol, []);
+    assert.equal(segunda.rondaRoles, 1, 'el brainstorm reutilizado es el de la ronda 1');
+    // peticionesRol NO se vacia: las peticiones existen y hay que poder
+    // lanzarlas. Vaciarlas las escondia (CRITICO de la ronda 5).
+    assert.equal(segunda.peticionesRol.length, 2);
+    for (const ruta of segunda.peticionesRol) await readFile(ruta, 'utf8');
 
     const trasSegunda = (await readdir(dir)).sort();
     const nuevos = trasSegunda.filter((f) => !trasPrimera.includes(f));
@@ -576,6 +585,13 @@ test('plan: una ronda interrumpida a medias se REINTENTA, no se toma por re-plan
       '# resto de una ronda que murio a mitad\n',
       'utf8'
     );
+    // Y una salida que un agente YA habia respondido: eso si lleva
+    // trabajo dentro y no se puede pisar.
+    await writeFile(
+      path.join(dirOrigen, 'salida-brainstorm-arquitectura-1.md'),
+      '# lo que ya habia escrito un agente\n',
+      'utf8'
+    );
     commitAll(repoRoot, 'tarea TASK-800 con ronda a medias');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
@@ -596,14 +612,15 @@ test('plan: una ronda interrumpida a medias se REINTENTA, no se toma por re-plan
       .sort();
     assert.deepEqual((await readdir(brainstormDir(result.filePath))).sort(), esperados);
 
-    // Y lo que ya estaba escrito NO se piso: el reintento respeta el
-    // trabajo del intento anterior en vez de sobrescribirlo.
+    // La peticion de rol SI se regenera — es derivada — pero la SALIDA
+    // no se toca jamas: puede llevar dentro la respuesta de un agente.
+    // Esa distincion es la que la ronda 5 obligo a hacer explicita.
     assert.equal(
       await readFile(
-        path.join(brainstormDir(result.filePath), 'peticion-brainstorm-arquitectura-1.md'),
+        path.join(brainstormDir(result.filePath), 'salida-brainstorm-arquitectura-1.md'),
         'utf8'
       ),
-      '# resto de una ronda que murio a mitad\n'
+      '# lo que ya habia escrito un agente\n'
     );
   });
 });
@@ -698,8 +715,8 @@ test('plan: la ronda sale del mayor numero presente, no de cuantos ficheros hay'
  * pasar exactamente lo mismo: primera planificacion sin ninguna
  * peticion de rol y exit 0.
  *
- * Mutacion que lo pone rojo: quitar la comprobacion de las peticiones
- * de rol en `rondaCompleta` y quedarse solo con el testigo.
+ * Mutacion que lo pone rojo: que `rolesLanzadosEn` deje de mirar las
+ * peticiones de rol y se quede solo con el testigo.
  */
 test('plan: un testigo huerfano (sin peticiones de rol) NO cuenta como ronda completa', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
@@ -869,7 +886,9 @@ test('plan: bajar los roles sin llegar a cero no oculta las salidas que existen'
     const segunda = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', {
       repoCwd: repoRoot,
     });
-    assert.equal(segunda.roles.length, 1);
+    assert.equal(segunda.resolucion.agentes, 1, 'hoy la complejidad resuelve un solo rol');
+    // Pero los roles de la ronda reutilizada siguen siendo tres.
+    assert.equal(segunda.roles.length, 3);
 
     const peticion = await readFile(segunda.peticionUnificador, 'utf8');
     // Las TRES salidas reales se nombran, no solo la del rol que queda.
@@ -889,7 +908,7 @@ test('plan: bajar los roles sin llegar a cero no oculta las salidas que existen'
  * existe lo daba por bueno.
  *
  * Mutacion que lo pone rojo: usar `existeFichero` en vez de
- * `ficheroConContenido` al validar la ronda.
+ * `ficheroConContenido` al validar el testigo.
  */
 test('plan: un testigo de cero bytes NO cuenta como ronda completa', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
@@ -916,10 +935,12 @@ test('plan: un testigo de cero bytes NO cuenta como ronda completa', async () =>
 
     // La ronda NO avanza: el testigo truncado no cierra la ronda 1.
     assert.equal(result.ronda, 1);
-    // Pero los roles SI estan ya lanzados, asi que no se relanzan: las
-    // dos preguntas son independientes, y confundirlas costo un
-    // CRITICO en la ronda 3.
-    assert.equal(result.brainstormReutilizado, true);
+    // Y NO es una re-planificacion: los roles son de ESTA misma ronda,
+    // asi que llamarlo asi hacia que el CLI hablara de "salidas
+    // anteriores" y "tu feedback" en una primera vuelta (CRITICO de la
+    // ronda 5). Reutilizar artefactos de la misma ronda es un reintento.
+    assert.equal(result.brainstormReutilizado, false);
+    assert.equal(result.rondaRoles, 1);
     const testigo = await readFile(
       path.join(brainstormDir(result.filePath), 'peticion-unificador-1.md'),
       'utf8'
@@ -934,8 +955,8 @@ test('plan: un testigo de cero bytes NO cuenta como ronda completa', async () =>
  * secuestraba la lista y el unificador recibia la orden de consolidar
  * una ronda de la que solo hay un fichero, ignorando el brainstorm real.
  *
- * Mutacion que lo pone rojo: volver a `ultimaRonda(dir, SALIDA_ROL_RE)`
- * a secas para elegir rondaSalidas.
+ * Mutacion que lo pone rojo: elegir `rondaRoles` por el numero mas alto
+ * que aparezca en vez de por el juego completo de peticiones.
  */
 test('plan: una salida huerfana de una ronda alta no secuestra la lista del unificador', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
@@ -970,13 +991,17 @@ test('plan: una salida huerfana de una ronda alta no secuestra la lista del unif
 });
 
 /**
- * Si no queda ningun juego completo de salidas, la peticion lo dice en
- * vez de nombrar ficheros que el propio CLI sabe que no existen.
+ * Un scaffold de salida que falte SE RECREA, se relancen los roles o no.
+ * Antes la escritura de scaffolds vivia dentro del "si no se reutiliza",
+ * asi que uno que faltara — por una muerte entre la peticion y su
+ * scaffold, o porque alguien lo borrara por parecer basura — no se
+ * recreaba nunca: el rol se quedaba con peticion y sin sitio donde
+ * escribir, y nadie lo decia (CRITICO de la ronda 5).
  *
- * Mutacion que lo pone rojo: caer a `ronda` cuando no hay salidas
- * previas, que es lo que hacia antes.
+ * Mutacion que lo pone rojo: devolver el bucle de `asegurarScaffold`
+ * dentro del `if (relanzarRoles)`.
  */
-test('plan: sin salidas previas, el unificador NO recibe una lista de ficheros inexistentes', async () => {
+test('plan: un scaffold de salida borrado se recrea aunque el brainstorm se reutilice', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media' }), BODY);
     commitAll(repoRoot, 'tarea TASK-800');
@@ -985,69 +1010,70 @@ test('plan: sin salidas previas, el unificador NO recibe una lista de ficheros i
       repoCwd: repoRoot,
     });
     const dir = brainstormDir(primera.filePath);
-    for (const rol of ROLES_BRAINSTORM.slice(0, 2)) {
-      await rm(path.join(dir, nombreSalidaRolTest(rol.id, 1)));
-    }
-    commitAll(repoRoot, 'salidas borradas');
+    // Un agente ya respondio a uno de los dos; el otro scaffold
+    // desaparece.
+    const [rolA, rolB] = [ROLES_BRAINSTORM[0]!, ROLES_BRAINSTORM[1]!];
+    await writeFile(
+      path.join(dir, nombreSalidaRolTest(rolA.id, 1)),
+      '# respuesta real que no se puede pisar\n',
+      'utf8'
+    );
+    await rm(path.join(dir, nombreSalidaRolTest(rolB.id, 1)));
+    commitAll(repoRoot, 'un scaffold borrado');
 
     const segunda = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', {
       repoCwd: repoRoot,
     });
 
+    const enDisco = await readdir(dir);
+    assert.ok(
+      enDisco.includes(nombreSalidaRolTest(rolB.id, 1)),
+      'el scaffold borrado no se recreo: ese rol no tiene donde escribir'
+    );
+    // Y el que tenia contenido sigue intacto.
+    assert.equal(
+      await readFile(path.join(dir, nombreSalidaRolTest(rolA.id, 1)), 'utf8'),
+      '# respuesta real que no se puede pisar\n'
+    );
+    // El unificador nombra las dos, y sigue tratandolo como dos roles.
     const peticion = await readFile(segunda.peticionUnificador, 'utf8');
-    const nombrados = [...peticion.matchAll(/`(salida-[a-z0-9-]+-\d+\.md)`/g)];
-    assert.equal(nombrados.length, 0, 'nombra salidas que no existen');
-    assert.match(peticion, /no queda en disco ningun juego completo de salidas/);
+    assert.ok(peticion.includes(nombreSalidaRolTest(rolA.id, 1)));
+    assert.ok(peticion.includes(nombreSalidaRolTest(rolB.id, 1)));
+    assert.doesNotMatch(
+      peticion,
+      /se planifico con un solo rol/,
+      'con dos roles no puede decir que se planifico con uno'
+    );
   });
 });
 
 /**
- * El fix del regex de la ronda 1 (aceptar guiones y digitos en el id
- * del rol) sobrevivia a su propia mutacion: los cuatro ids actuales son
- * letras puras, asi que `[a-z]+` los casaba igual. Un fix sin test es
- * una regresion esperando (MENOR de la ronda 2).
+ * Los nombres de fichero se componen SIEMPRE con los helpers de
+ * plan-brainstorm.ts, nunca con literales, y admiten ids de rol con
+ * guion o digito.
  *
- * Mutacion que lo pone rojo: devolver SALIDA_ROL_RE a `[a-z]+`.
+ * Lo que habia aqui era un test tautologico: definia su propio regex
+ * local y lo aseveraba contra si mismo, asi que no podia ponerse rojo
+ * por ningun cambio en `src/`. Lo destapo la ronda 5, y es exactamente
+ * el defecto que la cabecera de este fichero dice venir a evitar — se
+ * cuela hasta cuando lo estas buscando.
+ *
+ * Mutacion que lo pone rojo: cambiar el prefijo o el separador en
+ * nombrePeticionRol / nombreSalidaRol / nombrePeticionUnificador.
  */
-test('plan: el patron de salidas admite ids de rol con guion y con digito', async () => {
-  const RE = /^salida-brainstorm-[a-z0-9-]+-(\d+)\.md$/;
-  for (const nombre of [
-    'salida-brainstorm-datos-externos-1.md',
-    'salida-brainstorm-riesgos2-3.md',
-    'salida-brainstorm-arquitectura-10.md',
-  ]) {
-    const m = RE.exec(nombre);
-    assert.ok(m !== null, `${nombre} deberia casar`);
-  }
-  assert.equal(RE.exec('salida-brainstorm-arquitectura-10.md')?.[1], '10');
-});
+test('los nombres de artefacto se componen con los helpers, y admiten ids con guion y digito', () => {
+  const rolFicticio = {
+    ...ROLES_BRAINSTORM[0]!,
+    id: 'brainstorm-datos-externos-2' as (typeof ROLES_BRAINSTORM)[number]['id'],
+  };
+  assert.equal(nombrePeticionRol(rolFicticio, 10), 'peticion-brainstorm-datos-externos-2-10.md');
+  assert.equal(nombreSalidaRol(rolFicticio, 10), 'salida-brainstorm-datos-externos-2-10.md');
+  assert.equal(nombrePeticionUnificador(10), 'peticion-unificador-10.md');
 
-// ─── el brainstorm viaja con la tarea ──────────────────────────────────
-
-/**
- * Mutacion que lo pone rojo: escribir el brainstorm en la carpeta de
- * DESTINO (despues del move) o colgarlo de la raiz de la carpeta de
- * tarea en vez de de planificacion/. En los dos casos dejaria de
- * viajar con el rename o de entrar en el auto-commit.
- */
-test('plan: brainstorm/ viaja con la tarea al cambiar de carpeta de estado', async () => {
-  await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'alta' }), BODY);
-    commitAll(repoRoot, 'tarea TASK-800');
-
-    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
-      repoCwd: repoRoot,
-    });
-
-    assert.match(result.filePath, /01-en-diseno/);
-    assert.equal((await readdir(brainstormDir(result.filePath))).length, 7);
-    // Nada quedo atras en 00-planificadas.
-    await assert.rejects(() => readdir(path.join(tareasRoot, '00-planificadas', 'TASK-800')));
-    // Las rutas devueltas apuntan a ficheros que existen de verdad.
-    for (const p of [...result.peticionesRol, result.peticionUnificador]) {
-      await readFile(p, 'utf8');
-    }
-  });
+  // Y el prefijo con el que "plan" filtra las salidas del disco tiene
+  // que seguir casando con lo que produce el helper: si divergen, el
+  // unificador deja de ver salidas que existen.
+  assert.ok(nombreSalidaRol(rolFicticio, 1).startsWith('salida-brainstorm-'));
 });
 
 // ─── los hallazgos de la RONDA 3 de la revision ────────────────────────
@@ -1063,8 +1089,8 @@ test('plan: brainstorm/ viaja con la tarea al cambiar de carpeta de estado', asy
  * siempre y del tercer `plan` en adelante el comando era un no-op con
  * exit 0, reutilizando una peticion de unificador rancia.
  *
- * Mutacion que lo pone rojo: devolver `rondaCompleta` a exigir las
- * peticiones de rol tambien cuando n > 1.
+ * Mutacion que lo pone rojo: hacer que `ronda` deje de avanzar cuando el
+ * testigo esta entero.
  */
 test('plan: la ronda AVANZA en la tercera vuelta y en las siguientes (no se queda clavada en 2)', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
@@ -1141,7 +1167,11 @@ test('plan: bajar la complejidad no hace que el unificador ignore un brainstorm 
     const segunda = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', {
       repoCwd: repoRoot,
     });
-    assert.equal(segunda.roles.length, 0, 'precondicion: trivial sin senales resuelve 0 roles');
+    assert.equal(
+      segunda.resolucion.agentes,
+      0,
+      'precondicion: trivial sin senales resuelve 0 roles'
+    );
 
     const peticion = await readFile(segunda.peticionUnificador, 'utf8');
     // Las dos salidas reales se nombran, en vez de negarse.
@@ -1152,6 +1182,95 @@ test('plan: bajar la complejidad no hace que el unificador ignore un brainstorm 
       );
     }
     assert.doesNotMatch(peticion, /No hay salidas de brainstorm que consolidar/);
+  });
+});
+
+/**
+ * Cuando el mismo juego de roles tiene peticiones en VARIAS rondas
+ * (subir y volver a bajar la complejidad), se reutiliza la MAS ALTA:
+ * es el brainstorm mas reciente, y el que la persona acaba de pedir.
+ *
+ * Este caso sobrevivio a la ronda 5 como mutante vivo — recorrer las
+ * rondas de menor a mayor daba verde — porque ningun test montaba dos
+ * rondas con peticiones del mismo rol. Elegir la mas baja devuelve al
+ * unificador el brainstorm viejo e ignora el nuevo, que es el sintoma
+ * que estas cinco rondas llevan persiguiendo.
+ *
+ * Mutacion que lo pone rojo: recorrer `rondasConAlgo(PETICION_ROL_RE)`
+ * en orden inverso.
+ */
+test('plan: con peticiones del mismo rol en dos rondas se reutiliza la mas alta', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+    const subirA = async (nivel: string, ruta: string): Promise<void> => {
+      const c = await readFile(ruta, 'utf8');
+      await writeFile(ruta, c.replace(/^complejidad: .*$/m, `complejidad: ${nivel}`), 'utf8');
+      commitAll(repoRoot, `complejidad ${nivel}`);
+    };
+
+    // Ronda 1 con 1 rol.
+    const r1 = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    assert.equal(r1.rondaRoles, 1);
+
+    // Sube a alta: relanza en la ronda 2 con 3 roles.
+    await subirA('alta', r1.filePath);
+    const r2 = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', { repoCwd: repoRoot });
+    assert.equal(r2.rondaRoles, 2);
+    assert.equal(r2.roles.length, 3);
+
+    // Vuelve a simple: el rol de arquitectura tiene peticion en la 1 Y
+    // en la 2. Tiene que ganar la 2.
+    await subirA('simple', r2.filePath);
+    const r3 = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-10', { repoCwd: repoRoot });
+
+    assert.equal(r3.rondaRoles, 2, 'se reutilizo un brainstorm viejo habiendo uno mas reciente');
+    assert.equal(r3.roles.length, 3, 'la ronda 2 lanzo tres roles, no uno');
+    const peticion = await readFile(r3.peticionUnificador, 'utf8');
+    for (const rol of ROLES_BRAINSTORM.slice(0, 3)) {
+      assert.ok(
+        peticion.includes(nombreSalidaRolTest(rol.id, 2)),
+        `el unificador no nombra la salida de ${rol.titulo} de la ronda 2`
+      );
+    }
+  });
+});
+
+/**
+ * La regla "cero bytes no cuenta" vale para las peticiones de rol
+ * igual que para el testigo. Es el mismo residuo — un `open()` sin
+ * volcado — solo que en el fichero de al lado, y sobrevivio a la ronda
+ * 5 como mutante vivo porque solo estaba testada sobre el testigo.
+ *
+ * Mutacion que lo pone rojo: usar `existeFichero` en vez de
+ * `ficheroConContenido` dentro de `rolesLanzadosEn`.
+ */
+test('plan: una peticion de rol de cero bytes no cuenta como rol ya lanzado', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const primera = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+    const dir = brainstormDir(primera.filePath);
+    const peticion = path.join(dir, nombrePeticionRol(ROLES_BRAINSTORM[0]!, 1));
+    // Se trunca la peticion, como haria una escritura cortada.
+    await writeFile(peticion, '', 'utf8');
+    commitAll(repoRoot, 'peticion truncada');
+
+    const segunda = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', {
+      repoCwd: repoRoot,
+    });
+
+    // No se da por lanzada: se reescribe con contenido.
+    assert.equal(segunda.brainstormReutilizado, false);
+    const contenido = await readFile(
+      path.join(brainstormDir(segunda.filePath), nombrePeticionRol(ROLES_BRAINSTORM[0]!, segunda.rondaRoles!)),
+      'utf8'
+    );
+    assert.ok(contenido.length > 0, 'la peticion truncada se quedo vacia');
+    assert.match(contenido, /Peticion de brainstorm/);
   });
 });
 

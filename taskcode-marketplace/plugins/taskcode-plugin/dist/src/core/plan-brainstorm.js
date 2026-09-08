@@ -127,13 +127,20 @@ salidas, ronda,
  * apuntaba a ficheros inexistentes — CRITICO de la revision por
  * pares.
  *
- * `null` = no hay ningun juego completo de salidas en disco. Se dice,
- * en vez de nombrar ficheros que quien escribe la peticion ya sabe
- * que no existen.
+ * `null` = no hay NINGUNA ronda con peticiones de rol en disco, o sea
+ * que esta tarea no ha lanzado brainstorm nunca. No significa "no hay
+ * salidas": para eso esta `salidas`, que puede venir vacia con
+ * `rondaSalidas` puesta si los agentes aun no han respondido.
+ *
+ * (El comentario anterior decia lo segundo y era falso desde el
+ * redisenio de la ronda 4. Lo destapo la ronda 5, y es el recordatorio
+ * de que en este fichero los comentarios documentan hallazgos
+ * pagados: uno desactualizado no es ruido, es una afirmacion con
+ * autoridad que ya no se cumple.)
  */
 rondaSalidas, fecha, resolucion, planFinalRelativo) {
     const listaSalidas = salidas.length > 0
-        ? salidas.map((s) => `- \`${s.nombre}\` — rol ${s.titulo}\n`).join('')
+        ? salidas.map((s) => `- \`${s.nombre}\` — ${s.titulo}\n`).join('')
         : roles.length === 0
             ? '(ninguna: esta tarea no lanza brainstorm, ver el bloque de complejidad)\n'
             : '**(ninguna: no queda en disco ningun juego completo de salidas de rondas ' +

@@ -2,17 +2,21 @@
  * Numeracion de rondas de los artefactos de una tarea.
  *
  * Un bucle de "pide cambios" es normal, no una excepcion: una tarea
- * puede necesitar dos o tres rondas de revision, y desde TASK-016
- * tambien varias de planificacion. En los dos casos el numero de ronda
- * no se guarda en ninguna parte: se DEDUCE de los ficheros que ya hay
- * en la carpeta. Es a proposito — un contador en el frontmatter seria
- * un segundo sitio donde vive la misma verdad, y el dia que discrepara
- * del disco ganaria el fichero equivocado.
+ * puede necesitar dos o tres rondas de revision. El numero de ronda no
+ * se guarda en ninguna parte: se DEDUCE de los ficheros que ya hay en
+ * la carpeta. Es a proposito — un contador en el frontmatter seria un
+ * segundo sitio donde vive la misma verdad, y el dia que discrepara del
+ * disco ganaria el fichero equivocado.
  *
- * La logica vivia privada en commands/review.ts desde TASK-013.
- * TASK-016 la necesita igual para `planificacion/brainstorm/`, y
- * copiarla habria dejado dos numeradores que divergen en cuanto
- * alguien toque uno.
+ * HISTORIA, porque el comentario que habia aqui dejo de ser cierto y lo
+ * detecto la quinta ronda de revision de TASK-016: esto se extrajo de
+ * commands/review.ts para compartirlo con commands/plan.ts. Plan acabo
+ * necesitando algo distinto — no "la siguiente ronda" sino "que rondas
+ * hay, de cada tipo de artefacto, y cual esta completa" — asi que hoy
+ * **el unico consumidor vuelve a ser `review`**. Se deja aqui, y no de
+ * vuelta dentro de review.ts, porque el modulo esta probado y moverlo
+ * otra vez no compra nada; pero conviene saber que no es una
+ * abstraccion compartida, es la numeracion de rondas de revision.
  */
 import { readdir } from 'node:fs/promises';
 import { isEnoent, isEnotdir } from './task-store.js';
