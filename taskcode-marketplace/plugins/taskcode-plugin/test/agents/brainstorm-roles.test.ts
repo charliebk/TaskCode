@@ -31,6 +31,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../../src/core/frontmatter.js';
+import { TASK_COMPLEXITIES } from '../../src/core/task.js';
 
 // --- Localizacion del plugin -------------------------------------------
 //
@@ -57,7 +58,7 @@ const FICHEROS = ROLES.map((r) => `${r}.md`);
 const CLAVES_PERMITIDAS = new Set(['name', 'description', 'tools', 'model']);
 
 /**
- * Herramientas que ninguno de los cuatro roles puede declarar. Los
+ * Herramientas que los cuatro roles pueden declarar, y NINGUNA MAS. Los
  * cuatro ficheros PROMETEN por escrito no modificar nada (lo asevera el
  * test 11), pero una promesa en prosa no impide nada: lo unico que de
  * verdad lo impide es la lista de `tools` del frontmatter. Sin esta
@@ -65,11 +66,36 @@ const CLAVES_PERMITIDAS = new Set(['name', 'description', 'tools', 'model']);
  * Bash` deja la suite entera en verde con cuatro agentes que pueden
  * escribir en el repositorio del usuario.
  *
- * `Task` esta en la lista por un motivo distinto: los roles se lanzan ya
- * en paralelo desde fuera, y dejar que ademas se lancen entre si
- * convierte el presupuesto acotado de agentes en un arbol sin tope.
+ * Es lista BLANCA a proposito (ronda 2, menor 3). La negra que habia
+ * antes —`Write, Edit, NotebookEdit, Bash, Task`, por igualdad exacta—
+ * dejaba pasar tres formas distintas de lo mismo: cualquier herramienta
+ * de escritura que no estuviera enumerada (`mcp__fs__write_file` y las
+ * que traiga el proximo servidor MCP), la misma escrita en minusculas
+ * (`bash`), y la forma con argumentos entre parentesis
+ * (`Bash(git status:*)`). Una lista blanca es cerrada: no envejece con
+ * cada herramienta nueva, y ampliarla exige editar esta constante, que
+ * es exactamente la decision que se quiere que alguien tome a mano.
+ *
+ * Solo lectura y busqueda. `Task` no entra por un motivo propio: los
+ * roles se lanzan ya en paralelo desde fuera, y dejar que ademas se
+ * lancen entre si convierte el presupuesto acotado de agentes en un
+ * arbol sin tope.
  */
-const HERRAMIENTAS_PROHIBIDAS = ['Write', 'Edit', 'NotebookEdit', 'Bash', 'Task'];
+const HERRAMIENTAS_PERMITIDAS = new Set(['read', 'grep', 'glob']);
+
+/**
+ * Nombre base de una herramienta declarada. Quita los argumentos entre
+ * parentesis (`Bash(git status:*)` -> `bash`) y normaliza mayusculas,
+ * que Claude Code no distingue y una comparacion literal si.
+ *
+ * Con lista blanca, trocear por comas es seguro aunque una declaracion
+ * traiga comas DENTRO del parentesis (`Bash(git status:*, ls:*)`): los
+ * dos trozos que salen —`Bash(git status:*` y `ls:*)`— tienen que estar
+ * ambos en la lista, y ninguno lo esta. Con lista negra, el segundo
+ * trozo no se parecia a nada prohibido y pasaba.
+ */
+const nombreBaseDeHerramienta = (t: string): string =>
+  t.replace(/\(.*$/, '').trim().toLowerCase();
 
 const MAX_LONGITUD_NAME = 64;
 const MAX_LONGITUD_DESCRIPTION = 1024;
@@ -80,8 +106,16 @@ const MAX_LINEAS_CUERPO = 300;
  * las cabeceras solas, la seccion promete un reparto de contexto que no
  * hace: el rol acabaria recibiendo el paquete completo, que es justo el
  * gasto que el diseño evita.
+ *
+ * Vale 2 y no 3 (ronda 2, menor 5). Con 3, los margenes medidos eran
+ * 4/4, 5/4, 4/4 y 5/3: brainstorm-dominio.md quedaba a cero, y fusionar
+ * dos de sus viñetas de "No necesitas" —una edicion editorial legitima,
+ * que no toca el reparto— ponia el test rojo sin que nada empeorase. Lo
+ * que este minimo defiende es que la lista exista y liste de verdad, no
+ * cuantas viñetas tiene; una lista de dos ya obliga a repartir. El fallo
+ * real que atrapa —cabeceras sin nada debajo— se sigue atrapando igual.
  */
-const MIN_VINETAS_CONTEXTO = 3;
+const MIN_VINETAS_CONTEXTO = 2;
 
 const BOM_UTF8 = Buffer.from([0xef, 0xbb, 0xbf]);
 
@@ -89,18 +123,47 @@ const BOM_UTF8 = Buffer.from([0xef, 0xbb, 0xbf]);
  * Marcas de este repositorio. Los cuatro ficheros se distribuyen a
  * proyectos que no son este: si una de estas cadenas viaja dentro, el
  * agente le habla al lector de un repo que no tiene delante.
+ *
+ * La lista se compara SIEMPRE en minusculas y es la misma que la de
+ * test/skills/revisores.test.ts (ronda 2, menor 4), que iba por delante:
+ * la de aqui tenia 9 entradas y era sensible a mayusculas, asi que
+ * "TASKCODE" o "veredictoAprobado() de src/commands/finish.ts" se
+ * colaban enteros. Unica diferencia deliberada: aqui se conserva ademas
+ * `taskctl`. Alli se admite a proposito porque los comandos del plugin
+ * viajan con el; estos cuatro roles son de diseño generico y no tienen
+ * ninguna razon para nombrar el CLI, asi que se sigue prohibiendo.
+ *
+ * PENDIENTE: las dos listas son gemelas y viven en dos ficheros. Sacarlas
+ * a un modulo compartido evitaria que vuelvan a divergir, pero eso obliga
+ * a tocar test/skills/revisores.test.ts, que no entra en este cambio.
  */
 const MARCAS_DEL_REPO = [
-  'TaskCode',
-  'taskctl',
   'taskcode',
+  'taskctl',
   'tareas/',
   'docs/contexto',
-  'PROPUESTA_METODOLOGIA',
-  'CHECKLIST_TERMINACION',
+  'propuesta_metodologia',
+  'checklist_terminacion',
+  'plan_sprints',
   'plan-final.md',
-  'TASK-0',
+  'task-0',
+  'ieca',
+  'movetareafile',
+  'printclierror',
+  'veredictoaprobado',
+  'informetemplate',
+  'src/commands/',
+  'src/core/',
 ];
+
+/**
+ * Los documentos internos de un repo se nombran en MAYUSCULAS bajo
+ * `docs/`. Enumerarlos de uno en uno se quedaba corto siempre: la lista
+ * dejaba pasar `docs/CONVENCIONES.md`, `docs/HALLAZGOS.md` y cualquier
+ * otro que naciera despues. Se asevera el patron, no el caso. Mismo
+ * criterio y misma expresion que en test/skills/revisores.test.ts.
+ */
+const DOCUMENTO_INTERNO = /docs\/[A-Z_]+\.md/;
 
 /** Rutas absolutas de maquina que tampoco deben viajar. */
 const RUTAS_DE_MAQUINA = ['C:\\Users\\', '/Users/', '/home/', '~/'];
@@ -396,12 +459,15 @@ for (const fichero of FICHEROS) {
       .filter((t) => t.length > 0);
     assert.ok(declaradas.length > 0, `${fichero}: "tools" esta declarado pero vacio`);
 
-    const prohibidas = declaradas.filter((t) => HERRAMIENTAS_PROHIBIDAS.includes(t));
+    const fuera = declaradas.filter(
+      (t) => !HERRAMIENTAS_PERMITIDAS.has(nombreBaseDeHerramienta(t))
+    );
     assert.deepEqual(
-      prohibidas,
+      fuera,
       [],
-      `${fichero}: declara ${prohibidas.join(', ')} en "tools". El fichero promete ` +
-        'no modificar nada; lo unico que lo impide de verdad es esta lista'
+      `${fichero}: declara ${fuera.join(', ')} en "tools", que no esta en la lista ` +
+        `blanca (${[...HERRAMIENTAS_PERMITIDAS].join(', ')}). El fichero promete no ` +
+        'modificar nada; lo unico que lo impide de verdad es esta lista'
     );
   });
 
@@ -516,17 +582,50 @@ for (const fichero of FICHEROS) {
     // Se mira el fichero ENTERO, frontmatter incluido: una marca en la
     // description viaja igual de lejos que una en el cuerpo.
     const texto = await leerTexto(fichero);
-    const marcas = MARCAS_DEL_REPO.filter((m) => texto.includes(m));
+    const enMinusculas = texto.toLowerCase();
+    const marcas = MARCAS_DEL_REPO.filter((m) => enMinusculas.includes(m));
     assert.deepEqual(
       marcas,
       [],
       `${fichero}: contiene marcas de este repo: ${marcas.join(', ')}`
     );
 
+    // El nombre del documento SI se mira con su case original: el patron
+    // vive justamente de que estos documentos van en mayusculas.
+    const doc = DOCUMENTO_INTERNO.exec(texto);
+    assert.equal(
+      doc,
+      null,
+      `${fichero}: nombra el documento interno "${doc?.[0]}", que no existe en el ` +
+        'proyecto donde se instala'
+    );
+
     const rutas = RUTAS_DE_MAQUINA.filter((r) => texto.includes(r));
     assert.deepEqual(rutas, [], `${fichero}: contiene rutas de maquina: ${rutas.join(', ')}`);
   });
 }
+
+test('12b. la marca generica de documento interno discrimina', () => {
+  for (const caso of [
+    'Ver docs/PLAN_SPRINTS.md para el detalle.',
+    'esta en docs/HALLAZGOS.md',
+    'lo describe docs/ESTADO.md',
+  ]) {
+    assert.ok(DOCUMENTO_INTERNO.test(caso), `la marca generica deja pasar "${caso}"`);
+  }
+  // Y al reves: no puede morder texto legitimo de un rol portable.
+  for (const caso of [
+    'la carpeta docs/ del proyecto',
+    'un fichero docs/guia-de-estilo.md',
+    'README.md en la raiz',
+  ]) {
+    assert.equal(
+      DOCUMENTO_INTERNO.test(caso),
+      false,
+      `la marca generica muerde texto legitimo: "${caso}"`
+    );
+  }
+});
 
 // Alcance real de este test, para que su nombre no prometa mas de lo que
 // mide: detecta la COPIA LITERAL de la seccion, no el solape semantico.
@@ -562,6 +661,61 @@ test('13. ningun "Qué miras" es copia literal de otro (no mide solape semantico
   }
 });
 
+/**
+ * El reparto de un tema entre los cuatro roles sigue una convencion: un
+ * rol lo reclama en su "Qué miras" y los otros TRES lo ceden en su "Qué
+ * NO miras". Aqui se asevera sobre rendimiento y escalabilidad, que es
+ * el unico tema con una palabra comun a los cuatro ficheros; el resto se
+ * reparte con vocabularios distintos ("casos límite" frente a "modos de
+ * fallo", "dominio" frente a "regla de negocio") y compararlos exigiria
+ * medir significado, que ni es barato ni es determinista.
+ *
+ * Ata dos cosas a la vez: la viñeta que reclama el tema en arquitectura
+ * (correccion de la ronda 1) y las dos que lo ceden en riesgos y testing
+ * (ronda 2, menor 1). Sin esto, borrar cualquiera de las tres deja la
+ * suite en verde con un tema reclamado por dos roles o por ninguno.
+ *
+ * Se mira por SECCION, no por fichero entero: "el contexto de mayor
+ * rendimiento que puedes recibir" aparece en la seccion de contexto de
+ * riesgos con otro sentido, y un `includes` sobre el fichero lo contaria
+ * como si el rol reclamara el tema.
+ */
+test('13b. rendimiento y escalabilidad los reclama un solo rol y los ceden los otros tres', async () => {
+  const reclaman: string[] = [];
+  const ceden: string[] = [];
+
+  for (const fichero of FICHEROS) {
+    const { body } = parseFrontmatter(await leerTexto(fichero));
+    const queMira = normalizar(entre(body, '## Qué miras', '## Qué NO miras'));
+    const queNoMira = normalizar(entre(body, '## Qué NO miras', '\n## '));
+    assert.ok(queMira !== '' && queNoMira !== '', `${fichero}: no se aislan las dos secciones`);
+
+    const loReclama = /rendimiento/i.test(queMira);
+    const loCede = /rendimiento/i.test(queNoMira);
+    assert.equal(
+      loReclama && loCede,
+      false,
+      `${fichero}: nombra el rendimiento en "Qué miras" y en "Qué NO miras" a la vez`
+    );
+    if (loReclama) reclaman.push(fichero);
+    if (loCede) ceden.push(fichero);
+  }
+
+  assert.deepEqual(
+    reclaman.length,
+    1,
+    `el rendimiento lo reclaman ${reclaman.length} roles (${reclaman.join(', ') || 'ninguno'}): ` +
+      'la convencion es uno lo mira y los otros tres lo ceden'
+  );
+  const sinCeder = FICHEROS.filter((f) => !reclaman.includes(f) && !ceden.includes(f));
+  assert.deepEqual(
+    sinCeder,
+    [],
+    `${sinCeder.join(', ')}: no cede el rendimiento a ${reclaman[0]}, que si lo reclama. ` +
+      'Un tema reclamado en un solo sentido se acaba mirando dos veces o ninguna'
+  );
+});
+
 test('14. el rol de testing deja escrita la alternativa de degradarlo a checklist del unificador', async () => {
   const plano = normalizar(parseFrontmatter(await leerTexto('brainstorm-testing.md')).body);
   assert.ok(
@@ -573,6 +727,43 @@ test('14. el rol de testing deja escrita la alternativa de degradarlo a checklis
   assert.ok(
     plano.includes('haz tu trabajo entero'),
     'brainstorm-testing.md deja la nota abierta sin decir que hacer si se ejecuta como agente'
+  );
+});
+
+/**
+ * La nota del rol de testing habla de la escalera de complejidad del
+ * plugin, y la escalera es un enum del codigo: `TASK_COMPLEXITIES`. La
+ * redaccion que trajo la ronda 1 —"complejidad baja o media", con la
+ * degradacion "reservada para las altas"— nombraba un nivel que no
+ * existe y se saltaba tres que si, y la correccion se revirtio sin red.
+ *
+ * Se importa el enum en vez de copiar los cinco literales, igual que
+ * test/core/heuristica-complejidad.test.ts: si manana la escalera cambia,
+ * este test falla y obliga a actualizar la nota, que es lo que se quiere.
+ * Se mira SOLO la nota, no el fichero entero: fuera de ella "trabajas"
+ * contiene "baja" y la palabra "media" sale en otros sentidos.
+ */
+test('14b. la nota del rol de testing nombra la escalera real, sin inventarse niveles', async () => {
+  const { body } = parseFrontmatter(await leerTexto('brainstorm-testing.md'));
+  const nota = normalizar(entre(body, '## Nota sobre este rol en concreto', '\n## '));
+  assert.notEqual(nota, '', 'brainstorm-testing.md: no se puede aislar la nota del rol');
+
+  const faltan = TASK_COMPLEXITIES.filter(
+    (nivel) => !new RegExp(`\\b${nivel}\\b`, 'i').test(nota)
+  );
+  assert.deepEqual(
+    faltan,
+    [],
+    `la nota no nombra ${faltan.join(', ')} de la escalera de complejidad ` +
+      `(${TASK_COMPLEXITIES.join(', ')}): describe la degradacion sobre una escalera ` +
+      'que no es la que valida el plugin'
+  );
+
+  assert.equal(
+    /\bbajas?\b/i.test(nota),
+    false,
+    'la nota nombra el nivel "baja", que no esta en la escalera: ' +
+      `los niveles son ${TASK_COMPLEXITIES.join(', ')}`
   );
 });
 

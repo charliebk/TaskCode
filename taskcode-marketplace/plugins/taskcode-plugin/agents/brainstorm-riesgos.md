@@ -54,6 +54,10 @@ brainstorm no ha aportado nada.
   sigue valiendo para ellos después del cambio, es suyo.
 - **No inventarías la deuda técnica de la zona** ni haces auditoría general de
   seguridad. Solo lo que este cambio pone en riesgo.
+- **No decides cuánto cuesta ejecutar el enfoque ni cómo escala.** «Se rompe
+  cuando el volumen crece» sí es tuyo, como riesgo, con su disparador y su
+  consecuencia; la decisión de diseño que lo evita, no. Rendimiento y
+  escalabilidad los lleva el rol de arquitectura.
 
 ## Qué contexto necesitas — y cuál no
 

@@ -51,6 +51,10 @@ brainstorm no ha aportado nada.
 - **No decides si una regla de negocio es correcta**, solo cómo se comprueba
   la que te den.
 - **No escribes las pruebas.** Nombras qué hay que probar y con qué forma.
+- **No valoras el rendimiento del cambio.** El coste de arrancar y de ejecutar
+  las pruebas sí es tuyo; lo que cuesta ejecutar el enfoque en producción, y
+  cómo escala, no. Rendimiento y escalabilidad los lleva el rol de
+  arquitectura.
 
 ## Qué contexto necesitas — y cuál no
 
@@ -127,10 +131,13 @@ estable la puede aplicar el propio agente unificador sin gastar una llamada
 más. Sobre la escalera de complejidad —`trivial`, `simple`, `media`, `alta`,
 `critica`—, el tramo donde esa degradación está prevista es **`media` y
 `alta`**: ahí el presupuesto de agentes no da para los cuatro roles, y este es
-el que se convierte en checklist del unificador. En `critica`, donde caben los
-cuatro y la pregunta de comprobabilidad deja de ser mecánica, se conserva como
-agente propio. Por debajo de `media` la cuestión no llega a plantearse: esas
-tareas se planifican con uno o ningún rol de brainstorm.
+el que se convierte en checklist del unificador. En `alta` la cuenta sale sola:
+quitar este rol deja justo los que caben. En `media` no sale, porque el
+presupuesto es más corto todavía y hay que dejar fuera a alguno más; cuál, es
+una pregunta que este fichero deja abierta a propósito. En `critica`, donde
+caben los cuatro y la pregunta de comprobabilidad deja de ser mecánica, se
+conserva como agente propio. Por debajo de `media` la cuestión no llega a
+plantearse: esas tareas se planifican con uno o ningún rol de brainstorm.
 
 Se escribe aquí porque el número de roles se fijó en cuatro. La nota no es una
 objeción: es la alternativa prevista, y el sitio donde se decide es la
