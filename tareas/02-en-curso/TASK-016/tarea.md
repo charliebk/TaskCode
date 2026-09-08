@@ -6,7 +6,7 @@ sprint: 3
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-016-brainstorm-paralelo-por-roles-con-agente
 asignado_a: charlie.bk@gmail.com
