@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-032 — Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) · etiquetas: (sin etiquetas) · rama feature/task-032-roles-de-brainstorm-heuristica-de-comple · terminada 2026-09-08 · tareas/04-terminadas/TASK-032/
 - TASK-031 — Distribucion del CLI: un clon debe traer un taskctl que arranque · etiquetas: empaquetado, distribucion, cli · rama fix/task-031-distribucion-del-cli-un-clon-debe-traer · terminada 2026-09-07 · tareas/04-terminadas/TASK-031/
 - TASK-030 — Auto-commit de taskctl y .taskcode/config.yml (items C2 y C4) · etiquetas: (sin etiquetas) · rama feature/task-030-auto-commit-de-taskctl-y-taskcode-config · terminada 2026-09-07 · tareas/04-terminadas/TASK-030/
 - TASK-029 — Bug de origin sin guard y deuda de los scripts de Git-Flow · etiquetas: (sin etiquetas) · rama fix/task-029-bug-de-origin-sin-guard-y-deuda-de-los-s · terminada 2026-09-07 · tareas/04-terminadas/TASK-029/

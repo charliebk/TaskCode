@@ -1,6 +1,6 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-09-07. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-09-08. No editar a mano.
 
 ## Planificadas (00-planificadas) — 20
 
@@ -29,20 +29,21 @@ TASK-022  Documentación de equipo e incorporación de colaboradores            
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 11
+## Terminadas (04-terminadas) — 12
 
 ```text
-ID        Titulo                                                                           Asignado
---------  -------------------------------------------------------------------------------  --------------------
-TASK-013  Comando taskctl review (revisión por pares de un solo agente)                    charlie.bk@gmail.com
-TASK-014  Comando taskctl finish (merge, cierre y actualización del tablero)               charlie.bk@gmail.com
-TASK-015  Límite de trabajo en curso por persona                                           charlie.bk@gmail.com
-TASK-024  asignado_a por defecto desde la identidad Git                                    charlie.bk@gmail.com
-TASK-025  El limite de WIP mira las ramas de trabajo, no el arbol activo                   charlie.bk@gmail.com
-TASK-026  Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge  charlie.bk@gmail.com
-TASK-027  Subcarpetas planificacion y revision en cada carpeta de tarea                    charlie.bk@gmail.com
-TASK-028  Primera skill del plugin: task-workflow/SKILL.md                                 charlie.bk@gmail.com
-TASK-029  Bug de origin sin guard y deuda de los scripts de Git-Flow                       charlie.bk@gmail.com
-TASK-030  Auto-commit de taskctl y .taskcode/config.yml (items C2 y C4)                    charlie.bk@gmail.com
-TASK-031  Distribucion del CLI: un clon debe traer un taskctl que arranque                 charlie.bk@gmail.com
+ID        Titulo                                                                             Asignado
+--------  ---------------------------------------------------------------------------------  --------------------
+TASK-013  Comando taskctl review (revisión por pares de un solo agente)                      charlie.bk@gmail.com
+TASK-014  Comando taskctl finish (merge, cierre y actualización del tablero)                 charlie.bk@gmail.com
+TASK-015  Límite de trabajo en curso por persona                                             charlie.bk@gmail.com
+TASK-024  asignado_a por defecto desde la identidad Git                                      charlie.bk@gmail.com
+TASK-025  El limite de WIP mira las ramas de trabajo, no el arbol activo                     charlie.bk@gmail.com
+TASK-026  Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge    charlie.bk@gmail.com
+TASK-027  Subcarpetas planificacion y revision en cada carpeta de tarea                      charlie.bk@gmail.com
+TASK-028  Primera skill del plugin: task-workflow/SKILL.md                                   charlie.bk@gmail.com
+TASK-029  Bug de origin sin guard y deuda de los scripts de Git-Flow                         charlie.bk@gmail.com
+TASK-030  Auto-commit de taskctl y .taskcode/config.yml (items C2 y C4)                      charlie.bk@gmail.com
+TASK-031  Distribucion del CLI: un clon debe traer un taskctl que arranque                   charlie.bk@gmail.com
+TASK-032  Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6)  charlie.bk@gmail.com
 ```
