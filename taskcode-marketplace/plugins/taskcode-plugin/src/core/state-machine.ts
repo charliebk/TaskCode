@@ -42,7 +42,35 @@ export class StateMachineError extends Error {
   }
 }
 
-const TRIVIAL_SIN_APROBACION: readonly TaskComplexity[] = ['trivial', 'simple'];
+/**
+ * Complejidades EXIMIDAS del checkpoint humano antes de "start".
+ *
+ * Esta vacia desde TASK-016 (item D1), y esa es la decision, no un
+ * descuido: el punto 1 de la seccion 14 se cerro como "checkpoint
+ * humano SIEMPRE obligatorio", y hasta entonces el codigo eximia a
+ * `trivial` y `simple` — o sea que la decision estaba tomada y no
+ * aplicada. Confirmado con Carlos el 2026-09-08.
+ *
+ * Lo que sostiene la decision, con datos: de las 4 tareas `simple`
+ * cerradas, UNA ESCONDIA UN CRITICO. Abaratar el checkpoint
+ * precisamente en el nivel donde ya se coló el peor bug del proyecto
+ * no ahorraba nada que compensara.
+ *
+ * Aviso sobre un dato que circula y es FALSO: no es cierto que "no
+ * exista ninguna tarea trivial". Contadas una a una, hay 1 `trivial`,
+ * 15 `simple`, 13 `media` y 3 `alta`. Lo cierto es que ninguna tarea
+ * `trivial` se ha CERRADO todavia, que es otra cosa. La version
+ * absoluta aparece en la documentacion de cierre del proyecto y se usó
+ * como argumento; se corrige alli tambien. No cambia esta decision —
+ * la sostiene el CRITICO de arriba, no el recuento — pero un argumento
+ * falso no se hereda aunque lleve a la conclusion correcta.
+ *
+ * Se vacia en vez de borrarse a proposito: sigue siendo el punto unico
+ * donde se declara quien se exime, asi que reabrir la decision cuesta
+ * una linea en vez de una arqueologia. Mismo criterio que
+ * CONFIG_DEFAULTS.
+ */
+const TRIVIAL_SIN_APROBACION: readonly TaskComplexity[] = [];
 
 function err(
   taskId: string,
@@ -161,7 +189,7 @@ export function assertTransitionAllowed(
           command,
           task.estado,
           'taskctl approve',
-          'no ha pasado por taskctl approve (complejidad no trivial/simple exige aprobacion humana).'
+          'no ha pasado por taskctl approve. El checkpoint humano es obligatorio para todas las complejidades (seccion 14, punto 1).'
         );
       }
       return;

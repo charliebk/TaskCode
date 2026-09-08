@@ -26,6 +26,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../../src/core/frontmatter.js';
+import { assertTransitionAllowed, StateMachineError } from '../../src/core/state-machine.js';
+import { TASK_COMPLEXITIES, type Task, type TaskComplexity } from '../../src/core/task.js';
+import { ROLES_BRAINSTORM } from '../../src/core/roles-brainstorm.js';
+import {
+  nombrePeticionRol,
+  nombreSalidaRol,
+  nombrePeticionUnificador,
+} from '../../src/core/plan-brainstorm.js';
+import { BRAINSTORM_DIRNAME, PLANIFICACION_DIRNAME } from '../../src/commands/plan.js';
 
 // --- Localizacion del plugin -------------------------------------------
 //
@@ -334,6 +343,153 @@ test('12. no hay directorios de componentes dentro de .claude-plugin/', async ()
     intrusos,
     [],
     `.claude-plugin/ contiene directorios de componentes (${intrusos.join(', ')}): van en la raiz del plugin`
+  );
+});
+
+// --- 1bis. Coherencia con el CLI que la skill describe ------------------
+//
+// En un proyecto donde este plugin esta instalado, este SKILL.md es lo
+// UNICO que un agente lee sobre el flujo: una afirmacion suya que ha
+// dejado de ser cierta no es una errata, es una instruccion equivocada
+// CON AUTORIDAD. Los tests de arriba solo miran la forma del fichero, y
+// la forma estaba perfecta mientras el cuerpo describia un `plan` que ya
+// no existia y eximia del checkpoint humano a dos complejidades que
+// llevan tiempo sin estar eximidas.
+//
+// Estos tres atan las afirmaciones mas caras al codigo que las cumple:
+// cambiar el CLI sin volver aqui sale rojo.
+
+/** Una tarea lista para "start" salvo por el checkpoint humano. */
+function tareaSinAprobar(complejidad: TaskComplexity): Task {
+  return {
+    id: 'TASK-000',
+    titulo: 'Tarea de prueba',
+    tipo: 'feature',
+    sprint: 0,
+    etiquetas: [],
+    complejidad,
+    modelo_sugerido: 'sonnet',
+    estado: 'en-diseno',
+    plan_aprobado: false,
+    rama: '',
+    asignado_a: null,
+    agente_revisor: '',
+    skills_recomendados: [],
+    ultimo_commit_revisado: null,
+    revision_codex: false,
+    creado: '2026-01-01',
+    actualizado: '2026-01-01',
+    dependencias: [],
+  };
+}
+
+function capturarStateMachineError(fn: () => void): StateMachineError {
+  try {
+    fn();
+  } catch (e) {
+    assert.ok(e instanceof StateMachineError, `esperaba StateMachineError, llego: ${String(e)}`);
+    return e;
+  }
+  return assert.fail('no lanzo ningun error');
+}
+
+const SECCION_BRAINSTORM = '## El brainstorm de la fase de diseno';
+
+/** El texto de una seccion, desde su titulo hasta el siguiente "## ". */
+function seccion(body: string, titulo: string): string {
+  const ini = body.indexOf(titulo);
+  assert.notEqual(ini, -1, `la skill no tiene la seccion "${titulo}"`);
+  const resto = body.slice(ini + titulo.length);
+  const fin = resto.indexOf('\n## ');
+  return fin === -1 ? resto : resto.slice(0, fin);
+}
+
+test('15. la precondicion de "start" que documenta la skill es la que aplica el CLI', async () => {
+  // (a) El CLI: NINGUNA complejidad se salta el checkpoint humano.
+  let mensaje = '';
+  for (const complejidad of TASK_COMPLEXITIES) {
+    const e = capturarStateMachineError(() =>
+      assertTransitionAllowed('start', tareaSinAprobar(complejidad))
+    );
+    assert.equal(
+      e.comandoRequerido,
+      'taskctl approve',
+      `"start" sobre una tarea "${complejidad}" sin aprobar no remite a approve`
+    );
+    mensaje = e.message;
+  }
+
+  // (b) La skill dice lo mismo, y con las palabras del propio error. Si
+  //     algun dia se reabre la exencion por complejidad, o cambia la
+  //     regla, esto obliga a pasar por aqui en vez de dejar la skill
+  //     prometiendo un atajo que el CLI no da.
+  const FRAGMENTO = 'obligatorio para todas las complejidades';
+  assert.ok(
+    mensaje.includes(FRAGMENTO),
+    `el error de "start" ya no dice "${FRAGMENTO}": ${mensaje}`
+  );
+  // El cuerpo va plegado a 80 columnas, asi que la frase puede partirse
+  // en dos lineas: se compara con los espacios colapsados o el test
+  // fallaria por donde cae el salto de linea, que no es lo que mide.
+  const { body } = parseFrontmatter(await leerSkillTexto());
+  assert.ok(
+    body.replace(/\s+/g, ' ').includes(FRAGMENTO),
+    `la skill no dice que el checkpoint humano es "${FRAGMENTO}"`
+  );
+});
+
+test('16. los ficheros de brainstorm que documenta la skill son los que escribe "plan"', async () => {
+  const { body } = parseFrontmatter(await leerSkillTexto());
+  const texto = seccion(body, SECCION_BRAINSTORM);
+
+  const rol = ROLES_BRAINSTORM[0];
+  assert.ok(rol !== undefined, 'no hay ningun rol de brainstorm definido');
+
+  // De un nombre real a la forma con la que la skill lo documenta: el
+  // rol y la ronda son variables, el resto del nombre no.
+  const documentar = (nombre: string): string =>
+    nombre.replace(rol.titulo, '<rol>').replace(/-1\.md$/, '-<ronda>.md');
+
+  const esperados = [
+    `${PLANIFICACION_DIRNAME}/${BRAINSTORM_DIRNAME}/`,
+    documentar(nombrePeticionRol(rol, 1)),
+    documentar(nombreSalidaRol(rol, 1)),
+    documentar(nombrePeticionUnificador(1)),
+  ];
+
+  const ausentes = esperados.filter((e) => !texto.includes(e));
+  assert.deepEqual(
+    ausentes,
+    [],
+    `la seccion del brainstorm no nombra lo que "plan" escribe de verdad: ${ausentes.join(', ')}`
+  );
+});
+
+test('17. la skill enumera los roles de brainstorm en el orden de prioridad del CLI', async () => {
+  const { body } = parseFrontmatter(await leerSkillTexto());
+  const texto = seccion(body, SECCION_BRAINSTORM);
+
+  // El orden importa: es el que decide QUE roles entran cuando la
+  // complejidad no da para los cuatro. Una skill que los liste en otro
+  // orden hace creer que con un solo rol entra el que no entra.
+  let previa = -1;
+  const ausentes: string[] = [];
+  const desordenados: string[] = [];
+  for (const rol of ROLES_BRAINSTORM) {
+    const pos = texto.indexOf(rol.titulo);
+    if (pos === -1) {
+      ausentes.push(rol.titulo);
+      continue;
+    }
+    if (pos < previa) desordenados.push(rol.titulo);
+    previa = pos;
+  }
+
+  assert.deepEqual(ausentes, [], `la skill no nombra estos roles: ${ausentes.join(', ')}`);
+  assert.deepEqual(
+    desordenados,
+    [],
+    `estos roles aparecen fuera del orden de prioridad: ${desordenados.join(', ')}`
   );
 });
 

@@ -18,9 +18,11 @@
  * aprobado), no cuando se genera la peticion.
  */
 import path from 'node:path';
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
-import { readTareaFile, moveTareaFile, isEnoent, isEexist } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
+import { siguienteRonda } from '../fs/rondas.js';
+import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import {
   isWorkspaceClean,
@@ -74,22 +76,12 @@ export interface ReviewCommandResult {
 }
 
 /**
- * Valla de backticks mas larga que cualquier apertura/cierre de valla
- * presente en el contenido embebido (CommonMark tolera hasta 3
- * espacios de sangria, que es justo lo que produce una linea de
- * contexto de diff con backticks a columna 0 — hallazgo MENOR de
- * revision por pares, TASK-013: con valla fija de 4, un diff cuyo
- * contexto contenga ```` cerraba el bloque antes de tiempo).
+ * fenceFor se mudo a core/markdown.ts en TASK-016, cuando "plan"
+ * empezo a embeber tambien texto de la persona en sus peticiones. Se
+ * re-exporta desde aqui para no romper a quien la importe de este
+ * modulo, que es donde nacio.
  */
-export function fenceFor(...contents: readonly string[]): string {
-  let max = 3;
-  for (const content of contents) {
-    for (const m of content.matchAll(/^ {0,3}(`{3,})/gm)) {
-      max = Math.max(max, (m[1] as string).length);
-    }
-  }
-  return '`'.repeat(max + 1);
-}
+export { fenceFor } from '../core/markdown.js';
 
 export function peticionTemplate(
   task: Task,
@@ -144,26 +136,6 @@ export function informeTemplate(task: Task, commitRevisado: string, ronda: numbe
     '## Hallazgos\n\n' +
     '(CRITICO / IMPORTANTE / MENOR con reproduccion, o "sin hallazgos" explicito.)\n'
   );
-}
-
-/**
- * Primera ronda libre: 1 + el mayor N entre los
- * peticion-revision-N.md / informe-revision-N.md ya presentes.
- */
-async function siguienteRonda(revisionDir: string): Promise<number> {
-  let entries: string[];
-  try {
-    entries = await readdir(revisionDir);
-  } catch (e: unknown) {
-    if (isEnoent(e)) return 1;
-    throw e;
-  }
-  let max = 0;
-  for (const entry of entries) {
-    const m = RONDA_FILE_RE.exec(entry);
-    if (m !== null) max = Math.max(max, Number(m[1]));
-  }
-  return max + 1;
 }
 
 export async function runReviewCommand(
@@ -255,7 +227,7 @@ export async function runReviewCommand(
   // pisar una revision anterior — mismo principio que plan-final.md.
   const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
   await mkdir(revisionDir, { recursive: true });
-  const ronda = await siguienteRonda(revisionDir);
+  const ronda = await siguienteRonda(revisionDir, RONDA_FILE_RE);
   try {
     await writeFile(
       path.join(revisionDir, `peticion-revision-${ronda}.md`),

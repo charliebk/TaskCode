@@ -5,7 +5,7 @@ import {
   resultingState,
   StateMachineError,
 } from '../../src/core/state-machine.js';
-import type { Task } from '../../src/core/task.js';
+import { TASK_COMPLEXITIES, type Task } from '../../src/core/task.js';
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -145,19 +145,37 @@ test('start: permitido si complejidad media y plan aprobado', () => {
   );
 });
 
-test('start: permitido para trivial/simple aunque plan_aprobado sea false', () => {
-  assert.doesNotThrow(() =>
-    assertTransitionAllowed(
-      'start',
-      makeTask({ estado: 'en-diseno', complejidad: 'trivial', plan_aprobado: false })
-    )
-  );
-  assert.doesNotThrow(() =>
-    assertTransitionAllowed(
-      'start',
-      makeTask({ estado: 'en-diseno', complejidad: 'simple', plan_aprobado: false })
-    )
-  );
+// El test que habia aqui certificaba lo contrario — que `trivial` y
+// `simple` arrancaban sin pasar por "approve" — y se INVIERTE en
+// TASK-016, no se borra: la decision #1 de la seccion 14 ("checkpoint
+// humano siempre obligatorio") estaba tomada y sin aplicar, y un test
+// borrado no deja rastro de cual era la regla vieja ni de por que
+// cambio.
+test('start: NINGUNA complejidad se salta el checkpoint humano (decision #1, TASK-016)', () => {
+  for (const complejidad of TASK_COMPLEXITIES) {
+    const e = throwsStateMachineError(() =>
+      assertTransitionAllowed(
+        'start',
+        makeTask({ estado: 'en-diseno', complejidad, plan_aprobado: false })
+      )
+    );
+    assert.equal(e.comandoRequerido, 'taskctl approve', `complejidad ${complejidad}`);
+  }
+});
+
+// El simetrico, y no es redundante: sin el, romper "start" para que
+// rechazara SIEMPRE dejaria el test de arriba en verde.
+test('start: cualquier complejidad arranca CON plan_aprobado', () => {
+  for (const complejidad of TASK_COMPLEXITIES) {
+    assert.doesNotThrow(
+      () =>
+        assertTransitionAllowed(
+          'start',
+          makeTask({ estado: 'en-diseno', complejidad, plan_aprobado: true })
+        ),
+      `complejidad ${complejidad}`
+    );
+  }
 });
 
 // --- review / codex-review / finish --------------------------------------

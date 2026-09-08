@@ -8,6 +8,8 @@ import { runImportCommand, ImportCommandError } from './commands/import.js';
 import { runBoardCommand, BoardCommandError } from './commands/board.js';
 import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
+import { HeuristicaError } from './core/heuristica.js';
+import { RolesBrainstormError } from './core/roles-brainstorm.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
@@ -122,6 +124,54 @@ function asignacionNotice(result) {
     return `Asignada a "${result.asignadoA}".\n`;
 }
 /**
+ * Que ha dejado escrito el brainstorm (TASK-016). Se imprimen las
+ * rutas porque son lo unico accionable: quien orquesta la sesion tiene
+ * que abrir esas peticiones y lanzarlas. Un "brainstorm preparado" sin
+ * rutas obligaria a ir a buscarlas.
+ *
+ * La discrepancia de complejidad se dice SOLO cuando la hay, al
+ * contrario que dentro de la peticion del unificador (donde va
+ * siempre): aqui compite por la atencion con el resto de la salida del
+ * comando, y ahi es el unico contenido de su seccion.
+ */
+function brainstormNotice(result) {
+    const lineas = [];
+    if (result.resolucion.hayDiscrepancia) {
+        lineas.push(`Complejidad declarada "${result.resolucion.nivelDeclarado}", heuristica ` +
+            `"${result.resolucion.nivelHeuristico}" (${result.resolucion.puntos} puntos): se lanzan ` +
+            `${result.resolucion.agentes === 1 ? '1 rol' : `${result.resolucion.agentes} roles`}, ` +
+            'el mayor de los dos.');
+    }
+    // El orden de estas ramas importa, y costo un IMPORTANTE en la cuarta
+    // ronda de revision: "0 roles" tenia precedencia sobre "hay una
+    // peticion de unificador que lanzar", asi que al bajar la complejidad
+    // en una re-planificacion el CLI decia "sin brainstorm, redacta el
+    // plan a mano" mientras acababa de escribir una peticion correcta que
+    // nombraba las salidas reales. El artefacto bueno quedaba invisible.
+    if (result.brainstormReutilizado) {
+        lineas.push(`Re-planificacion (ronda ${result.ronda}): NO se relanza el brainstorm, que es el de la ` +
+            `ronda ${result.rondaRoles}. Lanza solo el unificador con ${result.peticionUnificador}, ` +
+            'que reprocesa esas salidas mas tu feedback.');
+    }
+    else if (result.roles.length === 0) {
+        lineas.push(`Sin brainstorm (complejidad "${result.resolucion.nivelDeclarado}" resuelve 0 roles). ` +
+            `Redacta el plan y aprueba con "taskctl approve ${result.id}".`);
+    }
+    else {
+        // Mismo texto para "recien escritas" y "ya estaban de un intento
+        // anterior de esta misma vuelta": en los dos casos lo que la
+        // persona tiene que hacer es identico, y llamar re-planificacion al
+        // segundo caso hacia que el CLI hablara de "salidas anteriores" y
+        // "tu feedback" en una primera planificacion que nadie habia
+        // ejecutado (CRITICO de la ronda 5).
+        lineas.push(`Brainstorm ronda ${result.rondaRoles}, ${result.roles.length === 1 ? '1 rol' : `${result.roles.length} roles en paralelo`}. Lanza cada peticion con el agente que nombra y luego el unificador:`);
+        for (const p of result.peticionesRol)
+            lineas.push(`  - ${p}`);
+        lineas.push(`  - ${result.peticionUnificador} (el ultimo, cuando esten las salidas)`);
+    }
+    return `${lineas.join('\n')}\n`;
+}
+/**
  * Avisos de asignacion (TASK-024) por stderr: no son errores, el
  * comando ha hecho su trabajo, pero la persona necesita enterarse.
  * Uno se emite cuando su "git config user.email" no sirve como
@@ -150,7 +200,13 @@ export async function main(argv) {
         try {
             const result = await runNewCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
             printBaseBranchSwitchNotice(result.baseBranchGuard);
-            process.stdout.write(`Tarea ${result.id} creada: ${result.filePath}\n`);
+            process.stdout.write(`Tarea ${result.id} creada: ${result.filePath}\n` +
+                // Se dice AQUI y no solo cuando "plan" falle: desde TASK-016
+                // "plan" aborta si el objetivo esta vacio, y "new" lo deja
+                // vacio a proposito. Enterarse de la precondicion en el
+                // momento en que la incumples es peor que saberla al crear.
+                'Rellena "## Objetivo" y los criterios de aceptacion antes de "taskctl plan": el ' +
+                'brainstorm se lanza a partir de ese texto.\n');
             printAutoCommit(result.autoCommit);
             return 0;
         }
@@ -286,13 +342,16 @@ export async function main(argv) {
                 scaffoldMsg = `${result.planPath} ya existia (re-planificacion) — se dejo intacto.`;
             }
             process.stdout.write(`Tarea ${result.id} en diseno: movida a ${result.filePath}. ${scaffoldMsg}\n` +
-                asignacionNotice(result));
+                asignacionNotice(result) +
+                brainstormNotice(result));
             printAutoCommit(result.autoCommit);
             return 0;
         }
         catch (e) {
             if (e instanceof AutoCommitError ||
                 e instanceof ConfigError ||
+                e instanceof HeuristicaError ||
+                e instanceof RolesBrainstormError ||
                 e instanceof PlanCommandError ||
                 e instanceof StateMachineError ||
                 e instanceof TaskFolderConflictError ||

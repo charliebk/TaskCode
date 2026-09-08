@@ -1,5 +1,10 @@
 /**
- * Tests de los cuatro roles del brainstorm paralelo: `agents/brainstorm-*.md`.
+ * Tests de los agentes del brainstorm paralelo: `agents/brainstorm-*.md`.
+ * Son los cuatro roles que se lanzan en paralelo mas el unificador que
+ * consolida sus salidas. El unificador no es un rol mas y no se cuenta
+ * como tal (ver FICHEROS y AGENTES, mas abajo): los tests genericos de
+ * fichero de agente lo incluyen, los que miden la convencion de reparto
+ * entre roles no.
  *
  * Mismo reparto en dos bloques que test/skills/task-workflow.test.ts, y por
  * los mismos motivos:
@@ -31,6 +36,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseBloqueClaveValor, parseFrontmatter } from '../../src/core/frontmatter.js';
+import { UNIFICADOR_ID } from '../../src/core/roles-brainstorm.js';
 import { TASK_COMPLEXITIES } from '../../src/core/task.js';
 
 // --- Localizacion del plugin -------------------------------------------
@@ -54,6 +60,25 @@ const ROLES = [
 ] as const;
 
 const FICHEROS = ROLES.map((r) => `${r}.md`);
+
+/**
+ * El unificador NO es un rol de brainstorm: es quien consolida los que
+ * se hayan lanzado. Vive aparte de ROLES a proposito, y no por pulcritud:
+ * la tabla de agentes de la heuristica cuenta ROLES (el test 14b deriva
+ * de `FICHEROS.length` cuantos caben en `critica`), asi que meterlo ahi
+ * convertiria "los cuatro roles" en cinco y la nota del rol de testing
+ * pasaria a describir un reparto que no existe.
+ *
+ * El id se importa del nucleo en vez de escribirse aqui: es el mismo
+ * valor con el que la peticion generada nombra al agente que hay que
+ * lanzar. Escribirlo a mano dejaria que las dos copias divergieran, que
+ * es exactamente el fallo que este fichero existe para que no vuelva a
+ * pasar (la peticion mandaba lanzar un agente que no estaba en disco).
+ */
+const FICHERO_UNIFICADOR = `${UNIFICADOR_ID}.md`;
+
+/** Todo lo que vive en agents/: los cuatro roles mas el unificador. */
+const AGENTES = [...FICHEROS, FICHERO_UNIFICADOR];
 
 /** Claves que se admiten en el frontmatter de un agente. Nada mas. */
 const CLAVES_PERMITIDAS = new Set(['name', 'description', 'tools', 'model']);
@@ -83,6 +108,19 @@ const CLAVES_PERMITIDAS = new Set(['name', 'description', 'tools', 'model']);
  * arbol sin tope.
  */
 const HERRAMIENTAS_PERMITIDAS = new Set(['read', 'grep', 'glob']);
+
+/**
+ * Las del unificador: las mismas mas `write`, y solo esa. La diferencia
+ * no es un relajamiento del criterio, es que su entregable ES un fichero
+ * escrito: la peticion que lo lanza le dice en que ruta volcar el plan,
+ * y sin `write` el agente contradiria a la peticion que lo invoca.
+ *
+ * Lo que sigue fuera es lo que importa: `edit` (no retoca ficheros que
+ * ya existen), `bash` (no ejecuta nada) y `task` (no relanza roles; el
+ * presupuesto de agentes se fija fuera y un unificador que lanza agentes
+ * lo convierte en un arbol sin tope).
+ */
+const HERRAMIENTAS_PERMITIDAS_UNIFICADOR = new Set([...HERRAMIENTAS_PERMITIDAS, 'write']);
 
 /**
  * Nombre base de una herramienta declarada. Quita los argumentos entre
@@ -187,6 +225,21 @@ const SECCIONES_OBLIGATORIAS = [
 const MARCADORES_DE_SALIDA = [
   '## Desacuerdos previstos',
   '## Suposiciones no verificadas',
+];
+
+/**
+ * Los del unificador. Son otros porque su salida es otra: los roles
+ * PREVEN desacuerdos, el unificador los RESUELVE. Y tres secciones no
+ * tienen equivalente en ningun rol, que es justo el trabajo que solo el
+ * puede hacer: decir que salida falto, que parte del enunciado no cubrio
+ * nadie, y que queda pendiente de que lo decida una persona.
+ */
+const MARCADORES_DE_SALIDA_UNIFICADOR = [
+  '## Desacuerdos resueltos',
+  '## Salidas que faltaron',
+  '## Sin cubrir',
+  '## Suposiciones no verificadas',
+  '## Decision humana pendiente',
 ];
 
 const rutaDe = (fichero: string): string => path.join(AGENTS_DIR, fichero);
@@ -355,11 +408,11 @@ test('el test apunta de verdad a la raiz del plugin (guard de no-vacuidad)', asy
 
 // --- 1. Estructurales ---------------------------------------------------
 
-test('1. agents/ contiene los cuatro ficheros de brainstorm, esos y solo esos', async () => {
+test('1. agents/ contiene los cuatro roles y el unificador, esos y solo esos', async () => {
   // En Windows el filesystem es case-insensitive: un stat() de la ruta NO
   // demuestra el case. El listado del directorio si lo demuestra.
   const enAgents = await readdir(AGENTS_DIR);
-  const faltan = FICHEROS.filter((f) => !enAgents.includes(f));
+  const faltan = AGENTES.filter((f) => !enAgents.includes(f));
   assert.deepEqual(
     faltan,
     [],
@@ -367,21 +420,33 @@ test('1. agents/ contiene los cuatro ficheros de brainstorm, esos y solo esos', 
   );
 
   // Y que no SOBRE ninguno. Comprobar solo que no faltan dejaba pasar un
-  // quinto rol: los tests parametrizados de abajo iteran sobre FICHEROS,
-  // asi que un `brainstorm-seguridad.md` no se validaba, no se comparaba
-  // con nadie, y el numero de agentes del nivel critica (4, "los cuatro
-  // roles definidos") pasaba a ser mentira sin que nada se enterase
-  // (ronda 3, menor 5). El conjunto es cerrado: anadir un rol obliga a
-  // tocar ROLES aqui arriba, que es la decision que se quiere a mano.
+  // rol de mas: los tests parametrizados de abajo iteran sobre una lista
+  // cerrada, asi que un `brainstorm-seguridad.md` no se validaba, no se
+  // comparaba con nadie, y el numero de agentes del nivel critica (4,
+  // "los cuatro roles definidos") pasaba a ser mentira sin que nada se
+  // enterase (ronda 3, menor 5).
+  //
+  // El conjunto sigue siendo cerrado tras entrar el unificador: la
+  // comparacion es contra AGENTES, no contra "cuatro o cinco". Un sexto
+  // fichero brainstorm-* obliga igual que antes a tocar ROLES aqui
+  // arriba, que es la decision que se quiere a mano; y si lo que se
+  // anade es otro rol de brainstorm, ROLES es ademas lo unico que hace
+  // que la tabla de agentes de la heuristica siga cuadrando.
   const brainstormEnDisco = enAgents.filter((f) => f.startsWith('brainstorm-')).sort();
   assert.deepEqual(
     brainstormEnDisco,
-    [...FICHEROS].sort(),
+    [...AGENTES].sort(),
     `agents/ tiene ficheros brainstorm-* que este test no conoce: ${brainstormEnDisco.join(', ')}`
   );
 });
 
-for (const fichero of FICHEROS) {
+// Los tests 2 a 12 valen para CUALQUIER agente que se instale en el
+// proyecto de un usuario —frontmatter sano, herramientas acotadas, salida
+// con formato, y nada que delate el repositorio de origen—, asi que
+// iteran sobre AGENTES. Los dos sitios donde el unificador no es un rol
+// mas (las herramientas que puede declarar y los marcadores de su salida)
+// se resuelven dentro del propio test, no sacandolo del bucle.
+for (const fichero of AGENTES) {
   const rol = fichero.replace(/\.md$/, '');
 
   test(`2. ${fichero}: empieza por los tres guiones, sin BOM ni espacios delante`, async () => {
@@ -514,14 +579,20 @@ for (const fichero of FICHEROS) {
       .filter((t) => t.length > 0);
     assert.ok(declaradas.length > 0, `${fichero}: "tools" esta declarado pero vacio`);
 
-    const fuera = declaradas.filter(
-      (t) => !HERRAMIENTAS_PERMITIDAS.has(nombreBaseDeHerramienta(t))
-    );
+    // El unificador tiene su propia lista blanca, una entrada mas larga:
+    // su entregable es un fichero escrito. Sigue siendo lista BLANCA, y
+    // sigue dejando fuera edit, bash y task.
+    const permitidas =
+      fichero === FICHERO_UNIFICADOR
+        ? HERRAMIENTAS_PERMITIDAS_UNIFICADOR
+        : HERRAMIENTAS_PERMITIDAS;
+
+    const fuera = declaradas.filter((t) => !permitidas.has(nombreBaseDeHerramienta(t)));
     assert.deepEqual(
       fuera,
       [],
       `${fichero}: declara ${fuera.join(', ')} en "tools", que no esta en la lista ` +
-        `blanca (${[...HERRAMIENTAS_PERMITIDAS].join(', ')}). El fichero promete no ` +
+        `blanca (${[...permitidas].join(', ')}). El fichero promete no ` +
         'modificar nada; lo unico que lo impide de verdad es esta lista'
     );
   });
@@ -609,7 +680,11 @@ for (const fichero of FICHEROS) {
         `${necesarias} en el peor caso (maximos declarados + cabeceras + separadores)`
     );
 
-    const faltan = MARCADORES_DE_SALIDA.filter((m) => !body.includes(m));
+    // El unificador resuelve desacuerdos en vez de preverlos, y su
+    // plantilla reserva sitio para tres cosas que ningun rol produce.
+    const marcadores =
+      fichero === FICHERO_UNIFICADOR ? MARCADORES_DE_SALIDA_UNIFICADOR : MARCADORES_DE_SALIDA;
+    const faltan = marcadores.filter((m) => !body.includes(m));
     assert.deepEqual(
       faltan,
       [],
@@ -692,7 +767,10 @@ test('12b. la marca generica de documento interno discrimina', () => {
 // que de verdad se ha visto.
 test('13. ningun "Qué miras" es copia literal de otro (no mide solape semantico)', async () => {
   const secciones = new Map<string, string>();
-  for (const fichero of FICHEROS) {
+  // Sobre AGENTES y no sobre FICHEROS: el descuido que este test detecta
+  // —copiar un agente para crear otro y olvidarse de reescribir su
+  // seccion— es mas probable estrenando fichero que manteniendo uno.
+  for (const fichero of AGENTES) {
     const { body } = parseFrontmatter(await leerTexto(fichero));
     const desde = body.indexOf('## Qué miras');
     const hasta = body.indexOf('## Qué NO miras');
@@ -905,6 +983,106 @@ test('15. ningun otro rol arrastra la nota del rol de testing', async () => {
   }
 });
 
+// --- 1b. El unificador -------------------------------------------------
+//
+// Lo de arriba comprueba que el fichero EXISTE y esta bien formado. Lo de
+// aqui comprueba que dice lo que tiene que decir, porque un unificador
+// bien formado que promedie en silencio es peor que no tenerlo: produce
+// un plan que se lee como acuerdo y que nadie vuelve a mirar.
+//
+// Estas cuatro instrucciones no son estilo: son las mismas que la
+// peticion generada le entrega al agente. Si el fichero no las repite, el
+// agente y la peticion que lo invoca se contradicen, y quien manda es el
+// fichero (es lo que Claude Code carga como system prompt del subagente).
+
+const leerUnificador = async (): Promise<string> =>
+  normalizar(parseFrontmatter(await leerTexto(FICHERO_UNIFICADOR)).body);
+
+test('15b. el unificador no promedia, atribuye, y trata la unanimidad como alarma', async () => {
+  const plano = await leerUnificador();
+
+  assert.ok(
+    plano.includes('No promedias'),
+    `${FICHERO_UNIFICADOR}: no deja escrito que no promedia. Es la instruccion entera ` +
+      'del rol: un desacuerdo resuelto con una frase intermedia que no defiende nadie ' +
+      'se lee como acuerdo y el conflicto reaparece con el codigo ya escrito'
+  );
+  assert.ok(
+    plano.includes('se atribuye a ese rol'),
+    `${FICHERO_UNIFICADOR}: no obliga a atribuir cada afirmacion al rol que la trajo; ` +
+      'sin firma nadie puede distinguir una restriccion medida de una suposicion'
+  );
+  assert.ok(
+    plano.includes('una alarma, no una nota de calidad'),
+    `${FICHERO_UNIFICADOR}: no dice que la unanimidad entre roles sea una alarma. ` +
+      'Si nadie discrepa, o recibieron el mismo contexto o alguno no hizo su trabajo'
+  );
+});
+
+test('15c. el unificador dice que hacer con una salida que falta', async () => {
+  const plano = await leerUnificador();
+  assert.ok(
+    plano.includes('escribe en el plan cuál faltó'),
+    `${FICHERO_UNIFICADOR}: no dice que hacer cuando una salida falta o viene vacia. ` +
+      'Seguir con las que haya y nombrar la que falto es lo que separa un plan con un ' +
+      'punto de vista menos de un plan que finge estar completo'
+  );
+});
+
+/**
+ * El caso de UN SOLO rol no es una rareza que valga la pena dejar sin
+ * escribir: la tabla de agentes de la heuristica lo produce por diseño en
+ * los niveles mas baratos. Ahi no hay desacuerdo posible, asi que las dos
+ * instrucciones anteriores —resolver desacuerdos, y leer la unanimidad
+ * como alarma— se vuelven trampas: un unificador que las aplique a rajatabla
+ * inventa un conflicto o denuncia una alarma que no existe.
+ *
+ * El que la tabla produzca ese caso se DERIVA, no se afirma: si manana
+ * ningun nivel resuelve un solo rol, la guardia falla y obliga a revisar
+ * si esta seccion del fichero sigue describiendo algo real.
+ */
+test('15d. el unificador cubre el caso de un solo rol, que la heuristica produce', async () => {
+  const tabla = await agentesPorNivel();
+  const conUnSoloRol = TASK_COMPLEXITIES.filter((n) => tabla[n] === 1);
+  const reparto = TASK_COMPLEXITIES.map((n) => `${n}=${String(tabla[n])}`).join(', ');
+  assert.ok(
+    conUnSoloRol.length > 0,
+    `ningun nivel de complejidad resuelve un solo rol (${reparto}): la seccion del ` +
+      'unificador que trata ese caso describe algo que ya no ocurre'
+  );
+
+  const plano = await leerUnificador();
+  assert.match(
+    plano,
+    /un solo rol/i,
+    `${FICHERO_UNIFICADOR}: no menciona el caso de un solo rol, que la heuristica ` +
+      `produce en ${conUnSoloRol.join(', ')}`
+  );
+  assert.ok(
+    plano.includes('no hay desacuerdo posible'),
+    `${FICHERO_UNIFICADOR}: con un solo rol no hay desacuerdo posible, y el fichero no ` +
+      'lo dice: el agente acabaria inventandose uno o disparando la alarma de unanimidad'
+  );
+  assert.ok(
+    plano.includes('contrastar la propuesta contra el enunciado'),
+    `${FICHERO_UNIFICADOR}: no dice que hacer EN LUGAR de buscar desacuerdos cuando solo ` +
+      'hay un rol. Sin eso el caso queda descrito por la negativa y el plan sale vacio'
+  );
+});
+
+test('15e. el unificador deja el checkpoint humano como obligatorio y no aprueba el plan', async () => {
+  const plano = await leerUnificador();
+  assert.ok(
+    plano.includes('El checkpoint humano es obligatorio'),
+    `${FICHERO_UNIFICADOR}: no declara obligatorio el checkpoint humano`
+  );
+  assert.ok(
+    plano.includes('no apruebas nada'),
+    `${FICHERO_UNIFICADOR}: no deja escrito que el propio agente no aprueba el plan. ` +
+      'Un agente que se autoaprueba el plan convierte el checkpoint en un tramite'
+  );
+});
+
 // --- 2. De integracion: el validador oficial ----------------------------
 
 interface ResultadoValidate {
@@ -988,8 +1166,10 @@ test(
     );
 
     // (b) De uno en uno: se rompe el YAML del frontmatter (comilla sin
-    //     cerrar en description), se valida, y se restaura.
-    for (const fichero of FICHEROS) {
+    //     cerrar en description), se valida, y se restaura. El unificador
+    //     entra en la ronda: que el validador descubra los cuatro roles
+    //     no demuestra que descubra un quinto fichero de la carpeta.
+    for (const fichero of AGENTES) {
       const copia = path.join(tmp, 'agents', fichero);
       const original = await readFile(copia, 'utf8');
       const roto = original.replace(/^description:.*$/m, 'description: "sin cerrar la comilla');

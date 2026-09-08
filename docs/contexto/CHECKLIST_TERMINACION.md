@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 35 / 42 items terminados (83%)** · última actualización: 2026-09-08
+**Progreso global: 36 / 42 items terminados (86%)** · última actualización: 2026-09-08
 
 El total baja de 43 a 42: **D4 se descarta** (ver su entrada). Y sube en 3 lo
 hecho: D6, D7 y el propio D4, que cuenta como resuelto porque la decisión está
@@ -22,9 +22,9 @@ tomada y documentada, no aplazada.
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
-| D — Inteligencia del proceso | 6 | **3** | ~35h |
+| D — Inteligencia del proceso | 6 | **4** | ~35h |
 | E — Cierre | 6 | **2** | ~9h |
-| **Total pendiente** | **7** | — | **~29h** |
+| **Total pendiente** | **6** | — | **~21h** |
 
 ---
 
@@ -320,13 +320,29 @@ ella, con un revisor genérico y un `plan` de un solo agente. **D6 y D7 están
 hechos** (TASK-032): el plugin ya expone cinco skills y cuatro agentes, y
 existe la heurística que D1 y D2 van a consumir como lookup.
 
-- [ ] **D1** · TASK-016 — Brainstorm paralelo por roles + agente unificador — ~8h
-      *Consume `agents/` y la tabla complejidad → nº de agentes del YML de D7,
-      que ya existen. Ojo a dos cosas que D7 dejó escritas y medidas: la
-      excepción de `hotfix` es un **tope**, no una sustitución (aplicarla como
-      sustitución sube de 0 a 1 los agentes de un hotfix trivial), y la tabla
-      da **cuántos** agentes, no **cuáles** — la elección en `simple`, `media`
-      y en un hotfix topado queda abierta a propósito.*
+- [x] **D1** · TASK-016 — Brainstorm paralelo por roles + agente unificador — hecho el 2026-09-08
+      *`taskctl plan` deja de ser un scaffold de un fichero y pasa a orquestar el
+      brainstorm: resuelve sin LLM cuántos roles entran y cuáles, y escribe una
+      petición por rol con su contexto acotado más la del unificador. El CLI
+      sigue sin invocar ningún modelo — mismo reparto que `review` desde
+      TASK-013. Estrena el YML de D7, que hasta hoy no leía nadie desde `src/`,
+      y añade el quinto agente (`brainstorm-unificador`). **116 tests nuevos**
+      (630 → 746). Dos decisiones con Carlos: el número de roles es
+      `max(declarado, heurístico)` topado por hotfix (diverge de la §5 del YML,
+      que manda consultar a un modelo barato, y el CLI no puede), y se
+      implementa la decisión #1 — **el checkpoint humano pasa a ser obligatorio
+      para las cinco complejidades**, así que `TRIVIAL_SIN_APROBACION` se vacía.
+      Puerta nueva: `plan` aborta si el `## Objetivo` está vacío y hay algún rol
+      que lanzar.*
+      ***La revisión por pares fue la más dura del proyecto: 5 rondas, 6
+      revisores independientes, 8 CRÍTICOS.** Y el hallazgo que más vale está en
+      `HALLAZGOS.md`: el mismo CRÍTICO se arregló cuatro veces, y los cuatro
+      arreglos eran correctos para el caso que tenían delante — lo que fallaba
+      era el modelo del estado de una carpeta. Ninguno de los ocho se encontró
+      leyendo el diff; todos salieron de montar el estado a mano y ejecutar el
+      binario. Medido de paso: la heurística solo cambia el número de agentes en
+      4 de las 32 tareas, y las 7 que quedan pendientes tienen el objetivo
+      vacío, así que la puerta nueva las bloquea hasta redactarlo.*
 - [ ] **D2** · TASK-017 — Catálogo de skills determinista + selección en dos pasos — ~6h
       *Los `patrones_archivo` de los cuatro revisores ya están declarados en
       cada `SKILL.md`, en lista inline para que el parser del repo los lea tal
@@ -339,12 +355,18 @@ existe la heurística que D1 y D2 van a consumir como lookup.
       revisor esperado en las dos direcciones.*
 - [x] **D4** · TASK-019 — ~~Revisión ligera para tareas `trivial`/`simple`~~ — **NO SE HACE**
       *Descartado por Carlos el 2026-09-07, antes de gastar las ~3h. La
-      decisión #17 lo dejó aplicando **solo a `trivial`**, y medido sobre las
-      32 tareas del repo **no existe ni una sola tarea `trivial`** (6 `media`,
-      4 `simple` entre las cerradas; el reparto completo es 13 `media`, 15
-      `simple`, 3 `alta`, 1 `trivial` sin cerrar). La regla casi nunca se
-      activaría, así que son ~3h para un camino que en la práctica no se
-      recorre. Si algún día aparecen tareas `trivial` de verdad, se reabre.*
+      decisión #17 lo dejó aplicando **solo a `trivial`**, y de las 32 tareas
+      del repo **solo una es `trivial`** (TASK-005) y **todavía no se ha
+      cerrado ninguna de ese nivel**. Reparto completo: 15 `simple`, 13
+      `media`, 3 `alta`, 1 `trivial`. La regla casi nunca se activaría, así
+      que son ~3h para un camino que en la práctica no se recorre. Si algún
+      día aparecen tareas `trivial` de verdad, se reabre.*
+      **Corregido el 2026-09-08 (revisión por pares de TASK-016):** este
+      párrafo afirmaba en negrita que «no existe ni una sola tarea `trivial`»
+      y a la vez, dos líneas más abajo, «1 `trivial` sin cerrar». Lo primero
+      es falso y era el argumento citado; lo segundo es el dato bueno. La
+      conclusión (descartar D4) no cambia, pero la premisa sí estaba mal —
+      y llegó a copiarse a un comentario de código antes de detectarse.*
 - [ ] **D5** · TASK-020 — `taskctl codex-review` opcional — ~5h
       *Sigue siendo el que cierra un agujero real detectado en C5:
       `revision_codex: true` deja hoy la tarea **imposible de cerrar**, porque

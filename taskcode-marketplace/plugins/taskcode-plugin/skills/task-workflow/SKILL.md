@@ -64,14 +64,20 @@ la tarea, con sus subcarpetas.
 Precondiciones de cada transicion:
 
 - **`plan`** — desde `planificada`, o desde `en-diseno` con
-  `plan_aprobado: false` (re-planificacion). Deja un scaffold vacio en
-  `planificacion/plan-final.md`; **el contenido lo escribe el agente**, no el
-  CLI.
+  `plan_aprobado: false` (re-planificacion). Deja el scaffold vacio de
+  `planificacion/plan-final.md` — **el contenido lo escribe un agente**, no el
+  CLI — y, en `planificacion/brainstorm/`, una peticion por cada rol de
+  brainstorm que resuelva la complejidad de la tarea, mas la del agente
+  unificador (ver "El brainstorm de la fase de diseno"). **No invoca a ningun
+  modelo**: lanzar a esos agentes es trabajo de quien orquesta. Aborta sin
+  mover la tarea si el `## Objetivo` de `tarea.md` esta vacio y la tarea lanza
+  algun rol.
 - **`approve`** — desde `en-diseno`, y tiene que existir el `plan-final.md`.
   Es el **checkpoint humano**: lo ejecuta la persona, no el agente.
-- **`start`** — desde `en-diseno` con `plan_aprobado: true`, salvo que la
-  complejidad sea `trivial` o `simple`. Crea la rama y aplica el limite de
-  trabajo en curso.
+- **`start`** — desde `en-diseno` con `plan_aprobado: true`. No hay atajo por
+  complejidad: **el checkpoint humano es obligatorio para todas las
+  complejidades**, tambien `trivial` y `simple`. Crea la rama y aplica el
+  limite de trabajo en curso.
 - **`review`** — desde `en-curso`. Trae la rama base a la de trabajo y genera
   `revision/peticion-revision-N.md` con el diff real, mas el scaffold del
   informe. **No invoca a ningun agente**: lanzar al revisor es trabajo de
@@ -176,6 +182,51 @@ hecho.
 **9. Los mensajes de error se dirigen a la persona y dicen que hacer.** Un
 error que no propone el siguiente paso deja al lector adivinando. Y un mensaje
 que ha dejado de ser cierto es peor que no tenerlo.
+
+## El brainstorm de la fase de diseno
+
+`plan` no redacta el plan: deja preparado el material para que lo redacten
+otros. La frontera es la misma que en `review` — el CLI hace lo determinista y
+escribe lo que alguien tiene que disparar despues.
+
+**Lo que resuelve el CLI, sin llamar a nadie.** Cuantos roles entran, por una
+tabla por complejidad que trae el plugin, y cuales, por un orden de prioridad
+fijo: **arquitectura, riesgos, testing, dominio**. Con un solo rol entra
+arquitectura, que es el unico que propone una forma para el cambio; el primero
+que se cae es dominio. Pueden salir **cero roles**: entonces no hay brainstorm
+y el plan se redacta directamente a partir del enunciado.
+
+El numero es el **mayor** entre lo que pide la complejidad declarada en
+`tarea.md` y lo que pide la que la tabla calcula leyendo la tarea. Cuando esos
+dos niveles difieren, el comando lo dice: no es un error, es la eleccion
+conservadora.
+
+**Lo que deja escrito**, en `planificacion/brainstorm/`:
+
+| Fichero | Que es |
+|---|---|
+| `peticion-brainstorm-<rol>-<ronda>.md` | lo que se le pide a ese rol, con su contexto acotado |
+| `salida-brainstorm-<rol>-<ronda>.md` | scaffold vacio donde va la respuesta de ese rol |
+| `peticion-unificador-<ronda>.md` | lo que consolida esas salidas en `plan-final.md` |
+
+**Lo que hace quien orquesta**: lanzar un agente por cada peticion de rol, en
+paralelo; volcar cada respuesta en su `salida-...`; y solo entonces lanzar al
+unificador, que es quien escribe `plan-final.md`. Los desacuerdos entre roles
+se senalan en el plan, no se promedian: dos roles que dicen lo contrario son
+informacion, y la media la tira.
+
+**El `## Objetivo` de `tarea.md` no puede estar vacio.** Si lo esta y la tarea
+lanza al menos un rol, `plan` aborta y la tarea no se mueve. `new` deja esa
+seccion en blanco a proposito, asi que hay que redactarla **antes** del primer
+`plan`. Sin objetivo cada rol se inventa el suyo, y el unificador consolida
+esas invenciones en un plan que parece fundado sin serlo.
+
+**Una re-planificacion no relanza el brainstorm.** La segunda vuelta
+(`en-diseno` con `plan_aprobado: false`) escribe solo otra
+`peticion-unificador-<ronda>.md`, que reprocesa las salidas de la ronda
+anterior mas el feedback. El feedback sobre un plan es una correccion
+incremental; tratarlo como un reinicio vuelve a gastar todos los agentes, y no
+se nota porque cada vuelta parece barata.
 
 ## La revision por pares
 

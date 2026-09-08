@@ -757,3 +757,92 @@ declara como captura aceptada a sabiendas en vez de negarla.
 **La lección de método**: cuando corrijas un enrutado, mide **las dos
 direcciones**. Un arreglo que deja de capturar lo ajeno a costa de no capturar
 lo propio no es un arreglo.
+
+## Lo que midió TASK-016 (item D1) sobre el estado real del repo
+
+Dos datos que salieron de ejecutar la heurística contra las 32 tareas de verdad,
+no de estimarlos. Los dos afectan a lo que venga después.
+
+### La heurística de complejidad casi no cambia nada, y no por los pesos
+
+Aplicada a las 32 tareas del repo el 2026-09-08:
+
+- Declarado y heurístico **coinciden en 7 de 32**.
+- **Cero tareas disparan una sola palabra de alto riesgo.** Ninguna. La señal
+  más cara del YML —la única que mira el *contenido* del trabajo y no su
+  forma— no se activa nunca, porque los objetivos están escritos en vocabulario
+  de metodología y no de dominio técnico.
+- La heurística **solo cambia el número de agentes en 4 tareas**. En 21 manda el
+  nivel que escribió la persona y en 7 coinciden.
+- **Ninguna tarea acaba con 0 roles**: el reparto real es 14 con 1 rol, 14 con 2
+  y 4 con 3.
+
+Ese último punto tiene una consecuencia que la decisión no perseguía: el YML
+dice *"0 en trivial (no se paga un brainstorm para algo trivial)"*, y con la
+regla del máximo ese 0 es **prácticamente inalcanzable** — bastan dos
+dependencias, o cinco criterios de aceptación, para que la heurística suba a
+`simple` y el máximo ponga un rol. La única tarea `trivial` del repo (TASK-005)
+sale con 1.
+
+**Lo que hay que llevarse**: la heurística está gobernada por etiquetas,
+dependencias y número de criterios, e infraestima de forma sistemática. Antes de
+tocar los pesos (decisión #15), lo que falta no son ajustes: es **texto de tarea
+que hable del trabajo**. Sin eso, la señal de riesgo seguirá valiendo cero por
+mucho que se le suba el peso.
+
+### Siete tareas quedan bloqueadas por la puerta del objetivo vacío
+
+`taskctl plan` aborta desde TASK-016 si el `## Objetivo` está vacío y la tarea
+lanza al menos un rol. **TASK-017 a TASK-023 —las siete que quedan pendientes—
+tienen el objetivo en blanco**, así que ninguna se puede planificar hasta que
+alguien lo redacte.
+
+Es el comportamiento buscado y el error es accionable (nombra el fichero y dice
+que la tarea no se ha movido), pero conviene saberlo antes de sentarse a
+arrancar D2: **es un muro que aparece el lunes**, no un caso de borde. Y no es
+hipotético — es exactamente lo que le pasó a la propia TASK-016, cuyo objetivo
+estaba vacío y de paso hundió su puntuación heurística a `simple`.
+
+## Cuatro rondas arreglando el mismo CRÍTICO (TASK-016)
+
+El hallazgo de método más caro del proyecto hasta ahora. El mismo fallo —una
+planificación que acaba sin brainstorm, con exit 0, y sin salida por ningún
+comando— se corrigió **cuatro veces**, y cada vez volvió a aparecer por una
+puerta distinta:
+
+1. La ronda se deducía de los tres tipos de fichero → un resto de una ronda
+   interrumpida la subía, y la primera planificación acababa sin peticiones.
+2. Se eligió "el testigo" (la petición del unificador, que se escribe la
+   última), pero validado **por su nombre**: un testigo huérfano o de cero bytes
+   contaba como ronda completa.
+3. Se le exigió a **toda** ronda lo que solo la ronda 1 produce → ninguna ronda
+   ≥2 podía estar completa y el contador se quedaba clavado en 2 para siempre.
+4. Un testigo suelto de ronda ≥2 volvía a dejar la tarea sin brainstorm; subir
+   el número de roles dejaba la petición del unificador rancia y contradiciendo
+   a las peticiones de rol; bajarlo sin llegar a cero seguía tirando salidas.
+
+**Los cuatro arreglos eran correctos para el caso que tenían delante.** Ninguno
+fue un descuido de escritura: los cuatro salieron del mismo sitio, un **modelo
+mental incompleto del estado que puede tener una carpeta**.
+
+Lo que rompió la racha no fue un parche mejor, sino **dejar de parchear**:
+enumerar qué preguntas necesita responder la lógica, ver que se estaban
+respondiendo todas desde una sola variable, y separarlas. Eran tres, no una:
+*¿en qué ronda escribo?*, *¿hay algo reutilizable **para los roles de hoy**?* y
+*¿qué salidas hay que consolidar?* — las tres contra el disco.
+
+Dos reglas concretas que quedan de aquí:
+
+- **La existencia de un nombre de fichero no es evidencia de que algo se
+  completara.** `flag: 'wx'` crea el fichero *antes* de volcar el contenido, así
+  que una muerte en ese hueco deja cero bytes. "Se escribe el último" ordena las
+  escrituras; no dice nada de si la última llegó a terminar.
+- **Distingue qué artefacto puede contener trabajo ajeno y cuál no.** Las
+  salidas de rol las rellena un agente, así que se toleran y nunca se pisan. La
+  petición del unificador es derivada: tratarla como reintento tolerante la
+  dejaba describiendo un solo rol mientras al lado había dos peticiones de rol
+  diciendo lo contrario. Se regenera siempre.
+
+Y una sobre la revisión, no sobre el código: **ninguno de los ocho CRÍTICOS se
+encontró leyendo el diff.** Los ocho salieron de montar el estado a mano y
+ejecutar el binario. Un revisor que solo lee el diff habría aprobado la ronda 1.

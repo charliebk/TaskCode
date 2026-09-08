@@ -138,9 +138,20 @@ test('taskctl plan: commitea el movimiento a 01-en-diseno y el scaffold del plan
 
     assert.equal(r.autoCommit.commiteado, true);
     assert.equal(git(['log', '--format=%s', '-1'], repoRoot).trim(), 'chore(TASK-910): tarea en diseno');
-    const stat = git(['show', '--stat', '--format=', 'HEAD'], repoRoot);
-    assert.match(stat, /01-en-diseno/);
-    assert.match(stat, /plan-final\.md/);
+    // --name-only y no --stat: desde TASK-016 el commit incluye las
+    // peticiones de brainstorm, cuyas rutas son largas, y --stat las
+    // ABREVIA con puntos suspensivos (".../peticion-...md"). Aseverar
+    // sobre una salida truncada da un rojo que no habla del
+    // comportamiento sino del ancho de la columna.
+    const registrados = git(['show', '--name-only', '--format=', 'HEAD'], repoRoot);
+    assert.match(registrados, /01-en-diseno/);
+    assert.match(registrados, /plan-final\.md/);
+    // El brainstorm entra en el MISMO commit que el movimiento: si se
+    // quedara fuera, la tarea viajaria de carpeta sin sus peticiones y
+    // el arbol quedaria sucio (que es lo que comprueba la linea de
+    // abajo, pero esta lo dice explicitamente).
+    assert.match(registrados, /peticion-brainstorm-arquitectura-1\.md/);
+    assert.match(registrados, /peticion-unificador-1\.md/);
     // Ni rastro de la carpeta vieja: el movimiento entro entero.
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
   });
@@ -368,7 +379,9 @@ test('taskctl plan --push: con un origin bare real la rama llega; el flag va del
 
 test('taskctl plan --push sin remoto: avisa, no lanza y sale con la tarea commiteada en local', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    // Con el cuerpo vacio "plan" aborta desde TASK-016 (puerta del
+    // objetivo), y este test mide el --push, no esa puerta.
+    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nProbar el push.\n');
     commitAll(repoRoot, 'chore(TASK-910): tarea creada');
 
     const r = await runPlanCommand(tareasRoot, ['TASK-910', '--push'], '2026-09-07', {
