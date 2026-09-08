@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-016-brainstorm-paralelo-por-roles-con-agente
 asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
