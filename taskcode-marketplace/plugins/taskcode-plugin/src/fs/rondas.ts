@@ -15,22 +15,29 @@
  * alguien toque uno.
  */
 import { readdir } from 'node:fs/promises';
-import { isEnoent } from './task-store.js';
+import { isEnoent, isEnotdir } from './task-store.js';
 
 /**
- * Primera ronda libre: 1 + el mayor N que aparezca en el primer grupo
- * de captura de `patron` entre los ficheros del directorio.
+ * El mayor N que aparezca en el primer grupo de captura de `patron`
+ * entre los ficheros del directorio, o 0 si no hay ninguno.
  *
- * Un directorio que no existe es ronda 1, no un error: la carpeta se
- * crea al escribir la primera ronda, y preguntar antes de crearla es
- * el caso normal, no el raro.
+ * Un directorio que no existe da 0, no un error: la carpeta se crea al
+ * escribir la primera ronda, y preguntar antes de crearla es el caso
+ * normal, no el raro. ENOTDIR se absorbe igual que ENOENT — es la
+ * misma pregunta ("¿hay ahi rondas previas?") y la respuesta es la
+ * misma. Sin esto, una ruta ocupada por un FICHERO salia como una
+ * traza cruda de Node que ni el CLI capturaba (hallazgo IMPORTANTE de
+ * la revision por pares de TASK-016, que reabria el fix de TASK-027:
+ * en POSIX `readdir` sobre un fichero contesta ENOTDIR, no ENOENT).
+ * Quien tiene que quejarse de la ruta ocupada es el `mkdir` de quien
+ * llama, que ya lo hace con un mensaje accionable.
  */
-export async function siguienteRonda(dir: string, patron: RegExp): Promise<number> {
+export async function ultimaRonda(dir: string, patron: RegExp): Promise<number> {
   let entries: string[];
   try {
     entries = await readdir(dir);
   } catch (e: unknown) {
-    if (isEnoent(e)) return 1;
+    if (isEnoent(e) || isEnotdir(e)) return 0;
     throw e;
   }
   let max = 0;
@@ -45,5 +52,10 @@ export async function siguienteRonda(dir: string, patron: RegExp): Promise<numbe
       if (capturado !== undefined) max = Math.max(max, Number(capturado));
     }
   }
-  return max + 1;
+  return max;
+}
+
+/** Primera ronda libre: la ultima que haya + 1. */
+export async function siguienteRonda(dir: string, patron: RegExp): Promise<number> {
+  return (await ultimaRonda(dir, patron)) + 1;
 }

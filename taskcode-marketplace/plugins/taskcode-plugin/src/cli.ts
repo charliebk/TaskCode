@@ -158,7 +158,8 @@ function brainstormNotice(result: PlanCommandResult): string {
     lineas.push(
       `Complejidad declarada "${result.resolucion.nivelDeclarado}", heuristica ` +
         `"${result.resolucion.nivelHeuristico}" (${result.resolucion.puntos} puntos): se lanzan ` +
-        `${result.resolucion.agentes}, el mayor de los dos.`
+        `${result.resolucion.agentes === 1 ? '1 rol' : `${result.resolucion.agentes} roles`}, ` +
+        'el mayor de los dos.'
     );
   }
   if (result.roles.length === 0) {
@@ -174,8 +175,9 @@ function brainstormNotice(result: PlanCommandResult): string {
     );
   } else {
     lineas.push(
-      `Brainstorm ronda ${result.ronda}, ${result.roles.length} rol(es) en paralelo. Lanza cada ` +
-        'peticion con el agente que nombra y luego el unificador:'
+      `Brainstorm ronda ${result.ronda}, ${
+        result.roles.length === 1 ? '1 rol' : `${result.roles.length} roles en paralelo`
+      }. Lanza cada peticion con el agente que nombra y luego el unificador:`
     );
     for (const p of result.peticionesRol) lineas.push(`  - ${p}`);
     lineas.push(`  - ${result.peticionUnificador} (el ultimo, cuando esten las salidas)`);

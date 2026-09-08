@@ -26,6 +26,7 @@ import {
   PlanCommandError,
   PLANIFICACION_DIRNAME,
   BRAINSTORM_DIRNAME,
+  PLAN_FINAL_FILENAME as PLAN_FINAL_NOMBRE,
 } from '../../src/commands/plan.js';
 import { ROLES_BRAINSTORM } from '../../src/core/roles-brainstorm.js';
 import type { Task, TaskComplexity } from '../../src/core/task.js';
@@ -354,6 +355,41 @@ test('plan: el unificador recibe la lista de las salidas que EXISTEN, ni una mas
 });
 
 /**
+ * Con UN solo rol no puede haber desacuerdo, asi que exigirlo — y
+ * ademas tratar la unanimidad como alarma — obligaria al agente a
+ * inventarse uno o a disparar una alarma falsa. No es un borde: con la
+ * tabla actual 14 de las 32 tareas del repo resuelven un solo rol, y
+ * una alarma que salta en la mitad de los planes deja de significar
+ * nada (IMPORTANTE de la revision por pares).
+ *
+ * Mutacion que lo pone rojo: quitar la rama `roles.length === 1` de
+ * peticionUnificadorTemplate y dejar el texto de varios roles.
+ */
+test('plan: con un solo rol el unificador NO recibe instrucciones sobre desacuerdos', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+    assert.equal(result.roles.length, 1, 'precondicion: simple lanza un solo rol');
+
+    const peticion = await readFile(result.peticionUnificador, 'utf8');
+    assert.match(peticion, /un solo rol/);
+    assert.doesNotMatch(peticion, /Donde dos roles discrepen/);
+    assert.doesNotMatch(peticion, /eso es la alarma/);
+    // Lo que SI tiene que pedirle, que es lo unico util con un rol.
+    assert.match(peticion, /QUE QUEDO SIN CUBRIR/);
+
+    // Y el scaffold del plan no reserva sitio para desacuerdos.
+    const plan = await readFile(result.planPath, 'utf8');
+    assert.doesNotMatch(plan, /Desacuerdos entre roles/);
+    assert.match(plan, /## Lo que el rol no cubrio/);
+  });
+});
+
+/**
  * Mutacion que lo pone rojo: borrar de la plantilla la prohibicion de
  * promediar. Es la instruccion que separa un unificador de una
  * calculadora de medias, y sin ella el criterio de aceptacion 2 no se
@@ -504,6 +540,111 @@ test('plan: una segunda vuelta NO relanza el brainstorm, solo pide otro pase al 
   });
 });
 
+// ─── los dos CRITICOS de la revision por pares ─────────────────────────
+
+/**
+ * CRITICO 1. Una ronda interrumpida a mitad (Ctrl+C, antivirus, disco)
+ * deja peticiones de rol sin la del unificador. Antes eso subia la
+ * ronda a 2, el codigo lo tomaba por re-planificacion y la PRIMERA
+ * planificacion de la tarea acababa sin una sola peticion de rol, con
+ * exit 0 y anunciando una re-planificacion que nunca hubo. No se salia
+ * con ningun comando.
+ *
+ * Mutacion que lo pone rojo: que RONDA_UNIFICADOR_RE vuelva a mirar
+ * tambien las peticiones o las salidas de rol.
+ */
+test('plan: una ronda interrumpida a medias se REINTENTA, no se toma por re-planificacion', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'critica' }), BODY);
+    // Estado exacto que deja una interrupcion tras la primera escritura
+    // del bucle: una peticion de rol y NINGUNA del unificador.
+    const dirOrigen = path.join(
+      tareasRoot,
+      '00-planificadas',
+      'TASK-800',
+      PLANIFICACION_DIRNAME,
+      BRAINSTORM_DIRNAME
+    );
+    await mkdir(dirOrigen, { recursive: true });
+    await writeFile(
+      path.join(dirOrigen, 'peticion-brainstorm-arquitectura-1.md'),
+      '# resto de una ronda que murio a mitad\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'tarea TASK-800 con ronda a medias');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+
+    // Sigue siendo la ronda 1 y NO se anuncia re-planificacion.
+    assert.equal(result.ronda, 1);
+    assert.equal(result.brainstormReutilizado, false);
+    assert.equal(result.roles.length, 4);
+
+    // Se completo lo que faltaba: los cuatro roles y el unificador.
+    const esperados = ROLES_BRAINSTORM.flatMap((r) => [
+      `peticion-${r.id}-1.md`,
+      `salida-${r.id}-1.md`,
+    ])
+      .concat(['peticion-unificador-1.md'])
+      .sort();
+    assert.deepEqual((await readdir(brainstormDir(result.filePath))).sort(), esperados);
+
+    // Y lo que ya estaba escrito NO se piso: el reintento respeta el
+    // trabajo del intento anterior en vez de sobrescribirlo.
+    assert.equal(
+      await readFile(
+        path.join(brainstormDir(result.filePath), 'peticion-brainstorm-arquitectura-1.md'),
+        'utf8'
+      ),
+      '# resto de una ronda que murio a mitad\n'
+    );
+  });
+});
+
+/**
+ * CRITICO 2. En una re-planificacion las salidas siguen siendo las de
+ * la ronda en que corrieron los roles. La peticion del unificador
+ * apuntaba a `salida-<rol>-<ronda actual>.md`, que no existe ni
+ * existira, y un unificador obediente concluia que se habia perdido el
+ * brainstorm entero teniendolo al lado.
+ *
+ * Mutacion que lo pone rojo: pasar `ronda` en vez de `rondaSalidas` a
+ * peticionUnificadorTemplate.
+ */
+test('plan: en la ronda 2 el unificador apunta a salidas que EXISTEN en disco', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    const segunda = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(segunda.ronda, 2);
+    const dir = brainstormDir(segunda.filePath);
+    const peticion = await readFile(path.join(dir, 'peticion-unificador-2.md'), 'utf8');
+
+    // Toda salida que la peticion nombre tiene que estar en disco. Es
+    // la aserción que muerde: comprobar que "nombra dos salidas" seria
+    // verde igual con los nombres rotos.
+    const nombrados = [...peticion.matchAll(/`(salida-[a-z0-9-]+-\d+\.md)`/g)].map((m) => m[1]!);
+    assert.equal(nombrados.length, 2, `esperaba 2 salidas nombradas, encontre ${nombrados.length}`);
+    const enDisco = await readdir(dir);
+    for (const nombre of nombrados) {
+      assert.ok(enDisco.includes(nombre), `la peticion nombra ${nombre}, que no existe en disco`);
+    }
+
+    // Y le dice que esto es una correccion incremental, no un primer
+    // pase: sin eso el unificador rehace el mismo plan y no haber
+    // relanzado los roles no compra nada (16.3).
+    assert.match(peticion, /re-planificacion, no un primer pase/);
+    assert.match(peticion, /Ya existe un plan redactado/);
+  });
+});
+
 /**
  * Mutacion que lo pone rojo: numerar la ronda contando ficheros en vez
  * de buscando el maximo. Con un fichero borrado a mano, contar
@@ -554,6 +695,66 @@ test('plan: brainstorm/ viaja con la tarea al cambiar de carpeta de estado', asy
     // Las rutas devueltas apuntan a ficheros que existen de verdad.
     for (const p of [...result.peticionesRol, result.peticionUnificador]) {
       await readFile(p, 'utf8');
+    }
+  });
+});
+
+// ─── el contrato de distribucion del plugin ────────────────────────────
+
+/**
+ * El plugin se instala en proyectos que NO son este, y hay tests que
+ * prohiben nombrarlo en `skills/` y en `agents/`. Las plantillas de
+ * `plan-brainstorm.ts` escriben en el repo del usuario exactamente
+ * igual, y no tenian ningun guard equivalente (hallazgo MENOR de la
+ * revision por pares). Hoy estan limpias; esto es lo que impide que
+ * dejen de estarlo.
+ *
+ * Ojo con lo que NO se prohibe: nombrar `taskctl` SI es legitimo — las
+ * peticiones se escriben en el repo de quien usa la herramienta, y
+ * decirle que comando ejecutar es justo su trabajo. Lo que no puede
+ * viajar es la INSTANCIA: rutas de este repo, sus documentos internos
+ * y sus identificadores de tarea.
+ *
+ * Mutacion que lo pone rojo: meter en cualquier plantilla una
+ * referencia a `docs/contexto/`, a la metodologia o a un TASK-NNN de
+ * este repo.
+ */
+test('las plantillas generadas no filtran nada del repo que las escribe', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(
+      tareasRoot,
+      // Titulo y objetivo neutros: si la tarea del usuario menciona algo,
+      // eso viene de ella, no de la plantilla, y contaminaria la medida.
+      sampleTask({ complejidad: 'critica', titulo: 'Una tarea cualquiera' }),
+      '## Objetivo\n\nUn objetivo cualquiera.\n'
+    );
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+
+    const prohibidos: ReadonlyArray<RegExp> = [
+      /taskcode/i,
+      /docs\/contexto/i,
+      /PROPUESTA_METODOLOGIA/i,
+      /CHECKLIST_TERMINACION/i,
+      /HALLAZGOS/i,
+      /PLAN_SPRINTS/i,
+      // Cualquier TASK-NNN que no sea el de la propia tarea del usuario.
+      /TASK-(?!800\b)\d{3}/,
+    ];
+
+    const dir = brainstormDir(result.filePath);
+    for (const fichero of [...(await readdir(dir)), '..' + path.sep + PLAN_FINAL_NOMBRE]) {
+      const ruta = path.join(dir, fichero);
+      const contenido = await readFile(ruta, 'utf8');
+      for (const patron of prohibidos) {
+        assert.ok(
+          !patron.test(contenido),
+          `${fichero} filtra ${patron} — el plugin se instala en proyectos que no son este`
+        );
+      }
     }
   });
 });

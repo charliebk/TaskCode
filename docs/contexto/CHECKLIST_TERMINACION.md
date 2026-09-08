@@ -339,12 +339,18 @@ existe la heurística que D1 y D2 van a consumir como lookup.
       revisor esperado en las dos direcciones.*
 - [x] **D4** · TASK-019 — ~~Revisión ligera para tareas `trivial`/`simple`~~ — **NO SE HACE**
       *Descartado por Carlos el 2026-09-07, antes de gastar las ~3h. La
-      decisión #17 lo dejó aplicando **solo a `trivial`**, y medido sobre las
-      32 tareas del repo **no existe ni una sola tarea `trivial`** (6 `media`,
-      4 `simple` entre las cerradas; el reparto completo es 13 `media`, 15
-      `simple`, 3 `alta`, 1 `trivial` sin cerrar). La regla casi nunca se
-      activaría, así que son ~3h para un camino que en la práctica no se
-      recorre. Si algún día aparecen tareas `trivial` de verdad, se reabre.*
+      decisión #17 lo dejó aplicando **solo a `trivial`**, y de las 32 tareas
+      del repo **solo una es `trivial`** (TASK-005) y **todavía no se ha
+      cerrado ninguna de ese nivel**. Reparto completo: 15 `simple`, 13
+      `media`, 3 `alta`, 1 `trivial`. La regla casi nunca se activaría, así
+      que son ~3h para un camino que en la práctica no se recorre. Si algún
+      día aparecen tareas `trivial` de verdad, se reabre.*
+      **Corregido el 2026-09-08 (revisión por pares de TASK-016):** este
+      párrafo afirmaba en negrita que «no existe ni una sola tarea `trivial`»
+      y a la vez, dos líneas más abajo, «1 `trivial` sin cerrar». Lo primero
+      es falso y era el argumento citado; lo segundo es el dato bueno. La
+      conclusión (descartar D4) no cambia, pero la premisa sí estaba mal —
+      y llegó a copiarse a un comentario de código antes de detectarse.*
 - [ ] **D5** · TASK-020 — `taskctl codex-review` opcional — ~5h
       *Sigue siendo el que cierra un agujero real detectado en C5:
       `revision_codex: true` deja hoy la tarea **imposible de cerrar**, porque

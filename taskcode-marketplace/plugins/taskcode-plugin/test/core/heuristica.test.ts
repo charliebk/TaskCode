@@ -498,6 +498,32 @@ test('una entrada que sale en el objetivo Y en los criterios sigue sumando una v
   assert.equal(puntos, H.peso_palabra_alto_riesgo);
 });
 
+/**
+ * El test de arriba, SOLO, no distingue "el dedup entre secciones
+ * funciona" de "los criterios se ignoran del todo": pone la palabra en
+ * las dos secciones, asi que da lo mismo. Un revisor independiente
+ * mutó `palabrasDeRiesgoEncontradas(objetivo, criterios, h)` a
+ * `(objetivo, [], h)` y LA SUITE ENTERA SIGUIO EN VERDE — la mitad
+ * "criterios de aceptacion" de la señal mas cara del YML no estaba
+ * cubierta por nada. Es exactamente el patron de asercion vacia que
+ * TASK-032 enseñó a buscar.
+ *
+ * Mutacion que pone rojo este test: la misma, ignorar los criterios al
+ * buscar palabras de riesgo.
+ */
+test('una palabra de riesgo SOLO en los criterios puntua igual (el YML dice "o en los criterios")', () => {
+  const { puntos, senales } = puntuarTarea(
+    tarea(),
+    cuerpo('Renombrar una variable local.', ['El rollback deja el repo como estaba.']),
+    H
+  );
+  assert.equal(puntos, H.peso_palabra_alto_riesgo);
+  assert.deepEqual(
+    senales.filter((s) => s.clave === SENAL_PALABRA).map((s) => s.detalle),
+    ['rollback']
+  );
+});
+
 test('la comparacion es insensible a acentos: "migracion" casa con "migración"', () => {
   assert.ok(H.palabras_alto_riesgo.includes('migracion'));
   const { puntos, senales } = puntuarTarea(tarea(), cuerpo('Planificar la migración.'), H);

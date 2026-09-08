@@ -51,12 +51,19 @@ export class StateMachineError extends Error {
  * `trivial` y `simple` — o sea que la decision estaba tomada y no
  * aplicada. Confirmado con Carlos el 2026-09-08.
  *
- * Lo que sostiene la decision, con datos: la exencion no se ejercio
- * nunca. En las 32 tareas del repo no hay ni una sola `trivial`, y de
- * las 4 `simple` cerradas UNA ESCONDIA UN CRITICO — el mismo dato con
- * el que se descarto el item D4 (revision ligera). Abaratar el
- * checkpoint justo donde nunca se uso no ahorraba nada y si dejaba
- * pasar el peor bug del proyecto.
+ * Lo que sostiene la decision, con datos: de las 4 tareas `simple`
+ * cerradas, UNA ESCONDIA UN CRITICO. Abaratar el checkpoint
+ * precisamente en el nivel donde ya se coló el peor bug del proyecto
+ * no ahorraba nada que compensara.
+ *
+ * Aviso sobre un dato que circula y es FALSO: no es cierto que "no
+ * exista ninguna tarea trivial". Contadas una a una, hay 1 `trivial`,
+ * 15 `simple`, 13 `media` y 3 `alta`. Lo cierto es que ninguna tarea
+ * `trivial` se ha CERRADO todavia, que es otra cosa. La version
+ * absoluta aparece en la documentacion de cierre del proyecto y se usó
+ * como argumento; se corrige alli tambien. No cambia esta decision —
+ * la sostiene el CRITICO de arriba, no el recuento — pero un argumento
+ * falso no se hereda aunque lleve a la conclusion correcta.
  *
  * Se vacia en vez de borrarse a proposito: sigue siendo el punto unico
  * donde se declara quien se exime, asi que reabrir la decision cuesta
