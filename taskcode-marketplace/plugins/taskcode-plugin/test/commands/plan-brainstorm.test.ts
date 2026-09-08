@@ -157,6 +157,44 @@ for (const { complejidad, roles } of REPARTO) {
 }
 
 /**
+ * EL EFECTO REAL DEL `max`, medido en el smoke test y fijado aqui para
+ * que no se olvide: una tarea declarada `trivial` NO se queda en 0
+ * roles en cuanto su enunciado tiene una dependencia o cinco criterios,
+ * porque la heuristica la sube a `simple` y el max manda.
+ *
+ * El test de arriba ("trivial escribe 0 peticiones") pasa porque su
+ * fixture no declara ni dependencias ni criterios — o sea, por una
+ * condicion que casi ninguna tarea real cumple. Sin este segundo test
+ * el reparto parecia respetar el "0 en trivial" del YML, y medido
+ * sobre las 32 tareas del repo NINGUNA acaba con 0 roles.
+ *
+ * Mutacion que lo pone rojo: sustituir el max por el nivel declarado a
+ * secas (volveria a dar 0), que es justo la alternativa que se
+ * descarto.
+ */
+test('plan: una tarea "trivial" con dependencias sube a 1 rol por el max (efecto medido del maximo)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(
+      tareasRoot,
+      // Dos dependencias = 2 puntos, que es justo lo que saca a la
+      // tarea de `trivial` (nivel_trivial_hasta: 1). Es la puntuacion
+      // real de TASK-005, la unica tarea declarada trivial del repo.
+      sampleTask({ complejidad: 'trivial', dependencias: ['TASK-798', 'TASK-799'] }),
+      BODY
+    );
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.resolucion.nivelDeclarado, 'trivial');
+    assert.equal(result.resolucion.nivelHeuristico, 'simple');
+    assert.equal(result.roles.length, 1);
+  });
+});
+
+/**
  * Mutacion que lo pone rojo: aplicar el tope de hotfix como
  * sustitucion en vez de como Math.min — un hotfix trivial pasaria de 0
  * a 1 rol, que es justo lo que el YML prohibe.

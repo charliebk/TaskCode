@@ -50,6 +50,32 @@
  * `ResolucionAgentes.hayDiscrepancia` junto con los dos niveles y las
  * senales, para que quien orqueste pueda mostrarla o consultarla el.
  *
+ * EFECTO MEDIDO DEL MAX, sobre las 32 tareas reales del repo el
+ * 2026-09-08 (no es una estimacion: se ejecuto sobre ellas):
+ *
+ *   - Declarado y heuristico coinciden en 7 de 32.
+ *   - CERO tareas disparan una sola palabra de alto riesgo. La senal
+ *     mas cara del YML — la unica que mira el CONTENIDO del trabajo y
+ *     no su forma — no se activa nunca, porque los objetivos estan
+ *     escritos en vocabulario de metodologia y no de dominio tecnico.
+ *     La puntuacion acaba gobernada por etiquetas, dependencias y
+ *     numero de criterios, y por eso infraestima de forma sistematica.
+ *   - NINGUNA tarea acaba con 0 roles. El reparto real es 14 tareas
+ *     con 1 rol, 14 con 2 y 4 con 3.
+ *
+ * Ese ultimo punto merece leerse dos veces, porque es una consecuencia
+ * que la decision no perseguia: el YML dice "0 en trivial (no se paga
+ * un brainstorm para algo trivial)", y con el max ese 0 es
+ * practicamente inalcanzable — basta que la tarea declare dos
+ * dependencias, o cinco criterios de aceptacion, para que la
+ * heuristica la suba a `simple` y el max le ponga un rol. La unica
+ * tarea declarada `trivial` del repo (TASK-005) sale con 1.
+ *
+ * No se corrige por cuenta propia porque el max lo aprobo Carlos con
+ * el caso delante, y respetar el suelo del declarado seria reabrir esa
+ * decision. Queda escrito aqui y fijado en un test para que sea una
+ * eleccion consciente y no un descubrimiento dentro de seis meses.
+ *
  * CONSECUENCIA QUE HAY QUE DECIR EN VOZ ALTA: `tolerancia_niveles`,
  * `tolerancia_extra_si_heuristica_menor` y
  * `modelo_consulta_discrepancia` SE PARSEAN Y SE VALIDAN, PERO HOY NO
