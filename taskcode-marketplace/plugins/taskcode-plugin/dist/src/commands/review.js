@@ -18,8 +18,10 @@
  * aprobado), no cuando se genera la peticion.
  */
 import path from 'node:path';
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
-import { readTareaFile, moveTareaFile, isEnoent, isEexist } from '../fs/task-store.js';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
+import { siguienteRonda } from '../fs/rondas.js';
+import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, isAncestor, headCommit, logOneline, diffRange, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
@@ -35,22 +37,12 @@ const SCRIPT_BY_TYPE = {
 export const REVISION_DIRNAME = 'revision';
 const RONDA_FILE_RE = /^(?:peticion|informe)-revision-(\d+)\.md$/;
 /**
- * Valla de backticks mas larga que cualquier apertura/cierre de valla
- * presente en el contenido embebido (CommonMark tolera hasta 3
- * espacios de sangria, que es justo lo que produce una linea de
- * contexto de diff con backticks a columna 0 — hallazgo MENOR de
- * revision por pares, TASK-013: con valla fija de 4, un diff cuyo
- * contexto contenga ```` cerraba el bloque antes de tiempo).
+ * fenceFor se mudo a core/markdown.ts en TASK-016, cuando "plan"
+ * empezo a embeber tambien texto de la persona en sus peticiones. Se
+ * re-exporta desde aqui para no romper a quien la importe de este
+ * modulo, que es donde nacio.
  */
-export function fenceFor(...contents) {
-    let max = 3;
-    for (const content of contents) {
-        for (const m of content.matchAll(/^ {0,3}(`{3,})/gm)) {
-            max = Math.max(max, m[1].length);
-        }
-    }
-    return '`'.repeat(max + 1);
-}
+export { fenceFor } from '../core/markdown.js';
 export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha, commits, diff) {
     const commitsBlock = commits === '' ? '(sin commits nuevos respecto a la base)' : commits;
     const diffBlock = diff === '' ? '(sin diferencias respecto a la base)' : diff;
@@ -91,28 +83,6 @@ export function informeTemplate(task, commitRevisado, ronda) {
         '- Veredicto: PENDIENTE (sustituye esta unica linea por "aprobada" o "cambios-solicitados")\n\n' +
         '## Hallazgos\n\n' +
         '(CRITICO / IMPORTANTE / MENOR con reproduccion, o "sin hallazgos" explicito.)\n');
-}
-/**
- * Primera ronda libre: 1 + el mayor N entre los
- * peticion-revision-N.md / informe-revision-N.md ya presentes.
- */
-async function siguienteRonda(revisionDir) {
-    let entries;
-    try {
-        entries = await readdir(revisionDir);
-    }
-    catch (e) {
-        if (isEnoent(e))
-            return 1;
-        throw e;
-    }
-    let max = 0;
-    for (const entry of entries) {
-        const m = RONDA_FILE_RE.exec(entry);
-        if (m !== null)
-            max = Math.max(max, Number(m[1]));
-    }
-    return max + 1;
 }
 export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const { push, resto } = extraerPushFlag(argv);
@@ -182,7 +152,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     // pisar una revision anterior — mismo principio que plan-final.md.
     const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
     await mkdir(revisionDir, { recursive: true });
-    const ronda = await siguienteRonda(revisionDir);
+    const ronda = await siguienteRonda(revisionDir, RONDA_FILE_RE);
     try {
         await writeFile(path.join(revisionDir, `peticion-revision-${ronda}.md`), peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diff), { encoding: 'utf8', flag: 'wx' });
         await writeFile(path.join(revisionDir, `informe-revision-${ronda}.md`), informeTemplate(updated, commitRevisado, ronda), { encoding: 'utf8', flag: 'wx' });

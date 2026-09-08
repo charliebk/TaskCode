@@ -45,6 +45,17 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
   };
 }
 
+/**
+ * Cuerpo minimo pero VALIDO de una tarea. Desde TASK-016 "plan" aborta
+ * si el "## Objetivo" esta vacio y la tarea lanza al menos un rol de
+ * brainstorm, asi que un fixture con el cuerpo en blanco ya no
+ * representa una tarea planificable: los tests que no prueban ESA
+ * puerta usan este cuerpo para que lo que falle sea lo que cada uno
+ * mide, y no la precondicion.
+ */
+const BODY_CON_OBJETIVO =
+  '## Objetivo\n\nProbar el comando con una tarea que si dice a que viene.\n';
+
 function git(args: string[], cwd: string): void {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
   assert.equal(result.status, 0, `git ${args.join(' ')} fallo: ${result.stderr}`);
@@ -95,7 +106,7 @@ async function withTempRepo(fn: (repoRoot: string, tareasRoot: string) => Promis
 
 test('taskctl plan: primera vez mueve la tarea a 01-en-diseno y crea el scaffold en planificacion/', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nAlgo.\n');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-04', { repoCwd: repoRoot });
@@ -135,7 +146,7 @@ test('taskctl plan: re-planificacion (en-diseno, plan_aprobado false) no pisa el
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Simula una primera vuelta ya hecha con el CLI actual: el plan
     // real (no el scaffold) ya vive en planificacion/.
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), BODY_CON_OBJETIVO);
     const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-700');
     await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME), { recursive: true });
     await writeFile(
@@ -167,7 +178,7 @@ test('taskctl plan: migra a planificacion/ el plan-final.md legado suelto en la 
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Tarea planificada con el CLI ANTERIOR a TASK-027: el plan real,
     // ya redactado, esta suelto en la raiz de la carpeta.
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), BODY_CON_OBJETIVO);
     const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-700');
     await writeFile(path.join(taskDir, PLAN_FINAL_FILENAME), '# Plan legado redactado\n', 'utf8');
     commitAll(repoRoot, 'tarea TASK-700 con plan legado');
@@ -188,7 +199,7 @@ test('taskctl plan: migra a planificacion/ el plan-final.md legado suelto en la 
 test('taskctl plan: con plan-final.md en la raiz Y en planificacion/ aborta sin tocar nada', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Estado ambiguo: dos planes distintos, ninguno obviamente el bueno.
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     const taskDirOrigen = path.join(tareasRoot, '00-planificadas', 'TASK-700');
     await writeFile(path.join(taskDirOrigen, PLAN_FINAL_FILENAME), '# Plan A (raiz)\n', 'utf8');
     await mkdir(path.join(taskDirOrigen, PLANIFICACION_DIRNAME), { recursive: true });
@@ -225,7 +236,7 @@ test('taskctl plan: si "planificacion" existe como FICHERO, el error dice que ha
     // Hallazgo MENOR de revision por pares (ronda 1): el EEXIST crudo
     // del mkdir salia como "taskctl no pudo arrancar", que ni es cierto
     // ni dice que hacer.
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     const taskDir = path.join(tareasRoot, '00-planificadas', 'TASK-700');
     await writeFile(path.join(taskDir, PLANIFICACION_DIRNAME), 'no soy una carpeta\n', 'utf8');
     commitAll(repoRoot, 'tarea TASK-700 con planificacion ocupada');
@@ -253,7 +264,7 @@ test('taskctl plan: un DIRECTORIO llamado plan-final.md no cuenta como plan (no 
     // Hallazgo MENOR de revision por pares (ronda 1): con un stat
     // pelado, "plan" renombraba el directorio y anunciaba "el plan se ha
     // movido intacto".
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     const taskDir = path.join(tareasRoot, '00-planificadas', 'TASK-700');
     await mkdir(path.join(taskDir, PLAN_FINAL_FILENAME), { recursive: true });
     commitAll(repoRoot, 'tarea TASK-700 con plan-final.md como directorio');
@@ -279,7 +290,7 @@ test('taskctl plan: un DIRECTORIO en la ubicacion canonica falla diciendo que ha
     // diciendo "ya existia -- se dejo intacto" SIN plan ninguno,
     // mientras "approve" contestaba "todavia no tiene un plan-final.md
     // que aprobar. Ejecuta taskctl plan primero". Bucle sin salida.
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     const taskDir = path.join(tareasRoot, '00-planificadas', 'TASK-700');
     await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME), { recursive: true });
     commitAll(repoRoot, 'tarea TASK-700 con planificacion/plan-final.md como directorio');
@@ -309,7 +320,7 @@ test('taskctl plan: planificacion/ viaja con la tarea al cambiar de carpeta de e
     // Una tarea "planificada" con artefactos previos en planificacion/
     // (p. ej. notas de una vuelta anterior): el cambio de estado tiene
     // que llevarse la subcarpeta entera, no solo tarea.md.
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     const origen = path.join(tareasRoot, '00-planificadas', 'TASK-700', PLANIFICACION_DIRNAME);
     await mkdir(origen, { recursive: true });
     await writeFile(path.join(origen, 'notas.md'), '# Notas previas\n', 'utf8');
@@ -328,7 +339,7 @@ test('taskctl plan: planificacion/ viaja con la tarea al cambiar de carpeta de e
 
 test('taskctl plan: rechaza si ya esta en en-diseno con plan_aprobado true, sin tocar nada', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno', plan_aprobado: true }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno', plan_aprobado: true }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 aprobada');
 
     await assert.rejects(
@@ -348,7 +359,7 @@ test('taskctl plan: rechaza si ya esta en en-diseno con plan_aprobado true, sin 
 
 test('taskctl plan: rechaza un estado que no admite plan (p. ej. en-curso)', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-curso' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-curso' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 en curso');
     await assert.rejects(
       () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-04', { repoCwd: repoRoot }),
@@ -370,7 +381,7 @@ test('taskctl plan: rechaza si el ID no existe, sin efectos secundarios', async 
 
 test('taskctl plan: propaga cualquier error de escritura que NO sea EEXIST (no lo confunde con una re-planificacion)', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 en diseno');
     const taskDir = path.join(tareasRoot, '01-en-diseno', 'TASK-700');
     // planificacion/ existe pero sin permiso de escritura: writeFile de
@@ -410,7 +421,7 @@ test('taskctl plan: error claro si falta el ID', async () => {
 
 test('taskctl plan: workspace sucio en develop aborta sin mover ni escribir nada', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700');
     await writeFile(path.join(repoRoot, 'sucio.txt'), 'sin commitear', 'utf8');
 
@@ -429,7 +440,7 @@ test('taskctl plan: workspace sucio en develop aborta sin mover ni escribir nada
 
 test('taskctl plan: en una rama de feature, limpia, cambia sola a develop antes de mover la tarea', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700');
     git(['checkout', '-q', '-b', 'feature/otra-cosa'], repoRoot);
 
@@ -445,7 +456,7 @@ test('taskctl plan: en una rama de feature, limpia, cambia sola a develop antes 
 
 test('taskctl plan: el estado invalido se sigue rechazando ANTES de tocar la rama activa', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-curso' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-curso' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 en curso');
     git(['checkout', '-q', '-b', 'feature/otra-cosa'], repoRoot);
 
@@ -466,7 +477,7 @@ test('taskctl plan: la tarea existe en la rama vieja pero NO en la rama base rea
     // escenario que expone el hallazgo — una lectura preliminar en la
     // rama equivocada no debe decidir nada).
     git(['checkout', '-q', '-b', 'feature/donde-no-deberia-estar'], repoRoot);
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 solo en esta rama de feature');
 
     await assert.rejects(
@@ -486,7 +497,7 @@ test('taskctl plan: la tarea existe en la rama vieja pero NO en la rama base rea
 test('taskctl plan: la rama base real tiene la tarea en un estado distinto al de la lectura preliminar — decide con el estado real, no con el viejo (hallazgo CRITICO de revision por pares, TASK-012)', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Primero, la tarea nace "planificada" (como dejaria taskctl new).
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 planificada');
 
     // Una rama de feature se bifurca AQUI — ve la tarea "planificada",
@@ -502,7 +513,7 @@ test('taskctl plan: la rama base real tiene la tarea en un estado distinto al de
     // test, no lo que se esta probando).
     git(['checkout', '-q', 'develop'], repoRoot);
     await rm(path.join(tareasRoot, '00-planificadas', 'TASK-700'), { recursive: true, force: true });
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), BODY_CON_OBJETIVO);
     await writeFile(
       path.join(tareasRoot, '01-en-diseno', 'TASK-700', PLAN_FINAL_FILENAME),
       '# Plan real en develop\n',
@@ -535,9 +546,7 @@ test('taskctl plan: la rama base real tiene la tarea en un estado distinto al de
 
 test('taskctl plan --asignado-a: escribe asignado_a en el frontmatter de verdad', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\
-Algo.\
-');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a', 'carlos'], '2026-09-05', {
@@ -557,7 +566,7 @@ Algo.\
 
 test('taskctl plan: sin --asignado-a NO borra el asignado_a que ya tuviera la tarea', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'ana' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'ana' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 ya asignada');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-05', { repoCwd: repoRoot });
@@ -571,7 +580,7 @@ test('taskctl plan: sin --asignado-a NO borra el asignado_a que ya tuviera la ta
 
 test('taskctl plan --asignado-a: reasignar a la MISMA persona no cuenta como cambio', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'carlos' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ asignado_a: 'carlos' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 asignada a carlos');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a=carlos'], '2026-09-05', {
@@ -587,7 +596,7 @@ test('taskctl plan --asignado-a: reasignar a la MISMA persona no cuenta como cam
 
 test('taskctl plan --asignado-a: en una re-planificacion reasigna a otra persona', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno', asignado_a: 'ana' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno', asignado_a: 'ana' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 en diseno, de ana');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a', 'carlos'], '2026-09-05', {
@@ -603,7 +612,7 @@ test('taskctl plan --asignado-a: en una re-planificacion reasigna a otra persona
 
 test('taskctl plan: el ID se lee de los posicionales, asi que --asignado-a puede ir delante', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700');
 
     const result = await runPlanCommand(tareasRoot, ['--asignado-a', 'carlos', 'TASK-700'], '2026-09-05', {
@@ -617,7 +626,7 @@ test('taskctl plan: el ID se lee de los posicionales, asi que --asignado-a puede
 
 test('taskctl plan --asignado-a invalido: falla ANTES de mover la tarea ni cambiar de rama', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '');
+    await writeTareaFile(tareasRoot, sampleTask(), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700');
     // Se arranca desde una rama que NO es la base, para que
     // ensureBaseBranchReady tenga algo que hacer si se llegara a
@@ -651,7 +660,7 @@ test('taskctl plan: NO comprueba el limite de WIP, aunque la persona tenga una t
       sampleTask({ id: 'TASK-701', estado: 'en-curso', asignado_a: 'carlos', rama: 'feature/task-701-ya-abierta' }),
       ''
     );
-    await writeTareaFile(tareasRoot, sampleTask({ id: 'TASK-700' }), '');
+    await writeTareaFile(tareasRoot, sampleTask({ id: 'TASK-700' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'carlos con una tarea ya en curso');
 
     const result = await runPlanCommand(tareasRoot, ['TASK-700', '--asignado-a', 'carlos'], '2026-09-05', {

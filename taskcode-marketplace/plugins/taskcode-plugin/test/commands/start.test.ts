@@ -35,7 +35,13 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
     complejidad: 'simple',
     modelo_sugerido: 'sonnet',
     estado: 'en-diseno',
-    plan_aprobado: false,
+    // true desde TASK-016. Hasta entonces era false y la tarea
+    // arrancaba igual, porque `simple` estaba eximida del checkpoint
+    // humano; ahora el checkpoint es obligatorio para las cinco
+    // complejidades (seccion 14, punto 1) y una tarea sin aprobar ya no
+    // representa el caso normal de "start", sino el que se rechaza.
+    // Ese rechazo lo cubren dos tests propios mas abajo.
+    plan_aprobado: true,
     rama: 'feature/task-500-prueba-de-integracion',
     asignado_a: null,
     agente_revisor: 'general-purpose',
@@ -262,7 +268,7 @@ test('taskctl start: rechaza una tarea en "planificada" (no ha pasado por plan) 
   });
 });
 
-test('taskctl start: rechaza una tarea de complejidad no trivial/simple sin plan_aprobado', async () => {
+test('taskctl start: rechaza una tarea de complejidad media sin plan_aprobado', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(
       tareasRoot,
@@ -276,6 +282,62 @@ test('taskctl start: rechaza una tarea de complejidad no trivial/simple sin plan
     );
   });
 });
+
+// --- checkpoint humano obligatorio para TODAS las complejidades ------
+// Decision #1 de la seccion 14, implementada en TASK-016. Antes
+// `trivial` y `simple` estaban eximidas y arrancaban sin pasar por
+// "approve"; estos dos tests fijan la inversion de esa expectativa. El
+// par importa: sin el segundo, romper "start" entero (que rechazara
+// SIEMPRE) daria el mismo verde que implementar la regla bien.
+
+for (const complejidad of ['trivial', 'simple'] as const) {
+  test(`taskctl start: ${complejidad} SIN plan_aprobado se rechaza (el checkpoint ya no exime a nadie)`, async () => {
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(tareasRoot, sampleTask({ complejidad, plan_aprobado: false }), '');
+      commitAll(repoRoot, 'tarea(TASK-500): sin aprobar');
+
+      await assert.rejects(
+        () =>
+          runStartCommand(tareasRoot, ['TASK-500'], '2026-09-04', {
+            repoCwd: repoRoot,
+            scriptsDir: SCRIPTS_DIR,
+          }),
+        (e: unknown) => {
+          assert.ok(e instanceof StateMachineError);
+          assert.match(e.message, /taskctl approve/);
+          return true;
+        }
+      );
+
+      // No se movio ni se creo la rama: el rechazo es antes de tocar Git.
+      const read = await readTareaFile(tareasRoot, 'TASK-500');
+      assert.equal(read?.task.estado, 'en-diseno');
+      assert.equal(
+        spawnSync('git', ['branch', '--show-current'], {
+          cwd: repoRoot,
+          encoding: 'utf8',
+        }).stdout.trim(),
+        'develop'
+      );
+    });
+  });
+
+  test(`taskctl start: ${complejidad} CON plan_aprobado arranca con normalidad`, async () => {
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(tareasRoot, sampleTask({ complejidad, plan_aprobado: true }), '');
+      commitAll(repoRoot, 'tarea(TASK-500): plan aprobado');
+
+      const result = await runStartCommand(tareasRoot, ['TASK-500'], '2026-09-04', {
+        repoCwd: repoRoot,
+        scriptsDir: SCRIPTS_DIR,
+      });
+
+      assert.equal(result.rama, 'feature/task-500-prueba-de-integracion');
+      const read = await readTareaFile(tareasRoot, 'TASK-500');
+      assert.equal(read?.task.estado, 'en-curso');
+    });
+  });
+}
 
 test('taskctl start: rechaza si el workspace tiene cambios sin commitear, sin invocar el script', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {

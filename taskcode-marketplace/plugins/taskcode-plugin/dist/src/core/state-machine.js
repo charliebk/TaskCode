@@ -14,7 +14,28 @@ export class StateMachineError extends Error {
         this.name = 'StateMachineError';
     }
 }
-const TRIVIAL_SIN_APROBACION = ['trivial', 'simple'];
+/**
+ * Complejidades EXIMIDAS del checkpoint humano antes de "start".
+ *
+ * Esta vacia desde TASK-016 (item D1), y esa es la decision, no un
+ * descuido: el punto 1 de la seccion 14 se cerro como "checkpoint
+ * humano SIEMPRE obligatorio", y hasta entonces el codigo eximia a
+ * `trivial` y `simple` — o sea que la decision estaba tomada y no
+ * aplicada. Confirmado con Carlos el 2026-09-08.
+ *
+ * Lo que sostiene la decision, con datos: la exencion no se ejercio
+ * nunca. En las 32 tareas del repo no hay ni una sola `trivial`, y de
+ * las 4 `simple` cerradas UNA ESCONDIA UN CRITICO — el mismo dato con
+ * el que se descarto el item D4 (revision ligera). Abaratar el
+ * checkpoint justo donde nunca se uso no ahorraba nada y si dejaba
+ * pasar el peor bug del proyecto.
+ *
+ * Se vacia en vez de borrarse a proposito: sigue siendo el punto unico
+ * donde se declara quien se exime, asi que reabrir la decision cuesta
+ * una linea en vez de una arqueologia. Mismo criterio que
+ * CONFIG_DEFAULTS.
+ */
+const TRIVIAL_SIN_APROBACION = [];
 function err(taskId, command, estadoActual, comandoRequerido, reason) {
     const lines = [`[ERROR] ${taskId} ${reason}`];
     if (comandoRequerido) {
@@ -70,7 +91,7 @@ export function assertTransitionAllowed(command, task, ctx = {}) {
             }
             const exigeAprobacion = !TRIVIAL_SIN_APROBACION.includes(task.complejidad);
             if (exigeAprobacion && !task.plan_aprobado) {
-                throw err(task.id, command, task.estado, 'taskctl approve', 'no ha pasado por taskctl approve (complejidad no trivial/simple exige aprobacion humana).');
+                throw err(task.id, command, task.estado, 'taskctl approve', 'no ha pasado por taskctl approve. El checkpoint humano es obligatorio para todas las complejidades (seccion 14, punto 1).');
             }
             return;
         }

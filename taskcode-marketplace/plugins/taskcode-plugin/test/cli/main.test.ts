@@ -124,12 +124,32 @@ test('main: la ayuda documenta --asignado-a en plan y en start', async () => {
   assert.ok(stdout.includes('taskctl start TASK-NNN [--asignado-a <persona>]'));
 });
 
+/**
+ * Rellena el "## Objetivo" que "taskctl new" deja en blanco. Desde
+ * TASK-016 "plan" aborta sin el cuando la tarea lanza brainstorm, asi
+ * que esto es exactamente lo que hace una persona entre "new" y
+ * "plan": es parte del flujo real, no un apano del test.
+ */
+async function rellenarObjetivo(repoRoot: string, id: string): Promise<void> {
+  const md = path.join(repoRoot, 'tareas', '00-planificadas', id, 'tarea.md');
+  const contenido = await readFile(md, 'utf8');
+  await writeFile(
+    md,
+    contenido.replace(
+      '## Objetivo\n\n\n',
+      '## Objetivo\n\nProbar el ciclo con una tarea que dice a que viene.\n\n'
+    ),
+    'utf8'
+  );
+}
+
 test('main: taskctl plan --asignado-a confirma la asignacion y la deja en tarea.md', async () => {
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Probar asignacion', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
     // plan exige workspace limpio, asi que se commitea lo que dejo
     // new (misma secuencia que en uso real).
+    await rellenarObjetivo(repoRoot, 'TASK-001');
     commitAll(repoRoot, 'tarea nueva');
 
     const { code, stdout } = await captureOutput(() =>
@@ -151,6 +171,7 @@ test('main: sin --asignado-a y sin identidad Git no se imprime linea de asignaci
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Sin asignar', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
     commitAll(repoRoot, 'tarea nueva');
     // Se vacia la identidad DESPUES de commitear (TASK-024): sin
     // ella, plan deja la tarea sin asignar, como antes.
@@ -167,6 +188,7 @@ test('main: sin --asignado-a pero CON identidad Git, la tarea se autoasigna y se
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Con identidad', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
     commitAll(repoRoot, 'tarea nueva');
 
     const { code, stdout } = await captureOutput(() => main(['plan', 'TASK-001']));
@@ -186,6 +208,7 @@ test('main: un --asignado-a sin valor sale con codigo 1 y mensaje util, no con u
   await withTempRepoCwd(async (repoRoot) => {
     const creada = await captureOutput(() => main(['new', '--titulo', 'Flag roto', '--tipo', 'feature']));
     assert.equal(creada.code, 0);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
     commitAll(repoRoot, 'tarea nueva');
 
     const { code, stderr } = await captureOutput(() => main(['plan', 'TASK-001', '--asignado-a']));
@@ -207,10 +230,12 @@ test('main: taskctl start sale con codigo 1 y mensaje util cuando el limite esta
     // documentada en HALLAZGOS.md para taskctl import).
     const uno = await captureOutput(() => main(['new', '--titulo', 'Primera de carlos', '--tipo', 'feature', '--complejidad', 'simple']));
     assert.equal(uno.code, 0, uno.stderr);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
     commitAll(repoRoot, 'primera tarea');
 
     const dos = await captureOutput(() => main(['new', '--titulo', 'Segunda de carlos', '--tipo', 'feature', '--complejidad', 'simple']));
     assert.equal(dos.code, 0, dos.stderr);
+    await rellenarObjetivo(repoRoot, 'TASK-002');
     commitAll(repoRoot, 'segunda tarea');
 
     const p1 = await captureOutput(() => main(['plan', 'TASK-001', '--asignado-a', 'carlos']));
@@ -222,6 +247,17 @@ test('main: taskctl start sale con codigo 1 y mensaje util cuando el limite esta
     // de la misma persona a la vez son legales.
     assert.equal(p2.code, 0, p2.stderr);
     commitAll(repoRoot, 'segunda en diseno');
+
+    // Las dos pasan por el checkpoint humano: desde TASK-016 es
+    // obligatorio tambien para `simple`, y sin el las dos fallarian
+    // aqui — con lo que el test verde no probaria el limite de WIP,
+    // que es lo unico que viene a medir.
+    const a1 = await captureOutput(() => main(['approve', 'TASK-001']));
+    assert.equal(a1.code, 0, a1.stderr);
+    commitAll(repoRoot, 'primera aprobada');
+    const a2 = await captureOutput(() => main(['approve', 'TASK-002']));
+    assert.equal(a2.code, 0, a2.stderr);
+    commitAll(repoRoot, 'segunda aprobada');
 
     const primera = await captureOutput(() => main(['start', 'TASK-001']));
     assert.equal(primera.code, 0, primera.stderr);
