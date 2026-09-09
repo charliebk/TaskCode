@@ -1,20 +1,23 @@
-# Brainstorm — TASK-017, rol riesgos (ronda 1)
+## Riesgos, de mayor a menor dano
+- `taskctl plan` reescribe `agente_revisor`/`skills_recomendados` en una re-planificacion (bucle B9->B5 de 16.3) — dispara cuando una tarea ya tenia esos campos fijados en `new`/`import` (hoy `agente_revisor` sale de `agente_revisor_por_defecto` en `config.ts`, nunca del catalogo) y `plan` la recalcula sobre el catalogo — consecuencia: pisa en silencio una eleccion manual o la de una planificacion anterior, sin que quede registrado que cambio ni por que (a diferencia de `asignadoCambiado`, que si lo hace) — mitigacion: comparar valor previo vs. nuevo y exponer el cambio igual que hace `asignadoCambiado` en `plan.ts`.
+- Ninguna entrada del catalogo solapa las `etiquetas` de la tarea — dispara con dominios nuevos que nadie anticipo al escribir `catalogo-skills.yml` (que arranca con "los skills que el equipo ya usa", no exhaustivo por diseno) — consecuencia: top-N vacio; si `plan` sigue la misma doctrina fail-closed que `heuristica.ts` (clave obligatoria ausente = abortar), cualquier tarea con etiquetas no catalogadas bloquea el flujo entero, cosa que `heuristica-complejidad.yml` nunca sufre porque cubre TODOS los niveles por construccion — mitigacion: definir "sin candidato" como resultado valido (cero sugerencias, no error), no como fallo de config.
+- Comprobar "instalado" para `origen: externo` depende de invocar `claude plugin list --json` como subproceso desde dentro de `taskctl` (Node) — dispara si el binario `claude` no esta en el PATH del proceso que ejecuta taskctl (terminal distinta, CI, IDE embebido) o si el esquema JSON cambia entre versiones de Claude Code — consecuencia: taskctl cuelga, tira un error crudo, o peor, interpreta un fallo de subproceso como "no instalado" y sugiere instalar algo que ya esta — mitigacion: tratar cualquier fallo del subproceso como "no verificable", nunca como "no instalado" ni "instalado" por defecto.
+- Catalogo pequeno con etiquetas muy compartidas produce empates de solape+prioridad en la mayoria de los planes, no en el caso raro que describe el enunciado — dispara justo al arrancar (pocas entradas, prioridades sin curar) — consecuencia: Haiku se invoca en casi todas las planificaciones, revirtiendo el ahorro que motiva la seccion 16 entera — mitigacion: medir empiricamente sobre las tareas reales del repo, como ya se hizo con el `max` de `heuristica.ts` (32 tareas, resultado documentado en el codigo).
+- YML del catalogo mal formado o con una entrada a medio escribir — dispara al anadir una linea nueva a mano (edicion manual explicita en 6.6) sin uno de los campos obligatorios — consecuencia: si sigue la doctrina de `heuristica.ts` (fallo cerrado), `taskctl plan` deja de funcionar para TODAS las tareas hasta que se arregla, no solo para la que uso ese skill — mitigacion: mismo patron de validacion exhaustiva y mensaje accionable que ya usa `cargarHeuristica()`.
+- El registro de auditoria (que skill, por que regla) se escribe a mitad de un pipeline que ya sufrio 4 rondas de bugs de estado parcial en `plan.ts` (ver comentario "COMO SE MODELA EL ESTADO" en el propio fichero) — dispara si el proceso muere entre calcular la seleccion y mover la tarea de carpeta, y alguien edita `catalogo-skills.yml` antes del reintento — consecuencia: un `plan` reintentado recalcula con un catalogo distinto y el registro de auditoria ya escrito no coincide con lo que de verdad decidio la ronda — mitigacion: tratarlo como derivado y regenerarlo siempre, igual que `peticionRolTemplate`, nunca como estado a preservar entre intentos.
 
-- Rol: `brainstorm-riesgos`
-- Agente: (rellenar)
+## Puntos sin retorno
+- ninguno — nada se instala automaticamente (lo dice el enunciado) y la escritura en `tarea.md`/`plan-final.md` queda dentro del mismo commit automatico ya reversible que usa el resto de `plan.ts`.
 
-## Modos de fallo, ordenados por gravedad, con el escenario concreto de cada uno
+## Descartado a proposito
+- Rendimiento del cruce de etiquetas cuando el catalogo crezca a cientos de entradas — lo nombra la propia seccion 16.4 como ya resuelto por diseno (top-N sin LLM); es terreno de arquitectura/escalabilidad, no mio.
+- Calidad del juicio de Haiku eligiendo entre los 2-3 candidatos del top-N — es un juicio de dominio/testing sobre que hace "encajar mejor", no un modo de fallo estructural.
 
+## Desacuerdos previstos
+- con arquitectura — sobre que hacer cuando el catalogo no tiene ningun candidato para las etiquetas de la tarea — mi posicion: continuar con cero sugerencias y avisar, no heredar el fail-closed de `heuristica.ts` sin mas, porque ahi SI hay fila para cada nivel posible y aqui el catalogo nunca sera exhaustivo por construccion.
 
-## Estados intermedios y fallos parciales
-
-
-## Compatibilidad hacia atras
-
-
-## Vuelta atras
-
-
-## El riesgo que mas te preocupa (UNO solo)
-
-
+## Suposiciones no verificadas
+- Que `claude plugin list --json` (verificado a mano en ESTADO.md, item #11) responde igual invocado como subproceso headless desde Node en Windows, no solo tecleado en el terminal — habria que probarlo desde dentro de `taskctl`.
+- Que `skills_recomendados` (ya existe en `task.ts` y sale vacio de `new.ts`) es el campo destino de la seleccion de TASK-017, y no un campo nuevo — no hay ningun consumidor hoy que lo confirme.
+- Que el catalogo garantiza `id` unico por entrada — el fragmento de 6.6 leido en la propuesta no lo dice explicitamente.
+- Que el orden de iteracion sobre el catalogo antes de aplicar `prioridad` es estable y reproducible cuando dos candidatos empatan tambien en prioridad, para que el top-N pasado a Haiku sea siempre el mismo en cada ejecucion.
