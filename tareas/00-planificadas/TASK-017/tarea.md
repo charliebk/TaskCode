@@ -20,6 +20,33 @@ dependencias: [TASK-010]
 ---
 ## Objetivo
 
+Implementar la seleccion de skills descrita en la seccion 6.6 de
+`docs/PROPUESTA_METODOLOGIA.md`: un catalogo propio y versionado en
+`scripts/catalogo-skills.yml` que declare, por cada skill (propio del
+plugin o externo de un marketplace), sus campos `id`, `origen`, `rol`
+(revisor | ejecucion), `prioridad`, `etiquetas`, `patrones_archivo` y
+`descripcion`.
+
+La seleccion es de dos pasos y determinista primero: `taskctl plan`
+cruza las `etiquetas` de la tarea contra el catalogo y calcula, sin
+LLM, un top-N de candidatos por solape. El desempate entre candidatos
+que empatan en solape usa primero la `prioridad` declarada en el
+catalogo (seccion 16.4.1); solo si tambien empatan en prioridad se
+recurre a un juicio barato con Haiku sobre ese top-N (2-3 candidatos,
+nunca sobre el catalogo entero) para decidir cual encaja mejor con el
+objetivo real de la tarea.
+
+El resultado de la seleccion (que skill se eligio y por que regla —
+solape, prioridad o desempate por LLM) queda registrado para poder
+auditarlo despues. Si el candidato elegido es `origen: externo` y no
+esta instalado, se anota como sugerencia de instalacion manual
+(`/plugin install X@Y`); nunca se instala nada automaticamente.
+
+Queda fuera de alcance a proposito el enrutado del agente revisor por
+el diff real usando `patrones_archivo` (seccion 16.5) — eso es
+TASK-018. Aqui el catalogo declara ese campo, pero todavia no lo
+consume nadie; la seleccion de `agente_revisor` sigue basandose en
+`etiquetas`.
 
 ## Criterios de aceptacion
 - [ ] Crea `scripts/catalogo-skills.yml` con los skills propios y externos que el equipo ya usa.
