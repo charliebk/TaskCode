@@ -371,6 +371,7 @@ function tareaSinAprobar(complejidad: TaskComplexity): Task {
     modelo_sugerido: 'sonnet',
     estado: 'en-diseno',
     plan_aprobado: false,
+    regla_seleccion_skill: null,
     rama: '',
     asignado_a: null,
     agente_revisor: '',

@@ -28,6 +28,7 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
     rama: 'feature/task-001-prueba',
     asignado_a: null,
     agente_revisor: 'typescript-reviewer',
+    regla_seleccion_skill: null,
     skills_recomendados: [],
     ultimo_commit_revisado: null,
     revision_codex: false,

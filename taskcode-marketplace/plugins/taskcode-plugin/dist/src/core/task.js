@@ -3,6 +3,11 @@
  * seccion 4 de docs/PROPUESTA_METODOLOGIA.md para la plantilla de
  * referencia.
  */
+export const REGLAS_SELECCION_SKILL = [
+    'solape',
+    'prioridad',
+    'llm',
+];
 export const TASK_TYPES = ['feature', 'fix', 'hotfix', 'release'];
 export const TASK_COMPLEXITIES = [
     'trivial',
@@ -41,6 +46,7 @@ export const TASK_FIELD_ORDER = [
     'asignado_a',
     'agente_revisor',
     'skills_recomendados',
+    'regla_seleccion_skill',
     'ultimo_commit_revisado',
     'revision_codex',
     'creado',
@@ -125,6 +131,15 @@ function requireEnum(data, field, allowed) {
     }
     return v;
 }
+function requireNullableEnum(data, field, allowed) {
+    const v = data[field];
+    if (v === null || v === undefined)
+        return null;
+    if (typeof v !== 'string' || !allowed.includes(v)) {
+        fail(field, `El campo "${field}" debe ser null o uno de: ${allowed.join(', ')}.`);
+    }
+    return v;
+}
 /**
  * Valida y convierte un objeto generico (tal como lo devuelve
  * parseFrontmatter) en un Task tipado. Lanza TaskValidationError con
@@ -149,6 +164,7 @@ export function validateTask(data) {
         asignado_a: requireNullableString(data, 'asignado_a'),
         agente_revisor: requireString(data, 'agente_revisor'),
         skills_recomendados: requireStringArray(data, 'skills_recomendados'),
+        regla_seleccion_skill: requireNullableEnum(data, 'regla_seleccion_skill', REGLAS_SELECCION_SKILL),
         ultimo_commit_revisado: requireNullableString(data, 'ultimo_commit_revisado'),
         revision_codex: requireBoolean(data, 'revision_codex'),
         creado: requireString(data, 'creado'),

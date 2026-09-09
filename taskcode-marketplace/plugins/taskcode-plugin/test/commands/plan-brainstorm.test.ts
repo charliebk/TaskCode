@@ -55,6 +55,7 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
     asignado_a: null,
     agente_revisor: 'general-purpose',
     skills_recomendados: [],
+    regla_seleccion_skill: null,
     ultimo_commit_revisado: null,
     revision_codex: false,
     creado: '2026-09-08',
@@ -1354,6 +1355,16 @@ test('src/ no contiene ninguna invocacion a un modelo ni ninguna llamada de red'
     { patron: /anthropic|openai/i, que: 'una referencia a una API de modelos' },
   ];
 
+  // TASK-017 (plan-final.md, riesgo aceptado): plugin-instalado.ts invoca
+  // `spawnSync('claude', ['plugin', 'list', '--json'], ...)` para comprobar
+  // si un skill externo ya esta instalado. No es una invocacion a un
+  // modelo/agente -- es una consulta de solo lectura a la gestion de
+  // plugins del propio CLI de Claude Code, la misma distincion que hace el
+  // criterio de aceptacion 5 al hablar de "llamadas reales a agentes".
+  // Se excluye solo el patron 'claude' y solo para este fichero: el resto
+  // de patrones (fetch, http, anthropic/openai) siguen aplicando.
+  const EXCEPCIONES_INVOCACION_CLAUDE = new Set(['core/plugin-instalado.ts']);
+
   async function ficherosTs(dir: string): Promise<string[]> {
     const salida: string[] = [];
     for (const entrada of await readdir(dir, { withFileTypes: true })) {
@@ -1368,10 +1379,12 @@ test('src/ no contiene ninguna invocacion a un modelo ni ninguna llamada de red'
   assert.ok(ficheros.length > 10, `precondicion: se esperaban muchos .ts, hay ${ficheros.length}`);
 
   for (const fichero of ficheros) {
+    const relativo = path.relative(path.join(PACKAGE_ROOT, 'src'), fichero).split(path.sep).join('/');
     const contenido = await readFile(fichero, 'utf8');
     for (const { patron, que } of prohibidos) {
+      const esExcepcion = patron.source === /['"`]claude['"`]/.source && EXCEPCIONES_INVOCACION_CLAUDE.has(relativo);
       assert.ok(
-        !patron.test(contenido),
+        esExcepcion || !patron.test(contenido),
         `${path.relative(PACKAGE_ROOT, fichero)} contiene ${que}: el CLI no puede llamar a ningun modelo`
       );
     }

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, readFile, writeFile, stat, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import {
@@ -17,9 +18,16 @@ import {
   PLAN_FINAL_FILENAME,
   PLANIFICACION_DIRNAME,
 } from '../../src/commands/plan.js';
+import {
+  PETICION_DESEMPATE_SKILL_FILENAME,
+  SALIDA_DESEMPATE_SKILL_FILENAME,
+} from '../../src/core/plan-desempate-skill.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
+
+const RAIZ_PAQUETE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const RUTA_HEURISTICA_REAL = path.join(RAIZ_PAQUETE, 'scripts', 'heuristica-complejidad.yml');
 
 function sampleTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -36,6 +44,7 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
     asignado_a: null,
     agente_revisor: 'general-purpose',
     skills_recomendados: [],
+    regla_seleccion_skill: null,
     ultimo_commit_revisado: null,
     revision_codex: false,
     creado: '2026-09-03',
@@ -672,4 +681,126 @@ test('taskctl plan: NO comprueba el limite de WIP, aunque la persona tenga una t
     assert.equal(read?.task.estado, 'en-diseno');
     assert.equal(read?.task.asignado_a, 'carlos');
   });
+});
+
+// --- TASK-017: seleccion determinista de skill ------------------------
+
+test('taskctl plan: una etiqueta que solapa con un unico skill del catalogo real lo deja en skills_recomendados', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ etiquetas: ['taskctl'] }), BODY_CON_OBJETIVO);
+    commitAll(repoRoot, 'tarea TASK-700 con etiqueta taskctl');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot });
+
+    assert.deepEqual(result.skillsRecomendados, ['task-workflow']);
+    assert.equal(result.reglaSeleccionSkill, 'solape');
+    assert.equal(result.skillsRecomendadosCambiado, true);
+    assert.equal(result.avisoSkillSinCandidato, null);
+    assert.equal(result.avisoSkillDesempatePendiente, null);
+    assert.equal(result.peticionDesempateSkill, null);
+    assert.equal(result.avisoSkillNoInstalada, null);
+
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.deepEqual(read?.task.skills_recomendados, ['task-workflow']);
+    assert.equal(read?.task.regla_seleccion_skill, 'solape');
+  });
+});
+
+test('taskctl plan: un empate en solape y prioridad escribe la peticion de desempate y deja skills_recomendados vacio', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // angular-vue-reviewer y java-spring-reviewer empatan: solape 1
+    // (frontend / backend respectivamente) y misma prioridad (10).
+    await writeTareaFile(tareasRoot, sampleTask({ etiquetas: ['frontend', 'backend'] }), BODY_CON_OBJETIVO);
+    commitAll(repoRoot, 'tarea TASK-700 con etiquetas de dos dominios');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot });
+
+    assert.deepEqual(result.skillsRecomendados, []);
+    assert.equal(result.reglaSeleccionSkill, null);
+    assert.equal(result.skillsRecomendadosCambiado, false);
+    assert.equal(result.avisoSkillSinCandidato, null);
+    assert.ok(result.avisoSkillDesempatePendiente !== null);
+    assert.match(result.avisoSkillDesempatePendiente!, /2 skills empatan/);
+    assert.ok(result.peticionDesempateSkill !== null);
+
+    // result.peticionDesempateSkill se calcula sobre la carpeta de ORIGEN
+    // antes del rename, y no se reescribe tras el move -- esa ruta ya no
+    // existe en disco. moveTareaFile se lleva planificacion/ entera a la
+    // carpeta de DESTINO, que hay que reconstruir a partir de filePath.
+    const planificacionDestino = path.join(path.dirname(result.filePath), PLANIFICACION_DIRNAME);
+    const peticionContent = await readFile(
+      path.join(planificacionDestino, PETICION_DESEMPATE_SKILL_FILENAME),
+      'utf8'
+    );
+    assert.match(peticionContent, /angular-vue-reviewer/);
+    assert.match(peticionContent, /java-spring-reviewer/);
+
+    const salidaContent = await readFile(
+      path.join(planificacionDestino, SALIDA_DESEMPATE_SKILL_FILENAME),
+      'utf8'
+    );
+    assert.match(salidaContent, /TASK-700/);
+
+    const read = await readTareaFile(tareasRoot, 'TASK-700');
+    assert.deepEqual(read?.task.skills_recomendados, []);
+    assert.equal(read?.task.regla_seleccion_skill, null);
+  });
+});
+
+test('taskctl plan: un skill externo ganador que no esta instalado deja el aviso de "/plugin install", y SI queda en skills_recomendados', async () => {
+  const pluginRootTmp = await mkdtemp(path.join(tmpdir(), 'taskctl-plan-plugin-root-'));
+  const previoPluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
+  const marketplaceInventado = 'marketplace-inventado-para-el-test-de-plan';
+  try {
+    const scriptsDir = path.join(pluginRootTmp, 'scripts');
+    await mkdir(scriptsDir, { recursive: true });
+    // cargarHeuristica() usa el MISMO CLAUDE_PLUGIN_ROOT que
+    // cargarCatalogoSkills() -- sin esta copia, runPlanCommand aborta
+    // en la heuristica antes de llegar a la seleccion de skill.
+    const heuristicaReal = await readFile(RUTA_HEURISTICA_REAL, 'utf8');
+    await writeFile(path.join(scriptsDir, 'heuristica-complejidad.yml'), heuristicaReal, 'utf8');
+    await writeFile(
+      path.join(scriptsDir, 'catalogo-skills.yml'),
+      [
+        'total_skills: 1',
+        'skill_1_id: skill-externo-de-prueba',
+        'skill_1_origen: externo',
+        `skill_1_marketplace: ${marketplaceInventado}`,
+        'skill_1_rol: ejecucion',
+        'skill_1_prioridad: 5',
+        'skill_1_etiquetas: [etiqueta-unica-para-el-test-externo]',
+        'skill_1_patrones_archivo: []',
+        'skill_1_descripcion: "skill externo de prueba"',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+    process.env['CLAUDE_PLUGIN_ROOT'] = pluginRootTmp;
+
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(
+        tareasRoot,
+        sampleTask({ etiquetas: ['etiqueta-unica-para-el-test-externo'] }),
+        BODY_CON_OBJETIVO
+      );
+      commitAll(repoRoot, 'tarea TASK-700 con etiqueta de skill externo');
+
+      const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot });
+
+      assert.deepEqual(result.skillsRecomendados, ['skill-externo-de-prueba']);
+      assert.equal(result.reglaSeleccionSkill, 'solape');
+      assert.ok(result.avisoSkillNoInstalada !== null);
+      assert.match(
+        result.avisoSkillNoInstalada!,
+        new RegExp(`/plugin install skill-externo-de-prueba@${marketplaceInventado}`)
+      );
+
+      const read = await readTareaFile(tareasRoot, 'TASK-700');
+      assert.deepEqual(read?.task.skills_recomendados, ['skill-externo-de-prueba']);
+    });
+  } finally {
+    if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
+    else process.env['CLAUDE_PLUGIN_ROOT'] = previoPluginRoot;
+    await rm(pluginRootTmp, { recursive: true, force: true });
+  }
 });

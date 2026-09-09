@@ -14,15 +14,16 @@
  * reparto que TASK-013 fijo para "taskctl review", y por el mismo
  * motivo — un CLI que llama a un agente no se puede probar sin uno.
  *
- * LO QUE SIGUE SIN HACER: contexto determinista desde docs/INDEX.md,
- * gatekeeper barato para la discrepancia de complejidad y seleccion de
- * skill (6.6, TASK-017).
+ * LO QUE SIGUE SIN HACER: contexto determinista desde docs/INDEX.md y
+ * gatekeeper barato para la discrepancia de complejidad. La seleccion
+ * determinista de skill (6.6/16.4.1, TASK-017) ya vive aqui, entre el
+ * calculo del brainstorm y la escritura del frontmatter.
  *
  * Aplica la precondicion de rama base de la seccion 8.3 desde TASK-012
  * (ensureBaseBranchReady, antes de mover nada).
  */
 import path from 'node:path';
-import { mkdir, readdir, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
 import { parseAsignadoAFlag, identidadUsable, PISTA_VACIO_ESCRITURA, } from '../cli/asignado.js';
 import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
@@ -34,6 +35,9 @@ import { extraerSecciones } from '../core/tarea-body.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
 import { seleccionarRoles, ROLES_BRAINSTORM, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
+import { cargarCatalogoSkills, seleccionarSkill, FICHERO_CATALOGO_SKILLS, } from '../core/catalogo-skills.js';
+import { PETICION_DESEMPATE_SKILL_FILENAME, SALIDA_DESEMPATE_SKILL_FILENAME, peticionDesempateSkillTemplate, salidaDesempateSkillTemplate, leerGanadorDesempate, } from '../core/plan-desempate-skill.js';
+import { comprobarSkillInstalado } from '../core/plugin-instalado.js';
 export class PlanCommandError extends Error {
 }
 export const PLAN_FINAL_FILENAME = 'plan-final.md';
@@ -260,12 +264,6 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     const { identidad, aviso: avisoIdentidad } = identidadUsable(gitUserEmail(deps.repoCwd));
     const asignadoFinal = resolverAsignado(asignadoA, task.asignado_a, identidad);
     const asignadoCambiado = asignadoFinal !== task.asignado_a;
-    const updated = {
-        ...task,
-        estado: 'en-diseno',
-        asignado_a: asignadoFinal,
-        actualizado: today,
-    };
     // --- Resolucion determinista del brainstorm (TASK-016) -------------
     // Va ANTES de cualquier escritura y de mover nada: todo lo que puede
     // abortar tiene que abortar con la tarea intacta.
@@ -385,6 +383,87 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
             }
         }
     }
+    // --- Seleccion determinista de skill (seccion 6.6/16.4.1, TASK-017) -
+    // Mismo criterio fail-closed que la heuristica de arriba: un catalogo
+    // mal formado aborta "plan" entero, nunca cae a "sin skill" en
+    // silencio. La diferencia es que aqui CERO candidatos tras cruzar
+    // etiquetas SI es un resultado valido (catalogo-skills.ts: el
+    // catalogo no es exhaustivo por diseno, a diferencia de la
+    // heuristica).
+    const catalogoSkills = cargarCatalogoSkills();
+    const seleccionSkill = seleccionarSkill(task, catalogoSkills);
+    let skillsRecomendadosFinal = [];
+    let reglaSeleccionSkillFinal = null;
+    let avisoSkillSinCandidato = null;
+    let avisoSkillDesempatePendiente = null;
+    let avisoSkillNoInstalada = null;
+    let peticionDesempateSkillPath = null;
+    if (seleccionSkill.ganador !== null) {
+        skillsRecomendadosFinal = [seleccionSkill.ganador.id];
+        reglaSeleccionSkillFinal = seleccionSkill.regla;
+    }
+    else if (seleccionSkill.candidatosEmpatados.length === 0) {
+        avisoSkillSinCandidato =
+            `Ningun skill de "${FICHERO_CATALOGO_SKILLS}" comparte etiquetas con ${task.id}: se deja ` +
+                'sin "skills_recomendados". No es un fallo -- el catalogo no tiene por que cubrir toda tarea.';
+    }
+    else {
+        // Empate en solape Y en prioridad: el desempate barato no lo
+        // resuelve un calculo (16.4.1). La peticion se REGENERA siempre
+        // (es derivada, igual que peticionRolTemplate): si el catalogo
+        // cambio entre intentos, una peticion rancia listando candidatos
+        // que ya no empatan seria peor que no tener ninguna.
+        const peticionDesempatePath = path.join(planificacionDir, PETICION_DESEMPATE_SKILL_FILENAME);
+        const salidaDesempatePath = path.join(planificacionDir, SALIDA_DESEMPATE_SKILL_FILENAME);
+        await writeFile(peticionDesempatePath, peticionDesempateSkillTemplate(task, seleccionSkill.candidatosEmpatados, today), { encoding: 'utf8' });
+        peticionDesempateSkillPath = peticionDesempatePath;
+        if (!(await ficheroConContenido(salidaDesempatePath))) {
+            await writeFile(salidaDesempatePath, salidaDesempateSkillTemplate(task), { encoding: 'utf8' });
+        }
+        const ganadorDesempate = (await ficheroConContenido(salidaDesempatePath))
+            ? leerGanadorDesempate(await readFile(salidaDesempatePath, 'utf8'), seleccionSkill.candidatosEmpatados)
+            : null;
+        if (ganadorDesempate !== null) {
+            skillsRecomendadosFinal = [ganadorDesempate.id];
+            reglaSeleccionSkillFinal = 'llm';
+        }
+        else {
+            avisoSkillDesempatePendiente =
+                `${seleccionSkill.candidatosEmpatados.length} skills empatan en solape y prioridad para ` +
+                    `${task.id}: responde "${peticionDesempatePath}" en "${salidaDesempatePath}" y vuelve a ` +
+                    'lanzar "taskctl plan" para dejarlo resuelto. Por ahora se deja sin "skills_recomendados".';
+        }
+    }
+    if (skillsRecomendadosFinal.length > 0) {
+        const entradaGanadora = catalogoSkills.find((e) => e.id === skillsRecomendadosFinal[0]);
+        if (entradaGanadora.origen === 'externo') {
+            const estadoInstalacion = comprobarSkillInstalado(entradaGanadora.marketplace);
+            if (estadoInstalacion !== 'instalado') {
+                // Texto identico al de la seccion 6.6 (punto 4): nunca se
+                // instala nada automaticamente, solo se anota la orden a
+                // ejecutar a mano. 'no-verificable' avisa igual que
+                // 'no-instalado' -- el riesgo aceptado es peor si se calla.
+                avisoSkillNoInstalada =
+                    `Esta tarea se beneficiaria del skill "${entradaGanadora.id}" (marketplace ` +
+                        `"${entradaGanadora.marketplace}") -- no esta instalado. Instalalo con "/plugin install ` +
+                        `${entradaGanadora.id}@${entradaGanadora.marketplace}" antes de arrancar, o continua sin el.`;
+            }
+        }
+    }
+    // Re-planificacion (bucle B9->B5): sin esta comparacion,
+    // "skills_recomendados" ya fijado en una vuelta anterior se pisaba en
+    // silencio en cada "plan" -- misma trampa que asignadoCambiado ya
+    // cierra para "asignado_a".
+    const skillsRecomendadosCambiado = skillsRecomendadosFinal.length !== task.skills_recomendados.length ||
+        skillsRecomendadosFinal.some((id, i) => id !== task.skills_recomendados[i]);
+    const updated = {
+        ...task,
+        estado: 'en-diseno',
+        asignado_a: asignadoFinal,
+        actualizado: today,
+        skills_recomendados: skillsRecomendadosFinal,
+        regla_seleccion_skill: reglaSeleccionSkillFinal,
+    };
     // --- El paquete de brainstorm (TASK-016) ---------------------------
     // Se escribe en la carpeta ACTUAL y ANTES de mover la tarea, por el
     // mismo motivo que la peticion de revision en TASK-013: si una
@@ -630,5 +709,12 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         asignadoCambiado,
         avisoIdentidad,
         baseBranchGuard,
+        skillsRecomendados: skillsRecomendadosFinal,
+        reglaSeleccionSkill: reglaSeleccionSkillFinal,
+        skillsRecomendadosCambiado,
+        avisoSkillSinCandidato,
+        avisoSkillDesempatePendiente,
+        peticionDesempateSkill: peticionDesempateSkillPath,
+        avisoSkillNoInstalada,
     };
 }
