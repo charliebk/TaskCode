@@ -230,9 +230,11 @@ ninguna regresion nueva.
 
 Una segunda pasada independiente sobre ese mismo cierre (tambien `informe-revision-2.md`,
 veredicto cambios-solicitados) reprodujo empiricamente con una limitacion de metodo que el
-propio informe documenta: su Bash estaba roto, asi que no pudo ejecutar la suite ni confirmar
-a que rama apuntaba su propio worktree aislado. Aun asi encontro 2 IMPORTANTE nuevos (IMP-6,
-IMP-7) y 4 MENOR (MEN-12 a MEN-15):
+propio informe documenta: su Bash estaba roto, asi que no pudo ejecutar la suite ni usar su
+propio worktree aislado (MEN-18, corregido: el informe SI confirmo con precision, citando los
+tres ficheros de Git que leyo, que ese worktree apuntaba a una rama distinta de la de la tarea
+-- lo que no pudo fue trabajar desde el, asi que reviso el arbol principal). Aun asi encontro 2
+IMPORTANTE nuevos (IMP-6, IMP-7) y 4 MENOR (MEN-12 a MEN-15):
 
 **IMPORTANTE — corregidos los 2:**
 
@@ -272,3 +274,76 @@ IMP-7) y 4 MENOR (MEN-12 a MEN-15):
   ronda 2 con el contenido real de `informe-revision-2.md`. Anadida con los hallazgos reales
   (0 criticos, 2 IMPORTANTE, 4 MENOR, veredicto cambios-solicitados, y la limitacion de metodo
   del Bash roto documentada por el propio revisor).
+
+Tras corregir IMP-6, IMP-7, MEN-12, MEN-13 y MEN-14 se anadieron 2 tests (el que fija el
+`/plugin install` con `skill_N_id` de la forma `"plugin:skill"` en `plan.test.ts`, y el que
+aisla el salto del marcador de relleno en `plan-desempate-skill.test.ts`). Ni quien
+implemento ni el revisor de la ronda 2 pudieron confirmar por ejecucion la cifra resultante
+de la suite en ese punto (Bash roto en ambos casos) — es la cifra que MEN-17 (mas abajo)
+senala como ausente, y que solo se ha podido medir por primera vez en la ronda de
+correcciones de la ronda 3, ver esa seccion.
+
+### Ronda 3 de revision por pares (`informe-revision-3.md`)
+
+Commit revisado: `2b4319742ac72484ad9bcc981ab16febbfe5c05e` (el del cierre de ronda 2, arriba).
+Veredicto: cambios-solicitados. 0 CRITICO, 2 IMPORTANTE, 4 MENOR. Misma limitacion de metodo
+que la ronda 2 (Bash roto en el agente revisor: no pudo ejecutar la suite) y misma incidencia
+de proceso repetida por segunda ronda consecutiva: el *worktree* aislado del agente revisor
+volvio a apuntar a una rama distinta de la de la tarea (`ce5947d`, el cierre de TASK-016,
+anterior a todo el trabajo de esta tarea), por lo que la revision se hizo leyendo el arbol de
+trabajo principal y el informe tuvo que trasladarse a mano — pendiente de anotar en
+`docs/contexto/HALLAZGOS.md` como problema de proceso recurrente, independientemente de esta
+tarea.
+
+**IMPORTANTE — corregidos los 2:**
+
+- **IMP-8**: el comentario de `scripts/catalogo-skills.yml` que IMP-6 corrigio remite como
+  autoridad a la seccion 6.6 de `docs/PROPUESTA_METODOLOGIA.md`, pero ese documento no se
+  habia tocado: su ejemplo canonico (`id: figma:figma-generate-design`) declaraba
+  `marketplace: figma`, el mismo `"figma"` que el comentario corregido acaba de decir que NO
+  es el marketplace — comprobado ademas contra el plugin real instalado en esta maquina
+  (`figma@claude-plugins-official`, no `figma@figma`). Corregido el ejemplo a
+  `marketplace: claude-plugins-official`, con un comentario que senala que `"figma"` (antes
+  de `:`) es el PLUGIN.
+- **IMP-9**: `construirEntrada` (`catalogo-skills.ts`) no validaba la forma del `skill_N_id`
+  para `origen: externo` — un id sin `:` parseaba igual, y `plan.ts` componia un
+  `/plugin install` con el nombre de un *skill* donde debia ir el de un *plugin*, sin abortar
+  ni avisar, justo lo contrario de la doctrina fail-closed que la cabecera del propio fichero
+  declara para el resto del parseo. Corregida con una validacion que exige exactamente un
+  `:` con ambos tramos no vacios, mensaje `CatalogoSkillsError` con la forma esperada. Ajustado
+  el *fixture* que ya violaba la convencion (`plan.test.ts`, el test que fijaba el
+  `/plugin install` con un `id` sin `:`) para usar `"plugin-de-prueba:skill-de-prueba"`, y
+  anadidos 5 tests nuevos en `catalogo-skills.test.ts` que cubren los casos invalidos (sin
+  `:`, dos `:`, tramo del plugin vacio, tramo del skill vacio) y la precondicion de que la
+  exigencia es solo para `origen: externo` (las 5 entradas reales del catalogo, todas
+  `taskcode-plugin`, no llevan `:` y siguen siendo validas).
+
+**MENOR — los 4 corregidos:**
+
+- **MEN-16**: en `plan.ts`, tras escribir el scaffold de desempate cuando no existia, se volvia
+  a comprobar `ficheroConContenido` para decidir si leer el ganador — comprobacion siempre
+  verdadera (si no lo era, se acababa de escribir un scaffold no vacio) y por tanto una rama
+  `: null` inalcanzable. Colapsado a la llamada directa a `leerGanadorDesempate`.
+- **MEN-17** (corregido en este mismo documento): la cifra de suite citada mas arriba
+  (817/820 a 819/822) es la del cierre de ronda 1 (commit `c284203`) y sigue siendo correcta
+  para ese punto; lo que faltaba era una cifra de cierre para las correcciones de IMP-6/IMP-7
+  (arriba). Esta ronda de correcciones (IMP-8, IMP-9, MEN-16, MEN-19) es la primera vez que se
+  ha podido ejecutar la suite completa por ejecucion real en este entorno (Windows nativo, PowerShell):
+  **830 tests, 731 pass, 99 fail**. De esos 99, tres son los ya documentados en `CLAUDE.md`
+  como no-regresion de este entorno (symlink `EPERM` en `taskctl approve`, `chmod` sobre
+  directorio no-op en NTFS en `taskctl plan`, y diferencia de fin de linea CRLF en otro test de
+  `taskctl plan`, los tres verificados leyendo el mensaje de error real de cada uno); el resto
+  son en su practica totalidad tests de `taskctl start/finish/review/approve` y de los scripts
+  `.sh` de Git-Flow (`abort-merge.sh`, `merge-hotfix-to-main.sh`, `merge-release-to-main.sh`,
+  `create-develop.sh`, `recover-branch.sh`, `resume-work.sh`, `diagnose-repo.sh`), todos
+  dependientes de `spawnSync('bash', ...)` — consistente con el Bash roto de este entorno.
+  Verificado que ninguno de los 99 fallos toca `catalogo-skills.test.ts` (sin resultados al
+  buscar ese nombre en la salida completa de la suite).
+- **MEN-18** (corregido en este mismo documento, ver el parrafo de la 2ª pasada de ronda 2
+  arriba): la redaccion decia que el informe de ronda 2 no pudo "confirmar a que rama
+  apuntaba su propio worktree aislado", cuando en realidad si lo confirmo con precision
+  (citando los tres ficheros de Git que leyo); lo que no pudo fue trabajar desde ese worktree.
+- **MEN-19**: anadido en `plan-desempate-skill.test.ts` un test que ancla el texto de "Como
+  entregas" de `peticionDesempateSkillTemplate` a las tres reglas de salto reales
+  (linea vacia, encabezado Markdown, marcador `"(pendiente de completar)"`), que hasta ahora
+  no probaba nada del texto.

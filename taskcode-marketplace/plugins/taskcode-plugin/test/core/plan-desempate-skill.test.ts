@@ -92,6 +92,13 @@ test('peticionDesempateSkillTemplate marca explicitamente cuando la tarea no tie
   assert.ok(texto.includes('(sin etiquetas)'));
 });
 
+test('peticionDesempateSkillTemplate documenta en "Como entregas" el marcador exacto que leerGanadorDesempate salta (MEN-19, revision por pares ronda 3)', () => {
+  const texto = peticionDesempateSkillTemplate(tarea({ id: 'TASK-042' }), CANDIDATOS, '2026-09-09');
+  assert.ok(texto.includes('(pendiente de completar)'));
+  assert.match(texto, /no este vacia/);
+  assert.match(texto, /encabezado Markdown/);
+});
+
 test('PETICION_DESEMPATE_SKILL_FILENAME y SALIDA_DESEMPATE_SKILL_FILENAME son nombres fijos sin numeracion de ronda', () => {
   assert.equal(PETICION_DESEMPATE_SKILL_FILENAME, 'peticion-desempate-skill-1.md');
   assert.equal(SALIDA_DESEMPATE_SKILL_FILENAME, 'salida-desempate-skill-1.md');

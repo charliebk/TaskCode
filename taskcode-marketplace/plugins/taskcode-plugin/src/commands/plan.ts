@@ -575,12 +575,14 @@ export async function runPlanCommand(
     if (!(await ficheroConContenido(salidaDesempatePath))) {
       await writeFile(salidaDesempatePath, salidaDesempateSkillTemplate(task), { encoding: 'utf8' });
     }
-    const ganadorDesempate = (await ficheroConContenido(salidaDesempatePath))
-      ? leerGanadorDesempate(
-          await readFile(salidaDesempatePath, 'utf8'),
-          seleccionSkill.candidatosEmpatados
-        )
-      : null;
+    // Tras el bloque de arriba el fichero siempre tiene contenido (o ya lo
+    // tenia, o se acaba de escribir el scaffold, que nunca es vacio): no
+    // hace falta comprobarlo una segunda vez (MEN-16, revision por pares
+    // ronda 3, TASK-017).
+    const ganadorDesempate = leerGanadorDesempate(
+      await readFile(salidaDesempatePath, 'utf8'),
+      seleccionSkill.candidatosEmpatados
+    );
     if (ganadorDesempate !== null) {
       skillsRecomendadosFinal = [ganadorDesempate.id];
       reglaSeleccionSkillFinal = 'llm';

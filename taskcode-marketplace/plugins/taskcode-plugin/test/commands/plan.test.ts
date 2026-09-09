@@ -767,7 +767,12 @@ test('taskctl plan: un skill externo ganador que no esta instalado deja el aviso
       path.join(scriptsDir, 'catalogo-skills.yml'),
       [
         'total_skills: 1',
-        'skill_1_id: skill-externo-de-prueba',
+        // IMP-9 (revision por pares ronda 3, TASK-017): este fixture
+        // usaba un id externo SIN ":" ("skill-externo-de-prueba"),
+        // violando la convencion "plugin:skill" que el propio catalogo
+        // exige para origen "externo" -- ahora construirEntrada() la
+        // valida y este id habria abortado con CatalogoSkillsError.
+        'skill_1_id: plugin-de-prueba:skill-de-prueba',
         'skill_1_origen: externo',
         `skill_1_marketplace: ${marketplaceInventado}`,
         'skill_1_rol: ejecucion',
@@ -791,16 +796,16 @@ test('taskctl plan: un skill externo ganador que no esta instalado deja el aviso
 
       const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot });
 
-      assert.deepEqual(result.skillsRecomendados, ['skill-externo-de-prueba']);
+      assert.deepEqual(result.skillsRecomendados, ['plugin-de-prueba:skill-de-prueba']);
       assert.equal(result.reglaSeleccionSkill, 'solape');
       assert.ok(result.avisoSkillNoInstalada !== null);
       assert.match(
         result.avisoSkillNoInstalada!,
-        new RegExp(`/plugin install skill-externo-de-prueba@${marketplaceInventado}`)
+        new RegExp(`/plugin install plugin-de-prueba@${marketplaceInventado}`)
       );
 
       const read = await readTareaFile(tareasRoot, 'TASK-700');
-      assert.deepEqual(read?.task.skills_recomendados, ['skill-externo-de-prueba']);
+      assert.deepEqual(read?.task.skills_recomendados, ['plugin-de-prueba:skill-de-prueba']);
     });
   } finally {
     if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
@@ -857,6 +862,64 @@ test('taskctl plan: IMP-6 (revision por pares ronda 2) -- un skill_N_id CON ":" 
       assert.match(
         result.avisoSkillNoInstalada!,
         new RegExp(`/plugin install figma@${marketplaceInventado}`)
+      );
+    });
+  } finally {
+    if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
+    else process.env['CLAUDE_PLUGIN_ROOT'] = previoPluginRoot;
+    await rm(pluginRootTmp, { recursive: true, force: true });
+  }
+});
+
+test('taskctl plan: IMP-9 (revision por pares ronda 3) -- un skill_N_id de origen "externo" SIN ":" aborta con CatalogoSkillsError, no se adivina el plugin', async () => {
+  const pluginRootTmp = await mkdtemp(path.join(tmpdir(), 'taskctl-plan-plugin-root-'));
+  const previoPluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
+  try {
+    const scriptsDir = path.join(pluginRootTmp, 'scripts');
+    await mkdir(scriptsDir, { recursive: true });
+    const heuristicaReal = await readFile(RUTA_HEURISTICA_REAL, 'utf8');
+    await writeFile(path.join(scriptsDir, 'heuristica-complejidad.yml'), heuristicaReal, 'utf8');
+    await writeFile(
+      path.join(scriptsDir, 'catalogo-skills.yml'),
+      [
+        'total_skills: 1',
+        // Sin ":" -- viola la convencion "plugin:skill" que
+        // construirEntrada() exige para "origen: externo" desde IMP-9.
+        // Antes de este hallazgo, este catalogo parseaba igual y
+        // taskctl plan emitia un "/plugin install" con el id entero
+        // como si fuera el nombre del plugin.
+        'skill_1_id: skill-externo-mal-formado',
+        'skill_1_origen: externo',
+        'skill_1_marketplace: marketplace-inventado-para-el-test-de-plan',
+        'skill_1_rol: ejecucion',
+        'skill_1_prioridad: 5',
+        'skill_1_etiquetas: [etiqueta-unica-para-el-test-de-id-mal-formado]',
+        'skill_1_patrones_archivo: []',
+        'skill_1_descripcion: "skill externo con id mal formado"',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+    process.env['CLAUDE_PLUGIN_ROOT'] = pluginRootTmp;
+
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(
+        tareasRoot,
+        sampleTask({ etiquetas: ['etiqueta-unica-para-el-test-de-id-mal-formado'] }),
+        BODY_CON_OBJETIVO
+      );
+      commitAll(repoRoot, 'tarea TASK-700 con catalogo de id externo mal formado');
+
+      await assert.rejects(
+        () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot }),
+        CatalogoSkillsError
+      );
+
+      // Mismo criterio que MEN-8: un catalogo invalido no deja
+      // planificacion/ a medio crear.
+      await assert.doesNotReject(() => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700')));
+      await assert.rejects(
+        () => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700', PLANIFICACION_DIRNAME))
       );
     });
   } finally {

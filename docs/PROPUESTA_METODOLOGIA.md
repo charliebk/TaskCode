@@ -173,9 +173,9 @@ Coincido en que vale la pena construir esto bien — es exactamente el mismo pro
      patrones_archivo: ["**/*.java", "src/main/java/**"]  # enrutado por diff real, ver 16.5
      descripcion: "Revisión de capas de servicio/repositorio, transacciones Spring Boot"
 
-   - id: figma:figma-generate-design
+   - id: figma:figma-generate-design   # "figma" (antes de ":") es el PLUGIN
      origen: externo
-     marketplace: figma
+     marketplace: claude-plugins-official
      rol: ejecucion
      prioridad: 5
      etiquetas: [figma, diseno, ui, mockup]

@@ -243,6 +243,24 @@ function construirEntrada(
   const cOrigen = exigirCampo(bloque, 'origen', n, ruta);
   const origen = validarEnum(`${ruta}:${cOrigen.numeroLinea}`, `${prefijo}origen`, cOrigen.valor, ORIGENES_SKILL);
 
+  // IMP-9 (revision por pares ronda 3, TASK-017): "plugin:skill" es la
+  // convencion normativa para un id externo (seccion 6.6 de
+  // docs/PROPUESTA_METODOLOGIA.md, comentario de cabecera de este
+  // fichero), pero hasta ahora nada la exigia -- un id externo sin ":"
+  // parseaba igual, y plan.ts emitia un "/plugin install" con el nombre
+  // de un skill donde debia ir el nombre de un plugin, sin abortar ni
+  // avisar. Fallo cerrado: si no cumple la forma exacta, no se adivina
+  // nada, se aborta con instruccion de como corregirlo.
+  if (origen === 'externo' && !/^[^:]+:[^:]+$/.test(id)) {
+    throw new CatalogoSkillsError(
+      `[ERROR] ${ruta}:${cId.numeroLinea}: "${prefijo}id" invalido para "${prefijo}origen: externo": "${id}".\n` +
+        '        Debe tener la forma "plugin:skill" (un unico ":", ni el tramo antes\n' +
+        '        ni el de despues vacio) -- el tramo antes de ":" es el PLUGIN a\n' +
+        '        instalar, el de despues el skill dentro de ese plugin (seccion 6.6 de\n' +
+        '        docs/PROPUESTA_METODOLOGIA.md).'
+    );
+  }
+
   const cRol = exigirCampo(bloque, 'rol', n, ruta);
   const rol = validarEnum(`${ruta}:${cRol.numeroLinea}`, `${prefijo}rol`, cRol.valor, ROLES_SKILL);
 

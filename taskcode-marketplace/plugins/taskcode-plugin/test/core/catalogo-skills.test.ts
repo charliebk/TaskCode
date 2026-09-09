@@ -291,8 +291,12 @@ test('id repetido entre dos entradas aborta', () => {
 });
 
 test('marketplace ausente en un origen externo aborta', () => {
+  // El id se fija a una forma "plugin:skill" valida para que la validacion
+  // de formato (IMP-9) no dispare antes de llegar a la de marketplace, que
+  // es lo que este test quiere comprobar.
+  const conId = conValor('skill_2_id', 'mi-plugin:code-quality-reviewer');
   assert.throws(
-    () => parsearCatalogoSkills(conValor('skill_2_origen', 'externo'), RUTA_YML),
+    () => parsearCatalogoSkills(conValor('skill_2_origen', 'externo', conId), RUTA_YML),
     errorAccionable(/falta la clave obligatoria "skill_2_marketplace"/)
   );
 });
@@ -305,13 +309,69 @@ test('marketplace presente en un origen taskcode-plugin aborta', () => {
 });
 
 test('un skill externo con marketplace declarado parsea y queda marcado', () => {
-  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace');
+  // El id tiene que respetar "plugin:skill" (IMP-9, revision por pares
+  // ronda 3, TASK-017): "code-quality-reviewer" a secas es valido para
+  // origen "taskcode-plugin", pero no para "externo".
+  const conId = conValor('skill_2_id', 'mi-plugin:code-quality-reviewer');
+  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
   const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
   const catalogo = parsearCatalogoSkills(conExterno, RUTA_YML);
-  const entrada = catalogo.find((e) => e.id === 'code-quality-reviewer');
+  const entrada = catalogo.find((e) => e.id === 'mi-plugin:code-quality-reviewer');
   assert.ok(entrada);
   assert.equal(entrada.origen, 'externo');
   assert.equal(entrada.marketplace, 'mi-marketplace');
+});
+
+// IMP-9 (revision por pares ronda 3, TASK-017): la convencion
+// "plugin:skill" para un id de origen "externo" quedo escrita en el
+// comentario de cabecera del YML (IMP-6, ronda 2) pero nada la
+// exigia -- un id sin ":" parseaba igual y plan.ts emitia un "/plugin
+// install" con el nombre de un skill donde debia ir el de un plugin,
+// sin abortar ni avisar. Estos tests fijan el fallo cerrado.
+test('id externo sin ":" aborta', () => {
+  const conId = conValor('skill_2_id', 'code-quality-reviewer-sin-dos-puntos');
+  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
+  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
+  assert.throws(
+    () => parsearCatalogoSkills(conExterno, RUTA_YML),
+    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
+  );
+});
+
+test('id externo con dos ":" aborta', () => {
+  const conId = conValor('skill_2_id', 'plugin:sub:skill');
+  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
+  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
+  assert.throws(
+    () => parsearCatalogoSkills(conExterno, RUTA_YML),
+    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
+  );
+});
+
+test('id externo con el tramo del plugin vacio (":skill") aborta', () => {
+  const conId = conValor('skill_2_id', ':code-quality-reviewer');
+  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
+  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
+  assert.throws(
+    () => parsearCatalogoSkills(conExterno, RUTA_YML),
+    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
+  );
+});
+
+test('id externo con el tramo del skill vacio ("plugin:") aborta', () => {
+  const conId = conValor('skill_2_id', 'mi-plugin:');
+  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
+  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
+  assert.throws(
+    () => parsearCatalogoSkills(conExterno, RUTA_YML),
+    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
+  );
+});
+
+test('id sin ":" en origen "taskcode-plugin" sigue siendo valido (la exigencia es solo para "externo")', () => {
+  // Precondicion explicita: el catalogo real tiene 5 entradas
+  // "taskcode-plugin" y ninguna trae ":" en su id.
+  assert.ok(CATALOGO.every((e) => e.origen === 'taskcode-plugin' && !e.id.includes(':')));
 });
 
 // --------------------------------------------------------------------
