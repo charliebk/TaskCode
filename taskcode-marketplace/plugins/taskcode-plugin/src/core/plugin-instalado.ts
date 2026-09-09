@@ -23,12 +23,20 @@
  * Formato real de "claude plugin list --json" (verificado en revision
  * por pares de TASK-017 contra el binario real): un array de objetos
  * con `id` de la forma "plugin@marketplace" (entre otras claves como
- * `version`, `scope`, `enabled`). No hay campo `marketplace` suelto;
- * hay que partir `id` por "@" y quedarse con el ultimo tramo. Un
- * elemento del array que no sea un objeto con `id` de tipo string no
- * es reconocible; si NINGUN elemento de un array no vacio es
+ * `version`, `scope`, `enabled`). No hay campo `marketplace` suelto.
+ * Un elemento del array que no sea un objeto con `id` de tipo string
+ * no es reconocible; si NINGUN elemento de un array no vacio es
  * reconocible, el formato no encaja con lo esperado y el resultado
  * colapsa a 'no-verificable' en vez de asumirse 'no-instalado'.
+ *
+ * IMPORTANTE (hallazgo IMP-5, revision por pares ronda 2): la
+ * comprobacion es por `id` COMPLETO ("plugin@marketplace"), nunca solo
+ * por el tramo del marketplace. Comparar solo el marketplace confunde
+ * "hay algun plugin instalado de este marketplace" con "esta instalado
+ * ESTE plugin", y reporta como 'instalado' un plugin que no existe si
+ * cualquier otro del mismo marketplace si esta instalado -- justo el
+ * "candidato real que falta" escondido que este modulo existe para
+ * evitar.
  */
 import { spawnSync } from 'node:child_process';
 
@@ -48,10 +56,13 @@ interface ResultadoPluginList {
  * inesperada, encontrado/no encontrado) con datos literales, sin lanzar
  * un subproceso real — mismo motivo por el que parsearCatalogoSkills
  * vive aparte de cargarCatalogoSkills en catalogo-skills.ts.
+ *
+ * `pluginId` es el identificador COMPLETO esperado, con la forma
+ * "plugin@marketplace" (ver hallazgo IMP-5 en el docblock del fichero).
  */
 export function interpretarResultadoPluginList(
   result: ResultadoPluginList,
-  marketplace: string
+  pluginId: string
 ): EstadoInstalacionSkill {
   if (result.error || result.status !== 0 || typeof result.stdout !== 'string') {
     return 'no-verificable';
@@ -78,11 +89,11 @@ export function interpretarResultadoPluginList(
     return 'no-verificable';
   }
 
-  const instalado = reconocibles.some((entrada) => entrada.id.split('@').at(-1) === marketplace);
+  const instalado = reconocibles.some((entrada) => entrada.id === pluginId);
   return instalado ? 'instalado' : 'no-instalado';
 }
 
-export function comprobarSkillInstalado(marketplace: string): EstadoInstalacionSkill {
+export function comprobarSkillInstalado(pluginId: string): EstadoInstalacionSkill {
   const result = spawnSync('claude', ['plugin', 'list', '--json'], {
     encoding: 'utf8',
     timeout: TIMEOUT_MS,
@@ -93,6 +104,6 @@ export function comprobarSkillInstalado(marketplace: string): EstadoInstalacionS
       status: result.status,
       stdout: typeof result.stdout === 'string' ? result.stdout : null,
     },
-    marketplace
+    pluginId
   );
 }

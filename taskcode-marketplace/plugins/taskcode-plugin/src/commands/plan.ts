@@ -596,7 +596,16 @@ export async function runPlanCommand(
   if (skillsRecomendadosFinal.length > 0) {
     const entradaGanadora = catalogoSkills.find((e) => e.id === skillsRecomendadosFinal[0])!;
     if (entradaGanadora.origen === 'externo') {
-      const estadoInstalacion = comprobarSkillInstalado(entradaGanadora.marketplace!);
+      // "skill_N_id" de una entrada externa es "plugin:skill" (seccion
+      // 6.6 del catalogo); el nombre del PLUGIN es el tramo antes de
+      // ":". Comparar solo el marketplace (hallazgo IMP-5, revision por
+      // pares ronda 2) reportaba 'instalado' un plugin inexistente si
+      // CUALQUIER OTRO plugin del mismo marketplace si lo estaba -- el
+      // id completo "plugin@marketplace" es la unica comprobacion que
+      // no esconde un candidato real que falta.
+      const nombrePlugin = entradaGanadora.id.split(':')[0]!;
+      const pluginId = `${nombrePlugin}@${entradaGanadora.marketplace}`;
+      const estadoInstalacion = comprobarSkillInstalado(pluginId);
       if (estadoInstalacion !== 'instalado') {
         // 'no-verificable' avisa igual que 'no-instalado' -- el riesgo
         // aceptado es peor si se calla -- pero con una redaccion propia
@@ -610,7 +619,7 @@ export async function runPlanCommand(
         avisoSkillNoInstalada =
           `Esta tarea se beneficiaria del skill "${entradaGanadora.id}" (marketplace ` +
           `"${entradaGanadora.marketplace}") -- ${diagnostico}. Instalalo con "/plugin install ` +
-          `${entradaGanadora.id}@${entradaGanadora.marketplace}" antes de arrancar, o continua sin el.`;
+          `${pluginId}" antes de arrancar, o continua sin el.`;
       }
     }
   }

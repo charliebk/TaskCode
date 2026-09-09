@@ -14,6 +14,12 @@
  * TASK-017, ronda 1 (hallazgo IMPORTANTE IMP-1): el formato asumido en
  * la primera version -- un campo `marketplace` suelto -- no existe.
  *
+ * La comparacion es por `pluginId` COMPLETO ("plugin@marketplace"), no
+ * solo por el tramo del marketplace (hallazgo IMPORTANTE IMP-5,
+ * revision por pares ronda 2): comparar solo el marketplace reportaba
+ * 'instalado' un plugin inexistente si cualquier OTRO plugin del mismo
+ * marketplace si estaba instalado.
+ *
  * `comprobarSkillInstalado` solo se prueba con un test de integracion
  * minimo: en esta maquina de test no sabemos si "claude" esta instalado
  * ni que devuelve, asi que lo unico que se puede afirmar sin suponer
@@ -29,11 +35,12 @@ import {
 } from '../../src/core/plugin-instalado.js';
 
 const MARKETPLACE = 'mi-marketplace';
+const PLUGIN_ID = `figma@${MARKETPLACE}`;
 
 test('binario ausente (result.error presente) es no-verificable', () => {
   const estado = interpretarResultadoPluginList(
     { error: new Error('spawnSync claude ENOENT'), status: null, stdout: null },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-verificable');
 });
@@ -41,7 +48,7 @@ test('binario ausente (result.error presente) es no-verificable', () => {
 test('status distinto de 0 es no-verificable', () => {
   const estado = interpretarResultadoPluginList(
     { error: undefined, status: 1, stdout: '[]' },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-verificable');
 });
@@ -49,7 +56,7 @@ test('status distinto de 0 es no-verificable', () => {
 test('status null (p. ej. timeout) es no-verificable', () => {
   const estado = interpretarResultadoPluginList(
     { error: undefined, status: null, stdout: '[]' },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-verificable');
 });
@@ -57,7 +64,7 @@ test('status null (p. ej. timeout) es no-verificable', () => {
 test('stdout ausente (no es string) es no-verificable', () => {
   const estado = interpretarResultadoPluginList(
     { error: undefined, status: 0, stdout: null },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-verificable');
 });
@@ -65,7 +72,7 @@ test('stdout ausente (no es string) es no-verificable', () => {
 test('stdout con JSON mal formado es no-verificable', () => {
   const estado = interpretarResultadoPluginList(
     { error: undefined, status: 0, stdout: '{ esto no es json valido' },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-verificable');
 });
@@ -73,7 +80,7 @@ test('stdout con JSON mal formado es no-verificable', () => {
 test('stdout con una forma que no es un array es no-verificable', () => {
   const estado = interpretarResultadoPluginList(
     { error: undefined, status: 0, stdout: JSON.stringify({ plugins: [] }) },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-verificable');
 });
@@ -81,7 +88,7 @@ test('stdout con una forma que no es un array es no-verificable', () => {
 test('array vacio es no-instalado', () => {
   const estado = interpretarResultadoPluginList(
     { error: undefined, status: 0, stdout: '[]' },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-instalado');
 });
@@ -92,29 +99,41 @@ test('array no vacio donde NINGUN elemento tiene la forma esperada (objeto con "
     JSON.stringify(['texto-suelto']),
     JSON.stringify([null, null]),
     JSON.stringify([{ marketplace: MARKETPLACE }]),
-    JSON.stringify([[{ id: `figma@${MARKETPLACE}` }]]),
+    JSON.stringify([[{ id: PLUGIN_ID }]]),
   ]) {
-    const estado = interpretarResultadoPluginList({ error: undefined, status: 0, stdout }, MARKETPLACE);
+    const estado = interpretarResultadoPluginList({ error: undefined, status: 0, stdout }, PLUGIN_ID);
     assert.equal(estado, 'no-verificable', `stdout=${stdout}`);
   }
 });
 
-test('array con "id" de otros marketplaces es no-instalado', () => {
+test('array con "id" que no coincide con el pluginId buscado es no-instalado', () => {
   const estado = interpretarResultadoPluginList(
     { error: undefined, status: 0, stdout: JSON.stringify([{ id: 'figma@otro-marketplace' }]) },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'no-instalado');
 });
 
-test('array con "id" cuyo tramo tras el @ es el marketplace buscado es instalado', () => {
+test('IMP-5: otro plugin del mismo marketplace instalado, pero no el buscado, es no-instalado', () => {
   const estado = interpretarResultadoPluginList(
     {
       error: undefined,
       status: 0,
-      stdout: JSON.stringify([{ id: 'otro@otro-marketplace' }, { id: `figma@${MARKETPLACE}` }]),
+      stdout: JSON.stringify([{ id: `otro-plugin@${MARKETPLACE}` }]),
     },
-    MARKETPLACE
+    PLUGIN_ID
+  );
+  assert.equal(estado, 'no-instalado');
+});
+
+test('array con "id" que coincide exactamente con el pluginId buscado es instalado', () => {
+  const estado = interpretarResultadoPluginList(
+    {
+      error: undefined,
+      status: 0,
+      stdout: JSON.stringify([{ id: `otro@${MARKETPLACE}` }, { id: PLUGIN_ID }]),
+    },
+    PLUGIN_ID
   );
   assert.equal(estado, 'instalado');
 });
@@ -126,7 +145,7 @@ test('formato real de "claude plugin list --json" (id, version, scope, enabled, 
       status: 0,
       stdout: JSON.stringify([
         {
-          id: `figma@${MARKETPLACE}`,
+          id: PLUGIN_ID,
           version: '2.2.90',
           scope: 'user',
           enabled: true,
@@ -136,7 +155,7 @@ test('formato real de "claude plugin list --json" (id, version, scope, enabled, 
         },
       ]),
     },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'instalado');
 });
@@ -146,15 +165,15 @@ test('entradas sin "id" (o con "id" no string) se ignoran sin lanzar cuando OTRA
     {
       error: undefined,
       status: 0,
-      stdout: JSON.stringify([{ nombre: 'algun-plugin' }, { id: 42 }, { id: `figma@${MARKETPLACE}` }]),
+      stdout: JSON.stringify([{ nombre: 'algun-plugin' }, { id: 42 }, { id: PLUGIN_ID }]),
     },
-    MARKETPLACE
+    PLUGIN_ID
   );
   assert.equal(estado, 'instalado');
 });
 
 test('comprobarSkillInstalado nunca lanza y siempre devuelve un estado valido', () => {
   const ESTADOS_VALIDOS: readonly EstadoInstalacionSkill[] = ['instalado', 'no-instalado', 'no-verificable'];
-  const estado = comprobarSkillInstalado('marketplace-inventado-para-el-test');
+  const estado = comprobarSkillInstalado('plugin-inventado@marketplace-inventado-para-el-test');
   assert.ok(ESTADOS_VALIDOS.includes(estado), `estado inesperado: ${String(estado)}`);
 });
