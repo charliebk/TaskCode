@@ -118,6 +118,7 @@ export function buildNewTask(id, opts, today) {
         asignado_a: null,
         agente_revisor: opts.agenteRevisor,
         skills_recomendados: [],
+        regla_seleccion_skill: null,
         ultimo_commit_revisado: null,
         revision_codex: false,
         creado: today,

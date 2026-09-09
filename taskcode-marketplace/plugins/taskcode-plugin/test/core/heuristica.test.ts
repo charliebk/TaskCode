@@ -82,6 +82,7 @@ function tarea(campos: Partial<Task> = {}): Task {
     plan_aprobado: false,
     rama: 'feature/task-999-prueba',
     asignado_a: null,
+    regla_seleccion_skill: null,
     agente_revisor: 'general-purpose',
     skills_recomendados: [],
     ultimo_commit_revisado: null,

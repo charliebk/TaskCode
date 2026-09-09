@@ -173,9 +173,9 @@ Coincido en que vale la pena construir esto bien — es exactamente el mismo pro
      patrones_archivo: ["**/*.java", "src/main/java/**"]  # enrutado por diff real, ver 16.5
      descripcion: "Revisión de capas de servicio/repositorio, transacciones Spring Boot"
 
-   - id: figma:figma-generate-design
+   - id: figma:figma-generate-design   # "figma" (antes de ":") es el PLUGIN
      origen: externo
-     marketplace: figma
+     marketplace: claude-plugins-official
      rol: ejecucion
      prioridad: 5
      etiquetas: [figma, diseno, ui, mockup]
@@ -187,7 +187,7 @@ Coincido en que vale la pena construir esto bien — es exactamente el mismo pro
 
 3. **Comprobar si está instalado — determinista, no un tool call de un agente dentro de la sesión.** Para `origen: taskcode-plugin` siempre es sí. Para `origen: externo`, `taskctl` (el script, no un agente) comprueba directamente el estado local de plugins de esa máquina, en vez de pedirle a un agente que "busque lo instalado" en medio de su razonamiento — es más determinista y no depende de si esa capacidad está pensada para usarse así desde dentro de un skill. **Aviso**: la investigación sobre el mecanismo exacto para esa comprobación (comando de CLI / archivo de configuración concreto) devolvió una respuesta que no puedo dar por verificada sin probarla a mano — se queda como "a confirmar en Sprint 0", no como dato cerrado. Lo que sí es un principio de diseño sólido, con o sin ese detalle: la comprobación de "¿está instalado?" debe resolverla el script de forma determinista, y el agente solo entra para el paso 2 (elegir entre candidatos).
 
-4. Si el candidato elegido no está instalado, se anota en `plan-final.md`: *"Esta tarea se beneficiaría del skill `X` (marketplace `Y`) — no está instalado. Instálalo con `/plugin install X@Y` antes de arrancar, o continúa sin él."* Nunca se instala nada automáticamente — requiere aprobación humana, como en cualquier instalación de plugin en Claude Code.
+4. Si el candidato elegido no está instalado, se anota en `plan-final.md`: *"Esta tarea se beneficiaría del skill `P:S` (marketplace `Y`) — no está instalado. Instálalo con `/plugin install P@Y` antes de arrancar, o continúa sin él."* Nótese que lo que se nombra es el skill completo (`P:S`, plugin y skill) pero lo que se instala es solo el plugin (`P`, el tramo antes de `:`) — la misma distinción del id compuesto que fija el ejemplo del paso 1. Nunca se instala nada automáticamente — requiere aprobación humana, como en cualquier instalación de plugin en Claude Code.
 
 ## 7. El plugin como unidad de distribución de la herramienta
 

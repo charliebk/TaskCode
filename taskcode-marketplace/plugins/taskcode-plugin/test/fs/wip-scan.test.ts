@@ -38,6 +38,7 @@ function tarea(overrides: Partial<Task> = {}): Task {
     plan_aprobado: true,
     rama: 'feature/task-900-prueba',
     asignado_a: 'carlos@example.com',
+    regla_seleccion_skill: null,
     agente_revisor: 'general-purpose',
     skills_recomendados: [],
     ultimo_commit_revisado: null,

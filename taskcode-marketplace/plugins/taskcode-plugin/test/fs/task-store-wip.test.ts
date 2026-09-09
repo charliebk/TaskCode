@@ -28,6 +28,7 @@ function tarea(overrides: Partial<Task> = {}): Task {
     asignado_a: 'carlos',
     agente_revisor: 'general-purpose',
     skills_recomendados: [],
+    regla_seleccion_skill: null,
     ultimo_commit_revisado: null,
     revision_codex: false,
     creado: '2026-09-05',

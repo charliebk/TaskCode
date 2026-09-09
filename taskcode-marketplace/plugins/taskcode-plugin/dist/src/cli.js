@@ -10,6 +10,7 @@ import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { HeuristicaError } from './core/heuristica.js';
 import { RolesBrainstormError } from './core/roles-brainstorm.js';
+import { CatalogoSkillsError } from './core/catalogo-skills.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
@@ -122,6 +123,33 @@ function asignacionNotice(result) {
     if (!result.asignadoCambiado || result.asignadoA === null)
         return '';
     return `Asignada a "${result.asignadoA}".\n`;
+}
+/**
+ * Resultado de la seleccion determinista de skill (seccion 6.6/16.4.1,
+ * TASK-017). Cuatro desenlaces posibles, no excluyentes entre "sin
+ * candidato"/"desempate pendiente" y "no instalada" (un ganador de una
+ * ronda anterior de desempate puede resultar externo y no instalado
+ * ahora mismo). Solo se anuncia el ganador cuando cambio respecto al
+ * valor previo: igual que brainstormNotice con la discrepancia, evita
+ * repetir en cada "plan" un resultado que ya se anuncio una vez.
+ */
+function seleccionSkillNotice(result) {
+    const lineas = [];
+    if (result.skillsRecomendadosCambiado && result.skillsRecomendados.length > 0) {
+        lineas.push(`Skill recomendado: "${result.skillsRecomendados[0]}" (regla: ${result.reglaSeleccionSkill}).`);
+    }
+    if (result.avisoSkillSinCandidato !== null) {
+        lineas.push(result.avisoSkillSinCandidato);
+    }
+    if (result.avisoSkillDesempatePendiente !== null) {
+        lineas.push(result.avisoSkillDesempatePendiente);
+    }
+    if (result.avisoSkillNoInstalada !== null) {
+        lineas.push(result.avisoSkillNoInstalada);
+    }
+    if (lineas.length === 0)
+        return '';
+    return lineas.join('\n') + '\n';
 }
 /**
  * Que ha dejado escrito el brainstorm (TASK-016). Se imprimen las
@@ -343,7 +371,8 @@ export async function main(argv) {
             }
             process.stdout.write(`Tarea ${result.id} en diseno: movida a ${result.filePath}. ${scaffoldMsg}\n` +
                 asignacionNotice(result) +
-                brainstormNotice(result));
+                brainstormNotice(result) +
+                seleccionSkillNotice(result));
             printAutoCommit(result.autoCommit);
             return 0;
         }
@@ -352,6 +381,7 @@ export async function main(argv) {
                 e instanceof ConfigError ||
                 e instanceof HeuristicaError ||
                 e instanceof RolesBrainstormError ||
+                e instanceof CatalogoSkillsError ||
                 e instanceof PlanCommandError ||
                 e instanceof StateMachineError ||
                 e instanceof TaskFolderConflictError ||

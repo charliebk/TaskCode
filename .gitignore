@@ -22,3 +22,10 @@ Thumbs.db
 # abortaria todo taskctl new/import/plan/approve.
 .topoplanet/
 .tokensave/
+
+# Configuracion local y worktrees de agentes de Claude Code. Nunca es fuente
+# del proyecto -- settings.local.json es por maquina, y los worktrees bajo
+# .claude/worktrees/ son copias temporales de trabajo de agentes en segundo
+# plano (p. ej. revisores independientes) que ya vuelcan su resultado real
+# en tareas/**/revision/informe-*.md antes de descartarse.
+.claude/

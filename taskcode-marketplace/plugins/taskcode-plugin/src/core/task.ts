@@ -12,6 +12,20 @@ export type TaskState =
   | 'en-curso'
   | 'en-revision'
   | 'terminada';
+/**
+ * Que regla decidio la skill ganadora en `skills_recomendados` (seccion
+ * 6.6, TASK-017): "solape" si gano por interseccion de etiquetas sin
+ * empate, "prioridad" si desempato la prioridad declarada en el
+ * catalogo, "llm" si ni el solape ni la prioridad desempataron y una
+ * consulta barata al modelo decidio entre el top-N. `null` cuando no
+ * hubo seleccion (ningun candidato solapo etiquetas).
+ */
+export type ReglaSeleccionSkill = 'solape' | 'prioridad' | 'llm';
+export const REGLAS_SELECCION_SKILL: readonly ReglaSeleccionSkill[] = [
+  'solape',
+  'prioridad',
+  'llm',
+];
 
 export const TASK_TYPES: readonly TaskType[] = ['feature', 'fix', 'hotfix', 'release'];
 export const TASK_COMPLEXITIES: readonly TaskComplexity[] = [
@@ -52,6 +66,7 @@ export interface Task {
   asignado_a: string | null;
   agente_revisor: string;
   skills_recomendados: string[];
+  regla_seleccion_skill: ReglaSeleccionSkill | null;
   ultimo_commit_revisado: string | null;
   revision_codex: boolean;
   creado: string;
@@ -88,6 +103,7 @@ export const TASK_FIELD_ORDER: readonly (keyof Task)[] = [
   'asignado_a',
   'agente_revisor',
   'skills_recomendados',
+  'regla_seleccion_skill',
   'ultimo_commit_revisado',
   'revision_codex',
   'creado',
@@ -190,6 +206,22 @@ function requireEnum<T extends string>(
   return v as T;
 }
 
+function requireNullableEnum<T extends string>(
+  data: Record<string, unknown>,
+  field: string,
+  allowed: readonly T[]
+): T | null {
+  const v = data[field];
+  if (v === null || v === undefined) return null;
+  if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) {
+    fail(
+      field,
+      `El campo "${field}" debe ser null o uno de: ${allowed.join(', ')}.`
+    );
+  }
+  return v as T;
+}
+
 /**
  * Valida y convierte un objeto generico (tal como lo devuelve
  * parseFrontmatter) en un Task tipado. Lanza TaskValidationError con
@@ -215,6 +247,11 @@ export function validateTask(data: Record<string, unknown>): Task {
     asignado_a: requireNullableString(data, 'asignado_a'),
     agente_revisor: requireString(data, 'agente_revisor'),
     skills_recomendados: requireStringArray(data, 'skills_recomendados'),
+    regla_seleccion_skill: requireNullableEnum(
+      data,
+      'regla_seleccion_skill',
+      REGLAS_SELECCION_SKILL
+    ),
     ultimo_commit_revisado: requireNullableString(data, 'ultimo_commit_revisado'),
     revision_codex: requireBoolean(data, 'revision_codex'),
     creado: requireString(data, 'creado'),

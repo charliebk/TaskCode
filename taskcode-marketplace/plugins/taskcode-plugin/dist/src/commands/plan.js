@@ -14,15 +14,16 @@
  * reparto que TASK-013 fijo para "taskctl review", y por el mismo
  * motivo — un CLI que llama a un agente no se puede probar sin uno.
  *
- * LO QUE SIGUE SIN HACER: contexto determinista desde docs/INDEX.md,
- * gatekeeper barato para la discrepancia de complejidad y seleccion de
- * skill (6.6, TASK-017).
+ * LO QUE SIGUE SIN HACER: contexto determinista desde docs/INDEX.md y
+ * gatekeeper barato para la discrepancia de complejidad. La seleccion
+ * determinista de skill (6.6/16.4.1, TASK-017) ya vive aqui, entre el
+ * calculo del brainstorm y la escritura del frontmatter.
  *
  * Aplica la precondicion de rama base de la seccion 8.3 desde TASK-012
  * (ensureBaseBranchReady, antes de mover nada).
  */
 import path from 'node:path';
-import { mkdir, readdir, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { parseArgs } from '../cli/args.js';
 import { parseAsignadoAFlag, identidadUsable, PISTA_VACIO_ESCRITURA, } from '../cli/asignado.js';
 import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
@@ -34,6 +35,9 @@ import { extraerSecciones } from '../core/tarea-body.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
 import { seleccionarRoles, ROLES_BRAINSTORM, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
+import { cargarCatalogoSkills, seleccionarSkill, FICHERO_CATALOGO_SKILLS, } from '../core/catalogo-skills.js';
+import { PETICION_DESEMPATE_SKILL_FILENAME, SALIDA_DESEMPATE_SKILL_FILENAME, peticionDesempateSkillTemplate, salidaDesempateSkillTemplate, leerGanadorDesempate, } from '../core/plan-desempate-skill.js';
+import { comprobarSkillInstalado } from '../core/plugin-instalado.js';
 export class PlanCommandError extends Error {
 }
 export const PLAN_FINAL_FILENAME = 'plan-final.md';
@@ -260,12 +264,6 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     const { identidad, aviso: avisoIdentidad } = identidadUsable(gitUserEmail(deps.repoCwd));
     const asignadoFinal = resolverAsignado(asignadoA, task.asignado_a, identidad);
     const asignadoCambiado = asignadoFinal !== task.asignado_a;
-    const updated = {
-        ...task,
-        estado: 'en-diseno',
-        asignado_a: asignadoFinal,
-        actualizado: today,
-    };
     // --- Resolucion determinista del brainstorm (TASK-016) -------------
     // Va ANTES de cualquier escritura y de mover nada: todo lo que puede
     // abortar tiene que abortar con la tarea intacta.
@@ -278,6 +276,19 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     const heuristica = cargarHeuristica();
     const resolucion = resolverNumeroAgentes(task, body, heuristica);
     const roles = seleccionarRoles(resolucion.agentes);
+    // --- Seleccion determinista de skill (seccion 6.6/16.4.1, TASK-017) -
+    // Mismo criterio fail-closed que la heuristica de arriba, y por eso
+    // va aqui y no mas abajo (hallazgo IMPORTANTE de revision por pares,
+    // TASK-017): un catalogo mal formado tiene que abortar "plan" ANTES
+    // del mkdir/writeFile del scaffold, no despues -- si no, el aborto
+    // deja el workspace sucio (planificacion/ ya creada) y el guard de
+    // la seccion 8.3 bloquea el reintento con un mensaje que no explica
+    // la causa real. La diferencia con la heuristica es que aqui CERO
+    // candidatos tras cruzar etiquetas SI es un resultado valido
+    // (catalogo-skills.ts: el catalogo no es exhaustivo por diseno, a
+    // diferencia de la heuristica).
+    const catalogoSkills = cargarCatalogoSkills();
+    const seleccionSkill = seleccionarSkill(task, catalogoSkills);
     const secciones = extraerSecciones(body);
     // Puerta del objetivo vacio. "taskctl new" deja el Objetivo en blanco
     // a proposito, y mientras "plan" solo escribia un scaffold eso era
@@ -385,6 +396,95 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
             }
         }
     }
+    let skillsRecomendadosFinal = [];
+    let reglaSeleccionSkillFinal = null;
+    let avisoSkillSinCandidato = null;
+    let avisoSkillDesempatePendiente = null;
+    let avisoSkillNoInstalada = null;
+    let peticionDesempateSkillPath = null;
+    let hayDesempatePendiente = false;
+    if (seleccionSkill.ganador !== null) {
+        skillsRecomendadosFinal = [seleccionSkill.ganador.id];
+        reglaSeleccionSkillFinal = seleccionSkill.regla;
+    }
+    else if (seleccionSkill.candidatosEmpatados.length === 0) {
+        avisoSkillSinCandidato =
+            `Ningun skill de "${FICHERO_CATALOGO_SKILLS}" comparte etiquetas con ${task.id}: se deja ` +
+                'sin "skills_recomendados". No es un fallo -- el catalogo no tiene por que cubrir toda tarea.';
+    }
+    else {
+        // Empate en solape Y en prioridad: el desempate barato no lo
+        // resuelve un calculo (16.4.1). La peticion se REGENERA siempre
+        // (es derivada, igual que peticionRolTemplate): si el catalogo
+        // cambio entre intentos, una peticion rancia listando candidatos
+        // que ya no empatan seria peor que no tener ninguna.
+        const peticionDesempatePath = path.join(planificacionDir, PETICION_DESEMPATE_SKILL_FILENAME);
+        const salidaDesempatePath = path.join(planificacionDir, SALIDA_DESEMPATE_SKILL_FILENAME);
+        await writeFile(peticionDesempatePath, peticionDesempateSkillTemplate(task, seleccionSkill.candidatosEmpatados, today), { encoding: 'utf8' });
+        peticionDesempateSkillPath = peticionDesempatePath;
+        if (!(await ficheroConContenido(salidaDesempatePath))) {
+            await writeFile(salidaDesempatePath, salidaDesempateSkillTemplate(task), { encoding: 'utf8' });
+        }
+        // Tras el bloque de arriba el fichero siempre tiene contenido (o ya lo
+        // tenia, o se acaba de escribir el scaffold, que nunca es vacio): no
+        // hace falta comprobarlo una segunda vez (MEN-16, revision por pares
+        // ronda 3, TASK-017).
+        const ganadorDesempate = leerGanadorDesempate(await readFile(salidaDesempatePath, 'utf8'), seleccionSkill.candidatosEmpatados);
+        if (ganadorDesempate !== null) {
+            skillsRecomendadosFinal = [ganadorDesempate.id];
+            reglaSeleccionSkillFinal = 'llm';
+        }
+        else {
+            // El aviso final se construye mas abajo, sobre las rutas de
+            // DESTINO tras moveTareaFile: en la primera vuelta (la unica en
+            // la que se llega aqui con la tarea todavia en su carpeta de
+            // origen) planificacionDir ya no existira una vez movida la tarea.
+            hayDesempatePendiente = true;
+        }
+    }
+    if (skillsRecomendadosFinal.length > 0) {
+        const entradaGanadora = catalogoSkills.find((e) => e.id === skillsRecomendadosFinal[0]);
+        if (entradaGanadora.origen === 'externo') {
+            // "skill_N_id" de una entrada externa es "plugin:skill" (seccion
+            // 6.6 del catalogo); el nombre del PLUGIN es el tramo antes de
+            // ":". Comparar solo el marketplace (hallazgo IMP-5, revision por
+            // pares ronda 2) reportaba 'instalado' un plugin inexistente si
+            // CUALQUIER OTRO plugin del mismo marketplace si lo estaba -- el
+            // id completo "plugin@marketplace" es la unica comprobacion que
+            // no esconde un candidato real que falta.
+            const nombrePlugin = entradaGanadora.id.split(':')[0];
+            const pluginId = `${nombrePlugin}@${entradaGanadora.marketplace}`;
+            const estadoInstalacion = comprobarSkillInstalado(pluginId);
+            if (estadoInstalacion !== 'instalado') {
+                // 'no-verificable' avisa igual que 'no-instalado' -- el riesgo
+                // aceptado es peor si se calla -- pero con una redaccion propia
+                // (hallazgo MENOR de revision por pares, TASK-017): decir "no
+                // esta instalado" cuando lo unico que sabemos es que no se pudo
+                // comprobar afirma algo que el subproceso no confirmo.
+                const diagnostico = estadoInstalacion === 'no-verificable'
+                    ? 'no se ha podido comprobar si esta instalado'
+                    : 'no esta instalado';
+                avisoSkillNoInstalada =
+                    `Esta tarea se beneficiaria del skill "${entradaGanadora.id}" (marketplace ` +
+                        `"${entradaGanadora.marketplace}") -- ${diagnostico}. Instalalo con "/plugin install ` +
+                        `${pluginId}" antes de arrancar, o continua sin el.`;
+            }
+        }
+    }
+    // Re-planificacion (bucle B9->B5): sin esta comparacion,
+    // "skills_recomendados" ya fijado en una vuelta anterior se pisaba en
+    // silencio en cada "plan" -- misma trampa que asignadoCambiado ya
+    // cierra para "asignado_a".
+    const skillsRecomendadosCambiado = skillsRecomendadosFinal.length !== task.skills_recomendados.length ||
+        skillsRecomendadosFinal.some((id, i) => id !== task.skills_recomendados[i]);
+    const updated = {
+        ...task,
+        estado: 'en-diseno',
+        asignado_a: asignadoFinal,
+        actualizado: today,
+        skills_recomendados: skillsRecomendadosFinal,
+        regla_seleccion_skill: reglaSeleccionSkillFinal,
+    };
     // --- El paquete de brainstorm (TASK-016) ---------------------------
     // Se escribe en la carpeta ACTUAL y ANTES de mover la tarea, por el
     // mismo motivo que la peticion de revision en TASK-013: si una
@@ -610,6 +710,23 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // seria peor que no devolverlas — el CLI las imprime para que la
     // persona las abra.
     const brainstormDirFinal = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, BRAINSTORM_DIRNAME);
+    // Mismo problema y misma solucion que brainstormDirFinal: las rutas
+    // del desempate de skill se escribieron contra la carpeta de origen,
+    // que el rename de arriba se acaba de llevar. Se recalculan aqui,
+    // contra la de destino, antes de construir el aviso o devolver la
+    // ruta de la peticion.
+    if (peticionDesempateSkillPath !== null) {
+        const planificacionDirFinal = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME);
+        const peticionDesempatePathFinal = path.join(planificacionDirFinal, PETICION_DESEMPATE_SKILL_FILENAME);
+        peticionDesempateSkillPath = peticionDesempatePathFinal;
+        if (hayDesempatePendiente) {
+            const salidaDesempatePathFinal = path.join(planificacionDirFinal, SALIDA_DESEMPATE_SKILL_FILENAME);
+            avisoSkillDesempatePendiente =
+                `${seleccionSkill.candidatosEmpatados.length} skills empatan en solape y prioridad para ` +
+                    `${task.id}: responde "${peticionDesempatePathFinal}" en "${salidaDesempatePathFinal}" y vuelve a ` +
+                    'lanzar "taskctl plan" para dejarlo resuelto. Por ahora se deja sin "skills_recomendados".';
+        }
+    }
     return {
         autoCommit: commitResult,
         id: task.id,
@@ -630,5 +747,12 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         asignadoCambiado,
         avisoIdentidad,
         baseBranchGuard,
+        skillsRecomendados: skillsRecomendadosFinal,
+        reglaSeleccionSkill: reglaSeleccionSkillFinal,
+        skillsRecomendadosCambiado,
+        avisoSkillSinCandidato,
+        avisoSkillDesempatePendiente,
+        peticionDesempateSkill: peticionDesempateSkillPath,
+        avisoSkillNoInstalada,
     };
 }

@@ -1,0 +1,161 @@
+# Catalogo de skills para seleccion determinista - TASK-017 (seccion 6.6 de
+# docs/PROPUESTA_METODOLOGIA.md).
+#
+# Registra los skills que `taskctl plan` puede recomendar para EJECUTAR una
+# tarea (`skills_recomendados`) y, mas adelante (TASK-018, seccion 16.5), los
+# que puede usar `taskctl review` para enrutar el diff a un revisor de
+# dominio en vez de al generico. Este fichero no decide el `agente_revisor`
+# de hoy: eso lo hace `agentes-revisores.yml`. Aqui se cruzan `etiquetas`
+# de la tarea contra `etiquetas` de cada entrada para un top-N por solape,
+# nunca al reves.
+#
+# FORMATO. Mismo parser minimo que el resto de metadatos del plugin, via
+# parseBloqueClaveValor(): SOLO pares "clave: valor" de primer nivel,
+# listas en linea [a, b, c], comentarios de linea que empiezan por "#".
+# NO hay anidamiento ni listas en bloque con "-", asi que el YAML de
+# ejemplo de la seccion 6.6 (una lista de mapas) no se puede escribir tal
+# cual. Cada entrada del catalogo se aplana con el prefijo "skill_N_" en el
+# nombre de la clave, donde N es su posicion (empieza en 1). La clave
+# "total_skills" dice cuantas entradas hay que leer; catalogo-skills.ts
+# itera de 1 a total_skills y exige el bloque completo de cada una.
+#
+# Comentarios de linea van APAGADOS por defecto en ese parser: hay que
+# pedirlos de forma explicita (permitirComentariosDeLinea: true), igual
+# que hace cargarHeuristica() para heuristica-complejidad.yml.
+#
+# CAMPOS por entrada (los siete de la seccion 6.6):
+#   skill_N_id                 identificador del skill. Para uno empaquetado
+#                               en este plugin, su nombre de skill tal cual
+#                               (el de su carpeta y su frontmatter `name`).
+#                               Para uno externo, "plugin:skill" (ver el
+#                               ejemplo "figma:figma-generate-design" de la
+#                               seccion 6.6, donde "figma" es el PLUGIN que
+#                               hay que instalar, no el marketplace que lo
+#                               aloja -- ese va aparte, en
+#                               skill_N_marketplace). Debe ser unico en todo
+#                               el fichero.
+#   skill_N_origen              "taskcode-plugin" (empaquetado, siempre
+#                               instalado con este plugin) o "externo"
+#                               (puede no estar instalado en la maquina).
+#   skill_N_marketplace         SOLO si origen es "externo": el marketplace
+#                               del que se instala, para poder anotar
+#                               "/plugin install X@Y" cuando no este
+#                               instalado (paso 4 de 6.6). Ausente en toda
+#                               entrada con origen "taskcode-plugin": no
+#                               tiene sentido, el plugin ya la trae.
+#   skill_N_rol                 "revisor" | "ejecucion" | "ambos".
+#   skill_N_prioridad           entero >= 0. Desempate determinista
+#                               (seccion 16.4.1) cuando dos o mas entradas
+#                               empatan en solape de etiquetas contra la
+#                               tarea: gana la de prioridad MAS ALTA. Solo
+#                               si tambien empatan en prioridad se consulta
+#                               a un modelo barato (ver
+#                               peticion-desempate-skill-N.md).
+#   skill_N_etiquetas            lista en linea. Es la que se cruza contra
+#                               las `etiquetas` de la tarea para el solape
+#                               del paso 1 de 6.6.
+#   skill_N_patrones_archivo     lista en linea de globs, en el MISMO estilo
+#                               flow que ya declara cada SKILL.md (se copian
+#                               tal cual, sin reescribirlos). Vacia ([]) si
+#                               el skill no se enruta por extension de
+#                               fichero (caso task-workflow, que se dispara
+#                               por la existencia de la carpeta `tareas/`, y
+#                               caso code-quality-reviewer, que es fallback
+#                               por descarte). Hoy sin consumidor: lo usa
+#                               TASK-018 (seccion 16.5) para enrutar
+#                               `taskctl review` por lo que el diff
+#                               realmente toca. Se declara ya para no volver
+#                               a tocar cada SKILL.md cuando llegue esa
+#                               tarea.
+#   skill_N_descripcion          una frase. Resume el frontmatter `description`
+#                               real del SKILL.md correspondiente; no lo
+#                               sustituye ni se lee como fuente de verdad.
+#
+# PRIORIDAD - criterio seguido en esta version. Los tres revisores de
+# dominio (Angular/Vue, C#-AutoCAD-IFC, Java/Spring) llevan la misma
+# prioridad (10): ninguno debe ganarle al otro por defecto, porque sus
+# etiquetas no se solapan entre si y en la practica nunca compiten por la
+# misma tarea. code-quality-reviewer lleva la prioridad mas baja (1) a
+# proposito: es el suelo generico y solo debe entrar por descarte (ninguna
+# etiqueta de dominio caso) o por exceso (mas de tres dominios a la vez,
+# seccion 16.5) - nunca porque le gano el desempate a un revisor de dominio
+# real. task-workflow lleva prioridad alta (10) porque en el dogfooding de
+# este mismo repo (y en cualquier proyecto que instale el plugin) es la
+# skill de ejecucion mas relevante siempre que exista la carpeta `tareas/`.
+#
+# CONTENIDO INICIAL - alcance de TASK-017. Las cinco entradas de abajo son
+# los cinco skills que YA trae `taskcode-plugin` (carpeta `skills/`), leidos
+# de su SKILL.md real. Ningun rol del brainstorm de disenio propuso que
+# skills externos entrar en esta primera version (quedo anotado en
+# plan-final.md como hueco de dominio, sin rol de especialista lanzado esa
+# ronda), asi que no se inventa ninguna entrada externa sin un skill real
+# que instalar. Anadir una es tan barato como sumarle un bloque mas y subir
+# total_skills, igual que dice la seccion 6.6: "el catalogo lo mantiene el
+# equipo a mano".
+#
+# NINGUN SKILL DE ESTE FICHERO ES OBLIGATORIO. A diferencia de
+# heuristica-complejidad.yml (22 claves obligatorias que cubren TODA tarea
+# por construccion), este catalogo es explicitamente no exhaustivo: cero
+# candidatos tras cruzar `etiquetas` es un resultado VALIDO (selección
+# vacia + aviso), no un fallo de configuracion. Lo que SI es fail-closed es
+# el PARSEO: una entrada con un campo obligatorio ausente, un `rol` fuera
+# del enum, una `prioridad` negativa, un `id` repetido o un `total_skills`
+# que no cuadra con el numero de bloques presentes ABORTA taskctl plan
+# entero, con el mismo criterio que cargarHeuristica().
+
+total_skills: 5
+
+# ---------------------------------------------------------------------
+# 1. task-workflow - skills/task-workflow/SKILL.md
+# ---------------------------------------------------------------------
+skill_1_id: task-workflow
+skill_1_origen: taskcode-plugin
+skill_1_rol: ejecucion
+skill_1_prioridad: 10
+skill_1_etiquetas: [taskctl, sprints, gitflow, revision-por-pares, planificacion]
+skill_1_patrones_archivo: []
+skill_1_descripcion: "Metodologia de tareas por sprints con revision por pares y Git-Flow determinista via taskctl"
+
+# ---------------------------------------------------------------------
+# 2. code-quality-reviewer - skills/code-quality-reviewer/SKILL.md
+# ---------------------------------------------------------------------
+skill_2_id: code-quality-reviewer
+skill_2_origen: taskcode-plugin
+skill_2_rol: revisor
+skill_2_prioridad: 1
+skill_2_etiquetas: [calidad, revision-generica, fallback]
+skill_2_patrones_archivo: []
+skill_2_descripcion: "Revisor generico de calidad, independiente del lenguaje; entra por descarte o cuando el diff toca mas de tres dominios"
+
+# ---------------------------------------------------------------------
+# 3. angular-vue-reviewer - skills/angular-vue-reviewer/SKILL.md
+# ---------------------------------------------------------------------
+skill_3_id: angular-vue-reviewer
+skill_3_origen: taskcode-plugin
+skill_3_rol: revisor
+skill_3_prioridad: 10
+skill_3_etiquetas: [angular, vue, frontend, componentes, accesibilidad]
+skill_3_patrones_archivo: ["**/*.vue", "**/*.component.ts", "**/*.component.html", "**/*.component.scss", "**/*.component.css", "**/*.component.spec.ts", "**/*.directive.ts", "**/composables/**/*.ts", "**/composables/**/*.js", "**/src/app/**/*.html", "**/src/app/**/*.routes.ts", "**/src/app/app.config.ts", "**/angular.json", "**/nuxt.config.ts", "**/vue.config.js"]
+skill_3_descripcion: "Revision por pares de frontend Angular y Vue: reactividad, gestion de estado, accesibilidad y rendimiento de renderizado"
+
+# ---------------------------------------------------------------------
+# 4. csharp-autocad-ifc-reviewer - skills/csharp-autocad-ifc-reviewer/SKILL.md
+# ---------------------------------------------------------------------
+skill_4_id: csharp-autocad-ifc-reviewer
+skill_4_origen: taskcode-plugin
+skill_4_rol: revisor
+skill_4_prioridad: 10
+skill_4_etiquetas: [csharp, autocad, ifc, bim]
+skill_4_patrones_archivo: ["**/*.cs", "**/*.csproj", "**/*.sln", "**/*.ifc", "**/*.ifcxml", "**/*.ifcjson"]
+skill_4_descripcion: "Revision por pares de C# que interopera con la API de AutoCAD o que produce/consume modelos IFC/BIM"
+
+# ---------------------------------------------------------------------
+# 5. java-spring-reviewer - skills/java-spring-reviewer/SKILL.md
+# ---------------------------------------------------------------------
+skill_5_id: java-spring-reviewer
+skill_5_origen: taskcode-plugin
+skill_5_rol: revisor
+skill_5_prioridad: 10
+skill_5_etiquetas: [java, spring, spring-boot, backend]
+skill_5_patrones_archivo: ["**/*.java", "src/main/java/**", "src/test/java/**", "**/pom.xml", "**/build.gradle", "**/build.gradle.kts", "**/settings.gradle", "**/settings.gradle.kts", "**/application*.properties", "**/application*.yml", "**/application*.yaml", "**/bootstrap*.yml", "**/src/main/resources/db/migration/**", "**/src/main/resources/db/changelog/**"]
+skill_5_descripcion: "Revision por pares de Java y Spring Boot: capas de servicio/repositorio, limites transaccionales y consultas N+1"

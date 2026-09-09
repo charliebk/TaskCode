@@ -1,0 +1,283 @@
+diff --git a/docs/PROPUESTA_METODOLOGIA.md b/docs/PROPUESTA_METODOLOGIA.md
+index e45b7f4..02ca04a 100644
+--- a/docs/PROPUESTA_METODOLOGIA.md
++++ b/docs/PROPUESTA_METODOLOGIA.md
+@@ -173,9 +173,9 @@ Coincido en que vale la pena construir esto bien — es exactamente el mismo pro
+      patrones_archivo: ["**/*.java", "src/main/java/**"]  # enrutado por diff real, ver 16.5
+      descripcion: "Revisión de capas de servicio/repositorio, transacciones Spring Boot"
+ 
+-   - id: figma:figma-generate-design
++   - id: figma:figma-generate-design   # "figma" (antes de ":") es el PLUGIN
+      origen: externo
+-     marketplace: figma
++     marketplace: claude-plugins-official
+      rol: ejecucion
+      prioridad: 5
+      etiquetas: [figma, diseno, ui, mockup]
+diff --git a/taskcode-marketplace/plugins/taskcode-plugin/src/commands/plan.ts b/taskcode-marketplace/plugins/taskcode-plugin/src/commands/plan.ts
+index 1f9cd1f..1c0845e 100644
+--- a/taskcode-marketplace/plugins/taskcode-plugin/src/commands/plan.ts
++++ b/taskcode-marketplace/plugins/taskcode-plugin/src/commands/plan.ts
+@@ -575,12 +575,14 @@ export async function runPlanCommand(
+     if (!(await ficheroConContenido(salidaDesempatePath))) {
+       await writeFile(salidaDesempatePath, salidaDesempateSkillTemplate(task), { encoding: 'utf8' });
+     }
+-    const ganadorDesempate = (await ficheroConContenido(salidaDesempatePath))
+-      ? leerGanadorDesempate(
+-          await readFile(salidaDesempatePath, 'utf8'),
+-          seleccionSkill.candidatosEmpatados
+-        )
+-      : null;
++    // Tras el bloque de arriba el fichero siempre tiene contenido (o ya lo
++    // tenia, o se acaba de escribir el scaffold, que nunca es vacio): no
++    // hace falta comprobarlo una segunda vez (MEN-16, revision por pares
++    // ronda 3, TASK-017).
++    const ganadorDesempate = leerGanadorDesempate(
++      await readFile(salidaDesempatePath, 'utf8'),
++      seleccionSkill.candidatosEmpatados
++    );
+     if (ganadorDesempate !== null) {
+       skillsRecomendadosFinal = [ganadorDesempate.id];
+       reglaSeleccionSkillFinal = 'llm';
+diff --git a/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts b/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts
+index 81f7b2b..7ec3c8b 100644
+--- a/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts
++++ b/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts
+@@ -243,6 +243,24 @@ function construirEntrada(
+   const cOrigen = exigirCampo(bloque, 'origen', n, ruta);
+   const origen = validarEnum(`${ruta}:${cOrigen.numeroLinea}`, `${prefijo}origen`, cOrigen.valor, ORIGENES_SKILL);
+ 
++  // IMP-9 (revision por pares ronda 3, TASK-017): "plugin:skill" es la
++  // convencion normativa para un id externo (seccion 6.6 de
++  // docs/PROPUESTA_METODOLOGIA.md, comentario de cabecera de este
++  // fichero), pero hasta ahora nada la exigia -- un id externo sin ":"
++  // parseaba igual, y plan.ts emitia un "/plugin install" con el nombre
++  // de un skill donde debia ir el nombre de un plugin, sin abortar ni
++  // avisar. Fallo cerrado: si no cumple la forma exacta, no se adivina
++  // nada, se aborta con instruccion de como corregirlo.
++  if (origen === 'externo' && !/^[^:]+:[^:]+$/.test(id)) {
++    throw new CatalogoSkillsError(
++      `[ERROR] ${ruta}:${cId.numeroLinea}: "${prefijo}id" invalido para "${prefijo}origen: externo": "${id}".\n` +
++        '        Debe tener la forma "plugin:skill" (un unico ":", ni el tramo antes\n' +
++        '        ni el de despues vacio) -- el tramo antes de ":" es el PLUGIN a\n' +
++        '        instalar, el de despues el skill dentro de ese plugin (seccion 6.6 de\n' +
++        '        docs/PROPUESTA_METODOLOGIA.md).'
++    );
++  }
++
+   const cRol = exigirCampo(bloque, 'rol', n, ruta);
+   const rol = validarEnum(`${ruta}:${cRol.numeroLinea}`, `${prefijo}rol`, cRol.valor, ROLES_SKILL);
+ 
+diff --git a/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts b/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts
+index d3775ec..f1947aa 100644
+--- a/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts
++++ b/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts
+@@ -767,7 +767,12 @@ test('taskctl plan: un skill externo ganador que no esta instalado deja el aviso
+       path.join(scriptsDir, 'catalogo-skills.yml'),
+       [
+         'total_skills: 1',
+-        'skill_1_id: skill-externo-de-prueba',
++        // IMP-9 (revision por pares ronda 3, TASK-017): este fixture
++        // usaba un id externo SIN ":" ("skill-externo-de-prueba"),
++        // violando la convencion "plugin:skill" que el propio catalogo
++        // exige para origen "externo" -- ahora construirEntrada() la
++        // valida y este id habria abortado con CatalogoSkillsError.
++        'skill_1_id: plugin-de-prueba:skill-de-prueba',
+         'skill_1_origen: externo',
+         `skill_1_marketplace: ${marketplaceInventado}`,
+         'skill_1_rol: ejecucion',
+@@ -791,16 +796,16 @@ test('taskctl plan: un skill externo ganador que no esta instalado deja el aviso
+ 
+       const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot });
+ 
+-      assert.deepEqual(result.skillsRecomendados, ['skill-externo-de-prueba']);
++      assert.deepEqual(result.skillsRecomendados, ['plugin-de-prueba:skill-de-prueba']);
+       assert.equal(result.reglaSeleccionSkill, 'solape');
+       assert.ok(result.avisoSkillNoInstalada !== null);
+       assert.match(
+         result.avisoSkillNoInstalada!,
+-        new RegExp(`/plugin install skill-externo-de-prueba@${marketplaceInventado}`)
++        new RegExp(`/plugin install plugin-de-prueba@${marketplaceInventado}`)
+       );
+ 
+       const read = await readTareaFile(tareasRoot, 'TASK-700');
+-      assert.deepEqual(read?.task.skills_recomendados, ['skill-externo-de-prueba']);
++      assert.deepEqual(read?.task.skills_recomendados, ['plugin-de-prueba:skill-de-prueba']);
+     });
+   } finally {
+     if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
+@@ -866,6 +871,64 @@ test('taskctl plan: IMP-6 (revision por pares ronda 2) -- un skill_N_id CON ":"
+   }
+ });
+ 
++test('taskctl plan: IMP-9 (revision por pares ronda 3) -- un skill_N_id de origen "externo" SIN ":" aborta con CatalogoSkillsError, no se adivina el plugin', async () => {
++  const pluginRootTmp = await mkdtemp(path.join(tmpdir(), 'taskctl-plan-plugin-root-'));
++  const previoPluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
++  try {
++    const scriptsDir = path.join(pluginRootTmp, 'scripts');
++    await mkdir(scriptsDir, { recursive: true });
++    const heuristicaReal = await readFile(RUTA_HEURISTICA_REAL, 'utf8');
++    await writeFile(path.join(scriptsDir, 'heuristica-complejidad.yml'), heuristicaReal, 'utf8');
++    await writeFile(
++      path.join(scriptsDir, 'catalogo-skills.yml'),
++      [
++        'total_skills: 1',
++        // Sin ":" -- viola la convencion "plugin:skill" que
++        // construirEntrada() exige para "origen: externo" desde IMP-9.
++        // Antes de este hallazgo, este catalogo parseaba igual y
++        // taskctl plan emitia un "/plugin install" con el id entero
++        // como si fuera el nombre del plugin.
++        'skill_1_id: skill-externo-mal-formado',
++        'skill_1_origen: externo',
++        'skill_1_marketplace: marketplace-inventado-para-el-test-de-plan',
++        'skill_1_rol: ejecucion',
++        'skill_1_prioridad: 5',
++        'skill_1_etiquetas: [etiqueta-unica-para-el-test-de-id-mal-formado]',
++        'skill_1_patrones_archivo: []',
++        'skill_1_descripcion: "skill externo con id mal formado"',
++        '',
++      ].join('\n'),
++      'utf8'
++    );
++    process.env['CLAUDE_PLUGIN_ROOT'] = pluginRootTmp;
++
++    await withTempRepo(async (repoRoot, tareasRoot) => {
++      await writeTareaFile(
++        tareasRoot,
++        sampleTask({ etiquetas: ['etiqueta-unica-para-el-test-de-id-mal-formado'] }),
++        BODY_CON_OBJETIVO
++      );
++      commitAll(repoRoot, 'tarea TASK-700 con catalogo de id externo mal formado');
++
++      await assert.rejects(
++        () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot }),
++        CatalogoSkillsError
++      );
++
++      // Mismo criterio que MEN-8: un catalogo invalido no deja
++      // planificacion/ a medio crear.
++      await assert.doesNotReject(() => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700')));
++      await assert.rejects(
++        () => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700', PLANIFICACION_DIRNAME))
++      );
++    });
++  } finally {
++    if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
++    else process.env['CLAUDE_PLUGIN_ROOT'] = previoPluginRoot;
++    await rm(pluginRootTmp, { recursive: true, force: true });
++  }
++});
++
+ test('taskctl plan: MEN-8 (revision por pares ronda 2) -- un catalogo de skills mal formado aborta ANTES de crear planificacion/, deja el workspace limpio', async () => {
+   // cargarCatalogoSkills() se llama antes del mkdir/writeFile del
+   // scaffold a proposito (ver el comentario en plan.ts junto a la
+diff --git a/taskcode-marketplace/plugins/taskcode-plugin/test/core/catalogo-skills.test.ts b/taskcode-marketplace/plugins/taskcode-plugin/test/core/catalogo-skills.test.ts
+index 44113cd..b5f0693 100644
+--- a/taskcode-marketplace/plugins/taskcode-plugin/test/core/catalogo-skills.test.ts
++++ b/taskcode-marketplace/plugins/taskcode-plugin/test/core/catalogo-skills.test.ts
+@@ -291,8 +291,12 @@ test('id repetido entre dos entradas aborta', () => {
+ });
+ 
+ test('marketplace ausente en un origen externo aborta', () => {
++  // El id se fija a una forma "plugin:skill" valida para que la validacion
++  // de formato (IMP-9) no dispare antes de llegar a la de marketplace, que
++  // es lo que este test quiere comprobar.
++  const conId = conValor('skill_2_id', 'mi-plugin:code-quality-reviewer');
+   assert.throws(
+-    () => parsearCatalogoSkills(conValor('skill_2_origen', 'externo'), RUTA_YML),
++    () => parsearCatalogoSkills(conValor('skill_2_origen', 'externo', conId), RUTA_YML),
+     errorAccionable(/falta la clave obligatoria "skill_2_marketplace"/)
+   );
+ });
+@@ -305,15 +309,71 @@ test('marketplace presente en un origen taskcode-plugin aborta', () => {
+ });
+ 
+ test('un skill externo con marketplace declarado parsea y queda marcado', () => {
+-  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace');
++  // El id tiene que respetar "plugin:skill" (IMP-9, revision por pares
++  // ronda 3, TASK-017): "code-quality-reviewer" a secas es valido para
++  // origen "taskcode-plugin", pero no para "externo".
++  const conId = conValor('skill_2_id', 'mi-plugin:code-quality-reviewer');
++  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
+   const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
+   const catalogo = parsearCatalogoSkills(conExterno, RUTA_YML);
+-  const entrada = catalogo.find((e) => e.id === 'code-quality-reviewer');
++  const entrada = catalogo.find((e) => e.id === 'mi-plugin:code-quality-reviewer');
+   assert.ok(entrada);
+   assert.equal(entrada.origen, 'externo');
+   assert.equal(entrada.marketplace, 'mi-marketplace');
+ });
+ 
++// IMP-9 (revision por pares ronda 3, TASK-017): la convencion
++// "plugin:skill" para un id de origen "externo" quedo escrita en el
++// comentario de cabecera del YML (IMP-6, ronda 2) pero nada la
++// exigia -- un id sin ":" parseaba igual y plan.ts emitia un "/plugin
++// install" con el nombre de un skill donde debia ir el de un plugin,
++// sin abortar ni avisar. Estos tests fijan el fallo cerrado.
++test('id externo sin ":" aborta', () => {
++  const conId = conValor('skill_2_id', 'code-quality-reviewer-sin-dos-puntos');
++  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
++  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
++  assert.throws(
++    () => parsearCatalogoSkills(conExterno, RUTA_YML),
++    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
++  );
++});
++
++test('id externo con dos ":" aborta', () => {
++  const conId = conValor('skill_2_id', 'plugin:sub:skill');
++  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
++  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
++  assert.throws(
++    () => parsearCatalogoSkills(conExterno, RUTA_YML),
++    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
++  );
++});
++
++test('id externo con el tramo del plugin vacio (":skill") aborta', () => {
++  const conId = conValor('skill_2_id', ':code-quality-reviewer');
++  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
++  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
++  assert.throws(
++    () => parsearCatalogoSkills(conExterno, RUTA_YML),
++    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
++  );
++});
++
++test('id externo con el tramo del skill vacio ("plugin:") aborta', () => {
++  const conId = conValor('skill_2_id', 'mi-plugin:');
++  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
++  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
++  assert.throws(
++    () => parsearCatalogoSkills(conExterno, RUTA_YML),
++    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
++  );
++});
++
++test('id sin ":" en origen "taskcode-plugin" sigue siendo valido (la exigencia es solo para "externo")', () => {
++  // Precondicion explicita: el catalogo real tiene 5 entradas
++  // "taskcode-plugin" y ninguna trae ":" en su id.
++  assert.ok(CATALOGO.every((e) => e.origen === 'taskcode-plugin' && !e.id.includes(':')));
++});
++
+ // --------------------------------------------------------------------
+ // seleccionarSkill — catalogos sinteticos en memoria
+ // --------------------------------------------------------------------
+diff --git a/taskcode-marketplace/plugins/taskcode-plugin/test/core/plan-desempate-skill.test.ts b/taskcode-marketplace/plugins/taskcode-plugin/test/core/plan-desempate-skill.test.ts
+index f87fecf..59356bc 100644
+--- a/taskcode-marketplace/plugins/taskcode-plugin/test/core/plan-desempate-skill.test.ts
++++ b/taskcode-marketplace/plugins/taskcode-plugin/test/core/plan-desempate-skill.test.ts
+@@ -92,6 +92,13 @@ test('peticionDesempateSkillTemplate marca explicitamente cuando la tarea no tie
+   assert.ok(texto.includes('(sin etiquetas)'));
+ });
+ 
++test('peticionDesempateSkillTemplate documenta en "Como entregas" el marcador exacto que leerGanadorDesempate salta (MEN-19, revision por pares ronda 3)', () => {
++  const texto = peticionDesempateSkillTemplate(tarea({ id: 'TASK-042' }), CANDIDATOS, '2026-09-09');
++  assert.ok(texto.includes('(pendiente de completar)'));
++  assert.match(texto, /no este vacia/);
++  assert.match(texto, /encabezado Markdown/);
++});
++
+ test('PETICION_DESEMPATE_SKILL_FILENAME y SALIDA_DESEMPATE_SKILL_FILENAME son nombres fijos sin numeracion de ronda', () => {
+   assert.equal(PETICION_DESEMPATE_SKILL_FILENAME, 'peticion-desempate-skill-1.md');
+   assert.equal(SALIDA_DESEMPATE_SKILL_FILENAME, 'salida-desempate-skill-1.md');
