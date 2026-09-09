@@ -6,12 +6,13 @@ sprint: 3
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-017-catalogo-de-skills-determinista-con-sele
 asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
 skills_recomendados: []
+regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
