@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-017-catalogo-de-skills-determinista-con-sele
 asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
