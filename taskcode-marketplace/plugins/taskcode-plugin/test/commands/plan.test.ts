@@ -723,15 +723,18 @@ test('taskctl plan: un empate en solape y prioridad escribe la peticion de desem
     assert.match(result.avisoSkillDesempatePendiente!, /2 skills empatan/);
     assert.ok(result.peticionDesempateSkill !== null);
 
-    // result.peticionDesempateSkill se calcula sobre la carpeta de ORIGEN
-    // antes del rename, y no se reescribe tras el move -- esa ruta ya no
-    // existe en disco. moveTareaFile se lleva planificacion/ entera a la
-    // carpeta de DESTINO, que hay que reconstruir a partir de filePath.
+    // result.peticionDesempateSkill se recalcula sobre la carpeta de
+    // DESTINO tras moveTareaFile (hallazgo IMPORTANTE de revision por
+    // pares, TASK-017, IMP-2): antes apuntaba a la carpeta de origen,
+    // que el rename ya se habia llevado.
     const planificacionDestino = path.join(path.dirname(result.filePath), PLANIFICACION_DIRNAME);
-    const peticionContent = await readFile(
-      path.join(planificacionDestino, PETICION_DESEMPATE_SKILL_FILENAME),
-      'utf8'
+    assert.equal(
+      result.peticionDesempateSkill,
+      path.join(planificacionDestino, PETICION_DESEMPATE_SKILL_FILENAME)
     );
+    assert.match(result.avisoSkillDesempatePendiente!, new RegExp(planificacionDestino.replace(/\\/g, '\\\\')));
+
+    const peticionContent = await readFile(result.peticionDesempateSkill!, 'utf8');
     assert.match(peticionContent, /angular-vue-reviewer/);
     assert.match(peticionContent, /java-spring-reviewer/);
 

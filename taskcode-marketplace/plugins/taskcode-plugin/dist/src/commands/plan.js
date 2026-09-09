@@ -276,6 +276,19 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     const heuristica = cargarHeuristica();
     const resolucion = resolverNumeroAgentes(task, body, heuristica);
     const roles = seleccionarRoles(resolucion.agentes);
+    // --- Seleccion determinista de skill (seccion 6.6/16.4.1, TASK-017) -
+    // Mismo criterio fail-closed que la heuristica de arriba, y por eso
+    // va aqui y no mas abajo (hallazgo IMPORTANTE de revision por pares,
+    // TASK-017): un catalogo mal formado tiene que abortar "plan" ANTES
+    // del mkdir/writeFile del scaffold, no despues -- si no, el aborto
+    // deja el workspace sucio (planificacion/ ya creada) y el guard de
+    // la seccion 8.3 bloquea el reintento con un mensaje que no explica
+    // la causa real. La diferencia con la heuristica es que aqui CERO
+    // candidatos tras cruzar etiquetas SI es un resultado valido
+    // (catalogo-skills.ts: el catalogo no es exhaustivo por diseno, a
+    // diferencia de la heuristica).
+    const catalogoSkills = cargarCatalogoSkills();
+    const seleccionSkill = seleccionarSkill(task, catalogoSkills);
     const secciones = extraerSecciones(body);
     // Puerta del objetivo vacio. "taskctl new" deja el Objetivo en blanco
     // a proposito, y mientras "plan" solo escribia un scaffold eso era
@@ -383,21 +396,13 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
             }
         }
     }
-    // --- Seleccion determinista de skill (seccion 6.6/16.4.1, TASK-017) -
-    // Mismo criterio fail-closed que la heuristica de arriba: un catalogo
-    // mal formado aborta "plan" entero, nunca cae a "sin skill" en
-    // silencio. La diferencia es que aqui CERO candidatos tras cruzar
-    // etiquetas SI es un resultado valido (catalogo-skills.ts: el
-    // catalogo no es exhaustivo por diseno, a diferencia de la
-    // heuristica).
-    const catalogoSkills = cargarCatalogoSkills();
-    const seleccionSkill = seleccionarSkill(task, catalogoSkills);
     let skillsRecomendadosFinal = [];
     let reglaSeleccionSkillFinal = null;
     let avisoSkillSinCandidato = null;
     let avisoSkillDesempatePendiente = null;
     let avisoSkillNoInstalada = null;
     let peticionDesempateSkillPath = null;
+    let hayDesempatePendiente = false;
     if (seleccionSkill.ganador !== null) {
         skillsRecomendadosFinal = [seleccionSkill.ganador.id];
         reglaSeleccionSkillFinal = seleccionSkill.regla;
@@ -428,10 +433,11 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
             reglaSeleccionSkillFinal = 'llm';
         }
         else {
-            avisoSkillDesempatePendiente =
-                `${seleccionSkill.candidatosEmpatados.length} skills empatan en solape y prioridad para ` +
-                    `${task.id}: responde "${peticionDesempatePath}" en "${salidaDesempatePath}" y vuelve a ` +
-                    'lanzar "taskctl plan" para dejarlo resuelto. Por ahora se deja sin "skills_recomendados".';
+            // El aviso final se construye mas abajo, sobre las rutas de
+            // DESTINO tras moveTareaFile: en la primera vuelta (la unica en
+            // la que se llega aqui con la tarea todavia en su carpeta de
+            // origen) planificacionDir ya no existira una vez movida la tarea.
+            hayDesempatePendiente = true;
         }
     }
     if (skillsRecomendadosFinal.length > 0) {
@@ -439,13 +445,17 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         if (entradaGanadora.origen === 'externo') {
             const estadoInstalacion = comprobarSkillInstalado(entradaGanadora.marketplace);
             if (estadoInstalacion !== 'instalado') {
-                // Texto identico al de la seccion 6.6 (punto 4): nunca se
-                // instala nada automaticamente, solo se anota la orden a
-                // ejecutar a mano. 'no-verificable' avisa igual que
-                // 'no-instalado' -- el riesgo aceptado es peor si se calla.
+                // 'no-verificable' avisa igual que 'no-instalado' -- el riesgo
+                // aceptado es peor si se calla -- pero con una redaccion propia
+                // (hallazgo MENOR de revision por pares, TASK-017): decir "no
+                // esta instalado" cuando lo unico que sabemos es que no se pudo
+                // comprobar afirma algo que el subproceso no confirmo.
+                const diagnostico = estadoInstalacion === 'no-verificable'
+                    ? 'no se ha podido comprobar si esta instalado'
+                    : 'no esta instalado';
                 avisoSkillNoInstalada =
                     `Esta tarea se beneficiaria del skill "${entradaGanadora.id}" (marketplace ` +
-                        `"${entradaGanadora.marketplace}") -- no esta instalado. Instalalo con "/plugin install ` +
+                        `"${entradaGanadora.marketplace}") -- ${diagnostico}. Instalalo con "/plugin install ` +
                         `${entradaGanadora.id}@${entradaGanadora.marketplace}" antes de arrancar, o continua sin el.`;
             }
         }
@@ -689,6 +699,23 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // seria peor que no devolverlas — el CLI las imprime para que la
     // persona las abra.
     const brainstormDirFinal = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, BRAINSTORM_DIRNAME);
+    // Mismo problema y misma solucion que brainstormDirFinal: las rutas
+    // del desempate de skill se escribieron contra la carpeta de origen,
+    // que el rename de arriba se acaba de llevar. Se recalculan aqui,
+    // contra la de destino, antes de construir el aviso o devolver la
+    // ruta de la peticion.
+    if (peticionDesempateSkillPath !== null) {
+        const planificacionDirFinal = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME);
+        const peticionDesempatePathFinal = path.join(planificacionDirFinal, PETICION_DESEMPATE_SKILL_FILENAME);
+        peticionDesempateSkillPath = peticionDesempatePathFinal;
+        if (hayDesempatePendiente) {
+            const salidaDesempatePathFinal = path.join(planificacionDirFinal, SALIDA_DESEMPATE_SKILL_FILENAME);
+            avisoSkillDesempatePendiente =
+                `${seleccionSkill.candidatosEmpatados.length} skills empatan en solape y prioridad para ` +
+                    `${task.id}: responde "${peticionDesempatePathFinal}" en "${salidaDesempatePathFinal}" y vuelve a ` +
+                    'lanzar "taskctl plan" para dejarlo resuelto. Por ahora se deja sin "skills_recomendados".';
+        }
+    }
     return {
         autoCommit: commitResult,
         id: task.id,

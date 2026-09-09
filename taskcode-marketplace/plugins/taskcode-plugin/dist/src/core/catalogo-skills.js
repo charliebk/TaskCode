@@ -31,6 +31,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
+const MAX_TOTAL_SKILLS = 1000;
 export class CatalogoSkillsError extends Error {
     constructor(message) {
         super(message);
@@ -113,6 +114,17 @@ export function parsearCatalogoSkills(contenido, ruta) {
     }
     const primerTotal = paresTotal[0];
     const totalSkills = validarEnteroNoNegativo(`${ruta}:${primerTotal.numeroLinea}`, 'total_skills', primerTotal.valor);
+    // Cota superior aparte del "no negativo" de arriba (hallazgo MENOR de
+    // revision por pares, TASK-017): construirClavesValidas() materializa
+    // un Set de totalSkills*8 claves, y sin tope un valor disparatado
+    // (p. ej. un cero de mas por error de tecleo) cuelga el comando varios
+    // segundos y revienta con un RangeError crudo que cli.ts no reconoce
+    // como error de catalogo. MAX_TOTAL_SKILLS es generoso a proposito:
+    // ningun catalogo real se acerca ni de lejos.
+    if (totalSkills > MAX_TOTAL_SKILLS) {
+        throw new CatalogoSkillsError(`[ERROR] ${ruta}:${primerTotal.numeroLinea}: "total_skills" es ${totalSkills}, y el maximo ` +
+            `admitido es ${MAX_TOTAL_SKILLS}. Revisa que el numero no tenga cifras de mas.`);
+    }
     const clavesValidas = construirClavesValidas(totalSkills);
     // (2) Recorrido completo: clave desconocida / repetida, y agrupacion
     // por bloque N. Misma doctrina que heuristica.ts, pero aqui el Set de

@@ -20,11 +20,15 @@
  * instalar algo que ya esta) o esconder un candidato real que falta
  * ('instalado' erroneo por defecto).
  *
- * El formato exacto de "claude plugin list --json" quedo sin verificar
- * a mano en la seccion 6.6 de la metodologia ("a confirmar en Sprint
- * 0"): se asume un array de objetos con un campo `marketplace`, y
- * cualquier forma que no encaje con eso tambien cae en
- * 'no-verificable' en vez de asumirse como 'no-instalado'.
+ * Formato real de "claude plugin list --json" (verificado en revision
+ * por pares de TASK-017 contra el binario real): un array de objetos
+ * con `id` de la forma "plugin@marketplace" (entre otras claves como
+ * `version`, `scope`, `enabled`). No hay campo `marketplace` suelto;
+ * hay que partir `id` por "@" y quedarse con el ultimo tramo. Un
+ * elemento del array que no sea un objeto con `id` de tipo string no
+ * es reconocible; si NINGUN elemento de un array no vacio es
+ * reconocible, el formato no encaja con lo esperado y el resultado
+ * colapsa a 'no-verificable' en vez de asumirse 'no-instalado'.
  */
 import { spawnSync } from 'node:child_process';
 
@@ -62,13 +66,19 @@ export function interpretarResultadoPluginList(
   if (!Array.isArray(lista)) {
     return 'no-verificable';
   }
+  if (lista.length === 0) {
+    return 'no-instalado';
+  }
 
-  const instalado = lista.some(
-    (entrada) =>
-      typeof entrada === 'object' &&
-      entrada !== null &&
-      (entrada as { marketplace?: unknown }).marketplace === marketplace
+  const reconocibles = lista.filter(
+    (entrada): entrada is { id: string } =>
+      typeof entrada === 'object' && entrada !== null && typeof (entrada as { id?: unknown }).id === 'string'
   );
+  if (reconocibles.length === 0) {
+    return 'no-verificable';
+  }
+
+  const instalado = reconocibles.some((entrada) => entrada.id.split('@').at(-1) === marketplace);
   return instalado ? 'instalado' : 'no-instalado';
 }
 

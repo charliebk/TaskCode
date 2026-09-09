@@ -155,3 +155,25 @@ test('leerGanadorDesempate devuelve null ante una coincidencia parcial (no es ig
 test('leerGanadorDesempate devuelve null si la lista de candidatos vigentes esta vacia', () => {
   assert.equal(leerGanadorDesempate('a\n', []), null);
 });
+
+test('leerGanadorDesempate salta el encabezado Markdown del scaffold y lee el id de la linea siguiente con contenido', () => {
+  const ganador = leerGanadorDesempate('# Salida del desempate de skill — TASK-042\n\nb\n', CANDIDATOS);
+  assert.equal(ganador?.id, 'b');
+});
+
+test('leerGanadorDesempate deja el scaffold intacto pero responde debajo, con texto adicional despues del id', () => {
+  const salida = salidaDesempateSkillTemplate(tarea({ id: 'TASK-042' })).replace(
+    '(pendiente de completar)',
+    'java-spring-reviewer\n\nPorque el nucleo es backend.'
+  );
+  const candidatos = [
+    ...CANDIDATOS,
+    entradaSkill({ id: 'java-spring-reviewer', prioridad: 10, rol: 'revisor', etiquetas: ['java'] }),
+  ];
+  const ganador = leerGanadorDesempate(salida, candidatos);
+  assert.equal(ganador?.id, 'java-spring-reviewer');
+});
+
+test('leerGanadorDesempate sigue devolviendo null si tras el encabezado solo hay mas encabezados', () => {
+  assert.equal(leerGanadorDesempate('# titulo\n## subtitulo\n', CANDIDATOS), null);
+});

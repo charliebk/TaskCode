@@ -9,6 +9,11 @@
  * NUNCA a 'no-instalado' (que arriesgaria sugerir instalar algo que ya
  * esta) ni a 'instalado' (que esconderia un candidato real que falta).
  *
+ * El formato de las entradas (`id` de la forma "plugin@marketplace")
+ * es el verificado contra el binario real en la revision por pares de
+ * TASK-017, ronda 1 (hallazgo IMPORTANTE IMP-1): el formato asumido en
+ * la primera version -- un campo `marketplace` suelto -- no existe.
+ *
  * `comprobarSkillInstalado` solo se prueba con un test de integracion
  * minimo: en esta maquina de test no sabemos si "claude" esta instalado
  * ni que devuelve, asi que lo unico que se puede afirmar sin suponer
@@ -81,36 +86,71 @@ test('array vacio es no-instalado', () => {
   assert.equal(estado, 'no-instalado');
 });
 
-test('array con entradas de otros marketplaces es no-instalado', () => {
+test('array no vacio donde NINGUN elemento tiene la forma esperada (objeto con "id" string) es no-verificable', () => {
+  for (const stdout of [
+    JSON.stringify([1, 2, 3]),
+    JSON.stringify(['texto-suelto']),
+    JSON.stringify([null, null]),
+    JSON.stringify([{ marketplace: MARKETPLACE }]),
+    JSON.stringify([[{ id: `figma@${MARKETPLACE}` }]]),
+  ]) {
+    const estado = interpretarResultadoPluginList({ error: undefined, status: 0, stdout }, MARKETPLACE);
+    assert.equal(estado, 'no-verificable', `stdout=${stdout}`);
+  }
+});
+
+test('array con "id" de otros marketplaces es no-instalado', () => {
   const estado = interpretarResultadoPluginList(
-    { error: undefined, status: 0, stdout: JSON.stringify([{ marketplace: 'otro-marketplace' }]) },
+    { error: undefined, status: 0, stdout: JSON.stringify([{ id: 'figma@otro-marketplace' }]) },
     MARKETPLACE
   );
   assert.equal(estado, 'no-instalado');
 });
 
-test('array con el marketplace buscado es instalado', () => {
+test('array con "id" cuyo tramo tras el @ es el marketplace buscado es instalado', () => {
   const estado = interpretarResultadoPluginList(
-    { error: undefined, status: 0, stdout: JSON.stringify([{ marketplace: 'otro' }, { marketplace: MARKETPLACE }]) },
+    {
+      error: undefined,
+      status: 0,
+      stdout: JSON.stringify([{ id: 'otro@otro-marketplace' }, { id: `figma@${MARKETPLACE}` }]),
+    },
     MARKETPLACE
   );
   assert.equal(estado, 'instalado');
 });
 
-test('entradas del array con forma inesperada (no objeto) se ignoran sin lanzar, y no cuentan como instalado', () => {
+test('formato real de "claude plugin list --json" (id, version, scope, enabled, installPath) se interpreta bien', () => {
   const estado = interpretarResultadoPluginList(
-    { error: undefined, status: 0, stdout: JSON.stringify(['texto-suelto', null, 42]) },
+    {
+      error: undefined,
+      status: 0,
+      stdout: JSON.stringify([
+        {
+          id: `figma@${MARKETPLACE}`,
+          version: '2.2.90',
+          scope: 'user',
+          enabled: true,
+          installPath: 'C:\\cache\\figma\\2.2.90',
+          installedAt: '2026-01-01T00:00:00.000Z',
+          lastUpdated: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
+    },
     MARKETPLACE
   );
-  assert.equal(estado, 'no-instalado');
+  assert.equal(estado, 'instalado');
 });
 
-test('una entrada sin campo marketplace se ignora sin lanzar', () => {
+test('entradas sin "id" (o con "id" no string) se ignoran sin lanzar cuando OTRAS si son reconocibles', () => {
   const estado = interpretarResultadoPluginList(
-    { error: undefined, status: 0, stdout: JSON.stringify([{ nombre: 'algun-plugin' }]) },
+    {
+      error: undefined,
+      status: 0,
+      stdout: JSON.stringify([{ nombre: 'algun-plugin' }, { id: 42 }, { id: `figma@${MARKETPLACE}` }]),
+    },
     MARKETPLACE
   );
-  assert.equal(estado, 'no-instalado');
+  assert.equal(estado, 'instalado');
 });
 
 test('comprobarSkillInstalado nunca lanza y siempre devuelve un estado valido', () => {

@@ -70,16 +70,28 @@ export function salidaDesempateSkillTemplate(task: Task): string {
 
 /**
  * Ganador declarado en la salida ya escrita, o null si esta vacia o si
- * su primera linea no coincide EXACTAMENTE con el `id` de uno de los
- * candidatos vigentes (respuesta a medio escribir, catalogo editado
- * entre la peticion y la respuesta, etc.). Fail-closed: una salida que
- * no se puede interpretar sin ambiguedad no elige un candidato al azar.
+ * su primera linea de contenido no coincide EXACTAMENTE con el `id` de
+ * uno de los candidatos vigentes (respuesta a medio escribir, catalogo
+ * editado entre la peticion y la respuesta, etc.). Fail-closed: una
+ * salida que no se puede interpretar sin ambiguedad no elige un
+ * candidato al azar.
+ *
+ * Se saltan tanto las lineas en blanco como las que empiezan por "#":
+ * salidaDesempateSkillTemplate() genera un encabezado Markdown como
+ * primera linea, y responder debajo de el (dejandolo intacto, igual
+ * que se hace con los `salida-brainstorm-*.md`) es la forma obvia de
+ * completar el scaffold. Sin este salto, esa respuesta se descartaba
+ * en silencio porque la "primera linea no vacia" seguia siendo el
+ * encabezado (hallazgo IMPORTANTE de revision por pares, TASK-017).
  */
 export function leerGanadorDesempate(
   contenido: string,
   candidatos: readonly EntradaCatalogoSkill[]
 ): EntradaCatalogoSkill | null {
-  const primeraLinea = contenido.split(/\r?\n/).find((l) => l.trim() !== '')?.trim() ?? '';
-  if (primeraLinea === '') return null;
+  const primeraLinea = contenido
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l !== '' && !l.startsWith('#'));
+  if (primeraLinea === undefined) return null;
   return candidatos.find((c) => c.id === primeraLinea) ?? null;
 }

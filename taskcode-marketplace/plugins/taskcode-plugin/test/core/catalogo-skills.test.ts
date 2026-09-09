@@ -173,6 +173,13 @@ test('total_skills negativo aborta', () => {
   );
 });
 
+test('total_skills por encima del maximo admitido aborta con mensaje accionable, no un RangeError crudo', () => {
+  assert.throws(
+    () => parsearCatalogoSkills(conValor('total_skills', '1001'), RUTA_YML),
+    errorCatalogo(/"total_skills" es 1001, y el maximo admitido es 1000.*cifras de mas/)
+  );
+});
+
 test('clave desconocida aborta y sugiere la clave real por distancia de edicion', () => {
   assert.throws(
     () => parsearCatalogoSkills(conLineaExtra('skill_1_orgen: taskcode-plugin'), RUTA_YML),
