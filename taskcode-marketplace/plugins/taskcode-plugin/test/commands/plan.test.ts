@@ -24,6 +24,7 @@ import {
 } from '../../src/core/plan-desempate-skill.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
+import { CatalogoSkillsError } from '../../src/core/catalogo-skills.js';
 import type { Task } from '../../src/core/task.js';
 
 const RAIZ_PAQUETE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -800,6 +801,51 @@ test('taskctl plan: un skill externo ganador que no esta instalado deja el aviso
 
       const read = await readTareaFile(tareasRoot, 'TASK-700');
       assert.deepEqual(read?.task.skills_recomendados, ['skill-externo-de-prueba']);
+    });
+  } finally {
+    if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
+    else process.env['CLAUDE_PLUGIN_ROOT'] = previoPluginRoot;
+    await rm(pluginRootTmp, { recursive: true, force: true });
+  }
+});
+
+test('taskctl plan: MEN-8 (revision por pares ronda 2) -- un catalogo de skills mal formado aborta ANTES de crear planificacion/, deja el workspace limpio', async () => {
+  // cargarCatalogoSkills() se llama antes del mkdir/writeFile del
+  // scaffold a proposito (ver el comentario en plan.ts junto a la
+  // llamada): un catalogo corrupto tiene que abortar "plan" sin dejar
+  // planificacion/ a medio crear, porque el guard de la seccion 8.3
+  // bloquearia el reintento con un mensaje que no explica la causa
+  // real. Este test fija ese orden como regresion.
+  const pluginRootTmp = await mkdtemp(path.join(tmpdir(), 'taskctl-plan-plugin-root-'));
+  const previoPluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
+  try {
+    const scriptsDir = path.join(pluginRootTmp, 'scripts');
+    await mkdir(scriptsDir, { recursive: true });
+    const heuristicaReal = await readFile(RUTA_HEURISTICA_REAL, 'utf8');
+    await writeFile(path.join(scriptsDir, 'heuristica-complejidad.yml'), heuristicaReal, 'utf8');
+    // Catalogo mal formado: le falta "total_skills". Cualquier fallo
+    // de parseo vale para este test -- lo que se fija es el orden,
+    // no la exhaustividad de la validacion (eso ya lo cubre
+    // catalogo-skills.test.ts).
+    await writeFile(path.join(scriptsDir, 'catalogo-skills.yml'), 'skill_1_id: x\n', 'utf8');
+    process.env['CLAUDE_PLUGIN_ROOT'] = pluginRootTmp;
+
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(tareasRoot, sampleTask({}), BODY_CON_OBJETIVO);
+      commitAll(repoRoot, 'tarea TASK-700 para el test de catalogo corrupto');
+
+      await assert.rejects(
+        () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot }),
+        CatalogoSkillsError
+      );
+
+      // La tarea NO se movio de 00-planificadas.
+      await assert.doesNotReject(() => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700')));
+      await assert.rejects(() => stat(path.join(tareasRoot, '01-en-diseno', 'TASK-700')));
+      // Y planificacion/ no se llego a crear en ningun sitio.
+      await assert.rejects(
+        () => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700', PLANIFICACION_DIRNAME))
+      );
     });
   } finally {
     if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
