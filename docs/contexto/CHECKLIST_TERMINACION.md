@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 36 / 42 items terminados (86%)** · última actualización: 2026-09-08
+**Progreso global: 37 / 42 items terminados (88%)** · última actualización: 2026-09-09
 
 El total baja de 43 a 42: **D4 se descarta** (ver su entrada). Y sube en 3 lo
 hecho: D6, D7 y el propio D4, que cuenta como resuelto porque la decisión está
@@ -22,9 +22,9 @@ tomada y documentada, no aplazada.
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
-| D — Inteligencia del proceso | 6 | **4** | ~35h |
+| D — Inteligencia del proceso | 6 | **5** | ~35h |
 | E — Cierre | 6 | **2** | ~9h |
-| **Total pendiente** | **6** | — | **~21h** |
+| **Total pendiente** | **5** | — | **~15h** |
 
 ---
 
@@ -343,10 +343,22 @@ existe la heurística que D1 y D2 van a consumir como lookup.
       binario. Medido de paso: la heurística solo cambia el número de agentes en
       4 de las 32 tareas, y las 7 que quedan pendientes tienen el objetivo
       vacío, así que la puerta nueva las bloquea hasta redactarlo.*
-- [ ] **D2** · TASK-017 — Catálogo de skills determinista + selección en dos pasos — ~6h
+- [x] **D2** · TASK-017 — Catálogo de skills determinista + selección en dos pasos — hecho el 2026-09-09
       *Los `patrones_archivo` de los cuatro revisores ya están declarados en
       cada `SKILL.md`, en lista inline para que el parser del repo los lea tal
       cual. El catálogo debería recogerlos, no reinventarlos.*
+      ***5 rondas de revisión por pares (la 2 en dos pasadas independientes),
+      35 hallazgos, cero críticos** — la más larga de la fase D después de D1.
+      Riesgo aceptado y respetado en las cinco rondas: la comprobación de si un
+      skill `origen: externo` está instalado es puramente de lectura vía
+      subproceso, nunca instala nada. Se endureció la convención `skill_N_id`
+      (`"plugin:skill"`) a fail-closed con regex y test de regresión propio
+      (MEN-20, MEN-24). Hallazgo de proceso documentado en `HALLAZGOS.md`: el
+      worktree aislado del agente revisor apareció en la rama equivocada
+      cuatro rondas seguidas (siempre el mismo commit ajeno, el cierre de
+      TASK-016) — detectado y compensado por el propio informe las cuatro
+      veces, nunca invalidó el veredicto, pero el traslado del informe a la
+      ubicación correcta se hizo a mano cada vez.*
 - [ ] **D3** · TASK-018 — Enrutado de revisor por diff real, multi-reviewer por dominio — ~6h
       *`code-quality-reviewer` ya se declara `fallback: true` con
       `umbral_dominios: 3` (decisión #16). Aviso medido en TASK-032: un patrón
