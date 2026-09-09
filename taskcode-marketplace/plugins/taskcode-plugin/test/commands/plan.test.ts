@@ -910,9 +910,19 @@ test('taskctl plan: IMP-9 (revision por pares ronda 3) -- un skill_N_id de orige
       );
       commitAll(repoRoot, 'tarea TASK-700 con catalogo de id externo mal formado');
 
+      // MEN-21 (revision por pares ronda 4, TASK-017): no basta con
+      // aseverar la clase del error -- CatalogoSkillsError es la misma
+      // para cualquier fallo de parseo del catalogo, asi que sin
+      // comprobar el mensaje este test pasaria igual si el fixture
+      // fallase por otra causa (clave ausente, enum invalido, etc.) sin
+      // haber ejercitado nunca la validacion de IMP-9.
       await assert.rejects(
         () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot }),
-        CatalogoSkillsError
+        (error: unknown) => {
+          assert.ok(error instanceof CatalogoSkillsError, `esperaba CatalogoSkillsError y llego: ${String(error)}`);
+          assert.match(error.message, /"skill_1_id" invalido para "skill_1_origen: externo"/);
+          return true;
+        }
       );
 
       // Mismo criterio que MEN-8: un catalogo invalido no deja

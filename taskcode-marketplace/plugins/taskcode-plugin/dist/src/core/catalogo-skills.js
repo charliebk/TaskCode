@@ -189,12 +189,16 @@ function construirEntrada(bloque, n, ruta) {
     // de un skill donde debia ir el nombre de un plugin, sin abortar ni
     // avisar. Fallo cerrado: si no cumple la forma exacta, no se adivina
     // nada, se aborta con instruccion de como corregirlo.
-    if (origen === 'externo' && !/^[^:]+:[^:]+$/.test(id)) {
+    // MEN-20 (revision por pares ronda 4, TASK-017): cada tramo excluye
+    // ademas espacios (\s), no solo ":" -- si no, un id como
+    // "mi-plugin : skill" pasaba la validacion y componia un
+    // "/plugin install" con espacios de mas.
+    if (origen === 'externo' && !/^[^:\s]+:[^:\s]+$/.test(id)) {
         throw new CatalogoSkillsError(`[ERROR] ${ruta}:${cId.numeroLinea}: "${prefijo}id" invalido para "${prefijo}origen: externo": "${id}".\n` +
-            '        Debe tener la forma "plugin:skill" (un unico ":", ni el tramo antes\n' +
-            '        ni el de despues vacio) -- el tramo antes de ":" es el PLUGIN a\n' +
-            '        instalar, el de despues el skill dentro de ese plugin (seccion 6.6 de\n' +
-            '        docs/PROPUESTA_METODOLOGIA.md).');
+            '        Debe tener la forma "plugin:skill" (un unico ":", sin espacios, ni el\n' +
+            '        tramo antes ni el de despues vacio) -- el tramo antes de ":" es el\n' +
+            '        PLUGIN a instalar, el de despues el skill dentro de ese plugin (seccion\n' +
+            '        6.6).');
     }
     const cRol = exigirCampo(bloque, 'rol', n, ruta);
     const rol = validarEnum(`${ruta}:${cRol.numeroLinea}`, `${prefijo}rol`, cRol.valor, ROLES_SKILL);

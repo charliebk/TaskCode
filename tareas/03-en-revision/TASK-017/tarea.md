@@ -337,8 +337,14 @@ tarea.
   `.sh` de Git-Flow (`abort-merge.sh`, `merge-hotfix-to-main.sh`, `merge-release-to-main.sh`,
   `create-develop.sh`, `recover-branch.sh`, `resume-work.sh`, `diagnose-repo.sh`), todos
   dependientes de `spawnSync('bash', ...)` — consistente con el Bash roto de este entorno.
-  Verificado que ninguno de los 99 fallos toca `catalogo-skills.test.ts` (sin resultados al
-  buscar ese nombre en la salida completa de la suite).
+  **MEN-23** (corregido en este mismo documento): la frase anterior de este mismo punto
+  afirmaba solo haber comprobado `catalogo-skills.test.ts`, cuando el criterio real cubria
+  cuatro patrones (`catalogo-skills.*`, `plan.ts`, `plan-desempate-skill.*` y
+  `plugin-instalado.ts`). Repetida la busqueda contra los cuatro: ninguno de los 99 fallos
+  toca `catalogo-skills.test.ts`, `plan-desempate-skill.test.ts` ni `plugin-instalado.test.ts`.
+  De `plan.test.ts` si fallan dos, pero son exactamente dos de los tres no-regresion ya
+  citados arriba (`chmod` no-op en NTFS y CRLF) — ninguno relacionado con IMP-8, IMP-9 ni con
+  el resto de correcciones de esta ronda.
 - **MEN-18** (corregido en este mismo documento, ver el parrafo de la 2ª pasada de ronda 2
   arriba): la redaccion decia que el informe de ronda 2 no pudo "confirmar a que rama
   apuntaba su propio worktree aislado", cuando en realidad si lo confirmo con precision
