@@ -50,7 +50,132 @@ consume nadie; la seleccion de `agente_revisor` sigue basandose en
 `etiquetas`.
 
 ## Criterios de aceptacion
-- [ ] Crea `scripts/catalogo-skills.yml` con los skills propios y externos que el equipo ya usa.
-- [ ] La selección es determinista primero (heurística por etiquetas, tipo y ficheros tocados) y solo recurre a un LLM para desempatar.
-- [ ] Registra en la tarea qué skills se seleccionaron y por qué regla, para poder auditarlo después.
-- [ ] Tests de la heurística con casos de empate y de no coincidencia.
+- [x] Crea `scripts/catalogo-skills.yml` con los skills propios y externos que el equipo ya usa.
+- [x] La selección es determinista primero (heurística por etiquetas, tipo y ficheros tocados) y solo recurre a un LLM para desempatar.
+- [x] Registra en la tarea qué skills se seleccionaron y por qué regla, para poder auditarlo después.
+- [x] Tests de la heurística con casos de empate y de no coincidencia.
+
+## Resultado
+
+Implementado el catalogo determinista de dos pasos completo: `scripts/catalogo-skills.yml`
+(parser fail-closed en `src/core/catalogo-skills.ts`), el algoritmo de seleccion en
+`src/core/plan-desempate-skill.ts` (solape -> prioridad -> desempate por LLM con
+`leerGanadorDesempate` fail-closed), la comprobacion de instalacion de skills externos en
+`src/core/plugin-instalado.ts` (solo lectura via subproceso, nunca instala nada), y el
+cableado completo en `src/commands/plan.ts`, que deja `skills_recomendados` y
+`regla_seleccion_skill` registrados en el frontmatter de la tarea para poder auditar la
+decision despues.
+
+| Fichero | Rol |
+|---|---|
+| `scripts/catalogo-skills.yml` | catalogo real de skills propios y externos |
+| `src/core/catalogo-skills.ts` | parser YAML a mano, fail-closed |
+| `src/core/plan-desempate-skill.ts` | plantillas de peticion/salida y lectura del ganador del desempate por LLM |
+| `src/core/plugin-instalado.ts` | comprobacion de solo lectura de si un skill externo esta instalado |
+| `src/commands/plan.ts` | cableado del algoritmo de dos pasos en `taskctl plan` |
+
+### Decisiones de diseno que no venian dadas
+
+- El desempate por LLM se resuelve con un fichero de peticion y uno de salida en
+  `planificacion/`, siguiendo el mismo patron que el brainstorm por roles (TASK-016): la
+  persona responde en un fichero, `taskctl plan` se vuelve a invocar y lee el ganador. No se
+  invoca un LLM desde dentro del proceso.
+- `leerGanadorDesempate` es fail-closed a proposito: si la primera linea no vacia del fichero
+  de salida no coincide EXACTAMENTE con el `id` de un candidato vigente, no elige nada al azar
+  y deja la tarea sin `skills_recomendados`, repitiendo el aviso de desempate pendiente.
+- `comprobarSkillInstalado` distingue tres estados (`instalado` / `no-instalado` /
+  `no-verificable`) en vez de dos: cualquier fallo o forma inesperada del subproceso colapsa a
+  `no-verificable`, nunca a `no-instalado` (arriesgaria sugerir instalar algo que ya esta) ni a
+  `instalado` (esconderia un candidato real que falta).
+
+### Revision por pares: 1 ronda, 11 hallazgos, cero criticos
+
+| Ronda | Veredicto | Hallazgos |
+|---|---|---|
+| 1 | cambios-solicitados | 0 criticos, 4 importantes, 7 menores |
+
+El agente revisor (`typescript-reviewer`, `informe-revision-1.md`) reprodujo empiricamente
+sobre un worktree aislado, incluida la suite completa y sondas propias contra el binario real
+`claude plugin list --json`.
+
+**IMPORTANTE — corregidos los 4:**
+
+- **IMP-1**: `comprobarSkillInstalado` no podia devolver nunca `'instalado'` porque el formato
+  real de `claude plugin list --json` usa `id` con forma `"plugin@marketplace"`, no un campo
+  `marketplace` suelto (verificado con salida real del binario). Ademas el fallo cerrado no se
+  disparaba: la comprobacion de forma se detenia en `Array.isArray`, sin mirar los elementos,
+  asi que cualquier array no vacio se leia como `no-instalado` en vez de `no-verificable`.
+  Corregido: se lee `id.split('@').at(-1)`, y si ningun elemento tiene forma reconocible
+  (objeto con `id` string) el resultado es `no-verificable`.
+- **IMP-2**: el aviso de desempate y `peticionDesempateSkill` imprimian rutas de la carpeta de
+  ORIGEN de la tarea, calculadas antes de `moveTareaFile`; tras el primer `taskctl plan` esas
+  rutas ya no existian en disco. Corregido recalculando las rutas contra la carpeta de destino
+  despues del move, igual que ya se hacia para el paquete de brainstorm.
+- **IMP-3**: `cargarCatalogoSkills()` se invocaba despues del `mkdir`/`writeFile` del scaffold
+  de `plan-final.md`, asi que un catalogo mal formado abortaba dejando el workspace sucio, y el
+  guard de §8.3 bloqueaba el reintento con un mensaje sin relacion con la causa real. Corregido
+  moviendo la carga del catalogo junto a la de la heuristica, antes de cualquier escritura.
+- **IMP-4**: `leerGanadorDesempate` solo miraba la primera linea no vacia del fichero de
+  salida, pero el propio scaffold que `taskctl plan` genera empieza con un encabezado Markdown
+  (`# Salida del desempate de skill — TASK-XXX`), asi que responder debajo del encabezado (el
+  patron natural, igual que en el brainstorm) se descartaba en silencio con el mismo aviso
+  repetido. Corregido: la funcion salta lineas que empiezan por `#` antes de buscar el id.
+
+**MENOR — 2 corregidos, 5 aceptados sin corregir:**
+
+- **MEN-2** (corregido): el aviso de skill no instalado afirmaba `"-- no esta instalado"`
+  incluso cuando el estado real era `no-verificable` (el subproceso fallo o no se pudo
+  interpretar), aseverando algo que el codigo acababa de declararse incapaz de comprobar.
+  Corregido: la redaccion distingue `"no se ha podido comprobar si esta instalado"` de `"no
+  esta instalado"` segun el estado real, pero en ambos casos se sigue sugiriendo el mismo
+  `/plugin install X@Y` (decision que el propio informe comparte).
+- **MEN-3** (corregido): `total_skills` no tenia cota superior; un valor como `5000000`
+  colgaba el comando ~20s y terminaba en un `RangeError: Set maximum size exceeded` crudo que
+  `cli.ts` no reconoce. Corregido con `MAX_TOTAL_SKILLS = 1000` y un `CatalogoSkillsError`
+  accionable si se supera.
+- **MEN-1** (aceptado sin corregir): `TIMEOUT_MS = 5000` para el subproceso de
+  `claude plugin list --json` tiene un margen fino frente a los ~3.5-4.5s medidos en la
+  maquina del revisor; bajo carga real puede colapsar a `no-verificable` de forma
+  intermitente. Se acepta porque el fallo cerrado ante timeout ya es el correcto
+  (`no-verificable`, nunca `instalado` ni `no-instalado` por defecto) — el peor caso es un
+  falso "no verificable" ocasional, no una decision incorrecta. Ajustar el timeout sin datos
+  de produccion seria adivinar un numero.
+- **MEN-4** (aceptado sin corregir): si las etiquetas de una tarea cambian y el empate que
+  motivo un desempate por LLM desaparece, los ficheros `peticion-desempate-skill-1.md` y
+  `salida-desempate-skill-1.md` quedan en `planificacion/` con candidatos que ya no aplican.
+  Se acepta porque es el mismo patron que ya existe para los ficheros de brainstorm de TASK-016
+  (los artefactos de una ronda de planificacion no se autolimpian si la tarea cambia de forma),
+  y limpiarlo automaticamente añadiria logica de borrado condicionado que ninguna otra parte
+  del flujo de planificacion tiene todavia.
+- **MEN-5** (aceptado sin corregir): la excepcion del test de arquitectura que impide invocar
+  subprocesos fuera de `plugin-instalado.ts` esta acotada por fichero, no por uso exacto del
+  argv; un futuro `spawnSync('claude', [...])` distinto en ese mismo fichero cruzaria el guard
+  sin aviso. Se acepta porque añadir la asercion positiva que sugiere el informe (que el unico
+  argv con `'claude'` en el fichero sea `['plugin', 'list', '--json']`) es deuda de test
+  aislada, sin riesgo de comportamiento incorrecto en produccion; queda anotada para quien
+  toque ese fichero a continuacion.
+- **MEN-6** (aceptado sin corregir): `total_skills: 0` se acepta en silencio y deja a toda
+  tarea sin candidato. Se acepta porque es coherente con la doctrina explicita del proyecto de
+  que "cero candidatos tras cruzar etiquetas es un resultado valido, no un fallo" — un catalogo
+  vacio es una instancia legitima de ese mismo caso, aunque indistinguible de un fichero
+  truncado sin mirar el `git diff`.
+- **MEN-7** (aceptado sin corregir): cuando un `skills_recomendados` puesto a mano pasa a `[]`
+  por ser un campo derivado, el aviso generico ("ningun skill comparte etiquetas") no menciona
+  que habia un valor previo que se ha borrado. Se acepta porque `skills_recomendados` esta
+  documentado como derivado desde su introduccion (no es un campo que la persona deba editar a
+  mano), y detectar "habia un valor antes" añadiria estado que el comando no necesita para
+  nada mas.
+
+Tras aplicar las 4 correcciones IMPORTANTE y las 2 MENOR, la suite completa paso de
+816/820 a 817/820 (el nuevo test de MEN-3 sumo un test), con los 3 fallos restantes siendo
+los conocidos de Windows nativo documentados en `CLAUDE.md` (symlink EPERM, chmod-on-dir NTFS
+no-op, CRLF), verificados uno a uno en el log y sin ninguna regresion nueva.
+
+### El patron que se repitio entre IMP-2 e IMP-4
+
+Los dos hallazgos mas caros de esta ronda (IMP-2 e IMP-4) comparten una misma causa: el
+scaffold que un comando genera para que la persona lo edite a mano (rutas del aviso, o el
+fichero de salida del desempate) no coincidia con lo que el propio comando esperaba leer
+despues. En ambos casos la correccion fue alinear "lo que el comando escribe" con "lo que el
+comando lee", en vez de documentar la discrepancia. Vale la pena revisar el resto de scaffolds
+interactivos del proyecto (brainstorm incluido) con esa misma pregunta.
