@@ -1,0 +1,65 @@
+﻿diff --git a/docs/PROPUESTA_METODOLOGIA.md b/docs/PROPUESTA_METODOLOGIA.md
+index 02ca04a..c9575f3 100644
+--- a/docs/PROPUESTA_METODOLOGIA.md
++++ b/docs/PROPUESTA_METODOLOGIA.md
+@@ -187,7 +187,7 @@ Coincido en que vale la pena construir esto bien — es exactamente el mismo pro
+ 
+ 3. **Comprobar si está instalado — determinista, no un tool call de un agente dentro de la sesión.** Para `origen: taskcode-plugin` siempre es sí. Para `origen: externo`, `taskctl` (el script, no un agente) comprueba directamente el estado local de plugins de esa máquina, en vez de pedirle a un agente que "busque lo instalado" en medio de su razonamiento — es más determinista y no depende de si esa capacidad está pensada para usarse así desde dentro de un skill. **Aviso**: la investigación sobre el mecanismo exacto para esa comprobación (comando de CLI / archivo de configuración concreto) devolvió una respuesta que no puedo dar por verificada sin probarla a mano — se queda como "a confirmar en Sprint 0", no como dato cerrado. Lo que sí es un principio de diseño sólido, con o sin ese detalle: la comprobación de "¿está instalado?" debe resolverla el script de forma determinista, y el agente solo entra para el paso 2 (elegir entre candidatos).
+ 
+-4. Si el candidato elegido no está instalado, se anota en `plan-final.md`: *"Esta tarea se beneficiaría del skill `X` (marketplace `Y`) — no está instalado. Instálalo con `/plugin install X@Y` antes de arrancar, o continúa sin él."* Nunca se instala nada automáticamente — requiere aprobación humana, como en cualquier instalación de plugin en Claude Code.
++4. Si el candidato elegido no está instalado, se anota en `plan-final.md`: *"Esta tarea se beneficiaría del skill `P:S` (marketplace `Y`) — no está instalado. Instálalo con `/plugin install P@Y` antes de arrancar, o continúa sin él."* Nótese que lo que se nombra es el skill completo (`P:S`, plugin y skill) pero lo que se instala es solo el plugin (`P`, el tramo antes de `:`) — la misma distinción del id compuesto que fija el ejemplo del paso 1. Nunca se instala nada automáticamente — requiere aprobación humana, como en cualquier instalación de plugin en Claude Code.
+ 
+ ## 7. El plugin como unidad de distribución de la herramienta
+ 
+diff --git a/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts b/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts
+index 7ec3c8b..30681cd 100644
+--- a/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts
++++ b/taskcode-marketplace/plugins/taskcode-plugin/src/core/catalogo-skills.ts
+@@ -251,13 +251,17 @@ function construirEntrada(
+   // de un skill donde debia ir el nombre de un plugin, sin abortar ni
+   // avisar. Fallo cerrado: si no cumple la forma exacta, no se adivina
+   // nada, se aborta con instruccion de como corregirlo.
+-  if (origen === 'externo' && !/^[^:]+:[^:]+$/.test(id)) {
++  // MEN-20 (revision por pares ronda 4, TASK-017): cada tramo excluye
++  // ademas espacios (\s), no solo ":" -- si no, un id como
++  // "mi-plugin : skill" pasaba la validacion y componia un
++  // "/plugin install" con espacios de mas.
++  if (origen === 'externo' && !/^[^:\s]+:[^:\s]+$/.test(id)) {
+     throw new CatalogoSkillsError(
+       `[ERROR] ${ruta}:${cId.numeroLinea}: "${prefijo}id" invalido para "${prefijo}origen: externo": "${id}".\n` +
+-        '        Debe tener la forma "plugin:skill" (un unico ":", ni el tramo antes\n' +
+-        '        ni el de despues vacio) -- el tramo antes de ":" es el PLUGIN a\n' +
+-        '        instalar, el de despues el skill dentro de ese plugin (seccion 6.6 de\n' +
+-        '        docs/PROPUESTA_METODOLOGIA.md).'
++        '        Debe tener la forma "plugin:skill" (un unico ":", sin espacios, ni el\n' +
++        '        tramo antes ni el de despues vacio) -- el tramo antes de ":" es el\n' +
++        '        PLUGIN a instalar, el de despues el skill dentro de ese plugin (seccion\n' +
++        '        6.6).'
+     );
+   }
+ 
+diff --git a/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts b/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts
+index f1947aa..884f7f8 100644
+--- a/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts
++++ b/taskcode-marketplace/plugins/taskcode-plugin/test/commands/plan.test.ts
+@@ -910,9 +910,19 @@ test('taskctl plan: IMP-9 (revision por pares ronda 3) -- un skill_N_id de orige
+       );
+       commitAll(repoRoot, 'tarea TASK-700 con catalogo de id externo mal formado');
+ 
++      // MEN-21 (revision por pares ronda 4, TASK-017): no basta con
++      // aseverar la clase del error -- CatalogoSkillsError es la misma
++      // para cualquier fallo de parseo del catalogo, asi que sin
++      // comprobar el mensaje este test pasaria igual si el fixture
++      // fallase por otra causa (clave ausente, enum invalido, etc.) sin
++      // haber ejercitado nunca la validacion de IMP-9.
+       await assert.rejects(
+         () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot }),
+-        CatalogoSkillsError
++        (error: unknown) => {
++          assert.ok(error instanceof CatalogoSkillsError, `esperaba CatalogoSkillsError y llego: ${String(error)}`);
++          assert.match(error.message, /"skill_1_id" invalido para "skill_1_origen: externo"/);
++          return true;
++        }
+       );
+ 
+       // Mismo criterio que MEN-8: un catalogo invalido no deja

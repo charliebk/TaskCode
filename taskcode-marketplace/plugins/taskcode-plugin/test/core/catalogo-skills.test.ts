@@ -368,6 +368,20 @@ test('id externo con el tramo del skill vacio ("plugin:") aborta', () => {
   );
 });
 
+// MEN-24 (revision por pares ronda 5, TASK-017): MEN-20 (ronda 4)
+// endurecio el regex de este mismo modulo a /^[^:\s]+:[^:\s]+$/ para
+// que un id con espacios internos alrededor de ":" tambien abortara,
+// pero no quedo ningun test que lo fijara -- este es ese test.
+test('id externo con espacios alrededor de ":" ("mi-plugin : skill") aborta', () => {
+  const conId = conValor('skill_2_id', 'mi-plugin : skill');
+  const conMarketplace = conLineaExtra('skill_2_marketplace: mi-marketplace', conId);
+  const conExterno = conValor('skill_2_origen', 'externo', conMarketplace);
+  assert.throws(
+    () => parsearCatalogoSkills(conExterno, RUTA_YML),
+    errorAccionable(/"skill_2_id" invalido para "skill_2_origen: externo"/)
+  );
+});
+
 test('id sin ":" en origen "taskcode-plugin" sigue siendo valido (la exigencia es solo para "externo")', () => {
   // Precondicion explicita: el catalogo real tiene 5 entradas
   // "taskcode-plugin" y ninguna trae ":" en su id.

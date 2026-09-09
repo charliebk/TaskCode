@@ -847,17 +847,17 @@ Y una sobre la revisión, no sobre el código: **ninguno de los ocho CRÍTICOS s
 encontró leyendo el diff.** Los ocho salieron de montar el estado a mano y
 ejecutar el binario. Un revisor que solo lee el diff habría aprobado la ronda 1.
 
-## El worktree aislado del agente revisor, en la rama equivocada dos rondas seguidas (TASK-017)
+## El worktree aislado del agente revisor, en la rama equivocada cuatro rondas seguidas (TASK-017)
 
-En las rondas 2 y 3 de revisión por pares de TASK-017, el agente `code-reviewer`
-lanzado con `isolation: "worktree"` apareció posicionado en un commit que **no**
-era el de la rama de la tarea (en la ronda 3, en `ce5947d`, el cierre de
-TASK-016, una tarea anterior sin relación). Las dos veces el propio informe lo
-detectó y lo documentó con precisión —citando los ficheros de Git que confirman
-en qué rama estaba realmente— y compensó revisando el árbol de trabajo
-principal en vez de su worktree aislado, así que el veredicto no quedó
-invalidado. Pero el traslado del informe a la ubicación correcta tuvo que
-hacerse a mano las dos veces.
+En las rondas 2, 3, 4 y 5 de revisión por pares de TASK-017, el agente
+`code-reviewer` lanzado con `isolation: "worktree"` apareció posicionado en un
+commit que **no** era el de la rama de la tarea (en las rondas 3, 4 y 5, el
+mismo commit exacto, `ce5947d`, el cierre de TASK-016, una tarea anterior sin
+relación). Las cuatro veces el propio informe lo detectó y lo documentó con
+precisión —citando los ficheros de Git que confirman en qué rama estaba
+realmente— y compensó revisando el árbol de trabajo principal en vez de su
+worktree aislado, así que el veredicto no quedó invalidado. Pero el traslado
+del informe a la ubicación correcta tuvo que hacerse a mano las cuatro veces.
 
 **No investigado, solo documentado como recurrente.** No se ha confirmado si
 la causa es el punto base con el que se crea el worktree (`worktree.baseRef`,

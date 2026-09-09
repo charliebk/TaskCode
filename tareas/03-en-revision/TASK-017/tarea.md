@@ -353,3 +353,75 @@ tarea.
   entregas" de `peticionDesempateSkillTemplate` a las tres reglas de salto reales
   (linea vacia, encabezado Markdown, marcador `"(pendiente de completar)"`), que hasta ahora
   no probaba nada del texto.
+
+### Ronda 4 de revision por pares (`informe-revision-4.md`)
+
+Commit revisado: `4bcecd0a8d4b8592279a92ef4be90630cd0b6500`. Veredicto: cambios-solicitados.
+0 CRITICO, 1 IMPORTANTE, 4 MENOR. Mismo problema de proceso de las rondas anteriores: el
+worktree aislado del agente revisor aparecio en la rama equivocada (commit de cierre de
+TASK-016), tercera vez seguida — el revisor lo detecto y compenso revisando el arbol
+principal, documentado en `docs/contexto/HALLAZGOS.md` como problema de proceso, fuera del
+alcance de esta tarea.
+
+**IMPORTANTE — corregido:**
+
+- **IMP-10**: el paso 4 de la seccion 6.6 de `docs/PROPUESTA_METODOLOGIA.md` nombraba el
+  skill completo (`X`, sin distinguir plugin de skill) en la instruccion de
+  `/plugin install X@Y`, contradiciendo el propio ejemplo YAML de esa misma seccion y
+  `plan.ts` (que instala solo el tramo antes de `:`, ver MEN-11). Corregida la prosa para
+  nombrar explicitamente `P:S` (skill completo, lo que se anota) frente a `P` (plugin, lo
+  que se instala).
+
+**MENOR — los 4 corregidos:**
+
+- **MEN-20**: el regex de validacion de `skill_N_id` para `origen: externo` en
+  `construirEntrada` (introducido en IMP-9, ronda 3) era `/^[^:]+:[^:]+$/` — excluia `:` en
+  cada tramo pero no espacios, asi que un id como `"mi-plugin : skill"` pasaba la validacion
+  y `plan.ts` componia un `/plugin install` con espacios de mas. Endurecido a
+  `/^[^:\s]+:[^:\s]+$/`.
+- **MEN-21**: el test end-to-end de IMP-9 en `plan.test.ts` solo comprobaba
+  `assert.rejects(fn, CatalogoSkillsError)` — la clase del error, no su contenido — asi que
+  pasaria igual si el fixture fallase por una causa distinta. Reforzado con una funcion
+  validadora que ademas comprueba el mensaje contra
+  `/"skill_1_id" invalido para "skill_1_origen: externo"/`.
+- **MEN-22**: el mensaje `CatalogoSkillsError` de IMP-9/MEN-20 citaba
+  `docs/PROPUESTA_METODOLOGIA.md` por ruta en un mensaje que puede llegar a la terminal de un
+  proyecto ajeno, violando la regla de no mencionar documentos internos en nada expuesto a
+  otros proyectos. Corregido para citar solo "(seccion 6.6)", igual que el mensaje hermano de
+  marketplace ausente.
+- **MEN-23** (corregido arriba, en la seccion de la ronda 3): la frase de cierre de MEN-17
+  afirmaba haber verificado solo `catalogo-skills.test.ts`, cuando el criterio real cubria
+  cuatro patrones. Corregida con el resultado real de repetir la busqueda contra los cuatro.
+
+Tras corregir IMP-10 y MEN-20 a MEN-23 (commit `382028e`), suite recompilada y reejecutada:
+99 fallos, la misma cifra que en el cierre de la ronda 3, ninguno en los ficheros de esta
+tarea — confirmado leyendo los 99 "not ok" completos contra los cuatro patrones que MEN-23
+fija como criterio.
+
+### Ronda 5 de revision por pares (`informe-revision-5.md`)
+
+Commit revisado: `382028edec723a64b8b4f99653040484d6209a0b`. Veredicto: **aprobada** (con
+dos menores nuevos). 0 CRITICO, 0 IMPORTANTE. Confirma, verificando el codigo real y no el
+diff, que los cinco hallazgos de la ronda 4 (IMP-10, MEN-20, MEN-21, MEN-22, MEN-23) quedaron
+corregidos de verdad. Cuarta vez seguida con el worktree aislado en la rama equivocada (mismo
+commit de cierre de TASK-016); el revisor no pudo ejecutar la suite en su entorno (Bash roto
+tambien alli), asi que la cifra de 99 fallos sigue sin corroboracion independiente, sin
+contarse como discrepancia por falta de cifra propia que contraponer.
+
+**MENOR — los 2 corregidos:**
+
+- **MEN-24** (corregido en `catalogo-skills.test.ts`): la correccion de MEN-20 (regex
+  endurecido contra espacios internos) no traia el test de regresion que la propia ronda 4
+  pidio por nombre para el caso `"mi-plugin : skill"`. Anadido como sexto test, hermano de
+  los cinco de IMP-9/MEN-20 ya existentes. Suite recompilada y reejecutada: 832 tests (antes
+  831), 732 pass (misma cifra), 100 fail (antes 99, +1) — el test nuevo pasa (`ok 407`, sub
+  12ms); confirmado leyendo los 100 "not ok" completos que el fallo extra es intermitente
+  dentro de la misma categoria de siempre (Bash roto en scripts Git-Flow / taskctl
+  start-finish-review-approve-pause-resume-diagnose-abort-merge), no una regresion: ninguno
+  de los 100 toca `catalogo-skills.test.ts`, `plan-desempate-skill.test.ts` ni
+  `plugin-instalado.test.ts`, y de `plan.test.ts` siguen fallando exactamente los mismos dos
+  no-regresion ya documentados (lineas 268 y 274 de la salida de test).
+- **MEN-25** (corregido en este mismo documento): faltaban las secciones "Ronda 4" y
+  "Ronda 5" de revision por pares — solo MEN-23 quedaba anotado, sin contexto de que venia
+  de una ronda 4 independiente. Anadidas ambas secciones completas, con severidad y cierre
+  de cada hallazgo, siguiendo el mismo formato que las rondas 2 y 3.
