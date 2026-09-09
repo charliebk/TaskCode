@@ -88,13 +88,16 @@ decision despues.
   `no-verificable`, nunca a `no-instalado` (arriesgaria sugerir instalar algo que ya esta) ni a
   `instalado` (esconderia un candidato real que falta).
 
-### Revision por pares: 2 rondas (la 2 en dos pasadas independientes), 22 hallazgos, cero criticos
+### Revision por pares: 5 rondas (la 2 en dos pasadas independientes), 35 hallazgos, cero criticos
 
 | Ronda | Veredicto | Hallazgos |
 |---|---|---|
 | 1 | cambios-solicitados | 0 criticos, 4 importantes, 7 menores |
 | 2 (1a pasada) | cambios-solicitados | 0 criticos, 1 importante, 4 menores |
 | 2 (2a pasada) | cambios-solicitados | 0 criticos, 2 importantes, 4 menores |
+| 3 | cambios-solicitados | 0 criticos, 2 importantes, 4 menores |
+| 4 | cambios-solicitados | 0 criticos, 1 importante, 4 menores |
+| 5 | **aprobada** | 0 criticos, 0 importantes, 2 menores |
 
 El agente revisor (`typescript-reviewer`, `informe-revision-1.md`) reprodujo empiricamente
 sobre un worktree aislado, incluida la suite completa y sondas propias contra el binario real
