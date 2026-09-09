@@ -37,6 +37,17 @@
  * cualquier otro del mismo marketplace si esta instalado -- justo el
  * "candidato real que falta" escondido que este modulo existe para
  * evitar.
+ *
+ * Decision aceptada (hallazgo MENOR, revision por pares ronda 2): un
+ * elemento con `id` coincidente pero `enabled: false` en el JSON real
+ * cuenta como 'instalado', igual que uno habilitado -- el campo
+ * `enabled` no se mira. `EstadoInstalacionSkill` solo distingue si el
+ * plugin YA esta descargado y registrado en la maquina (que es lo que
+ * hace innecesario el "/plugin install" que sugiere plan.ts), no si
+ * esta activo ahora mismo; habilitarlo no requiere reinstalar. Anadir
+ * un cuarto estado para "instalado pero deshabilitado" exigiria ademas
+ * un aviso distinto en plan.ts ("/plugin enable" en vez de
+ * "/plugin install") que nadie ha pedido todavia.
  */
 import { spawnSync } from 'node:child_process';
 const TIMEOUT_MS = 5000;

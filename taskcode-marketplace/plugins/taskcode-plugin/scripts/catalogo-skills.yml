@@ -27,10 +27,13 @@
 #   skill_N_id                 identificador del skill. Para uno empaquetado
 #                               en este plugin, su nombre de skill tal cual
 #                               (el de su carpeta y su frontmatter `name`).
-#                               Para uno externo, "marketplace:skill" (ver
-#                               el ejemplo "figma:figma-generate-design" de
-#                               la seccion 6.6). Debe ser unico en todo el
-#                               fichero.
+#                               Para uno externo, "plugin:skill" (ver el
+#                               ejemplo "figma:figma-generate-design" de la
+#                               seccion 6.6, donde "figma" es el PLUGIN que
+#                               hay que instalar, no el marketplace que lo
+#                               aloja -- ese va aparte, en
+#                               skill_N_marketplace). Debe ser unico en todo
+#                               el fichero.
 #   skill_N_origen              "taskcode-plugin" (empaquetado, siempre
 #                               instalado con este plugin) o "externo"
 #                               (puede no estar instalado en la maquina).

@@ -22,6 +22,16 @@ import type { EntradaCatalogoSkill } from './catalogo-skills.js';
 export const PETICION_DESEMPATE_SKILL_FILENAME = 'peticion-desempate-skill-1.md';
 export const SALIDA_DESEMPATE_SKILL_FILENAME = 'salida-desempate-skill-1.md';
 
+/**
+ * Marcador de relleno que deja salidaDesempateSkillTemplate() en el
+ * scaffold. leerGanadorDesempate() lo salta ademas del encabezado
+ * Markdown y de las lineas en blanco: "dejarlo intacto y responder
+ * debajo" (lo que promete el docblock de leerGanadorDesempate) solo
+ * funciona si el lector conoce este literal exacto (hallazgo IMPORTANTE
+ * de revision por pares, TASK-017, ronda 2).
+ */
+const PLACEHOLDER_SALIDA_DESEMPATE = '(pendiente de completar)';
+
 export function peticionDesempateSkillTemplate(
   task: Task,
   candidatos: readonly EntradaCatalogoSkill[],
@@ -50,8 +60,10 @@ export function peticionDesempateSkillTemplate(
     `${etiquetasTarea}\n\n` +
     '## Como entregas\n\n' +
     `Escribe en \`${SALIDA_DESEMPATE_SKILL_FILENAME}\` una unica linea con el \`id\` EXACTO (tal ` +
-    'cual aparece arriba) del candidato que mejor encaje con esta tarea concreta — taskctl solo ' +
-    'lee la primera linea no vacia. Puedes anadir tu razonamiento en lineas siguientes.\n\n' +
+    'cual aparece arriba) del candidato que mejor encaje con esta tarea concreta — taskctl lee ' +
+    'la primera linea que no este vacia, no sea un encabezado Markdown ni el marcador ' +
+    `"${PLACEHOLDER_SALIDA_DESEMPATE}" del scaffold. Puedes anadir tu razonamiento en lineas ` +
+    'siguientes.\n\n' +
     '## Reglas\n\n' +
     '- Eliges uno de los candidatos de arriba, tal cual. Cualquier otro texto en esa primera ' +
     'linea se trata como respuesta invalida y taskctl la ignora.\n' +
@@ -65,7 +77,7 @@ export function peticionDesempateSkillTemplate(
  * brainstorm: solo el sitio donde escribir, sin invencion de contenido.
  */
 export function salidaDesempateSkillTemplate(task: Task): string {
-  return `# Salida del desempate de skill — ${task.id}\n\n(pendiente de completar)\n`;
+  return `# Salida del desempate de skill — ${task.id}\n\n${PLACEHOLDER_SALIDA_DESEMPATE}\n`;
 }
 
 /**
@@ -76,13 +88,15 @@ export function salidaDesempateSkillTemplate(task: Task): string {
  * salida que no se puede interpretar sin ambiguedad no elige un
  * candidato al azar.
  *
- * Se saltan tanto las lineas en blanco como las que empiezan por "#":
- * salidaDesempateSkillTemplate() genera un encabezado Markdown como
- * primera linea, y responder debajo de el (dejandolo intacto, igual
- * que se hace con los `salida-brainstorm-*.md`) es la forma obvia de
- * completar el scaffold. Sin este salto, esa respuesta se descartaba
- * en silencio porque la "primera linea no vacia" seguia siendo el
- * encabezado (hallazgo IMPORTANTE de revision por pares, TASK-017).
+ * Se saltan las lineas en blanco, las que empiezan por "#" y el
+ * marcador de relleno del propio scaffold (PLACEHOLDER_SALIDA_DESEMPATE):
+ * salidaDesempateSkillTemplate() genera un encabezado Markdown y ese
+ * marcador como primeras lineas, y responder debajo de ellas
+ * (dejandolas intactas, igual que se hace con los
+ * `salida-brainstorm-*.md`) es la forma obvia de completar el scaffold.
+ * Sin este triple salto, esa respuesta se descartaba en silencio porque
+ * la "primera linea no vacia" seguia siendo el encabezado o el marcador
+ * (hallazgo IMPORTANTE de revision por pares, TASK-017, rondas 1 y 2).
  */
 export function leerGanadorDesempate(
   contenido: string,
@@ -91,7 +105,7 @@ export function leerGanadorDesempate(
   const primeraLinea = contenido
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .find((l) => l !== '' && !l.startsWith('#'));
+    .find((l) => l !== '' && l !== PLACEHOLDER_SALIDA_DESEMPATE && !l.startsWith('#'));
   if (primeraLinea === undefined) return null;
   return candidatos.find((c) => c.id === primeraLinea) ?? null;
 }

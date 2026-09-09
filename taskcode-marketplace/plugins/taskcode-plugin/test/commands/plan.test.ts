@@ -809,6 +809,63 @@ test('taskctl plan: un skill externo ganador que no esta instalado deja el aviso
   }
 });
 
+test('taskctl plan: IMP-6 (revision por pares ronda 2) -- un skill_N_id CON ":" usa el tramo antes de ":" como PLUGIN en el "/plugin install", no como marketplace', async () => {
+  const pluginRootTmp = await mkdtemp(path.join(tmpdir(), 'taskctl-plan-plugin-root-'));
+  const previoPluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
+  const marketplaceInventado = 'marketplace-inventado-para-el-test-de-plan';
+  try {
+    const scriptsDir = path.join(pluginRootTmp, 'scripts');
+    await mkdir(scriptsDir, { recursive: true });
+    const heuristicaReal = await readFile(RUTA_HEURISTICA_REAL, 'utf8');
+    await writeFile(path.join(scriptsDir, 'heuristica-complejidad.yml'), heuristicaReal, 'utf8');
+    await writeFile(
+      path.join(scriptsDir, 'catalogo-skills.yml'),
+      [
+        'total_skills: 1',
+        'skill_1_id: figma:figma-generate-design',
+        'skill_1_origen: externo',
+        `skill_1_marketplace: ${marketplaceInventado}`,
+        'skill_1_rol: ejecucion',
+        'skill_1_prioridad: 5',
+        'skill_1_etiquetas: [etiqueta-unica-para-el-test-externo-con-dos-puntos]',
+        'skill_1_patrones_archivo: []',
+        'skill_1_descripcion: "skill externo de prueba con id compuesto"',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+    process.env['CLAUDE_PLUGIN_ROOT'] = pluginRootTmp;
+
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(
+        tareasRoot,
+        sampleTask({ etiquetas: ['etiqueta-unica-para-el-test-externo-con-dos-puntos'] }),
+        BODY_CON_OBJETIVO
+      );
+      commitAll(repoRoot, 'tarea TASK-700 con etiqueta de skill externo con id compuesto');
+
+      const result = await runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-09', { repoCwd: repoRoot });
+
+      assert.deepEqual(result.skillsRecomendados, ['figma:figma-generate-design']);
+      assert.ok(result.avisoSkillNoInstalada !== null);
+      // "figma" (tramo ANTES de ":") es el PLUGIN a instalar; el
+      // marketplace es el campo skill_N_marketplace, que va DESPUES de
+      // "@". Si el split usara el tramo equivocado, o si el catalogo y
+      // el codigo interpretaran el prefijo de forma distinta, este
+      // "/plugin install" no seria el comando real que hay que ejecutar
+      // (hallazgo IMP-6).
+      assert.match(
+        result.avisoSkillNoInstalada!,
+        new RegExp(`/plugin install figma@${marketplaceInventado}`)
+      );
+    });
+  } finally {
+    if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];
+    else process.env['CLAUDE_PLUGIN_ROOT'] = previoPluginRoot;
+    await rm(pluginRootTmp, { recursive: true, force: true });
+  }
+});
+
 test('taskctl plan: MEN-8 (revision por pares ronda 2) -- un catalogo de skills mal formado aborta ANTES de crear planificacion/, deja el workspace limpio', async () => {
   // cargarCatalogoSkills() se llama antes del mkdir/writeFile del
   // scaffold a proposito (ver el comentario en plan.ts junto a la

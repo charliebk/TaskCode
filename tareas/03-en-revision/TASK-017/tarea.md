@@ -88,11 +88,13 @@ decision despues.
   `no-verificable`, nunca a `no-instalado` (arriesgaria sugerir instalar algo que ya esta) ni a
   `instalado` (esconderia un candidato real que falta).
 
-### Revision por pares: 1 ronda, 11 hallazgos, cero criticos
+### Revision por pares: 2 rondas (la 2 en dos pasadas independientes), 22 hallazgos, cero criticos
 
 | Ronda | Veredicto | Hallazgos |
 |---|---|---|
 | 1 | cambios-solicitados | 0 criticos, 4 importantes, 7 menores |
+| 2 (1a pasada) | cambios-solicitados | 0 criticos, 1 importante, 4 menores |
+| 2 (2a pasada) | cambios-solicitados | 0 criticos, 2 importantes, 4 menores |
 
 El agente revisor (`typescript-reviewer`, `informe-revision-1.md`) reprodujo empiricamente
 sobre un worktree aislado, incluida la suite completa y sondas propias contra el binario real
@@ -105,8 +107,10 @@ sobre un worktree aislado, incluida la suite completa y sondas propias contra el
   `marketplace` suelto (verificado con salida real del binario). Ademas el fallo cerrado no se
   disparaba: la comprobacion de forma se detenia en `Array.isArray`, sin mirar los elementos,
   asi que cualquier array no vacio se leia como `no-instalado` en vez de `no-verificable`.
-  Corregido: se lee `id.split('@').at(-1)`, y si ningun elemento tiene forma reconocible
-  (objeto con `id` string) el resultado es `no-verificable`.
+  Corregido: si ningun elemento tiene forma reconocible (objeto con `id` string) el resultado es
+  `no-verificable`. La comparacion de esta ronda todavia miraba solo el tramo del `marketplace`
+  del `id` en vez del `id` completo — eso se corrigio despues, en IMP-5 (ronda 2), que dejo el
+  codigo actual en `interpretarResultadoPluginList` (`plugin-instalado.ts`).
 - **IMP-2**: el aviso de desempate y `peticionDesempateSkill` imprimian rutas de la carpeta de
   ORIGEN de la tarea, calculadas antes de `moveTareaFile`; tras el primer `taskctl plan` esas
   rutas ya no existian en disco. Corregido recalculando las rutas contra la carpeta de destino
@@ -167,9 +171,9 @@ sobre un worktree aislado, incluida la suite completa y sondas propias contra el
   nada mas.
 
 Tras aplicar las 4 correcciones IMPORTANTE y las 2 MENOR, la suite completa paso de
-816/820 a 817/820 (el nuevo test de MEN-3 sumo un test), con los 3 fallos restantes siendo
-los conocidos de Windows nativo documentados en `CLAUDE.md` (symlink EPERM, chmod-on-dir NTFS
-no-op, CRLF), verificados uno a uno en el log y sin ninguna regresion nueva.
+812/815 a 817/820 (5 tests netos añadidos entre IMP-1, IMP-4 y MEN-3), con los 3 fallos
+restantes siendo los conocidos de Windows nativo documentados en `CLAUDE.md` (symlink EPERM,
+chmod-on-dir NTFS no-op, CRLF), verificados uno a uno en el log y sin ninguna regresion nueva.
 
 ### El patron que se repitio entre IMP-2 e IMP-4
 
@@ -179,3 +183,92 @@ fichero de salida del desempate) no coincidia con lo que el propio comando esper
 despues. En ambos casos la correccion fue alinear "lo que el comando escribe" con "lo que el
 comando lee", en vez de documentar la discrepancia. Vale la pena revisar el resto de scaffolds
 interactivos del proyecto (brainstorm incluido) con esa misma pregunta.
+
+### Ronda 2 de revision por pares
+
+Segunda ronda independiente (`informe-revision-2.md`), tambien con veredicto
+cambios-solicitados: confirmo empiricamente las 6 correcciones de la ronda 1 (las 4 IMPORTANTE
+y las 2 MENOR arriba) sin regresiones, y encontro un hallazgo IMPORTANTE nuevo y 4 MENOR.
+
+**IMPORTANTE — corregido:**
+
+- **IMP-5**: `comprobarSkillInstalado`/`interpretarResultadoPluginList` comparaban solo el
+  tramo del `marketplace` (tras el `@`) del `id`, no el `id` completo. Eso reportaba
+  `'instalado'` un plugin externo que en realidad no existe si CUALQUIER OTRO plugin del mismo
+  marketplace si estaba instalado — exactamente el "candidato real que falta" escondido que
+  este modulo existe para evitar (ver docblock de `plugin-instalado.ts`). Corregido comparando
+  el `id` COMPLETO (`"plugin@marketplace"`); test de regresion nuevo
+  (`plugin-instalado.test.ts`, caso "IMP-5: otro plugin del mismo marketplace instalado, pero
+  no el buscado, es no-instalado"). Commit `5e6a5ba`.
+
+**MENOR — 2 corregidos, 2 aceptados sin corregir:**
+
+- **MEN-11** (corregido junto con IMP-5, misma causa raiz): el aviso de instalacion componia
+  `/plugin install ${entradaGanadora.id}@${entradaGanadora.marketplace}` con un `id` de
+  CATALOGO (forma `"plugin:skill"`, p. ej. `"figma:figma-generate-design"`), produciendo un
+  comando `/plugin install` no ejecutable. Corregido extrayendo el nombre del plugin real
+  (`id.split(':')[0]`) antes de componer `pluginId`. Commit `5e6a5ba`.
+- **MEN-8** (corregido con test): el orden "cargar el catalogo antes de escribir el scaffold"
+  ya estaba corregido desde IMP-3 (ronda 1), pero ningun test lo fijaba como regresion. Nuevo
+  test en `plan.test.ts`: con un catalogo mal formado, `runPlanCommand` rechaza, la tarea no se
+  mueve de `00-planificadas` y `planificacion/` nunca se llega a crear. Commit `c284203`.
+- **MEN-10** (corregido en este mismo documento): la cifra "816/820 a 817/820" de la ronda 1
+  era incorrecta; la base real era 812/815, ya corregida arriba.
+- **MEN-9** (aceptado sin corregir): ningun test distingue explicitamente las dos redacciones
+  del aviso ("no esta instalado" vs "no se ha podido comprobar si esta instalado") segun el
+  estado real (`no-instalado` vs `no-verificable`). Se acepta porque forzar de forma
+  deterministica el estado `no-verificable` en un test de integracion de `plan.ts` sin mocks
+  exigiria mockear el subproceso `claude plugin list` (prohibido: tests contra recursos reales,
+  nunca mocks) o extraer una funcion pura solo para poder probar el string, una refactorizacion
+  no pedida para un hallazgo de redaccion de bajo riesgo. La logica que elige la redaccion es
+  un ternario de 3 lineas en `plan.ts`, y ambos estados ya estan probados exhaustivamente en
+  `plugin-instalado.test.ts` contra `interpretarResultadoPluginList`.
+
+Tras corregir IMP-5, MEN-11 y MEN-8, la suite completa paso de 817/820 a 819/822 (2 tests
+nuevos: el de IMP-5 y el de MEN-8), con los mismos 3 fallos conocidos de Windows nativo y
+ninguna regresion nueva.
+
+Una segunda pasada independiente sobre ese mismo cierre (tambien `informe-revision-2.md`,
+veredicto cambios-solicitados) reprodujo empiricamente con una limitacion de metodo que el
+propio informe documenta: su Bash estaba roto, asi que no pudo ejecutar la suite ni confirmar
+a que rama apuntaba su propio worktree aislado. Aun asi encontro 2 IMPORTANTE nuevos (IMP-6,
+IMP-7) y 4 MENOR (MEN-12 a MEN-15):
+
+**IMPORTANTE — corregidos los 2:**
+
+- **IMP-6**: el comentario de `scripts/catalogo-skills.yml` describia `skill_N_id` de una
+  entrada externa como `"marketplace:skill"`, al reves de la convencion real ya usada tanto
+  por el codigo (`plan.ts`, tramo antes de `:` como nombre del PLUGIN, ver MEN-11 arriba) como
+  por el ejemplo `"figma:figma-generate-design"` de la seccion 6.6. Corregido el comentario
+  para que diga `"plugin:skill"`; anadido en `plan.test.ts` un test end-to-end con un
+  `skill_N_id` con `:` que fija el `/plugin install` esperado.
+- **IMP-7**: `leerGanadorDesempate` saltaba lineas en blanco y encabezados Markdown, pero no el
+  marcador de relleno `"(pendiente de completar)"` que el propio `salidaDesempateSkillTemplate`
+  escribe en el scaffold — asi que responder debajo del marcador sin borrarlo (el patron que el
+  docblock de la funcion promete soportar) se descartaba en silencio, el mismo defecto que
+  IMP-4 (ronda 1) pretendia cerrar para el encabezado. Corregido con la constante compartida
+  `PLACEHOLDER_SALIDA_DESEMPATE`, usada tanto al escribir el scaffold como al leerlo; el test
+  `plan-desempate-skill.test.ts` que ejercitaba este escenario se corrigio para dejar el
+  marcador intacto de verdad (antes usaba `.replace()` para borrarlo antes de leer, sin probar
+  nada del comportamiento que su nombre prometia).
+
+**MENOR — 1 corregido, 1 documentado, 2 corregidos en este mismo documento:**
+
+- **MEN-13** (corregido en el mismo cambio que IMP-7): el texto de
+  `peticionDesempateSkillTemplate` describia solo dos de los tres tipos de linea que
+  `leerGanadorDesempate` salta; actualizado para mencionar tambien el marcador de relleno.
+- **MEN-14** (documentado, sin cambio de comportamiento): un plugin con `id` coincidente pero
+  `enabled: false` en el JSON real se reporta como `'instalado'`, igual que uno habilitado.
+  Se acepta y se documenta explicitamente en el docblock de `plugin-instalado.ts`: el estado
+  solo distingue si el plugin ya esta descargado y registrado (que es lo que hace innecesario
+  el `/plugin install` que sugiere `plan.ts`), no si esta activo; un cuarto estado para
+  "instalado pero deshabilitado" exigiria ademas un aviso distinto (`/plugin enable`) que nadie
+  ha pedido todavia.
+- **MEN-12** (corregido en este mismo documento): la descripcion de la correccion de IMP-1
+  (arriba) citaba `id.split('@').at(-1)`, codigo que ya no existe — quedo reemplazado por la
+  comparacion de `id` completo que trajo IMP-5. Corregida la redaccion para no describir codigo
+  desactualizado.
+- **MEN-15** (corregido en este mismo documento): esta seccion no cubria la segunda pasada de
+  ronda 2 con el contenido real de `informe-revision-2.md`. Anadida con los hallazgos reales
+  (0 criticos, 2 IMPORTANTE, 4 MENOR, veredicto cambios-solicitados, y la limitacion de metodo
+  del Bash roto documentada por el propio revisor).
