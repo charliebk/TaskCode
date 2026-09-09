@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-017 — Catálogo de skills determinista con selección en dos pasos · etiquetas: (sin etiquetas) · rama feature/task-017-catalogo-de-skills-determinista-con-sele · terminada 2026-09-09 · tareas/04-terminadas/TASK-017/
 - TASK-016 — Brainstorm paralelo por roles con agente unificador · etiquetas: (sin etiquetas) · rama feature/task-016-brainstorm-paralelo-por-roles-con-agente · terminada 2026-09-08 · tareas/04-terminadas/TASK-016/
 - TASK-032 — Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) · etiquetas: (sin etiquetas) · rama feature/task-032-roles-de-brainstorm-heuristica-de-comple · terminada 2026-09-08 · tareas/04-terminadas/TASK-032/
 - TASK-031 — Distribucion del CLI: un clon debe traer un taskctl que arranque · etiquetas: empaquetado, distribucion, cli · rama fix/task-031-distribucion-del-cli-un-clon-debe-traer · terminada 2026-09-07 · tareas/04-terminadas/TASK-031/

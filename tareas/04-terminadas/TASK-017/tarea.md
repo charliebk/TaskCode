@@ -6,7 +6,7 @@ sprint: 3
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-017-catalogo-de-skills-determinista-con-sele
 asignado_a: charlie.bk@gmail.com

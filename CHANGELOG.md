@@ -4,6 +4,7 @@ Registro de tareas terminadas. Lo actualiza taskctl finish; una linea
 por tarea, renderizada desde su frontmatter.
 
 ## Sin publicar
+- TASK-017 (feature) — Catálogo de skills determinista con selección en dos pasos (2026-09-09)
 - TASK-016 (feature) — Brainstorm paralelo por roles con agente unificador (2026-09-08)
 - TASK-032 (feature) — Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) (2026-09-08)
 - TASK-031 (fix) — Distribucion del CLI: un clon debe traer un taskctl que arranque (2026-09-07)
