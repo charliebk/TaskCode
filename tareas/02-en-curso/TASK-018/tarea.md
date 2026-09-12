@@ -6,7 +6,7 @@ sprint: 3
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-018-enrutado-de-revisor-por-diff-real-fragme
 asignado_a: charlie.bk@gmail.com
