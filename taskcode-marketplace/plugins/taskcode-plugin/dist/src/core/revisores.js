@@ -193,6 +193,16 @@ export function cargarCatalogoRevisores(skillsDir) {
  * COMO UN GRUPO MAS — nunca se queda sin revisor (criterio de aceptacion
  * 4). Si la ronda no se fragmenta, esa distincion no importa: el
  * generico ya se lleva el diff completo.
+ *
+ * Renombrar entre ecosistemas (`git mv Foo.java Foo.cs`): el brainstorm
+ * de riesgos propuso clasificar por AMBAS rutas del `--name-status` y
+ * mandar al generico si discrepan; se evalua y se descarta (hallazgo
+ * MENOR de revision por pares, ronda 1). `diffNameOnly` (fs/git.ts) usa
+ * `--name-only`, que colapsa el rename a la ruta FINAL; esta funcion
+ * clasifica por esa unica ruta. Verificado que no se pierde informacion:
+ * el fichero se revisa completo (como alta) bajo el dominio de su ruta
+ * final, que es una lectura razonable y mas simple que la propuesta
+ * original.
  */
 export function clasificarPorDominio(ficheros, catalogo) {
     const porDominio = new Map();

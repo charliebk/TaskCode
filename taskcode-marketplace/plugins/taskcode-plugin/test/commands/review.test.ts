@@ -676,6 +676,73 @@ test('taskctl review: un diff sin match de dominio (rutas ajenas y .md) sigue ca
   });
 });
 
+test('taskctl review: una segunda ronda numera -2 CON sufijo de dominio tras una ronda 1 fragmentada (hallazgo IMPORTANTE-1 de revision, TASK-018)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-625', rama: 'feature/task-625-segunda-ronda-fragmentada' });
+    await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
+    // Restos commiteados de una ronda 1 YA fragmentada por dominio (dos
+    // revisores, cada uno con su sufijo) — el mismo escenario que dejaria
+    // un ciclo review -> cambios-solicitados -> correccion -> review otra
+    // vez. Antes de esta tarea, RONDA_FILE_RE no reconocia estos nombres
+    // con sufijo y una regresion aqui no la detecta ningun otro test de
+    // la suite (informe de revision, IMPORTANTE-1).
+    const revisionDir = path.join(tareasRoot, '02-en-curso', 'TASK-625', 'revision');
+    await mkdir(revisionDir, { recursive: true });
+    await writeFile(
+      path.join(revisionDir, 'peticion-revision-1-java-spring-reviewer.md'),
+      'ronda 1, java\n',
+      'utf8'
+    );
+    await writeFile(
+      path.join(revisionDir, 'informe-revision-1-java-spring-reviewer.md'),
+      '- Veredicto: cambios-solicitados\n',
+      'utf8'
+    );
+    await writeFile(
+      path.join(revisionDir, 'peticion-revision-1-code-quality-reviewer.md'),
+      'ronda 1, generico\n',
+      'utf8'
+    );
+    await writeFile(
+      path.join(revisionDir, 'informe-revision-1-code-quality-reviewer.md'),
+      '- Veredicto: aprobada\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'restos de la ronda 1 fragmentada');
+    await escribirFichero(
+      repoRoot,
+      'src/main/java/com/acme/UserService.java',
+      'class UserService {} // correccion de la ronda 1\n'
+    );
+    commitAll(repoRoot, 'correccion pedida en la ronda 1');
+    await advanceDevelop(repoRoot, task.rama);
+
+    const result = await runReviewCommand(tareasRoot, ['TASK-625'], '2026-09-12', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    // La ronda siguiente es la 2, no la 1: siguienteRonda tuvo que
+    // reconocer los nombres CON sufijo de la ronda 1 para no pisarlos.
+    assert.equal(result.ronda, 2);
+    assert.ok(result.informes.length >= 1);
+    for (const grupo of result.informes) {
+      assert.match(grupo.peticionPath, /-revision-2(-[a-z0-9-]+)?\.md$/);
+      assert.match(grupo.informePath, /-revision-2(-[a-z0-9-]+)?\.md$/);
+    }
+    // La ronda 1 fragmentada sigue intacta, sin que la ronda 2 la pise.
+    await stat(
+      path.join(
+        tareasRoot,
+        '03-en-revision',
+        'TASK-625',
+        'revision',
+        'informe-revision-1-java-spring-reviewer.md'
+      )
+    );
+  });
+});
+
 test('taskctl review: error claro si falta el ID o la tarea no existe', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await assert.rejects(
