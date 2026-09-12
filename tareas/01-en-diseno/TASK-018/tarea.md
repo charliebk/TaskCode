@@ -35,6 +35,9 @@ case.
 
 ## Criterios de aceptacion
 - [ ] Clasifica el diff real de la rama por dominio en vez de por el tipo declarado de la tarea.
-- [ ] Fragmenta la revisión en un agente por dominio hasta el umbral que fije el punto 16 de la sección 14, y por encima de ese umbral cae a un único revisor genérico.
+- [ ] Fragmenta la revisión en un agente por dominio hasta el umbral (`umbral_dominios: 3`, inclusive: con 3 dominios fragmenta en 3, con 4 o más cae al genérico), y por encima de ese umbral cae a un único revisor genérico.
 - [ ] Cada revisor recibe solo el subconjunto del diff de su dominio.
-- [ ] Tests con diffs sintéticos que cubren un dominio, varios por debajo del umbral y varios por encima.
+- [ ] Ficheros que no casan ningún patrón de dominio, en un diff que sí tiene entre 1 y 3 dominios detectados, los cubre también el revisor genérico — no quedan sin revisar.
+- [ ] Extiende `src/commands/finish.ts` (`INFORME_REVISION_RE`/`ultimoInforme`) y `src/fs/rondas.ts` (`RONDA_FILE_RE`/`siguienteRonda`) para reconocer los N informes de dominio de una ronda fragmentada; `finish` exige que **todos** aprueben antes de cerrar. Sin esto, una tarea con revisión fragmentada queda atascada en `03-en-revision` para siempre.
+- [ ] `ReviewCommandResult` pasa a exponer una lista de pares petición/informe (uno por dominio) en vez de un único par singular; `review.test.ts` se actualiza a la nueva forma.
+- [ ] Tests con diffs sintéticos que cubren un dominio, varios por debajo del umbral, exactamente en el umbral y varios por encima.
