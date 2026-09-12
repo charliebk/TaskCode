@@ -44,5 +44,7 @@ continúa en local" cuando no hay `origin`).
 ## Criterios de aceptacion
 - [ ] Solo se ejecuta si la revisión primaria ya está aprobada y la tarea tiene `revision_codex: true`.
 - [ ] Envuelve el CLI de Codex y guarda su salida en la carpeta de la tarea, sin mezclarla con la de la revisión primaria.
-- [ ] Si Codex no está instalado, avisa y degrada con elegancia en vez de romper el flujo.
-- [ ] Tests que cubren la precondición de estado y la ausencia del CLI.
+- [ ] Si Codex falla por cualquier motivo (no instalado, `ENOENT`, o instalado pero con exit distinto de cero por auth/modelo/red/cuota — evidencia real: en esta máquina falla por incompatibilidad de cuenta/modelo), avisa y degrada con elegancia en vez de romper el flujo: `taskctl codex-review` sale con código 0, sin escribir `informe-codex-N.md`.
+- [ ] `informe-codex-N.md` vuelca la salida cruda de Codex como contexto (scaffold con veredicto `PENDIENTE`, mismo patrón que `informeTemplate` de la revisión primaria); un humano/agente la lee y escribe `- Veredicto: aprobada` o `- Veredicto: cambios-solicitados` — nunca se infiere del exit code de Codex, que no es una señal fiable (la propia evidencia de esta tarea lo confirma).
+- [ ] Si Codex se degrada y no llega a escribir informe, `revision_codex: true` sigue bloqueando `taskctl finish` fail-closed, sin excepción — la persona resuelve a mano (arregla/instala Codex y reintenta, o quita `revision_codex: true` si decide que esta tarea no necesita esa segunda opinión). El mensaje de `codex-review` deja claro por qué no se escribió informe.
+- [ ] Tests que cubren la precondición de estado, la ausencia del CLI (`ENOENT`) y un fallo con Codex presente pero con exit distinto de cero.
