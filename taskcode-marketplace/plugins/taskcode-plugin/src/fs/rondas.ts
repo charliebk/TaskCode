@@ -17,6 +17,15 @@
  * vuelta dentro de review.ts, porque el modulo esta probado y moverlo
  * otra vez no compra nada; pero conviene saber que no es una
  * abstraccion compartida, es la numeracion de rondas de revision.
+ *
+ * TASK-018: una ronda de revision fragmentada por dominio deja VARIOS
+ * ficheros con el MISMO numero de ronda (uno por revisor, con el nombre
+ * de la skill como sufijo — ver RONDA_FILE_RE en commands/review.ts).
+ * Ni `ultimaRonda` ni `siguienteRonda` necesitaron cambiar para eso: ya
+ * recorren TODAS las entradas del directorio y se quedan con el numero
+ * mas alto, sin asumir que cada numero aparece una sola vez — el
+ * patron ya generalizaba. Lo unico que se amplio es el regex que le pasa
+ * el llamador.
  */
 import { readdir } from 'node:fs/promises';
 import { isEnoent, isEnotdir } from './task-store.js';

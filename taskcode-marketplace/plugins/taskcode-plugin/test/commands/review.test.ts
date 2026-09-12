@@ -102,6 +102,45 @@ async function advanceDevelop(repoRoot: string, volverA: string): Promise<void> 
   git(['checkout', '-q', volverA], repoRoot);
 }
 
+/**
+ * Escribe un fichero bajo `repoRoot/ruta` (con "/" de Git), creando los
+ * directorios que hagan falta. Para las pruebas de clasificacion por
+ * dominio (TASK-018): las rutas se eligen IGUAL que las de
+ * test/skills/revisores.test.ts (RUTAS_LEGITIMAS/RUTAS_AJENAS), para no
+ * inventar una segunda tabla de "que ruta cae en que dominio" que pueda
+ * divergir de la que ese fichero ya prueba contra las skills reales.
+ */
+async function escribirFichero(repoRoot: string, ruta: string, contenido: string): Promise<void> {
+  const destino = path.join(repoRoot, ...ruta.split('/'));
+  await mkdir(path.dirname(destino), { recursive: true });
+  await writeFile(destino, contenido, 'utf8');
+}
+
+/**
+ * Ruta (con "/" de Git) de tarea.md tal como queda en la rama de una
+ * tarea en-curso. A diferencia de setupTaskEnCurso, esta variante NO
+ * anade "trabajo.txt": las pruebas de clasificacion por dominio
+ * (TASK-018) necesitan controlar EXACTAMENTE que ficheros trae el diff,
+ * y tarea.md es el UNICO que no se puede evitar (toda tarea necesita su
+ * frontmatter commiteado en la rama para que el resto del ciclo
+ * funcione) — se deja como el unico "ruido" de fondo, documentado en
+ * cada test que lo necesita.
+ */
+function rutaTareaMd(id: string): string {
+  return `tareas/02-en-curso/${id}/tarea.md`;
+}
+
+/** Como setupTaskEnCurso, pero sin escribir "trabajo.txt". */
+async function setupTaskEnCursoSoloTarea(
+  repoRoot: string,
+  tareasRoot: string,
+  task: Task
+): Promise<void> {
+  git(['checkout', '-q', '-b', task.rama, 'develop'], repoRoot);
+  await writeTareaFile(tareasRoot, task, '## Objetivo\nProbar el enrutado por dominio.\n');
+  commitAll(repoRoot, `feat(${task.id}): trabajo de la tarea`);
+}
+
 test('taskctl review: camino feliz sin origin — update real, evidencia de merge, mueve a 03-en-revision y genera peticion + informe', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     const task = sampleTask();
@@ -139,7 +178,7 @@ test('taskctl review: camino feliz sin origin — update real, evidencia de merg
 
     // La peticion contiene el diff real (el cambio que vino de develop
     // y el trabajo de la rama) y el SHA revisado.
-    const peticion = await readFile(result.peticionPath, 'utf8');
+    const peticion = await readFile(result.informes[0]!.peticionPath, 'utf8');
     assert.doesNotMatch(peticion, /cambio-develop\.txt/);
     assert.match(peticion, /trabajo\.txt/);
     assert.ok(peticion.includes(result.commitRevisado));
@@ -155,7 +194,7 @@ test('taskctl review: camino feliz sin origin — update real, evidencia de merg
       'chore(TASK-600): peticion de revision ronda 1'
     );
 
-    const informe = await readFile(result.informePath, 'utf8');
+    const informe = await readFile(result.informes[0]!.informePath, 'utf8');
     assert.match(informe, /Informe de revision — TASK-600 \(ronda 1\)/);
     assert.match(informe, /PENDIENTE/);
   });
@@ -192,7 +231,7 @@ test('taskctl review: con origin (bare real) integra un cambio que solo existia 
       await stat(path.join(repoRoot, 'remoto.txt'));
       const log = git(['log', '--oneline'], repoRoot);
       assert.match(log, /update\(feature\): develop -> feature\/task-601-con-origin/);
-      const peticion = await readFile(result.peticionPath, 'utf8');
+      const peticion = await readFile(result.informes[0]!.peticionPath, 'utf8');
       assert.doesNotMatch(peticion, /remoto\.txt/);
       const read = await readTareaFile(tareasRoot, 'TASK-601');
       assert.equal(read?.task.estado, 'en-revision');
@@ -340,7 +379,7 @@ test('taskctl review: una segunda ronda numera peticion e informe como -2 sin pi
     });
 
     assert.equal(result.ronda, 2);
-    assert.match(result.peticionPath, /peticion-revision-2\.md$/);
+    assert.match(result.informes[0]!.peticionPath, /peticion-revision-2\.md$/);
     // La ronda anterior sigue intacta (se movio con la carpeta).
     const anterior = await readFile(
       path.join(tareasRoot, '03-en-revision', 'TASK-600', 'revision', 'peticion-revision-1.md'),
@@ -369,7 +408,7 @@ test('taskctl review: un diff mayor que 1 MB no revienta el comando (hallazgo IM
       scriptsDir: SCRIPTS_DIR,
     });
 
-    const peticion = await readFile(result.peticionPath, 'utf8');
+    const peticion = await readFile(result.informes[0]!.peticionPath, 'utf8');
     assert.match(peticion, /generado-grande\.txt/);
     assert.ok(peticion.length > 1024 * 1024, 'la peticion deberia contener el diff completo');
   });
@@ -431,8 +470,209 @@ test('taskctl review: un diff cuyo contexto contiene vallas de backticks no romp
 
     // La valla elegida supera a la mas larga del contenido embebido:
     // el bloque del diff no puede cerrarse antes de tiempo.
-    const peticion = await readFile(result.peticionPath, 'utf8');
+    const peticion = await readFile(result.informes[0]!.peticionPath, 'utf8');
     assert.match(peticion, /`````diff/);
+  });
+});
+
+// --- TASK-018: enrutado de revisor por diff real, fragmentado por dominio ---
+//
+// Las rutas de fichero de estos tests se copian EXACTAMENTE de las tablas
+// RUTAS_LEGITIMAS/RUTAS_AJENAS de test/skills/revisores.test.ts: esas ya
+// prueban a que revisor (o a ninguno) llega cada ruta contra las skills
+// reales instaladas con el plugin. Repetir aqui esa clasificacion con
+// rutas propias abriria una segunda fuente de verdad que podria divergir
+// de la primera; reusar las mismas rutas cierra esa grieta.
+
+test('taskctl review: un diff que toca 1 dominio (java) genera 1 peticion con el agente de ese dominio, no task.agente_revisor', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-620', rama: 'feature/task-620-un-dominio' });
+    await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
+    await escribirFichero(
+      repoRoot,
+      'src/main/java/com/acme/UserService.java',
+      'class UserService {}\n'
+    );
+    commitAll(repoRoot, 'anade servicio Java');
+    await advanceDevelop(repoRoot, task.rama);
+
+    const result = await runReviewCommand(tareasRoot, ['TASK-620'], '2026-09-12', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    // tarea.md tambien esta en el diff (toda tarea lo commitea en su
+    // rama) y no casa ningun dominio: le toca al generico, ademas del
+    // grupo de dominio — el mismo criterio de aceptacion 4, no un caso
+    // aparte.
+    assert.equal(result.informes.length, 2);
+    const grupo = result.informes.find((g) => g.revisor === 'java-spring-reviewer')!;
+    assert.ok(grupo !== undefined, 'deberia haber un grupo para java-spring-reviewer');
+    assert.notEqual(grupo.revisor, task.agente_revisor);
+    assert.match(grupo.peticionPath, /peticion-revision-1-java-spring-reviewer\.md$/);
+    assert.match(grupo.informePath, /informe-revision-1-java-spring-reviewer\.md$/);
+    assert.deepEqual(grupo.ficheros, ['src/main/java/com/acme/UserService.java']);
+
+    const peticion = await readFile(grupo.peticionPath, 'utf8');
+    assert.match(peticion, /Agente revisor sugerido: java-spring-reviewer/);
+    assert.match(peticion, /UserService\.java/);
+    assert.doesNotMatch(peticion, /tarea\.md/);
+
+    const generico = result.informes.find((g) => g.revisor === 'code-quality-reviewer')!;
+    assert.deepEqual(generico.ficheros, [rutaTareaMd('TASK-620')]);
+  });
+});
+
+test('taskctl review: un diff que toca 2 dominios bajo el umbral genera 2 peticiones, cada una solo con los ficheros de su dominio', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-621', rama: 'feature/task-621-dos-dominios' });
+    await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
+    await escribirFichero(
+      repoRoot,
+      'src/main/java/com/acme/UserService.java',
+      'class UserService {}\n'
+    );
+    await escribirFichero(
+      repoRoot,
+      'src/app/user-profile/user-profile.component.ts',
+      'export class UserProfileComponent {}\n'
+    );
+    commitAll(repoRoot, 'anade servicio Java y componente Angular');
+    await advanceDevelop(repoRoot, task.rama);
+
+    const result = await runReviewCommand(tareasRoot, ['TASK-621'], '2026-09-12', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    // 2 grupos de dominio + el generico para tarea.md (que no casa
+    // ningun dominio, ver el test anterior).
+    assert.equal(result.informes.length, 3);
+    const revisores = result.informes.map((g) => g.revisor).sort();
+    assert.deepEqual(revisores, [
+      'angular-vue-reviewer',
+      'code-quality-reviewer',
+      'java-spring-reviewer',
+    ]);
+
+    const grupoJava = result.informes.find((g) => g.revisor === 'java-spring-reviewer')!;
+    const grupoAngular = result.informes.find((g) => g.revisor === 'angular-vue-reviewer')!;
+    const grupoGenerico = result.informes.find((g) => g.revisor === 'code-quality-reviewer')!;
+
+    assert.deepEqual(grupoJava.ficheros, ['src/main/java/com/acme/UserService.java']);
+    assert.deepEqual(grupoAngular.ficheros, ['src/app/user-profile/user-profile.component.ts']);
+    assert.deepEqual(grupoGenerico.ficheros, [rutaTareaMd('TASK-621')]);
+
+    const peticionJava = await readFile(grupoJava.peticionPath, 'utf8');
+    assert.match(peticionJava, /UserService\.java/);
+    assert.doesNotMatch(peticionJava, /user-profile\.component\.ts/);
+
+    const peticionAngular = await readFile(grupoAngular.peticionPath, 'utf8');
+    assert.match(peticionAngular, /user-profile\.component\.ts/);
+    assert.doesNotMatch(peticionAngular, /UserService\.java/);
+  });
+});
+
+test('taskctl review: un diff que toca EXACTAMENTE 3 dominios sigue fragmentando en 3 (umbral inclusive)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-622', rama: 'feature/task-622-tres-dominios' });
+    await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
+    await escribirFichero(
+      repoRoot,
+      'src/main/java/com/acme/UserService.java',
+      'class UserService {}\n'
+    );
+    await escribirFichero(
+      repoRoot,
+      'src/app/user-profile/user-profile.component.ts',
+      'export class UserProfileComponent {}\n'
+    );
+    await escribirFichero(repoRoot, 'src/Exporter/IfcExporter.cs', 'class IfcExporter {}\n');
+    commitAll(repoRoot, 'toca los tres dominios de una vez');
+    await advanceDevelop(repoRoot, task.rama);
+
+    const result = await runReviewCommand(tareasRoot, ['TASK-622'], '2026-09-12', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    // Con el catalogo real (3 revisores de dominio, umbral_dominios: 3),
+    // exactamente 3 dominios SIGUE fragmentando: no cae al generico. Los
+    // 3 dominios detectados (lo que fija el criterio del umbral) mas el
+    // generico para tarea.md, que sigue sin casar ningun dominio.
+    assert.equal(result.informes.length, 4);
+    const revisores = result.informes.map((g) => g.revisor).sort();
+    assert.deepEqual(revisores, [
+      'angular-vue-reviewer',
+      'code-quality-reviewer',
+      'csharp-autocad-ifc-reviewer',
+      'java-spring-reviewer',
+    ]);
+    const grupoGenerico = result.informes.find((g) => g.revisor === 'code-quality-reviewer')!;
+    assert.deepEqual(grupoGenerico.ficheros, [rutaTareaMd('TASK-622')]);
+  });
+});
+
+test('taskctl review: ficheros que no casan ningun dominio, con 1-3 dominios ya detectados, los cubre TAMBIEN el generico', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-623', rama: 'feature/task-623-mas-generico' });
+    await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
+    await escribirFichero(
+      repoRoot,
+      'src/main/java/com/acme/UserService.java',
+      'class UserService {}\n'
+    );
+    // Ruta ajena congelada en RUTAS_AJENAS (revisores.test.ts): no casa
+    // con ningun revisor de dominio, igual que tarea.md.
+    await escribirFichero(repoRoot, 'src/index.ts', 'export const arranque = 1;\n');
+    commitAll(repoRoot, 'servicio Java mas un fichero sin dominio');
+    await advanceDevelop(repoRoot, task.rama);
+
+    const result = await runReviewCommand(tareasRoot, ['TASK-623'], '2026-09-12', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    assert.equal(result.informes.length, 2);
+    const grupoJava = result.informes.find((g) => g.revisor === 'java-spring-reviewer');
+    const grupoGenerico = result.informes.find((g) => g.revisor === 'code-quality-reviewer');
+    assert.ok(grupoJava !== undefined, 'el fichero Java deberia tener su propio grupo');
+    assert.ok(
+      grupoGenerico !== undefined,
+      'los ficheros sin dominio (src/index.ts, tarea.md) deberian cubrirlos el generico, sin quedar sin revisor'
+    );
+    assert.deepEqual(grupoJava!.ficheros, ['src/main/java/com/acme/UserService.java']);
+    assert.deepEqual(
+      [...grupoGenerico!.ficheros].sort(),
+      [rutaTareaMd('TASK-623'), 'src/index.ts'].sort()
+    );
+
+    const peticionGenerico = await readFile(grupoGenerico!.peticionPath, 'utf8');
+    assert.match(peticionGenerico, /src\/index\.ts/);
+    assert.doesNotMatch(peticionGenerico, /UserService\.java/);
+  });
+});
+
+test('taskctl review: un diff sin match de dominio (rutas ajenas y .md) sigue cayendo a un unico generico, igual que antes de TASK-018', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-624', rama: 'feature/task-624-sin-dominio' });
+    await setupTaskEnCurso(repoRoot, tareasRoot, task);
+    // NestJS: ruta congelada como ajena en RUTAS_AJENAS.
+    await escribirFichero(repoRoot, 'src/users/users.module.ts', 'export class UsersModule {}\n');
+    await escribirFichero(repoRoot, 'docs/nota.md', '# nota\n');
+    commitAll(repoRoot, 'ficheros sin ningun dominio');
+    await advanceDevelop(repoRoot, task.rama);
+
+    const result = await runReviewCommand(tareasRoot, ['TASK-624'], '2026-09-12', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    assert.equal(result.informes.length, 1);
+    assert.equal(result.informes[0]!.revisor, 'code-quality-reviewer');
+    // Sin sufijo de dominio: la convencion de siempre, sin fragmentar.
+    assert.match(result.informes[0]!.peticionPath, /peticion-revision-1\.md$/);
+    assert.match(result.informes[0]!.informePath, /informe-revision-1\.md$/);
   });
 });
 

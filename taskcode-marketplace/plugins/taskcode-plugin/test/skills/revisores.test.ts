@@ -54,9 +54,10 @@ import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseBloqueClaveValor, parseFrontmatter } from '../../src/core/frontmatter.js';
+import { parseFrontmatter } from '../../src/core/frontmatter.js';
 import { veredictoAprobado } from '../../src/commands/finish.js';
 import { informeTemplate } from '../../src/commands/review.js';
+import { extraerBloqueYaml, parseBloqueRevisor } from '../../src/core/revisores.js';
 import type { Task } from '../../src/core/task.js';
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -128,20 +129,21 @@ async function leer(nombre: string): Promise<string> {
  * repo. Devuelve tambien las lineas crudas: el parser aplana lo que puede,
  * asi que aseverar solo sobre su salida dejaria pasar formas que Claude
  * Code interpretaria de otra manera.
+ *
+ * Promovido a src/core/revisores.ts (TASK-018, paso 2 del orden de
+ * construccion del plan): esto era la unica logica de lectura de
+ * `patrones_archivo`/`fallback`/`umbral_dominios` que existia, y vivia
+ * solo aqui, sin ningun lector de produccion. Este helper ahora es un
+ * envoltorio fino sobre esas dos funciones, para no duplicar el parseo.
  */
 function bloqueYaml(texto: string): { data: Record<string, unknown>; lineas: string[] } {
-  const lineas = texto.split('\n');
-  const ini = lineas.findIndex((l) => l.trim() === '```yaml');
-  assert.notEqual(ini, -1, 'no hay ningun bloque ```yaml en la skill');
-  const fin = lineas.findIndex((l, i) => i > ini && l.trim() === '```');
-  assert.notEqual(fin, -1, 'el bloque ```yaml no se cierra');
-  const cuerpo = lineas.slice(ini + 1, fin);
-  const { data } = parseBloqueClaveValor(cuerpo, 0, {
+  const lineas = extraerBloqueYaml(texto);
+  assert.notEqual(lineas, null, 'no hay ningun bloque ```yaml en la skill (o no se cierra)');
+  const data = parseBloqueRevisor(lineas as string[], {
     etiqueta: 'skill',
-    permitirComentariosDeLinea: true,
     crearError: (msg: string) => new Error(msg),
   });
-  return { data, lineas: cuerpo };
+  return { data, lineas: lineas as string[] };
 }
 
 // Guard de no-vacuidad: si PLUGIN_ROOT apuntase a otro sitio, media docena

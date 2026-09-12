@@ -63,7 +63,16 @@ const MERGEA_A_MAIN: Record<Task['tipo'], boolean> = {
 };
 
 const DEVELOP_BRANCH = 'develop';
-const INFORME_REVISION_RE = /^informe-revision-(\d+)\.md$/;
+/**
+ * TASK-018: una ronda de revision fragmentada por dominio deja N
+ * informes, uno por revisor, con el nombre de la skill como sufijo
+ * (p. ej. `informe-revision-2-java-spring-reviewer.md`). El sufijo es
+ * OPCIONAL a proposito: una ronda sin fragmentar (0 dominios detectados,
+ * o mas del umbral) sigue dejando `informe-revision-<N>.md` sin sufijo,
+ * igual que antes de esta tarea — ninguna tarea ya cerrada, ni ninguna
+ * en curso con revisiones antiguas, deja de reconocerse.
+ */
+const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
 
 /**
@@ -92,26 +101,38 @@ export function veredictoAprobado(informe: string): boolean {
   });
 }
 
-/** Contenido del informe con mayor N segun `re`, o null si no hay. */
-async function ultimoInforme(revisionDir: string, re: RegExp): Promise<string | null> {
+/**
+ * Contenidos de TODOS los informes de la ronda con mayor N segun `re`,
+ * o [] si no hay ninguno. Antes de TASK-018 una ronda tenia como mucho
+ * UN informe por convencion (`re` solo casaba ese nombre exacto), asi
+ * que "el de mayor N" y "todos los de mayor N" coincidian; con la
+ * revision fragmentada por dominio una misma ronda puede dejar varios
+ * ficheros con el MISMO N (uno por revisor) y hay que devolverlos
+ * todos, no solo el primero que se encuentre.
+ */
+async function informesDeLaRonda(revisionDir: string, re: RegExp): Promise<string[]> {
   let entries: string[];
   try {
     entries = await readdir(revisionDir);
   } catch (e: unknown) {
-    if (isEnoent(e)) return null;
+    if (isEnoent(e)) return [];
     throw e;
   }
   let max = 0;
-  let elegido: string | null = null;
+  let nombres: string[] = [];
   for (const entry of entries) {
     const m = re.exec(entry);
-    if (m !== null && Number(m[1]) > max) {
-      max = Number(m[1]);
-      elegido = entry;
+    if (m === null) continue;
+    const n = Number(m[1]);
+    if (n > max) {
+      max = n;
+      nombres = [entry];
+    } else if (n === max) {
+      nombres.push(entry);
     }
   }
-  if (elegido === null) return null;
-  return readFile(path.join(revisionDir, elegido), 'utf8');
+  if (nombres.length === 0) return [];
+  return Promise.all(nombres.map((nombre) => readFile(path.join(revisionDir, nombre), 'utf8')));
 }
 
 /**
@@ -119,14 +140,23 @@ async function ultimoInforme(revisionDir: string, re: RegExp): Promise<string | 
  * informes de revision/ de la carpeta de la tarea. La convencion del
  * informe de Codex (informe-codex-<n>.md) la producira TASK-020; leerla
  * ya aqui deja a finish preparado sin acoplarse a ese comando.
+ *
+ * TASK-018: si la ronda de revision primaria se fragmento por dominio,
+ * "aprobada" exige que TODOS los informes de esa ronda aprueben, no solo
+ * uno — fail-closed: que falte AUNQUE SEA UNO de los N (o que su
+ * veredicto siga en PENDIENTE) basta para que la tarea no pueda
+ * cerrarse. El informe de Codex sigue sin fragmentarse (TASK-020 es un
+ * unico agente independiente, no un enrutado por dominio), pero se
+ * reusa la misma funcion: con un solo fichero por ronda el resultado es
+ * identico al de antes de esta tarea.
  */
 async function buildTransitionContext(taskDir: string): Promise<TransitionContext> {
   const revisionDir = path.join(taskDir, REVISION_DIRNAME);
-  const informe = await ultimoInforme(revisionDir, INFORME_REVISION_RE);
-  const informeCodex = await ultimoInforme(revisionDir, INFORME_CODEX_RE);
+  const informes = await informesDeLaRonda(revisionDir, INFORME_REVISION_RE);
+  const informesCodex = await informesDeLaRonda(revisionDir, INFORME_CODEX_RE);
   return {
-    revisionPrimariaAprobada: informe !== null && veredictoAprobado(informe),
-    revisionCodexAprobada: informeCodex !== null && veredictoAprobado(informeCodex),
+    revisionPrimariaAprobada: informes.length > 0 && informes.every((i) => veredictoAprobado(i)),
+    revisionCodexAprobada: informesCodex.length > 0 && informesCodex.every((i) => veredictoAprobado(i)),
   };
 }
 

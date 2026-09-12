@@ -277,6 +277,37 @@ export function diffRange(desde: string, hasta: string, cwd: string): string {
 }
 
 /**
+ * Rutas (con "/" de Git) que cambian entre `desde` y `hasta`, sin el
+ * contenido del diff (TASK-018: es la entrada del clasificador por
+ * dominio de "taskctl review" — clasificar necesita solo los nombres,
+ * no el diff completo). Mismo estilo que lsTreeNames.
+ */
+export function diffNameOnly(desde: string, hasta: string, cwd: string): string[] {
+  return runGit(['diff', '--name-only', `${desde}..${hasta}`], cwd)
+    .split('\n')
+    .filter((line) => line !== '');
+}
+
+/**
+ * `git diff <desde>..<hasta> -- <paths>`, acotado a un subconjunto de
+ * ficheros (TASK-018): el sub-diff que recibe cada revisor de dominio,
+ * para que "cada revisor recibe solo el subconjunto del diff de su
+ * dominio" (criterio de aceptacion 3) sea un `git diff` filtrado y no el
+ * diff entero con una instruccion de "ignora lo que no sea tuyo". Vacio
+ * si `paths` esta vacio, sin llamar a Git (una peticion sin ficheros no
+ * tiene nada que pedirle).
+ */
+export function diffRangeForPaths(
+  desde: string,
+  hasta: string,
+  paths: readonly string[],
+  cwd: string
+): string {
+  if (paths.length === 0) return '';
+  return runGit(['diff', `${desde}..${hasta}`, '--', ...paths], cwd);
+}
+
+/**
  * Rutas (con "/" de Git, no separador del SO) de los ficheros bajo
  * `prefix` en el arbol de `ref`, sin tocar el working tree. Lo usa
  * "taskctl finish" (TASK-014) para detectar colisiones de IDs contra

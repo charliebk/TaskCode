@@ -477,12 +477,21 @@ export async function main(argv: readonly string[]): Promise<number> {
         repoCwd,
         scriptsDir: resolveGitflowScriptsDir(),
       });
+      // TASK-018: N pares peticion/informe si el diff se fragmento por
+      // dominio, uno solo (el generico) si no. Se listan todos: quien
+      // orquesta necesita saber cuantos agentes lanzar y con que
+      // peticion cada uno.
+      const lineasInformes = result.informes
+        .map(
+          (grupo) =>
+            `Peticion de revision (ronda ${result.ronda}, ${grupo.revisor}): ${grupo.peticionPath}\n` +
+            `Lanza ese agente con esa peticion y vuelca su salida en ${grupo.informePath}.\n`
+        )
+        .join('');
       process.stdout.write(
         `Tarea ${result.id} en revision: "${result.baseBranch}" integrada en ` +
           `"${result.rama}" (merge verificado), tarea movida a ${result.filePath}.\n` +
-          `Peticion de revision (ronda ${result.ronda}): ${result.peticionPath}\n` +
-          `Lanza el agente revisor con esa peticion y vuelca su salida en ` +
-          `${result.informePath}.\n`
+          lineasInformes
       );
       printAutoCommit(result.autoCommit);
       return 0;

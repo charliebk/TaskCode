@@ -605,6 +605,61 @@ test('taskctl finish: si el script falla, la tarea no se mueve ni se renderiza n
   });
 });
 
+test('taskctl finish: una ronda fragmentada por dominio (N informes) exige que TODOS aprueben antes de cerrar (TASK-018)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-720', rama: 'feature/task-720-fragmentada' });
+    git(['checkout', '-q', '-b', task.rama, 'develop'], repoRoot);
+    await writeTareaFile(tareasRoot, task, '## Objetivo\nProbar finish con revision fragmentada.\n');
+    await writeFile(path.join(repoRoot, `trabajo-${task.id}.txt`), 'trabajo de la tarea\n', 'utf8');
+    const revisionDir = path.join(tareasRoot, '03-en-revision', task.id, 'revision');
+    await mkdir(revisionDir, { recursive: true });
+    // Misma ronda (1), dos revisores de dominio: uno aprueba, el otro
+    // sigue con el veredicto de la plantilla sin sustituir.
+    await writeFile(
+      path.join(revisionDir, 'informe-revision-1-java-spring-reviewer.md'),
+      `# Informe de revision — ${task.id} (ronda 1)\n\n${VEREDICTO_APROBADO}`,
+      'utf8'
+    );
+    await writeFile(
+      path.join(revisionDir, 'informe-revision-1-angular-vue-reviewer.md'),
+      `# Informe de revision — ${task.id} (ronda 1)\n\n` +
+        '- Veredicto: PENDIENTE (sustituye esta unica linea por "aprobada" o "cambios-solicitados")\n',
+      'utf8'
+    );
+    commitAll(repoRoot, `feat(${task.id}): revision fragmentada, un dominio pendiente`);
+
+    // Con un informe de dominio todavia PENDIENTE, "finish" rechaza —
+    // aunque el otro informe de la MISMA ronda ya apruebe.
+    await assert.rejects(
+      () =>
+        runFinishCommand(tareasRoot, [task.id], '2026-09-12', {
+          repoCwd: repoRoot,
+          scriptsDir: SCRIPTS_DIR,
+        }),
+      StateMachineError
+    );
+    assert.doesNotMatch(git(['log', '--oneline', 'develop'], repoRoot), /merge\(feature\)/);
+    const tras1 = await readTareaFile(tareasRoot, task.id);
+    assert.equal(tras1?.task.estado, 'en-revision');
+
+    // Se aprueba el que faltaba (misma ronda, mismo N): ahora SI cierra.
+    await writeFile(
+      path.join(revisionDir, 'informe-revision-1-angular-vue-reviewer.md'),
+      `# Informe de revision — ${task.id} (ronda 1)\n\n${VEREDICTO_APROBADO}`,
+      'utf8'
+    );
+    commitAll(repoRoot, 'segundo informe de dominio tambien aprobado');
+
+    const result = await runFinishCommand(tareasRoot, [task.id], '2026-09-12', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+    assert.match(result.filePath, /04-terminadas[/\\]TASK-720/);
+    const tras2 = await readTareaFile(tareasRoot, task.id);
+    assert.equal(tras2?.task.estado, 'terminada');
+  });
+});
+
 test('taskctl finish: dos tareas terminadas acumulan entradas en CHANGELOG e INDEX sin pisarse', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     const t1 = sampleTask({ id: 'TASK-710', rama: 'feature/task-710-una' });
