@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -271,5 +271,76 @@ test('main: taskctl start sale con codigo 1 y mensaje util cuando el limite esta
     assert.ok(segunda.stderr.includes('taskctl finish TASK-001'), segunda.stderr);
     // Un solo prefijo [ERROR], no uno por linea (printCliError).
     assert.equal(segunda.stderr.indexOf('[ERROR]'), segunda.stderr.lastIndexOf('[ERROR]'));
+  });
+});
+
+// --- TASK-018: mensaje de "taskctl review" con N peticiones ---
+
+test('main: "taskctl review" con un diff de 2 dominios imprime una linea de peticion por revisor (hallazgo IMPORTANTE-2 de revision, TASK-018)', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() =>
+      main(['new', '--titulo', 'Enrutado multi dominio', '--tipo', 'feature', '--complejidad', 'simple'])
+    );
+    assert.equal(creada.code, 0, creada.stderr);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
+    commitAll(repoRoot, 'tarea nueva');
+
+    const plan = await captureOutput(() => main(['plan', 'TASK-001']));
+    assert.equal(plan.code, 0, plan.stderr);
+    commitAll(repoRoot, 'en diseno');
+
+    const approve = await captureOutput(() => main(['approve', 'TASK-001']));
+    assert.equal(approve.code, 0, approve.stderr);
+    commitAll(repoRoot, 'aprobada');
+
+    const start = await captureOutput(() => main(['start', 'TASK-001']));
+    assert.equal(start.code, 0, start.stderr);
+    commitAll(repoRoot, 'en curso');
+
+    // Dos ficheros de dominios distintos (mismas rutas que
+    // test/skills/revisores.test.ts, para no inventar una segunda tabla
+    // ruta -> dominio que pueda divergir de la que ya prueba eso contra
+    // las skills reales).
+    await mkdir(path.join(repoRoot, 'src', 'main', 'java', 'com', 'acme'), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, 'src', 'main', 'java', 'com', 'acme', 'UserService.java'),
+      'class UserService {}\n',
+      'utf8'
+    );
+    await mkdir(path.join(repoRoot, 'src', 'app', 'user-profile'), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, 'src', 'app', 'user-profile', 'user-profile.component.ts'),
+      'export class UserProfileComponent {}\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'servicio Java y componente Angular');
+
+    const { code, stdout } = await captureOutput(() => main(['review', 'TASK-001']));
+
+    assert.equal(code, 0, stdout);
+    // Un grupo por dominio (java, angular) mas el generico (tarea.md no
+    // casa ningun dominio): 3 lineas de peticion, cada una con su propio
+    // nombre de fichero y su propio revisor — antes de esta correccion,
+    // ningun test comprobaba que el CLI (no solo runReviewCommand) listara
+    // TODAS las peticiones y no, por ejemplo, solo la primera.
+    const lineasPeticion = stdout
+      .split('\n')
+      .filter((linea) => linea.startsWith('Peticion de revision'));
+    assert.equal(lineasPeticion.length, 3, stdout);
+    assert.ok(
+      lineasPeticion.some((l) => l.includes('java-spring-reviewer') && l.includes('peticion-revision-1-java-spring-reviewer.md')),
+      stdout
+    );
+    assert.ok(
+      lineasPeticion.some((l) => l.includes('angular-vue-reviewer') && l.includes('peticion-revision-1-angular-vue-reviewer.md')),
+      stdout
+    );
+    assert.ok(
+      lineasPeticion.some((l) => l.includes('code-quality-reviewer') && l.includes('peticion-revision-1-code-quality-reviewer.md')),
+      stdout
+    );
+    // Una linea de "Lanza ese agente..." por cada peticion tambien.
+    const lineasLanza = stdout.split('\n').filter((linea) => linea.includes('Lanza ese agente'));
+    assert.equal(lineasLanza.length, 3, stdout);
   });
 });

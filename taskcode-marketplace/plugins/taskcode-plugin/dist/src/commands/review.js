@@ -23,9 +23,10 @@ import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { siguienteRonda } from '../fs/rondas.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, isAncestor, headCommit, logOneline, diffRange, } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, isAncestor, headCommit, logOneline, diffRange, diffNameOnly, diffRangeForPaths, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
+import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 export class ReviewCommandError extends Error {
 }
 const SCRIPT_BY_TYPE = {
@@ -35,7 +36,18 @@ const SCRIPT_BY_TYPE = {
     release: 'update-release.sh',
 };
 export const REVISION_DIRNAME = 'revision';
-const RONDA_FILE_RE = /^(?:peticion|informe)-revision-(\d+)\.md$/;
+/**
+ * Nombre de fichero de una ronda de revision, CON o SIN sufijo de
+ * dominio (TASK-018). El sufijo es el nombre de la skill revisora
+ * (`java-spring-reviewer`, etc.) y solo aparece cuando la ronda se
+ * fragmento por dominio — mismo precedente que
+ * `peticion-brainstorm-<rol>-<ronda>.md` (TASK-016, plan.ts). Una ronda
+ * SIN fragmentar (0 dominios detectados, o mas del umbral) sigue dejando
+ * el nombre de siempre, sin sufijo: es lo que ya prueban 8 de los tests
+ * de review.test.ts y lo que finish.ts ya sabia leer antes de esta
+ * tarea.
+ */
+const RONDA_FILE_RE = /^(?:peticion|informe)-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 /**
  * fenceFor se mudo a core/markdown.ts en TASK-016, cuando "plan"
  * empezo a embeber tambien texto de la persona en sus peticiones. Se
@@ -43,7 +55,15 @@ const RONDA_FILE_RE = /^(?:peticion|informe)-revision-(\d+)\.md$/;
  * modulo, que es donde nacio.
  */
 export { fenceFor } from '../core/markdown.js';
-export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha, commits, diff) {
+/**
+ * `agenteRevisor` y `nombreInforme` (TASK-018) los decide el
+ * clasificador por dominio en runReviewCommand, NO `task.agente_revisor`
+ * del frontmatter: ese era justo el defecto que esta tarea corrige (ver
+ * el Objetivo de tarea.md). `alcanceDiff` es el titulo de la seccion del
+ * diff embebido: "Diff completo" cuando la ronda no se fragmento,
+ * "Diff de tu dominio" (con el recuento de ficheros) cuando si.
+ */
+export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha, commits, diff, agenteRevisor, nombreInforme, alcanceDiff) {
     const commitsBlock = commits === '' ? '(sin commits nuevos respecto a la base)' : commits;
     const diffBlock = diff === '' ? '(sin diferencias respecto a la base)' : diff;
     const fence = fenceFor(commitsBlock, diffBlock);
@@ -53,7 +73,7 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `- Rama base: ${baseBranch}\n` +
         `- Commit revisado (HEAD): ${commitRevisado}\n` +
         `- Fecha: ${fecha}\n` +
-        `- Agente revisor sugerido: ${task.agente_revisor}\n\n` +
+        `- Agente revisor sugerido: ${agenteRevisor}\n\n` +
         '## Instrucciones para el agente revisor\n\n' +
         'Eres un revisor INDEPENDIENTE del agente que implemento. Tu trabajo es\n' +
         'reproducir empiricamente, no leer el diff y opinar: clona el repo a un\n' +
@@ -63,13 +83,13 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         'contrario de lo que dice), IMPORTANTE (comportamiento incorrecto en un\n' +
         'caso real, no de borde) o MENOR (todo lo demas). Un "sin hallazgos"\n' +
         'explicito tambien vale; inventar hallazgos, no. Vuelca tu salida en el\n' +
-        `informe de esta ronda (informe-revision-${ronda}.md), sin borrar la\n` +
+        `informe de esta ronda (${nombreInforme}), sin borrar la\n` +
         'peticion.\n\n' +
         `## Commits a revisar (git log ${baseBranch}..HEAD)\n\n` +
         `${fence}\n` +
         `${commitsBlock}\n` +
         `${fence}\n\n` +
-        `## Diff completo (git diff ${baseBranch}..HEAD)\n\n` +
+        `## ${alcanceDiff}\n\n` +
         `${fence}diff\n` +
         `${diffBlock}\n` +
         `${fence}\n`);
@@ -139,6 +159,14 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const commitRevisado = headCommit(deps.repoCwd);
     const commits = logOneline(baseBranch, 'HEAD', deps.repoCwd);
     const diff = diffRange(baseBranch, 'HEAD', deps.repoCwd);
+    // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
+    // el diff real de la rama, no `task.agente_revisor` del frontmatter,
+    // decide quien revisa. El catalogo se relee de skills/*/SKILL.md en
+    // CADA ejecucion (sin cache: HALLAZGOS.md documenta que una copia
+    // congelada de patrones_archivo ya diverguio dos veces).
+    const ficherosTocados = diffNameOnly(baseBranch, 'HEAD', deps.repoCwd);
+    const catalogoRevisores = cargarCatalogoRevisores();
+    const plan = clasificarPorDominio(ficherosTocados, catalogoRevisores);
     const updated = { ...task, estado: 'en-revision', actualizado: today };
     // Peticion + scaffold de informe ANTES de mover la tarea (hallazgo
     // IMPORTANTE de revision por pares, TASK-013): si una escritura
@@ -153,9 +181,35 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
     await mkdir(revisionDir, { recursive: true });
     const ronda = await siguienteRonda(revisionDir, RONDA_FILE_RE);
+    // Un par de nombres (con o sin sufijo de dominio) por grupo del plan.
+    // Sin fragmentar hay un unico grupo y se usa el nombre de siempre, sin
+    // sufijo: ninguna tarea que solo cae al generico cambia de convencion.
+    const escrituras = plan.grupos.map((grupo) => {
+        const sufijo = plan.fragmentado ? `-${grupo.revisor}` : '';
+        return {
+            revisor: grupo.revisor,
+            ficheros: grupo.ficheros,
+            nombrePeticion: `peticion-revision-${ronda}${sufijo}.md`,
+            nombreInforme: `informe-revision-${ronda}${sufijo}.md`,
+        };
+    });
     try {
-        await writeFile(path.join(revisionDir, `peticion-revision-${ronda}.md`), peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diff), { encoding: 'utf8', flag: 'wx' });
-        await writeFile(path.join(revisionDir, `informe-revision-${ronda}.md`), informeTemplate(updated, commitRevisado, ronda), { encoding: 'utf8', flag: 'wx' });
+        for (const escritura of escrituras) {
+            // Cada revisor recibe SOLO el subconjunto de su dominio (criterio
+            // de aceptacion 3): un `git diff` filtrado por pathspec, no el
+            // diff entero. Sin fragmentar, el unico grupo ya es "todos los
+            // ficheros" y se reusa el diff completo ya calculado arriba, para
+            // no repetir la misma llamada a Git dos veces.
+            const diffDelGrupo = plan.fragmentado
+                ? diffRangeForPaths(baseBranch, 'HEAD', escritura.ficheros, deps.repoCwd)
+                : diff;
+            const alcanceDiff = plan.fragmentado
+                ? `Diff de tu dominio (${escritura.ficheros.length} fichero(s) de ` +
+                    `${ficherosTocados.length}; git diff ${baseBranch}..HEAD -- <tus ficheros>)`
+                : `Diff completo (git diff ${baseBranch}..HEAD)`;
+            await writeFile(path.join(revisionDir, escritura.nombrePeticion), peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diffDelGrupo, escritura.revisor, escritura.nombreInforme, alcanceDiff), { encoding: 'utf8', flag: 'wx' });
+            await writeFile(path.join(revisionDir, escritura.nombreInforme), informeTemplate(updated, commitRevisado, ronda), { encoding: 'utf8', flag: 'wx' });
+        }
     }
     catch (e) {
         if (!isEexist(e))
@@ -166,8 +220,12 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     }
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
     const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
-    const peticionPath = path.join(newRevisionDir, `peticion-revision-${ronda}.md`);
-    const informePath = path.join(newRevisionDir, `informe-revision-${ronda}.md`);
+    const informes = escrituras.map((escritura) => ({
+        revisor: escritura.revisor,
+        ficheros: escritura.ficheros,
+        peticionPath: path.join(newRevisionDir, escritura.nombrePeticion),
+        informePath: path.join(newRevisionDir, escritura.nombreInforme),
+    }));
     // Paso 5 de la 8.3 (TASK-030, item C2). "review" NO aplica
     // ensureBaseBranchReady, asi que en el arbol puede haber trabajo de
     // la persona junto al de taskctl: solo entran las dos carpetas de la
@@ -188,7 +246,6 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
         commitRevisado,
         ronda,
         filePath: newFilePath,
-        peticionPath,
-        informePath,
+        informes,
     };
 }
