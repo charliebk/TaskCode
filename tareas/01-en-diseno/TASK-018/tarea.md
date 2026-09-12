@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-018-enrutado-de-revisor-por-diff-real-fragme
 asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
