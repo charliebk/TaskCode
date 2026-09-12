@@ -6,16 +6,17 @@ sprint: 3
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-020-comando-taskctl-codex-review-segunda-opi
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
 skills_recomendados: []
+regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
-actualizado: 2026-09-05
+actualizado: 2026-09-12
 dependencias: [TASK-013]
 ---
 ## Objetivo

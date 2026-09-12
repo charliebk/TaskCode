@@ -1,0 +1,79 @@
+# Peticion de brainstorm — TASK-020, rol riesgos (ronda 1)
+
+- Tarea: TASK-020 — Comando taskctl codex-review (segunda opinión independiente)
+- Tipo: feature · Complejidad declarada: media
+- Ronda: 1
+- Fecha: 2026-09-12
+- Rol: `brainstorm-riesgos` — lanzalo con el agente de ese mismo nombre
+- Vuelca tu respuesta en: `salida-brainstorm-riesgos-1.md`
+
+## Tu pregunta
+
+> ¿Por donde se rompe esto?
+
+## Que miras
+
+- Bordes y estados intermedios: que queda a medias si el proceso muere a mitad.
+- Fallos parciales y concurrencia: dos ejecuciones, un recurso ocupado, un permiso denegado.
+- Compatibilidad hacia atras con los datos y ficheros que YA existen.
+- La vuelta atras: si esto sale mal, como se deshace y que queda inservible.
+
+## Que NO miras
+
+No es una lista de cortesia. Si la ignoras y lo cubres todo "por si acaso", el acotado de contexto se deshace sin que se note y esta tarea deja de tener varios puntos de vista:
+
+- Donde encaja el cambio (es del rol de arquitectura).
+- Que aserciones escribir (es del rol de testing).
+- Las reglas de negocio (son del rol de dominio).
+
+## Enunciado de la tarea
+
+### Objetivo
+
+````
+`revision_codex: true` en `tarea.md` ya está soportado por la máquina de
+estados (`src/core/state-machine.ts`, caso `'codex-review'`: exige estado
+`en-revision`, `revision_codex: true` y revisión primaria ya aprobada) y por
+`taskctl finish` (`INFORME_CODEX_RE`, `informesDeLaRonda` ya reutilizada
+desde TASK-018: exige que el informe de Codex también apruebe si
+`revision_codex` está activo). Lo que falta es el propio comando: `cli.ts`
+no enruta ningún subcomando `codex-review`, y no existe ningún
+`src/commands/codex-review.ts` que invoque el CLI de Codex y escriba
+`informe-codex-N.md`.
+
+El CLI de Codex (`codex-cli`, de OpenAI) SÍ está instalado en esta máquina
+(`codex --version` → `codex-cli 0.144.1`) y trae un subcomando hecho
+justo para esto: `codex review --base <rama> [--commit <sha>]
+[--title <texto>] [prompt]`, no interactivo, que revisa el diff contra una
+rama base y admite instrucciones propias. Un `codex` ausente del PATH debe
+degradar con un aviso, sin romper el flujo (criterio de aceptación 3) —
+`taskctl` ya tiene precedente de esto con los scripts de Git-Flow
+(`detect_origin_available` en `git.ts`, o el propio patrón de "avisa y
+continúa en local" cuando no hay `origin`).
+````
+
+### Criterios de aceptacion
+
+````
+Solo se ejecuta si la revisión primaria ya está aprobada y la tarea tiene `revision_codex: true`.
+Envuelve el CLI de Codex y guarda su salida en la carpeta de la tarea, sin mezclarla con la de la revisión primaria.
+Si Codex no está instalado, avisa y degrada con elegancia en vez de romper el flujo.
+Tests que cubren la precondición de estado y la ausencia del CLI.
+````
+
+## Como entregas
+
+Escribe en `salida-brainstorm-riesgos-1.md`, con estas secciones y en este orden:
+
+- Modos de fallo, ordenados por gravedad, con el escenario concreto de cada uno
+- Estados intermedios y fallos parciales
+- Compatibilidad hacia atras
+- Vuelta atras
+- El riesgo que mas te preocupa (UNO solo)
+
+## Reglas
+
+- **Propones enfoque; no implementas.** No escribas codigo de produccion ni modifiques ficheros del repo: tu salida es un documento.
+- Evidencia, no suposicion: si afirmas que algo se comporta de cierta manera, es porque lo has mirado. Di de donde lo sacas.
+- Prefiere lo concreto: rutas, nombres y casos reales por encima de recomendaciones genericas.
+- Trabajan en paralelo contigo, sin verte: **arquitectura**. No cubras lo suyo — si lo haces, el unificador recibira el mismo punto de vista repetido y lo leera como confirmacion.
