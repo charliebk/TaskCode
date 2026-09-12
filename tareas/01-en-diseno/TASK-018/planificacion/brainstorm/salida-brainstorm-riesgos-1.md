@@ -1,20 +1,28 @@
-# Brainstorm — TASK-018, rol riesgos (ronda 1)
+## Riesgos, de mayor a menor dano
+- La tarea deja de poder cerrarse nunca — se dispara si el enrutado por dominio nombra los informes con sufijo (p. ej. `informe-revision-1-java-spring.md`) y nadie toca `INFORME_REVISION_RE = /^informe-revision-(\d+)\.md$/` en `src/commands/finish.ts` (leido: esa constante y `ultimoInforme()` solo casan el nombre exacto, sin sufijo) — consecuencia: `ultimoInforme` devuelve `null`, `veredictoAprobado` es siempre `false`, la tarea queda en `03-en-revision/` para siempre sin que `taskctl finish` de ningun error explicable — mitigacion: `finish.ts` tiene que leer y agregar TODOS los informes de la ronda mas alta, no solo el de nombre exacto, y esto se prueba en la misma tarea, no se deja para otra.
+- Ficheros que no casan con ningun patron se quedan sin revisor cuando el diff SI tiene entre 1 y 3 dominios — se dispara con un diff mixto (p. ej. `.java` + un script suelto o un `.yml` de infraestructura) por debajo del umbral, si la implementacion solo lanza un revisor por cada dominio detectado y no anade un pase generico para lo que sobra — consecuencia: ese fragmento llega a develop sin que nadie lo haya mirado, y el umbral "<=3 dominios" no da ninguna senal de que algo quedo fuera — mitigacion: los ficheros sin dominio SIEMPRE van al generico, incluso cuando ya hay 1-3 revisores de dominio activos.
+- Renombrar/mover un fichero entre ecosistemas (`git mv Foo.java Foo.cs`, o sacar un componente de `src/app/`) rompe la clasificacion por ruta — leido en `test/skills/revisores.test.ts` (bloque 6c/6d) que el enrutado es puro `path.matchesGlob` sobre nombres de ruta, sin logica de rename — consecuencia: el revisor de dominio origen no ve el fichero (ya no casa su patron) y el de destino recibe un diff de "archivo nuevo" sin la historia que lo justifica, o el hunk de rename se corta raro entre dos revisores — mitigacion: clasificar por ambas rutas (antigua y nueva) del `--name-status`, y si discrepan, mandar ese fichero al generico en vez de partirlo.
+- Un crash a mitad del bucle que escribe N pares peticion/informe deja la ronda a medio formar — leido en `src/commands/review.ts` (comentario junto a la escritura con flag `wx`, lineas 218-249): hoy ya asume que puede fallar a mitad y por eso escribe ANTES de mover la carpeta, pero esta pensado para UN par, no para N — consecuencia: un reintento tropieza con EEXIST en los pares ya escritos y hay que averiguar a mano cuales de los N dominios llegaron a tener peticion y cuales no — mitigacion: nombrar los ficheros por dominio de forma predecible para que el reintento pueda saltarse los ya escritos en vez de fallar en bloque.
+- Si el diseño hace que los N revisores de dominio escriban veredictos en UN solo `informe-revision-N.md` compartido, lanzarlos en paralelo (practica ya adoptada en este proyecto, ver MEMORY.md "paralelizar agentes en tareas") corrompe ese fichero — dos agentes editando el mismo fichero a la vez pisan la escritura del otro — consecuencia: se pierde el veredicto de un dominio entero, o queda una linea "Veredicto:" que no es la que ese revisor escribio, y `finish.ts` exige que TODAS aprueben sin poder distinguir cual es autentica — mitigacion: un informe por dominio y por ronda, nunca compartido entre agentes.
+- `siguienteRonda`/`RONDA_FILE_RE` de `src/fs/rondas.ts` y `review.ts` (`^(?:peticion|informe)-revision-(\d+)\.md$`) no reconoce nombres con sufijo de dominio si se introducen — consecuencia: una tarea cuya ronda 1 se genero con el esquema viejo (un solo par, sin sufijo) y cuya ronda 2 ya usa el esquema nuevo hace que `ultimaRonda` cuente mal el maximo N, con riesgo de reusar un numero de ronda ya usado (EEXIST) o, peor, de que el contador nunca vea los ficheros nuevos — mitigacion: la expresion que cuenta rondas tiene que reconocer las dos formas antes de que se mezclen en un repo real.
+- El limite del umbral no esta definido en el criterio de aceptacion: "hasta el umbral" y "por encima de el" no dicen si 3 dominios exactos fragmentan o ya caen al generico — se dispara justo con un diff que toca 3 dominios, ni uno mas ni uno menos — consecuencia: el primer test que alguien escriba fija el comportamiento por accidente en vez de por decision, y el limite queda distinto segun quien lo implemente — mitigacion: decidir explicitamente si el corte es "> 3" o ">= 3" antes de escribir el primer test de frontera.
 
-- Rol: `brainstorm-riesgos`
-- Agente: (rellenar)
+## Puntos sin retorno
+- El auto-commit del paso 5 de la 8.3 (en `review.ts`, tras escribir peticion+informe) — para cuando un humano ve que el enrutado por dominio mando un diff mal cortado a un revisor, ese commit `chore` ya esta hecho sobre la rama de la tarea; deshacerlo es un `git revert` manual, no algo que ningun `taskctl` ofrezca.
+- Las ramas no se borran nunca tras el merge (politica IECA, CLAUDE.md) — si el enrutado erroneo deja un dominio sin revisar y eso se aprueba y se mergea, la rama queda como registro permanente de una revision incompleta; no se puede "limpiar" el historial, solo corregir hacia adelante.
 
-## Modos de fallo, ordenados por gravedad, con el escenario concreto de cada uno
+## Descartado a proposito
+- Rendimiento del clasificador sobre diffs de miles de ficheros — es escala, terreno del rol de arquitectura, no mio.
+- Que alguien nombre un fichero a proposito para colarse en el revisor "equivocado" — es una herramienta interna de un solo equipo, no un limite de seguridad adversarial.
+- Repetir la cobertura de que patron.
 
+## Desacuerdos previstos
+- con arquitectura — si el informe de una ronda fragmentada es un fichero compartido entre dominios o uno por dominio — mi posicion: tiene que ser uno por dominio, o la escritura en paralelo de agentes (que este mismo proyecto adopta como practica) corrompe el veredicto.
+- con arquitectura — que hacer con los ficheros que no casan ningun patron cuando el diff YA tiene entre 1 y 3 dominios — mi posicion: no estoy de acuerdo con dejarlos sin revisor asignado; el generico tiene que correr tambien sobre ellos, ademas de los de dominio.
+- ninguno previsto con testing.
 
-## Estados intermedios y fallos parciales
-
-
-## Compatibilidad hacia atras
-
-
-## Vuelta atras
-
-
-## El riesgo que mas te preocupa (UNO solo)
-
-
+## Suposiciones no verificadas
+- Que `taskctl review` va a lanzar los N agentes de dominio en paralelo de verdad, y no en secuencia — no hay codigo de orquestacion de agentes en `src/commands/review.ts`, solo generacion de ficheros; habria que confirmarlo con arquitectura.
+- Que "cada revisor recibe solo el subconjunto del diff de su dominio" significa un `git diff` filtrado por pathspec y no el diff completo con una instruccion de "ignora lo que no sea tuyo" — el codigo actual no filtra nada, embebe el diff entero (`diffRange` en `review.ts`).
+- Que `finish.ts` se modifica en ESTA misma tarea para leer los informes fragmentados — si se deja para otra tarea, el primer riesgo de la lista se materializa en cuanto se fragmente la primera ronda real.
+- Que el umbral de 3 cuenta dominios distintos detectados y no numero de ficheros o de hunks — lo dice la skill `code-quality-reviewer/SKILL.md`, pero no hay codigo aun que lo implemente para confirmarlo en el limite exacto.
