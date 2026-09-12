@@ -20,6 +20,17 @@ dependencias: [TASK-013]
 ---
 ## Objetivo
 
+Hoy `taskctl review` siempre invoca al mismo agente revisor declarado en
+`tarea.md` (`agente_revisor`), sin mirar qué toca de verdad el diff de la
+rama. TASK-032 (D6/D7) ya dejó redactadas cuatro skills revisoras por dominio
+(java-spring, angular-vue, csharp-autocad-ifc, code-quality) con sus
+`patrones_archivo` declarados y probados en las dos direcciones
+(`path.matchesGlob`), y `code-quality-reviewer` ya se marca `fallback: true`
+con el umbral de dominios fijado en 3 (decisión #16). Falta la pieza que los
+conecta con el ciclo real: que `taskctl review` clasifique el diff real de la
+rama por esos patrones, lance un revisor por cada dominio detectado hasta el
+umbral, y caiga al revisor genérico por encima de él o cuando ningún patrón
+case.
 
 ## Criterios de aceptacion
 - [ ] Clasifica el diff real de la rama por dominio en vez de por el tipo declarado de la tarea.
