@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 37 / 42 items terminados (88%)** · última actualización: 2026-09-09
+**Progreso global: 38 / 42 items terminados (90%)** · última actualización: 2026-09-12
 
 El total baja de 43 a 42: **D4 se descarta** (ver su entrada). Y sube en 3 lo
 hecho: D6, D7 y el propio D4, que cuenta como resuelto porque la decisión está
@@ -22,9 +22,9 @@ tomada y documentada, no aplazada.
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
-| D — Inteligencia del proceso | 6 | **5** | ~35h |
+| D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **2** | ~9h |
-| **Total pendiente** | **5** | — | **~15h** |
+| **Total pendiente** | **4** | — | **~9h** |
 
 ---
 
@@ -313,7 +313,7 @@ Lo que la metodología da por hecho y no existe.
       quedaba inutilizable, acusando a tareas terminadas y proponiendo un
       remedio imposible. Todos corregidos. 20 tests nuevos (387).*
 
-## Fase D — Inteligencia del proceso (2/6) · ~35h
+## Fase D — Inteligencia del proceso (5/6) · ~35h
 
 La fase cara y la única genuinamente opcional: el sistema ya funciona sin
 ella, con un revisor genérico y un `plan` de un solo agente. **D6 y D7 están
@@ -359,12 +359,40 @@ existe la heurística que D1 y D2 van a consumir como lookup.
       TASK-016) — detectado y compensado por el propio informe las cuatro
       veces, nunca invalidó el veredicto, pero el traslado del informe a la
       ubicación correcta se hizo a mano cada vez.*
-- [ ] **D3** · TASK-018 — Enrutado de revisor por diff real, multi-reviewer por dominio — ~6h
+- [x] **D3** · TASK-018 — Enrutado de revisor por diff real, multi-reviewer por dominio — hecho el 2026-09-12
       *`code-quality-reviewer` ya se declara `fallback: true` con
       `umbral_dominios: 3` (decisión #16). Aviso medido en TASK-032: un patrón
       de más no añade un revisor, **sustituye** al genérico — por eso las
       listas de patrones se acotaron y hay un test con tabla de rutas →
       revisor esperado en las dos direcciones.*
+      *`cargarCatalogoRevisores` (`src/core/revisores.ts`) promueve a
+      producción el lector de `patrones_archivo`/`fallback`/`umbral_dominios`
+      que antes solo vivía como helper de test, sin cache (ya divergió dos
+      veces, HALLAZGOS.md). `clasificarPorDominio` (función pura) decide el
+      reparto con el umbral INCLUSIVE (decisión de Carlos, 2026-09-12): 0
+      dominios o más del umbral cae al genérico con el diff completo; 1 a 3
+      fragmenta un grupo por dominio, más el genérico si sobran ficheros sin
+      dominio claro — nunca se queda nadie sin revisor. `taskctl review`
+      clasifica el diff real (`diffNameOnly`) y escribe un par
+      petición/informe por grupo, con sufijo de dominio solo cuando
+      fragmenta (precedente `informe-codex-N.md`). `finish.ts`/`rondas.ts`
+      se extendieron para exigir que TODOS los informes de una ronda
+      fragmentada aprueben — sin esto, la tarea quedaría atascada en
+      `03-en-revision` para siempre, el riesgo más grave que señaló el
+      propio brainstorm.*
+      ***2 rondas de revisión por pares, independientes entre sí y del
+      implementador**: ronda 1 cambios-solicitados (2 IMPORTANTE — ambos
+      huecos de cobertura, no bugs: la numeración de ronda tras fragmentar y
+      el mensaje de `cli.ts` con las N peticiones tenían 0% de test aunque el
+      comportamiento real ya era correcto — y 2 MENOR, uno documentado como
+      evaluado-y-descartado y otro dejado sin corregir por mantenibilidad);
+      ronda 2 **aprobada**, por un tercer agente que confirmó por
+      reproducción propia (revirtiendo las correcciones en un clon aislado)
+      que los dos IMPORTANTE quedaron protegidos. Smoke test manual de
+      punta a punta en esta sesión: `new → plan → approve → start` con dos
+      dominios reales, `review` fragmenta en 3 peticiones, `finish` cierra
+      al aprobar las tres. 855 tests (852 verdes; los 3 rojos son los
+      conocidos de Windows nativo).*
 - [x] **D4** · TASK-019 — ~~Revisión ligera para tareas `trivial`/`simple`~~ — **NO SE HACE**
       *Descartado por Carlos el 2026-09-07, antes de gastar las ~3h. La
       decisión #17 lo dejó aplicando **solo a `trivial`**, y de las 32 tareas
