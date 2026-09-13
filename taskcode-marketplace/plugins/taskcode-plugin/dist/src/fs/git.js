@@ -278,6 +278,24 @@ export function diffNameOnly(desde, hasta, cwd) {
         .filter((line) => line !== '');
 }
 /**
+ * Lanza "codex review <args>" en `cwd`. Inyectable como dependencia en
+ * `codex-review.ts` (`deps.runCodex`) precisamente para que los tests
+ * puedan simular ENOENT o un exit distinto de cero sin depender del
+ * binario real ni de red — el mismo motivo por el que `review.ts`
+ * inyecta `deps.scriptsDir` en vez de invocar sus scripts a ciegas.
+ */
+export function runCodexReview(invocation) {
+    const result = spawnSync('codex', invocation.args, {
+        cwd: invocation.cwd,
+        encoding: 'utf8',
+        maxBuffer: GIT_MAX_BUFFER,
+    });
+    if (result.error) {
+        return { lanzado: false, code: null, stdout: '', errorLanzamiento: result.error };
+    }
+    return { lanzado: true, code: result.status, stdout: result.stdout ?? '', errorLanzamiento: null };
+}
+/**
  * `git diff <desde>..<hasta> -- <paths>`, acotado a un subconjunto de
  * ficheros (TASK-018): el sub-diff que recibe cada revisor de dominio,
  * para que "cada revisor recibe solo el subconjunto del diff de su

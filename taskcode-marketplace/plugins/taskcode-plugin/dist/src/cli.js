@@ -13,6 +13,7 @@ import { RolesBrainstormError } from './core/roles-brainstorm.js';
 import { CatalogoSkillsError } from './core/catalogo-skills.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
+import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex-review.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { isWrapperCommand, runWrapperCommand, WrapperCommandError, } from './commands/wrappers.js';
 import { resolveGitflowScriptsDir, GitflowScriptLaunchError } from './fs/gitflow-runner.js';
@@ -43,6 +44,7 @@ Uso:
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--push]
   taskctl review TASK-NNN [--push]
+  taskctl codex-review TASK-NNN [--push]
   taskctl finish TASK-NNN [--push]
   taskctl diagnose
   taskctl pause [--push]
@@ -50,7 +52,7 @@ Uso:
   taskctl recover [<rama>]
   taskctl abort-merge
 
-Comandos: new, import, board, start, plan, approve, review, finish.
+Comandos: new, import, board, start, plan, approve, review, codex-review, finish.
 Wrappers de Git-Flow: diagnose, pause, resume, recover, abort-merge.
 --asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
 taskctl commitea SOLO los ficheros que el mismo escribe (nunca "git add -A"):
@@ -455,6 +457,44 @@ export async function main(argv) {
                 e instanceof GitLaunchError ||
                 e instanceof GitCommandError ||
                 e instanceof GitflowScriptLaunchError) {
+                printCliError(e);
+                return 1;
+            }
+            throw e;
+        }
+    }
+    if (cmd === 'codex-review') {
+        const repoCwd = process.cwd();
+        const tareasRoot = path.join(repoCwd, 'tareas');
+        try {
+            const result = await runCodexReviewCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+            if (result.degradado) {
+                // Codigo 0 a proposito (criterio de aceptacion 3): un Codex
+                // ausente o fallando no rompe el flujo. El aviso deja claro por
+                // que no hay informe (criterio de aceptacion 5) y que
+                // revision_codex sigue bloqueando "taskctl finish" tal cual.
+                printAvisos(`Codex ${result.motivoDegradacion} No se ha escrito informe-codex-N.md: si esta tarea ` +
+                    'tiene "revision_codex: true", "taskctl finish" sigue bloqueado hasta que haya un ' +
+                    'informe de Codex aprobado (arregla/instala codex y reintenta, o quita ' +
+                    '"revision_codex: true" si decides que esta tarea no necesita esa segunda opinion).');
+                process.stdout.write(`Tarea ${result.id}: codex-review degradado, sin informe escrito.\n`);
+            }
+            else {
+                process.stdout.write(`Tarea ${result.id}: informe de Codex (ronda ${result.ronda}) escrito en ` +
+                    `${result.informePath}.\n` +
+                    'Veredicto PENDIENTE: lee la salida de Codex embebida y sustituyelo por "aprobada" o ' +
+                    '"cambios-solicitados" antes de "taskctl finish".\n');
+            }
+            printAutoCommit(result.autoCommit);
+            return 0;
+        }
+        catch (e) {
+            if (e instanceof AutoCommitError ||
+                e instanceof ConfigError ||
+                e instanceof CodexReviewCommandError ||
+                e instanceof StateMachineError ||
+                e instanceof GitLaunchError ||
+                e instanceof GitCommandError) {
                 printCliError(e);
                 return 1;
             }

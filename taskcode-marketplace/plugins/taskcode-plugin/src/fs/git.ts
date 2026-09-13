@@ -289,6 +289,57 @@ export function diffNameOnly(desde: string, hasta: string, cwd: string): string[
 }
 
 /**
+ * Resultado de intentar lanzar "codex review ..." (TASK-020). NUNCA
+ * lanza una excepcion, a diferencia de runGit: ni por ENOENT (codex no
+ * instalado) ni por un exit distinto de cero (fallo de auth, modelo,
+ * red o cuota — evidencia real en esta maquina). Decision de Carlos:
+ * los dos casos degradan EXACTAMENTE IGUAL en "taskctl codex-review"
+ * (avisa, sale con codigo 0, no escribe informe), asi que el wrapper se
+ * limita a informar que paso — no decide el mismo si eso cuenta como
+ * fallo, para no duplicar esa politica aqui y en el comando.
+ */
+export interface CodexReviewInvocation {
+  /** Argumentos para "codex" (sin el nombre del binario). */
+  args: readonly string[];
+  cwd: string;
+}
+
+export interface CodexReviewOutcome {
+  /**
+   * true si el proceso "codex" se pudo LANZAR, con independencia de si
+   * termino en exit 0 o no. false solo cuando ni siquiera arranco
+   * (ENOENT u otro fallo de spawn) — mismo campo "result.error" que
+   * runGit inspecciona, pero devuelto en vez de lanzado como excepcion.
+   */
+  lanzado: boolean;
+  /** Codigo de salida de "codex", o null si ni siquiera se pudo lanzar. */
+  code: number | null;
+  /** Salida estandar cruda ('' si no se lanzo). */
+  stdout: string;
+  /** Motivo por el que no se pudo lanzar, null si lanzado es true. */
+  errorLanzamiento: Error | null;
+}
+
+/**
+ * Lanza "codex review <args>" en `cwd`. Inyectable como dependencia en
+ * `codex-review.ts` (`deps.runCodex`) precisamente para que los tests
+ * puedan simular ENOENT o un exit distinto de cero sin depender del
+ * binario real ni de red — el mismo motivo por el que `review.ts`
+ * inyecta `deps.scriptsDir` en vez de invocar sus scripts a ciegas.
+ */
+export function runCodexReview(invocation: CodexReviewInvocation): CodexReviewOutcome {
+  const result = spawnSync('codex', invocation.args, {
+    cwd: invocation.cwd,
+    encoding: 'utf8',
+    maxBuffer: GIT_MAX_BUFFER,
+  });
+  if (result.error) {
+    return { lanzado: false, code: null, stdout: '', errorLanzamiento: result.error };
+  }
+  return { lanzado: true, code: result.status, stdout: result.stdout ?? '', errorLanzamiento: null };
+}
+
+/**
  * `git diff <desde>..<hasta> -- <paths>`, acotado a un subconjunto de
  * ficheros (TASK-018): el sub-diff que recibe cada revisor de dominio,
  * para que "cada revisor recibe solo el subconjunto del diff de su
