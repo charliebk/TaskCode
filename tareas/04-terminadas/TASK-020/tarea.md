@@ -6,7 +6,7 @@ sprint: 3
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-020-comando-taskctl-codex-review-segunda-opi
 asignado_a: charlie.bk@gmail.com
