@@ -278,6 +278,81 @@ export function diffNameOnly(desde, hasta, cwd) {
         .filter((line) => line !== '');
 }
 /**
+ * Escapado para `cmd.exe` (hallazgo IMPORTANTE de revision por pares,
+ * ronda 1): con `shell: true` en Windows, `spawnSync` NO cita los
+ * elementos del array de argumentos por su cuenta (a diferencia de la
+ * shell POSIX, que si recibe cada elemento como una palabra propia).
+ * Sin este escapado, un argumento con espacios (p. ej. el titulo de la
+ * tarea) llega a `codex` partido en varias palabras. Envuelve en
+ * comillas dobles si el argumento tiene espacio o algun caracter que
+ * `cmd.exe` interpreta (comilla, `&`, `|`, `<`, `>`, `^`), doblando las
+ * comillas internas — mismo criterio que usa Node internamente para
+ * `.bat`/`.cmd` en versiones que sí lo resuelven solas.
+ *
+ * El `%` NO se soluciona envolviendo en comillas (hallazgo IMPORTANTE de
+ * revision por pares, ronda 2, verificado empiricamente): `cmd.exe`
+ * expande `%NOMBRE_DE_VARIABLE%` como parte del parseo de la linea de
+ * comandos, con independencia de si el texto esta entre comillas. Con
+ * `--title` alimentado por `task.titulo` (texto libre de una persona),
+ * un titulo con la forma "... %USERNAME% ..." llegaria a Codex con el
+ * valor real de esa variable de entorno de esta maquina sustituido en
+ * su lugar — filtracion silenciosa de datos locales hacia una llamada
+ * de red externa, sin que haga falta intencion adversaria. No hay forma
+ * fiable de escapar `%` para una unica invocacion de `cmd.exe /c` desde
+ * fuera de un script `.bat` (el truco de doblar `%%` es especifico del
+ * cuerpo de un `.bat`, y no se comporta igual aqui — verificado). Se
+ * elimina el caracter en vez de intentar escaparlo: mas seguro que
+ * intentar una regla de escape fragil para el caracter mas dificil de
+ * `cmd.exe`.
+ *
+ * Efecto secundario aceptado (revision por pares, ronda 3): un `%`
+ * literal LEGITIMO en el argumento (p. ej. un titulo de tarea como
+ * "mejora un 30% el rendimiento") tambien desaparece, sin distinguir
+ * "abre una variable de entorno real" de "es solo texto" — no hay forma
+ * de diferenciar los dos casos de forma fiable en esta capa. Se acepta:
+ * es un efecto cosmetico en un argumento informativo de una llamada
+ * externa best-effort (`codex review` ya puede degradarse o fallar por
+ * completo), frente a la alternativa real, que era filtrar datos del
+ * entorno del usuario.
+ */
+function cmdQuoteWindows(arg) {
+    const sinPorcentaje = arg.replace(/%/g, '');
+    if (sinPorcentaje === '' || /["\s&|<>^]/.test(sinPorcentaje)) {
+        return `"${sinPorcentaje.replace(/"/g, '""')}"`;
+    }
+    return sinPorcentaje;
+}
+/**
+ * Lanza "codex <args>" (TASK-020). En Windows, un paquete npm global
+ * instala `codex` como `codex.cmd`: `spawnSync` sin `shell: true` no
+ * resuelve `.cmd`/`.bat` por su nombre sin extension (restriccion de
+ * Node documentada, no un accidente de esta maquina) y devuelve
+ * `ENOENT` SIEMPRE, aunque el binario funcione perfectamente desde una
+ * shell — confirmado empiricamente en esta misma maquina (hallazgo
+ * IMPORTANTE de revision por pares, ronda 1: `runCodexReview`
+ * diagnosticaba "no instalado" cuando si lo estaba). `shell: true` solo
+ * en Windows (en POSIX `codex` se lanza directo, sin ese problema, y
+ * evitar la shell ahi evita el riesgo de inyeccion que no hace falta
+ * correr); los argumentos se citan a mano para `cmd.exe` antes de
+ * pasarlos, porque con `shell: true` Node NO cita el array de
+ * argumentos en Windows (verificado: sin citar, un argumento con
+ * espacios llega partido en varias palabras a `codex`).
+ */
+export function runCodexReview(invocation) {
+    const useShell = process.platform === 'win32';
+    const args = useShell ? invocation.args.map(cmdQuoteWindows) : invocation.args;
+    const result = spawnSync('codex', args, {
+        cwd: invocation.cwd,
+        encoding: 'utf8',
+        maxBuffer: GIT_MAX_BUFFER,
+        shell: useShell,
+    });
+    if (result.error) {
+        return { lanzado: false, code: null, stdout: '', errorLanzamiento: result.error };
+    }
+    return { lanzado: true, code: result.status, stdout: result.stdout ?? '', errorLanzamiento: null };
+}
+/**
  * `git diff <desde>..<hasta> -- <paths>`, acotado a un subconjunto de
  * ficheros (TASK-018): el sub-diff que recibe cada revisor de dominio,
  * para que "cada revisor recibe solo el subconjunto del diff de su
