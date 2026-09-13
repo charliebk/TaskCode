@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-020-comando-taskctl-codex-review-segunda-opi
 asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
-actualizado: 2026-09-12
+actualizado: 2026-09-13
 dependencias: [TASK-013]
 ---
 ## Objetivo
