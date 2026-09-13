@@ -48,3 +48,59 @@ continúa en local" cuando no hay `origin`).
 - [x] `informe-codex-N.md` vuelca la salida cruda de Codex como contexto (scaffold con veredicto `PENDIENTE`, mismo patrón que `informeTemplate` de la revisión primaria); un humano/agente la lee y escribe `- Veredicto: aprobada` o `- Veredicto: cambios-solicitados` — nunca se infiere del exit code de Codex, que no es una señal fiable (la propia evidencia de esta tarea lo confirma).
 - [x] Si Codex se degrada y no llega a escribir informe, `revision_codex: true` sigue bloqueando `taskctl finish` fail-closed, sin excepción — la persona resuelve a mano (arregla/instala Codex y reintenta, o quita `revision_codex: true` si decide que esta tarea no necesita esa segunda opinión). El mensaje de `codex-review` deja claro por qué no se escribió informe.
 - [x] Tests que cubren la precondición de estado, la ausencia del CLI (`ENOENT`) y un fallo con Codex presente pero con exit distinto de cero.
+
+## Resultado
+
+`src/commands/codex-review.ts` (nuevo) envuelve `codex review --base <rama>
+--title "<id>: <titulo>"` (sin `--commit`: revisaría un commit puntual, no
+el diff completo de la rama). No toca `state-machine.ts` ni `finish.ts`: ya
+tenían el contrato cerrado desde antes (`INFORME_CODEX_RE`,
+`informesDeLaRonda`, `revisionCodexAprobada`). `runCodexReview` (`fs/git.ts`)
+nunca lanza excepción, ni por ausencia del binario ni por exit≠0: decisión
+de Carlos, con evidencia real (en esta máquina `codex` falla por
+incompatibilidad de cuenta/modelo, no por el diff), es que todo fallo
+degrada igual — avisa, sale con código 0, sin escribir informe. Cuando
+Codex sí responde, su salida cruda se vuelca en `informe-codex-<ronda>.md`
+con veredicto `PENDIENTE`: un humano/agente lo certifica después, nunca se
+infiere del exit code.
+
+**3 rondas de revisión por pares, cada una por un agente distinto e
+independiente del resto**:
+
+- **Ronda 1: cambios-solicitados** (1 IMPORTANTE, 2 MENOR). El revisor
+  reprodujo contra el `codex` real de esta máquina que `runCodexReview`
+  nunca llegaba a invocarlo: `spawnSync('codex', args)` sin `shell: true`
+  no resuelve el `codex.cmd` que instala npm en Windows y devuelve `ENOENT`
+  siempre, diagnosticando "no instalado" cuando sí lo estaba. Corregido con
+  `shell: true` solo en `win32` + escapado manual de argumentos para
+  `cmd.exe`. Al verificar la corrección apareció un segundo bug no detectado
+  por la ronda 1: `codex review --base <rama>` no admite combinarse con un
+  PROMPT propio (conflicto real del CLI, confirmado empíricamente) — se
+  quitó el prompt personalizado; el análisis lo hace `codex review` con su
+  comportamiento por defecto.
+- **Ronda 2: cambios-solicitados** (1 IMPORTANTE nuevo). El escapado para
+  `cmd.exe` envolvía en comillas, pero eso no evita que `cmd.exe` expanda
+  `%NOMBRE_DE_VARIABLE%` — un título de tarea con la forma `%USERNAME%`
+  llegaba a Codex con el valor **real** de esa variable de esta máquina
+  sustituido en su lugar (filtración de datos locales hacia una llamada de
+  red externa). Verificado que doblar `%%` (el truco de los ficheros
+  `.bat`) no aplica a una invocación externa de `cmd.exe /c`. Corregido
+  eliminando el carácter `%` en vez de intentar escaparlo.
+- **Ronda 3: aprobada con menores documentados**, sin críticos ni
+  importantes. Confirmó con reproducción propia (tres nombres de variable
+  distintos, y contraprueba revirtiendo el fix) que las dos correcciones
+  anteriores se sostienen. Único hallazgo nuevo: un `%` literal legítimo en
+  un título (p. ej. "mejora un 30%") también se pierde, sin distinguir
+  "variable de entorno real" de "texto suelto" — juzgado un trade-off
+  razonable (efecto cosmético en un argumento informativo, frente a la
+  fuga de datos real que evita), documentado en el propio comentario de
+  `cmdQuoteWindows`.
+
+**Verificado en esta sesión** (además de lo que certificaron los 3
+revisores): `runCodexReview` invocado directamente contra el `codex` real
+de esta máquina da `lanzado: true, code: 1` (el fallo real de cuenta/modelo
+documentado, no `ENOENT`).
+
+868 tests (865 verdes; los 3 rojos son los conocidos de Windows nativo:
+symlink EPERM, chmod sobre directorio en NTFS, y CRLF — ninguno tocado por
+esta tarea).

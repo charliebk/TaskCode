@@ -347,6 +347,16 @@ export interface CodexReviewOutcome {
  * elimina el caracter en vez de intentar escaparlo: mas seguro que
  * intentar una regla de escape fragil para el caracter mas dificil de
  * `cmd.exe`.
+ *
+ * Efecto secundario aceptado (revision por pares, ronda 3): un `%`
+ * literal LEGITIMO en el argumento (p. ej. un titulo de tarea como
+ * "mejora un 30% el rendimiento") tambien desaparece, sin distinguir
+ * "abre una variable de entorno real" de "es solo texto" — no hay forma
+ * de diferenciar los dos casos de forma fiable en esta capa. Se acepta:
+ * es un efecto cosmetico en un argumento informativo de una llamada
+ * externa best-effort (`codex review` ya puede degradarse o fallar por
+ * completo), frente a la alternativa real, que era filtrar datos del
+ * entorno del usuario.
  */
 function cmdQuoteWindows(arg: string): string {
   const sinPorcentaje = arg.replace(/%/g, '');
