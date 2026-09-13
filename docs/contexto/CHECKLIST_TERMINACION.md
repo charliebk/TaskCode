@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 38 / 42 items terminados (90%)** · última actualización: 2026-09-12
+**Progreso global: 39 / 42 items terminados (93%)** · última actualización: 2026-09-13
 
 El total baja de 43 a 42: **D4 se descarta** (ver su entrada). Y sube en 3 lo
 hecho: D6, D7 y el propio D4, que cuenta como resuelto porque la decisión está
@@ -22,9 +22,9 @@ tomada y documentada, no aplazada.
 | ✅ A — Desbloquear | 3 | **3** | ~6h |
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
-| D — Inteligencia del proceso | 6 | **6** | ~35h |
+| ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **2** | ~9h |
-| **Total pendiente** | **4** | — | **~9h** |
+| **Total pendiente** | **3** | — | **~4h** |
 
 ---
 
@@ -313,7 +313,7 @@ Lo que la metodología da por hecho y no existe.
       quedaba inutilizable, acusando a tareas terminadas y proponiendo un
       remedio imposible. Todos corregidos. 20 tests nuevos (387).*
 
-## Fase D — Inteligencia del proceso (5/6) · ~35h
+## ✅ Fase D — Inteligencia del proceso (6/6) · completada el 2026-09-13 · ~35h
 
 La fase cara y la única genuinamente opcional: el sistema ya funciona sin
 ella, con un revisor genérico y un `plan` de un solo agente. **D6 y D7 están
@@ -407,10 +407,33 @@ existe la heurística que D1 y D2 van a consumir como lookup.
       es falso y era el argumento citado; lo segundo es el dato bueno. La
       conclusión (descartar D4) no cambia, pero la premisa sí estaba mal —
       y llegó a copiarse a un comentario de código antes de detectarse.*
-- [ ] **D5** · TASK-020 — `taskctl codex-review` opcional — ~5h
+- [x] **D5** · TASK-020 — `taskctl codex-review` opcional — hecho el 2026-09-13
       *Sigue siendo el que cierra un agujero real detectado en C5:
       `revision_codex: true` deja hoy la tarea **imposible de cerrar**, porque
       `finish` la rechaza y remite a un comando que no existe.*
+      *`src/commands/codex-review.ts` envuelve `codex review --base <rama>
+      --title "<id>: <titulo>"` (sin `--commit`: revisaría un commit puntual,
+      no el diff completo). No toca `state-machine.ts` ni `finish.ts` — ya
+      tenían el contrato cerrado. Todo fallo de Codex (ausente o exit≠0)
+      degrada igual: avisa, sale con código 0, sin escribir informe — decisión
+      de Carlos, con evidencia real de que en esta máquina Codex falla por
+      incompatibilidad de cuenta/modelo, no por el diff. Un humano/agente
+      certifica el veredicto tras leer la salida cruda de Codex embebida en
+      `informe-codex-N.md`, nunca inferido del exit code.*
+      ***3 rondas de revisión por pares, cada una por un agente distinto**:
+      ronda 1 cambios-solicitados (`spawnSync('codex', ...)` sin `shell: true`
+      nunca invocaba el binario real en Windows —`ENOENT` siempre, aunque
+      estuviera instalado—, y un segundo bug destapado al corregirlo: `codex
+      review --base <rama>` no admite combinarse con un PROMPT propio,
+      conflicto real del CLI); ronda 2 cambios-solicitados (el escapado para
+      `cmd.exe` no evitaba que expandiera `%VARIABLE%` — un título con
+      `%USERNAME%` filtraba el valor real de esa variable hacia la llamada de
+      red externa; corregido eliminando el `%` en vez de escaparlo, porque no
+      hay forma fiable de escaparlo en una invocación suelta de `cmd.exe /c`);
+      ronda 3 aprobada con menores documentados (un `%` literal legítimo en un
+      título también se pierde — trade-off aceptado frente a la fuga de
+      datos). 868 tests (865 verdes; los 3 rojos son los conocidos de
+      Windows).*
 - [x] **D6** · Redactar las 4 skills revisoras (java-spring, angular-vue, csharp-autocad-ifc, code-quality) — hecho el 2026-09-07 (TASK-032)
       *Las cuatro con lo que revisan en su dominio, la exigencia de reproducir
       empíricamente, la clasificación CRÍTICO/IMPORTANTE/MENOR con ejemplos
