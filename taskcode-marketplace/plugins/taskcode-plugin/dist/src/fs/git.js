@@ -285,15 +285,32 @@ export function diffNameOnly(desde, hasta, cwd) {
  * Sin este escapado, un argumento con espacios (p. ej. el titulo de la
  * tarea) llega a `codex` partido en varias palabras. Envuelve en
  * comillas dobles si el argumento tiene espacio o algun caracter que
- * `cmd.exe` interpreta (comilla, `&`, `|`, `<`, `>`, `^`, `%`), doblando
- * las comillas internas — mismo criterio que usa Node internamente para
+ * `cmd.exe` interpreta (comilla, `&`, `|`, `<`, `>`, `^`), doblando las
+ * comillas internas — mismo criterio que usa Node internamente para
  * `.bat`/`.cmd` en versiones que sí lo resuelven solas.
+ *
+ * El `%` NO se soluciona envolviendo en comillas (hallazgo IMPORTANTE de
+ * revision por pares, ronda 2, verificado empiricamente): `cmd.exe`
+ * expande `%NOMBRE_DE_VARIABLE%` como parte del parseo de la linea de
+ * comandos, con independencia de si el texto esta entre comillas. Con
+ * `--title` alimentado por `task.titulo` (texto libre de una persona),
+ * un titulo con la forma "... %USERNAME% ..." llegaria a Codex con el
+ * valor real de esa variable de entorno de esta maquina sustituido en
+ * su lugar — filtracion silenciosa de datos locales hacia una llamada
+ * de red externa, sin que haga falta intencion adversaria. No hay forma
+ * fiable de escapar `%` para una unica invocacion de `cmd.exe /c` desde
+ * fuera de un script `.bat` (el truco de doblar `%%` es especifico del
+ * cuerpo de un `.bat`, y no se comporta igual aqui — verificado). Se
+ * elimina el caracter en vez de intentar escaparlo: mas seguro que
+ * intentar una regla de escape fragil para el caracter mas dificil de
+ * `cmd.exe`.
  */
 function cmdQuoteWindows(arg) {
-    if (arg === '' || /["\s&|<>^%]/.test(arg)) {
-        return `"${arg.replace(/"/g, '""')}"`;
+    const sinPorcentaje = arg.replace(/%/g, '');
+    if (sinPorcentaje === '' || /["\s&|<>^]/.test(sinPorcentaje)) {
+        return `"${sinPorcentaje.replace(/"/g, '""')}"`;
     }
-    return arg;
+    return sinPorcentaje;
 }
 /**
  * Lanza "codex <args>" (TASK-020). En Windows, un paquete npm global

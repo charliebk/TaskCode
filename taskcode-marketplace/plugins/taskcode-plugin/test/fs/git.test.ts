@@ -669,3 +669,47 @@ test('runCodexReview: encuentra y lanza un "codex" real del PATH (no inyectado),
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+/**
+ * Hallazgo IMPORTANTE de revision por pares, ronda 2: envolver en
+ * comillas NO evita que `cmd.exe` expanda `%NOMBRE_DE_VARIABLE%` en
+ * Windows — ocurre al parsear la linea de comandos completa, con
+ * independencia de las comillas. Con `--title` alimentado por texto
+ * libre de una persona (`task.titulo`), un titulo con la forma
+ * "... %USERNAME% ..." llegaria a Codex con el valor real de esa
+ * variable de esta maquina sustituido en su lugar. Solo se puede
+ * reproducir el escenario real en Windows (en POSIX no hay `cmd.exe` de
+ * por medio, `runCodexReview` ni siquiera usa `shell: true` ahi), asi
+ * que este test se salta fuera de esa plataforma en vez de fingir que
+ * prueba algo que esa rama de codigo no ejecuta.
+ */
+test('runCodexReview: un argumento con forma "%VARIABLE%" no se expande con el valor real de esa variable de entorno (hallazgo IMPORTANTE de revision, ronda 2)', { skip: process.platform !== 'win32' }, async () => {
+  const { writeFile, mkdtemp, rm } = await import('node:fs/promises');
+  const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-codex-fake-'));
+  const pathAnterior = process.env['PATH'];
+  try {
+    await writeFile(path.join(dir, 'codex.cmd'), '@echo off\r\necho ARGS:%*\r\nexit /b 0\r\n', 'utf8');
+    process.env['PATH'] = `${dir}${path.delimiter}${pathAnterior ?? ''}`;
+
+    const outcome = runCodexReview({
+      args: ['review', '--title', 'hola %USERNAME% adios'],
+      cwd: dir,
+    });
+
+    assert.equal(outcome.lanzado, true, JSON.stringify(outcome));
+    assert.equal(outcome.code, 0, outcome.stdout);
+    // No debe aparecer el valor REAL de la variable de entorno (fuga de
+    // datos locales hacia lo que se le envia a Codex).
+    const usuarioReal = process.env['USERNAME'];
+    if (usuarioReal !== undefined && usuarioReal !== '') {
+      assert.doesNotMatch(
+        outcome.stdout,
+        new RegExp(usuarioReal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+        `no deberia filtrarse el valor real de %USERNAME% ("${usuarioReal}") en: ${outcome.stdout}`
+      );
+    }
+  } finally {
+    process.env['PATH'] = pathAnterior;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
