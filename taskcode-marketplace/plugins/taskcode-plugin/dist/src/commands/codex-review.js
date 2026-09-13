@@ -93,18 +93,6 @@ async function revisionPrimariaAprobadaDe(revisionDir) {
     return contenidos.every((c) => veredictoAprobado(c));
 }
 /**
- * Instrucciones que se le pasan a Codex como PROMPT posicional (el CLI
- * ya calcula el diff el mismo con --base, no hace falta embeberlo).
- * Mismo espiritu que las instrucciones de peticionTemplate en
- * review.ts: revisor independiente, hallazgos clasificados.
- */
-function codexPrompt(task) {
-    return (`Eres una segunda opinion INDEPENDIENTE sobre ${task.id} (${task.titulo}), ya revisada por ` +
-        'otro agente. Clasifica cada hallazgo como CRITICO (perdida de datos, corrupcion de estado, ' +
-        'el codigo hace lo contrario de lo que dice), IMPORTANTE (comportamiento incorrecto en un ' +
-        'caso real) o MENOR (todo lo demas). Un "sin hallazgos" explicito tambien vale.');
-}
-/**
  * Scaffold del informe de Codex: mismo contrato que `informeTemplate`
  * de review.ts — taskctl finish exige que TODAS las lineas
  * "- Veredicto:" aprueben, asi que hay que SUSTITUIR esta unica linea,
@@ -148,9 +136,20 @@ export async function runCodexReviewCommand(tareasRoot, argv, _today, deps) {
     const { task, filePath } = existing;
     const baseBranch = resolveBaseBranchForTipo(task.tipo, deps.repoCwd);
     const commitRevisado = headCommit(deps.repoCwd);
+    // Sin PROMPT posicional a proposito: "codex review" (codex-cli
+    // 0.144.1) rechaza combinar "--base <rama>" con un PROMPT propio
+    // ("error: the argument '--base <BRANCH>' cannot be used with
+    // '[PROMPT]'" — clap, no un fallo de escapado), confirmado
+    // empiricamente contra el binario real en esta maquina (hallazgo de
+    // revision por pares, ronda 1, ampliado tras corregir el bug de
+    // spawnSync: con el spawn ya arreglado, la combinacion original
+    // fallaba de todas formas, con exit 2 en vez de ENOENT). "--title"
+    // SI es compatible con "--base" y viaja con el id y el titulo de la
+    // tarea; el analisis en si lo hace el propio "codex review" con su
+    // comportamiento por defecto.
     const runCodex = deps.runCodex ?? runCodexReview;
     const outcome = runCodex({
-        args: ['review', '--base', baseBranch, '--title', `${task.id}: ${task.titulo}`, codexPrompt(task)],
+        args: ['review', '--base', baseBranch, '--title', `${task.id}: ${task.titulo}`],
         cwd: deps.repoCwd,
     });
     let degradado;

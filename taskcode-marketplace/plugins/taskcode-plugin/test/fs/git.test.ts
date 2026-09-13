@@ -19,6 +19,7 @@ import {
   BaseBranchGuardError,
   GitCommandError,
   GitLaunchError,
+  runCodexReview,
 } from '../../src/fs/git.js';
 
 function git(args: string[], cwd: string): void {
@@ -622,4 +623,49 @@ test('operacionEnCurso: null tras un "cherry-pick -n" en conflicto (Git tampoco 
     assert.notEqual(abort.status, 0, 'Git deberia negarse a abortar aqui');
     assert.equal(operacionEnCurso(repoRoot), null);
   });
+});
+
+// --- TASK-020: runCodexReview contra un binario real (no inyectado) ---
+//
+// codex-review.test.ts inyecta siempre "deps.runCodex" (correctamente,
+// para no depender de un binario real ni de red) — pero eso deja la
+// funcion real de aqui, "runCodexReview", sin ningun test que la
+// ejercite contra un proceso de verdad. Ese hueco es justo el que dejo
+// pasar el bug de la ronda 1 de revision: en Windows, "spawnSync" sin
+// "shell: true" no resuelve un "codex.cmd" instalado por npm y devuelve
+// ENOENT SIEMPRE, con independencia de si el binario esta instalado.
+// Este test monta un "codex" (o "codex.cmd" en Windows) de mentira en un
+// directorio temporal, lo antepone al PATH real, y llama a la funcion
+// real (no mockeada) para confirmar que SI lo encuentra y lo lanza, y
+// que un argumento con espacios llega intacto (contraprueba del
+// escapado para cmd.exe: sin el, "titulo con espacios" llegaria partido
+// en varias palabras).
+test('runCodexReview: encuentra y lanza un "codex" real del PATH (no inyectado), y un argumento con espacios llega intacto', async () => {
+  const { writeFile, chmod, mkdtemp, rm } = await import('node:fs/promises');
+  const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-codex-fake-'));
+  const pathAnterior = process.env['PATH'];
+  try {
+    const esWindows = process.platform === 'win32';
+    const scriptPath = path.join(dir, esWindows ? 'codex.cmd' : 'codex');
+    const contenido = esWindows
+      ? '@echo off\r\necho ARGS:%*\r\nexit /b 0\r\n'
+      : '#!/bin/sh\necho "ARGS:$@"\n';
+    await writeFile(scriptPath, contenido, 'utf8');
+    if (!esWindows) await chmod(scriptPath, 0o755);
+
+    process.env['PATH'] = `${dir}${path.delimiter}${pathAnterior ?? ''}`;
+
+    const outcome = runCodexReview({
+      args: ['review', '--base', 'develop', '--title', 'titulo con espacios'],
+      cwd: dir,
+    });
+
+    assert.equal(outcome.lanzado, true, JSON.stringify(outcome));
+    assert.equal(outcome.code, 0, outcome.stdout);
+    assert.match(outcome.stdout, /ARGS:/);
+    assert.match(outcome.stdout, /titulo con espacios/);
+  } finally {
+    process.env['PATH'] = pathAnterior;
+    await rm(dir, { recursive: true, force: true });
+  }
 });
