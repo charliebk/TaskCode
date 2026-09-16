@@ -43,20 +43,24 @@ Verifica que `taskctl` responde:
 taskctl --version
 ```
 
-**Probado**: en Windows nativo, con el directorio `bin/` del CLI en el PATH,
-`taskctl` resuelve como comando suelto — job `windows-latest` del CI, step
-que hace `export PATH="$(pwd)/bin:$PATH"` sobre el checkout (item E3 del
-checklist de terminación). **Pendiente de confirmar**: que instalar el
-plugin deje ese `bin/` en el PATH de forma utilizable. Lo único confirmado
-es que el mecanismo existe (aparecen los `bin/` de otros plugins cacheados
-en el PATH de una sesión); `taskctl` como comando suelto todavía no se ha
-visto funcionar (item E6/AC7 del checklist; también señalado en
-`HALLAZGOS.md`). Ese PATH lo compone Claude Code para su Bash tool
-(`SKILL.md`), así que no cuentes con `taskctl` en una consola del sistema:
-si en la **sesión siguiente** a la instalación `--version` da `command not
-found`, reinicia la sesión y, si persiste, sigue el resto del orden de
-diagnóstico de
-[`skills/task-workflow/SKILL.md`](../../taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/SKILL.md).
+En la sesión donde acabas de instalar es normal que aún no responda — el
+PATH se compone al arrancar la sesión, y esto es un fallo conocido, no una
+señal de que algo esté roto. Reinicia la sesión y vuelve a probar.
+
+**Probado**: en Windows nativo, con el directorio `bin/` del CLI en el PATH
+bajo Git Bash, `taskctl` resuelve como comando suelto — job `windows-latest`
+del CI, step que hace `export PATH="$(pwd)/bin:$PATH"` sobre el checkout
+(item E3 del checklist de terminación). **Pendiente de confirmar**: que
+instalar el plugin deje ese `bin/` en el PATH de forma utilizable. Lo único
+confirmado es que el mecanismo existe (aparecen los `bin/` de otros plugins
+cacheados en el PATH de una sesión); `taskctl` como comando suelto todavía
+no se ha visto funcionar (item E6/AC7 del checklist; también señalado en
+[`HALLAZGOS.md`](HALLAZGOS.md)). Ese PATH lo compone Claude Code para su
+Bash tool (ver el prerrequisito 1 de
+[`skills/task-workflow/SKILL.md`](../../taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/SKILL.md)),
+así que no cuentes con `taskctl` en una consola del sistema: si en la
+**sesión siguiente** a la instalación sigue sin responder, sigue el resto de
+ese mismo orden de diagnóstico.
 
 ## 3. Entender el ciclo de vida
 
