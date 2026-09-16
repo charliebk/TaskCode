@@ -10,6 +10,7 @@ Empieza por aquí si acabas de abrir el repo. Orden de lectura:
 | 4 | [`HALLAZGOS.md`](HALLAZGOS.md) | Las trampas que ya costaron tiempo y los patrones que merece la pena repetir. |
 | 5 | [`INVENTARIO_PENDIENTE.md`](INVENTARIO_PENDIENTE.md) | De dónde salieron esas 40 casillas: los huecos que ninguna tarea del plan cubría. |
 | — | [`PROMPT_INICIAL.md`](PROMPT_INICIAL.md) | Prompt listo para pegar al abrir una sesión nueva. |
+| — | [`INCORPORACION.md`](INCORPORACION.md) | Guía para incorporar a un nuevo colaborador al equipo. |
 
 Fuera de esta carpeta, lo que importa:
 
