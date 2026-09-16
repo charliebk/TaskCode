@@ -464,9 +464,14 @@ sin la red que impide deshacerla — de ahí salieron **siete aserciones que no
 podían fallar**, incluida la que exigía «reproducir empíricamente» y se
 satisfacía con una etiqueta que otro test obliga a estar presente.*
 
-## Fase E — Cierre (2/6) · ~9h
+## Fase E — Cierre (4/6) · ~9h
 
 - [ ] **E1** · TASK-022 — Documentación de equipo + invitar colaboradores — ~2h
+      *En curso: `docs/contexto/INCORPORACION.md` ya escrito y enlazado
+      desde `README.md` y este índice; queda la revisión por pares y
+      `taskctl finish` antes de marcar esta casilla, según la convención de
+      este documento (casilla solo al cerrar el trabajo real, mergeado a
+      `develop`).*
 - [ ] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — ~5h
 - [x] **E3** · Validación en Windows nativo — **resuelta por el CI, no por una sesión nativa**
       *El job `windows-latest` asevera cada hipótesis como un step propio.

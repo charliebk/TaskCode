@@ -32,6 +32,6 @@ lista la guía de incorporación (para cuando haga falta) y en documentar
 esa decisión, en vez de ejecutar invitaciones que no hacen falta hoy.
 
 ## Criterios de aceptacion
-- [ ] Guía de incorporación que un integrante nuevo pueda seguir sin ayuda: instalar el plugin, entender el ciclo de vida y hacer su primera tarea.
-- [ ] Sin colaboradores que invitar por ahora (decisión de Carlos, 2026-09-13); la guía queda lista para cuando se incorpore alguien, sin ejecutar ninguna invitación real.
-- [ ] Deja resuelto el punto 8 de la sección 14 en lo que respecta a a quién se invita: documentado que, a día de hoy, no hay nadie que invitar.
+- [x] Guía de incorporación que un integrante nuevo pueda seguir sin ayuda: instalar el plugin, entender el ciclo de vida y hacer su primera tarea.
+- [x] Sin colaboradores que invitar por ahora (decisión de Carlos, 2026-09-13); la guía queda lista para cuando se incorpore alguien, sin ejecutar ninguna invitación real.
+- [x] Deja resuelto el punto 8 de la sección 14 en lo que respecta a a quién se invita: documentado que, a día de hoy, no hay nadie que invitar.
