@@ -471,7 +471,11 @@ satisfacía con una etiqueta que otro test obliga a estar presente.*
       desde `README.md` y este índice; queda la revisión por pares y
       `taskctl finish` antes de marcar esta casilla, según la convención de
       este documento (casilla solo al cerrar el trabajo real, mergeado a
-      `develop`).*
+      `develop`). Cierra, en cuanto se mergee, el punto 8 de la sección 14 de
+      `PROPUESTA_METODOLOGIA.md` (documento congelado, no editado) **en lo
+      que respecta a a quién se invita**: a día de hoy, a nadie — decisión de
+      Carlos, 2026-09-13; la guía queda en `INCORPORACION.md` para cuando
+      haga falta.*
 - [ ] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — ~5h
 - [x] **E3** · Validación en Windows nativo — **resuelta por el CI, no por una sesión nativa**
       *El job `windows-latest` asevera cada hipótesis como un step propio.
