@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-022 — Documentación de equipo e incorporación de colaboradores · etiquetas: (sin etiquetas) · rama feature/task-022-documentacion-de-equipo-e-incorporacion · terminada 2026-09-16 · tareas/04-terminadas/TASK-022/
 - TASK-020 — Comando taskctl codex-review (segunda opinión independiente) · etiquetas: (sin etiquetas) · rama feature/task-020-comando-taskctl-codex-review-segunda-opi · terminada 2026-09-13 · tareas/04-terminadas/TASK-020/
 - TASK-018 — Enrutado de revisor por diff real, fragmentado por dominio · etiquetas: (sin etiquetas) · rama feature/task-018-enrutado-de-revisor-por-diff-real-fragme · terminada 2026-09-12 · tareas/04-terminadas/TASK-018/
 - TASK-017 — Catálogo de skills determinista con selección en dos pasos · etiquetas: (sin etiquetas) · rama feature/task-017-catalogo-de-skills-determinista-con-sele · terminada 2026-09-09 · tareas/04-terminadas/TASK-017/

@@ -6,7 +6,7 @@ sprint: 4
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-022-documentacion-de-equipo-e-incorporacion
 asignado_a: charlie.bk@gmail.com

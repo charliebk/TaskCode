@@ -1,8 +1,8 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-09-13. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-09-16. No editar a mano.
 
-## Planificadas (00-planificadas) — 16
+## Planificadas (00-planificadas) — 15
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,11 +21,10 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-022  Documentación de equipo e incorporación de colaboradores                                    (sin asignar)
 TASK-023  Métricas de coste en tokens por fase                                                        (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 16
+## Terminadas (04-terminadas) — 17
 
 ```text
 ID        Titulo                                                                             Asignado
@@ -37,6 +36,7 @@ TASK-016  Brainstorm paralelo por roles con agente unificador                   
 TASK-017  Catálogo de skills determinista con selección en dos pasos                         charlie.bk@gmail.com
 TASK-018  Enrutado de revisor por diff real, fragmentado por dominio                         charlie.bk@gmail.com
 TASK-020  Comando taskctl codex-review (segunda opinión independiente)                       charlie.bk@gmail.com
+TASK-022  Documentación de equipo e incorporación de colaboradores                           charlie.bk@gmail.com
 TASK-024  asignado_a por defecto desde la identidad Git                                      charlie.bk@gmail.com
 TASK-025  El limite de WIP mira las ramas de trabajo, no el arbol activo                     charlie.bk@gmail.com
 TASK-026  Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge    charlie.bk@gmail.com

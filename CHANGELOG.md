@@ -4,6 +4,7 @@ Registro de tareas terminadas. Lo actualiza taskctl finish; una linea
 por tarea, renderizada desde su frontmatter.
 
 ## Sin publicar
+- TASK-022 (feature) — Documentación de equipo e incorporación de colaboradores (2026-09-16)
 - TASK-020 (feature) — Comando taskctl codex-review (segunda opinión independiente) (2026-09-13)
 - TASK-018 (feature) — Enrutado de revisor por diff real, fragmentado por dominio (2026-09-12)
 - TASK-017 (feature) — Catálogo de skills determinista con selección en dos pasos (2026-09-09)
