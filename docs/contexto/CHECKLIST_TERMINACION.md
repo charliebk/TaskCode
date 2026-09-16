@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 39 / 42 items terminados (93%)** · última actualización: 2026-09-13
+**Progreso global: 41 / 42 items terminados (98%)** · última actualización: 2026-09-16
 
 El total baja de 43 a 42: **D4 se descarta** (ver su entrada). Y sube en 3 lo
 hecho: D6, D7 y el propio D4, que cuenta como resuelto porque la decisión está
@@ -23,8 +23,8 @@ tomada y documentada, no aplazada.
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
-| E — Cierre | 6 | **2** | ~9h |
-| **Total pendiente** | **3** | — | **~4h** |
+| E — Cierre | 6 | **4** | ~9h |
+| **Total pendiente** | **2** | — | **~7h** |
 
 ---
 
@@ -476,8 +476,42 @@ satisfacía con una etiqueta que otro test obliga a estar presente.*
       y la suite completa pasa. Cerró la reserva que arrastraban
       TASK-006/007/008/009/010/011. Hallazgo negativo real y corregido: el
       glob de `npm test` no era portable a `cmd.exe`.*
-- [ ] **E4** · Decidir el cierre de las 12 tareas con `estado: planificada` pese a estar hechas
-- [ ] **E5** · Decidir qué hacer con `runConfigurations.zip` en la raíz
+- [x] **E4** · Decidir el cierre de las 12 tareas con `estado: planificada` pese a estar hechas — resuelta el 2026-09-16
+      *TASK-001 a TASK-012, todas cerradas desde hace tiempo (evidencia en
+      `CHANGELOG.md`, `docs/INDEX.md`, y esta misma sección "Ya terminado")
+      pero con `estado: planificada` en su frontmatter porque se hicieron
+      antes de que `taskctl` existiera — la "paradoja de bootstrapping" que
+      ya nombraba `CONVENCIONES.md`. Se investigó si se podía forzar el
+      ciclo real (`plan → approve → start → review → finish`) ahora mismo:
+      **no**, y no por preferencia sino por imposibilidad medida.
+      TASK-001/002/003 declaran una `rama:` que no existe en Git —
+      `taskctl finish` haría `git merge-base --is-ancestor` contra una ref
+      inexistente y **crashearía** con una excepción de Git sin capturar,
+      no con un error limpio (`finish.ts` + `isAncestor` en `git.ts`,
+      confirmado leyendo el código). Las otras 9 ya están mergeadas en
+      `develop`: una revisión por pares "empírica" contra ellas correría
+      sobre un diff vacío. Se decide la **Opción A**: dejarlas donde están,
+      sin tocar frontmatter ni carpetas — mismo patrón que **D4** (decisión
+      documentada, no aplazada, cuenta como resuelta). La alternativa
+      (editar `estado:` a mano y mover a `04-terminadas/`) se descarta
+      porque la propia documentación del proyecto la desaconseja
+      explícitamente (`CONVENCIONES.md`: "contradiría el principio del
+      sistema"; `skills/task-workflow/SKILL.md`, regla 3: "no editar
+      `estado:` a mano para saltarse un paso") — no hay ningún texto que la
+      respalde. Riesgo aceptado: `taskctl board` seguirá mostrando estas 12
+      mezcladas con la planificación vigente.*
+- [x] **E5** · Decidir qué hacer con `runConfigurations.zip` en la raíz — resuelta el 2026-09-16, **borrado**
+      *Confirmado: era la carpeta `.idea/runConfigurations/` de OTRO
+      proyecto (CDAU/IECA — Auth Service, Gateway, etc.), entrada en el
+      commit inicial (`4435d68d`), que sirvió de semilla para migrar 22 run
+      configurations + 18 scripts Bash hacia
+      `taskcode-marketplace/plugins/taskcode-plugin/scripts/gitflow/`
+      (TASK-007/TASK-008 — dos de las 12 de E4). Sin ninguna dependencia
+      funcional en el repo (confirmado por grep). Borrado del working tree;
+      recuperable del historial con `git show
+      4435d68d:runConfigurations.zip` — nota añadida en
+      `scripts/gitflow/README.md` con ese hash para no depender de
+      recordarlo de memoria.*
 - [x] **E6** · Distribución del CLI: un clon recién hecho no trae un `taskctl` que funcione — ~2h estimadas, **~6h reales**
       *Cerrado el 2026-09-07 (TASK-031). `dist/src/` se versiona: un clon de
       `develop` ya arranca sin compilar (`node bin/taskctl --version` → `0.1.0`,

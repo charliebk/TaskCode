@@ -6,6 +6,11 @@ Configurations de IntelliJ) por TASK-008. Estos scripts los invoca
 `docs/PROPUESTA_METODOLOGIA.md`) — no están pensados para ejecutarse a
 mano salvo para depurar o para el spike/smoke test.
 
+El `.zip` original (item E5 del checklist de cierre) se borró del
+repo tras confirmar que la migración estaba completa y que nada
+dependía de él en tiempo de ejecución; sigue recuperable del
+historial con `git show 4435d68d:runConfigurations.zip`.
+
 ## Qué cambió respecto al original
 
 Los 22 scripts de acción y `_gitflow-common.sh` son una copia literal del

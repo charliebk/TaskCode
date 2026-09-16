@@ -1,18 +1,29 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-08** (tras cerrar D6 y D7). Este documento se
-> actualiza al cerrar cada fase. Si lo que dice no cuadra con el repo, gana
-> el repo — y hay que corregir esto.
+> Última actualización: **2026-09-16** (tras cerrar la Fase D entera y E4/E5).
+> Este documento se actualiza al cerrar cada fase. Si lo que dice no cuadra
+> con el repo, gana el repo — y hay que corregir esto.
 
 ## Dónde estamos
 
-**35 de 42 items del plan de terminación (83%).** Sprint 0 y Sprint 1
-completos (TASK-001 a TASK-012), **las Fases A, B y C cerradas enteras**, y
-la Fase D a medias: D6 y D7 hechos (TASK-032), D4 descartado.
+**41 de 42 items del plan de terminación (98%).** Sprint 0 y Sprint 1
+completos (TASK-001 a TASK-012), **las Fases A, B, C y D cerradas enteras**,
+y la Fase E a un solo paso de cerrarse del todo: E3, E4, E5 y E6 hechos;
+solo quedan **E1 (TASK-022, plan consolidado, pendiente de `taskctl
+approve`)** y **E2 (TASK-023, sin empezar)**.
 
 El total ha bailado dos veces: subió de 42 a 43 cuando la revisión de C5 abrió
 **E6** (la distribución del CLI del plugin, ya cerrada en TASK-031), y ha
 vuelto a 42 al descartarse **D4** con datos delante.
+
+La Fase D se cerró con D1 (TASK-016, brainstorm paralelo por roles),
+D2 (TASK-017, catálogo de skills determinista), D3 (TASK-018, enrutado de
+revisor por diff real fragmentado por dominio) y D5 (TASK-020, `taskctl
+codex-review`) — cada una con su propio ciclo completo de revisión por
+pares (D3 y D5 con hallazgos reales de plataforma corregidos en el propio
+ciclo, no solo de diseño). Detalle línea a línea de cada una en
+`docs/contexto/CHECKLIST_TERMINACION.md`, que es donde de verdad se
+mantiene al día — este documento resume, no repite.
 
 **El ciclo de vida está completo y con reglas de proceso encima que de
 verdad se aplican**: `import → plan → approve → start → review → finish`
@@ -30,9 +41,11 @@ vez de menus de IntelliJ, y `abort-merge` viendo cherry-picks y reverts a
 medias (C6). **472 tests** (469 verdes; los 3 rojos son los conocidos de
 este entorno Windows).
 
-Lo que queda son las Fases D (la cara y opcional) y E (cierre). **El corte
-mínimo defendible —Fases A + B + C— está alcanzado**: el sistema es completo
-y usable, y lo que falta son mejoras y el empaquetado.
+Lo que queda es terminar la Fase E: la guía de incorporación (E1, en curso)
+y las métricas de coste en tokens por fase (E2). **El corte mínimo
+defendible —Fases A + B + C— está alcanzado desde hace tiempo**, y ahora
+también la Fase D entera: el sistema es completo, usable y con toda la
+inteligencia de proceso opcional que se planteó, encima.
 
 **Todo subido** (2026-09-07): `develop` está a la par con `origin/develop` y
 las 24 ramas locales existen en el remoto. El repo tiene `origin`
@@ -439,3 +452,40 @@ sección "Cosas del entorno anterior que ya no aplican"). Y al revés: ahora sí
 hay un CLI de Claude Code de verdad, así que se puede por fin probar
 `/plugin marketplace add` y `/plugin install` reales — que es lo único que le
 queda pendiente a TASK-021.
+
+## Qué acaba de pasar (sesión del 2026-09-16): cierre de la Fase D y de E4/E5
+
+La Fase D se cerró entera desde la última actualización de este documento
+(2026-09-08, tras D6/D7). Resumen — el detalle línea a línea de cada una
+vive en `CHECKLIST_TERMINACION.md`, no aquí:
+
+1. **D1** — TASK-016: `taskctl plan` deja de ser un scaffold y pasa a
+   orquestar el brainstorm paralelo por roles. La revisión por pares más
+   dura del proyecto (5 rondas, 6 revisores, 8 CRÍTICOS).
+2. **D2** — TASK-017: catálogo de skills determinista con selección en dos
+   pasos. 5 rondas de revisión, 35 hallazgos, cero críticos.
+3. **D3** — TASK-018: `taskctl review` clasifica el diff real por dominio
+   en vez de usar siempre el mismo agente. 2 rondas de revisión, ambas con
+   hallazgos IMPORTANTE reales de cobertura de tests, corregidos con
+   contraprueba de mutación.
+4. **D5** — TASK-020: `taskctl codex-review`, envoltorio del CLI de Codex
+   como segunda opinión. 3 rondas de revisión — las dos primeras
+   encontraron bugs reales de plataforma en Windows (`spawnSync` sin
+   `shell: true` nunca invocaba el binario real; el escapado para
+   `cmd.exe` no evitaba que expandiera `%VARIABLE%`, filtrando datos del
+   entorno), ambos corregidos y verificados contra el binario real de
+   Codex en esta máquina.
+
+Con la Fase D completa, se resolvieron también **E4** y **E5** con
+investigación paralela (dos agentes especializados más un agente
+orquestador que verificó de forma independiente ambos hallazgos antes de
+llegar a Carlos): E4 se cierra documentando que las 12 tareas de Sprint
+0+1 se quedan como están (forzar el ciclo real de `taskctl` sobre ellas
+ahora es inviable, no solo indeseable: crashearía en 3 de las 12 por una
+`rama:` fantasma, y en las otras 9 la revisión saldría sobre un diff
+vacío); E5 se cierra borrando `runConfigurations.zip` (era la carpeta
+`.idea/` de otro proyecto, ya migrada por completo).
+
+Solo quedan **E1** (TASK-022, guía de incorporación — plan consolidado,
+pendiente de `taskctl approve`) y **E2** (TASK-023, métricas de coste en
+tokens por fase — sin empezar) para cerrar el proyecto entero.
