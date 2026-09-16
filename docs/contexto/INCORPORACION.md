@@ -43,15 +43,20 @@ Verifica que `taskctl` responde:
 taskctl --version
 ```
 
-**Probado**: `bin/` de un plugin instalado se añade al PATH y `taskctl`
-resuelve como comando suelto en una terminal normal — confirmado por el job
-`windows-latest` de CI sobre un checkout nativo (item E3 del checklist de
-terminación). **Pendiente de confirmar**: que aparezca así de inmediato en el
-PATH de una sesión de Claude Code recién arrancada justo después de instalar
-el plugin (item E6/AC7 del checklist; también señalado en `HALLAZGOS.md`) —
-si `--version` da `command not found`, reinicia la sesión primero (el PATH se
-compone al arrancar) y, si persiste, sigue el resto del orden de diagnóstico
-de [`skills/task-workflow/SKILL.md`](../../taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/SKILL.md).
+**Probado**: en Windows nativo, con el directorio `bin/` del CLI en el PATH,
+`taskctl` resuelve como comando suelto — job `windows-latest` del CI, step
+que hace `export PATH="$(pwd)/bin:$PATH"` sobre el checkout (item E3 del
+checklist de terminación). **Pendiente de confirmar**: que instalar el
+plugin deje ese `bin/` en el PATH de forma utilizable. Lo único confirmado
+es que el mecanismo existe (aparecen los `bin/` de otros plugins cacheados
+en el PATH de una sesión); `taskctl` como comando suelto todavía no se ha
+visto funcionar (item E6/AC7 del checklist; también señalado en
+`HALLAZGOS.md`). Ese PATH lo compone Claude Code para su Bash tool
+(`SKILL.md`), así que no cuentes con `taskctl` en una consola del sistema:
+si en la **sesión siguiente** a la instalación `--version` da `command not
+found`, reinicia la sesión y, si persiste, sigue el resto del orden de
+diagnóstico de
+[`skills/task-workflow/SKILL.md`](../../taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/SKILL.md).
 
 ## 3. Entender el ciclo de vida
 

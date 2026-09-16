@@ -66,7 +66,7 @@ rama solo si no hay nada que perder.
 | [`docs/PLAN_SPRINTS.md`](docs/PLAN_SPRINTS.md) | Plan de ejecución por sprints + métricas reales por tarea. |
 | [`docs/contexto/CHECKLIST_TERMINACION.md`](docs/contexto/CHECKLIST_TERMINACION.md) | **Documento vivo**: qué falta, por fases, con casillas marcables. |
 | [`docs/contexto/INVENTARIO_PENDIENTE.md`](docs/contexto/INVENTARIO_PENDIENTE.md) | Los huecos que ninguna tarea del plan cubría. |
-| [`docs/contexto/INCORPORACION.md`](docs/contexto/INCORPORACION.md) | Guía para incorporar a un nuevo colaborador: acceso, instalación, primera tarea. |
+| [`docs/contexto/INCORPORACION.md`](docs/contexto/INCORPORACION.md) | Guía para incorporar a un nuevo colaborador: acceso, clon e instalación, ciclo de vida, primera tarea. |
 | [`docs/METRICAS.md`](docs/METRICAS.md) | Cobertura, tests y hallazgos de revisión por pares, tarea a tarea. |
 | [`docs/spikes/`](docs/spikes/) | Resultados de spikes de validación. |
 | [`docs/contexto/`](docs/contexto/) | **Empieza por aquí**: estado, convenciones y hallazgos acumulados. |
