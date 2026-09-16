@@ -1,6 +1,6 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-16** (tras cerrar la Fase D entera y E4/E5).
+> Última actualización: **2026-09-16** (tras cerrar E1/TASK-022).
 > Este documento se actualiza al cerrar cada fase. Si lo que dice no cuadra
 > con el repo, gana el repo — y hay que corregir esto.
 
@@ -8,9 +8,8 @@
 
 **41 de 42 items del plan de terminación (98%).** Sprint 0 y Sprint 1
 completos (TASK-001 a TASK-012), **las Fases A, B, C y D cerradas enteras**,
-y la Fase E a un solo paso de cerrarse del todo: E3, E4, E5 y E6 hechos;
-solo quedan **E1 (TASK-022, plan consolidado, pendiente de `taskctl
-approve`)** y **E2 (TASK-023, sin empezar)**.
+y la Fase E a un solo item de cerrarse del todo: E1, E3, E4, E5 y E6 hechos;
+solo queda **E2 (TASK-023, sin empezar)**.
 
 El total ha bailado dos veces: subió de 42 a 43 cuando la revisión de C5 abrió
 **E6** (la distribución del CLI del plugin, ya cerrada en TASK-031), y ha
@@ -41,8 +40,8 @@ vez de menus de IntelliJ, y `abort-merge` viendo cherry-picks y reverts a
 medias (C6). **472 tests** (469 verdes; los 3 rojos son los conocidos de
 este entorno Windows).
 
-Lo que queda es terminar la Fase E: la guía de incorporación (E1, en curso)
-y las métricas de coste en tokens por fase (E2). **El corte mínimo
+Lo que queda es un solo item: las métricas de coste en tokens por fase (E2).
+**El corte mínimo
 defendible —Fases A + B + C— está alcanzado desde hace tiempo**, y ahora
 también la Fase D entera: el sistema es completo, usable y con toda la
 inteligencia de proceso opcional que se planteó, encima.
@@ -489,3 +488,29 @@ vacío); E5 se cierra borrando `runConfigurations.zip` (era la carpeta
 Solo quedan **E1** (TASK-022, guía de incorporación — plan consolidado,
 pendiente de `taskctl approve`) y **E2** (TASK-023, métricas de coste en
 tokens por fase — sin empezar) para cerrar el proyecto entero.
+
+## Qué acaba de pasar (sesión del 2026-09-16, resto): cierre de E1/TASK-022
+
+**E1 (TASK-022)** — `docs/contexto/INCORPORACION.md`, la guía de
+incorporación de colaboradores: acceso, clonar el repo e instalar el
+plugin, entender el ciclo de vida (enlazando `SKILL.md` y la sección 13 de
+`PROPUESTA_METODOLOGIA.md`, sin duplicarlos) y hacer la primera tarea.
+Deja constancia explícita de que hoy no hay colaboradores que invitar
+(decisión de Carlos, 2026-09-13) y cierra el punto 8 de la sección 14 en lo
+que respecta a a quién se invita — solo en `CHECKLIST_TERMINACION.md`, sin
+tocar el documento congelado, mismo patrón que las seis decisiones
+anteriores de esa sección.
+
+**Tres rondas de revisión independiente, cero críticos en ninguna,
+aprobada en la tercera.** Las dos primeras rondas encontraron algo del
+mismo tipo cada vez, en sentidos opuestos: la ronda 1 denunció que la guía
+invertía qué tiene el proyecto confirmado sobre `taskctl` resolviendo por
+PATH y qué no; la corrección de la ronda 2 arregló la inversión pero se
+pasó de frenada al revés, atribuyendo a un job de CI algo que ese CI nunca
+prueba (nunca instala un plugin). La ronda 3 confirmó, contrastando frase a
+frase contra las cuatro fuentes citadas, que el párrafo final ya no
+promete nada que el proyecto no pueda respaldar. Detalle completo con las
+citas exactas en el `## Resultado` de `tareas/04-terminadas/TASK-022/tarea.md`.
+
+Con esto, la Fase E queda a un solo item: **E2** (TASK-023, sin empezar).
+Cuando se cierre, el proyecto llega al 42/42 (100%).

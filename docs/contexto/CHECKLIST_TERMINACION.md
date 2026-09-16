@@ -23,8 +23,8 @@ tomada y documentada, no aplazada.
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
-| E — Cierre | 6 | **4** | ~9h |
-| **Total pendiente** | **2** | — | **~7h** |
+| E — Cierre | 6 | **5** | ~9h |
+| **Total pendiente** | **1** | — | **~5h** |
 
 ---
 
@@ -464,18 +464,29 @@ sin la red que impide deshacerla — de ahí salieron **siete aserciones que no
 podían fallar**, incluida la que exigía «reproducir empíricamente» y se
 satisfacía con una etiqueta que otro test obliga a estar presente.*
 
-## Fase E — Cierre (4/6) · ~9h
+## Fase E — Cierre (5/6) · ~9h
 
-- [ ] **E1** · TASK-022 — Documentación de equipo + invitar colaboradores — ~2h
-      *En curso: `docs/contexto/INCORPORACION.md` ya escrito y enlazado
-      desde `README.md` y este índice; queda la revisión por pares y
-      `taskctl finish` antes de marcar esta casilla, según la convención de
-      este documento (casilla solo al cerrar el trabajo real, mergeado a
-      `develop`). Cierra, en cuanto se mergee, el punto 8 de la sección 14 de
-      `PROPUESTA_METODOLOGIA.md` (documento congelado, no editado) **en lo
-      que respecta a a quién se invita**: a día de hoy, a nadie — decisión de
-      Carlos, 2026-09-13; la guía queda en `INCORPORACION.md` para cuando
-      haga falta.*
+- [x] **E1** · TASK-022 — Documentación de equipo + invitar colaboradores — resuelta el 2026-09-16
+      *[`docs/contexto/INCORPORACION.md`](INCORPORACION.md) (nuevo): guía de
+      incorporación en cuatro pasos (acceso, clonar e instalar, ciclo de
+      vida, primera tarea), enlazada desde `README.md` y este índice — sin
+      duplicar `skills/task-workflow/SKILL.md` ni la sección 13 de
+      `PROPUESTA_METODOLOGIA.md`, solo enlazándolos. Incluye, explícita, la
+      decisión de Carlos (2026-09-13) de que hoy no hay colaboradores que
+      invitar. Cierra también el punto 8 de la sección 14 **en lo que
+      respecta a a quién se invita** (documento no editado, es congelado —
+      mismo patrón que #1/#2/#9/#11/#12/#13): a día de hoy, **a nadie**; el
+      repo `charliebk/TaskCode` sigue con un solo colaborador, el propio
+      dueño.*
+      ***Tres rondas de revisión independiente, cero críticos, aprobada en
+      la 3ª**: ronda 1 (cambios-solicitados, 3 importantes: invertía qué
+      estaba probado y qué no sobre `taskctl` por PATH, referencia circular
+      al cierre del punto 8, faltaba el paso de clonar y el acceso pedido
+      era insuficiente) + ronda 2 (cambios-solicitados, 1 importante
+      corregido a medias: la reescritura seguía atribuyendo al CI una
+      instalación de plugin que nunca ejecuta) + ronda 3 (aprobada, 3
+      menores no bloqueantes, aplicados igualmente). Detalle completo en el
+      `## Resultado` de `tareas/04-terminadas/TASK-022/tarea.md`.*
 - [ ] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — ~5h
 - [x] **E3** · Validación en Windows nativo — **resuelta por el CI, no por una sesión nativa**
       *El job `windows-latest` asevera cada hipótesis como un step propio.
