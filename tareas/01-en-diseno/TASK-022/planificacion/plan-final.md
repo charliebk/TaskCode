@@ -44,8 +44,8 @@ Corrección propia del unificador sobre el cierre del punto 8: arquitectura prop
 - arquitectura asumió sin comprobar que el nombre del repo no estaba ya escrito fuera de esta tarea — **refutado**: `README.md:11` ya trae `/plugin marketplace add charliebk/TaskCode`, y `PROPUESTA_METODOLOGIA.md` (líneas 268 y 402) ya nombra `taskcode-marketplace` — verificado por el unificador.
 - arquitectura asumió sin comprobar que no había test simétrico sobre `docs/` raíz — el unificador buscó dirigidamente (no de forma exhaustiva): los tests que mencionan `docs/contexto` o "TaskCode" (p. ej. `test/skills/revisores.test.ts:93`, `test/agents/brainstorm-roles.test.ts:183`) restringen el contenido del PLUGIN, no el de `docs/` en la raíz del repo; no se encontró ningún test que limite esta carpeta, pero no se revisó `npm test` completo.
 
-## Decisión humana pendiente
+## Decisiones tomadas por Carlos (2026-09-16)
 
-- Aprobación completa del plan con `taskctl approve` — obligatoria antes de implementar.
-- Confirmar el cierre del punto 8 solo en `CHECKLIST_TERMINACION.md`/`ESTADO.md` sin tocar `PROPUESTA_METODOLOGIA.md`: es la corrección que este unificador introduce sobre la nota in-place que arquitectura sí defendía: Carlos puede revertirla si prefiere esa vía.
-- Decidir si `INCORPORACION.md` incluye la frase explícita "hoy no hay colaboradores que invitar" (AC2/AC3) o si basta con el cierre del punto 8 en el checklist.
+- **Cierre del punto 8**: solo en `CHECKLIST_TERMINACION.md`/`ESTADO.md`, sin tocar `PROPUESTA_METODOLOGIA.md` (documento congelado). Gana la corrección del unificador, verificada contra el precedente real de las 6 decisiones anteriores de la sección 14.
+- **`INCORPORACION.md`**: SÍ incluye una línea explícita de que hoy no hay colaboradores que invitar, para que quien la lea en el futuro vea que es una decisión tomada, no un olvido.
+- Aprobación completa del plan con `taskctl approve` — sigue siendo obligatoria antes de implementar.
