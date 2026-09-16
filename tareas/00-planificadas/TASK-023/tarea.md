@@ -20,6 +20,26 @@ dependencias: [TASK-014]
 ---
 ## Objetivo
 
+La sección 16 de `docs/PROPUESTA_METODOLOGIA.md` diseñó dónde el proceso
+necesita un LLM y dónde no, pero se quedó en estimación: nunca se
+contrastó con coste real medido. La decisión #15 de la sección 14 (`docs/
+contexto/CHECKLIST_TERMINACION.md`) ya lo dejó dicho al aceptar los pesos
+de la heurística de complejidad (§16.1) "tal cual, y se ajustan cuando
+haya datos" — hoy no hay datos.
+
+Restricción de partida, importante para el diseño: `taskctl` es un CLI
+determinista que no llama a ningún LLM por sí mismo (sección 16, tabla) —
+quien sí gasta tokens es el agente de Claude Code que orquesta `plan`,
+`review`, etc., desde fuera del CLI. `taskctl` no tiene visibilidad directa
+de ese consumo; cualquier medición depende de que se registre desde donde
+sí se ve (la sesión del agente), no de instrumentar el propio binario.
+
+Esta tarea busca cerrar ese hueco: dejar un mecanismo para registrar el
+coste real en tokens de las fases que sí usan LLM (brainstorm, revisión
+por pares, Codex) tarea a tarea, agregarlo por sprint en `docs/METRICAS.md`
+contrastándolo contra lo estimado en la sección 16, y usar esos datos
+reales para revisar si los pesos de `scripts/heuristica-complejidad.yml`
+siguen siendo razonables o hace falta ajustarlos.
 
 ## Criterios de aceptacion
 - [ ] Cada tarea registra en su `tarea.md` el coste en tokens de sus fases de diseño, implementación y revisión.
