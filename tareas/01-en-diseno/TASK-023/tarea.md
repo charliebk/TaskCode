@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-023-metricas-de-coste-en-tokens-por-fase
 asignado_a: charlie.bk@gmail.com
 agente_revisor: typescript-reviewer
