@@ -57,6 +57,21 @@ Los desacuerdos entre roles se senalan, no se promedian.)
 
 ## Lo que necesita decision de una persona
 
+**Resuelto por Carlos el 2026-10-03, al aprobar:**
+
+- Código de salida: **distinto de 0** cuando la sincronización no se aplica
+  (casos a, b y c). El aviso dice que la transición YA se hizo, que no se
+  reintente y qué comando lanzar a mano.
+- Timeout: **60 s por defecto, configurable** con una tercera clave opcional
+  `timeout_sincronizacion` (entero ≥ 1, en segundos). Solo es válida si
+  están las otras dos.
+- Publicación: **tag anotado `v0.1.1` sobre el merge de TASK-033 en
+  develop**, subido a origin. `main` no se toca.
+- Plan aprobado entero, aceptando el riesgo 2 (conflictos en el fichero
+  derivado) solo con documentación.
+
+Lo que se planteó:
+
 - Semántica de fallo con exit≠0 (riesgos) frente a 0 (orquestador). Es contrato público y caro de cambiar; el unificador eligió, pero no lo cierra.
 - El valor del timeout y si se puede configurar: ningún rol aportó datos para fijarlo.
 - La publicación: tag `v0.1.1` sobre el merge en develop (propuesta del orquestador) o release a `main`. Lo dejó abierto la tarea, no lo trató ningún rol y `v0.1.0` no refleja develop.
