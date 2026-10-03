@@ -8,6 +8,16 @@
  * | rama_base                    | develop           | git.ts (feature/fix/release) |
  * | agente_revisor_por_defecto   | general-purpose   | new.ts, import.ts       |
  * | limite_wip                   | 1                 | wip.ts                  |
+ * | comando_sincronizacion       | null (desactivada)| fs/sincronizacion.ts    |
+ * | rutas_sincronizacion         | []                | fs/sincronizacion.ts    |
+ * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
+ *
+ * Las tres de sincronizacion las anadio TASK-033 (version 0.1.1): un
+ * proyecto que genera ficheros a partir del estado de las tareas (un
+ * plan, un tablero) los tenia desincronizados tras cada transicion, y
+ * el arreglo obvio —un hook de pre-commit— deja el indice sucio porque
+ * autoCommit commitea en modo `--only`. Van juntas: comando y rutas, o
+ * ninguna; el timeout solo con las otras dos.
  *
  * Lo que importa aqui no es el fichero, es la forma del mecanismo —
  * es lo que decide si anadir la cuarta clave cuesta una linea o una
@@ -64,6 +74,19 @@ export interface TaskcodeConfig {
   agente_revisor_por_defecto: string;
   /** Cuantas tareas puede tener una persona a la vez en 02-en-curso + 03-en-revision. */
   limite_wip: number;
+  /**
+   * Comando del proyecto que regenera ficheros derivados del estado de
+   * las tareas. null = sincronizacion desactivada (lo de siempre).
+   */
+  comando_sincronizacion: string | null;
+  /**
+   * Ficheros que reescribe ese comando, relativos a la raiz del repo y
+   * con separadores POSIX. Entran en el mismo commit automatico que la
+   * tarea. Vacio si y solo si no hay comando.
+   */
+  rutas_sincronizacion: readonly string[];
+  /** Segundos que se le dejan al comando antes de matarlo. */
+  timeout_sincronizacion: number;
 }
 
 /**
@@ -76,6 +99,9 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   rama_base: 'develop',
   agente_revisor_por_defecto: 'general-purpose',
   limite_wip: 1,
+  comando_sincronizacion: null,
+  rutas_sincronizacion: Object.freeze([]) as readonly string[],
+  timeout_sincronizacion: 60,
 });
 
 /** Las unicas claves admitidas. Cualquier otra aborta (regla 2). */
@@ -83,7 +109,17 @@ export const CLAVES_CONFIG = [
   'rama_base',
   'agente_revisor_por_defecto',
   'limite_wip',
+  'comando_sincronizacion',
+  'rutas_sincronizacion',
+  'timeout_sincronizacion',
 ] as const;
+
+/**
+ * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
+ * gestiona taskctl (tareas/, .taskcode/) o Git (.git/). Declarar algo
+ * ahi haria que el comando del proyecto y el CLI escribieran lo mismo.
+ */
+const RAICES_PROHIBIDAS_SINCRONIZACION = ['tareas', '.taskcode', '.git'] as const;
 
 export const CONFIG_DIR = '.taskcode';
 export const CONFIG_FILE = 'config.yml';
@@ -186,7 +222,28 @@ export function resolverConfig(cwd: string): TaskcodeConfig {
         '        Borrala o arregla sus permisos: taskctl no sigue sin saber que dice.'
     );
   }
-  return parsearConfig(contenido, ruta);
+  const config = parsearConfig(contenido, ruta);
+  // Lo unico de las rutas de sincronizacion que necesita disco: que
+  // ninguna sea una carpeta existente. Con una carpeta, el
+  // `git add -A -- <ruta>` acotado se convierte en un barrido de todo
+  // lo que haya debajo, incluido trabajo de la persona.
+  const raiz = raizDelRepo(cwd);
+  for (const r of config.rutas_sincronizacion) {
+    let esCarpeta = false;
+    try {
+      esCarpeta = statSync(path.join(raiz, r)).isDirectory();
+    } catch {
+      // No existe (todavia): legitimo, la creara el comando.
+    }
+    if (esCarpeta) {
+      throw new ConfigError(
+        `[ERROR] ${ruta}: la ruta de sincronizacion "${r}" es una carpeta.\n` +
+          '        Declara los ficheros concretos que regenera el comando: con una carpeta, ' +
+          'el commit automatico se llevaria todo lo que hay dentro.'
+      );
+    }
+  }
+  return config;
 }
 
 /**
@@ -231,10 +288,116 @@ export function parsearConfig(contenido: string, ruta: string): TaskcodeConfig {
       case 'limite_wip':
         config.limite_wip = validarEnteroPositivo(donde, par.clave, par.valor);
         break;
+      case 'comando_sincronizacion':
+        config.comando_sincronizacion = validarComando(donde, par.valor);
+        break;
+      case 'rutas_sincronizacion':
+        config.rutas_sincronizacion = validarRutasSincronizacion(donde, par.valor);
+        break;
+      case 'timeout_sincronizacion':
+        config.timeout_sincronizacion = validarEnteroPositivo(donde, par.clave, par.valor);
+        break;
     }
   }
 
+  validarSincronizacionCompleta(ruta, vistas);
   return config;
+}
+
+/**
+ * Las claves de sincronizacion van juntas. Un comando sin rutas
+ * declaradas no puede commitear nada (todo lo que tocara serian rutas
+ * ajenas), y unas rutas sin comando no las regenera nadie: las dos
+ * mitades sueltas son configuraciones que parecen hacer algo y no lo
+ * hacen. El timeout solo sin comando, igual.
+ */
+function validarSincronizacionCompleta(ruta: string, vistas: ReadonlySet<string>): void {
+  const comando = vistas.has('comando_sincronizacion');
+  const rutas = vistas.has('rutas_sincronizacion');
+  if (comando !== rutas) {
+    const presente = comando ? 'comando_sincronizacion' : 'rutas_sincronizacion';
+    const falta = comando ? 'rutas_sincronizacion' : 'comando_sincronizacion';
+    throw new ConfigError(
+      `[ERROR] ${ruta}: "${presente}" necesita tambien "${falta}".\n` +
+        '        Van juntas: el comando que regenera los ficheros y la lista de ficheros que ' +
+        'regenera. Anade la que falta o borra las dos.'
+    );
+  }
+  if (vistas.has('timeout_sincronizacion') && !comando) {
+    throw new ConfigError(
+      `[ERROR] ${ruta}: "timeout_sincronizacion" sin "comando_sincronizacion" no hace nada.\n` +
+        '        Borrala, o configura tambien el comando y sus rutas.'
+    );
+  }
+}
+
+/** El comando, recortado. No se interpreta: lo ejecuta el shell del sistema tal cual. */
+function validarComando(donde: string, valor: unknown): string {
+  if (typeof valor !== 'string' || valor.trim() === '') {
+    throw new ConfigError(
+      `[ERROR] ${donde}: "comando_sincronizacion" debe ser un comando (texto no vacio), ` +
+        `y es ${describirValor(valor)}.\n` +
+        '        Ejemplo: comando_sincronizacion: "node scripts/sincronizar-plan.mjs". ' +
+        'Si lleva "#", entrecomillalo entero.'
+    );
+  }
+  return valor.trim();
+}
+
+/**
+ * Lista flow de FICHEROS relativos a la raiz del repo. Se valida aqui,
+ * al cargar, y no al commitear: para entonces la tarea ya se ha movido
+ * y el comando ya se ha ejecutado, y un error tardio deja el workspace
+ * a medias (hallazgo del rol de riesgos en el brainstorm de TASK-033).
+ * normalizarRuta() en git-commit.ts sigue siendo la segunda barrera.
+ *
+ * Que la ruta no sea una carpeta no se puede saber sin disco: lo
+ * comprueba resolverConfig, que si lo tiene.
+ */
+function validarRutasSincronizacion(donde: string, valor: unknown): readonly string[] {
+  if (!Array.isArray(valor) || valor.length === 0) {
+    throw new ConfigError(
+      `[ERROR] ${donde}: "rutas_sincronizacion" debe ser una lista no vacia entre corchetes, ` +
+        `y es ${describirValor(valor)}.\n` +
+        '        Ejemplo: rutas_sincronizacion: [docs/PLAN.md]. Las listas en bloque ' +
+        '("- ruta") no se admiten.'
+    );
+  }
+  const rutas: string[] = [];
+  for (const elemento of valor) {
+    if (typeof elemento !== 'string' || elemento.trim() === '') {
+      throw new ConfigError(
+        `[ERROR] ${donde}: "rutas_sincronizacion" contiene un elemento vacio o que no es texto.`
+      );
+    }
+    const original = elemento.trim();
+    const motivo = motivoRutaInvalida(original);
+    if (motivo !== null) {
+      throw new ConfigError(
+        `[ERROR] ${donde}: la ruta de sincronizacion "${original}" no vale: ${motivo}.\n` +
+          '        Solo ficheros, relativos a la raiz del repo, fuera de tareas/, .taskcode/ ' +
+          'y .git/.'
+      );
+    }
+    const normalizada = path.posix.normalize(original.replace(/\\/g, '/'));
+    if (!rutas.includes(normalizada)) rutas.push(normalizada);
+  }
+  return rutas;
+}
+
+/** null si la ruta es aceptable; si no, el motivo en palabras de persona. */
+function motivoRutaInvalida(original: string): string | null {
+  const conBarras = original.replace(/\\/g, '/');
+  if (conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras)) return 'es absoluta';
+  if (conBarras.endsWith('/')) return 'es una carpeta';
+  const normalizada = path.posix.normalize(conBarras);
+  if (normalizada === '.' || normalizada === '') return 'es la raiz del repo';
+  if (normalizada === '..' || normalizada.startsWith('../')) return 'se sale del repo';
+  const primera = normalizada.split('/')[0] as string;
+  if ((RAICES_PROHIBIDAS_SINCRONIZACION as readonly string[]).includes(primera)) {
+    return `esta bajo ${primera}/, que no es del proyecto sino de la herramienta`;
+  }
+  return null;
 }
 
 /**
@@ -321,13 +484,20 @@ function validarTextoNoVacio(donde: string, clave: string, valor: unknown): stri
 }
 
 /** Entero >= 1. Un limite de 0 no es "sin limite": es "no se puede trabajar". */
-function validarEnteroPositivo(donde: string, clave: string, valor: unknown): number {
+function validarEnteroPositivo(
+  donde: string,
+  clave: 'limite_wip' | 'timeout_sincronizacion',
+  valor: unknown
+): number {
   if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 1) {
+    const consecuencia =
+      clave === 'limite_wip'
+        ? 'Un 0 o un negativo no significan "sin limite": impedirian arrancar cualquier tarea.'
+        : 'Son segundos: un 0 o un negativo matarian el comando antes de empezar.';
     throw new ConfigError(
       `[ERROR] ${donde}: "${clave}" debe ser un numero entero mayor o igual que 1, ` +
         `y es ${describirValor(valor)}.\n` +
-        `        Por defecto es ${CONFIG_DEFAULTS.limite_wip}. Un 0 o un negativo no ` +
-        'significan "sin limite": impedirian arrancar cualquier tarea.'
+        `        Por defecto es ${CONFIG_DEFAULTS[clave]}. ${consecuencia}`
     );
   }
   return valor;
