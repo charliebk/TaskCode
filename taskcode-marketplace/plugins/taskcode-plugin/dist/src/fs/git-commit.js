@@ -46,7 +46,9 @@
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { resolverConfig } from '../core/config.js';
 import { GitCommandError, currentBranch, isRemoteAvailable, runGit } from './git.js';
+import { ejecutarSincronizacion, SIN_SINCRONIZACION, } from './sincronizacion.js';
 export class AutoCommitError extends Error {
 }
 /**
@@ -128,9 +130,22 @@ export function autoCommit(opts) {
     const { cwd } = opts;
     const avisos = [];
     const rama = currentBranch(cwd);
+    // Las rutas del propio comando se validan ANTES de sincronizar: un
+    // error de programacion aqui no debe llegar a ejecutar nada.
+    const rutasComando = opts.rutas.map((r) => normalizarRuta(cwd, r));
+    // TASK-033: el comando de sincronizacion del proyecto corre aqui, con
+    // los ficheros de la tarea ya escritos y antes del primer `git add`,
+    // para que sus rutas entren en ESTE commit y el indice real quede
+    // limpio. Nunca aborta la transicion (ver sincronizacion.ts). Si el
+    // comando no escribio nada de la tarea, no hay estado nuevo que
+    // sincronizar y no se lanza.
+    const sincronizacion = rutasComando.length === 0 ? SIN_SINCRONIZACION : sincronizar(opts);
+    avisos.push(...sincronizacion.avisos);
     // Deduplicadas y ordenadas para que el commando de Git sea
     // determinista (y los tests puedan aseverar sobre el).
-    const rutasRel = [...new Set(opts.rutas.map((r) => normalizarRuta(cwd, r)))].sort();
+    const rutasRel = [
+        ...new Set([...rutasComando, ...sincronizacion.rutas.map((r) => normalizarRuta(cwd, r))]),
+    ].sort();
     const presentes = rutasRel.filter((r) => tieneAlgoQuePreparar(cwd, r));
     let commiteado = false;
     let commit = null;
@@ -192,7 +207,36 @@ export function autoCommit(opts) {
             }
         }
     }
-    return { commiteado, commit, ficheros, rama, push: empujar(opts, rama, avisos), avisos };
+    return {
+        commiteado,
+        commit,
+        ficheros,
+        rama,
+        push: empujar(opts, rama, avisos),
+        sincronizacion,
+        avisos,
+    };
+}
+/**
+ * Cualquier excepcion de la sincronizacion (config ilegible a estas
+ * alturas, un `git status` que falla) se convierte en 'fallida': para
+ * cuando se llega aqui la tarea ya esta escrita, y en `finish` el merge
+ * ya esta hecho. Abortar dejaria el estado a medias sin reintento.
+ */
+function sincronizar(opts) {
+    try {
+        return ejecutarSincronizacion(opts.cwd, resolverConfig(opts.cwd), opts.sincronizacion);
+    }
+    catch (e) {
+        return {
+            estado: 'fallida',
+            rutas: [],
+            avisos: [
+                `No se pudo ejecutar la sincronizacion configurada: ${detalleDeError(e)}. La ` +
+                    'tarea se ha commiteado sin ella; revisa .taskcode/config.yml y sincroniza a mano.',
+            ],
+        };
+    }
 }
 /**
  * `--push` empuja la RAMA ACTUAL, se haya commiteado algo en esta

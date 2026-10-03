@@ -21,13 +21,14 @@ import { StateMachineError } from './core/state-machine.js';
 import { TaskFolderConflictError } from './fs/task-store.js';
 import { BaseBranchGuardError, GitCommandError, GitLaunchError, } from './fs/git.js';
 import { AutoCommitError } from './fs/git-commit.js';
+import { CODIGO_SINCRONIZACION_NO_APLICADA, sincronizacionNoAplicada, } from './fs/sincronizacion.js';
 // ConfigError se captura en los mismos catch que AutoCommitError
 // (integracion TASK-030): sin esto cae al catch-all de bin/taskctl y
 // sale como "[ERROR] taskctl no pudo arrancar: ...", que miente —
 // taskctl arranco bien, lo que esta mal es el .taskcode/config.yml
 // del repo.
 import { ConfigError } from './core/config.js';
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const HELP = `taskctl ${VERSION} — TaskCode
 
 Uso:
@@ -103,6 +104,8 @@ function printBaseBranchSwitchNotice(guard) {
  */
 function printAutoCommit(r) {
     printAvisos(...r.avisos);
+    if (sincronizacionNoAplicada(r.sincronizacion))
+        sincronizacionPendiente = true;
     if (r.commiteado) {
         const n = r.ficheros.length;
         process.stdout.write(`Commiteado ${r.commit} en "${r.rama}" (${n} fichero${n === 1 ? '' : 's'}).\n`);
@@ -214,7 +217,27 @@ function printAvisos(...avisos) {
             process.stderr.write(`[AVISO] ${aviso}\n`);
     }
 }
+/**
+ * true si algun auto-commit de esta invocacion hizo la transicion pero
+ * no pudo aplicar la sincronizacion configurada (TASK-033). Lo levanta
+ * printAutoCommit, que es por donde pasan los 8 comandos que
+ * commitean, y lo consume main(): un solo sitio, en vez de tocar cada
+ * `return 0`.
+ */
+let sincronizacionPendiente = false;
+/**
+ * Punto de entrada. Un 0 de un comando se convierte en
+ * CODIGO_SINCRONIZACION_NO_APLICADA (3) si la sincronizacion no se
+ * aplico: la transicion se hizo, pero quien lo lance (un agente, un
+ * script, un CI) tiene que enterarse sin leer stderr. Un error del
+ * comando (1) gana: es lo mas grave que ha pasado.
+ */
 export async function main(argv) {
+    sincronizacionPendiente = false;
+    const codigo = await mainComando(argv);
+    return codigo === 0 && sincronizacionPendiente ? CODIGO_SINCRONIZACION_NO_APLICADA : codigo;
+}
+async function mainComando(argv) {
     const cmd = argv[0];
     if (cmd === undefined || cmd === '--help' || cmd === '-h') {
         process.stdout.write(HELP);
