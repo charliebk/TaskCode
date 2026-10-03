@@ -96,9 +96,9 @@ el commit inicial). Cómo se publica 0.1.1 —tag sobre `develop` o release a
 ### Tras el cierre
 
 (Se verifican después de `taskctl finish`; la primera tarea que usa la guía nueva de la skill.)
-- [ ] Entrada `## 0.1.1` en `CHANGELOG.md` (la línea de la tarea la escribe `finish`).
-- [ ] Tag anotado `v0.1.1` sobre el merge en `develop`, subido a origin junto con `develop`.
-- [ ] Aviso de actualización dejado en OpenGisViewer (su TASK-096).
+- [x] Entrada `## 0.1.1` en `CHANGELOG.md` (la línea de la tarea la escribe `finish`). Commit 5d27867.
+- [x] Tag anotado `v0.1.1` sobre el merge en `develop`, subido a origin junto con `develop`. Verificado: `claude plugin update` pasó la instalación de 0.1.0 a 0.1.1.
+- [x] Aviso de actualización dejado en OpenGisViewer (su TASK-096), commit 04c3656 en su `develop` local, sin subir.
 
 ## Resultado
 
