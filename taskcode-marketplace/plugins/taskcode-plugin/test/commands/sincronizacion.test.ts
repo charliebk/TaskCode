@@ -426,7 +426,7 @@ test('sincronizacion (revision MEN-3): el timeout mata tambien al nieto; deja de
       repoRoot,
       "import { spawn } from 'node:child_process';\n" +
         `const testigo = ${JSON.stringify(testigo)};\n` +
-        "spawn(process.execPath, ['-e', \"setInterval(() => require('fs').appendFileSync(process.argv[1], 'x'), 50)\", testigo], { stdio: 'ignore' });\n" +
+        "spawn(process.execPath, ['-e', \"const fs = require('fs'); fs.appendFileSync(process.argv[1], 'x'); setInterval(() => fs.appendFileSync(process.argv[1], 'x'), 50)\", testigo], { stdio: 'ignore' });\n" +
         'setTimeout(() => {}, 60000);\n'
     );
     const dir = await tocarTarea(tareasRoot);
@@ -435,7 +435,7 @@ test('sincronizacion (revision MEN-3): el timeout mata tambien al nieto; deja de
         cwd: repoRoot,
         rutas: [dir],
         mensaje: mensajeChore('TASK-920', 'x'),
-        sincronizacion: { timeoutMs: 1500 },
+        sincronizacion: { timeoutMs: 8000 },
       });
       assert.equal(r.sincronizacion.estado, 'fallida');
       await new Promise((ok) => setTimeout(ok, 500));
