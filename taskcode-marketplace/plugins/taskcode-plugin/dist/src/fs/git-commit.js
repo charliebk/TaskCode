@@ -48,7 +48,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { resolverConfig } from '../core/config.js';
 import { GitCommandError, currentBranch, isRemoteAvailable, runGit } from './git.js';
-import { ejecutarSincronizacion, SIN_SINCRONIZACION, } from './sincronizacion.js';
+import { ejecutarSincronizacion, sincronizacionFallidaAlPreparar, SIN_SINCRONIZACION, } from './sincronizacion.js';
 export class AutoCommitError extends Error {
 }
 /**
@@ -139,13 +139,27 @@ export function autoCommit(opts) {
     // limpio. Nunca aborta la transicion (ver sincronizacion.ts). Si el
     // comando no escribio nada de la tarea, no hay estado nuevo que
     // sincronizar y no se lanza.
-    const sincronizacion = rutasComando.length === 0 ? SIN_SINCRONIZACION : sincronizar(opts);
+    let sincronizacion = rutasComando.length === 0 ? SIN_SINCRONIZACION : sincronizar(opts);
+    // Las rutas de sincronizacion se preparan ANTES y por separado: si
+    // Git no puede con una (algo que motivoNoCommiteable no previo), el
+    // fallo no puede tumbar el commit de la tarea — en `finish` el merge
+    // ya esta hecho (hallazgo IMPORTANTE de la revision de TASK-033). Se
+    // despreparan, se restauran y la sincronizacion queda 'fallida'.
+    let rutasSync = sincronizacion.rutas.map((r) => normalizarRuta(cwd, r));
+    try {
+        for (const r of rutasSync) {
+            if (tieneAlgoQuePreparar(cwd, r))
+                runGit(['add', '-A', '--', r], cwd);
+        }
+    }
+    catch (e) {
+        sincronizacion = sincronizacionFallidaAlPreparar(cwd, resolverConfig(cwd), detalleDeError(e));
+        rutasSync = [];
+    }
     avisos.push(...sincronizacion.avisos);
     // Deduplicadas y ordenadas para que el commando de Git sea
     // determinista (y los tests puedan aseverar sobre el).
-    const rutasRel = [
-        ...new Set([...rutasComando, ...sincronizacion.rutas.map((r) => normalizarRuta(cwd, r))]),
-    ].sort();
+    const rutasRel = [...new Set([...rutasComando, ...rutasSync])].sort();
     const presentes = rutasRel.filter((r) => tieneAlgoQuePreparar(cwd, r));
     let commiteado = false;
     let commit = null;

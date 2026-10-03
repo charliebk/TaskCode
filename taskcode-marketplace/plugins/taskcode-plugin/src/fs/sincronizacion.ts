@@ -34,7 +34,17 @@
  *       nombran; las rutas declaradas si se commitean.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+  closeSync,
+  existsSync,
+  mkdtempSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { raizDelRepo, type TaskcodeConfig } from '../core/config.js';
@@ -129,27 +139,24 @@ export function ejecutarSincronizacion(
   // stdin ignorado SIEMPRE: con una tuberia heredada que nadie cierra
   // (un arnes de agente, `node --test`) un script que pregunte algo
   // esperaria para siempre. Con EOF, falla y se va por (b).
-  const r = spawnSync(process.execPath, ['-e', ENVOLTORIO, comando, String(timeoutMs)], {
-    cwd: raiz,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    encoding: 'utf8',
-    // Red de seguridad por si el propio envoltorio se colgara.
-    timeout: timeoutMs + 15000,
-    windowsHide: true,
-    maxBuffer: 16 * 1024 * 1024,
-  });
+  const r = lanzarEnvoltorio(raiz, comando, timeoutMs);
 
   const fallo = describirFallo(r, timeoutMs);
   if (fallo !== null) {
-    restaurarAHead(raiz, declaradas);
-    return {
-      estado: 'fallida',
-      rutas: [],
-      avisos: [
-        `La sincronizacion "${comando}" ${fallo}. ${declaradas.join(', ')} se ha(n) dejado ` +
-          `como en HEAD y la tarea se ha commiteado sin ella(s). ${aMano}`,
-      ],
-    };
+    restaurarAHead(raiz, declaradas, antes);
+    return fallida(comando, declaradas, fallo, aMano);
+  }
+
+  // Una ruta que Git no va a poder commitear (ignorada, o con otras
+  // mayusculas que el fichero real en un disco que no las distingue)
+  // tumbaria el `git add` / `git commit` de autoCommit y, con el, la
+  // transicion entera — en `finish`, con el merge ya hecho (hallazgo
+  // IMPORTANTE de la revision por pares de TASK-033). Se detecta aqui y
+  // se va por (b).
+  const noCommiteable = motivoNoCommiteable(raiz, declaradas);
+  if (noCommiteable !== null) {
+    restaurarAHead(raiz, declaradas, antes);
+    return fallida(comando, declaradas, noCommiteable, aMano);
   }
 
   const despues = fotoDelArbol(raiz);
@@ -174,8 +181,105 @@ export function ejecutarSincronizacion(
   return { estado: 'aplicada', rutas: absolutas, avisos: [] };
 }
 
+function fallida(
+  comando: string,
+  declaradas: readonly string[],
+  motivo: string,
+  aMano: string
+): ResultadoSincronizacion {
+  return {
+    estado: 'fallida',
+    rutas: [],
+    avisos: [
+      `La sincronizacion "${comando}" ${motivo}. ${declaradas.join(', ')} se ha(n) dejado ` +
+        `como en HEAD y la tarea se ha commiteado sin ella(s). ${aMano}`,
+    ],
+  };
+}
+
+/**
+ * Resultado 'fallida' para cuando el `git add` de una ruta de
+ * sincronizacion falla ya dentro de autoCommit: segunda barrera de
+ * motivoNoCommiteable, para lo que no se haya podido prever.
+ */
+export function sincronizacionFallidaAlPreparar(
+  cwd: string,
+  config: Pick<TaskcodeConfig, 'comando_sincronizacion' | 'rutas_sincronizacion'>,
+  detalle: string
+): ResultadoSincronizacion {
+  const raiz = raizDelRepo(cwd);
+  const declaradas = config.rutas_sincronizacion;
+  for (const r of declaradas) {
+    // Desprepararla primero: si el add llego a meterla en el indice,
+    // restaurar solo el arbol la dejaria en "A"/"M" y el siguiente
+    // comando abortaria por workspace sucio.
+    runGitOk(['reset', '-q', '--', r], raiz);
+  }
+  restaurarAHead(raiz, declaradas);
+  const comando = config.comando_sincronizacion ?? '';
+  return fallida(
+    comando,
+    declaradas,
+    `escribio sus ficheros, pero Git no pudo prepararlos (${detalle})`,
+    `Cuando lo resuelvas, ejecuta a mano "${comando}" y commitea ${declaradas.join(', ')}. ` +
+      'La transicion de la tarea YA esta hecha: no repitas el comando de taskctl.'
+  );
+}
+
+/**
+ * null si Git puede commitear todas las rutas; si no, el motivo. Dos
+ * casos reproducidos en la revision: una ruta en `.gitignore` (el
+ * `git add` falla) y, en Windows o macOS, una ruta con otras mayusculas
+ * que el fichero que existe en disco (el pathspec no casa).
+ */
+function motivoNoCommiteable(raiz: string, rutas: readonly string[]): string | null {
+  for (const r of rutas) {
+    if (runGitOk(['check-ignore', '-q', '--', r], raiz)) {
+      return `escribio ${r}, pero esa ruta esta en .gitignore y Git no la commitearia`;
+    }
+    const real = nombreRealEnDisco(raiz, r);
+    if (real !== null && real !== r) {
+      return (
+        `escribio ${r}, pero en disco el fichero se llama ${real}: corrige las mayusculas ` +
+        'en rutas_sincronizacion'
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * La ruta tal y como se llama en disco, segmento a segmento, o null si
+ * no existe. En un disco que no distingue mayusculas, `existsSync`
+ * diria que si a cualquier variante; leer el directorio no miente.
+ */
+function nombreRealEnDisco(raiz: string, rel: string): string | null {
+  let dir = raiz;
+  const partes: string[] = [];
+  for (const seg of rel.split('/')) {
+    let entradas: string[];
+    try {
+      entradas = readdirSync(dir);
+    } catch {
+      return null;
+    }
+    const exacto = entradas.find((e) => e === seg);
+    const real = exacto ?? entradas.find((e) => e.toLowerCase() === seg.toLowerCase());
+    if (real === undefined) return null;
+    partes.push(real);
+    dir = path.join(dir, real);
+  }
+  return partes.join('/');
+}
+
 /** Codigo con el que ENVOLTORIO dice "lo he cortado por timeout". */
 const CODIGO_TIMEOUT_ENVOLTORIO = 124;
+/**
+ * Marca que ENVOLTORIO escribe en stderr al cortar. Sin ella, un script
+ * que saliera con 124 por su cuenta se describiria como un timeout
+ * (hallazgo MENOR de la revision).
+ */
+const MARCA_TIMEOUT = '[taskctl:timeout]';
 
 /**
  * Ejecuta argv[1] con el shell del sistema y lo corta a los argv[2] ms.
@@ -188,6 +292,12 @@ const CODIGO_TIMEOUT_ENVOLTORIO = 124;
  * - Al vencer el timeout mata el ARBOL: `taskkill /T /F` en Windows
  *   (con el hijo aun vivo, que es cuando /T puede recorrerlo) y el
  *   grupo de procesos en POSIX (por eso `detached`).
+ * - Al cortar sale EN EL ACTO, sin esperar al `close` del hijo. El hijo
+ *   tiene tuberias propias (la salida se reenvia), asi que un nieto que
+ *   sobreviviera al kill retendria las del envoltorio, no las de
+ *   taskctl: `spawnSync` vuelve igual. Con `stdio: 'inherit'` y un kill
+ *   que fallara, taskctl se quedaba colgado para siempre (medido con un
+ *   mutante en la revision).
  * - Sale con el codigo del comando, o con 124 (como `timeout(1)`) si lo
  *   corto.
  */
@@ -195,30 +305,94 @@ const ENVOLTORIO = `
 const { spawn, spawnSync } = require('node:child_process');
 const [comando, ms] = process.argv.slice(1);
 const win = process.platform === 'win32';
-const hijo = spawn(comando, { shell: true, stdio: ['ignore', 'inherit', 'inherit'],
+const hijo = spawn(comando, { shell: true, stdio: ['ignore', 'pipe', 'pipe'],
   windowsHide: true, detached: !win });
-let cortado = false;
+hijo.stdout.on('data', (d) => process.stdout.write(d));
+hijo.stderr.on('data', (d) => process.stderr.write(d));
 const t = setTimeout(() => {
-  cortado = true;
   if (win) spawnSync('taskkill', ['/pid', String(hijo.pid), '/T', '/F'], { stdio: 'ignore' });
   else { try { process.kill(-hijo.pid, 'SIGKILL'); } catch {} }
+  process.stderr.write('${MARCA_TIMEOUT}', () => process.exit(${String(CODIGO_TIMEOUT_ENVOLTORIO)}));
 }, Number(ms));
 hijo.on('error', (e) => { clearTimeout(t); process.stderr.write(String(e.message)); process.exit(127); });
 hijo.on('close', (code, signal) => {
   clearTimeout(t);
-  if (cortado) process.exit(${String(CODIGO_TIMEOUT_ENVOLTORIO)});
-  process.exit(code === null ? 128 : code);
+  if (code === null) { process.stderr.write('termino por la senal ' + signal); process.exit(1); }
+  process.exit(code);
 });
 `;
 
+interface SalidaEnvoltorio {
+  error?: Error;
+  status: number | null;
+  signal: NodeJS.Signals | null;
+  stderr: string;
+}
+
+/**
+ * Lanza ENVOLTORIO con la salida a FICHEROS temporales, no a tuberias.
+ * Con tuberias, en Windows cmd.exe hereda tambien las del propio
+ * envoltorio, asi que un nieto que sobreviva al kill retiene la de
+ * taskctl y `spawnSync` espera su EOF para siempre — medido con un
+ * mutante del `taskkill` en la revision: el test se colgo 30 min y el
+ * timeout por test no lo corta porque `spawnSync` bloquea el event
+ * loop. Con ficheros, `spawnSync` vuelve en cuanto el envoltorio sale,
+ * quede vivo lo que quede.
+ */
+function lanzarEnvoltorio(raiz: string, comando: string, timeoutMs: number): SalidaEnvoltorio {
+  const dir = mkdtempSync(path.join(tmpdir(), 'taskctl-sync-salida-'));
+  const rutaOut = path.join(dir, 'stdout');
+  const rutaErr = path.join(dir, 'stderr');
+  const fdOut = openSync(rutaOut, 'w');
+  const fdErr = openSync(rutaErr, 'w');
+  try {
+    const r = spawnSync(process.execPath, ['-e', ENVOLTORIO, comando, String(timeoutMs)], {
+      cwd: raiz,
+      stdio: ['ignore', fdOut, fdErr],
+      // Red de seguridad por si el propio envoltorio se colgara.
+      timeout: timeoutMs + 15000,
+      windowsHide: true,
+    });
+    closeSync(fdOut);
+    closeSync(fdErr);
+    const salida: SalidaEnvoltorio = {
+      status: r.status,
+      signal: r.signal,
+      stderr: readFileSync(rutaErr, 'utf8'),
+    };
+    if (r.error !== undefined) salida.error = r.error;
+    return salida;
+  } finally {
+    // Un huerfano puede tener aun el fichero abierto (EBUSY en
+    // Windows): se deja para el limpiador del sistema, no es un fallo.
+    try {
+      closeSync(fdOut);
+    } catch {
+      /* ya cerrado */
+    }
+    try {
+      closeSync(fdErr);
+    } catch {
+      /* ya cerrado */
+    }
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* ver arriba */
+    }
+  }
+}
+
 /** null si el comando termino bien; si no, que le paso, en palabras de persona. */
-function describirFallo(r: ReturnType<typeof spawnSync>, timeoutMs: number): string | null {
+function describirFallo(r: SalidaEnvoltorio, timeoutMs: number): string | null {
   const corte = `no termino en ${String(Math.round(timeoutMs / 1000))} s y se ha cortado`;
   if (r.error !== undefined) {
     if ((r.error as NodeJS.ErrnoException).code === 'ETIMEDOUT') return corte;
     return `no se pudo ejecutar (${r.error.message})`;
   }
-  if (r.status === CODIGO_TIMEOUT_ENVOLTORIO) return corte;
+  if (r.status === CODIGO_TIMEOUT_ENVOLTORIO && String(r.stderr ?? '').endsWith(MARCA_TIMEOUT)) {
+    return corte;
+  }
   if (r.signal !== null) return `termino por la senal ${r.signal}`;
   if (r.status !== 0) {
     const stderr = String(r.stderr ?? '').trim();
@@ -293,13 +467,25 @@ function huella(fichero: string): string {
  * que escribio el comando: si existia en HEAD se restaura, y si no
  * existia el fichero lo creo el comando y se borra.
  */
-function restaurarAHead(raiz: string, rutas: readonly string[]): void {
+function restaurarAHead(
+  raiz: string,
+  rutas: readonly string[],
+  antes: ReadonlyMap<string, string> = new Map()
+): void {
   for (const r of rutas) {
-    const enHead = runGitOk(['cat-file', '-e', `HEAD:${r}`], raiz);
-    if (enHead) {
-      runGit(['checkout', 'HEAD', '--', r], raiz);
-    } else {
-      const abs = path.join(raiz, r);
+    // Se trabaja con el nombre REAL del fichero. Con la ruta declarada
+    // tal cual, una errata de mayusculas en un disco que no las
+    // distingue no se encontraria en HEAD y caeria en el rmSync de
+    // abajo: borraria el fichero versionado de verdad.
+    const objetivo = nombreRealEnDisco(raiz, r) ?? r;
+    // Si con otro nombre resulta ser un fichero que ya estaba sucio
+    // antes de ejecutar, es trabajo de la persona (en un disco que si
+    // distingue mayusculas es OTRO fichero): no se toca.
+    if (objetivo !== r && antes.has(objetivo)) continue;
+    if (runGitOk(['cat-file', '-e', `HEAD:${objetivo}`], raiz)) {
+      runGit(['checkout', 'HEAD', '--', objetivo], raiz);
+    } else if (!antes.has(objetivo)) {
+      const abs = path.join(raiz, objetivo);
       if (existsSync(abs)) rmSync(abs, { force: true });
     }
   }

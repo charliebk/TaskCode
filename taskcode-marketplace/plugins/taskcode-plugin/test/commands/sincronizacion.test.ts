@@ -137,7 +137,9 @@ async function withRepoSincronizado(
     commitAll(repoRoot, 'docs: plan y sincronizacion');
     await fn(repoRoot, tareasRoot);
   } finally {
-    await rm(repoRoot, { recursive: true, force: true });
+    // Un EBUSY aqui (un proceso huerfano con el cwd dentro) no puede
+    // tapar la asercion que de verdad fallo: se reintenta y se traga.
+    await rm(repoRoot, { recursive: true, force: true, maxRetries: 5 }).catch(() => undefined);
   }
 }
 
@@ -362,6 +364,89 @@ async function reescribirScriptSinCommitear(repoRoot: string, contenido: string)
   git(['add', '--', 'scripts/sync.mjs'], repoRoot);
   git(['commit', '-q', '-m', 'chore: script nuevo', '--', 'scripts/sync.mjs'], repoRoot);
 }
+
+// ─── Revision ronda 1: rutas que Git no puede commitear ────────────────────
+
+test('sincronizacion (revision IMP-1): una ruta declarada en .gitignore no aborta la transicion; queda fallida y el arbol limpio', async () => {
+  await withRepoSincronizado(
+    'comando_sincronizacion: "node scripts/sync.mjs"\nrutas_sincronizacion: [docs/GEN.md]\n',
+    async (repoRoot, tareasRoot) => {
+      await writeFile(path.join(repoRoot, '.gitignore'), 'docs/GEN.md\n', 'utf8');
+      await reescribirScript(
+        repoRoot,
+        "import { writeFileSync } from 'node:fs';\nwriteFileSync('docs/GEN.md', 'x\\n');\n"
+      );
+      const dir = await tocarTarea(tareasRoot);
+      const r = autoCommit({ cwd: repoRoot, rutas: [dir], mensaje: mensajeChore('TASK-920', 'x') });
+      assert.equal(r.sincronizacion.estado, 'fallida');
+      assert.equal(r.commiteado, true, 'la tarea tiene que commitearse igual');
+      assert.match(r.avisos.join('\n'), /esta en \.gitignore/);
+      assert.equal(porcelain(repoRoot), '');
+    }
+  );
+});
+
+test('sincronizacion (revision IMP-1): una ruta declarada con otras mayusculas que el fichero real queda fallida y nombra el nombre real', async () => {
+  await withRepoSincronizado(
+    'comando_sincronizacion: "node scripts/sync.mjs"\nrutas_sincronizacion: [docs/plan.md]\n',
+    async (repoRoot, tareasRoot) => {
+      const dir = await tocarTarea(tareasRoot);
+      const tareaMd = path.join(dir, 'tarea.md');
+      await writeFile(
+        tareaMd,
+        (await readFile(tareaMd, 'utf8')).replace('plan_aprobado: false', 'plan_aprobado: true')
+      );
+      const r = autoCommit({ cwd: repoRoot, rutas: [dir], mensaje: mensajeChore('TASK-920', 'x') });
+      assert.equal(r.sincronizacion.estado, 'fallida');
+      assert.equal(r.commiteado, true);
+      assert.match(r.avisos.join('\n'), /se llama docs\/PLAN\.md/);
+      assert.equal(porcelain(repoRoot), '', 'el derivado se tenia que restaurar');
+    }
+  );
+});
+
+test('sincronizacion (revision MEN-2): un script que sale con 124 por su cuenta no se describe como timeout', async () => {
+  await withRepoSincronizado(CONFIG_SYNC, async (repoRoot, tareasRoot) => {
+    await reescribirScript(repoRoot, 'process.exit(124);\n');
+    const dir = await tocarTarea(tareasRoot);
+    const r = autoCommit({ cwd: repoRoot, rutas: [dir], mensaje: mensajeChore('TASK-920', 'x') });
+    assert.equal(r.sincronizacion.estado, 'fallida');
+    const aviso = r.avisos.join('\n');
+    assert.match(aviso, /salio con codigo 124/);
+    assert.doesNotMatch(aviso, /no termino en/);
+  });
+});
+
+test('sincronizacion (revision MEN-3): el timeout mata tambien al nieto; deja de escribir despues del corte', async () => {
+  await withRepoSincronizado(CONFIG_SYNC, async (repoRoot, tareasRoot) => {
+    // El nieto escribe fuera del repo: asi no cuenta como ruta ajena y
+    // lo unico que mide el test es si sigue vivo.
+    const testigo = path.join(path.dirname(repoRoot), `${path.basename(repoRoot)}-nieto.txt`);
+    await reescribirScript(
+      repoRoot,
+      "import { spawn } from 'node:child_process';\n" +
+        `const testigo = ${JSON.stringify(testigo)};\n` +
+        "spawn(process.execPath, ['-e', \"setInterval(() => require('fs').appendFileSync(process.argv[1], 'x'), 50)\", testigo], { stdio: 'ignore' });\n" +
+        'setTimeout(() => {}, 60000);\n'
+    );
+    const dir = await tocarTarea(tareasRoot);
+    try {
+      const r = autoCommit({
+        cwd: repoRoot,
+        rutas: [dir],
+        mensaje: mensajeChore('TASK-920', 'x'),
+        sincronizacion: { timeoutMs: 1500 },
+      });
+      assert.equal(r.sincronizacion.estado, 'fallida');
+      await new Promise((ok) => setTimeout(ok, 500));
+      const tras = (await readFile(testigo, 'utf8')).length;
+      await new Promise((ok) => setTimeout(ok, 1000));
+      assert.equal((await readFile(testigo, 'utf8')).length, tras, 'el nieto sigue vivo');
+    } finally {
+      await rm(testigo, { force: true });
+    }
+  });
+});
 
 // ─── finish: el caso sin retorno ───────────────────────────────────────────
 
