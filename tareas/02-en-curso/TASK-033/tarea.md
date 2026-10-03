@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [plugin, config, skill, correccion]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-033-comando-de-sincronizacion-tras-cada-tran
 asignado_a: charlie.bk@gmail.com
