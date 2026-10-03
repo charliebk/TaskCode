@@ -3,7 +3,26 @@
 Registro de tareas terminadas. Lo actualiza taskctl finish; una linea
 por tarea, renderizada desde su frontmatter.
 
-## Sin publicar
+## 0.1.1 — 2026-10-03
+
+Version de correccion. **Para actualizar:** `claude plugin marketplace update
+taskcode-marketplace`, despues `claude plugin update
+taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code; `taskctl
+--version` debe responder `0.1.1`.
+
+- Nuevo: `comando_sincronizacion`, `rutas_sincronizacion` y
+  `timeout_sincronizacion` en `.taskcode/config.yml`. Cada comando que commitea
+  ejecuta el comando del proyecto y mete sus ficheros derivados (un plan, un
+  tablero) en el mismo commit de la transicion. No usar un hook de pre-commit
+  para esto: deja el indice sucio.
+- Nuevo: codigo de salida **3** = la transicion se hizo pero la sincronizacion
+  no se aplico (el aviso dice que lanzar a mano).
+- Skill: guia de criterios que solo se verifican tras `finish`
+  (`### Tras el cierre`) y correcciones (`codex-review` si existe).
+- **Compatibilidad:** un plugin 0.1.0 aborta todos sus comandos al leer las
+  claves nuevas. Todo el equipo actualiza ANTES de anadirlas.
+- Incluye ademas todo lo cerrado desde 0.1.0:
+
 - TASK-033 (fix) — Comando de sincronización tras cada transición y guía de criterios post-cierre (v0.1.1) (2026-10-03)
 - TASK-022 (feature) — Documentación de equipo e incorporación de colaboradores (2026-09-16)
 - TASK-020 (feature) — Comando taskctl codex-review (segunda opinión independiente) (2026-09-13)
