@@ -104,6 +104,7 @@ taskctl plan    TASK-NNN [--asignado-a <persona>]
 taskctl approve TASK-NNN
 taskctl start   TASK-NNN [--asignado-a <persona>]
 taskctl review  TASK-NNN
+taskctl codex-review TASK-NNN
 taskctl finish  TASK-NNN
 
 taskctl diagnose | pause [--push] | resume [<rama>] | recover [<rama>] | abort-merge
@@ -130,15 +131,13 @@ Detalles que muerden:
 
 ### Lo que NO existe
 
-No inventar estos comandos: **`codex-review`**, `status`, `list`, `show`,
-`reject`, `reopen`, `assign`, `delete`, `edit`, `init`, `commit`, `push`.
+No inventar estos comandos: `status`, `list`, `show`, `reject`, `reopen`,
+`assign`, `delete`, `edit`, `init`, `commit`, `push`.
 
-`codex-review` merece un aviso aparte: aparece en la documentacion de la
-metodologia y `finish` sabe leer un `informe-codex-N.md`, pero **el comando no
-existe y ningun comando genera ese informe**. Poner `revision_codex: true` en
-una tarea la deja **imposible de cerrar**: `finish` exigira para siempre un
-informe que nadie escribe. Dejarlo en `false` salvo que se vaya a redactar a
-mano.
+`taskctl codex-review TASK-NNN` **si existe**: pide una segunda opinion al CLI
+de Codex y escribe `informe-codex-N.md`, que es lo que `finish` exige cuando la
+tarea tiene `revision_codex: true`. Sin el CLI de Codex instalado, dejar
+`revision_codex` en `false`.
 
 ## Reglas que no se negocian
 

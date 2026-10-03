@@ -67,8 +67,14 @@ export function ejecutarSincronizacion(cwd, config, opciones = {}) {
         'La transicion de la tarea YA esta hecha: no repitas el comando de taskctl.';
     // (a) Antes de nada: si una ruta declarada ya trae cambios, el
     // commit automatico se los llevaria. `start`, `review` y `finish` no
-    // exigen workspace limpio, asi que esto es un caso real.
-    const conCambios = porcelain(raiz, declaradas);
+    // exigen workspace limpio, asi que esto es un caso real. Se pregunta
+    // tambien por el nombre REAL en disco: con otras mayusculas, el
+    // pathspec declarado no casa con el fichero modificado y el comando lo
+    // sobrescribiria sin que nada lo detectara (MENOR de la ronda 2).
+    const aComprobar = [
+        ...new Set(declaradas.flatMap((r) => [r, nombreRealEnDisco(raiz, r) ?? r])),
+    ];
+    const conCambios = porcelain(raiz, aComprobar);
     if (conCambios.length > 0) {
         return {
             estado: 'omitida-rutas-con-cambios',
@@ -266,6 +272,16 @@ function lanzarEnvoltorio(raiz, comando, timeoutMs) {
     const rutaErr = path.join(dir, 'stderr');
     const fdOut = openSync(rutaOut, 'w');
     const fdErr = openSync(rutaErr, 'w');
+    // Una sola vez cada uno: cerrar dos veces el mismo numero de fd puede
+    // cerrar otro fichero que el sistema le haya reasignado entretanto.
+    let cerrados = false;
+    const cerrar = () => {
+        if (cerrados)
+            return;
+        cerrados = true;
+        closeSync(fdOut);
+        closeSync(fdErr);
+    };
     try {
         const r = spawnSync(process.execPath, ['-e', ENVOLTORIO, comando, String(timeoutMs)], {
             cwd: raiz,
@@ -274,8 +290,7 @@ function lanzarEnvoltorio(raiz, comando, timeoutMs) {
             timeout: timeoutMs + 15000,
             windowsHide: true,
         });
-        closeSync(fdOut);
-        closeSync(fdErr);
+        cerrar();
         const salida = {
             status: r.status,
             signal: r.signal,
@@ -289,16 +304,10 @@ function lanzarEnvoltorio(raiz, comando, timeoutMs) {
         // Un huerfano puede tener aun el fichero abierto (EBUSY en
         // Windows): se deja para el limpiador del sistema, no es un fallo.
         try {
-            closeSync(fdOut);
+            cerrar();
         }
         catch {
-            /* ya cerrado */
-        }
-        try {
-            closeSync(fdErr);
-        }
-        catch {
-            /* ya cerrado */
+            /* no se pudo cerrar: no afecta a la transicion */
         }
         try {
             rmSync(dir, { recursive: true, force: true });

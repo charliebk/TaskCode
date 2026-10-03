@@ -448,6 +448,19 @@ test('sincronizacion (revision MEN-3): el timeout mata tambien al nieto; deja de
   });
 });
 
+test('sincronizacion (revision 2, MENOR): el chequeo (a) ve trabajo sin commitear aunque la ruta declarada tenga otras mayusculas', async () => {
+  await withRepoSincronizado(
+    'comando_sincronizacion: "node scripts/sync.mjs"\nrutas_sincronizacion: [docs/plan.md]\n',
+    async (repoRoot, tareasRoot) => {
+      await writeFile(path.join(repoRoot, 'docs', 'PLAN.md'), 'edicion a mano\n', 'utf8');
+      const dir = await tocarTarea(tareasRoot);
+      const r = autoCommit({ cwd: repoRoot, rutas: [dir], mensaje: mensajeChore('TASK-920', 'x') });
+      assert.equal(r.sincronizacion.estado, 'omitida-rutas-con-cambios');
+      assert.equal(await planEnDisco(repoRoot), 'edicion a mano', 'se piso el trabajo de la persona');
+    }
+  );
+});
+
 // ─── finish: el caso sin retorno ───────────────────────────────────────────
 
 test('sincronizacion en finish: si el script falla tras el merge, la tarea queda cerrada y commiteada en develop y el arbol limpio', async () => {
