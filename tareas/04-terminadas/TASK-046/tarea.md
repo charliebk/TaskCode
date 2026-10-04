@@ -6,7 +6,7 @@ sprint: 6
 etiquetas: []
 complejidad: trivial
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-046-f5-t2-secciones-con-subtitulos-y-criteri
 asignado_a: charlie.bk@gmail.com

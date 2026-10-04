@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-046 (fix) — F5-T2 Secciones con subtitulos y criterios multilinea (2026-10-04)
 - TASK-041 (feature) — F4-T1 taskctl new con objetivo y criterios (2026-10-04)
 - TASK-053 (fix) — moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows (2026-10-04)
 

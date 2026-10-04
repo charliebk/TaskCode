@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-046 — F5-T2 Secciones con subtitulos y criterios multilinea · etiquetas: (sin etiquetas) · rama fix/task-046-f5-t2-secciones-con-subtitulos-y-criteri · terminada 2026-10-04 · tareas/04-terminadas/TASK-046/
 - TASK-041 — F4-T1 taskctl new con objetivo y criterios · etiquetas: (sin etiquetas) · rama feature/task-041-f4-t1-taskctl-new-con-objetivo-y-criteri · terminada 2026-10-04 · tareas/04-terminadas/TASK-041/
 - TASK-053 — moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows · etiquetas: (sin etiquetas) · rama fix/task-053-movetareafile-reintenta-el-rename-ante-u · terminada 2026-10-04 · tareas/04-terminadas/TASK-053/
 - TASK-040 — F3-T1 taskctl review para la ronda 2 y siguientes · etiquetas: (sin etiquetas) · rama feature/task-040-f3-t1-taskctl-review-para-la-ronda-2-y-s · terminada 2026-10-04 · tareas/04-terminadas/TASK-040/
