@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-038 — F2-T2 Una sola deteccion de origin por invocacion, con timeout · etiquetas: (sin etiquetas) · rama feature/task-038-f2-t2-una-sola-deteccion-de-origin-por-i · terminada 2026-10-04 · tareas/04-terminadas/TASK-038/
 - TASK-037 — F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos · etiquetas: (sin etiquetas) · rama feature/task-037-f2-t1-logging-de-los-scripts-de-git-flow · terminada 2026-10-04 · tareas/04-terminadas/TASK-037/
 - TASK-036 — F1-T3 Veredicto con un comando e informe estructurado · etiquetas: (sin etiquetas) · rama feature/task-036-f1-t3-veredicto-con-un-comando-e-informe · terminada 2026-10-04 · tareas/04-terminadas/TASK-036/
 - TASK-035 — F1-T2 Politica de rondas y una sola suite por ronda en las skills · etiquetas: (sin etiquetas) · rama feature/task-035-f1-t2-politica-de-rondas-y-una-sola-suit · terminada 2026-10-04 · tareas/04-terminadas/TASK-035/
