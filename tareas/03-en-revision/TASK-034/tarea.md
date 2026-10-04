@@ -74,3 +74,21 @@ Windows y los 5 de esas expectativas, ya actualizadas (32/32 en
 
 **Decisiones del orquestador**, revisables: clasificar solo los incluidos, y
 la base de la medicion descrita arriba.
+
+**Revision ronda 1: aprobada** (0 criticos, 0 importantes, 6 menores; 6
+mutantes, todos en rojo; suite completa 898 tests, solo los 3 rojos conocidos
+de Windows). Por la politica A3, sin ronda 2. Corregidos en el cierre, con la
+suite de los ficheros afectados en verde (40/40):
+- MENOR-1: con todo excluido, el bloque de diff ya no dice «sin diferencias».
+- MENOR-3: `--stat=200` (a 80 columnas Git abreviaba las rutas) y sin `trim()`
+  que se comia la sangria de la primera linea.
+- MENOR-4: la orden para pedir lo excluido usa comillas dobles, que agrupan
+  tambien en `cmd.exe`.
+- MENOR-5: `excluir_de_revision` documentada en la skill, incluido que definirla
+  sustituye la lista por defecto. La version sube al cerrar la Fase 1.
+
+Sin corregir, documentados: MENOR-2 (un renombre entre incluido y excluido
+descuadra la cuenta de la cabecera frente al `--stat`; cosmetico) y MENOR-6
+(`--name-only` sin `-z` entrecomilla rutas no ASCII y, al fragmentar por
+dominio, ese fichero puede quedar sin diff; ya pasaba antes de esta tarea:
+va a una tarea aparte).

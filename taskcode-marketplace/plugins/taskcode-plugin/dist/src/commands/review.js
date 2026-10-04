@@ -67,7 +67,13 @@ export { fenceFor } from '../core/markdown.js';
  */
 export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha, commits, diff, agenteRevisor, nombreInforme, alcanceDiff, extras = {}) {
     const commitsBlock = commits === '' ? '(sin commits nuevos respecto a la base)' : commits;
-    const diffBlock = diff === '' ? '(sin diferencias respecto a la base)' : diff;
+    // MENOR-1 de la revision de TASK-034: si TODO quedo excluido, decir
+    // "sin diferencias" seria falso.
+    const diffBlock = diff !== ''
+        ? diff
+        : (extras.excluidos ?? []).length > 0
+            ? '(todo el diff quedo excluido: ver "Excluido del diff" mas abajo)'
+            : '(sin diferencias respecto a la base)';
     const fence = fenceFor(commitsBlock, diffBlock);
     return (`# Peticion de revision — ${task.id} (ronda ${ronda})\n\n` +
         `- Tarea: ${task.id} — ${task.titulo}\n` +
@@ -109,8 +115,12 @@ function seccionExcluidos(baseBranch, extras) {
     const excluidos = extras.excluidos ?? [];
     if (excluidos.length === 0)
         return '';
-    const patrones = (extras.patrones ?? []).map((p) => `':(glob)${p}'`).join(' ');
-    const stat = (extras.stat ?? '').trim();
+    // Comillas dobles: agrupan en bash y tambien en cmd.exe, donde las
+    // simples no (MENOR-4 de la revision de TASK-034).
+    const patrones = (extras.patrones ?? []).map((p) => `":(glob)${p}"`).join(' ');
+    // Sin trim() al principio: se comeria la sangria de la primera linea
+    // del --stat (MENOR-3).
+    const stat = (extras.stat ?? '').replace(/\s+$/, '');
     const fence = fenceFor(stat);
     return (`\n## Excluido del diff (${excluidos.length} fichero(s))\n\n` +
         'Su diff no se embebe: es codigo generado, lockfiles o la propia carpeta de\n' +

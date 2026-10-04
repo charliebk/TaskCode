@@ -324,7 +324,9 @@ export function diffParaRevision(
     stat:
       excluidos.length === 0
         ? ''
-        : runGit(['diff', '--stat', rango, '--', ...excluir.map((p) => `:(glob)${p}`)], cwd),
+        : // --stat=200: a 80 columnas Git abrevia las rutas con ".../" y
+          // el revisor no sabria que pedir (MENOR-3 de la revision).
+          runGit(['diff', '--stat=200', rango, '--', ...excluir.map((p) => `:(glob)${p}`)], cwd),
   };
 }
 

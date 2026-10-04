@@ -118,7 +118,7 @@ test('review (TASK-034): dist/ y los lockfiles salen del diff embebido y quedan 
   assert.match(peticion, /## Excluido del diff \(\d+ fichero\(s\)\)/);
   assert.match(peticion, /dist\/a\.js\s+\|/, 'falta dist/a.js en el --stat');
   assert.match(peticion, /pkg\/yarn\.lock\s+\|/, 'falta el lockfile en el --stat');
-  assert.match(peticion, /git diff develop\.\.HEAD -- ':\(glob\)\*\*\/dist\/\*\*'/);
+  assert.match(peticion, /git diff develop\.\.HEAD -- ":\(glob\)\*\*\/dist\/\*\*"/);
 });
 
 test('review (TASK-034): la peticion nombra la carpeta de la tarea ya en su estado destino', async () => {
