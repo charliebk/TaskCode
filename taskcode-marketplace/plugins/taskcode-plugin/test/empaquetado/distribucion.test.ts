@@ -251,3 +251,111 @@ test('ningun fichero de dist/src commiteado lleva CR', (t) => {
 
   assert.deepEqual(conCR, [], 'un CR en el build delata que el eol no se fijo');
 });
+
+// --- 3. El lanzador de Windows (TASK-055, entrega A) ---------------------
+//
+// `bin/taskctl` es un script de node sin extension: fuera del Bash tool de
+// Claude Code (PowerShell, cmd) Windows no sabe ejecutarlo aunque este en
+// el PATH. `bin/taskctl.cmd` lo envuelve. Se prueba sobre el arbol de HEAD
+// exportado, sin npm install, que es lo que recibe quien instala el plugin.
+// Solo en Windows: en Linux no hay cmd.exe que probar (skip visible).
+
+const ES_WINDOWS = process.platform === 'win32';
+
+function cmdLanzador(arbol: string): string {
+  return path.join(arbol, ...PLUGIN_REL.split('/'), 'bin', 'taskctl.cmd');
+}
+
+/** Ejecuta el .cmd desde cmd.exe y desde PowerShell, con los mismos argumentos. */
+function lanzarDesdeShells(cmdPath: string, args: string[], cwd?: string) {
+  // cmd.exe: la linea entera entre comillas externas (cmd /s /c "..."),
+  // cada argumento entre comillas dobles. spawnSync no debe re-escapar.
+  const lineaCmd = `"${[cmdPath, ...args].map((a) => `"${a}"`).join(' ')}"`;
+  const desdeCmd = spawnSync('cmd.exe', ['/d', '/s', '/c', lineaCmd], {
+    encoding: 'utf8',
+    cwd,
+    windowsVerbatimArguments: true,
+  });
+  // PowerShell: operador de llamada y argumentos entre comillas simples.
+  const comillasPs = (a: string) => `'${a.replace(/'/g, "''")}'`;
+  const script = `& ${[cmdPath, ...args].map(comillasPs).join(' ')}; exit $LASTEXITCODE`;
+  const desdePs = spawnSync(
+    'powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-Command', script],
+    { encoding: 'utf8', cwd }
+  );
+  return { desdeCmd, desdePs };
+}
+
+test('bin/taskctl.cmd arranca taskctl --version desde cmd y desde PowerShell en un clon sin npm install', async (t) => {
+  if (!ES_WINDOWS) return t.skip('solo Windows: no hay cmd.exe ni powershell.exe');
+  if (!hayRepo()) return t.skip('REPO_ROOT no es un repo git');
+
+  const arbol = await exportarHead();
+  try {
+    const { desdeCmd, desdePs } = lanzarDesdeShells(cmdLanzador(arbol), ['--version']);
+    for (const [shell, r] of [['cmd', desdeCmd], ['PowerShell', desdePs]] as const) {
+      assert.equal(r.status, 0, `${shell}: taskctl.cmd no arranco.\n${r.stdout}\n${r.stderr}`);
+      assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+$/, `${shell}: deberia imprimir la version`);
+    }
+  } finally {
+    await rm(arbol, { recursive: true, force: true });
+  }
+});
+
+test('bin/taskctl.cmd pasa intactos los argumentos con espacios, tildes y & y devuelve el codigo de salida', async (t) => {
+  if (!ES_WINDOWS) return t.skip('solo Windows: no hay cmd.exe ni powershell.exe');
+  if (!hayRepo()) return t.skip('REPO_ROOT no es un repo git');
+
+  const arbol = await exportarHead();
+  const repo = await mkdtemp(path.join(tmpdir(), 'e6-cmd-repo-'));
+  try {
+    for (const args of [
+      ['init', '-q', '-b', 'main'],
+      ['config', 'user.email', 'test@example.com'],
+      ['config', 'user.name', 'Test'],
+      ['commit', '-q', '--allow-empty', '-m', 'inicial'],
+      ['checkout', '-q', '-b', 'develop'],
+    ]) {
+      assert.equal(git(args, repo).status, 0, `git ${args.join(' ')}`);
+    }
+    const titulo = 'Acción con espacios & más';
+    const { desdeCmd, desdePs } = lanzarDesdeShells(
+      cmdLanzador(arbol),
+      ['new', '--tipo', 'feature', '--titulo', titulo],
+      repo
+    );
+    // El titulo llega entero: lo que quedo escrito en tarea.md es la prueba.
+    for (const [shell, r, id] of [
+      ['cmd', desdeCmd, 'TASK-001'],
+      ['PowerShell', desdePs, 'TASK-002'],
+    ] as const) {
+      assert.equal(r.status, 0, `${shell}: new fallo.\n${r.stdout}\n${r.stderr}`);
+      const tarea = await readFile(
+        path.join(repo, 'tareas', '00-planificadas', id, 'tarea.md'),
+        'utf8'
+      );
+      assert.match(tarea, /^titulo: "Acción con espacios & más"$/m, `${shell}: titulo alterado`);
+    }
+
+    // El codigo de salida de taskctl llega a quien llama, no un 0 del .cmd.
+    const fallo = lanzarDesdeShells(cmdLanzador(arbol), ['approve', 'TASK-999'], repo);
+    assert.notEqual(fallo.desdeCmd.status, 0, 'cmd: un error de taskctl debe salir distinto de 0');
+    assert.notEqual(fallo.desdePs.status, 0, 'PowerShell: un error de taskctl debe salir distinto de 0');
+  } finally {
+    await rm(arbol, { recursive: true, force: true });
+    await rm(repo, { recursive: true, force: true });
+  }
+});
+
+test('el lanzador de Windows lleva CRLF fijado en .gitattributes, y el de Unix sigue en LF', async (t) => {
+  const attrs = await readFile(path.join(PLUGIN_ROOT, '.gitattributes'), 'utf8');
+  assert.match(attrs, /^bin\/\*\.cmd\s+text\s+eol=crlf$/m, 'el .cmd, con eol=crlf');
+  if (!hayRepo()) return t.skip('REPO_ROOT no es un repo git');
+  const eol = (f: string) =>
+    git(['check-attr', 'eol', '--', `${PLUGIN_REL}/bin/${f}`], REPO_ROOT).stdout.trim();
+  // La regla del .cmd va despues de bin/* y la ultima gana: si se invierte
+  // el orden, el .cmd volveria a LF sin que nada mas lo note.
+  assert.match(eol('taskctl.cmd'), /eol: crlf$/);
+  assert.match(eol('taskctl'), /eol: lf$/);
+});
