@@ -4,7 +4,7 @@ titulo: "F1-T2 Politica de rondas y una sola suite por ronda en las skills"
 tipo: feature
 sprint: 2
 etiquetas: []
-complejidad: simple
+complejidad: trivial
 modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
@@ -21,6 +21,15 @@ dependencias: []
 ---
 ## Objetivo
 
+Llevar a las skills la politica de rondas A3 y la regla A4 de la auditoria
+del 2026-10-03, aprobadas por Carlos: sin CRITICO ni IMPORTANTE abiertos una
+ronda cierra la tarea, los MENOR corregidos no abren ronda 2, y el revisor
+corre la suite completa una sola vez por ronda (los mutantes, con el fichero
+de test concreto). Hoy la skill de flujo y dos revisoras dicen «dos rondas es
+lo normal», y las revisoras piden la suite entera dos veces.
+
+Solo documentacion: no toca `src/`. Complejidad `trivial` (no `simple`, como
+se importo): el contenido ya esta decidido y no hay diseno que explorar.
 
 ## Criterios de aceptacion
 - [ ] `task-workflow/SKILL.md` recoge la politica A3: sin CRITICO ni IMPORTANTE abiertos una ronda cierra; si solo se corrigen MENOR no hay ronda 2; la ronda 2 solo revisa el delta
