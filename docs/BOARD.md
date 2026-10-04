@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-10-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 28
+## Planificadas (00-planificadas) — 27
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,7 +21,6 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-039  F2-T3 Menos llamadas git en los comandos                                                    (sin asignar)
 TASK-040  F3-T1 taskctl review para la ronda 2 y siguientes                                           (sin asignar)
 TASK-041  F4-T1 taskctl new con objetivo y criterios                                                  (sin asignar)
 TASK-042  F4-T4 Complejidad por defecto por heuristica y un rol sin unificador                        (sin asignar)
@@ -45,7 +44,7 @@ ID        Titulo                                Asignado
 TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 23
+## Terminadas (04-terminadas) — 24
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -73,4 +72,5 @@ TASK-035  F1-T2 Politica de rondas y una sola suite por ronda en las skills     
 TASK-036  F1-T3 Veredicto con un comando e informe estructurado                                    charlie.bk@gmail.com
 TASK-037  F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos                             charlie.bk@gmail.com
 TASK-038  F2-T2 Una sola deteccion de origin por invocacion, con timeout                           charlie.bk@gmail.com
+TASK-039  F2-T3 Menos llamadas git en los comandos                                                 charlie.bk@gmail.com
 ```

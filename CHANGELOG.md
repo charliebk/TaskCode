@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-039 (feature) — F2-T3 Menos llamadas git en los comandos (2026-10-04)
 - TASK-038 (feature) — F2-T2 Una sola deteccion de origin por invocacion, con timeout (2026-10-04)
 - TASK-037 (feature) — F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos (2026-10-04)
 

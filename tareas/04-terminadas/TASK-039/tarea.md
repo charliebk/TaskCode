@@ -6,7 +6,7 @@ sprint: 3
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-039-f2-t3-menos-llamadas-git-en-los-comandos
 asignado_a: charlie.bk@gmail.com
