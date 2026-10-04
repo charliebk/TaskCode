@@ -37,7 +37,7 @@ invoke_git "No se pudo hacer fetch de origin." fetch origin
 
 if [ -z "$NAME" ]; then
     printf "\n${C_CYAN}  Ramas disponibles en origin:${C_RESET}\n"
-    git ls-remote --heads origin 2>/dev/null | sed 's|.*refs/heads/||' | sort \
+    _gf_ls_remote --heads origin 2>/dev/null | sed 's|.*refs/heads/||' | sort \
         | while IFS= read -r line; do
         printf "${C_DGRAY}    %s${C_RESET}\n" "$line"
     done
@@ -49,7 +49,7 @@ fi
 log_info "Recuperando rama: $NAME"
 
 # Verificar que existe en origin
-if ! git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME"; then
+if ! _gf_ls_remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME"; then
     log_error "La rama '$NAME' no existe en origin. No hay nada que recuperar."
     exit 1
 fi

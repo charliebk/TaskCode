@@ -22,11 +22,7 @@ ensure_workspace_ready \
     "Workspace no limpio antes de update. Hacer commit local en la rama actual? Si/No" \
     "chore: commit local antes de update release" || exit 0
 
-if git ls-remote --heads origin > /dev/null 2>&1; then
-    REMOTE_AVAILABLE=true; log_ok "Conexion remota disponible (origin)."
-else
-    REMOTE_AVAILABLE=false; log_warn "No hay conexion con origin. Se intentara update en modo local."
-fi
+detect_origin_available "No hay conexion con origin. Se intentara update en modo local."
 
 if ! git show-ref --verify --quiet "refs/heads/$DEVELOP_BRANCH" 2>/dev/null; then
     [ "$REMOTE_AVAILABLE" = false ] && { log_error "$DEVELOP_BRANCH no existe localmente y no hay conexion remota."; exit 1; }
@@ -48,7 +44,7 @@ fi
 TARGET_LOCAL=false; TARGET_REMOTE=false
 git show-ref --verify --quiet "refs/heads/$NAME" 2>/dev/null && TARGET_LOCAL=true || true
 if [ "$REMOTE_AVAILABLE" = true ]; then
-    git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
+    _gf_ls_remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
         && TARGET_REMOTE=true || true
 fi
 

@@ -42,7 +42,7 @@ log_info "Rama principal detectada: $MAIN_BRANCH"
 DEV_LOCAL=false; DEV_REMOTE=false
 git show-ref --verify --quiet "refs/heads/$DEVELOP_BRANCH" 2>/dev/null && DEV_LOCAL=true || true
 if [ "$REMOTE_AVAILABLE" = true ]; then
-    git ls-remote --heads origin "$DEVELOP_BRANCH" 2>/dev/null | grep -q "refs/heads/$DEVELOP_BRANCH" \
+    _gf_ls_remote --heads origin "$DEVELOP_BRANCH" 2>/dev/null | grep -q "refs/heads/$DEVELOP_BRANCH" \
         && DEV_REMOTE=true || true
 fi
 

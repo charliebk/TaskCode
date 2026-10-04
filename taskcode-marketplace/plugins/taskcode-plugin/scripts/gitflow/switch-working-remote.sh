@@ -122,7 +122,7 @@ log_ok "'$NEW_ORIGIN' promovido a 'origin'."
 
 # 6c. Fetch del nuevo origin para refrescar tracking refs
 log_info "Refrescando refs del nuevo origin..."
-if git ls-remote --heads origin > /dev/null 2>&1; then
+if _gf_ls_remote --heads origin > /dev/null 2>&1; then
     invoke_git "No se pudo hacer fetch del nuevo origin." fetch --prune --tags origin
     log_ok "Refs del nuevo origin sincronizadas."
 else
@@ -131,7 +131,7 @@ fi
 
 # ── 7. Reconfigurar upstream de la rama actual si procede ─────────────────────
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
-if [ -n "$CURRENT_BRANCH" ] && git ls-remote --heads origin "$CURRENT_BRANCH" 2>/dev/null | grep -q "refs/heads/$CURRENT_BRANCH"; then
+if [ -n "$CURRENT_BRANCH" ] && _gf_ls_remote --heads origin "$CURRENT_BRANCH" 2>/dev/null | grep -q "refs/heads/$CURRENT_BRANCH"; then
     invoke_git "No se pudo reconfigurar upstream de $CURRENT_BRANCH." \
         branch --set-upstream-to="origin/$CURRENT_BRANCH" "$CURRENT_BRANCH"
     log_ok "Upstream de '$CURRENT_BRANCH' actualizado a origin/$CURRENT_BRANCH."

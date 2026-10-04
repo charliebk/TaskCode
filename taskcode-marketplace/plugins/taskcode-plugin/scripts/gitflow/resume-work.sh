@@ -56,7 +56,7 @@ fi
 # Cambiar a la rama (local o desde origin)
 NAME_REMOTE=false
 if [ "$REMOTE_AVAILABLE" = true ]; then
-    git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
+    _gf_ls_remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
         && NAME_REMOTE=true || true
 fi
 

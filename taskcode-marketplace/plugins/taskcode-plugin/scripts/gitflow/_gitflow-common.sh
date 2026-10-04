@@ -240,16 +240,35 @@ ensure_workspace_ready() {
     return 0
 }
 
+# ── _gf_ls_remote ─────────────────────────────────────────────────────────────
+# TASK-038: `git ls-remote` con dos protecciones que antes no tenia.
+#   - GIT_TERMINAL_PROMPT=0: nunca se queda esperando credenciales (sin
+#     terminal, o bajo taskctl con stdin ignorado, esperaria para siempre).
+#   - Limite de GF_TIMEOUT_REMOTO segundos (5 por defecto): con la VPN caida
+#     la consulta tardaba lo que tardase la red, del orden de 30 s.
+# El limite usa el `timeout` de coreutils SOLO si responde a --version: en
+# Windows tambien existe el timeout.exe de cmd, con otra sintaxis, y si el
+# PATH lo encontrara primero la consulta fallaria siempre y todo iria en modo
+# local sin decirlo. Sin coreutils (macOS), se consulta sin limite, como antes.
+GF_TIMEOUT_REMOTO="${GF_TIMEOUT_REMOTO:-5}"
+if timeout --version > /dev/null 2>&1; then
+    _gf_ls_remote() { GIT_TERMINAL_PROMPT=0 timeout "$GF_TIMEOUT_REMOTO" git ls-remote "$@"; }
+else
+    _gf_ls_remote() { GIT_TERMINAL_PROMPT=0 git ls-remote "$@"; }
+fi
+
 # ── resolve_main_branch ───────────────────────────────────────────────────────
 resolve_main_branch() {
     local preferred="$1"
     [ -n "$preferred" ] && { printf "%s" "$preferred"; return 0; }
 
-    if git ls-remote --heads origin main 2>/dev/null | grep -q "refs/heads/main"; then
-        printf "main"; return 0
-    fi
-    if git ls-remote --heads origin master 2>/dev/null | grep -q "refs/heads/master"; then
-        printf "master"; return 0
+    # TASK-038: una sola consulta para main y master, y ninguna si ya se sabe
+    # que origin no responde (o no esta configurado).
+    if [ "$GF_ORIGIN_DETECTADO" != true ] || [ "$REMOTE_AVAILABLE" = true ]; then
+        local heads
+        heads=$(_gf_ls_remote --heads origin main master 2>/dev/null) || heads=""
+        case "$heads" in *refs/heads/main*) printf "main"; return 0 ;; esac
+        case "$heads" in *refs/heads/master*) printf "master"; return 0 ;; esac
     fi
     if git show-ref --verify --quiet "refs/heads/main" 2>/dev/null; then
         printf "main"; return 0
@@ -283,20 +302,29 @@ assert_valid_branch_name() {
 # revision por pares de B2): "sin origin configurado" habilita el modo
 # local con seguridad, pero "origin configurado e inaccesible" puede ser
 # una VPN/red caida con la main local obsoleta respecto al remoto.
+#
+# TASK-038: una sola consulta por invocacion (GF_ORIGIN_DETECTADO); sin
+# origin configurado ni se consulta la red; y el aviso de "sin conexion" es
+# parametrizable para que cada script conserve su texto. Antes habia 7 copias
+# en linea de esta funcion.
 REMOTE_AVAILABLE=false
 REMOTE_CONFIGURED=false
+GF_ORIGIN_DETECTADO=false
 detect_origin_available() {
+    local aviso="${1:-No hay conexion con origin (VPN/credenciales/red). Se continuara en modo local.}"
+    [ "$GF_ORIGIN_DETECTADO" = true ] && return 0
+    GF_ORIGIN_DETECTADO=true
     if git remote get-url origin > /dev/null 2>&1; then
         REMOTE_CONFIGURED=true
     else
         REMOTE_CONFIGURED=false
     fi
-    if git ls-remote --heads origin > /dev/null 2>&1; then
+    if [ "$REMOTE_CONFIGURED" = true ] && _gf_ls_remote --heads origin > /dev/null 2>&1; then
         REMOTE_AVAILABLE=true
         log_ok "Conexion remota disponible (origin)."
     else
         REMOTE_AVAILABLE=false
-        log_warn "No hay conexion con origin (VPN/credenciales/red). Se continuara en modo local."
+        log_warn "$aviso"
     fi
 }
 
@@ -339,7 +367,7 @@ invoke_create_work_branch() {
     local target_local=false target_remote=false
     git show-ref --verify --quiet "refs/heads/$name" 2>/dev/null && target_local=true || true
     if [ "$remote_available" = true ]; then
-        git ls-remote --heads origin "$name" 2>/dev/null | grep -q "refs/heads/$name" \
+        _gf_ls_remote --heads origin "$name" 2>/dev/null | grep -q "refs/heads/$name" \
             && target_remote=true || true
     fi
 
@@ -388,6 +416,14 @@ invoke_merge_work_branch_to_develop() {
     # siendo posible.
     detect_origin_available
     local remote_available="$REMOTE_AVAILABLE"
+
+    # TASK-038: origin configurado pero caido avisa, no aborta. En los merge a
+    # main si se aborta, porque el tag se crearia sobre una main obsoleta; en
+    # develop no hay tag, y abortar bloquearia cualquier cierre con la VPN
+    # caida. Lo que hay que decir es que develop puede estar desfasada.
+    if [ "$REMOTE_CONFIGURED" = true ] && [ "$remote_available" = false ]; then
+        log_warn "origin esta configurado pero no responde: el merge se hace sobre la $develop_branch LOCAL, que puede estar desfasada. Cuando vuelva la red, sincroniza (pull) y sube $develop_branch antes de seguir."
+    fi
 
     if [ "$remote_available" = true ]; then
         invoke_git "No se pudo hacer fetch de origin." fetch origin
@@ -478,7 +514,7 @@ ensure_remote_exists() {
 ensure_remote_empty() {
     local name="$1"
     local heads
-    heads=$(git ls-remote --heads "$name" 2>/dev/null) || {
+    heads=$(_gf_ls_remote --heads "$name" 2>/dev/null) || {
         log_error "No se pudo consultar el remoto '$name'. Verifica conexion y credenciales."
         return 1
     }

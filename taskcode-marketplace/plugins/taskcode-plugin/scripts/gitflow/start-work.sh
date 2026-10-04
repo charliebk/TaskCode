@@ -17,13 +17,7 @@ ensure_workspace_ready || exit 0
 MAIN_BRANCH=$(resolve_main_branch "$MAIN_BRANCH")
 log_info "Rama principal detectada: $MAIN_BRANCH"
 
-if git ls-remote --heads origin > /dev/null 2>&1; then
-    REMOTE_AVAILABLE=true
-    log_ok "Conexion remota disponible (origin)."
-else
-    REMOTE_AVAILABLE=false
-    log_warn "No hay conexion con origin (VPN/credenciales/red). Se continuara en modo local."
-fi
+detect_origin_available
 
 if ! git show-ref --verify --quiet "refs/heads/$MAIN_BRANCH" 2>/dev/null; then
     if [ "$REMOTE_AVAILABLE" = true ]; then
@@ -48,7 +42,7 @@ else
 fi
 
 if [ "$REMOTE_AVAILABLE" = true ]; then
-    if git ls-remote --heads origin "$DEVELOP_BRANCH" 2>/dev/null | grep -q "refs/heads/$DEVELOP_BRANCH"; then
+    if _gf_ls_remote --heads origin "$DEVELOP_BRANCH" 2>/dev/null | grep -q "refs/heads/$DEVELOP_BRANCH"; then
         if ! git show-ref --verify --quiet "refs/heads/$DEVELOP_BRANCH" 2>/dev/null; then
             invoke_git "No se pudo crear/cambiar a $DEVELOP_BRANCH desde remoto." \
                 checkout -q -b "$DEVELOP_BRANCH" "origin/$DEVELOP_BRANCH"

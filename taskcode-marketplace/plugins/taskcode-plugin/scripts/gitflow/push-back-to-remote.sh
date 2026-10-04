@@ -59,7 +59,7 @@ TARGET_URL=$(git remote get-url "$TARGET_REMOTE")
 log_info "Destino seleccionado: $TARGET_REMOTE -> $TARGET_URL"
 
 # ── 3. Verificar conectividad ─────────────────────────────────────────────────
-if ! git ls-remote --heads "$TARGET_REMOTE" > /dev/null 2>&1; then
+if ! _gf_ls_remote --heads "$TARGET_REMOTE" > /dev/null 2>&1; then
     log_error "No hay conexion con '$TARGET_REMOTE'. Necesitas VPN/credenciales."
     exit 1
 fi
@@ -95,7 +95,7 @@ log_ok "Estado de '$TARGET_REMOTE' actualizado."
 DIVERGED=""
 while IFS= read -r local_branch; do
     [ -z "$local_branch" ] && continue
-    if git ls-remote --heads "$TARGET_REMOTE" "$local_branch" 2>/dev/null | grep -q "refs/heads/$local_branch"; then
+    if _gf_ls_remote --heads "$TARGET_REMOTE" "$local_branch" 2>/dev/null | grep -q "refs/heads/$local_branch"; then
         ahead=$(git rev-list --count "$TARGET_REMOTE/$local_branch..$local_branch" 2>/dev/null || echo 0)
         behind=$(git rev-list --count "$local_branch..$TARGET_REMOTE/$local_branch" 2>/dev/null || echo 0)
         if [ "$behind" -gt 0 ]; then
@@ -109,12 +109,12 @@ REMOTE_ONLY_BRANCHES=""
 REMOTE_ONLY_TAGS=""
 if [ "$MODE" = "mirror" ]; then
     # Ramas que existen en destino pero no en local
-    REMOTE_BRANCHES=$(git ls-remote --heads "$TARGET_REMOTE" 2>/dev/null | sed 's|.*refs/heads/||' | sort -u)
+    REMOTE_BRANCHES=$(_gf_ls_remote --heads "$TARGET_REMOTE" 2>/dev/null | sed 's|.*refs/heads/||' | sort -u)
     LOCAL_BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/heads | sort -u)
     REMOTE_ONLY_BRANCHES=$(comm -23 <(printf "%s\n" "$REMOTE_BRANCHES") <(printf "%s\n" "$LOCAL_BRANCHES") | grep -v '^$' || true)
 
     # Tags que existen en destino pero no en local
-    REMOTE_TAGS=$(git ls-remote --tags "$TARGET_REMOTE" 2>/dev/null | sed 's|.*refs/tags/||' | sed 's|\^{}$||' | sort -u)
+    REMOTE_TAGS=$(_gf_ls_remote --tags "$TARGET_REMOTE" 2>/dev/null | sed 's|.*refs/tags/||' | sed 's|\^{}$||' | sort -u)
     LOCAL_TAGS=$(git tag --list | sort -u)
     REMOTE_ONLY_TAGS=$(comm -23 <(printf "%s\n" "$REMOTE_TAGS") <(printf "%s\n" "$LOCAL_TAGS") | grep -v '^$' || true)
 fi
