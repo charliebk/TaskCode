@@ -35,6 +35,8 @@
  * hay contexto para saberlo (una tarea recien creada con `taskctl new`
  * tiene el Objetivo en blanco a proposito).
  */
+/** Linea sin sangrar hecha solo de negrita: cabecera de grupo (TASK-044). */
+const RE_GRUPO_NEGRITA = /^\*\*(.+?)\*\*:?\s*$/;
 /** Cabecera ATX de nivel 2 a 6 (ver decision 2 de la cabecera). */
 const RE_CABECERA = /^ {0,3}#{2,6}(?:\s|$)/;
 /** Subtitulo de nivel 3 a 6: no cambia de seccion (TASK-046). */
@@ -63,6 +65,10 @@ export function normalizarTexto(texto) {
         .toLowerCase();
 }
 /** El titulo de una cabecera ATX, sin almohadillas ni diacriticos. */
+/** El titulo de una cabecera tal como se escribio (para mostrarlo). */
+function textoDeCabecera(linea) {
+    return linea.trim().replace(/^#+\s*/, '').replace(/\s*#+$/, '').trim();
+}
 function tituloDeCabecera(linea) {
     return normalizarTexto(linea
         .trim()
@@ -94,6 +100,10 @@ export function extraerSecciones(body) {
     let criteriosVisto = false;
     // Una linea sangrada solo continua un criterio si va pegada a el.
     let continuable = false;
+    // TASK-044: a que grupo pertenece cada criterio normal (indice paralelo
+    // a `normales`), y el titulo de cada grupo. El 0 es el de los sueltos.
+    const titulosGrupo = [null];
+    const grupoDe = [];
     for (const linea of lineas) {
         // TASK-046 (D2 de la auditoria): un subtitulo de nivel 3 o mas dentro
         // del Objetivo o de los Criterios NO cambia de seccion. Antes cualquier
@@ -111,6 +121,8 @@ export function extraerSecciones(body) {
             }
             else {
                 destino = tituloSub === TITULO_TRAS_CIERRE ? trasCierre : normales;
+                if (destino === normales)
+                    titulosGrupo.push(textoDeCabecera(linea));
                 // MEN-3: una linea sangrada justo debajo de un subtitulo no es la
                 // continuacion del ultimo criterio de la subseccion anterior.
                 continuable = false;
@@ -142,7 +154,15 @@ export function extraerSecciones(body) {
             const criterio = RE_CRITERIO.exec(linea);
             if (criterio !== null) {
                 destino.push((criterio[1] ?? '').trim());
+                if (destino === normales)
+                    grupoDe.push(titulosGrupo.length - 1);
                 continuable = true;
+                continue;
+            }
+            const negrita = destino === normales ? RE_GRUPO_NEGRITA.exec(linea) : null;
+            if (negrita !== null) {
+                titulosGrupo.push((negrita[1] ?? '').trim());
+                continuable = false;
                 continue;
             }
             if (continuable && destino.length > 0 && RE_CONTINUACION.test(linea)) {
@@ -154,5 +174,13 @@ export function extraerSecciones(body) {
                 continuable = false;
         }
     }
-    return { objetivo: objetivo.join('\n').trim(), criterios: normales, criteriosTrasCierre: trasCierre };
+    const grupos = titulosGrupo
+        .map((titulo, i) => ({ titulo, criterios: normales.filter((_, k) => grupoDe[k] === i) }))
+        .filter((g) => g.criterios.length > 0);
+    return {
+        objetivo: objetivo.join('\n').trim(),
+        criterios: normales,
+        criteriosTrasCierre: trasCierre,
+        grupos,
+    };
 }

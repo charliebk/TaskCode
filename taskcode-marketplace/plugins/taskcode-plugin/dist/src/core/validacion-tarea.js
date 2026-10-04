@@ -1,5 +1,20 @@
 export const MAX_CRITERIOS = 12;
 export const AVISO_CRITERIOS = 8;
+/** Titulos de grupo que no son un frente sino criterios de todos (TASK-044). */
+const GRUPOS_TRANSVERSALES = ['transversal', 'transversales', 'comun', 'comunes', 'general', 'generales'];
+function esTransversal(g) {
+    if (g.titulo === null)
+        return true;
+    return GRUPOS_TRANSVERSALES.includes(normalizar(g.titulo).replace(/[^a-z]/g, ''));
+}
+/** Grupos que son un frente propio: con titulo y no transversales. */
+export function frentesDe(grupos) {
+    return grupos.filter((g) => !esTransversal(g));
+}
+/** Grupos cuyos criterios valen para todos los frentes (y los sueltos). */
+export function gruposComunes(grupos) {
+    return grupos.filter(esTransversal);
+}
 /**
  * Palabras que, solas, no dicen como comprobar nada. Lista construida a
  * mano: en los criterios reales del repo no aparece ninguna (la
@@ -86,6 +101,14 @@ export function validarEnunciado(s) {
         avisos.push(`tiene ${String(criterios.length)} criterios: por encima de ${String(AVISO_CRITERIOS)}, ` +
             'las revisiones se alargan; valora partirla');
     }
+    // TASK-044: varios frentes con 12 criterios o menos AVISAN, no bloquean
+    // (decision 1 del plan: el bloqueo no tendria salida, y agrupar por capas
+    // una sola tarea es legitimo).
+    const frentes = frentesDe(s.grupos ?? []);
+    if (criterios.length <= MAX_CRITERIOS && frentes.length >= 2) {
+        avisos.push(`tiene ${String(frentes.length)} frentes (${frentes.map((g) => `«${g.titulo ?? ''}»`).join(', ')}): ` +
+            'si son independientes, valora partirla en una tarea por frente');
+    }
     const vagos = criterios.filter((c) => c.trim() !== '' && esSoloVago(c) && !tieneAncla(c));
     for (const c of vagos) {
         bloqueos.push(`el criterio «${c}» solo dice palabras vagas: di como se comprueba`);
@@ -95,7 +118,7 @@ export function validarEnunciado(s) {
         avisos.push(`${String(sinAncla.length)} criterio(s) no citan nada comprobable (un comando, una ruta, ` +
             `un numero, codigo o un test): ${sinAncla.map((c) => `«${c}»`).join('; ')}`);
     }
-    return { bloqueos, avisos };
+    return { bloqueos, avisos, demasiadoGrande: criterios.length > MAX_CRITERIOS };
 }
 /**
  * true si un plan-final.md no tiene contenido propio: quitando las

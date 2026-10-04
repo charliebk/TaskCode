@@ -118,3 +118,41 @@ test('parseImportMarkdown: tolera mezclar criterios indentados y sin indentar en
     assert.deepEqual(e.criterios, ['sin indentar', 'indentado', 'mas indentado, con asterisco']);
   }
 });
+
+test('parseImportMarkdown: Objetivo de varias lineas y un salto de parrafo', () => {
+  const entries = parseImportMarkdown(
+    '### Con objetivo\n' +
+      '> Primera linea del objetivo\n' +
+      '> segunda linea\n' +
+      '>\n' +
+      '> Otro parrafo\n' +
+      '\n' +
+      '- criterio a\n' +
+      '- criterio b\n'
+  );
+  assert.equal(entries.length, 1);
+  const e = entries[0]!;
+  assert.equal(e.ok, true);
+  if (e.ok) {
+    assert.equal(e.objetivo, 'Primera linea del objetivo\nsegunda linea\n\nOtro parrafo');
+    assert.deepEqual(e.criterios, ['criterio a', 'criterio b']);
+  }
+});
+
+test('parseImportMarkdown: sin Objetivo el campo es cadena vacia y lo demas no cambia', () => {
+  const entries = parseImportMarkdown('### Sin objetivo\n- criterio a\n');
+  assert.deepEqual(entries, [{ ok: true, titulo: 'Sin objetivo', lineNumber: 1, criterios: ['criterio a'], objetivo: '' }]);
+});
+
+test('parseImportMarkdown: un ">" DESPUES de un criterio sigue siendo prosa suelta invalida', () => {
+  const entries = parseImportMarkdown('### Mala\n> objetivo valido\n- criterio a\n> esto ya no\n');
+  assert.equal(entries.length, 1);
+  const e = entries[0]!;
+  assert.equal(e.ok, false);
+  if (!e.ok) assert.match(e.motivo, /La linea 4 no es un criterio/);
+});
+
+test('parseImportMarkdown: solo Objetivo y ningun criterio sigue siendo invalido', () => {
+  const entries = parseImportMarkdown('### Sin criterios\n> objetivo\n');
+  assert.equal(entries[0]!.ok, false);
+});
