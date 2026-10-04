@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 57 / 69 items terminados (83%)** · última actualización: 2026-10-04
+**Progreso global: 58 / 69 items terminados (84%)** · última actualización: 2026-10-04
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -31,8 +31,8 @@ tomada y documentada, no aplazada.
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **5** | ~9h |
 | F — Auditoría 2026-10-03 | 22 | **14** | — |
-| G — Flujo guiado por fases | 5 | **2** | — |
-| **Total pendiente** | **12** | — | — |
+| G — Flujo guiado por fases | 5 | **3** | — |
+| **Total pendiente** | **11** | — | — |
 
 ---
 
@@ -742,13 +742,13 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 - [x] TASK-053 — `moveTareaFile` reintenta el rename ante EPERM/EBUSY
 - [ ] TASK-054 — Rutas no ASCII en el diff de revisión por dominio
 
-## G — Flujo guiado por fases (2/5)
+## G — Flujo guiado por fases (3/5)
 
 Pedido por Carlos el 2026-10-04 con prioridad sobre el resto de la fase F.
 Plan de referencia: `tareas/.../TASK-055/planificacion/plan-final.md`.
 
 - [x] TASK-055 — Flujo A: `taskctl` desde PowerShell y cmd
 - [x] TASK-056 — Flujo B: núcleo determinista del siguiente paso y registro de transiciones
-- [ ] TASK-057 — Flujo C: fases como skills invocables en modo manual
+- [x] TASK-057 — Flujo C: fases como skills invocables en modo manual
 - [ ] TASK-058 — Flujo D: modo semiautomático
 - [ ] TASK-059 — Flujo E: modo automático
