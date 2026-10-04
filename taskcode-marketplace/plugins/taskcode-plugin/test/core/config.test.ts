@@ -75,12 +75,15 @@ const RUTA_FICTICIA = '/repo/.taskcode/config.yml';
 // 1. Sin fichero: comportamiento identico al de hoy
 // ---------------------------------------------------------------------
 
-test('resolverConfig: repo sin .taskcode/ devuelve los tres defaults', async () => {
+test('resolverConfig: repo sin .taskcode/ devuelve los defaults', async () => {
   await withTempRepo(async (repoRoot) => {
     const c = resolverConfig(repoRoot);
     assert.equal(c.rama_base, 'develop');
     assert.equal(c.agente_revisor_por_defecto, 'general-purpose');
     assert.equal(c.limite_wip, 1);
+    // Literal, no contra CONFIG_DEFAULTS: comparar con la propia constante
+    // no veria un default cambiado (TASK-056, plan de pruebas).
+    assert.equal(c.modo_flujo, 'manual');
     assert.deepEqual(c, { ...CONFIG_DEFAULTS });
   });
 });
@@ -562,4 +565,33 @@ test('resolverConfig: un .taskcode que es un FICHERO aborta (no cae al default e
     assert.throws(() => resolverConfig(repoRoot), ConfigError);
     assert.throws(() => resolverConfig(repoRoot), /existe pero no es una carpeta/);
   });
+});
+
+// ---------------------------------------------------------------------
+// modo_flujo (TASK-056)
+// ---------------------------------------------------------------------
+
+test('parsearConfig: modo_flujo acepta los tres valores', () => {
+  for (const modo of ['manual', 'semiautomatico', 'automatico'] as const) {
+    assert.equal(parsearConfig(`modo_flujo: ${modo}\n`, RUTA_FICTICIA).modo_flujo, modo);
+  }
+});
+
+test('parsearConfig: modo_flujo invalido aborta listando los tres validos y sugiriendo el parecido', () => {
+  assert.throws(
+    () => parsearConfig('modo_flujo: automatic\n', RUTA_FICTICIA),
+    (e: Error) =>
+      e instanceof ConfigError &&
+      /manual, semiautomatico, automatico/.test(e.message) &&
+      /Querias decir "automatico"/.test(e.message)
+  );
+  assert.throws(() => parsearConfig('modo_flujo: auto\n', RUTA_FICTICIA), ConfigError);
+  assert.throws(() => parsearConfig('modo_flujo:\n', RUTA_FICTICIA), ConfigError);
+});
+
+test('parsearConfig: modo_flujo repetido aborta', () => {
+  assert.throws(
+    () => parsearConfig('modo_flujo: manual\nmodo_flujo: automatico\n', RUTA_FICTICIA),
+    ConfigError
+  );
 });

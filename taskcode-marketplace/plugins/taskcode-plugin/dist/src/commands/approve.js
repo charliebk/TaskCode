@@ -19,6 +19,8 @@
  */
 import path from 'node:path';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
+import { registrarTransicion, modoCongelado, DECIDIDO_POR, } from '../core/transiciones.js';
+import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { planTemplate, resolverPlanFinal } from './plan.js';
 import { readFile } from 'node:fs/promises';
@@ -65,7 +67,8 @@ function assertPlanNoAmbiguo(id, u) {
 export async function runApproveCommand(tareasRoot, argv, today, deps) {
     // --push se saca ANTES de leer el ID: es booleano puro y va delante
     // o detras indistintamente ("taskctl approve --push TASK-030").
-    const { push, resto } = extraerPushFlag(argv);
+    const { push, resto: sinPush } = extraerPushFlag(argv);
+    const { decididoPor, resto } = extraerDecididoPor(sinPush);
     const id = resto[0];
     if (id === undefined || id.trim() === '') {
         throw new ApproveCommandError('[ERROR] Falta el ID de la tarea: taskctl approve TASK-NNN.');
@@ -105,13 +108,29 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
     // roles se eligen en un orden fijo, asi que solo hay 0..N prefijos), no
     // con textos copiados, para que siga valiendo si la plantilla cambia.
     const rutaPlan = ubicacion.canonicaExiste ? ubicacion.canonica : ubicacion.legada;
-    const plantillas = Array.from({ length: ROLES_BRAINSTORM.length + 1 }, (_, k) => planTemplate(task, seleccionarRoles(k)));
-    if (planEsEsqueleto(await readFile(rutaPlan, 'utf8'), plantillas)) {
+    if (await planEsPlantilla(task, rutaPlan)) {
         throw new ApproveCommandError(`[ERROR] ${task.id}: "${rutaPlan}" es la plantilla sin rellenar: no hay plan que aprobar. ` +
             'Redactalo (enfoque, riesgos, pruebas) y reintenta "taskctl approve".');
     }
+    // TASK-056: la aprobacion automatica solo vale si la tarea se planifico
+    // en modo automatico (modo congelado en su registro). Cambiar el config
+    // despues de plan no la habilita: firmaria un plan cuyas preguntas nadie
+    // contesto pensando en un flujo sin persona.
+    if (decididoPor === 'automatico') {
+        const congelado = modoCongelado(body);
+        if (congelado !== 'automatico') {
+            throw new ApproveCommandError(`[ERROR] ${task.id}: no se puede aprobar como automatico: la tarea se planifico en modo ` +
+                `"${congelado ?? 'sin registrar'}", no "automatico". La aprobacion la tiene que dar una ` +
+                `persona: taskctl approve ${task.id} (sin --decidido-por automatico).`);
+        }
+    }
     const updated = { ...task, plan_aprobado: true, actualizado: today };
-    const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+    // Reaprobar un plan ya aprobado no es una transicion: sin fila nueva, y
+    // asi la segunda vez sigue sin crear commit (es idempotente).
+    const conRegistro = task.plan_aprobado
+        ? body
+        : registrarTransicion(body, 'approve', today, resolverConfig(deps.repoCwd).modo_flujo, decididoPor);
+    const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     // Paso 5 de la 8.3 (TASK-030, item C2). "approve" no cambia el
     // estado de la tarea, asi que origen y destino son la MISMA carpeta;
     // se pasan las dos igualmente porque autoCommit deduplica y asi el
@@ -123,4 +142,49 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
         push,
     });
     return { id: task.id, filePath: newFilePath, baseBranchGuard, autoCommit: commitResult };
+}
+/**
+ * `--decidido-por persona|automatico` (TASK-056), en cualquier posicion
+ * detras del ID; `--decidido-por=valor` tambien. Por defecto, persona. Un
+ * valor desconocido aborta: no se adivina quien aprobo.
+ */
+function extraerDecididoPor(argv) {
+    const resto = [];
+    let valor;
+    for (let i = 0; i < argv.length; i++) {
+        const a = argv[i];
+        if (a === '--decidido-por') {
+            // Sin valor detras no se cae a "persona" en silencio.
+            valor = argv[i + 1] ?? '';
+            i++;
+        }
+        else if (a.startsWith('--decidido-por=')) {
+            valor = a.slice('--decidido-por='.length);
+        }
+        else {
+            resto.push(a);
+        }
+    }
+    if (valor === undefined)
+        return { decididoPor: 'persona', resto };
+    if (!DECIDIDO_POR.includes(valor)) {
+        throw new ApproveCommandError(`[ERROR] --decidido-por "${valor}" no es valido. Valores: ${DECIDIDO_POR.join(', ')}.`);
+    }
+    return { decididoPor: valor, resto };
+}
+/**
+ * ¿El plan-final.md es la plantilla sin rellenar? Se compara con las
+ * plantillas posibles (los roles se eligen en un orden fijo, asi que solo
+ * hay 0..N prefijos). Lo comparten approve y `taskctl siguiente` (TASK-056).
+ */
+export async function planEsPlantilla(task, rutaPlan) {
+    const plantillas = Array.from({ length: ROLES_BRAINSTORM.length + 1 }, (_, k) => planTemplate(task, seleccionarRoles(k)));
+    return planEsEsqueleto(await readFile(rutaPlan, 'utf8'), plantillas);
+}
+/** ¿La tarea tiene un plan-final.md redactado (existe y no es la plantilla)? */
+export async function planRedactado(task, taskDir) {
+    const u = await resolverPlanFinal(taskDir);
+    if (!planFinalExisteEn(u))
+        return false;
+    return !(await planEsPlantilla(task, u.canonicaExiste ? u.canonica : u.legada));
 }

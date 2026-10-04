@@ -12,6 +12,7 @@
  * | rutas_sincronizacion         | []                | fs/sincronizacion.ts    |
  * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
  * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
+ * | modo_flujo                   | manual            | core/flujo.ts, plan.ts, approve.ts |
  *
  * `excluir_de_revision` la anadio TASK-034: la peticion de revision
  * embebia el diff entero, y el JS compilado, los lockfiles y la propia
@@ -66,6 +67,7 @@ export class ConfigError extends Error {
         this.name = 'ConfigError';
     }
 }
+export const MODOS_FLUJO = ['manual', 'semiautomatico', 'automatico'];
 /**
  * El comportamiento de hoy, escrito una sola vez. Antes de C4 estos
  * tres valores vivian: 'develop' literal en git.ts, 'general-purpose'
@@ -85,6 +87,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
         '**/*-lock.*',
         'tareas/**',
     ]),
+    modo_flujo: 'manual',
 });
 /** Las unicas claves admitidas. Cualquier otra aborta (regla 2). */
 export const CLAVES_CONFIG = [
@@ -95,6 +98,7 @@ export const CLAVES_CONFIG = [
     'rutas_sincronizacion',
     'timeout_sincronizacion',
     'excluir_de_revision',
+    'modo_flujo',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -269,6 +273,9 @@ export function parsearConfig(contenido, ruta) {
                 break;
             case 'excluir_de_revision':
                 config.excluir_de_revision = validarPatronesExclusion(donde, par.valor);
+                break;
+            case 'modo_flujo':
+                config.modo_flujo = validarModoFlujo(donde, par.valor);
                 break;
         }
     }
@@ -485,4 +492,19 @@ function describirValor(valor) {
     if (typeof valor === 'string')
         return `el texto "${valor}"`;
     return `${String(valor)} (${typeof valor})`;
+}
+/**
+ * TASK-056: `modo_flujo` es un enumerado. Un valor fuera de la lista aborta
+ * nombrando los validos (y el mas parecido): caer a `manual` en silencio
+ * haria creer a la persona que el flujo va a encadenarse cuando no.
+ */
+function validarModoFlujo(donde, valor) {
+    const modo = validarTextoNoVacio(donde, 'modo_flujo', valor);
+    if (MODOS_FLUJO.includes(modo))
+        return modo;
+    const parecido = MODOS_FLUJO.map((m) => ({ m, d: distanciaEdicion(modo.toLowerCase(), m) }))
+        .sort((a, b) => a.d - b.d)[0];
+    const sugerencia = parecido !== undefined && parecido.d <= 3 ? ` ¿Querias decir "${parecido.m}"?` : '';
+    throw new ConfigError(`[ERROR] ${donde}: modo_flujo "${modo}" no es valido.${sugerencia}\n` +
+        `        Valores validos: ${MODOS_FLUJO.join(', ')} (sin la clave, manual).`);
 }

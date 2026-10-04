@@ -32,6 +32,8 @@ import {
 } from '../cli/asignado.js';
 import type { Task, ReglaSeleccionSkill } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
+import { registrarTransicion } from '../core/transiciones.js';
+import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { ensureBaseBranchReady, gitUserEmail, type BaseBranchGuardResult } from '../fs/git.js';
 import {
@@ -996,7 +998,9 @@ export async function runPlanCommand(
       )
     );
   }
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+  // TASK-056: la fila de plan congela el modo de flujo del config en la tarea.
+  const conRegistro = registrarTransicion(body, 'plan', today, resolverConfig(deps.repoCwd).modo_flujo);
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
   const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
 
   // Paso 5 de la 8.3 (TASK-030, item C2): la carpeta de ORIGEN entra

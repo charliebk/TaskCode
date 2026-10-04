@@ -18,6 +18,7 @@ import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { escanearWip } from '../fs/wip-scan.js';
 import { ESTADOS_QUE_OCUPAN_WIP, tareasQueBloquean, resolverAsignado, mensajeWipExcedido, mensajeWipIndeterminado, personaDeTarea, } from '../core/wip.js';
 import { resolverConfig } from '../core/config.js';
+import { registrarTransicion } from '../core/transiciones.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail, resolveBaseBranchForTipo, gitflowBaseArgs, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
@@ -196,7 +197,8 @@ export async function runStartCommand(tareasRoot, argv, today, deps) {
     // ver comentario de MoveTareaFileOptions en task-store.ts. task/body
     // ya se leyeron en memoria antes de invocar el script, asi que no se
     // pierde nada.
-    const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body, {
+    const conRegistro = registrarTransicion(body, 'start', today, resolverConfig(deps.repoCwd).modo_flujo);
+    const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro, {
         tolerateMissingSource: true,
     });
     // Paso 5 de la 8.3 (TASK-030, item C2). Se commitea sobre la rama de
