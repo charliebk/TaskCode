@@ -65,3 +65,36 @@ Suite: 1038 tests, 1035 en verde (los 3 rojos conocidos de Windows).
 
 El smoke dentro de una sesion de Claude Code paso a «Tras el cierre»: este
 entorno no autentica `claude -p`.
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **cambios-solicitados** (5 IMPORTANTE, 3 MENOR).
+
+- IMP-1 (corregido): el bloqueo solo lo consultaba `cadena abrir`; una
+  segunda sesion podia hacer checkout y commit con una cadena ajena abierta.
+  Ahora lo hace cumplir el CLI: `new`, `import`, `plan`, `approve`, `start`,
+  `review`, `codex-review`, `veredicto`, `finish`, `pausa` y los wrappers de
+  Git-Flow abortan si hay una cadena abierta y no reciben su testigo con
+  `--cadena` (y si traen un testigo de una cadena ya cerrada). Reproducido el
+  caso del revisor con el CLI: `start` de la otra sesion aborta y la rama no
+  cambia; tras cerrar la cadena, funciona. La implementacion queda fuera del
+  bloqueo (la cadena se detiene al llegar a ella): decision documentada.
+- IMP-2 (corregido): hasta E, `siguiente` en automatico pregunta antes de
+  cada fase nueva, como el semiautomatico: sin sus guardas, encadenar hasta
+  `finish` mergearia sin persona.
+- IMP-3 (corregido en el CLI): con la tarea en curso o tras
+  `cambios-solicitados`, `siguiente` devuelve `detener` en todos los modos
+  (falta trabajo, no una fase); deja de depender de una excepcion en el texto.
+- IMP-4 (corregido): el «no» de `approve` cierra la cadena y termina sin
+  volver a avance.
+- IMP-5 (corregido): regla explicita: un «no» o un error con una cadena
+  abierta la cierran antes de parar.
+- MEN-1 (corregido): aserciones para cada camino de cierre y para el paso del
+  testigo a cada `taskctl`.
+- MEN-2 (corregido): el testigo tiene que ser hex de 16; un vacio no casa con
+  un bloqueo roto. Test nuevo; su mutante muere.
+- MEN-3 (corregido): si el bloqueo desaparece entre el `EEXIST` y su lectura,
+  mensaje propio en lugar de una traza.
+
+Mutantes: sin la guarda del CLI (IMP-1) y testigo libre (MEN-2), muertos.
+Suite: 1039 tests, 1036 en verde (los 3 rojos conocidos de Windows).

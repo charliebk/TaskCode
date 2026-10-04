@@ -48,6 +48,16 @@ export function rutaBloqueo(repoCwd: string): string {
   return path.resolve(repoCwd, runGit(['rev-parse', '--git-path', 'taskcode/cadena.lock'], repoCwd));
 }
 
+/** Forma de un testigo valido: el que genera `abrir` (MEN-2: un vacio no puede casar con nada). */
+const TESTIGO_RE = /^[0-9a-f]{16}$/;
+
+function exigirTestigo(arg: string | undefined, uso: string): string {
+  if (arg === undefined || !TESTIGO_RE.test(arg)) {
+    throw new CadenaCommandError(`[ERROR] Testigo de cadena ausente o mal formado. Uso: ${uso}.`);
+  }
+  return arg;
+}
+
 async function leerBloqueo(ruta: string): Promise<Bloqueo | null> {
   let texto: string;
   try {
@@ -108,14 +118,20 @@ export async function runCadenaCommand(
       } catch (e: unknown) {
         if (!isEexist(e)) throw e;
         const otro = await leerBloqueo(ruta);
-        throw new CadenaCommandError(mensajeOcupado(otro as Bloqueo, ruta, ahora));
+        // MEN-3: si se borro entre el EEXIST y la lectura, el arbol quedo libre
+        // en ese instante; no se reintenta (otra sesion puede estar abriendo).
+        if (otro === null) {
+          throw new CadenaCommandError(
+            '[ERROR] Otra sesion estaba abriendo o cerrando una cadena en este arbol justo ahora. ' +
+              'Reintenta en un momento.'
+          );
+        }
+        throw new CadenaCommandError(mensajeOcupado(otro, ruta, ahora));
       }
       return { accion: 'abrir', bloqueo, ruta };
     }
     case 'comprobar': {
-      if (arg === undefined || arg.startsWith('--')) {
-        throw new CadenaCommandError('[ERROR] Uso: taskctl cadena comprobar <testigo>.');
-      }
+      exigirTestigo(arg, 'taskctl cadena comprobar <testigo>');
       const b = await leerBloqueo(ruta);
       if (b === null) {
         throw new CadenaCommandError(
@@ -132,9 +148,7 @@ export async function runCadenaCommand(
         await rm(ruta, { force: true });
         return { accion: 'cerrar', ruta, existia: b !== null };
       }
-      if (arg === undefined) {
-        throw new CadenaCommandError('[ERROR] Uso: taskctl cadena cerrar <testigo> | cerrar --forzar.');
-      }
+      exigirTestigo(arg, 'taskctl cadena cerrar <testigo> | cerrar --forzar');
       if (b === null) return { accion: 'cerrar', ruta, existia: false };
       if (b.testigo !== arg) {
         throw new CadenaCommandError(
@@ -150,4 +164,52 @@ export async function runCadenaCommand(
         '[ERROR] Uso: taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar.'
       );
   }
+}
+
+/**
+ * IMP-1 de la revision: el bloqueo lo hace cumplir el CLI, no la buena
+ * voluntad de las skills. Todo comando que escribe en el repo o cambia de
+ * rama pasa por aqui antes de hacer nada:
+ * - sin cadena abierta: sigue, salvo que traiga un testigo (esa cadena ya se
+ *   cerro: seguir encadenando sobre ella seria trabajar sin bloqueo);
+ * - con una cadena abierta: sigue solo con su testigo (`--cadena <testigo>`).
+ * Asi una segunda sesion no puede hacer checkout ni commit mientras otra
+ * encadena fases, aunque no pase por `cadena abrir`.
+ */
+export async function verificarCadena(repoCwd: string, testigo: string | undefined, ahora = new Date()): Promise<void> {
+  if (testigo !== undefined) exigirTestigo(testigo, 'taskctl <comando> ... --cadena <testigo>');
+  const ruta = rutaBloqueo(repoCwd);
+  const b = await leerBloqueo(ruta);
+  if (b === null) {
+    if (testigo === undefined) return;
+    throw new CadenaCommandError(
+      '[ERROR] La cadena de ese testigo ya no esta abierta en este arbol. No se ha tocado nada. ' +
+        'Para seguir, lanza la fase sin --cadena.'
+    );
+  }
+  if (testigo === b.testigo) return;
+  throw new CadenaCommandError(
+    mensajeOcupado(b, ruta, ahora) +
+      (testigo === undefined
+        ? '\n        Si esa cadena es de esta misma sesion, pasa su testigo con --cadena <testigo>.'
+        : '')
+  );
+}
+
+/** Saca `--cadena <testigo>` (o `--cadena=<testigo>`) de argv. Sin valor, testigo vacio (y falla al validar). */
+export function extraerCadena(argv: readonly string[]): { testigo: string | undefined; resto: string[] } {
+  const resto: string[] = [];
+  let testigo: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i] as string;
+    if (a === '--cadena') {
+      testigo = argv[i + 1] ?? '';
+      i++;
+    } else if (a.startsWith('--cadena=')) {
+      testigo = a.slice('--cadena='.length);
+    } else {
+      resto.push(a);
+    }
+  }
+  return { testigo, resto };
 }

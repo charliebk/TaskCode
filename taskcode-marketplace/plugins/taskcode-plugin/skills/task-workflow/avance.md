@@ -46,7 +46,7 @@ commitearlo y dejar la suite en verde; despues, la revision.
 
 ## Que hacer segun `accion`
 
-- **`detener`** (modo `manual`): no encadenar nada. Terminar diciendo a la
+- **`detener`**: no encadenar nada. Terminar diciendo a la
   persona, en una linea, el `motivo` y la skill de la siguiente fase con su
   ID, por ejemplo `/taskcode-plugin:approve TASK-NNN`. Si la tarea esta
   terminada, decirlo y nada mas. Si habia una cadena abierta, cerrarla.
@@ -58,9 +58,13 @@ commitearlo y dejar la suite en verde; despues, la revision.
     skill que la reanuda.
 - **`continuar`**: encadenar la skill siguiente sin preguntar.
 
-No se encadena, aunque la accion lo diga, cuando la `fase` es `review` con la
-tarea `en-curso`: primero hay que implementar el plan. La skill termina como
-en `detener`, diciendo que toca implementar y despues revisar.
+`siguiente` devuelve `detener` en cualquier modo cuando lo que falta es
+trabajo y no una fase: `review` con la tarea `en-curso` (implementar el plan)
+o tras un `cambios-solicitados` (corregir). La skill termina diciendo que toca
+hacer ese trabajo, commitearlo y despues `/taskcode-plugin:review TASK-NNN`.
+
+En modo `automatico`, mientras sus guardas propias no esten disponibles,
+`siguiente` pregunta antes de cada fase nueva, igual que en `semiautomatico`.
 
 ## Encadenar la skill siguiente (la cadena)
 
@@ -80,13 +84,23 @@ se pisan las ramas). La cadena se identifica con un testigo:
 
 Una skill que recibe `--cadena <testigo>` empieza, despues de situarse en la
 raiz, con `taskctl cadena comprobar <testigo>`; si falla, para y muestra el
-error. En modo `manual` no hay cadena ni bloqueo.
+error. Y pasa `--cadena <testigo>` a cada `taskctl` que escriba o cambie de
+rama (`plan`, `approve`, `start`, `review`, `veredicto`, `codex-review`,
+`finish`, `pausa`...): **el CLI rechaza esos comandos mientras haya una cadena
+abierta sin su testigo**, asi que una segunda sesion no puede tocar el arbol
+aunque no pase por `cadena abrir`. En modo `manual` no hay cadena.
+
+**Un «no» o un error cierran la cadena.** Si una skill registra un «no»
+(`taskctl pausa`), o un `taskctl` falla con una cadena abierta, primero
+`taskctl cadena cerrar <testigo>`, despues muestra el «no» o el error, y
+termina sin volver a pasar por esta seccion.
 
 ## Reglas que no cambian con el modo
 
 - Antes de cualquier `taskctl`, situarse en la raiz del repo:
   `cd "$(git rev-parse --show-toplevel)"`.
-- Si un `taskctl` falla, parar y mostrar su error tal cual: dice que hacer.
-  No reintentar ni saltarse el paso editando ficheros a mano.
+- Si un `taskctl` falla, parar y mostrar su error tal cual (con una cadena
+  abierta, cerrandola antes): dice que hacer. No reintentar ni saltarse el
+  paso editando ficheros a mano.
 - Las guardas del CLI (limite de trabajo en curso, rama base limpia, revisor
   independiente, veredicto, segunda opinion) no se rodean en ningun modo.

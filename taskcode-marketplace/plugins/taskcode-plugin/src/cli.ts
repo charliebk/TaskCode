@@ -18,7 +18,12 @@ import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
 import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
-import { runCadenaCommand, CadenaCommandError } from './commands/cadena.js';
+import {
+  runCadenaCommand,
+  CadenaCommandError,
+  verificarCadena,
+  extraerCadena,
+} from './commands/cadena.js';
 import {
   isWrapperCommand,
   runWrapperCommand,
@@ -299,7 +304,30 @@ export async function main(argv: readonly string[]): Promise<number> {
   return codigo === 0 && sincronizacionPendiente ? CODIGO_SINCRONIZACION_NO_APLICADA : codigo;
 }
 
-async function mainComando(argv: readonly string[]): Promise<number> {
+/**
+ * Comandos que escriben en el repo o cambian de rama: con una cadena de fases
+ * abierta en el arbol (TASK-058) solo se ejecutan con su testigo. Los de solo
+ * lectura (board, siguiente) y `cadena` quedan fuera.
+ */
+const GUARDADOS_POR_CADENA = new Set([
+  'new',
+  'import',
+  'plan',
+  'approve',
+  'start',
+  'review',
+  'codex-review',
+  'veredicto',
+  'finish',
+  'pausa',
+  'pause',
+  'resume',
+  'recover',
+  'abort-merge',
+]);
+
+async function mainComando(argvEntrada: readonly string[]): Promise<number> {
+  let argv = argvEntrada;
   const cmd = argv[0];
 
   if (cmd === undefined || cmd === '--help' || cmd === '-h') {
@@ -309,6 +337,20 @@ async function mainComando(argv: readonly string[]): Promise<number> {
   if (cmd === '--version' || cmd === '-v') {
     process.stdout.write(`${VERSION}\n`);
     return 0;
+  }
+
+  if (GUARDADOS_POR_CADENA.has(cmd)) {
+    const { testigo, resto } = extraerCadena(argv.slice(1));
+    try {
+      await verificarCadena(process.cwd(), testigo);
+    } catch (e) {
+      if (e instanceof CadenaCommandError || e instanceof GitLaunchError || e instanceof GitCommandError) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+    argv = [cmd, ...resto];
   }
 
   if (cmd === 'new') {

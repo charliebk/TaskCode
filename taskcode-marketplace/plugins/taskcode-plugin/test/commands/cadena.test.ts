@@ -154,6 +154,12 @@ test('un bloqueo con JSON roto se trata como ocupado y --forzar lo limpia', asyn
     assert.notEqual(r.status, 0);
     assert.ok(await existe(lock), 'no se pisa el bloqueo roto');
     assert.ok(r.stderr.includes('taskctl cadena cerrar --forzar'));
+    // MEN-2 de la revision: un testigo vacio no casa con el testigo vacio del bloqueo roto,
+    // ni en comprobar, ni en cerrar, ni como --cadena de un comando de fase.
+    assert.notEqual(cli(repoRoot, ['cadena', 'comprobar', '']).status, 0);
+    assert.notEqual(cli(repoRoot, ['cadena', 'cerrar', '']).status, 0);
+    assert.notEqual(cli(repoRoot, ['pausa', 'TASK-001', '--cadena', '']).status, 0);
+    assert.ok(await existe(lock), 'un testigo vacio no cierra el bloqueo roto');
     cliOk(repoRoot, ['cadena', 'cerrar', '--forzar']);
     assert.equal(await existe(lock), false);
     cliOk(repoRoot, ['cadena', 'abrir', 'TASK-001']);

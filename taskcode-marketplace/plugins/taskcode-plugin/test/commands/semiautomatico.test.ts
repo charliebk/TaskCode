@@ -138,7 +138,8 @@ test('respuesta «si»: approve, start y review, cada paso guiado por siguiente'
     await writeFile(path.join(repoRoot, 'app.txt'), 'cambiado\n', 'utf8');
     commitAll(repoRoot, `feat(${ID}): trabajo`);
     s = siguiente(repoRoot);
-    assert.deepEqual([s.estado, s.fase, s.accion], ['en-curso', 'review', 'preguntar']);
+    // En curso falta trabajo (implementar): se detiene en cualquier modo (IMP-3 de la revision).
+    assert.deepEqual([s.estado, s.fase, s.accion], ['en-curso', 'review', 'detener']);
   });
 });
 
@@ -155,12 +156,17 @@ test('cadena en el flujo: abrir antes de approve, comprobar antes de cada comand
     assert.ok(segundo.stderr.includes(ID));
 
     cliOk(repoRoot, ['cadena', 'comprobar', testigo]);
-    cliOk(repoRoot, ['approve', ID]);
+    // IMP-1 de la revision: con la cadena abierta, un comando de fase sin su testigo aborta sin tocar nada.
+    const sinTestigo = cli(repoRoot, ['approve', ID]);
+    assert.notEqual(sinTestigo.status, 0);
+    assert.match(sinTestigo.stderr, /otra cadena de fases en marcha/);
+    assert.equal((await readTareaFile(tareasRoot, ID))?.task.plan_aprobado, false);
+    cliOk(repoRoot, ['approve', ID, '--cadena', testigo]);
 
     cliOk(repoRoot, ['cadena', 'comprobar', testigo]);
     const s = siguiente(repoRoot);
     assert.equal(s.fase, 'start');
-    await runStartCommand(tareasRoot, [ID], HOY, { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
+    cliOk(repoRoot, ['start', ID, '--cadena', testigo]);
 
     cliOk(repoRoot, ['cadena', 'comprobar', testigo]);
     assert.equal((await readTareaFile(tareasRoot, ID))?.task.estado, 'en-curso');
