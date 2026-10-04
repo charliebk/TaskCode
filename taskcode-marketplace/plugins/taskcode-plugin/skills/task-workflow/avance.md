@@ -37,7 +37,7 @@ quien decidio) en el mismo commit que la transicion.
 | `review` | `/taskcode-plugin:review` |
 | `veredicto` | `/taskcode-plugin:review` |
 | `codex-review` | `/taskcode-plugin:review` |
-| `veredicto-codex` | `/taskcode-plugin:review` |
+| `veredicto-codex` | `/taskcode-plugin:review` (no lanza nada: el veredicto de la segunda opinion lo decide una persona) |
 | `finish` | `/taskcode-plugin:finish` |
 | `terminada` | ninguna: la tarea esta cerrada |
 

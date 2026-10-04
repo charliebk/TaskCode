@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Fase de aprobacion del flujo de tareas con taskctl. Muestra el plan-final de una tarea TASK-NNN y la marca como aprobada solo si la persona lo aprueba. Se invoca como /taskcode-plugin:approve TASK-NNN.
-allowed-tools: Bash(taskctl:*) Bash(git rev-parse:*) Read AskUserQuestion Skill
+allowed-tools: Bash(taskctl:*) Bash(git rev-parse:*) Bash(git status:*) Bash(git add:*) Bash(git commit:*) Read Edit AskUserQuestion Skill
 ---
 
 # Fase: aprobar el plan
@@ -16,10 +16,13 @@ Es el checkpoint humano: el plan no se aprueba porque un agente lo diga.
    lo que pida decision de una persona.
 3. Pregunta a la persona si lo aprueba.
    - **Si**: ejecuta `taskctl approve TASK-NNN`.
-   - **No**: ejecuta `taskctl pausa TASK-NNN`, que deja constancia del «no»
-     en el registro de la tarea sin cambiar su estado. Recoge que habria que
-     cambiar y dile que lo reanuda `/taskcode-plugin:plan TASK-NNN` (si hay
-     que rehacer el plan) o `/taskcode-plugin:approve TASK-NNN`.
+   - **No**: pregunta que habria que cambiar y escribelo, con sus palabras, al
+     final de `plan-final.md` en una seccion `## Cambios pedidos por la
+     persona` (asi sobrevive a la sesion y la re-planificacion lo lee).
+     Commitealo y ejecuta `taskctl pausa TASK-NNN`, que deja constancia del
+     «no» en el registro de la tarea sin cambiar su estado. Si hay que rehacer
+     el plan, lo reanuda `/taskcode-plugin:plan TASK-NNN`; si basta con
+     retocarlo a mano, `/taskcode-plugin:approve TASK-NNN` otra vez.
 4. Si `taskctl approve` falla (por ejemplo, el plan es la plantilla sin
    rellenar), muestra el error tal cual.
 5. Sigue la seccion de avance (`task-workflow/avance.md`):

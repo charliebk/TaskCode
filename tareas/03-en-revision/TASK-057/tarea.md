@@ -77,3 +77,35 @@ Pendiente: smoke dentro de una sesion de Claude Code. `claude -p
 --plugin-dir` no pudo autenticarse en este entorno («OAuth session
 expired»); queda para la release, con las skills cargadas desde el plugin
 instalado.
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **cambios-solicitados** (2 IMPORTANTE, 5 MENOR). Hizo
+el ciclo entero con `node bin/taskctl` siguiendo las skills, la ronda
+fragmentada, la ronda 2 y Codex con un stub.
+
+- IMP-1 (corregido): `plan` ejecutaba siempre `taskctl plan`; al reanudar con
+  la ronda abierta, abria una re-planificacion falsa sin roles. Ahora consulta
+  `siguiente` primero: `planificada` → `taskctl plan`; en diseno con la ronda
+  abierta → no ejecuta `taskctl plan` y retoma los roles con salida vacia y el
+  unificador; re-planificar solo cuando la persona lo pidio.
+- IMP-2 (corregido): en `veredicto-codex`, `review` relanzaba Codex. Ahora
+  cada fase hace solo lo suyo: `veredicto-codex` no lanza nada y la persona
+  dicta el veredicto (la skill solo lo escribe tal cual); tras cambios de
+  Codex, se corrige antes de relanzarlo. La fila de `avance.md` lo dice.
+- MEN-1 (corregido): el «no» de `approve` se escribe en `plan-final.md`
+  (`## Cambios pedidos por la persona`), se commitea y se registra con
+  `pausa`; `plan` tiene un paso de re-planificacion que lo lee.
+- MEN-2 (corregido): volcar el informe conservando la cabecera y su linea
+  `- Veredicto:`; `--informe` con el nombre de fichero completo.
+- MEN-3 (corregido): si `codex-review` degrada, se muestra el aviso y no se
+  reintenta; decide la persona.
+- MEN-4 (corregido): `allowed-tools` de `finish` (y de `approve`, que ahora
+  tambien escribe y commitea) cubre editar y commitear.
+- MEN-5 (corregido en parte): mapa fase → skill fijo en el test y el bloque
+  de `detener` debe decir «no encadenar nada»; M2 y M12 mueren. Test nuevo
+  que fija las correcciones de IMP-1 e IMP-2 en el texto. Sin corregir M10
+  («si falla, reintentar»): es texto libre, y fijar cada frase en un test
+  convierte la skill en un documento congelado.
+
+Suite: 1025 tests, 1022 en verde (los 3 rojos conocidos de Windows).

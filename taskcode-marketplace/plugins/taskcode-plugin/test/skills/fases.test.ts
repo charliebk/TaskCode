@@ -125,16 +125,43 @@ test('cada skill de fase nombra su subcomando de taskctl, taskctl siguiente y la
   }
 });
 
-test('la seccion de avance asigna una skill existente a CADA fase que puede devolver siguiente', async () => {
+/**
+ * Que skill atiende cada fase de `siguiente` (MEN-5 de la revision: sin el
+ * mapa fijo, asignar una fase a la skill equivocada no ponia nada rojo).
+ * Tiene que cubrir FASES_SIGUIENTE entera.
+ */
+const SKILL_DE_FASE: Record<string, string | null> = {
+  plan: 'plan',
+  approve: 'approve',
+  start: 'start',
+  review: 'review',
+  veredicto: 'review',
+  'codex-review': 'review',
+  'veredicto-codex': 'review',
+  finish: 'finish',
+  terminada: null,
+};
+
+test('la seccion de avance asigna a CADA fase que puede devolver siguiente la skill que le toca', async () => {
   const avance = await readFile(AVANCE, 'utf8');
   for (const fase of FASES_SIGUIENTE) {
-    const fila = avance.split('\n').find((l) => l.startsWith(`| \`${fase}\` |`));
+    assert.ok(fase in SKILL_DE_FASE, `la fase "${fase}" no esta en el mapa esperado del test`);
+    const fila = avance.split(/\r?\n/).find((l) => l.startsWith(`| \`${fase}\` |`));
     assert.ok(fila, `la fase "${fase}" no tiene fila en avance.md`);
-    if (fase === 'terminada') continue;
+    const esperada = SKILL_DE_FASE[fase] as string | null;
     const skill = /\/taskcode-plugin:([a-z-]+)/.exec(fila);
+    if (esperada === null) {
+      assert.equal(skill, null, `la fase "${fase}" no deberia remitir a ninguna skill`);
+      continue;
+    }
     assert.ok(skill, `la fase "${fase}" no nombra ninguna skill`);
-    assert.ok(skill[1] !== undefined && skill[1] in FASES, `la fase "${fase}" apunta a una skill que no existe: ${skill[1]}`);
+    assert.equal(skill[1], esperada, `la fase "${fase}" remite a /taskcode-plugin:${skill[1]}`);
+    assert.ok(esperada in FASES, `la skill "${esperada}" no existe`);
   }
+  // En manual (detener) no se encadena nada: es el contrato del criterio 3.
+  const detener = /\*\*`detener`\*\*[^\n]*(\n {2}[^\n]*)*/.exec(avance);
+  assert.ok(detener, 'avance.md no tiene el bloque de detener');
+  assert.match(detener[0], /no encadenar nada/, 'detener tiene que decir que no se encadena nada');
   // Las tres acciones de siguiente tienen sus pasos.
   for (const accion of ['detener', 'preguntar', 'continuar']) {
     assert.ok(avance.includes(`**\`${accion}\`**`), `avance.md no dice que hacer con "${accion}"`);
@@ -152,6 +179,19 @@ test('las skills de fase y la seccion de avance no mencionan rutas ni documentos
     assert.doesNotMatch(texto, DOCUMENTO_INTERNO, `${ruta}: documento interno`);
     for (const r of RUTAS_DE_MAQUINA) assert.ok(!texto.includes(r), `${ruta}: ruta de maquina ${r}`);
   }
+});
+
+test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en veredicto-codex (IMP-2)', async () => {
+  const plan = await readFile(path.join(SKILLS_DIR, 'plan', 'SKILL.md'), 'utf8');
+  // Mira siguiente ANTES de ejecutar taskctl plan, y con la ronda abierta no lo ejecuta.
+  assert.ok(plan.indexOf('taskctl siguiente') < plan.indexOf('taskctl plan TASK-NNN'), 'plan consulta siguiente primero');
+  assert.match(plan, /\*\*No ejecutes `taskctl plan`\*\*/);
+  assert.match(plan, /## Cambios pedidos por la persona/, 'la re-planificacion lee el feedback escrito');
+  const review = await readFile(path.join(SKILLS_DIR, 'review', 'SKILL.md'), 'utf8');
+  assert.match(review, /`veredicto-codex`: paso 6\. \*\*No ejecutes `codex-review`\*\*/);
+  assert.match(review, /lo decide una\s+persona/);
+  const approve = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8');
+  assert.match(approve, /## Cambios pedidos por la\s+persona/, 'approve deja escrito el feedback del no');
 });
 
 test('approve es el checkpoint humano: solo aprueba con el si de la persona y registra el no con pausa', async () => {
