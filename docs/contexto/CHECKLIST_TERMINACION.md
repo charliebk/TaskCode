@@ -10,9 +10,11 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 54 / 64 items terminados (84%)** · última actualización: 2026-10-04
+**Progreso global: 55 / 69 items terminados (80%)** · última actualización: 2026-10-04
 
-Desde el 2026-10-04 se suma la fase F: el plan de solución de la auditoría del
+Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
+plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
+automatico (plan de referencia en TASK-055). Y la fase F: el plan de solución de la auditoría del
 2026-10-03 (`docs/auditoria/PLAN-SOLUCION-2026-10-03.md`), más TASK-033, TASK-053
 y TASK-054.
 
@@ -28,8 +30,9 @@ tomada y documentada, no aplazada.
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **5** | ~9h |
-| F — Auditoría 2026-10-03 | 22 | **13** | — |
-| **Total pendiente** | **10** | — | — |
+| F — Auditoría 2026-10-03 | 22 | **14** | — |
+| G — Flujo guiado por fases | 5 | **0** | — |
+| **Total pendiente** | **14** | — | — |
 
 ---
 
@@ -714,7 +717,7 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 
 ---
 
-## F — Auditoría 2026-10-03 (13/22)
+## F — Auditoría 2026-10-03 (14/22)
 
 - [x] TASK-033 — Comando de sincronización tras cada transición (v0.1.1)
 - [x] TASK-034 — F1-T1 Excluir lo generado del diff de revisión
@@ -728,7 +731,7 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 - [x] TASK-043 — F4-T2 Validación antes de plan y puertas de cierre
 - [x] TASK-044 — F4-T3 Partición propuesta de las tareas grandes
 - [x] TASK-042 — F4-T4 Complejidad por heurística y un rol sin unificador
-- [ ] TASK-045 — F5-T1 `rama_base` de punta a punta
+- [x] TASK-045 — F5-T1 `rama_base` de punta a punta
 - [x] TASK-046 — F5-T2 Secciones con subtítulos y criterios multilínea
 - [ ] TASK-047 — F5-T3 Flags desconocidos y mensajes de review
 - [ ] TASK-050 — F6-T1 Suite rápida y repo plantilla en los tests
@@ -738,3 +741,14 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 - [ ] TASK-052 — F6-T5 Telemetría de fases y heurística recalibrada
 - [x] TASK-053 — `moveTareaFile` reintenta el rename ante EPERM/EBUSY
 - [ ] TASK-054 — Rutas no ASCII en el diff de revisión por dominio
+
+## G — Flujo guiado por fases (0/5)
+
+Pedido por Carlos el 2026-10-04 con prioridad sobre el resto de la fase F.
+Plan de referencia: `tareas/.../TASK-055/planificacion/plan-final.md`.
+
+- [ ] TASK-055 — Flujo A: `taskctl` desde PowerShell y cmd
+- [ ] TASK-056 — Flujo B: núcleo determinista del siguiente paso y registro de transiciones
+- [ ] TASK-057 — Flujo C: fases como skills invocables en modo manual
+- [ ] TASK-058 — Flujo D: modo semiautomático
+- [ ] TASK-059 — Flujo E: modo automático
