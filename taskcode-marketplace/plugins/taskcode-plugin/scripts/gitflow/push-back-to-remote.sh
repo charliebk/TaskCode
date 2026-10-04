@@ -59,7 +59,7 @@ TARGET_URL=$(git remote get-url "$TARGET_REMOTE")
 log_info "Destino seleccionado: $TARGET_REMOTE -> $TARGET_URL"
 
 # ── 3. Verificar conectividad ─────────────────────────────────────────────────
-if ! git ls-remote --heads "$TARGET_REMOTE" > /dev/null 2>&1; then
+if ! _gf_ls_remote --heads "$TARGET_REMOTE" > /dev/null 2>&1; then
     log_error "No hay conexion con '$TARGET_REMOTE'. Necesitas VPN/credenciales."
     exit 1
 fi
@@ -92,10 +92,19 @@ invoke_git "No se pudo refrescar $TARGET_REMOTE." fetch --prune --tags "$TARGET_
 log_ok "Estado de '$TARGET_REMOTE' actualizado."
 
 # ── 5. Detectar ramas con divergencia (commits no fast-forward) ───────────────
+# TASK-038 (IMPORTANTE de su revision): la lista de ramas del destino se pide
+# UNA vez y con el codigo de salida comprobado. Desde que las consultas tienen
+# limite de tiempo, una consulta que expiraba devolvia una lista vacia: la
+# vista previa del mirror decia "nada que borrar" y despues `push --mirror`
+# borraba esas ramas. Sin la lista completa no se sigue.
+if ! REMOTE_HEADS_RAW=$(_gf_ls_remote --heads "$TARGET_REMOTE" 2>/dev/null); then
+    log_error "No se pudo listar las ramas de '$TARGET_REMOTE' (red lenta o caida). Aborto: sin esa lista no se puede saber que ramas divergen ni cuales borraria un mirror. Reintenta, o sube el limite con GF_TIMEOUT_REMOTO."
+    exit 1
+fi
 DIVERGED=""
 while IFS= read -r local_branch; do
     [ -z "$local_branch" ] && continue
-    if git ls-remote --heads "$TARGET_REMOTE" "$local_branch" 2>/dev/null | grep -q "refs/heads/$local_branch"; then
+    if printf "%s\n" "$REMOTE_HEADS_RAW" | grep -q "refs/heads/$local_branch\$"; then
         ahead=$(git rev-list --count "$TARGET_REMOTE/$local_branch..$local_branch" 2>/dev/null || echo 0)
         behind=$(git rev-list --count "$local_branch..$TARGET_REMOTE/$local_branch" 2>/dev/null || echo 0)
         if [ "$behind" -gt 0 ]; then
@@ -109,12 +118,16 @@ REMOTE_ONLY_BRANCHES=""
 REMOTE_ONLY_TAGS=""
 if [ "$MODE" = "mirror" ]; then
     # Ramas que existen en destino pero no en local
-    REMOTE_BRANCHES=$(git ls-remote --heads "$TARGET_REMOTE" 2>/dev/null | sed 's|.*refs/heads/||' | sort -u)
+    REMOTE_BRANCHES=$(printf "%s\n" "$REMOTE_HEADS_RAW" | grep 'refs/heads/' | sed 's|.*refs/heads/||' | sort -u)
     LOCAL_BRANCHES=$(git for-each-ref --format='%(refname:short)' refs/heads | sort -u)
     REMOTE_ONLY_BRANCHES=$(comm -23 <(printf "%s\n" "$REMOTE_BRANCHES") <(printf "%s\n" "$LOCAL_BRANCHES") | grep -v '^$' || true)
 
     # Tags que existen en destino pero no en local
-    REMOTE_TAGS=$(git ls-remote --tags "$TARGET_REMOTE" 2>/dev/null | sed 's|.*refs/tags/||' | sed 's|\^{}$||' | sort -u)
+    if ! REMOTE_TAGS_RAW=$(_gf_ls_remote --tags "$TARGET_REMOTE" 2>/dev/null); then
+        log_error "No se pudo listar los tags de '$TARGET_REMOTE' (red lenta o caida). Aborto el mirror: borraria tags que la vista previa no puede mostrar."
+        exit 1
+    fi
+    REMOTE_TAGS=$(printf "%s\n" "$REMOTE_TAGS_RAW" | grep 'refs/tags/' | sed 's|.*refs/tags/||' | sed 's|\^{}$||' | sort -u)
     LOCAL_TAGS=$(git tag --list | sort -u)
     REMOTE_ONLY_TAGS=$(comm -23 <(printf "%s\n" "$REMOTE_TAGS") <(printf "%s\n" "$LOCAL_TAGS") | grep -v '^$' || true)
 fi

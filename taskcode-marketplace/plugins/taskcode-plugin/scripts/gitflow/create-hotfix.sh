@@ -20,6 +20,8 @@ initialize_gitflow_log "create-hotfix ($NAME)"
 
 ensure_workspace_ready || exit 0
 
+# TASK-038: antes de resolve_main_branch, para que este use la cache.
+detect_origin_available
 MAIN_BRANCH=$(resolve_main_branch "$MAIN_BRANCH")
 log_info "Rama principal detectada: $MAIN_BRANCH"
 
@@ -28,13 +30,6 @@ log_info "Rama principal detectada: $MAIN_BRANCH"
 # concreto): antes se hacia fetch/pull/push contra origin sin comprobar
 # disponibilidad primero, y fallaba duro en un repo sin origin como el
 # propio TaskCode. Mismo guard ya probado en invoke_merge_work_branch_to_develop.
-REMOTE_AVAILABLE=false
-if git ls-remote --heads origin > /dev/null 2>&1; then
-    REMOTE_AVAILABLE=true
-    log_ok "Conexion remota disponible (origin)."
-else
-    log_warn "No hay conexion con origin (VPN/credenciales/red). Se continuara en modo local."
-fi
 
 if [ "$REMOTE_AVAILABLE" = true ]; then
     invoke_git "No se pudo hacer fetch de origin." fetch origin
@@ -62,7 +57,7 @@ fi
 TARGET_LOCAL=false; TARGET_REMOTE=false
 git show-ref --verify --quiet "refs/heads/$NAME" 2>/dev/null && TARGET_LOCAL=true || true
 if [ "$REMOTE_AVAILABLE" = true ]; then
-    git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
+    _gf_ls_remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
         && TARGET_REMOTE=true || true
 fi
 

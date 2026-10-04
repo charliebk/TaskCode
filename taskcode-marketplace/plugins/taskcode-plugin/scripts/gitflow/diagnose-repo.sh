@@ -19,7 +19,7 @@ else
 fi
 
 remote_ok=false
-git ls-remote --heads origin > /dev/null 2>&1 && remote_ok=true
+_gf_ls_remote --heads origin > /dev/null 2>&1 && remote_ok=true
 remote_label="✓ origin disponible"
 remote_color="$C_GREEN"
 $remote_ok || { remote_label="✗ sin conexión con origin"; remote_color="$C_YELLOW"; }
@@ -27,7 +27,7 @@ $remote_ok || { remote_label="✗ sin conexión con origin"; remote_color="$C_YE
 develop_local=false; develop_remote=false
 git show-ref --verify --quiet "refs/heads/develop" 2>/dev/null && develop_local=true || true
 if $remote_ok; then
-    git ls-remote --heads origin develop 2>/dev/null | grep -q "refs/heads/develop" \
+    _gf_ls_remote --heads origin develop 2>/dev/null | grep -q "refs/heads/develop" \
         && develop_remote=true || true
 fi
 if $develop_local && $develop_remote; then

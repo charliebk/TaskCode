@@ -22,14 +22,11 @@ ensure_workspace_ready \
     "Workspace no limpio antes de update. Hacer commit local en la rama actual? Si/No" \
     "chore: commit local antes de update hotfix" || exit 0
 
+# TASK-038: antes de resolve_main_branch, para que este use la cache.
+detect_origin_available "No hay conexion con origin. Se intentara update en modo local."
 MAIN_BRANCH=$(resolve_main_branch "$MAIN_BRANCH")
 log_info "Rama principal detectada: $MAIN_BRANCH"
 
-if git ls-remote --heads origin > /dev/null 2>&1; then
-    REMOTE_AVAILABLE=true; log_ok "Conexion remota disponible (origin)."
-else
-    REMOTE_AVAILABLE=false; log_warn "No hay conexion con origin. Se intentara update en modo local."
-fi
 
 if ! git show-ref --verify --quiet "refs/heads/$MAIN_BRANCH" 2>/dev/null; then
     [ "$REMOTE_AVAILABLE" = false ] && { log_error "$MAIN_BRANCH no existe localmente y no hay conexion remota."; exit 1; }
@@ -51,7 +48,7 @@ fi
 TARGET_LOCAL=false; TARGET_REMOTE=false
 git show-ref --verify --quiet "refs/heads/$NAME" 2>/dev/null && TARGET_LOCAL=true || true
 if [ "$REMOTE_AVAILABLE" = true ]; then
-    git ls-remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
+    _gf_ls_remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
         && TARGET_REMOTE=true || true
 fi
 

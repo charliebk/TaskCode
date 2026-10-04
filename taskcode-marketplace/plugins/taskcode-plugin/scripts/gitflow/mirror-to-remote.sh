@@ -26,7 +26,7 @@ fi
 ORIGIN_URL=$(git remote get-url origin)
 log_info "origin actual: $ORIGIN_URL"
 
-if ! git ls-remote --heads origin > /dev/null 2>&1; then
+if ! _gf_ls_remote --heads origin > /dev/null 2>&1; then
     log_error "No hay conexion con origin. Necesitas VPN/credenciales para hacer mirror."
     exit 1
 fi
