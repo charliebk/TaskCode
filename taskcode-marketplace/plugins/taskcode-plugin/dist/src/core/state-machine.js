@@ -108,6 +108,14 @@ export function assertTransitionAllowed(command, task, ctx = {}) {
             }
             return;
         }
+        case 'veredicto': {
+            // TASK-036: escribe la linea de veredicto del informe; no cambia el
+            // estado, igual que codex-review.
+            if (task.estado !== 'en-revision') {
+                throw err(task.id, command, task.estado, 'taskctl review', `esta en estado "${task.estado}", no en "en-revision". taskctl veredicto solo se usa con una revision abierta.`);
+            }
+            return;
+        }
         case 'codex-review': {
             if (task.estado !== 'en-revision') {
                 throw err(task.id, command, task.estado, 'taskctl review', `esta en estado "${task.estado}", no en "en-revision". taskctl codex-review requiere haber ejecutado taskctl review primero.`);

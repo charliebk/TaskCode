@@ -69,6 +69,49 @@ export async function ultimaRonda(dir, patron) {
     }
     return max;
 }
+/**
+ * Informes de la revision primaria. TASK-018: una ronda fragmentada por
+ * dominio deja uno por revisor, con el nombre de la skill como sufijo
+ * (`informe-revision-2-java-spring-reviewer.md`); el sufijo es opcional
+ * y una ronda sin fragmentar sigue dejando `informe-revision-<N>.md`.
+ * Vive aqui desde TASK-036: antes estaba copiada en finish.ts y en
+ * codex-review.ts.
+ */
+export const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+/**
+ * Nombres de TODOS los ficheros de la ronda de mayor N segun `patron`
+ * (una ronda fragmentada deja varios con el mismo N), y ese N. Sin
+ * directorio, o si la ruta es un fichero, `{ ronda: 0, nombres: [] }`,
+ * igual que `ultimaRonda`. Unico sitio que decide "cual es la ultima
+ * ronda" (TASK-036): finish, codex-review y veredicto lo comparten.
+ */
+export async function informesDeUltimaRonda(dir, patron) {
+    let entries;
+    try {
+        entries = await readdir(dir);
+    }
+    catch (e) {
+        if (isEnoent(e) || isEnotdir(e))
+            return { ronda: 0, nombres: [] };
+        throw e;
+    }
+    let ronda = 0;
+    let nombres = [];
+    for (const entry of [...entries].sort()) {
+        const m = patron.exec(entry);
+        if (m === null || m[1] === undefined)
+            continue;
+        const n = Number(m[1]);
+        if (n > ronda) {
+            ronda = n;
+            nombres = [entry];
+        }
+        else if (n === ronda) {
+            nombres.push(entry);
+        }
+    }
+    return { ronda, nombres };
+}
 /** Primera ronda libre: la ultima que haya + 1. */
 export async function siguienteRonda(dir, patron) {
     return (await ultimaRonda(dir, patron)) + 1;

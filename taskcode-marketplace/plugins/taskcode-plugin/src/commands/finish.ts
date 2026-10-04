@@ -23,6 +23,7 @@ import { parseTareaFile } from '../core/tarea-file.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
+import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
 import { assertTransitionAllowed, type TransitionContext } from '../core/state-machine.js';
 import {
   isWorkspaceClean,
@@ -72,7 +73,6 @@ const DEVELOP_BRANCH = 'develop';
  * igual que antes de esta tarea — ninguna tarea ya cerrada, ni ninguna
  * en curso con revisiones antiguas, deja de reconocerse.
  */
-const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
 
 /**
@@ -95,7 +95,18 @@ export function veredictoAprobado(informe: string): boolean {
     .filter((l) => l.trim().toLowerCase().startsWith(prefijo));
   if (lineas.length === 0) return false;
   return lineas.every((linea) => {
-    const valor = linea.trim().slice(prefijo.length).trim().toLowerCase();
+    // TASK-036: se recorta el enfasis de markdown (`**aprobada**`,
+    // `_aprobada_`, comillas invertidas) que los revisores ponen solos.
+    // No afloja la regla: el valor sigue anclado a `^aprobada\b`, asi que
+    // "no aprobada" y "**no aprobada**" siguen fallando.
+    const valor = linea
+      .trim()
+      .slice(prefijo.length)
+      .trim()
+      .replace(/^[*_`]+/, '')
+      .replace(/[*_`]+$/, '')
+      .trim()
+      .toLowerCase();
     if (/\bpendiente\b/.test(valor) || valor.includes('cambios-solicitados')) return false;
     return /^aprobada\b/.test(valor);
   });
@@ -111,27 +122,7 @@ export function veredictoAprobado(informe: string): boolean {
  * todos, no solo el primero que se encuentre.
  */
 async function informesDeLaRonda(revisionDir: string, re: RegExp): Promise<string[]> {
-  let entries: string[];
-  try {
-    entries = await readdir(revisionDir);
-  } catch (e: unknown) {
-    if (isEnoent(e)) return [];
-    throw e;
-  }
-  let max = 0;
-  let nombres: string[] = [];
-  for (const entry of entries) {
-    const m = re.exec(entry);
-    if (m === null) continue;
-    const n = Number(m[1]);
-    if (n > max) {
-      max = n;
-      nombres = [entry];
-    } else if (n === max) {
-      nombres.push(entry);
-    }
-  }
-  if (nombres.length === 0) return [];
+  const { nombres } = await informesDeUltimaRonda(revisionDir, re);
   return Promise.all(nombres.map((nombre) => readFile(path.join(revisionDir, nombre), 'utf8')));
 }
 

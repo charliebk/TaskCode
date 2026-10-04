@@ -17,11 +17,12 @@
  *
  */
 import path from 'node:path';
-import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
+import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
@@ -54,7 +55,6 @@ const DEVELOP_BRANCH = 'develop';
  * igual que antes de esta tarea — ninguna tarea ya cerrada, ni ninguna
  * en curso con revisiones antiguas, deja de reconocerse.
  */
-const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
 /**
  * true solo si TODAS las lineas "- Veredicto:" del informe aprueban.
@@ -77,7 +77,18 @@ export function veredictoAprobado(informe) {
     if (lineas.length === 0)
         return false;
     return lineas.every((linea) => {
-        const valor = linea.trim().slice(prefijo.length).trim().toLowerCase();
+        // TASK-036: se recorta el enfasis de markdown (`**aprobada**`,
+        // `_aprobada_`, comillas invertidas) que los revisores ponen solos.
+        // No afloja la regla: el valor sigue anclado a `^aprobada\b`, asi que
+        // "no aprobada" y "**no aprobada**" siguen fallando.
+        const valor = linea
+            .trim()
+            .slice(prefijo.length)
+            .trim()
+            .replace(/^[*_`]+/, '')
+            .replace(/[*_`]+$/, '')
+            .trim()
+            .toLowerCase();
         if (/\bpendiente\b/.test(valor) || valor.includes('cambios-solicitados'))
             return false;
         return /^aprobada\b/.test(valor);
@@ -93,32 +104,7 @@ export function veredictoAprobado(informe) {
  * todos, no solo el primero que se encuentre.
  */
 async function informesDeLaRonda(revisionDir, re) {
-    let entries;
-    try {
-        entries = await readdir(revisionDir);
-    }
-    catch (e) {
-        if (isEnoent(e))
-            return [];
-        throw e;
-    }
-    let max = 0;
-    let nombres = [];
-    for (const entry of entries) {
-        const m = re.exec(entry);
-        if (m === null)
-            continue;
-        const n = Number(m[1]);
-        if (n > max) {
-            max = n;
-            nombres = [entry];
-        }
-        else if (n === max) {
-            nombres.push(entry);
-        }
-    }
-    if (nombres.length === 0)
-        return [];
+    const { nombres } = await informesDeUltimaRonda(revisionDir, re);
     return Promise.all(nombres.map((nombre) => readFile(path.join(revisionDir, nombre), 'utf8')));
 }
 /**

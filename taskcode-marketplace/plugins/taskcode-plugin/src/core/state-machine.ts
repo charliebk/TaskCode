@@ -17,6 +17,7 @@ export type TaskCommand =
   | 'start'
   | 'review'
   | 'codex-review'
+  | 'veredicto'
   | 'finish';
 
 export interface TransitionContext {
@@ -203,6 +204,21 @@ export function assertTransitionAllowed(
           task.estado,
           'taskctl start',
           `esta en estado "${task.estado}", no en "en-curso". taskctl review requiere haber ejecutado taskctl start primero.`
+        );
+      }
+      return;
+    }
+
+    case 'veredicto': {
+      // TASK-036: escribe la linea de veredicto del informe; no cambia el
+      // estado, igual que codex-review.
+      if (task.estado !== 'en-revision') {
+        throw err(
+          task.id,
+          command,
+          task.estado,
+          'taskctl review',
+          `esta en estado "${task.estado}", no en "en-revision". taskctl veredicto solo se usa con una revision abierta.`
         );
       }
       return;

@@ -34,7 +34,30 @@ de hallazgos que usara la ronda incremental (TASK-040).
 Fuera de alcance: leer la tabla para generar la ronda 2 (TASK-040).
 
 ## Criterios de aceptacion
-- [ ] `taskctl veredicto TASK-NNN aprobada|aprobada-con-correcciones|cambios-solicitados` sustituye la linea del informe de mayor N
-- [ ] El scaffold de `informe-revision-N.md` trae la tabla `| ID | Severidad | Estado | Fichero |`
-- [ ] El parser de `finish` acepta `**aprobada**`; `no aprobada` sigue fallando, con test
-- [ ] Test del comando contra un repo real
+- [x] `taskctl veredicto TASK-NNN aprobada|aprobada-con-correcciones|cambios-solicitados` sustituye la linea del informe de mayor N
+- [x] El scaffold de `informe-revision-N.md` trae la tabla `| ID | Severidad | Estado | Fichero |`
+- [x] El parser de `finish` acepta `**aprobada**`; `no aprobada` sigue fallando, con test
+- [x] Test del comando contra un repo real
+
+## Resultado
+
+**Implementado.** `taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados> [--informe <nombre>] [--push]`
+(`src/commands/veredicto.ts`): sustituye todas las lineas `- Veredicto:` del
+informe de la ultima ronda por una canonica en la posicion de la primera,
+conserva CRLF y commitea `chore(TASK-NNN): veredicto ronda N (<valor>)`; en
+una ronda fragmentada exige `--informe`. Accion `veredicto` en la maquina de
+estados, solo en `en-revision`. `veredictoAprobado` recorta `*`, `_` y comillas
+invertidas antes de `^aprobada`. El scaffold del informe trae la tabla
+`| ID | Severidad | Estado | Fichero |` y remite al comando. Un unico helper,
+`informesDeUltimaRonda` en `fs/rondas.ts`, junto con `INFORME_REVISION_RE`: se
+borran las copias de `finish.ts` y `codex-review.ts`.
+
+**Desviaciones del plan, menores:** la regex vive en `fs/rondas.ts` y no en
+`review.ts`, para no crear un ciclo de imports entre `finish` y `review`; y
+`codexInformeTemplate` no se toca, porque `veredicto` no cubre los informes de
+Codex (decidido sin `--codex`) y remitir alli al comando seria falso.
+
+**Pruebas.** 7 tests nuevos (`test/commands/veredicto.test.ts`); con los de
+`finish`, `codex-review`, la maquina de estados y `main`, 76/76. Contraprueba
+con 3 mutantes, los 3 en rojo: sin el recorte del enfasis, dejando las lineas
+duplicadas y sin la guarda de estado. La skill documenta el comando y el gate.
