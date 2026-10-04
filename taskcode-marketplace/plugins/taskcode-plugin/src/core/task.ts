@@ -58,7 +58,11 @@ export interface Task {
   tipo: TaskType;
   sprint: number;
   etiquetas: string[];
-  complejidad: TaskComplexity;
+  /**
+   * null = no declarada (TASK-042, decision C4): decide la heuristica.
+   * `new` e `import` la dejan asi cuando no se pasa --complejidad.
+   */
+  complejidad: TaskComplexity | null;
   modelo_sugerido: string;
   estado: TaskState;
   plan_aprobado: boolean;
@@ -239,7 +243,7 @@ export function validateTask(data: Record<string, unknown>): Task {
     tipo: requireEnum(data, 'tipo', TASK_TYPES),
     sprint: requireNumber(data, 'sprint'),
     etiquetas: requireStringArray(data, 'etiquetas'),
-    complejidad: requireEnum(data, 'complejidad', TASK_COMPLEXITIES),
+    complejidad: requireNullableEnum(data, 'complejidad', TASK_COMPLEXITIES),
     modelo_sugerido: requireString(data, 'modelo_sugerido'),
     estado: requireEnum(data, 'estado', TASK_STATES),
     plan_aprobado: requireBoolean(data, 'plan_aprobado'),

@@ -155,8 +155,10 @@ test('taskctl plan: commitea el movimiento a 01-en-diseno y el scaffold del plan
     // quedara fuera, la tarea viajaria de carpeta sin sus peticiones y
     // el arbol quedaria sucio (que es lo que comprueba la linea de
     // abajo, pero esta lo dice explicitamente).
-    assert.match(registrados, /peticion-brainstorm-arquitectura-1\.md/);
-    assert.match(registrados, /peticion-unificador-1\.md/);
+    // TASK-042 (decision C4): la tarea es `simple`, 1 rol, asi que la unica
+    // peticion es la de redaccion; ni peticion de rol ni unificador.
+    assert.match(registrados, /peticion-plan-1\.md/);
+    assert.doesNotMatch(registrados, /peticion-unificador-1\.md/);
     // Ni rastro de la carpeta vieja: el movimiento entro entero.
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
   });

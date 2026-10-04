@@ -23,7 +23,11 @@ import { extraerSecciones } from '../core/tarea-body.js';
 export class NewTaskArgError extends Error {
 }
 const DEFAULT_SPRINT = 0;
-const DEFAULT_COMPLEJIDAD = 'media';
+/**
+ * Sin --complejidad la tarea nace sin declararla (null): la decide la
+ * heuristica al planificar (TASK-042, decision C4). Antes era `media`.
+ */
+const DEFAULT_COMPLEJIDAD = null;
 const DEFAULT_MODELO = 'sonnet';
 export const DEFAULT_BODY = '## Objetivo\n\n\n## Criterios de aceptacion\n- [ ] \n';
 /**

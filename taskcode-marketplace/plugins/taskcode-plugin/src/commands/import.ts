@@ -53,13 +53,17 @@ export interface ImportOptions {
   filePath: string;
   tipo: TaskType;
   sprint: number;
-  complejidad: TaskComplexity;
+  complejidad: TaskComplexity | null;
   modeloSugerido: string;
   agenteRevisor: string;
 }
 
 const DEFAULT_SPRINT = 0;
-const DEFAULT_COMPLEJIDAD: TaskComplexity = 'media';
+/**
+ * Sin --complejidad la tarea nace sin declararla (null): la decide la
+ * heuristica al planificar (TASK-042, decision C4). Antes era `media`.
+ */
+const DEFAULT_COMPLEJIDAD: TaskComplexity | null = null;
 const DEFAULT_MODELO = 'sonnet';
 
 /**
@@ -100,7 +104,7 @@ export function parseImportArgs(
     tipo = tipoRaw as TaskType;
   }
 
-  let complejidad: TaskComplexity = DEFAULT_COMPLEJIDAD;
+  let complejidad: TaskComplexity | null = DEFAULT_COMPLEJIDAD;
   const complejidadRaw = flags['complejidad'];
   if (complejidadRaw !== undefined) {
     if (

@@ -16,6 +16,9 @@ riesgos y dominio. Tú respondes a dos preguntas, en este orden:
 Un agente unificador leerá tu salida junto a las otras tres. **No promedia:
 señala los desacuerdos.**
 
+Con un solo rol no hay unificador: si la petición dice que eres el único, tu salida
+es el plan final, y en él tienes que decir también lo que tu rol no cubre.
+
 ## Qué miras
 
 - **Observabilidad del cambio**: qué se puede afirmar desde fuera. Si el

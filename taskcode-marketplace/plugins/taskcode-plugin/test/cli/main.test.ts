@@ -359,3 +359,26 @@ test('main: "taskctl review" con un diff de 2 dominios imprime una linea de peti
     assert.equal(lineasLanza.length, 2, stdout);
   });
 });
+
+// TASK-042 (decision C4): con 1 rol el CLI no habla de unificador. Dice que
+// se lance ese agente con la peticion de redaccion y que el escribe el plan.
+// Mutacion que lo pone rojo: volver a anunciar "y luego el unificador" con 1 rol.
+test('main: taskctl plan con 1 rol anuncia la peticion de redaccion y que no hay unificador', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() =>
+      main(['new', '--titulo', 'Un solo rol', '--tipo', 'feature', '--complejidad', 'simple'])
+    );
+    assert.equal(creada.code, 0);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
+    commitAll(repoRoot, 'tarea nueva');
+
+    const { code, stdout } = await captureOutput(() => main(['plan', 'TASK-001']));
+
+    assert.equal(code, 0);
+    assert.ok(stdout.includes('1 rol, sin unificador'), stdout);
+    assert.ok(stdout.includes('peticion-plan-1.md'), stdout);
+    assert.ok(stdout.includes('escribe plan-final.md'), stdout);
+    assert.ok(!stdout.includes('luego el unificador'), stdout);
+    assert.ok(!stdout.includes('peticion-unificador'), stdout);
+  });
+});

@@ -18,7 +18,7 @@ test('parseNewTaskArgs: titulo por --titulo o posicional, defaults razonables', 
   assert.equal(a.titulo, 'Mi tarea');
   assert.equal(a.tipo, 'feature');
   assert.equal(a.sprint, 0);
-  assert.equal(a.complejidad, 'media');
+  assert.equal(a.complejidad, null, 'TASK-042: sin --complejidad decide la heuristica');
   assert.deepEqual(a.etiquetas, []);
 
   const b = parseNewTaskArgs(['Otra tarea', '--tipo', 'fix']);

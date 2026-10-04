@@ -35,7 +35,7 @@ import { extraerSecciones } from '../core/tarea-body.js';
 import { validarEnunciado } from '../core/validacion-tarea.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
 import { seleccionarRoles, ROLES_BRAINSTORM, } from '../core/roles-brainstorm.js';
-import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
+import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, nombrePeticionRedaccion, peticionRedaccionTemplate, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
 import { cargarCatalogoSkills, seleccionarSkill, FICHERO_CATALOGO_SKILLS, } from '../core/catalogo-skills.js';
 import { PETICION_DESEMPATE_SKILL_FILENAME, SALIDA_DESEMPATE_SKILL_FILENAME, peticionDesempateSkillTemplate, salidaDesempateSkillTemplate, leerGanadorDesempate, } from '../core/plan-desempate-skill.js';
 import { comprobarSkillInstalado } from '../core/plugin-instalado.js';
@@ -65,7 +65,10 @@ export const BRAINSTORM_DIRNAME = 'brainstorm';
  * llamado `brainstorm-datos-externos`, y la numeracion se rompia en
  * silencio.
  */
-const RONDA_UNIFICADOR_RE = /^peticion-unificador-(\d+)\.md$/;
+// TASK-042 (decision C4): el testigo de ronda es la peticion del unificador
+// (2 o mas roles, o carpetas antiguas) o la de redaccion (1 rol, sin
+// unificador). Las dos se escriben las ultimas y cierran la ronda.
+const RONDA_UNIFICADOR_RE = /^peticion-(unificador|plan)-(\d+)\.md$/;
 const PETICION_ROL_RE = /^peticion-brainstorm-[a-z0-9-]+-(\d+)\.md$/;
 /**
  * Subcarpeta de artefactos de diseno dentro de la carpeta de la tarea
@@ -179,9 +182,9 @@ export function planTemplate(task, roles) {
     }
     else if (roles.length === 1) {
         origen =
-            `(Lo consolida el agente unificador a partir de un solo rol de brainstorm:\n` +
-                `${roles[0].titulo}. Con uno no hay desacuerdos que resolver, asi que lo que\n` +
-                'aporta el unificador es senalar lo que ese rol no cubrio.)\n';
+            `(Lo redacta directamente el agente del unico rol de brainstorm: ${roles[0].titulo}.\n` +
+                'Con un solo rol no hay unificador ni desacuerdos que resolver; en su lugar,\n' +
+                'el plan senala lo que ese rol no cubrio.)\n';
         seccionRoles = '## Lo que el rol no cubrio\n\n\n';
     }
     else {
@@ -549,7 +552,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
             'carpeta del brainstorm de la tarea. La tarea no se ha movido.');
     }
     const enBrainstorm = await listarDir(brainstormDir);
-    const rondasConAlgo = (re) => [...new Set(enBrainstorm.map((f) => re.exec(f)).filter((m) => m !== null).map((m) => Number(m[1])))]
+    const rondasConAlgo = (re) => [...new Set(enBrainstorm.map((f) => re.exec(f)).filter((m) => m !== null).map((m) => Number(m[m.length - 1])))]
         .sort((a, b) => b - a);
     // (a) Ronda a escribir. El testigo (la peticion del unificador) se
     // escribe el ultimo, asi que la ronda avanza cuando el ultimo testigo
@@ -557,7 +560,8 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // ese mismo numero.
     const ultimoTestigo = rondasConAlgo(RONDA_UNIFICADOR_RE)[0] ?? 0;
     const testigoEntero = ultimoTestigo > 0 &&
-        (await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(ultimoTestigo))));
+        ((await ficheroConContenido(path.join(brainstormDir, nombrePeticionUnificador(ultimoTestigo)))) ||
+            (await ficheroConContenido(path.join(brainstormDir, nombrePeticionRedaccion(ultimoTestigo)))));
     const ronda = testigoEntero ? ultimoTestigo + 1 : Math.max(ultimoTestigo, 1);
     // (b) ¿Estan ya lanzados los roles DE HOY? Se busca la ronda mas alta
     // que tenga la peticion de cada uno de ellos. Si el juego de roles
@@ -590,7 +594,19 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     else {
         rondaRoles = rondasConAlgo(PETICION_ROL_RE)[0] ?? null;
     }
-    const relanzarRoles = rondaRoles === null && roles.length > 0;
+    // Modo de la ronda (TASK-042, decision C4). Con exactamente 1 rol no hay
+    // unificador: se escribe solo la peticion de redaccion, salvo que la
+    // ronda reutilizable ya tenga 2 o mas salidas en disco (se bajo de 2
+    // roles a 1): esas salidas son trabajo real y alguien las consolida.
+    const contarSalidasDe = (n) => enBrainstorm.filter((f) => f.startsWith('salida-brainstorm-') && f.endsWith(`-${n}.md`)).length;
+    const modo = roles.length === 1 && (rondaRoles === null || contarSalidasDe(rondaRoles) < 2)
+        ? 'redaccion'
+        : 'unificador';
+    // En redaccion no se lanza ni se consolida ninguna ronda de rol: el
+    // unico rol recibe la peticion de redaccion y escribe el plan.
+    if (modo === 'redaccion')
+        rondaRoles = null;
+    const relanzarRoles = modo === 'unificador' && rondaRoles === null && roles.length > 0;
     if (relanzarRoles)
         rondaRoles = ronda;
     /**
@@ -646,10 +662,12 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // Los roles que de verdad se lanzaron en `rondaRoles`, leidos del
     // disco. No es lo mismo que `roles`: si hoy hay menos que entonces,
     // los de entonces siguen contando — su trabajo existe.
-    const rolesDeLaRonda = rondaRoles === null
-        ? []
-        : ROLES_BRAINSTORM.filter((r) => [...enBrainstorm, ...(relanzarRoles ? roles.map((x) => nombrePeticionRol(x, ronda)) : [])]
-            .includes(nombrePeticionRol(r, rondaRoles)));
+    const rolesDeLaRonda = modo === 'redaccion'
+        ? roles
+        : rondaRoles === null
+            ? []
+            : ROLES_BRAINSTORM.filter((r) => [...enBrainstorm, ...(relanzarRoles ? roles.map((x) => nombrePeticionRol(x, ronda)) : [])]
+                .includes(nombrePeticionRol(r, rondaRoles)));
     // Los scaffolds se aseguran SIEMPRE, se relancen los roles o no.
     // Antes iban dentro del "si no se reutiliza", asi que un scaffold que
     // faltara — por una muerte entre la peticion y su scaffold, o porque
@@ -700,7 +718,12 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // motivos reales: es defensa en profundidad si alguna vez la ronda no
     // avanza, y es lo coherente con su naturaleza (derivada, sin trabajo
     // de nadie dentro).
-    await regenerar(nombrePeticionUnificador(ronda), peticionUnificadorTemplate(updated, secciones.objetivo, secciones.criterios, rolesDeLaRonda, salidasAConsolidar, ronda, rondaRoles, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)));
+    if (modo === 'redaccion') {
+        await regenerar(nombrePeticionRedaccion(ronda), peticionRedaccionTemplate(updated, secciones.objetivo, secciones.criterios, roles[0], ronda, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)));
+    }
+    else {
+        await regenerar(nombrePeticionUnificador(ronda), peticionUnificadorTemplate(updated, secciones.objetivo, secciones.criterios, rolesDeLaRonda, salidasAConsolidar, ronda, rondaRoles, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)));
+    }
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
     const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
     // Paso 5 de la 8.3 (TASK-030, item C2): la carpeta de ORIGEN entra
@@ -752,7 +775,9 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         peticionesRol: rondaRoles === null
             ? []
             : rolesDeLaRonda.map((rol) => path.join(brainstormDirFinal, nombrePeticionRol(rol, rondaRoles))),
-        peticionUnificador: path.join(brainstormDirFinal, nombrePeticionUnificador(ronda)),
+        modo,
+        peticionUnificador: modo === 'unificador' ? path.join(brainstormDirFinal, nombrePeticionUnificador(ronda)) : null,
+        peticionRedaccion: modo === 'redaccion' ? path.join(brainstormDirFinal, nombrePeticionRedaccion(ronda)) : null,
         brainstormReutilizado,
         asignadoA: asignadoFinal,
         asignadoCambiado,

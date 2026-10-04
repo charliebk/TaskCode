@@ -22,10 +22,18 @@ export function nombreSalidaRol(rol, ronda) {
 export function nombrePeticionUnificador(ronda) {
     return `peticion-unificador-${ronda}.md`;
 }
-/** Cabecera comun a las tres plantillas: quien es la tarea y en que ronda va. */
+/**
+ * `peticion-plan-<ronda>.md` — TASK-042 (decision C4). Con UN solo rol no
+ * hay unificador: esta peticion va al propio rol, que redacta
+ * `plan-final.md`. Hace tambien de testigo de ronda (ver plan.ts).
+ */
+export function nombrePeticionRedaccion(ronda) {
+    return `peticion-plan-${ronda}.md`;
+}
+/** Cabecera comun a las plantillas: quien es la tarea y en que ronda va. */
 function cabecera(task, ronda, fecha) {
     return (`- Tarea: ${task.id} — ${task.titulo}\n` +
-        `- Tipo: ${task.tipo} · Complejidad declarada: ${task.complejidad}\n` +
+        `- Tipo: ${task.tipo} · Complejidad declarada: ${task.complejidad ?? 'no declarada (decide la heuristica)'}\n` +
         `- Ronda: ${ronda}\n` +
         `- Fecha: ${fecha}\n`);
 }
@@ -61,7 +69,7 @@ function bloqueComplejidad(resolucion) {
             'de verdad cuesta.'
         : `Los dos niveles coinciden. Se lanzan ${plural(resolucion.agentes)}.`;
     return ('## Complejidad: declarada frente a heuristica\n\n' +
-        `- Declarada en la tarea: **${resolucion.nivelDeclarado}**\n` +
+        `- Declarada en la tarea: **${resolucion.nivelDeclarado ?? 'no declarada (decide la heuristica)'}**\n` +
         `- Heuristica (${resolucion.puntos} puntos): **${resolucion.nivelHeuristico}**\n` +
         '- Senales encontradas:\n' +
         senales +
@@ -103,6 +111,59 @@ export function peticionRolTemplate(task, objetivo, criterios, rol, otrosRoles, 
         '- Prefiere lo concreto: rutas, nombres y casos reales por encima de recomendaciones ' +
         'genericas.\n' +
         `- ${companeros}`);
+}
+/**
+ * La peticion de redaccion (TASK-042, decision C4): el modo de UN solo
+ * rol, sin unificador. Reutiliza las piezas de las otras plantillas
+ * (cabecera, bloque de complejidad, enunciado, "Que tiene que traer el
+ * plan final") y del rol toma su pregunta y sus limites. Quien la recibe
+ * es el autor del plan: no hay salida de rol intermedia ni nadie que
+ * consolide, asi que escribe el plan final directamente.
+ *
+ * En la ronda 2 o siguientes lleva el bloque de re-planificacion: relanzar
+ * al autor del plan ES la correccion incremental.
+ */
+export function peticionRedaccionTemplate(task, objetivo, criterios, rol, ronda, fecha, resolucion, planFinalRelativo) {
+    const bloqueReplanificacion = ronda === 1
+        ? ''
+        : '## Esto es una re-planificacion, no un primer pase\n\n' +
+            `Ya existe un plan redactado en \`${planFinalRelativo}\` y una persona ha pedido ` +
+            'cambios sobre el. **Leelo antes que nada.** Tu trabajo es incorporar el feedback de la ' +
+            'persona al plan que ya hay, no reescribirlo entero — y menos volver a redactar desde el ' +
+            'enunciado como si fuera la primera vez.\n\n' +
+            'Si el feedback dice que el enfoque entero esta mal, eso NO se arregla aqui: dilo en el ' +
+            'plan y que alguien decida si se replantea.\n\n';
+    return (`# Peticion de redaccion del plan — ${task.id} (ronda ${ronda})\n\n` +
+        cabecera(task, ronda, fecha) +
+        `- Rol: \`${rol.id}\` — lanzalo con el agente de ese mismo nombre\n` +
+        `- Vuelca el plan en: \`${planFinalRelativo}\`\n\n` +
+        '**Esta tarea se planifica con un solo rol y no hay unificador**: tu escribes ' +
+        '`plan-final.md` directamente, sin salida intermedia que nadie vaya a consolidar.\n\n' +
+        bloqueReplanificacion +
+        '## Tu pregunta\n\n' +
+        `> ${rol.pregunta}\n\n` +
+        '## Que miras\n\n' +
+        rol.mira.map((m) => `- ${m}\n`).join('') +
+        '\n## Que NO miras\n\n' +
+        'Que lo mires solo tu no te autoriza a cubrirlo todo: lo que queda fuera de tu pregunta ' +
+        'no se mira, pero se DICE. Anota en el plan lo que no cubres, para que quien lo apruebe ' +
+        'sepa que ese lado no se ha revisado:\n\n' +
+        rol.noMira.map((m) => `- ${m}\n`).join('') +
+        '\n' +
+        bloqueComplejidad(resolucion) +
+        '\n## Que tiene que traer el plan final\n\n' +
+        '- Enfoque propuesto, concreto: que se crea, que se extiende, en que orden.\n' +
+        '- Lo que el rol no cubrio, contrastado contra los criterios de aceptacion.\n' +
+        '- Riesgos aceptados y que los contiene.\n' +
+        '- Plan de pruebas.\n' +
+        '- Lo que necesita decision de una persona antes de implementar. **El checkpoint humano es ' +
+        'obligatorio**: este plan no vale hasta que alguien lo apruebe con `taskctl approve`.\n\n' +
+        '## Reglas\n\n' +
+        '- **Propones enfoque; no implementas.** No escribas codigo de produccion ni modifiques ' +
+        'ficheros del repo: tu salida es el plan.\n' +
+        '- Evidencia, no suposicion: si afirmas que algo se comporta de cierta manera, es porque lo ' +
+        'has mirado. Di de donde lo sacas.\n\n' +
+        enunciado(objetivo, criterios));
 }
 export function salidaRolTemplate(task, rol, ronda) {
     return (`# Brainstorm — ${task.id}, rol ${rol.titulo} (ronda ${ronda})\n\n` +

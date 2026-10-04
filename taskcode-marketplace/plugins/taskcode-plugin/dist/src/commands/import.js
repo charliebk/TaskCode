@@ -39,7 +39,11 @@ import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 export class ImportCommandError extends Error {
 }
 const DEFAULT_SPRINT = 0;
-const DEFAULT_COMPLEJIDAD = 'media';
+/**
+ * Sin --complejidad la tarea nace sin declararla (null): la decide la
+ * heuristica al planificar (TASK-042, decision C4). Antes era `media`.
+ */
+const DEFAULT_COMPLEJIDAD = null;
 const DEFAULT_MODELO = 'sonnet';
 /**
  * Un unico --tipo/--sprint/--complejidad para todo el fichero (no hay

@@ -185,13 +185,22 @@ function brainstormNotice(result) {
     // en una re-planificacion el CLI decia "sin brainstorm, redacta el
     // plan a mano" mientras acababa de escribir una peticion correcta que
     // nombraba las salidas reales. El artefacto bueno quedaba invisible.
-    if (result.brainstormReutilizado) {
+    if (result.modo === 'redaccion') {
+        // TASK-042 (decision C4): con 1 rol no hay unificador ni salida de
+        // rol. Una sola peticion, al propio rol, que escribe plan-final.md.
+        // Va antes que las demas ramas: con 1 rol ninguna otra aplica.
+        const rol = result.roles[0];
+        lineas.push(`${result.ronda > 1 ? `Re-planificacion (ronda ${result.ronda}): ` : ''}1 rol, sin unificador. ` +
+            `Lanza el agente ${rol === undefined ? 'del rol' : `"${rol.id}"`} con ` +
+            `${result.peticionRedaccion}: el rol escribe plan-final.md directamente.`);
+    }
+    else if (result.brainstormReutilizado) {
         lineas.push(`Re-planificacion (ronda ${result.ronda}): NO se relanza el brainstorm, que es el de la ` +
             `ronda ${result.rondaRoles}. Lanza solo el unificador con ${result.peticionUnificador}, ` +
             'que reprocesa esas salidas mas tu feedback.');
     }
     else if (result.roles.length === 0) {
-        lineas.push(`Sin brainstorm (complejidad "${result.resolucion.nivelDeclarado}" resuelve 0 roles). ` +
+        lineas.push(`Sin brainstorm (complejidad "${result.resolucion.nivelDeclarado ?? result.resolucion.nivelHeuristico}" resuelve 0 roles). ` +
             `Redacta el plan y aprueba con "taskctl approve ${result.id}".`);
     }
     else {

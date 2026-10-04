@@ -156,7 +156,7 @@ export function validateTask(data) {
         tipo: requireEnum(data, 'tipo', TASK_TYPES),
         sprint: requireNumber(data, 'sprint'),
         etiquetas: requireStringArray(data, 'etiquetas'),
-        complejidad: requireEnum(data, 'complejidad', TASK_COMPLEXITIES),
+        complejidad: requireNullableEnum(data, 'complejidad', TASK_COMPLEXITIES),
         modelo_sugerido: requireString(data, 'modelo_sugerido'),
         estado: requireEnum(data, 'estado', TASK_STATES),
         plan_aprobado: requireBoolean(data, 'plan_aprobado'),

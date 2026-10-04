@@ -18,6 +18,9 @@ Un agente unificador leerá tu salida junto a las otras tres. **No promedia:
 señala los desacuerdos.** Los tuyos son los más fáciles de perder, porque los
 otros tres comparten vocabulario y tú no.
 
+Con un solo rol no hay unificador: si la petición dice que eres el único, tu salida
+es el plan final, y en él tienes que decir también lo que tu rol no cubre.
+
 ## Qué miras
 
 - **Las reglas que el código no puede deducir**: qué es válido y qué no en
