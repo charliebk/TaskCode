@@ -1,8 +1,28 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-09-16** (tras cerrar E1/TASK-022).
+> Última actualización: **2026-10-04** (fase 4 de la auditoría cerrada, v0.3.0).
 > Este documento se actualiza al cerrar cada fase. Si lo que dice no cuadra
 > con el repo, gana el repo — y hay que corregir esto.
+
+## Auditoría del 2026-10-03 — en curso (fase F)
+
+Plan: `docs/auditoria/PLAN-SOLUCION-2026-10-03.md`. Se ejecuta en continuo,
+una tarea tras otra, con release y aviso a OpenGisViewer al cerrar cada fase.
+
+- **v0.1.1** — TASK-033: comando de sincronización tras cada transición.
+- **v0.1.2** — fase 1 (TASK-034, 035, 036): revisión más barata (excluir lo
+  generado del diff, una suite por ronda, `taskctl veredicto`).
+- **v0.1.3** — fase 2 (TASK-037, 038, 039): Git-Flow con menos procesos y una
+  sola detección de origin.
+- **v0.2.0** — fase 3 (TASK-040): ronda 2 de revisión incremental.
+- **v0.3.0** — fase 4 (TASK-041, 042, 043, 044, más TASK-046 y TASK-053):
+  tareas concretas y acotadas. Métrica: contra las 27 tareas cerradas, la
+  puerta de `plan` habría bloqueado solo TASK-029, 030 y 032 (las de
+  peticiones de 110-160 KB), y la partición propuesta de las tres coincide
+  con la que se hizo a mano. Una tarea `simple` lanza 1 agente en vez de 3.
+- **Pendiente**: fase 5 (TASK-045, 047, 054) y fase 6 (TASK-048 a 052).
+  Las tareas planificadas no tienen Objetivo: hay que redactarlo antes de su
+  `plan`.
 
 ## Dónde estamos
 
