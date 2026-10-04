@@ -150,6 +150,12 @@ ejercita la vista.
    solo el servidor de desarrollo. Muchos errores de tipado solo salen ahi.
    Si no compila, ahi acaba la revision.
 4. **Correr la suite entera antes de tocar nada**, para tener la linea base.
+   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
+   pasada de la suite completa; no se repite. Los mutantes se comprueban con
+   el fichero o la clase de test concretos que cubren la linea mutada, no
+   con la suite entera. Con varios revisores en paralelo en la misma
+   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
+   compiten por la CPU y todas tardan mas.
 5. **Levantar la aplicacion y ejercitar la vista de verdad**, con el
    navegador, entrando y saliendo de la ruta y con datos que se parezcan a
    los reales en volumen.
@@ -333,10 +339,11 @@ Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
 forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
 llegar a esa conclusion.
 
-Dos rondas es lo normal, no una excepcion: la ronda 2 revisa las
-correcciones de la ronda 1, que es justo donde entran los fallos nuevos. En
-la ronda 2 se comprueba **cada hallazgo de la ronda anterior** ademas del
-codigo nuevo.
+Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la tarea: los MENOR que
+se corrijan no abren otra ronda. La ronda 2 solo se pide si se corrigio
+algun CRITICO o IMPORTANTE, y entonces revisa el delta de la correccion y
+comprueba **cada uno de esos hallazgos**: las correcciones son justo donde
+entran los fallos nuevos.
 
 ## La linea del veredicto
 

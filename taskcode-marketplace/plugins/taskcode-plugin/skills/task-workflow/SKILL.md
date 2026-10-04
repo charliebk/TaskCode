@@ -220,10 +220,6 @@ Los ocho comandos que hacen un commit automatico (`new`, `import`, `plan`,
 3. Incluyen las rutas sincronizadas en el mismo commit (`git commit -m <msg> -- <rutas de tarea> <rutas sincronizadas>`).
 4. Terminan la transicion.
 
-Sin esperar a commits manuales posteriores: los ficheros derivados entran en el
-mismo commit que la tarea, asi que `git show HEAD` muestra siempre el derivado
-sincronizado con el estado de la tarea.
-
 **Ejecucion del comando:**
 
 - Se lanza con el shell del sistema (`cmd.exe` en Windows, `/bin/sh` en
@@ -403,8 +399,13 @@ Un "sin hallazgos" explicito es una respuesta valida. Inventar hallazgos para
 tener algo que reportar, no.
 
 **Rondas.** Se numeran: `peticion-revision-N.md` e `informe-revision-N.md` en
-`revision/`. Dos rondas es normal, no una excepcion: la ronda 2 revisa las
-correcciones de la ronda 1, que es justo donde se cuelan los fallos nuevos.
+`revision/`. **Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la
+tarea.** Los MENOR que se corrijan no abren ronda 2: basta la suite en verde,
+el commit de correccion y su nota en el `## Resultado`. La ronda 2 solo se
+pide si se corrigio algun CRITICO o IMPORTANTE, y entonces revisa el delta de
+la correccion y esos hallazgos, no la tarea entera: las correcciones son
+justo donde se cuelan los fallos nuevos. El revisor corre la suite completa
+una vez por ronda; los mutantes, con el fichero de test concreto.
 
 ### La linea del veredicto
 

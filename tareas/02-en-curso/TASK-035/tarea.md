@@ -32,7 +32,22 @@ Solo documentacion: no toca `src/`. Complejidad `trivial` (no `simple`, como
 se importo): el contenido ya esta decidido y no hay diseno que explorar.
 
 ## Criterios de aceptacion
-- [ ] `task-workflow/SKILL.md` recoge la politica A3: sin CRITICO ni IMPORTANTE abiertos una ronda cierra; si solo se corrigen MENOR no hay ronda 2; la ronda 2 solo revisa el delta
-- [ ] Las 4 skills revisoras piden la suite completa una vez por ronda y los mutantes con `node --test <fichero>`
-- [ ] Con varios revisores en paralelo, instruccion de concurrencia reducida
-- [ ] Tests de `test/skills/` en verde, incluido el de no mencionar el proyecto
+- [x] `task-workflow/SKILL.md` recoge la politica A3: sin CRITICO ni IMPORTANTE abiertos una ronda cierra; si solo se corrigen MENOR no hay ronda 2; la ronda 2 solo revisa el delta
+- [x] Las 4 skills revisoras piden la suite completa una vez por ronda y los mutantes con `node --test <fichero>`
+- [x] Con varios revisores en paralelo, instruccion de concurrencia reducida
+- [x] Tests de `test/skills/` en verde, incluido el de no mencionar el proyecto
+
+## Resultado
+
+**Implementado** (solo documentacion, sin tocar `src/`). `task-workflow`:
+el parrafo **Rondas** recoge la politica A3 en lugar de «dos rondas es
+normal». Las 4 revisoras: la puerta y la linea base son una sola pasada de la
+suite por ronda, los mutantes se comprueban con el fichero o la clase de test
+concretos, y con varios revisores en paralelo la suite va con concurrencia
+reducida o por turnos. `angular-vue` y `java-spring` cambian su «dos rondas es
+lo normal» por la misma politica. Para no pasar de 500 lineas, `task-workflow`
+pierde un parrafo de la seccion de sincronizacion que repetia la lista de
+pasos de encima.
+
+**Pruebas.** `node --test dist/test/skills/*.test.js`: 40/40 (estructura,
+tamano, marcas prohibidas). Ningun «Dos rondas» queda en las skills.

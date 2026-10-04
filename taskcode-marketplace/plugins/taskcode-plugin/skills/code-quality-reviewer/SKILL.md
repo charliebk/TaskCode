@@ -80,6 +80,12 @@ ejecutando:
 2. **Correr la suite entera uno mismo** y anotar el resultado real: cuantos
    tests, cuantos fallan, cuales. "Los tests pasan" sin haberlos corrido no
    vale, y `exit 0` no prueba que ocurriera nada — hay que comprobar el hecho.
+   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
+   pasada de la suite completa; no se repite. Los mutantes se comprueban con
+   el fichero o la clase de test concretos que cubren la linea mutada, no
+   con la suite entera. Con varios revisores en paralelo en la misma
+   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
+   compiten por la CPU y todas tardan mas.
 3. **Mutar**: romper a proposito la linea que el diff dice proteger y
    comprobar que algun test se pone rojo. Si sigue verde, no hay red de
    regresion, y eso ya es un hallazgo por si solo.
