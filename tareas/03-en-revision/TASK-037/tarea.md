@@ -6,7 +6,7 @@ sprint: 3
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-037-f2-t1-logging-de-los-scripts-de-git-flow
 asignado_a: charlie.bk@gmail.com
