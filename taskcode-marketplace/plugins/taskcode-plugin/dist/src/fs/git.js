@@ -267,6 +267,40 @@ export function diffRange(desde, hasta, cwd) {
     return runGit(['diff', `${desde}..${hasta}`], cwd);
 }
 /**
+ * El diff que se embebe en una peticion de revision (TASK-034), sin los
+ * ficheros que casan con `excluir` (patrones `git :(glob)`, ya
+ * normalizados por config.ts).
+ *
+ * Git es la UNICA implementacion de los patrones: incluidos, excluidos,
+ * diff y stat salen todos de pathspecs, nunca de `path.matchesGlob`. Dos
+ * motores de glob para el mismo hecho divergen en `**`, en los
+ * separadores de Windows y en las comillas (lo vio el rol de
+ * arquitectura del brainstorm). Y como los argumentos son los patrones y
+ * no la lista de ficheros, la linea de comandos no crece con el diff.
+ */
+export function diffParaRevision(desde, hasta, excluir, cwd) {
+    const rango = `${desde}..${hasta}`;
+    const sinExcluidos = ['--', '.', ...excluir.map((p) => `:(exclude,glob)${p}`)];
+    const nombres = (args) => runGit(['diff', '--name-only', rango, ...args], cwd)
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l !== '');
+    const todos = nombres([]);
+    const incluidos = excluir.length === 0 ? todos : nombres(sinExcluidos);
+    const enIncluidos = new Set(incluidos);
+    const excluidos = todos.filter((f) => !enIncluidos.has(f));
+    return {
+        incluidos,
+        excluidos,
+        diff: excluir.length === 0 ? runGit(['diff', rango], cwd) : runGit(['diff', rango, ...sinExcluidos], cwd),
+        stat: excluidos.length === 0
+            ? ''
+            : // --stat=200: a 80 columnas Git abrevia las rutas con ".../" y
+                // el revisor no sabria que pedir (MENOR-3 de la revision).
+                runGit(['diff', '--stat=200', rango, '--', ...excluir.map((p) => `:(glob)${p}`)], cwd),
+    };
+}
+/**
  * Rutas (con "/" de Git) que cambian entre `desde` y `hasta`, sin el
  * contenido del diff (TASK-018: es la entrada del clasificador por
  * dominio de "taskctl review" — clasificar necesita solo los nombres,

@@ -274,6 +274,12 @@ workspace, o actualizar el config).
   alguien hace `finish` o `review`. Revisa los cambios a `config.yml` en la
   revision por pares como si fueran codigo de confianza: potencialmente lo es.
 
+**Otra clave opcional, `excluir_de_revision`:** patrones (semantica de
+`git :(glob)`) cuyo diff no se embebe en la peticion de revision; aparecen en
+un `--stat` con la orden para pedirlos. Por defecto
+`[**/dist/**, **/*.lock, **/*-lock.*, tareas/**]`; definirla **sustituye** esa
+lista (incluye `tareas/**` si la quieres mantener) y `[]` no excluye nada.
+
 **Compatibilidad con versiones anteriores del plugin:**
 
 Un plugin anterior a 0.1.1 no conoce estas claves y aborta todos sus comandos

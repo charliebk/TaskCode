@@ -11,6 +11,13 @@
  * | comando_sincronizacion       | null (desactivada)| fs/sincronizacion.ts    |
  * | rutas_sincronizacion         | []                | fs/sincronizacion.ts    |
  * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
+ * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
+ *
+ * `excluir_de_revision` la anadio TASK-034: la peticion de revision
+ * embebia el diff entero, y el JS compilado, los lockfiles y la propia
+ * carpeta de tareas eran el 27 % de sus bytes. Sus patrones siguen la
+ * semantica de `git :(glob)` (los interpreta Git, no `path.matchesGlob`
+ * como `patrones_archivo` de los revisores).
  *
  * Las tres de sincronizacion las anadio TASK-033 (version 0.1.1): un
  * proyecto que genera ficheros a partir del estado de las tareas (un
@@ -87,6 +94,11 @@ export interface TaskcodeConfig {
   rutas_sincronizacion: readonly string[];
   /** Segundos que se le dejan al comando antes de matarlo. */
   timeout_sincronizacion: number;
+  /**
+   * Patrones (`git :(glob)`) cuyo diff no se embebe en la peticion de
+   * revision: aparecen solo en un `--stat`. `[]` = no excluir nada.
+   */
+  excluir_de_revision: readonly string[];
 }
 
 /**
@@ -102,6 +114,12 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   comando_sincronizacion: null,
   rutas_sincronizacion: Object.freeze([]) as readonly string[],
   timeout_sincronizacion: 60,
+  excluir_de_revision: Object.freeze([
+    '**/dist/**',
+    '**/*.lock',
+    '**/*-lock.*',
+    'tareas/**',
+  ]) as readonly string[],
 });
 
 /** Las unicas claves admitidas. Cualquier otra aborta (regla 2). */
@@ -112,6 +130,7 @@ export const CLAVES_CONFIG = [
   'comando_sincronizacion',
   'rutas_sincronizacion',
   'timeout_sincronizacion',
+  'excluir_de_revision',
 ] as const;
 
 /**
@@ -297,6 +316,9 @@ export function parsearConfig(contenido: string, ruta: string): TaskcodeConfig {
       case 'timeout_sincronizacion':
         config.timeout_sincronizacion = validarEnteroPositivo(donde, par.clave, par.valor);
         break;
+      case 'excluir_de_revision':
+        config.excluir_de_revision = validarPatronesExclusion(donde, par.valor);
+        break;
     }
   }
 
@@ -329,6 +351,46 @@ function validarSincronizacionCompleta(ruta: string, vistas: ReadonlySet<string>
         '        Borrala, o configura tambien el comando y sus rutas.'
     );
   }
+}
+
+/**
+ * Lista flow de patrones `git :(glob)`. A diferencia de
+ * `rutas_sincronizacion`, una lista vacia es valida (no excluir nada) y
+ * `tareas/` se puede nombrar: excluirla es justo el valor por defecto.
+ * Un patron sin `/` se ancla en cualquier carpeta (`*.lock` →
+ * `** /*.lock`), que es lo que una persona espera y no lo que hace
+ * `:(glob)` a secas, donde `*` no cruza carpetas.
+ */
+function validarPatronesExclusion(donde: string, valor: unknown): readonly string[] {
+  if (!Array.isArray(valor)) {
+    throw new ConfigError(
+      `[ERROR] ${donde}: "excluir_de_revision" debe ser una lista entre corchetes, ` +
+        `y es ${describirValor(valor)}.\n` +
+        '        Ejemplo: excluir_de_revision: [**/dist/**, **/*.lock]. Para no excluir ' +
+        'nada: excluir_de_revision: [].'
+    );
+  }
+  const patrones: string[] = [];
+  for (const elemento of valor) {
+    if (typeof elemento !== 'string' || elemento.trim() === '') {
+      throw new ConfigError(
+        `[ERROR] ${donde}: "excluir_de_revision" contiene un elemento vacio o que no es texto.`
+      );
+    }
+    const conBarras = elemento.trim().replace(/\\/g, '/');
+    const absoluto = conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras);
+    if (absoluto || conBarras.split('/').includes('..')) {
+      throw new ConfigError(
+        `[ERROR] ${donde}: el patron "${elemento.trim()}" de "excluir_de_revision" no vale: ` +
+          `${absoluto ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
+          '        Los patrones son relativos a la raiz del repo y siguen la semantica de ' +
+          'git :(glob) (por ejemplo **/dist/**).'
+      );
+    }
+    const anclado = conBarras.includes('/') ? conBarras : `**/${conBarras}`;
+    if (!patrones.includes(anclado)) patrones.push(anclado);
+  }
+  return patrones;
 }
 
 /** El comando, recortado. No se interpreta: lo ejecuta el shell del sistema tal cual. */

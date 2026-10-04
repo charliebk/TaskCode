@@ -19,7 +19,8 @@
  */
 import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
-import type { Task } from '../core/task.js';
+import { STATE_FOLDER, type Task } from '../core/task.js';
+import { resolverConfig } from '../core/config.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { siguienteRonda } from '../fs/rondas.js';
 import { fenceFor } from '../core/markdown.js';
@@ -31,8 +32,7 @@ import {
   isAncestor,
   headCommit,
   logOneline,
-  diffRange,
-  diffNameOnly,
+  diffParaRevision,
   diffRangeForPaths,
 } from '../fs/git.js';
 import {
@@ -134,10 +134,18 @@ export function peticionTemplate(
   diff: string,
   agenteRevisor: string,
   nombreInforme: string,
-  alcanceDiff: string
+  alcanceDiff: string,
+  extras: ExtrasPeticion = {}
 ): string {
   const commitsBlock = commits === '' ? '(sin commits nuevos respecto a la base)' : commits;
-  const diffBlock = diff === '' ? '(sin diferencias respecto a la base)' : diff;
+  // MENOR-1 de la revision de TASK-034: si TODO quedo excluido, decir
+  // "sin diferencias" seria falso.
+  const diffBlock =
+    diff !== ''
+      ? diff
+      : (extras.excluidos ?? []).length > 0
+        ? '(todo el diff quedo excluido: ver "Excluido del diff" mas abajo)'
+        : '(sin diferencias respecto a la base)';
   const fence = fenceFor(commitsBlock, diffBlock);
   return (
     `# Peticion de revision — ${task.id} (ronda ${ronda})\n\n` +
@@ -146,7 +154,11 @@ export function peticionTemplate(
     `- Rama base: ${baseBranch}\n` +
     `- Commit revisado (HEAD): ${commitRevisado}\n` +
     `- Fecha: ${fecha}\n` +
-    `- Agente revisor sugerido: ${agenteRevisor}\n\n` +
+    `- Agente revisor sugerido: ${agenteRevisor}\n` +
+    (extras.carpetaTarea === undefined
+      ? ''
+      : `- Carpeta de la tarea: ${extras.carpetaTarea} (criterios de aceptacion y plan)\n`) +
+    '\n' +
     '## Instrucciones para el agente revisor\n\n' +
     'Eres un revisor INDEPENDIENTE del agente que implemento. Tu trabajo es\n' +
     'reproducir empiricamente, no leer el diff y opinar: clona el repo a un\n' +
@@ -165,6 +177,47 @@ export function peticionTemplate(
     `## ${alcanceDiff}\n\n` +
     `${fence}diff\n` +
     `${diffBlock}\n` +
+    `${fence}\n` +
+    seccionExcluidos(baseBranch, extras)
+  );
+}
+
+/** Datos de la peticion que anadio TASK-034; opcionales para no romper la firma. */
+export interface ExtrasPeticion {
+  /** Carpeta de la tarea YA en su estado destino, relativa a la raiz del repo. */
+  carpetaTarea?: string;
+  /** Ficheros que cambian pero cuyo diff no se embebe. */
+  excluidos?: readonly string[];
+  /** `git diff --stat` de los excluidos. */
+  stat?: string;
+  /** Patrones de exclusion aplicados, para la orden que recupera su diff. */
+  patrones?: readonly string[];
+}
+
+/**
+ * Lo excluido del diff no desaparece: se dice que es, cuanto pesa y con
+ * que orden se pide (TASK-034). Sin excluidos, no hay seccion.
+ */
+function seccionExcluidos(baseBranch: string, extras: ExtrasPeticion): string {
+  const excluidos = extras.excluidos ?? [];
+  if (excluidos.length === 0) return '';
+  // Comillas dobles: agrupan en bash y tambien en cmd.exe, donde las
+  // simples no (MENOR-4 de la revision de TASK-034).
+  const patrones = (extras.patrones ?? []).map((p) => `":(glob)${p}"`).join(' ');
+  // Sin trim() al principio: se comeria la sangria de la primera linea
+  // del --stat (MENOR-3).
+  const stat = (extras.stat ?? '').replace(/\s+$/, '');
+  const fence = fenceFor(stat);
+  return (
+    `\n## Excluido del diff (${excluidos.length} fichero(s))\n\n` +
+    'Su diff no se embebe: es codigo generado, lockfiles o la propia carpeta de\n' +
+    'tareas (clave `excluir_de_revision` de `.taskcode/config.yml`). Si lo\n' +
+    'necesitas, pidelo con:\n\n' +
+    `${fence}\n` +
+    `git diff ${baseBranch}..HEAD -- ${patrones}\n` +
+    `${fence}\n\n` +
+    `${fence}\n` +
+    `${stat}\n` +
     `${fence}\n`
   );
 }
@@ -255,14 +308,21 @@ export async function runReviewCommand(
 
   const commitRevisado = headCommit(deps.repoCwd);
   const commits = logOneline(baseBranch, 'HEAD', deps.repoCwd);
-  const diff = diffRange(baseBranch, 'HEAD', deps.repoCwd);
+  // TASK-034: lo generado (dist/, lockfiles) y la propia carpeta de
+  // tareas no se embeben: eran el 27 % de los bytes de las peticiones.
+  const excluir = resolverConfig(deps.repoCwd).excluir_de_revision;
+  const paraRevision = diffParaRevision(baseBranch, 'HEAD', excluir, deps.repoCwd);
+  const diff = paraRevision.diff;
 
   // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
   // el diff real de la rama, no `task.agente_revisor` del frontmatter,
   // decide quien revisa. El catalogo se relee de skills/*/SKILL.md en
   // CADA ejecucion (sin cache: HALLAZGOS.md documenta que una copia
   // congelada de patrones_archivo ya diverguio dos veces).
-  const ficherosTocados = diffNameOnly(baseBranch, 'HEAD', deps.repoCwd);
+  // Solo los INCLUIDOS se clasifican: un dist/*.js no debe activar un
+  // dominio ni fragmentar la revision por ficheros que nadie va a leer
+  // (correccion del rol de arquitectura, TASK-034).
+  const ficherosTocados = paraRevision.incluidos;
   const catalogoRevisores = cargarCatalogoRevisores();
   const plan = clasificarPorDominio(ficherosTocados, catalogoRevisores);
 
@@ -322,7 +382,15 @@ export async function runReviewCommand(
           diffDelGrupo,
           escritura.revisor,
           escritura.nombreInforme,
-          alcanceDiff
+          alcanceDiff,
+          {
+            // La peticion se escribe ANTES de mover la tarea: la carpeta
+            // sale del estado destino, no de filePath.
+            carpetaTarea: `tareas/${STATE_FOLDER[updated.estado]}/${updated.id}`,
+            excluidos: paraRevision.excluidos,
+            stat: paraRevision.stat,
+            patrones: excluir,
+          }
         ),
         { encoding: 'utf8', flag: 'wx' }
       );
