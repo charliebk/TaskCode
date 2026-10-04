@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: trivial
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-035-f1-t2-politica-de-rondas-y-una-sola-suit
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
