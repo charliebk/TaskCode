@@ -17,9 +17,12 @@ Es el checkpoint humano: el plan no se aprueba porque un agente lo diga.
 3. Pregunta a la persona si lo aprueba.
    - **Si**: ejecuta `taskctl approve TASK-NNN`.
    - **No**: pregunta que habria que cambiar y escribelo, con sus palabras, al
-     final de `plan-final.md` en una seccion `## Cambios pedidos por la
-     persona` (asi sobrevive a la sesion y la re-planificacion lo lee).
-     Commitealo y ejecuta `taskctl pausa TASK-NNN`, que deja constancia del
+     final de `plan-final.md` en una seccion con este encabezado exacto (asi
+     sobrevive a la sesion y la re-planificacion lo lee):
+
+     `## Cambios pedidos por la persona`
+
+     Commitealo y despues ejecuta `taskctl pausa TASK-NNN`, que deja constancia del
      «no» en el registro de la tarea sin cambiar su estado. Si hay que rehacer
      el plan, lo reanuda `/taskcode-plugin:plan TASK-NNN`; si basta con
      retocarlo a mano, `/taskcode-plugin:approve TASK-NNN` otra vez.

@@ -191,7 +191,24 @@ test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en 
   assert.match(review, /`veredicto-codex`: paso 6\. \*\*No ejecutes `codex-review`\*\*/);
   assert.match(review, /lo decide una\s+persona/);
   const approve = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8');
-  assert.match(approve, /## Cambios pedidos por la\s+persona/, 'approve deja escrito el feedback del no');
+  assert.match(approve, /`## Cambios pedidos por la persona`/, 'approve deja escrito el feedback del no');
+  // pausa aborta con la carpeta sucia: primero se commitea el feedback (MEN-7, M3).
+  assert.ok(
+    approve.indexOf('Commitealo') !== -1 && approve.indexOf('Commitealo') < approve.indexOf('taskctl pausa'),
+    'approve commitea el feedback antes de taskctl pausa'
+  );
+
+  // Re-planificacion (IMP-3, MEN-6): lanza lo que exista para la ronda (unificador o el rol unico),
+  // y la seccion de cambios lleva su estado para que reanudar a medias no abra otra ronda.
+  assert.match(plan, /`peticion-unificador-K\.md`/);
+  assert.match(plan, /`peticion-plan-K\.md`/);
+  assert.match(plan, /\(pendientes, ronda N\+1\)/);
+  assert.match(plan, /\(incorporados en la ronda K\)/);
+
+  // El paso del veredicto de Codex no lanza otra ronda de Codex (MEN-7, M2).
+  const paso6 = /6\. \*\*Veredicto de la segunda opinion\*\*[\s\S]*?(?=\n7\. )/.exec(review);
+  assert.ok(paso6, 'review tiene el paso del veredicto de la segunda opinion');
+  assert.doesNotMatch(paso6[0], /taskctl codex-review/, 'el paso 6 no puede lanzar codex-review');
 });
 
 test('approve es el checkpoint humano: solo aprueba con el si de la persona y registra el no con pausa', async () => {

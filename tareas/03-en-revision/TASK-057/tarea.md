@@ -109,3 +109,27 @@ fragmentada, la ronda 2 y Codex con un stub.
   convierte la skill en un documento congelado.
 
 Suite: 1025 tests, 1022 en verde (los 3 rojos conocidos de Windows).
+
+### Revision por pares (ronda 2)
+
+Revisor independiente: **cambios-solicitados**. Confirmo cerradas IMP-1,
+IMP-2 y MEN-2..5 siguiendo las skills con el CLI real (reanudar con 2, 1 y 0
+roles; «no» y re-planificacion con 2 roles; `review` en cada fase con Codex,
+incluido degradado). Hallazgos nuevos:
+
+- IMP-3 (corregido): al re-planificar una tarea de un rol, la skill mandaba
+  lanzar el unificador con `peticion-unificador-N.md`, que no existe (el CLI
+  crea `peticion-plan-N.md`). Regresion de la correccion de MEN-1. Ahora el
+  paso de re-planificacion lanza lo que haya para la ronda: unificador o el
+  agente del rol unico, volcando su respuesta.
+- MEN-6 (corregido): la seccion de cambios lleva estado. Sin marca → se
+  re-planifica y se marca `(pendientes, ronda N+1)` con su commit; con esa
+  marca → se retoma la ronda sin volver a ejecutar `taskctl plan`; el plan
+  nuevo la deja como `(incorporados en la ronda K)`. Un segundo «no» anade
+  otra seccion sin marca. «Sin rellenar» en lugar de «vacia».
+- MEN-7 (corregido en parte): asercion de que el paso del veredicto de Codex
+  no lanza `codex-review` (M2) y de que approve commitea antes de `pausa`
+  (M3); los dos mutantes mueren, igual que los de IMP-3 y MEN-6. Sin
+  corregir M4, M6, M7, M8 y M9: texto libre, mismo motivo que M10.
+
+Suite: 1025 tests, 1022 en verde (los 3 rojos conocidos de Windows).
