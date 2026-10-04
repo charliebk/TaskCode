@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-045 (fix) — F5-T1 rama_base de punta a punta (2026-10-04)
 ## 0.3.0 — 2026-10-04
 
 Fase 4 del plan de la auditoria: **tareas mas concretas y acotadas**. Sube la

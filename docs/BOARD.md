@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-10-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 22
+## Planificadas (00-planificadas) — 25
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,7 +21,6 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-045  F5-T1 rama_base de punta a punta                                                            (sin asignar)
 TASK-047  F5-T3 Flags desconocidos y mensajes de review                                               (sin asignar)
 TASK-048  F6-T3 Skill de flujo mas ligera                                                             (sin asignar)
 TASK-049  F6-T4 Metadatos del plugin y modelo de los agentes                                          (sin asignar)
@@ -29,17 +28,22 @@ TASK-050  F6-T1 Suite rapida y repo plantilla en los tests                      
 TASK-051  F6-T2 Partir los ficheros de test mas largos                                                (sin asignar)
 TASK-052  F6-T5 Telemetria de fases y heuristica recalibrada                                          (sin asignar)
 TASK-054  Rutas no ASCII en el diff de revision fragmentado por dominio                               (sin asignar)
+TASK-056  Flujo B: nucleo determinista del siguiente paso y registro de transiciones                  (sin asignar)
+TASK-057  Flujo C: fases como skills invocables en modo manual                                        (sin asignar)
+TASK-058  Flujo D: modo semiautomatico                                                                (sin asignar)
+TASK-059  Flujo E: modo automatico                                                                    (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 1
+## En diseno (01-en-diseno) — 2
 
 ```text
-ID        Titulo                                Asignado
---------  ------------------------------------  --------------------
-TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
+ID        Titulo                                   Asignado
+--------  ---------------------------------------  --------------------
+TASK-023  Métricas de coste en tokens por fase     charlie.bk@gmail.com
+TASK-055  Flujo A: taskctl desde PowerShell y cmd  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 31
+## Terminadas (04-terminadas) — 32
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -73,6 +77,7 @@ TASK-041  F4-T1 taskctl new con objetivo y criterios                            
 TASK-042  F4-T4 Complejidad por defecto por heuristica y un rol sin unificador                     charlie.bk@gmail.com
 TASK-043  F4-T2 Validacion antes de plan y puertas de cierre                                       charlie.bk@gmail.com
 TASK-044  F4-T3 Particion propuesta de las tareas grandes                                          charlie.bk@gmail.com
+TASK-045  F5-T1 rama_base de punta a punta                                                         charlie.bk@gmail.com
 TASK-046  F5-T2 Secciones con subtitulos y criterios multilinea                                    charlie.bk@gmail.com
 TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
 ```
