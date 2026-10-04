@@ -2,7 +2,7 @@
 
 - Commit revisado: 604f2d1 (codigo en ea31c47; incremental desde e2f340f)
 - Revisor: agente general-purpose independiente con la skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-058 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
