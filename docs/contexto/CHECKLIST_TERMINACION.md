@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 52 / 64 items terminados (81%)** · última actualización: 2026-10-04
+**Progreso global: 53 / 64 items terminados (83%)** · última actualización: 2026-10-04
 
 Desde el 2026-10-04 se suma la fase F: el plan de solución de la auditoría del
 2026-10-03 (`docs/auditoria/PLAN-SOLUCION-2026-10-03.md`), más TASK-033, TASK-053
@@ -28,8 +28,8 @@ tomada y documentada, no aplazada.
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **5** | ~9h |
-| F — Auditoría 2026-10-03 | 22 | **11** | — |
-| **Total pendiente** | **12** | — | — |
+| F — Auditoría 2026-10-03 | 22 | **12** | — |
+| **Total pendiente** | **11** | — | — |
 
 ---
 
@@ -714,7 +714,7 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 
 ---
 
-## F — Auditoría 2026-10-03 (11/22)
+## F — Auditoría 2026-10-03 (12/22)
 
 - [x] TASK-033 — Comando de sincronización tras cada transición (v0.1.1)
 - [x] TASK-034 — F1-T1 Excluir lo generado del diff de revisión
@@ -727,7 +727,7 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 - [x] TASK-041 — F4-T1 `taskctl new` con objetivo y criterios
 - [x] TASK-043 — F4-T2 Validación antes de plan y puertas de cierre
 - [ ] TASK-044 — F4-T3 Partición propuesta de las tareas grandes
-- [ ] TASK-042 — F4-T4 Complejidad por heurística y un rol sin unificador
+- [x] TASK-042 — F4-T4 Complejidad por heurística y un rol sin unificador
 - [ ] TASK-045 — F5-T1 `rama_base` de punta a punta
 - [x] TASK-046 — F5-T2 Secciones con subtítulos y criterios multilínea
 - [ ] TASK-047 — F5-T3 Flags desconocidos y mensajes de review
