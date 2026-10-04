@@ -21,6 +21,20 @@ dependencias: []
 ---
 ## Objetivo
 
+Que `plan` se niegue a planificar una tarea mal definida, y que `approve` y
+`finish` no dejen pasar esqueletos vacios (auditoria del 2026-10-03, C2, C6 y
+D5). Reproducido en la auditoria: una tarea entera se cerro con el Objetivo
+vacio, un criterio `- [ ] ` vacio, el plan en esqueleto y sin Resultado, y
+todos los comandos salieron con 0. Ademas, las tareas con muchos criterios o
+criterios vagos («mejorar», «robusto») son las que mas rondas de revision
+costaron: las tres con 13 o mas criterios tuvieron peticiones de 110-160 KB.
+
+La validacion es determinista (sin modelo): objetivo no vacio, entre 1 y 8
+criterios no vacios, y cada criterio cita algo comprobable (un comando, una
+ruta, un numero, codigo entre comillas invertidas o un test). Se calibra
+contra las tareas ya cerradas del repo para no rechazar lo razonable.
+
+Fuera de alcance: proponer la particion de una tarea grande (TASK-044).
 
 ## Criterios de aceptacion
 - [ ] `plan` aborta sin mover la tarea si el objetivo esta vacio, hay 0 criterios o mas de 8, o alguno esta vacio
