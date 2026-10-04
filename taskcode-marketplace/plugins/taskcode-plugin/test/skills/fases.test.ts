@@ -244,7 +244,20 @@ test('semiautomatico (TASK-058): preguntar y continuar encadenan con la herramie
   assert.match(avance, /TASK-NNN --cadena <testigo>/);
   assert.match(avance, /taskctl cadena cerrar <testigo>/);
   // En curso no se encadena: falta implementar.
-  assert.match(avance, /`review` con la\s+tarea `en-curso`/);
+  assert.match(avance, /`review` con la\s+tarea\s+`en-curso`/);
+  // TASK-059: en automatico el trabajo pendiente lo hace la skill; en los otros modos se detiene.
+  assert.match(avance, /devuelve `detener` en manual y semiautomatico/);
+  assert.match(avance, /En `automatico` devuelve `continuar`: el\s+trabajo lo hace la skill/);
+});
+
+test('automatico (TASK-059): approve sin preguntar, start implementa, review corrige y commitea el informe solo', async () => {
+  const approve = lf(await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8'));
+  assert.match(approve, /taskctl approve TASK-NNN --decidido-por automatico/);
+  const start = lf(await readFile(path.join(SKILLS_DIR, 'start', 'SKILL.md'), 'utf8'));
+  assert.match(start, /\*\*Modo automatico\*\*[\s\S]*implementa el plan[\s\S]*suite[\s\S]*en verde/);
+  const review = lf(await readFile(path.join(SKILLS_DIR, 'review', 'SKILL.md'), 'utf8'));
+  assert.match(review, /commitealo \*\*solo, en un commit que no toque nada mas\*\*/);
+  assert.match(review, /corrige tu los CRITICO e IMPORTANTE/);
   for (const fase of Object.keys(FASES)) {
     const texto = await readFile(path.join(SKILLS_DIR, fase, 'SKILL.md'), 'utf8');
     assert.ok(texto.includes('taskctl cadena comprobar <testigo>'), `${fase}: no comprueba la cadena recibida`);

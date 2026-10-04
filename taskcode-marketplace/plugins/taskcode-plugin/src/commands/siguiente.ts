@@ -30,6 +30,7 @@ import {
   isAncestor,
   localBranchExists,
   lsTreeNames,
+  runGit,
   showFileAtRef,
 } from '../fs/git.js';
 import type { Task } from '../core/task.js';
@@ -51,6 +52,38 @@ export interface SiguienteCommandResult extends SiguientePaso {
   leidaDe: 'working-tree' | 'rama';
   /** true si se pidio --json. */
   json: boolean;
+}
+
+/**
+ * ¿Cada informe esta en un commit propio, posterior al codigo? (TASK-059)
+ * - el ultimo commit que toco cada informe en `ref` solo toca la carpeta
+ *   `revision/` de la tarea (no se mezclo con codigo);
+ * - es posterior (descendiente) al ultimo commit que toca algo fuera de
+ *   `tareas/`, es decir, a la implementacion;
+ * - y no hay cambios sin commitear en esa carpeta (si los hay, lo que se lee
+ *   del disco no es lo que esta en ningun commit).
+ * `dirRevision` es la ruta POSIX relativa a la raiz del repo, acabada en /.
+ */
+function informeEnCommitPropio(
+  ref: string,
+  dirRevision: string,
+  nombres: readonly string[],
+  cwd: string
+): boolean {
+  if (nombres.length === 0) return false;
+  if (ref === 'HEAD' && runGit(['status', '--porcelain', '--', dirRevision], cwd) !== '') return false;
+  const codigo = runGit(['log', '-1', '--format=%H', ref, '--', '.', ':(exclude)tareas/'], cwd);
+  for (const nombre of nombres) {
+    const commit = runGit(['log', '-1', '--format=%H', ref, '--', dirRevision + nombre], cwd);
+    if (commit === '') return false;
+    const tocados = runGit(['show', '--name-only', '--format=', commit], cwd)
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l !== '');
+    if (tocados.some((f) => !f.startsWith(dirRevision))) return false;
+    if (codigo !== '' && !isAncestor(codigo, commit, cwd)) return false;
+  }
+  return true;
 }
 
 /** Veredicto de una ronda a partir de sus informes; null si no hay ninguno. */
@@ -93,6 +126,11 @@ export async function runSiguienteCommand(
   // del disco.
   let primarios: string[];
   let codex: string[];
+  // Para la guarda del commit propio y el tope de rondas (TASK-059).
+  let rondaRevision: number;
+  let nombresPrimarios: string[];
+  let dirRevisionRepo: string;
+  let refInformes: string;
   if (enOtraRama) {
     const enRama = lsTreeNames(rama, 'tareas', deps.repoCwd);
     const rutaTarea = enRama.find((n) => n.endsWith(`/${id}/tarea.md`));
@@ -108,16 +146,24 @@ export async function runSiguienteCommand(
       .map((n) => n.slice(dirRevision.length));
     const leer = (n: string) => showFileAtRef(rama, dirRevision + n, deps.repoCwd);
     // En la rama la tarea ya paso por start: el plan dejo de importar.
-    primarios = nombresDeUltimaRonda(nombres, INFORME_REVISION_RE).nombres.map(leer);
+    const ultima = nombresDeUltimaRonda(nombres, INFORME_REVISION_RE);
+    rondaRevision = ultima.ronda;
+    nombresPrimarios = ultima.nombres;
+    dirRevisionRepo = dirRevision;
+    refInformes = rama;
+    primarios = ultima.nombres.map(leer);
     codex = nombresDeUltimaRonda(nombres, INFORME_CODEX_RE).nombres.map(leer);
   } else {
     ({ task, body } = local);
     const taskDir = path.dirname(local.filePath);
     const revisionDir = path.join(taskDir, REVISION_DIRNAME);
     const leer = (n: string) => readFile(path.join(revisionDir, n), 'utf8');
-    primarios = await Promise.all(
-      (await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE)).nombres.map(leer)
-    );
+    const ultima = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
+    rondaRevision = ultima.ronda;
+    nombresPrimarios = ultima.nombres;
+    dirRevisionRepo = `${path.relative(deps.repoCwd, revisionDir).split(path.sep).join('/')}/`;
+    refInformes = 'HEAD';
+    primarios = await Promise.all(ultima.nombres.map(leer));
     codex = await Promise.all(
       (await informesDeUltimaRonda(revisionDir, INFORME_CODEX_RE)).nombres.map(leer)
     );
@@ -129,6 +175,10 @@ export async function runSiguienteCommand(
     veredicto: veredictoDe(primarios),
     veredictoCodex: veredictoDe(codex),
     modoCongelado: modoCongelado(body) !== null,
+    rondaRevision,
+    informeEnCommitPropio:
+      task.estado === 'en-revision' &&
+      informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, deps.repoCwd),
   };
 
   const modo = modoDeTarea(body, modoConfig);

@@ -30,13 +30,18 @@ punto, no un formalismo.
    temporal, suite una vez, mutantes) y devuelva su informe con la tabla de
    hallazgos. Vuelca cada respuesta en su `informe-revision-N*.md`
    **conservando la cabecera de la plantilla**, con su linea `- Veredicto:`,
-   y commitealo.
+   y commitealo **solo, en un commit que no toque nada mas**: en modo
+   automatico, `finish` no sigue solo si un informe va mezclado con codigo.
 4. Escribe cada veredicto con el comando, no a mano:
    `taskctl veredicto TASK-NNN aprobada|aprobada-con-correcciones|cambios-solicitados`.
    Si la ronda esta fragmentada, uno por informe, con el nombre de fichero
    completo: `--informe informe-revision-N-<revisor>.md`. Con CRITICO o
    IMPORTANTE abiertos, `cambios-solicitados`: se corrigen, se commitea, y se
-   vuelve a esta skill (abre la ronda siguiente).
+   vuelve a esta skill (abre la ronda siguiente). En modo automatico, si
+   `siguiente` da `fase: review` con `accion: continuar` tras los cambios,
+   corrige tu los CRITICO e IMPORTANTE del informe (y los MENOR baratos),
+   commitea, deja la suite en verde y vuelve al paso 2. Desde la ronda 3,
+   `siguiente` pregunta: otra ronda la decide una persona.
 5. **Segunda opinion** (`revision_codex: true` y primaria aprobada):
    ejecuta `taskctl codex-review TASK-NNN` una vez.
    - Si avisa de que Codex no respondio y no escribio informe, muestra el
