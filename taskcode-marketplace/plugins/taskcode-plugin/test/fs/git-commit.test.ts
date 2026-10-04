@@ -79,6 +79,9 @@ test('autoCommit NO se lleva el trabajo de la persona: su fichero sucio no entra
 
     assert.equal(r.commiteado, true);
     assert.deepEqual(r.ficheros, ['tareas/00-planificadas/TASK-900/tarea.md']);
+    // TASK-039 (MEN-1 de su revision): el SHA sale ahora de `show --format=%h`;
+    // tiene que ser el mismo que da Git para HEAD.
+    assert.equal(r.commit, git(['rev-parse', '--short', 'HEAD'], repoRoot).trim());
 
     // Evidencia 1: el commit contiene EXACTAMENTE el fichero de taskctl.
     const stat = git(['show', '--stat', '--format=', 'HEAD'], repoRoot);

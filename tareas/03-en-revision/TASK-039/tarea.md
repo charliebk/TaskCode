@@ -59,3 +59,17 @@ ya sabe, que es otra tarea.
 **Pruebas.** `git-commit`, `auto-commit`, `sincronizacion`, `review` y `finish`:
 76/76 sin tocar expectativas (incluido el test de que un hook que mete
 ficheros ajenos se sigue detectando).
+
+**Revision ronda 1: aprobada** (0 criticos, 0 importantes, 3 menores; suite
+completa 913 tests, solo los 3 rojos conocidos de Windows; 4 mutantes, 3
+muertos directamente y uno de rebote). Por A3, sin ronda 2.
+- MEN-1, corregido: ningun test comprobaba que `r.commit` fuera el SHA corto
+  de HEAD; anadida la asercion contra `rev-parse --short HEAD`.
+- MEN-2, aceptado: el error del `add` unico nombra todas las rutas; el stderr
+  de Git sigue senalando la culpable y el estado final es el mismo.
+- MEN-3, aceptado: con sincronizacion configurada, sus rutas se anaden dos
+  veces (el `add` aislado de TASK-033 y el unico); un proceso de mas solo en
+  ese caso.
+El revisor comprobo ademas que `-c maintenance.auto=false` es inocuo en Git
+antiguo (Git acepta cualquier clave en `-c`) y que el SHA coincide tambien con
+`core.abbrev=12`.
