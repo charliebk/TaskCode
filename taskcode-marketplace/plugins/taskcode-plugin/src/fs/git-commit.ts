@@ -237,19 +237,18 @@ export function autoCommit(opts: AutoCommitOptions): AutoCommitResult {
   let ficheros: string[] = [];
 
   if (presentes.length > 0) {
-    // Una a una, a proposito: un pathspec por invocacion deja claro en
-    // el log de Git (y en un strace, si hiciera falta) que no hay
-    // ningun `git add` sin acotar por ahi.
-    for (const rutaRel of presentes) {
-      try {
-        runGit(['add', '-A', '--', rutaRel], cwd);
-      } catch (e: unknown) {
-        throw new AutoCommitError(
-          `[ERROR] taskctl escribio los ficheros de la tarea pero no pudo preparar ` +
-            `"${rutaRel}" para el commit: ${detalleDeError(e)}. Los cambios estan en el ` +
-            'arbol de trabajo; revisa el motivo y commitealos a mano.'
-        );
-      }
+    // Un solo `git add`, ACOTADO por las rutas de taskctl (TASK-039: antes
+    // era uno por ruta, cinco procesos en `finish`). Lo que garantiza la
+    // regla 1 es el pathspec, no el numero de invocaciones: sigue sin
+    // haber ningun `git add` sin acotar.
+    try {
+      runGit(['add', '-A', '--', ...presentes], cwd);
+    } catch (e: unknown) {
+      throw new AutoCommitError(
+        `[ERROR] taskctl escribio los ficheros de la tarea pero no pudo preparar ` +
+          `${presentes.map((r) => `"${r}"`).join(', ')} para el commit: ${detalleDeError(e)}. ` +
+          'Los cambios estan en el arbol de trabajo; revisa el motivo y commitealos a mano.'
+      );
     }
 
     // Regla 2: si el indice no difiere de HEAD bajo estas rutas, no
@@ -262,7 +261,10 @@ export function autoCommit(opts: AutoCommitOptions): AutoCommitResult {
 
     if (ficheros.length > 0) {
       try {
-        runGit(['commit', '-m', opts.mensaje, '--', ...presentes], cwd);
+        // maintenance.auto=false (TASK-039): sin el, Git lanza un
+        // `maintenance run --auto` tras cada commit automatico. Lo hara
+        // la siguiente operacion de Git de la persona.
+        runGit(['-c', 'maintenance.auto=false', 'commit', '-m', opts.mensaje, '--', ...presentes], cwd);
       } catch (e: unknown) {
         throw new AutoCommitError(
           `[ERROR] taskctl escribio los ficheros de la tarea pero NO pudo commitearlos: ` +
@@ -272,7 +274,6 @@ export function autoCommit(opts: AutoCommitOptions): AutoCommitResult {
         );
       }
       commiteado = true;
-      commit = runGit(['rev-parse', '--short', 'HEAD'], cwd);
 
       // Hallazgo IMPORTANTE de la revision por pares (TASK-030): la
       // lista de arriba es lo que taskctl PIDIO commitear, no lo que
@@ -284,11 +285,12 @@ export function autoCommit(opts: AutoCommitOptions): AutoCommitResult {
       // habia registrado 2: en el unico escenario donde la regla se
       // rompe, la herramienta afirmaba lo contrario. Asi que la lista
       // se relee del commit y, si no coincide, se avisa.
+      // Una sola llamada para el SHA corto (primera linea) y los ficheros
+      // (TASK-039: antes eran `rev-parse --short` y `show` por separado).
       const pedidos = ficheros;
-      ficheros = runGit(['show', '--name-only', '--format=', 'HEAD'], cwd)
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l !== '');
+      const [sha, ...lineas] = runGit(['show', '--name-only', '--format=%h', 'HEAD'], cwd).split('\n');
+      commit = (sha ?? '').trim();
+      ficheros = lineas.map((l) => l.trim()).filter((l) => l !== '');
 
       const intrusos = ficheros.filter((f) => !pedidos.includes(f));
       if (intrusos.length > 0) {
