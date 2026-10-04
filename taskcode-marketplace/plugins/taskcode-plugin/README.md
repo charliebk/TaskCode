@@ -99,36 +99,40 @@ comando suelto o a reestructurar el plugin.
 Dentro de Claude Code no hay que hacer nada: `bin/` entra en el PATH del
 Bash tool mientras el plugin esta habilitado. **Fuera** (tu propia terminal)
 no: ni esta en el PATH ni, en Windows, PowerShell y cmd saben ejecutar
-`bin/taskctl`, que es un script de node sin extension. Para eso esta
-`bin/taskctl.cmd` (desde la version que sigue a la 0.3.0).
+`bin/taskctl`, que es un script de node sin extension.
 
 El plugin instalado vive en
 `~/.claude/plugins/cache/<marketplace>/taskcode-plugin/<version>/` (en
 Windows, `%USERPROFILE%\.claude\plugins\cache\...`). Hace falta `node` en
-el PATH. Tres formas, de la mas puntual a la mas comoda:
+el PATH. Una forma por shell:
 
-**Ruta completa, una vez** (cualquier version, cualquier shell):
-
-```powershell
-node "$env:USERPROFILE\.claude\plugins\cache\taskcode-marketplace\taskcode-plugin\0.3.0\bin\taskctl" approve TASK-005
-```
-
-**PowerShell, permanente**: anade esto a tu perfil (`notepad $PROFILE`). Elige
-la version instalada mas alta, asi que sobrevive a las actualizaciones del
-plugin, y funciona tambien con versiones sin `taskctl.cmd`:
+**PowerShell**: anade esto a tu perfil (`notepad $PROFILE`). Llama a `node`
+directamente y elige la version instalada mas alta, asi que sobrevive a las
+actualizaciones del plugin:
 
 ```powershell
 $taskcodeBase = Join-Path $env:USERPROFILE '.claude\plugins\cache\taskcode-marketplace\taskcode-plugin'
 function taskctl {
   $bin = Get-ChildItem $taskcodeBase -Directory |
-    Sort-Object { [version]$_.Name } | Select-Object -Last 1
+    Where-Object { $_.Name -as [version] } |
+    Sort-Object { $_.Name -as [version] } | Select-Object -Last 1
   node (Join-Path $bin.FullName 'bin\taskctl') @args
 }
 ```
 
-**cmd o PATH de Windows**: anade la carpeta `bin` de la version instalada al
-PATH del usuario; `taskctl` resuelve a `taskctl.cmd`. Hay que actualizar la
-ruta cuando cambie la version del plugin.
+**No pongas `bin` en el PATH para usarlo desde PowerShell.** Ahi `taskctl`
+resolveria a `bin\taskctl.cmd`, y PowerShell le pasa sin comillas los
+argumentos que no llevan espacios: un titulo como `Q&A` o `foo->notas.txt`
+lo interpreta cmd.exe, que ejecuta `A` o vacia `notas.txt`. La funcion de
+arriba no pasa por cmd y no tiene ese problema.
+
+**cmd**: `bin\taskctl.cmd` (desde la version que sigue a la 0.3.0). Anade la
+carpeta `bin` de la version instalada al PATH y escribe `taskctl`. Pon
+**siempre entre comillas dobles** los argumentos con `& | < > ^`
+(`taskctl new --titulo "Q&A"`): cmd.exe interpreta esos caracteres antes
+que nada, y el escape con `^` no sobrevive al reenvio a node. Ojo con
+`%NOMBRE%`: cmd lo sustituye por la variable de entorno aunque vaya entre
+comillas. Hay que actualizar la ruta cuando cambie la version del plugin.
 
 **Git Bash**: `alias taskctl='node "$(ls -d ~/.claude/plugins/cache/taskcode-marketplace/taskcode-plugin/*/ | sort -V | tail -1)bin/taskctl"'`
 en `~/.bashrc`.
