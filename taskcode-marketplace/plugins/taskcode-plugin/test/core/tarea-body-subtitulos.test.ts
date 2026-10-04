@@ -42,6 +42,18 @@ test('import (TASK-046): un criterio partido en lineas sangradas es una entrada 
   assert.deepEqual((e as { criterios: string[] }).criterios, ['Primera parte y segunda parte', 'Otro']);
 });
 
+test('extraerSecciones (TASK-046, MEN-1 y MEN-3 de su revision): "### Criterios de aceptacion" sigue abriendo los criterios; lo sangrado tras un subtitulo no se pega', () => {
+  const s1 = extraerSecciones('## Objetivo\n\nX.\n\n### Criterios de aceptacion\n- [ ] a\n- [ ] b\n');
+  assert.deepEqual(s1.criterios, ['a', 'b']);
+  const s2 = extraerSecciones('## Criterios de aceptacion\n- [ ] a\n### CLI\n   nota sangrada\n- [ ] b\n');
+  assert.deepEqual(s2.criterios, ['a', 'b']);
+});
+
+test('import (TASK-046, MEN-2 de su revision): un bloque sangrado tras una linea en blanco no se pega al criterio', () => {
+  const [e] = parseImportMarkdown('### Tarea\n- Ejecuta esto:\n\n    rm -rf x\n');
+  assert.ok(e !== undefined && !e.ok, JSON.stringify(e));
+});
+
 test('import (TASK-046): la prosa sin sangrar sigue invalidando la entrada', () => {
   const [e] = parseImportMarkdown('### Tarea\n- Uno\nprosa suelta\n');
   assert.ok(e !== undefined && !e.ok);

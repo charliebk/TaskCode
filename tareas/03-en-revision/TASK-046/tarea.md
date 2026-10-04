@@ -53,3 +53,18 @@ sigue siendo un error.
 Objetivo; un `##` posterior sigue cerrando; criterio multilinea en `import`;
 prosa sin sangrar sigue invalidando. Con `core/*`, `import`, `plan-brainstorm`
 y `new-contenido`: 388/388 sin tocar expectativas.
+
+**Revision ronda 1: aprobada con correcciones** (0 criticos, 0 importantes, 4
+menores; suite completa 937 tests, solo los 3 rojos conocidos de Windows;
+comparacion de `extraerSecciones` develop/rama sobre las 151 tareas reales de
+TaskCode y OpenGisViewer: solo cambia TASK-033, y es la correccion esperada).
+Por A3, sin ronda 2. Corregidos en el cierre:
+- MEN-1: un `### Criterios de aceptacion` bajo el Objetivo vuelve a abrir los
+  criterios (era una regresion de borde). Test.
+- MEN-2: en `import`, una linea sangrada tras una linea en blanco (un bloque de
+  codigo) ya no se aplana dentro del criterio. Test.
+- MEN-3: una linea sangrada justo debajo de un subtitulo no se pega al ultimo
+  criterio de la subseccion anterior. Test.
+- MEN-4: el comentario de la decision 2 ya no dice «nivel 2 a 6».
+Nota del revisor, sin cambio: `### TRAS EL CIERRE:` con dos puntos no se
+reconoce como «Tras el cierre».

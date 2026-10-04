@@ -20,7 +20,8 @@
  *    en minusculas), asi que tambien casa "## CRITERIOS DE ACEPTACIÓN".
  *    Elegir solo una forma dejaria fuera la mitad del repo.
  * 2. UNA SECCION TERMINA DONDE EMPIEZA LA SIGUIENTE CABECERA `##`.
- *    Se reconocen cabeceras ATX de nivel 2 a 6; un `#` de nivel 1 NO
+ *    Desde TASK-046 solo el nivel 2 cambia de seccion; los subtitulos de
+ *    nivel 3 a 6 quedan dentro (ver extraerSecciones). Un `#` de nivel 1 NO
  *    corta, porque una linea que empieza por "# " dentro de un bloque
  *    de codigo (un comentario de shell, que este repo escribe a
  *    menudo) truncaria el Objetivo por accidente.
@@ -91,23 +92,34 @@ export function extraerSecciones(body) {
     let seccion = 'otra';
     let objetivoVisto = false;
     let criteriosVisto = false;
+    // Una linea sangrada solo continua un criterio si va pegada a el.
+    let continuable = false;
     for (const linea of lineas) {
         // TASK-046 (D2 de la auditoria): un subtitulo de nivel 3 o mas dentro
         // del Objetivo o de los Criterios NO cambia de seccion. Antes cualquier
         // `###` la cortaba: criterios agrupados en `### Parser` / `### CLI`
         // daban `criterios: []`, y `### Tras el cierre` quedaba fuera solo por
         // casualidad.
-        if (RE_SUBTITULO.test(linea) && seccion !== 'otra') {
+        const tituloSub = RE_SUBTITULO.test(linea) ? tituloDeCabecera(linea) : null;
+        // MEN-1 de su revision: un `### Criterios de aceptacion` (o `### Objetivo`)
+        // sigue abriendo su seccion como antes; los demas subtitulos no cortan.
+        const subtituloDeSeccion = tituloSub !== null &&
+            ((tituloSub === TITULO_CRITERIOS && !criteriosVisto) || (tituloSub === TITULO_OBJETIVO && !objetivoVisto));
+        if (tituloSub !== null && seccion !== 'otra' && !subtituloDeSeccion) {
             if (seccion === 'objetivo') {
                 objetivo.push(linea);
             }
             else {
-                destino = tituloDeCabecera(linea) === TITULO_TRAS_CIERRE ? trasCierre : normales;
+                destino = tituloSub === TITULO_TRAS_CIERRE ? trasCierre : normales;
+                // MEN-3: una linea sangrada justo debajo de un subtitulo no es la
+                // continuacion del ultimo criterio de la subseccion anterior.
+                continuable = false;
             }
             continue;
         }
         if (RE_CABECERA.test(linea)) {
             destino = normales;
+            continuable = false;
             const titulo = tituloDeCabecera(linea);
             if (titulo === TITULO_OBJETIVO && !objetivoVisto) {
                 seccion = 'objetivo';
@@ -130,12 +142,16 @@ export function extraerSecciones(body) {
             const criterio = RE_CRITERIO.exec(linea);
             if (criterio !== null) {
                 destino.push((criterio[1] ?? '').trim());
+                continuable = true;
                 continue;
             }
-            if (destino.length > 0 && RE_CONTINUACION.test(linea)) {
+            if (continuable && destino.length > 0 && RE_CONTINUACION.test(linea)) {
                 const ultimo = destino[destino.length - 1] ?? '';
                 destino[destino.length - 1] = `${ultimo} ${linea.trim()}`.trim();
+                continue;
             }
+            if (linea.trim() !== '')
+                continuable = false;
         }
     }
     return { objetivo: objetivo.join('\n').trim(), criterios: normales, criteriosTrasCierre: trasCierre };
