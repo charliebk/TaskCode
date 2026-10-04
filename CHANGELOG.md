@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-040 (feature) — F3-T1 taskctl review para la ronda 2 y siguientes (2026-10-04)
+
 ## 0.1.3 — 2026-10-04
 
 Fase 2 del plan de la auditoria: **Git-Flow mas rapido**. Actualizar con
