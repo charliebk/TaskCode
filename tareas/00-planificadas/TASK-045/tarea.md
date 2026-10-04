@@ -21,6 +21,14 @@ dependencias: []
 ---
 ## Objetivo
 
+`rama_base` (clave de `.taskcode/config.yml`) solo funciona hasta `approve`:
+`start`, `review` y `finish` invocan los scripts de Git-Flow sin `--develop`,
+y `finish.ts` fija `develop` como constante, asi que con `rama_base: dev` el
+ciclo muere en `start` con «develop no existe» (auditoria D1). Los scripts ya
+aceptan `--develop <rama>`: el cambio es que los tres comandos se lo pasen
+para feature, fix y release (y para el backmerge de hotfix/release), y que
+`finish` use la rama base resuelta en lugar del literal. Sin config, el
+comportamiento es identico al de hoy.
 
 ## Criterios de aceptacion
 - [ ] Los scripts de Git-Flow reciben la rama base y `finish.ts` deja de fijar `develop`

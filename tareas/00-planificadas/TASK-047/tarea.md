@@ -21,6 +21,14 @@ dependencias: []
 ---
 ## Objetivo
 
+Tres MENOR de la auditoria (D4, D6, D10) que confunden a quien usa el CLI.
+Un flag mal escrito (`--complejida trivial`) se ignora en silencio y la tarea
+sale con otra complejidad: debe abortar diciendo cuales son los flags validos
+y cual se parece al escrito, como ya hace el parser de config. La salida de
+`review` dice «lanza ese agente» nombrando una skill revisora: debe separar
+el agente que se lanza (`agente_revisor`) de la skill que carga, y usar
+`modelo_sugerido`, que hoy no lee nadie. Y `codex-review.ts` duplica helpers
+de `finish.ts`: debe reutilizarlos.
 
 ## Criterios de aceptacion
 - [ ] Un flag desconocido aborta con la lista de flags validos y una sugerencia
