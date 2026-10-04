@@ -96,6 +96,7 @@ taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release>
             [--sprint N] [--etiquetas a,b,c]
             [--complejidad trivial|simple|media|alta|critica]
             [--modelo-sugerido X] [--agente-revisor Y]
+            [--objetivo "<texto>"] [--criterio "<texto>"]... | [--desde <fichero>]
 
 taskctl import <fichero.md> [--tipo ...] [--sprint N] [--complejidad ...]
 taskctl board [--sprint N] [--asignado-a <persona>]
@@ -208,8 +209,6 @@ un comando que reescribe esos ficheros y la lista de rutas que modifica.
   existir tambien. La tercera es opcional.
 - Una clave mal escrita o un valor invalido aborta **todos** los comandos de
   `taskctl` que lean config, con un error que enumera las claves validas.
-- Sin estas claves, el comportamiento es identico al actual: no se ejecuta nada
-  en la sincronizacion.
 
 **Como funciona:**
 

@@ -10,6 +10,7 @@
  * commitear, o cambia automaticamente a la rama base esperada segun
  * --tipo si el workspace esta limpio pero no esta ya ahi.
  */
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs } from '../cli/args.js';
 import {
@@ -29,6 +30,7 @@ import {
 import { nextTaskId } from '../core/task-id.js';
 import { listExistingTaskIds, writeTareaFile } from '../fs/task-store.js';
 import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
+import { extraerSecciones } from '../core/tarea-body.js';
 
 export class NewTaskArgError extends Error {}
 
@@ -46,6 +48,98 @@ const DEFAULT_SPRINT = 0;
 const DEFAULT_COMPLEJIDAD: TaskComplexity = 'media';
 const DEFAULT_MODELO = 'sonnet';
 export const DEFAULT_BODY = '## Objetivo\n\n\n## Criterios de aceptacion\n- [ ] \n';
+
+/**
+ * Objetivo y criterios con los que nace la tarea (TASK-041). Sin ellos,
+ * `DEFAULT_BODY` de siempre: la seccion vacia que `plan` exige rellenar.
+ */
+export interface ContenidoInicial {
+  objetivo: string | null;
+  criterios: string[];
+  /** Fichero de `--desde`, si se paso. */
+  desde: string | null;
+}
+
+/**
+ * Saca de argv `--objetivo`, `--criterio` (repetible) y `--desde`, en sus
+ * dos formas (`--flag valor` y `--flag=valor`). Se hace ANTES de
+ * `parseArgs` porque ese parser se queda solo con el ultimo valor de un
+ * flag repetido: con el, tres `--criterio` darian uno.
+ */
+export function extraerContenidoInicial(argv: readonly string[]): {
+  contenido: ContenidoInicial;
+  resto: string[];
+} {
+  const resto: string[] = [];
+  const contenido: ContenidoInicial = { objetivo: null, criterios: [], desde: null };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] as string;
+    const m = /^--(objetivo|criterio|desde)(?:=(.*))?$/s.exec(arg);
+    if (m === null) {
+      resto.push(arg);
+      continue;
+    }
+    const nombre = m[1] as 'objetivo' | 'criterio' | 'desde';
+    let valor = m[2];
+    if (valor === undefined) {
+      valor = argv[i + 1];
+      if (valor === undefined || valor.startsWith('--')) {
+        throw new NewTaskArgError(`--${nombre} necesita un valor: --${nombre} "<texto>".`);
+      }
+      i++;
+    }
+    if (valor.trim() === '') {
+      throw new NewTaskArgError(`--${nombre} no puede estar vacio.`);
+    }
+    // MEN-1 de la revision: un criterio es UNA linea de checklist (con
+    // saltos, `plan` perdia lo que venia detras), y un objetivo con una
+    // cabecera `##` partiria las secciones de tarea.md.
+    if (nombre === 'criterio') contenido.criterios.push(valor.trim().replace(/\s*\r?\n\s*/g, ' '));
+    else if (nombre === 'objetivo') {
+      if (/^#{1,6}\s/m.test(valor)) {
+        throw new NewTaskArgError(
+          '--objetivo no puede contener cabeceras markdown (lineas que empiezan por "#"): ' +
+            'partirian las secciones de tarea.md. Usa --desde <fichero> para un objetivo con estructura.'
+        );
+      }
+      contenido.objetivo = valor.trim();
+    }
+    else contenido.desde = valor;
+  }
+  if (contenido.desde !== null && (contenido.objetivo !== null || contenido.criterios.length > 0)) {
+    throw new NewTaskArgError(
+      '--desde no se combina con --objetivo ni --criterio: o el fichero trae las dos ' +
+        'secciones, o se pasan por flags.'
+    );
+  }
+  return { contenido, resto };
+}
+
+/**
+ * En la seccion de criterios de un fichero de `--desde`, una viñeta simple
+ * (`- texto`, el formato de `import`) cuenta como criterio igual que una
+ * con casilla (`- [ ] texto`). Fuera de esa seccion no se toca nada.
+ */
+function vinetasComoCasillas(texto: string): string {
+  let enCriterios = false;
+  return texto
+    .split(/\r?\n/)
+    .map((l) => {
+      if (/^#{1,6}\s/.test(l)) {
+        enCriterios = /^#{1,6}\s+criterios de aceptaci[oó]n\b/i.test(l);
+        return l;
+      }
+      return enCriterios ? l.replace(/^(\s*)[-*]\s+(?!\[[ xX]\])/, '$1- [ ] ') : l;
+    })
+    .join('\n');
+}
+
+/** Cuerpo de tarea.md con el objetivo y los criterios dados (TASK-041). */
+export function componerCuerpo(objetivo: string | null, criterios: readonly string[]): string {
+  if (objetivo === null && criterios.length === 0) return DEFAULT_BODY;
+  const lista = criterios.length === 0 ? ['- [ ] '] : criterios.map((c) => `- [ ] ${c}`);
+  return `## Objetivo\n\n${objetivo ?? ''}\n\n## Criterios de aceptacion\n${lista.join('\n')}\n`;
+}
 
 /**
  * `agenteRevisorPorDefecto` (TASK-030, item C4) es lo que se usa
@@ -175,6 +269,8 @@ export function buildNewTask(id: string, opts: NewTaskOptions, today: string): T
 }
 
 export interface NewCommandResult {
+  /** TASK-041: true si la tarea nacio con objetivo o criterios. */
+  conContenido: boolean;
   id: string;
   filePath: string;
   baseBranchGuard: BaseBranchGuardResult;
@@ -202,8 +298,37 @@ export async function runNewCommand(
   // C2): ese parser trata "--flag valor" como par, asi que
   // "taskctl new --push \"Titulo\"" habria leido push="Titulo" y el
   // titulo habria desaparecido.
-  const { push, resto } = extraerPushFlag(argv);
+  const { push, resto: sinPush } = extraerPushFlag(argv);
+  // TASK-041: objetivo y criterios iniciales, antes de parseArgs.
+  const { contenido, resto } = extraerContenidoInicial(sinPush);
   const opts = parseNewTaskArgs(resto, config.agente_revisor_por_defecto);
+  // `--desde` se lee ANTES del guard de rama: un fichero que no existe
+  // aborta sin haber tocado nada. Si vive dentro del repo sin commitear,
+  // el guard de workspace sucio aborta como siempre.
+  let cuerpo = componerCuerpo(contenido.objetivo, contenido.criterios);
+  if (contenido.desde !== null) {
+    let texto: string;
+    try {
+      texto = await readFile(path.resolve(deps.repoCwd, contenido.desde), 'utf8');
+    } catch (e: unknown) {
+      throw new NewTaskArgError(
+        `No se pudo leer --desde "${contenido.desde}": ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+    // MEN-7 de la revision: un fichero vacio no puede crear la tarea en
+    // silencio con el cuerpo por defecto.
+    if (texto.trim() === '') {
+      throw new NewTaskArgError(`--desde "${contenido.desde}" esta vacio.`);
+    }
+    const secciones = extraerSecciones(vinetasComoCasillas(texto));
+    const objetivo = secciones.objetivo.trim();
+    const criterios = secciones.criterios.filter((c) => c.trim() !== '');
+    // Sin las secciones de una tarea, el fichero entero es el objetivo.
+    cuerpo =
+      objetivo === '' && criterios.length === 0
+        ? componerCuerpo(texto.trim(), [])
+        : componerCuerpo(objetivo === '' ? null : objetivo, criterios);
+  }
   // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
   // tiene cambios sin commitear, o si no puede cambiar de forma
   // automatica a la rama base esperada segun opts.tipo — en ambos
@@ -212,7 +337,7 @@ export async function runNewCommand(
   const existingIds = await listExistingTaskIds(tareasRoot);
   const id = nextTaskId(existingIds);
   const task = buildNewTask(id, opts, today);
-  const filePath = await writeTareaFile(tareasRoot, task, DEFAULT_BODY, { failIfExists: true });
+  const filePath = await writeTareaFile(tareasRoot, task, cuerpo, { failIfExists: true });
   // Auto-commit (TASK-030, item C2): se commitea la CARPETA de la tarea
   // recien creada, no el arbol. La decision #14 fijo commitear si y
   // subir solo con --push.
@@ -222,5 +347,11 @@ export async function runNewCommand(
     mensaje: mensajeChore(id, 'tarea creada'),
     push,
   });
-  return { id, filePath, baseBranchGuard, autoCommit: autoCommitResult };
+  return {
+    conContenido: cuerpo !== DEFAULT_BODY,
+    id,
+    filePath,
+    baseBranchGuard,
+    autoCommit: autoCommitResult,
+  };
 }
