@@ -31,8 +31,38 @@ importan como tareas propias. Los criterios del enunciado original estan en
 el historial de Git de este fichero.
 
 ## Criterios de aceptacion
-- [ ] `bin/taskctl.cmd` arranca `taskctl --version` desde cmd y desde PowerShell sobre un clon de HEAD (test solo en Windows, skip visible en Linux)
-- [ ] `.gitattributes` fija el fin de linea de `bin/taskctl.cmd` con una prueba, sin heredar `bin/* eol=lf`
-- [ ] Un argumento con espacios, tildes y `&` llega intacto a `taskctl` por `taskctl.cmd`
-- [ ] Funciona sin `npm install` en el proyecto que instala el plugin (usa el `dist/` versionado)
-- [ ] El README del plugin explica como usar `taskctl` fuera de Claude Code (PATH o ruta completa, en PowerShell, cmd y Git Bash)
+- [x] `bin/taskctl.cmd` arranca `taskctl --version` desde cmd y desde PowerShell sobre un clon de HEAD (test solo en Windows, skip visible en Linux)
+- [x] `.gitattributes` fija el fin de linea de `bin/taskctl.cmd` con una prueba, sin heredar `bin/* eol=lf`
+- [x] Un argumento con espacios, tildes y `&` llega intacto a `taskctl` por `taskctl.cmd`
+- [x] Funciona sin `npm install` en el proyecto que instala el plugin (usa el `dist/` versionado)
+- [x] El README del plugin explica como usar `taskctl` fuera de Claude Code (PATH o ruta completa, en PowerShell, cmd y Git Bash)
+
+## Resultado
+
+Entrega A del flujo guiado. Plan: el brainstorm de 3 roles (arquitectura,
+riesgos, testing) y el unificador de esta tarea, que es el diseno de
+referencia de las cinco entregas; la documentacion oficial de plugins se
+verifico con un agente aparte (skills invocables en lugar de `commands/`,
+`bin/` en el PATH del Bash tool, encadenado con la herramienta Skill, hooks
+en todas las sesiones). Decisiones de Carlos en el plan-final.
+
+- `bin/taskctl.cmd`: `node "%~dp0taskctl" %*`. Sin `exit /b`: un mutante
+  demostro que sobraba (node es la ultima orden y su codigo ya es el del
+  `.cmd`); el test del codigo de salida sigue cubriendolo.
+- `.gitattributes`: `bin/*.cmd text eol=crlf`, despues de `bin/* eol=lf`
+  (gana la ultima regla).
+- README: seccion «Usar `taskctl` fuera de Claude Code» con ruta completa,
+  funcion de perfil de PowerShell que elige la version instalada mas alta
+  (vale tambien para versiones sin `.cmd`, como la 0.3.0 instalada hoy),
+  PATH para cmd y alias de Git Bash. Los tres fragmentos se ejecutaron contra
+  la instalacion real.
+
+Tests en `test/empaquetado/distribucion.test.ts`, sobre el arbol de HEAD
+exportado (sin `npm install`), solo en Windows y con skip visible en Linux:
+`--version` desde cmd y desde PowerShell; `new --titulo "Acción con espacios
+& más"` desde los dos shells deja ese titulo exacto en `tarea.md`; un error de
+taskctl sale distinto de 0; y la regla CRLF del `.cmd` (por `check-attr`).
+Suite: 983 tests, 980 en verde (los 3 rojos conocidos de Windows).
+Mutantes: `%*` por `%1 %2` (muerto), sin la regla CRLF (muerto), sin
+`exit /b` (sobrevive: linea eliminada).
+
