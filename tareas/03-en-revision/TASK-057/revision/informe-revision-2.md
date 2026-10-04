@@ -2,7 +2,7 @@
 
 - Commit revisado: 5487a1b (diff incremental desde 2d6af8d)
 - Revisor: agente general-purpose independiente con la skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-057 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
