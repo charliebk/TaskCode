@@ -79,3 +79,48 @@ Smoke con `bin/taskctl` en semiautomatico: `siguiente` legible y `--json`,
 Divergencia menor: el criterio 2 habla de «si preguntar»; la salida usa
 `accion` con tres valores, porque manual necesita distinguir «detener» de
 «continuar sin preguntar».
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **cambios-solicitados** (3 IMPORTANTE, 8 MENOR).
+
+- IMP-1 (corregido): con `revision_codex: true`, `siguiente` pedia
+  `codex-review` sin fin (un booleano no distinguia sin informe, pendiente y
+  cambios). Ahora el contexto lleva el veredicto de la ultima ronda de Codex:
+  sin informe → `codex-review`; pendiente o sin linea → fase nueva
+  `veredicto-codex`, sin comando y `preguntar` (no hay comando que lo escriba,
+  y que lo escriba el agente que encadena es el veredicto autoescrito);
+  cambios → `codex-review` con `preguntar` (corregir antes); aprobada →
+  `finish`.
+- IMP-2 (corregido): el registro se busca fuera de los bloques de codigo y se
+  toma la ultima aparicion; las filas dentro de bloques se ignoran. Un ejemplo
+  del registro en el enunciado ya no se confunde con el registro.
+- IMP-3 (corregido): el criterio de «ultima ronda» se extrajo a
+  `nombresDeUltimaRonda` (fs/rondas.ts), que usan el lector de disco y el de
+  la rama: ya no hay dos copias. Test nuevo desde develop con la ronda
+  fragmentada (pendiente, cambios, aprobada) y con Codex.
+- MEN-1 y MEN-2 (corregidos): tabla en la seccion siguiente del test, y test
+  de `--decidido-por=automatico`.
+- MEN-3 (aceptado): re-planificar tras cambiar el config vuelve a congelar el
+  modo, y `approve --decidido-por automatico` firma el plan-final que hubiera.
+  Es lo especificado («la ultima fila plan congela») y re-planificar es un
+  acto explicito: en un flujo guiado `siguiente` nunca propone `plan` con el
+  plan ya redactado. Queda para decidir si re-planificar debe invalidar el
+  plan-final.
+- MEN-4 (corregido): sin modo congelado, `siguiente` propone `approve` con
+  `preguntar` aunque el config sea automatico (la aprobacion automatica esta
+  vetada). Fila nueva en la tabla.
+- MEN-5 (corregido): `pausa` aborta si la carpeta de la tarea tiene cambios
+  sin commitear. Test nuevo.
+- MEN-6 (corregido): un veredicto desconocido dice «no se reconoce», no
+  «falta el revisor».
+- MEN-7 (aceptado): desde main, un hotfix ya cerrado aparece en revision: el
+  commit de cierre de `finish` vive en la rama de integracion (comportamiento
+  anterior a esta tarea). `siguiente` se consulta desde la rama base o la de
+  la tarea.
+- Mutantes: los 5 que sobrevivian en la ronda 1 y 4 nuevos de las
+  correcciones, todos muertos. Suite: 1009 tests, 1006 en verde (los 3
+  rojos conocidos de Windows).
+- MEN-8 (aceptado): fuera de `approve`, `decidido_por` es `persona`. Las
+  entregas D y E decidiran si start, review y finish encadenados por el agente
+  se registran como `automatico`.

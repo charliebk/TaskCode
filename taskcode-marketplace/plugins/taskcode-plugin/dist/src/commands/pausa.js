@@ -14,7 +14,7 @@ import path from 'node:path';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { resolverConfig } from '../core/config.js';
 import { registrarTransicion } from '../core/transiciones.js';
-import { currentBranch, isAncestor, localBranchExists } from '../fs/git.js';
+import { currentBranch, isAncestor, localBranchExists, runGit } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 export class PausaCommandError extends Error {
 }
@@ -39,6 +39,13 @@ export async function runPausaCommand(tareasRoot, argv, today, deps) {
         !isAncestor(task.rama, 'HEAD', deps.repoCwd)) {
         throw new PausaCommandError(`[ERROR] ${id}: la copia al dia de la tarea esta en su rama, "${task.rama}". ` +
             `Cambia a ella (git checkout ${task.rama}) y reintenta; no se ha tocado nada.`);
+    }
+    // MEN-5 de la revision: el commit de la pausa es de la carpeta de la
+    // tarea entera; con ediciones a medias en ella, se las llevaria.
+    const pendientes = runGit(['status', '--porcelain', '--', path.dirname(filePath)], deps.repoCwd);
+    if (pendientes !== '') {
+        throw new PausaCommandError(`[ERROR] ${id}: la carpeta de la tarea tiene cambios sin commitear. Commitealos o ` +
+            'descartalos antes de "taskctl pausa": su commit se los llevaria. No se ha tocado nada.');
     }
     const conRegistro = registrarTransicion(body, 'pausa', today, modoConfig, 'persona');
     const nuevo = await moveTareaFile(tareasRoot, filePath, task, conRegistro);

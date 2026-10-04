@@ -95,6 +95,15 @@ export async function informesDeUltimaRonda(dir, patron) {
             return { ronda: 0, nombres: [] };
         throw e;
     }
+    return nombresDeUltimaRonda(entries, patron);
+}
+/**
+ * El criterio de "ultima ronda" sobre una lista de nombres, sin tocar el
+ * disco. Lo usan informesDeUltimaRonda (readdir) y `taskctl siguiente`
+ * cuando lee revision/ de la rama de la tarea con git (TASK-056, IMP-3):
+ * un solo criterio, o develop y la rama responderian distinto.
+ */
+export function nombresDeUltimaRonda(entries, patron) {
     let ronda = 0;
     let nombres = [];
     for (const entry of [...entries].sort()) {

@@ -29,13 +29,40 @@ const SEPARADOR = '|---|---|---|---|';
 function filaATexto(f) {
     return `| ${f.fecha} | ${f.fase} | ${f.modo} | ${f.decidido_por} |`;
 }
-/** [inicio, fin) de las lineas de la seccion, o null si no existe. */
+/** Para cada linea, si esta dentro de un bloque de codigo (``` o ~~~). */
+function dentroDeBloque(lineas) {
+    let abierto = null;
+    return lineas.map((l) => {
+        const valla = /^\s*(`{3,}|~{3,})/.exec(l);
+        if (valla === null)
+            return abierto !== null;
+        const marca = valla[1][0];
+        if (abierto === null) {
+            abierto = marca;
+            return true;
+        }
+        if (marca === abierto)
+            abierto = null;
+        return true;
+    });
+}
+/**
+ * [inicio, fin) de las lineas de la seccion, o null si no existe. Se buscan
+ * los encabezados FUERA de bloques de codigo y se toma el ULTIMO (IMP-2 de
+ * la revision): un enunciado que traiga la tabla de ejemplo dentro de un
+ * bloque no es el registro, y la seccion real siempre se crea al final.
+ */
 function rangoSeccion(lineas) {
-    const inicio = lineas.findIndex((l) => l.trimEnd() === SECCION_TRANSICIONES);
+    const enBloque = dentroDeBloque(lineas);
+    let inicio = -1;
+    lineas.forEach((l, i) => {
+        if (!enBloque[i] && l.trimEnd() === SECCION_TRANSICIONES)
+            inicio = i;
+    });
     if (inicio === -1)
         return null;
     let fin = inicio + 1;
-    while (fin < lineas.length && !/^##?\s/.test(lineas[fin]))
+    while (fin < lineas.length && (enBloque[fin] || !/^##?\s/.test(lineas[fin])))
         fin++;
     return [inicio, fin];
 }
@@ -53,9 +80,10 @@ export function anadirTransicion(body, fila) {
         return base + separacion + [SECCION_TRANSICIONES, '', CABECERA, SEPARADOR, filaATexto(fila)].join(eol) + eol;
     }
     const [inicio, fin] = rango;
+    const enBloque = dentroDeBloque(lineas);
     let ultimaTabla = -1;
     for (let i = inicio + 1; i < fin; i++) {
-        if (lineas[i].trimStart().startsWith('|'))
+        if (!enBloque[i] && lineas[i].trimStart().startsWith('|'))
             ultimaTabla = i;
     }
     const nuevas = ultimaTabla === -1
@@ -76,8 +104,11 @@ export function leerTransiciones(body) {
     const rango = rangoSeccion(lineas);
     if (rango === null)
         return [];
+    const enBloque = dentroDeBloque(lineas);
     const filas = [];
     for (let i = rango[0] + 1; i < rango[1]; i++) {
+        if (enBloque[i])
+            continue;
         const celdas = lineas[i]
             .trim()
             .replace(/^\|/, '')

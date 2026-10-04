@@ -38,14 +38,15 @@ test('anadirTransicion: sin seccion, la crea al final y deja el cuerpo intacto p
 
 test('anadirTransicion: con seccion, la fila va detras de la ultima de la tabla, aunque despues haya otra seccion', () => {
   let r = anadirTransicion(CUERPO, fila());
-  r += '\n## Resultado\n\nTexto del resultado.\n';
+  // Con una tabla propia en la seccion siguiente (MEN-1): la fila no puede ir detras de ella.
+  r += '\n## Resultado\n\nTexto del resultado.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n';
   r = anadirTransicion(r, fila({ fase: 'approve', decidido_por: 'automatico' }));
   assert.deepEqual(
     leerTransiciones(r).map((f) => f.fase),
     ['plan', 'approve']
   );
   // El Resultado sigue intacto y detras.
-  assert.ok(r.endsWith('## Resultado\n\nTexto del resultado.\n'), r);
+  assert.ok(r.endsWith('## Resultado\n\nTexto del resultado.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n'), r);
   const antesDeResultado = r.slice(0, r.indexOf('## Resultado'));
   assert.match(antesDeResultado, /\| 2026-10-04 \| approve \| manual \| automatico \|\n/);
 });
@@ -77,6 +78,33 @@ test('modoCongelado: el de la ULTIMA fila plan (una re-planificacion lo vuelve a
   assert.equal(modoCongelado(r), 'automatico');
   r = anadirTransicion(r, fila({ modo: 'semiautomatico' }));
   assert.equal(modoCongelado(r), 'semiautomatico');
+});
+
+test('un "## Transiciones" de ejemplo dentro de un bloque de codigo del enunciado no es el registro (IMP-2)', () => {
+  const ejemplo =
+    '## Objetivo\n\nDocumentar el registro, con este ejemplo:\n\n```md\n## Transiciones\n\n' +
+    '| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n| 2026-01-01 | plan | automatico | persona |\n' +
+    '```\n\n## Criterios de aceptacion\n- [ ] Que funcione\n';
+  // Antes de plan: no hay registro ni modo congelado, digan lo que digan los ejemplos.
+  assert.deepEqual(leerTransiciones(ejemplo), []);
+  assert.equal(modoCongelado(ejemplo), null);
+  // plan crea la seccion REAL al final y deja el ejemplo intacto.
+  const r = anadirTransicion(ejemplo, fila());
+  assert.ok(r.startsWith(ejemplo.trimEnd()), 'el enunciado, incluido el ejemplo, no cambia');
+  assert.deepEqual(leerTransiciones(r), [fila()]);
+  assert.equal(modoCongelado(r), 'manual');
+  // Y la siguiente fila va a la seccion real, no al ejemplo.
+  const r2 = anadirTransicion(r, fila({ fase: 'approve' }));
+  assert.ok(r2.startsWith(ejemplo.trimEnd()));
+  assert.deepEqual(
+    leerTransiciones(r2).map((f) => f.fase),
+    ['plan', 'approve']
+  );
+});
+
+test('filas de tabla dentro de un bloque de codigo en la propia seccion se ignoran', () => {
+  const cuerpo = anadirTransicion(CUERPO, fila()) + '\n```\n| 2026-01-01 | approve | manual | persona |\n```\n';
+  assert.deepEqual(leerTransiciones(cuerpo), [fila()]);
 });
 
 test('registrarTransicion: plan toma el modo del config; el resto, el congelado aunque el config cambie', () => {

@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -251,6 +251,12 @@ test('approve --decidido-por automatico con la tarea planificada en manual: rech
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
     assert.equal((await readTareaFile(tareasRoot, id))?.task.plan_aprobado, false);
 
+    // La forma --decidido-por=valor pasa por la misma guarda (MEN-2 de la revision).
+    const conIgual = cli(repoRoot, ['approve', id, '--decidido-por=automatico']);
+    assert.notEqual(conIgual.status, 0);
+    assert.match(conIgual.stderr, /no se puede aprobar como automatico/);
+    assert.equal((await readTareaFile(tareasRoot, id))?.task.plan_aprobado, false);
+
     // Sin valor: tambien falla y no aprueba.
     const sinValor = cli(repoRoot, ['approve', id, '--decidido-por']);
     assert.notEqual(sinValor.status, 0);
@@ -297,6 +303,88 @@ test('pausa en en-diseno: fila pausa de persona, commit propio y estado intacto'
       ]
     );
     assert.equal(siguiente(repoRoot, id).fase, 'approve');
+  });
+});
+
+test('pausa con ediciones sin commitear en la carpeta de la tarea: aborta sin llevarselas (MEN-5)', async () => {
+  await withRepo(null, async (repoRoot, tareasRoot) => {
+    const id = await nuevaTarea(repoRoot, tareasRoot);
+    await planificar(repoRoot, tareasRoot, id);
+    const tareaPath = path.join(tareasRoot, '01-en-diseno', id, 'tarea.md');
+    await writeFile(tareaPath, (await readFile(tareaPath, 'utf8')) + '\nnota a medias\n', 'utf8');
+    const antes = git(['rev-parse', 'HEAD'], repoRoot);
+
+    const r = cli(repoRoot, ['pausa', id]);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /cambios sin commitear/);
+    assert.equal(git(['rev-parse', 'HEAD'], repoRoot), antes, 'no hay commit de pausa');
+    assert.match(await readFile(tareaPath, 'utf8'), /nota a medias/, 'la edicion sigue ahi');
+  });
+});
+
+/**
+ * Tarea en revision en su rama, con la ronda 1 fragmentada por dominio
+ * (informe-revision-1-dom1.md y -dom2.md, sin el de la ronda entera) y,
+ * opcionalmente, revision_codex. Deja el repo en la rama de la tarea.
+ */
+async function enRevisionFragmentada(repoRoot: string, tareasRoot: string): Promise<{ id: string; rama: string }> {
+  const id = await nuevaTarea(repoRoot, tareasRoot);
+  await planificar(repoRoot, tareasRoot, id);
+  cliOk(repoRoot, ['approve', id]);
+  await runStartCommand(tareasRoot, [id], HOY, { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
+  await writeFile(path.join(repoRoot, 'app.txt'), 'cambiado\n', 'utf8');
+  commitAll(repoRoot, `feat(${id}): trabajo`);
+  await runReviewCommand(tareasRoot, [id], HOY, { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
+  const rama = git(['branch', '--show-current'], repoRoot).trim();
+  const revisionDir = path.join(tareasRoot, '03-en-revision', id, 'revision');
+  git(['rm', '-q', path.join(revisionDir, 'informe-revision-1.md')], repoRoot);
+  commitAll(repoRoot, `chore(${id}): ronda fragmentada`);
+  return { id, rama };
+}
+
+test('siguiente desde develop con la tarea en revision en su rama: ronda fragmentada y segunda opinion leidas de la rama (IMP-3)', async () => {
+  await withRepo('modo_flujo: semiautomatico\n', async (repoRoot, tareasRoot) => {
+    const { id, rama } = await enRevisionFragmentada(repoRoot, tareasRoot);
+    const revisionDir = path.join(tareasRoot, '03-en-revision', id, 'revision');
+
+    /** Escribe en la rama, commitea y pregunta a siguiente DESDE develop. */
+    const desdeDevelop = async (ficheros: Record<string, string>): Promise<Record<string, unknown>> => {
+      git(['checkout', '-q', rama], repoRoot);
+      for (const [nombre, contenido] of Object.entries(ficheros)) {
+        await writeFile(path.join(revisionDir, nombre), contenido, 'utf8');
+      }
+      commitAll(repoRoot, 'informes');
+      git(['checkout', '-q', 'develop'], repoRoot);
+      const s = siguiente(repoRoot, id);
+      assert.equal(s.leidaDe, 'rama');
+      return s;
+    };
+
+    // Un dominio aprobado y otro pendiente: falta un revisor (no basta el primero).
+    let s = await desdeDevelop({
+      'informe-revision-1-dom1.md': '- Veredicto: aprobada\n',
+      'informe-revision-1-dom2.md': '- Veredicto: PENDIENTE\n',
+    });
+    assert.equal(s.fase, 'veredicto');
+    // El segundo pide cambios: otra ronda.
+    s = await desdeDevelop({ 'informe-revision-1-dom2.md': '- Veredicto: cambios-solicitados\n' });
+    assert.equal(s.fase, 'review');
+    // Los dos aprobados: finish.
+    s = await desdeDevelop({ 'informe-revision-1-dom2.md': '- Veredicto: aprobada\n' });
+    assert.equal(s.fase, 'finish');
+
+    // Con revision_codex: sin informe de Codex, codex-review; pendiente, lo decide una persona; aprobado, finish.
+    git(['checkout', '-q', rama], repoRoot);
+    const t = await readTareaFile(tareasRoot, id);
+    assert.ok(t);
+    await writeTareaFile(tareasRoot, { ...t.task, revision_codex: true }, t.body, { failIfExists: false });
+    commitAll(repoRoot, 'revision_codex');
+    git(['checkout', '-q', 'develop'], repoRoot);
+    assert.equal(siguiente(repoRoot, id).fase, 'codex-review');
+    s = await desdeDevelop({ 'informe-codex-1.md': '- Veredicto: PENDIENTE\n' });
+    assert.deepEqual([s.fase, s.accion, s.comando], ['veredicto-codex', 'preguntar', null]);
+    s = await desdeDevelop({ 'informe-codex-1.md': '- Veredicto: aprobada\n' });
+    assert.equal(s.fase, 'finish');
   });
 });
 

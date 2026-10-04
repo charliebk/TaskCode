@@ -39,7 +39,12 @@ function tarea(overrides: Partial<Task> = {}): Task {
   };
 }
 
-const CTX: ContextoFlujo = { planRedactado: false, veredicto: null, codexAprobada: false };
+const CTX: ContextoFlujo = {
+  planRedactado: false,
+  veredicto: null,
+  veredictoCodex: null,
+  modoCongelado: true,
+};
 
 interface Caso {
   nombre: string;
@@ -57,6 +62,8 @@ const TABLA: Caso[] = [
   { nombre: 'planificada', task: { estado: 'planificada' }, fase: 'plan', comando: 'taskctl plan TASK-100', acciones: ['detener', 'preguntar', 'continuar'] },
   { nombre: 'en diseno sin plan redactado', task: { estado: 'en-diseno' }, fase: 'plan', comando: null, acciones: ['detener', 'continuar', 'continuar'] },
   { nombre: 'en diseno con plan redactado', task: { estado: 'en-diseno' }, ctx: { planRedactado: true }, fase: 'approve', comando: 'taskctl approve TASK-100', acciones: ['detener', 'preguntar', 'continuar'] },
+  // MEN-4: sin modo congelado (tarea anterior al registro) la aprobacion automatica esta vetada.
+  { nombre: 'en diseno con plan, sin modo congelado', task: { estado: 'en-diseno' }, ctx: { planRedactado: true, modoCongelado: false }, fase: 'approve', comando: 'taskctl approve TASK-100', acciones: ['detener', 'preguntar', 'preguntar'] },
   { nombre: 'en diseno aprobada', task: { estado: 'en-diseno', plan_aprobado: true }, ctx: { planRedactado: true }, fase: 'start', comando: 'taskctl start TASK-100', acciones: ['detener', 'preguntar', 'continuar'] },
   { nombre: 'en curso', task: { estado: 'en-curso', plan_aprobado: true }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['detener', 'preguntar', 'continuar'] },
   { nombre: 'en revision sin informe', task: { estado: 'en-revision', plan_aprobado: true }, fase: 'veredicto', comando: VEREDICTO_PENDIENTE, acciones: ['detener', 'continuar', 'continuar'] },
@@ -68,8 +75,13 @@ const TABLA: Caso[] = [
   // Decision de Carlos: hotfix y release preguntan antes de finish en cualquier modo que encadene.
   { nombre: 'en revision aprobada (hotfix)', task: { estado: 'en-revision', plan_aprobado: true, tipo: 'hotfix' }, ctx: { veredicto: 'aprobada' }, fase: 'finish', comando: 'taskctl finish TASK-100', acciones: ['detener', 'preguntar', 'preguntar'] },
   { nombre: 'en revision aprobada (release)', task: { estado: 'en-revision', plan_aprobado: true, tipo: 'release' }, ctx: { veredicto: 'aprobada' }, fase: 'finish', comando: 'taskctl finish TASK-100', acciones: ['detener', 'preguntar', 'preguntar'] },
-  { nombre: 'aprobada con codex pendiente', task: { estado: 'en-revision', plan_aprobado: true, revision_codex: true }, ctx: { veredicto: 'aprobada' }, fase: 'codex-review', comando: 'taskctl codex-review TASK-100', acciones: ['detener', 'continuar', 'continuar'] },
-  { nombre: 'aprobada con codex aprobada', task: { estado: 'en-revision', plan_aprobado: true, revision_codex: true }, ctx: { veredicto: 'aprobada', codexAprobada: true }, fase: 'finish', comando: 'taskctl finish TASK-100', acciones: ['detener', 'preguntar', 'continuar'] },
+  // IMP-1: la segunda opinion tiene su propio veredicto; sin el, siguiente pedia codex-review sin fin.
+  { nombre: 'aprobada sin informe de codex', task: { estado: 'en-revision', plan_aprobado: true, revision_codex: true }, ctx: { veredicto: 'aprobada' }, fase: 'codex-review', comando: 'taskctl codex-review TASK-100', acciones: ['detener', 'continuar', 'continuar'] },
+  { nombre: 'aprobada con codex pendiente', task: { estado: 'en-revision', plan_aprobado: true, revision_codex: true }, ctx: { veredicto: 'aprobada', veredictoCodex: 'pendiente' }, fase: 'veredicto-codex', comando: null, acciones: ['detener', 'preguntar', 'preguntar'] },
+  { nombre: 'aprobada con codex sin linea', task: { estado: 'en-revision', plan_aprobado: true, revision_codex: true }, ctx: { veredicto: 'aprobada', veredictoCodex: 'sin-linea' }, fase: 'veredicto-codex', comando: null, acciones: ['detener', 'preguntar', 'preguntar'] },
+  { nombre: 'aprobada con codex cambios', task: { estado: 'en-revision', plan_aprobado: true, revision_codex: true }, ctx: { veredicto: 'aprobada', veredictoCodex: 'cambios-solicitados' }, fase: 'codex-review', comando: 'taskctl codex-review TASK-100', acciones: ['detener', 'preguntar', 'preguntar'] },
+  { nombre: 'aprobada con codex aprobada', task: { estado: 'en-revision', plan_aprobado: true, revision_codex: true }, ctx: { veredicto: 'aprobada', veredictoCodex: 'aprobada' }, fase: 'finish', comando: 'taskctl finish TASK-100', acciones: ['detener', 'preguntar', 'continuar'] },
+  { nombre: 'codex aprobada sin revision_codex no cuenta', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'aprobada', veredictoCodex: 'pendiente' }, fase: 'finish', comando: 'taskctl finish TASK-100', acciones: ['detener', 'preguntar', 'continuar'] },
   { nombre: 'terminada', task: { estado: 'terminada', plan_aprobado: true }, fase: 'terminada', comando: null, acciones: ['detener', 'detener', 'detener'] },
 ];
 
@@ -105,7 +117,7 @@ test('siguienteFase: ninguna fase propuesta es una transicion ilegal para la maq
       () =>
         assertTransitionAllowed(comando, t, {
           planFinalExiste: ctx.planRedactado,
-          revisionCodexAprobada: ctx.codexAprobada,
+          revisionCodexAprobada: ctx.veredictoCodex === 'aprobada',
           ...veredictoACtx(ctx.veredicto),
         }),
       `${caso.nombre}: propone "${r.fase}", que la maquina de estados rechaza`
@@ -118,4 +130,10 @@ test('siguienteFase: en manual nunca encadena nada, en ningun estado', () => {
     const r = siguienteFase(tarea(caso.task), { ...CTX, ...caso.ctx }, 'manual');
     assert.equal(r.accion, 'detener', caso.nombre);
   }
+});
+
+test('siguienteFase: un veredicto que no se reconoce no se presenta como "falta el revisor" (MEN-6)', () => {
+  const t = tarea({ estado: 'en-revision', plan_aprobado: true });
+  assert.match(siguienteFase(t, { ...CTX, veredicto: 'desconocido' }, 'manual').motivo, /no se reconoce/);
+  assert.match(siguienteFase(t, { ...CTX, veredicto: 'pendiente' }, 'manual').motivo, /falta el revisor/);
 });

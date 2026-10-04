@@ -23,6 +23,7 @@ export type FaseSiguiente =
   | 'review'
   | 'veredicto'
   | 'codex-review'
+  | 'veredicto-codex'
   | 'finish'
   | 'terminada';
 
@@ -33,8 +34,19 @@ export interface ContextoFlujo {
   planRedactado: boolean;
   /** en-revision: veredicto de la ultima ronda. */
   veredicto: VeredictoInforme | null;
-  /** en-revision con revision_codex: ¿la segunda opinion esta aprobada? */
-  codexAprobada: boolean;
+  /**
+   * en-revision con revision_codex: veredicto de la ultima ronda de Codex,
+   * o null si todavia no hay ninguna (IMP-1 de la revision: un booleano no
+   * distinguia "sin informe" de "pendiente" ni de "pidio cambios", y
+   * siguiente pedia otra ronda de Codex sin fin).
+   */
+  veredictoCodex: VeredictoInforme | null;
+  /**
+   * ¿La tarea tiene modo congelado (fila plan en su registro)? Sin el, la
+   * aprobacion automatica esta vetada (MEN-4): en automatico no se puede
+   * proponer seguir solo hacia un approve que el CLI rechazara.
+   */
+  modoCongelado: boolean;
 }
 
 export interface SiguientePaso {
@@ -57,9 +69,12 @@ function accionPara(
   fase: FaseSiguiente,
   modo: ModoFlujo,
   task: Task,
-  abreFase: boolean
+  abreFase: boolean,
+  exigePersona: boolean
 ): AccionFlujo {
   if (fase === 'terminada' || modo === 'manual') return 'detener';
+  // Pasos que solo puede decidir una persona aunque el modo encadene.
+  if (exigePersona) return 'preguntar';
   // Decision de Carlos (2026-10-04): hotfix y release mergean a main con
   // tag; en ningun modo se cierran sin preguntar.
   if (fase === 'finish' && (task.tipo === 'hotfix' || task.tipo === 'release')) return 'preguntar';
@@ -72,11 +87,12 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
     fase: FaseSiguiente,
     abreFase: boolean,
     motivo: string,
-    comando: string | null = `taskctl ${fase} ${task.id}`
+    comando: string | null = `taskctl ${fase} ${task.id}`,
+    exigePersona = false
   ): SiguientePaso => ({
     fase,
     comando,
-    accion: accionPara(fase, modo, task, abreFase),
+    accion: accionPara(fase, modo, task, abreFase, exigePersona),
     motivo,
   });
 
@@ -90,6 +106,17 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
         // trabajo de agente (roles, unificador) sobre la ronda ya abierta.
         return paso('plan', false, 'falta redactar planificacion/plan-final.md', null);
       }
+      if (!ctx.modoCongelado) {
+        // Tarea sin fila plan (anterior al registro): approve
+        // --decidido-por automatico se rechaza, asi que la aprueba una persona.
+        return paso(
+          'approve',
+          true,
+          'el plan esta redactado y sin aprobar; la tarea no tiene modo congelado, asi que la aprueba una persona',
+          `taskctl approve ${task.id}`,
+          true
+        );
+      }
       return paso('approve', true, 'el plan esta redactado y sin aprobar');
     case 'en-curso':
       return paso(
@@ -102,15 +129,43 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
         case 'cambios-solicitados':
           return paso('review', false, 'la ultima ronda pidio cambios: corregir y pedir otra ronda');
         case 'aprobada':
-          if (task.revision_codex && !ctx.codexAprobada) {
-            return paso('codex-review', false, 'falta la segunda opinion (revision_codex: true)');
+          if (task.revision_codex) {
+            switch (ctx.veredictoCodex) {
+              case null:
+                return paso('codex-review', false, 'falta la segunda opinion (revision_codex: true)');
+              case 'aprobada':
+                break;
+              case 'cambios-solicitados':
+                // Otra ronda de Codex solo tras corregir: lo decide una persona,
+                // o se pediria una segunda opinion sobre el mismo codigo.
+                return paso(
+                  'codex-review',
+                  false,
+                  'la segunda opinion pidio cambios: corregir y pedir otra ronda de codex-review',
+                  `taskctl codex-review ${task.id}`,
+                  true
+                );
+              default:
+                // No hay comando que escriba el veredicto de Codex, y que lo
+                // escriba el mismo agente que encadena el flujo es el agujero
+                // del veredicto autoescrito: lo decide una persona.
+                return paso(
+                  'veredicto-codex',
+                  false,
+                  'el informe de la segunda opinion no tiene veredicto: una persona lo lee y escribe su linea "- Veredicto:"',
+                  null,
+                  true
+                );
+            }
           }
           return paso('finish', true, 'la revision esta aprobada');
         default:
           return paso(
             'veredicto',
             false,
-            'la ultima ronda no tiene veredicto: falta el revisor',
+            ctx.veredicto === 'desconocido'
+              ? 'el veredicto de la ultima ronda no se reconoce: reescribelo con taskctl veredicto'
+              : 'la ultima ronda no tiene veredicto: falta el revisor',
             `taskctl veredicto ${task.id} <aprobada|aprobada-con-correcciones|cambios-solicitados>`
           );
       }
