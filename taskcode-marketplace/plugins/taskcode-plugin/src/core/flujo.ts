@@ -16,16 +16,24 @@ import type { Task } from './task.js';
 import type { ModoFlujo } from './config.js';
 import type { VeredictoInforme } from './informe-revision.js';
 
-export type FaseSiguiente =
-  | 'plan'
-  | 'approve'
-  | 'start'
-  | 'review'
-  | 'veredicto'
-  | 'codex-review'
-  | 'veredicto-codex'
-  | 'finish'
-  | 'terminada';
+/**
+ * Todas las fases que puede devolver siguienteFase. Lista en tiempo de
+ * ejecucion (no solo tipo) para que el test de las skills de fase compruebe
+ * que cada una tiene skill asignada: una fase nueva sin mapear lo pone rojo.
+ */
+export const FASES_SIGUIENTE = [
+  'plan',
+  'approve',
+  'start',
+  'review',
+  'veredicto',
+  'codex-review',
+  'veredicto-codex',
+  'finish',
+  'terminada',
+] as const;
+
+export type FaseSiguiente = (typeof FASES_SIGUIENTE)[number];
 
 export type AccionFlujo = 'detener' | 'preguntar' | 'continuar';
 
