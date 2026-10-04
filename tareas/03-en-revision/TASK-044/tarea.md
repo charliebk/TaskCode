@@ -6,7 +6,7 @@ sprint: 5
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-044-f4-t3-particion-propuesta-de-las-tareas
 asignado_a: charlie.bk@gmail.com
