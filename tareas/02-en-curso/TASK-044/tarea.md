@@ -38,6 +38,39 @@ Fuera de alcance: partir automaticamente sin grupos (eso lo decide una
 persona).
 
 ## Criterios de aceptacion
-- [ ] Con mas de 12 criterios o varios frentes en el Objetivo, `plan` aborta y lo explica
-- [ ] Escribe un fichero de `import` fuera del repo con una tarea por frente y lo nombra en el error
-- [ ] Test con una tarea de dos frentes (el caso de TASK-030)
+- [x] Con mas de 12 criterios o varios frentes en el Objetivo, `plan` aborta y lo explica (ajustado en el plan: los frentes se cuentan en los criterios y, con 12 o menos, avisan)
+- [x] Escribe un fichero de `import` fuera del repo con una tarea por frente y lo nombra en el error
+- [x] Test con una tarea de dos frentes (el caso de TASK-030)
+
+## Resultado
+
+Dos frentes en paralelo en la misma rama (agente para `import`, orquestador
+para el resto), con las decisiones del orquestador del plan final.
+
+- `extraerSecciones` devuelve `grupos`: abre grupo un `###` (salvo «Tras el
+  cierre») o una linea sin sangrar que sea solo negrita; los criterios
+  previos al primer grupo van en uno sin titulo. `criterios` no cambia.
+- `src/core/particion-tarea.ts` (puro): una hija por frente, titulada
+  `<ID> <grupo>`; los grupos «Transversal», «Comunes» o «General» y los
+  sueltos se copian en cada hija; «Tras el cierre» se lista en el preambulo
+  para reponerlo a mano; cada hija lleva Objetivo («Parte de TASK-NNN...» mas
+  el Objetivo original). Avisa si alguna hija sigue pasando de 12.
+- `src/fs/particion.ts`: `mkdtemp` en `os.tmpdir()`, `realpath` en los dos
+  lados (nombres 8.3 de Windows), rechazo si cae dentro del repo, escritura a
+  temporal + rename. Nunca lanza: si falla, el error del bloqueo lo dice sin
+  nombrar un fichero inexistente.
+- `plan`: con mas de 12 criterios anade al error la lista de hijas, el
+  comando exacto (`taskctl import "<ruta>" --tipo <t> --sprint <n>`) y que la
+  original hay que retirarla a mano. Sin frentes, explica como agrupar.
+- `validarEnunciado`: 2 o mas frentes con 12 criterios o menos dan aviso.
+- `import`: las lineas `> ...` bajo el `###` y antes del primer criterio son el
+  Objetivo de la tarea (antes eran prosa suelta que invalidaba la entrada:
+  ningun fichero valido cambia de significado).
+
+Tests: `test/commands/particion.test.ts` (7, incluida la cadena entera
+plan → import → plan de una hija contra un repo real con el caso de TASK-030:
+18 criterios, 2 frentes, Transversal y Tras el cierre), mas 4 del parser y
+2 de import. Suite: 974 tests, 971 en verde; los 3 rojos son los conocidos de
+Windows. Mutantes (8, todos muertos): hijas sin Objetivo, Transversal como
+frente, plan sin propuesta, sin grupos en negrita, sin comprobar el repo,
+umbral del aviso de frentes, y dos del parser de import.
