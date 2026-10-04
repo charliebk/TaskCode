@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: trivial
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-053-movetareafile-reintenta-el-rename-ante-u
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
