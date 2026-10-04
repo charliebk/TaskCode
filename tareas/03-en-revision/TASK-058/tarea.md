@@ -125,3 +125,11 @@ preguntan donde deben). Hallazgos nuevos:
   fichero derivado, sin commit ni checkout).
 
 Suite: 1043 tests, 1040 en verde (los 3 rojos conocidos de Windows).
+
+### Revision por pares (ronda 3)
+
+Revisor independiente: **aprobada**, sin hallazgos nuevos. Los catorce
+mutantes de quitar un comando de la guarda mueren por el test de
+comportamiento (no solo por el de la lista), igual que los de testigo
+ajeno, cerrado, `--cadena=`, argv sin limpiar y fuera de repo. El orden del
+«no» de avance.md es el que funciona con el CLI.
