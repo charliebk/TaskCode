@@ -109,11 +109,23 @@ export function hallazgosNoCerrados(informe) {
     const inicio = lineas.findIndex((l) => /^##\s+hallazgos\b/i.test(l.trim()));
     if (inicio === -1)
         return { tabla: false, abiertos: [] };
+    // Se buscan tablas FUERA de los bloques de codigo: una tabla citada en
+    // una reproduccion no es la de hallazgos (MEN-1 de la revision de
+    // TASK-040: con una asi delante, se perdian las filas reales).
     let i = inicio + 1;
-    while (i < lineas.length && !lineas[i].trim().startsWith('|')) {
-        if (/^##\s/.test(lineas[i].trim()))
+    let enBloque = false;
+    for (; i < lineas.length; i++) {
+        const l = lineas[i].trim();
+        if (l.startsWith('```') || l.startsWith('~~~')) {
+            enBloque = !enBloque;
+            continue;
+        }
+        if (enBloque)
+            continue;
+        if (/^##\s/.test(l))
             return { tabla: false, abiertos: [] };
-        i++;
+        if (l.startsWith('|'))
+            break;
     }
     if (i >= lineas.length)
         return { tabla: false, abiertos: [] };

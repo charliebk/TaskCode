@@ -88,3 +88,17 @@ con vocabulario historico, tabla ausente, fila de ejemplo y CRLF. 5 mutantes
 abierto, sin limpieza): los 5 en rojo. Tests de `review`, `finish`, `start`,
 `veredicto`, `codex-review`, maquina de estados y `main`: 142/142 sin tocar
 expectativas.
+
+**Revision ronda 1: aprobada con correcciones** (0 criticos, 0 importantes, 2
+menores; suite completa 920 tests, solo los 3 rojos conocidos de Windows; 3 de
+4 mutantes en rojo; E2E con el CLI real sobre una ronda 1 fragmentada en 3
+informes con veredictos mezclados: la ronda 2 la genero el CLI, se reclasifico
+por dominio y listo los abiertos de los 3 informes). Por A3, sin ronda 2.
+Corregidos en el cierre:
+- MEN-1: una tabla dentro de un bloque de codigo bajo `## Hallazgos` se tomaba
+  por la de hallazgos y se perdian las filas reales; el parser salta los
+  bloques. Test.
+- MEN-2: ningun test cubria una ronda N fragmentada (el mutante «solo el primer
+  informe» sobrevivia); anadido.
+Ruido conocido, sin corregir: «Commits a revisar» de la ronda 2 lista los
+commits `chore` de peticion y veredicto (el diff si esta limpio).

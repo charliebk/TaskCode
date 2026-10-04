@@ -133,6 +133,32 @@ test('review incremental (TASK-040): ronda 1 -> cambios-solicitados -> correccio
   });
 });
 
+test('review incremental (TASK-040, MEN-2 de su revision): con la ronda anterior fragmentada lista los abiertos de TODOS sus informes', async () => {
+  await withRonda1(INFORME_R1('cambios-solicitados'), async (repo, tareas, revisionDir) => {
+    // Un segundo informe en la misma ronda (otro dominio), aprobado pero
+    // con un MENOR abierto.
+    await writeFile(
+      path.join(revisionDir, 'informe-revision-1-java-spring-reviewer.md'),
+      '# Informe\n\n- Veredicto: aprobada\n\n## Hallazgos\n\n| ID | Severidad | Estado | Fichero |\n' +
+        '|---|---|---|---|\n| MEN-9 | MENOR | abierto | src/X.java:4 |\n',
+      'utf8'
+    );
+    commitAll(repo, 'docs: segundo informe de la ronda 1');
+    await runReviewCommand(tareas, ['TASK-950'], '2026-10-04', DEPS(repo));
+    const peticion = await readFile(path.join(revisionDir, 'peticion-revision-2.md'), 'utf8');
+    assert.match(peticion, /\| IMP-1 \|.*\| informe-revision-1\.md \|/);
+    assert.match(peticion, /\| MEN-9 \|.*\| informe-revision-1-java-spring-reviewer\.md \|/);
+  });
+});
+
+test('informe-revision (TASK-040, MEN-1 de su revision): una tabla dentro de un bloque de codigo no es la de hallazgos', () => {
+  const informe =
+    '## Hallazgos\n\nReproduccion citada:\n\n```\n| ID | Estado |\n|---|---|\n| FALSO | abierto |\n```\n\n' +
+    '| ID | Severidad | Estado | Fichero |\n|---|---|---|---|\n| IMP-1 | IMPORTANTE | abierto | a.ts |\n';
+  assert.deepEqual(hallazgosNoCerrados(informe).abiertos.map((h) => h.id), ['IMP-1']);
+  assert.equal(hallazgosNoCerrados('## Hallazgos\n\n```\n| ID | Estado |\n| X | abierto |\n```\n').tabla, false);
+});
+
 test('review incremental (TASK-040): con la ronda aprobada (tambien "aprobada con correcciones") aborta y manda a finish', async () => {
   for (const v of ['aprobada', 'aprobada con correcciones']) {
     await withRonda1(INFORME_R1(v), async (repo, tareas) => {
