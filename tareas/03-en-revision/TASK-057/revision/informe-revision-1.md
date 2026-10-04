@@ -2,7 +2,7 @@
 
 - Commit revisado: 2d6af8dabef1677385dc571fe9535b6b0ca08a5d (y b1aaf4f, que admite CRLF en el test)
 - Revisor: agente general-purpose independiente con la skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-057 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
