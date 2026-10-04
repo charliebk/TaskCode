@@ -6,10 +6,10 @@ sprint: 7
 etiquetas: [cli, skill, flujo]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-055-flujo-guiado-por-fases-con-modos-manual
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
