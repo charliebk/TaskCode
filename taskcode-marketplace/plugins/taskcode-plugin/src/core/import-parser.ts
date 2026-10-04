@@ -129,6 +129,16 @@ export function parseImportMarkdown(content: string): ParsedImportEntry[] {
       continue;
     }
 
+    // TASK-046 (D7 de la auditoria): una linea SANGRADA justo despues de
+    // un criterio es su continuacion, como en tarea-body.ts. Antes
+    // invalidaba la entrada entera. La prosa sin sangrar sigue siendo un
+    // error: no es la continuacion de nada.
+    if (/^\s+\S/.test(line) && current.criterios.length > 0 && current.strayLine === null) {
+      const ultimo = current.criterios.length - 1;
+      current.criterios[ultimo] = `${current.criterios[ultimo] ?? ''} ${line.trim()}`.trim();
+      continue;
+    }
+
     if (current.strayLine === null) {
       current.strayLine = { text: line, lineNumber: i + 1 };
     }

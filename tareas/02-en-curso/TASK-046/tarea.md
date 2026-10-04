@@ -33,6 +33,23 @@ de `plan`) depende de que este recuento sea correcto.
 Complejidad `trivial`: dos parsers puros y sus tests.
 
 ## Criterios de aceptacion
-- [ ] `extraerSecciones` no corta el Objetivo ni los criterios en un `###`; `### Tras el cierre` se reconoce como subseccion
-- [ ] `import` acepta la continuacion sangrada de un criterio, igual que `tarea-body.ts`
-- [ ] Tests con criterios agrupados en `### Parser` y `### CLI`
+- [x] `extraerSecciones` no corta el Objetivo ni los criterios en un `###`; `### Tras el cierre` se reconoce como subseccion
+- [x] `import` acepta la continuacion sangrada de un criterio, igual que `tarea-body.ts`
+- [x] Tests con criterios agrupados en `### Parser` y `### CLI`
+
+## Resultado
+
+**Implementado.** `extraerSecciones` (`src/core/tarea-body.ts`): solo una
+cabecera de nivel 2 cambia de seccion. Un subtitulo `###` o mas profundo
+dentro de `## Objetivo` se conserva como texto; dentro de `## Criterios de
+aceptacion` no corta la lista, y `### Tras el cierre` es la excepcion
+explicita: sus casillas van a un campo nuevo, `criteriosTrasCierre`, y no a
+`criterios`. En `import-parser.ts`, una linea sangrada justo despues de un
+criterio se une a el en vez de invalidar la entrada; la prosa sin sangrar
+sigue siendo un error.
+
+**Pruebas.** `test/core/tarea-body-subtitulos.test.ts` (6): criterios en
+`### Parser` / `### CLI`; `### Tras el cierre` aparte; `### Contexto` en el
+Objetivo; un `##` posterior sigue cerrando; criterio multilinea en `import`;
+prosa sin sangrar sigue invalidando. Con `core/*`, `import`, `plan-brainstorm`
+y `new-contenido`: 388/388 sin tocar expectativas.

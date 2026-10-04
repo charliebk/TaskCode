@@ -38,12 +38,26 @@
 export interface SeccionesTarea {
   /** Texto bajo "## Objetivo", sin la cabecera, trim(). '' si no hay. */
   objetivo: string;
-  /** Una entrada por linea de checklist bajo "## Criterios de aceptacion". */
+  /**
+   * Una entrada por linea de checklist bajo "## Criterios de aceptacion",
+   * incluidas las de sus subsecciones `###`, MENOS las de `### Tras el
+   * cierre`.
+   */
   criterios: string[];
+  /**
+   * TASK-046: las casillas de `### Tras el cierre` (criterios que solo se
+   * verifican despues de `finish`). No cuentan para cerrar la tarea.
+   */
+  criteriosTrasCierre: string[];
 }
 
 /** Cabecera ATX de nivel 2 a 6 (ver decision 2 de la cabecera). */
 const RE_CABECERA = /^ {0,3}#{2,6}(?:\s|$)/;
+
+/** Subtitulo de nivel 3 a 6: no cambia de seccion (TASK-046). */
+const RE_SUBTITULO = /^ {0,3}#{3,6}(?:\s|$)/;
+
+const TITULO_TRAS_CIERRE = 'tras el cierre';
 
 /** Linea de checklist: "- [ ] texto", "- [x] texto", "* [X] texto". */
 const RE_CRITERIO = /^\s*[-*]\s+\[[ xX]\]\s*(.*)$/;
@@ -96,14 +110,32 @@ function tituloDeCabecera(linea: string): string {
 export function extraerSecciones(body: string): SeccionesTarea {
   const lineas = body.split(/\r?\n/);
   const objetivo: string[] = [];
-  const criterios: string[] = [];
+  const normales: string[] = [];
+  const trasCierre: string[] = [];
+  // A que lista van ahora los criterios: los de `### Tras el cierre` van
+  // aparte (TASK-046).
+  let destino = normales;
 
   let seccion: 'objetivo' | 'criterios' | 'otra' = 'otra';
   let objetivoVisto = false;
   let criteriosVisto = false;
 
   for (const linea of lineas) {
+    // TASK-046 (D2 de la auditoria): un subtitulo de nivel 3 o mas dentro
+    // del Objetivo o de los Criterios NO cambia de seccion. Antes cualquier
+    // `###` la cortaba: criterios agrupados en `### Parser` / `### CLI`
+    // daban `criterios: []`, y `### Tras el cierre` quedaba fuera solo por
+    // casualidad.
+    if (RE_SUBTITULO.test(linea) && seccion !== 'otra') {
+      if (seccion === 'objetivo') {
+        objetivo.push(linea);
+      } else {
+        destino = tituloDeCabecera(linea) === TITULO_TRAS_CIERRE ? trasCierre : normales;
+      }
+      continue;
+    }
     if (RE_CABECERA.test(linea)) {
+      destino = normales;
       const titulo = tituloDeCabecera(linea);
       if (titulo === TITULO_OBJETIVO && !objetivoVisto) {
         seccion = 'objetivo';
@@ -125,15 +157,15 @@ export function extraerSecciones(body: string): SeccionesTarea {
     if (seccion === 'criterios') {
       const criterio = RE_CRITERIO.exec(linea);
       if (criterio !== null) {
-        criterios.push((criterio[1] ?? '').trim());
+        destino.push((criterio[1] ?? '').trim());
         continue;
       }
-      if (criterios.length > 0 && RE_CONTINUACION.test(linea)) {
-        const ultimo = criterios[criterios.length - 1] ?? '';
-        criterios[criterios.length - 1] = `${ultimo} ${linea.trim()}`.trim();
+      if (destino.length > 0 && RE_CONTINUACION.test(linea)) {
+        const ultimo = destino[destino.length - 1] ?? '';
+        destino[destino.length - 1] = `${ultimo} ${linea.trim()}`.trim();
       }
     }
   }
 
-  return { objetivo: objetivo.join('\n').trim(), criterios };
+  return { objetivo: objetivo.join('\n').trim(), criterios: normales, criteriosTrasCierre: trasCierre };
 }
