@@ -309,7 +309,10 @@ async function assertTareaIntacta(repo: string, id: string, titulo: string, via:
     path.join(repo, 'tareas', '00-planificadas', id, 'tarea.md'),
     'utf8',
   );
-  assert.ok(tarea.includes(`titulo: "${titulo}"`), `${via}: titulo alterado:\n${tarea}`);
+  // El frontmatter entrecomilla solo si hace falta: se compara el valor, no la forma.
+  const linea = tarea.split(/\r?\n/).find((l) => l.startsWith('titulo: ')) ?? '';
+  const valor = linea.slice('titulo: '.length).replace(/^"(.*)"$/, '$1');
+  assert.equal(valor, titulo, `${via}: titulo alterado:\n${tarea}`);
   for (const c of CRITERIOS) {
     assert.ok(tarea.includes(`- [ ] ${c}`), `${via}: falta el criterio «${c}»:\n${tarea}`);
   }
