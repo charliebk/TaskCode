@@ -1,4 +1,20 @@
 /**
+ * Todas las fases que puede devolver siguienteFase. Lista en tiempo de
+ * ejecucion (no solo tipo) para que el test de las skills de fase compruebe
+ * que cada una tiene skill asignada: una fase nueva sin mapear lo pone rojo.
+ */
+export const FASES_SIGUIENTE = [
+    'plan',
+    'approve',
+    'start',
+    'review',
+    'veredicto',
+    'codex-review',
+    'veredicto-codex',
+    'finish',
+    'terminada',
+];
+/**
  * Fases que abren una fase NUEVA del ciclo: en semiautomatico se pregunta
  * antes de entrar. Las demas (veredicto, la primera codex-review, otra ronda
  * de review) son pasos internos de la revision y siguen solas, salvo las que

@@ -1,0 +1,23 @@
+---
+name: start
+description: Fase de arranque del flujo de tareas con taskctl. Abre la rama de una tarea TASK-NNN con el plan aprobado y la deja lista para implementar. Se invoca como /taskcode-plugin:start TASK-NNN.
+allowed-tools: Bash(taskctl:*) Bash(git rev-parse:*) Bash(git status:*) Read Skill
+---
+
+# Fase: arrancar la tarea
+
+Abre la rama de la tarea con Git-Flow y la pasa a `en-curso`.
+
+## Pasos
+
+1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`.
+2. Ejecuta `taskctl start TASK-NNN` (el ID viene en `$ARGUMENTS`). Si aborta
+   por el limite de trabajo en curso, muestra el error tal cual: dice que
+   tarea hay que cerrar primero. No lo rodees.
+3. Lee `planificacion/plan-final.md` y, si lo hay, `skills_recomendados` del
+   `tarea.md`: es lo que guia la implementacion.
+4. Sigue la seccion de avance (`task-workflow/avance.md`):
+   `taskctl siguiente TASK-NNN --json`. Tras `start` la fase es `review`,
+   que significa: primero implementar el plan en esta rama, con tests,
+   commitearlo y dejar la suite en verde; despues,
+   `/taskcode-plugin:review TASK-NNN`.
