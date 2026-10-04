@@ -148,7 +148,7 @@ const REPARTO: ReadonlyArray<{ complejidad: TaskComplexity; roles: number }> = [
 ];
 
 for (const { complejidad, roles } of REPARTO) {
-  test(`plan: complejidad "${complejidad}" escribe exactamente ${roles} peticion(es) de rol y una del unificador`, async () => {
+  test(`plan: complejidad "${complejidad}" escribe exactamente ${roles} peticion(es) de rol y una del unificador (con 1 rol, solo la de redaccion)`, async () => {
     await withTempRepo(async (repoRoot, tareasRoot) => {
       await writeTareaFile(tareasRoot, sampleTask({ complejidad }), BODY);
       commitAll(repoRoot, 'tarea TASK-800');
@@ -161,15 +161,119 @@ for (const { complejidad, roles } of REPARTO) {
       assert.equal(result.ronda, 1);
       assert.equal(result.brainstormReutilizado, false);
 
-      const esperados = ROLES_BRAINSTORM.slice(0, roles)
-        .flatMap((r) => [`peticion-${r.id}-1.md`, `salida-${r.id}-1.md`])
-        .concat(['peticion-unificador-1.md'])
-        .sort();
+      // TASK-042 (decision C4): con exactamente 1 rol no hay unificador ni
+      // peticion/salida de rol: se escribe solo `peticion-plan-1.md`, que
+      // el propio rol atiende escribiendo plan-final.md. Con 0 o con 2 o
+      // mas roles el reparto es el de siempre.
+      const esperados = (
+        roles === 1
+          ? ['peticion-plan-1.md']
+          : ROLES_BRAINSTORM.slice(0, roles)
+              .flatMap((r) => [`peticion-${r.id}-1.md`, `salida-${r.id}-1.md`])
+              .concat(['peticion-unificador-1.md'])
+      ).sort();
       const enDisco = (await readdir(brainstormDir(result.filePath))).sort();
       assert.deepEqual(enDisco, esperados);
     });
   });
 }
+
+// ─── TASK-042 (decision C4): un solo rol, sin unificador ───────────────
+
+/**
+ * Mutaciones que lo ponen rojo: volver a escribir `peticion-unificador`
+ * (o la peticion/salida del rol) con 1 rol; que la peticion de redaccion
+ * no se llame `peticion-plan-<ronda>.md`.
+ */
+test('plan (TASK-042): con 1 rol se escribe exactamente peticion-plan-1.md, sin unificador ni salida', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.modo, 'redaccion');
+    assert.equal(result.peticionUnificador, null);
+    assert.equal(path.basename(result.peticionRedaccion!), 'peticion-plan-1.md');
+    assert.deepEqual(await readdir(brainstormDir(result.filePath)), ['peticion-plan-1.md']);
+
+    const peticion = await readFile(result.peticionRedaccion!, 'utf8');
+    assert.match(peticion, /sin unificador|no hay unificador/);
+    assert.match(peticion, /\.\.\/plan-final\.md/);
+    assert.match(peticion, new RegExp(ROLES_BRAINSTORM[0]!.id));
+    assert.match(peticion, /Que NO miras/);
+    assert.doesNotMatch(peticion, /re-planificacion/);
+  });
+});
+
+/**
+ * Mutacion que lo pone rojo: que la ronda 2 con 1 rol vuelva a escribir
+ * el unificador, o que la peticion de redaccion ignore el bloque de
+ * re-planificacion.
+ */
+test('plan (TASK-042): la ronda 2 con 1 rol escribe peticion-plan-2.md con re-planificacion', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    const segunda = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-09', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(segunda.ronda, 2);
+    assert.equal(segunda.modo, 'redaccion');
+    assert.equal(segunda.brainstormReutilizado, false);
+    assert.deepEqual((await readdir(brainstormDir(segunda.filePath))).sort(), [
+      'peticion-plan-1.md',
+      'peticion-plan-2.md',
+    ]);
+    const peticion = await readFile(segunda.peticionRedaccion!, 'utf8');
+    assert.match(peticion, /re-planificacion, no un primer pase/);
+    assert.match(peticion, /Ya existe un plan redactado/);
+  });
+});
+
+/**
+ * Una carpeta anterior a TASK-042 (con `peticion-unificador-N` como
+ * testigo y la peticion y salida del unico rol) sigue contando como
+ * ronda: la siguiente es la N+1 y NO se pisa nada de lo que hay.
+ *
+ * Mutacion que lo pone rojo: dejar `RONDA_UNIFICADOR_RE` sin la rama
+ * `unificador`, o sin la rama `plan`.
+ */
+test('plan (TASK-042): una carpeta antigua con peticion-unificador-N sigue contando como ronda', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    const dir = path.join(
+      tareasRoot,
+      '00-planificadas',
+      'TASK-800',
+      PLANIFICACION_DIRNAME,
+      BRAINSTORM_DIRNAME
+    );
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, 'peticion-unificador-1.md'), '# testigo antiguo\n', 'utf8');
+    await writeFile(path.join(dir, 'peticion-brainstorm-arquitectura-1.md'), '# rol\n', 'utf8');
+    await writeFile(path.join(dir, 'salida-brainstorm-arquitectura-1.md'), '# salida real\n', 'utf8');
+    commitAll(repoRoot, 'tarea TASK-800 con carpeta antigua');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.ronda, 2);
+    assert.equal(result.modo, 'redaccion');
+    assert.deepEqual((await readdir(brainstormDir(result.filePath))).sort(), [
+      'peticion-brainstorm-arquitectura-1.md',
+      'peticion-plan-2.md',
+      'peticion-unificador-1.md',
+      'salida-brainstorm-arquitectura-1.md',
+    ]);
+  });
+});
 
 /**
  * EL EFECTO REAL DEL `max`, medido en el smoke test y fijado aqui para
@@ -389,12 +493,17 @@ test('plan: con un solo rol el unificador NO recibe instrucciones sobre desacuer
     });
     assert.equal(result.roles.length, 1, 'precondicion: simple lanza un solo rol');
 
-    const peticion = await readFile(result.peticionUnificador, 'utf8');
+    // TASK-042 (decision C4): con 1 rol ya no hay peticion del unificador;
+    // la instruccion equivalente vive en la peticion de redaccion, que no
+    // pide desacuerdos ni trata la unanimidad como alarma.
+    assert.equal(result.peticionUnificador, null);
+    const peticion = await readFile(result.peticionRedaccion!, 'utf8');
     assert.match(peticion, /un solo rol/);
     assert.doesNotMatch(peticion, /Donde dos roles discrepen/);
     assert.doesNotMatch(peticion, /eso es la alarma/);
+    assert.doesNotMatch(peticion, /Desacuerdos entre roles/);
     // Lo que SI tiene que pedirle, que es lo unico util con un rol.
-    assert.match(peticion, /QUE QUEDO SIN CUBRIR/);
+    assert.match(peticion, /Lo que el rol no cubrio/);
 
     // Y el scaffold del plan no reserva sitio para desacuerdos.
     const plan = await readFile(result.planPath, 'utf8');
@@ -418,7 +527,7 @@ test('plan: el unificador tiene prohibido promediar y obligado a senalar desacue
       repoCwd: repoRoot,
     });
 
-    const peticion = await readFile(result.peticionUnificador, 'utf8');
+    const peticion = await readFile(result.peticionUnificador!, 'utf8');
     assert.match(peticion, /No promedies/);
     assert.match(peticion, /discrepen/);
     // Y el caso invertido, que es el que de verdad se olvida: la
@@ -449,7 +558,7 @@ test('plan: la peticion del unificador trae la complejidad declarada Y la heuris
     // El max manda: 3 roles por lo declarado, no 0-1 por la heuristica.
     assert.equal(result.roles.length, 3);
 
-    const peticion = await readFile(result.peticionUnificador, 'utf8');
+    const peticion = await readFile(result.peticionUnificador!, 'utf8');
     assert.match(peticion, /Declarada en la tarea: \*\*alta\*\*/);
     assert.match(peticion, new RegExp(`Heuristica \\(${result.resolucion.puntos} puntos\\)`));
     assert.match(peticion, /Los dos niveles NO coinciden/);
@@ -713,7 +822,11 @@ test('plan: la ronda sale del mayor numero presente, no de cuantos ficheros hay'
 
     assert.equal(result.ronda, 5);
     const enDisco = await readdir(brainstormDir(result.filePath));
-    assert.ok(enDisco.includes('peticion-unificador-5.md'));
+    // TASK-042 (decision C4): `simple` = 1 rol, asi que la ronda 5 se
+    // escribe como peticion de redaccion, no del unificador. El testigo
+    // antiguo (peticion-unificador-4) sigue contando como ronda.
+    assert.ok(enDisco.includes('peticion-plan-5.md'));
+    assert.ok(!enDisco.includes('peticion-unificador-5.md'));
     assert.ok(enDisco.includes('peticion-unificador-4.md'), 'se piso la ronda 4');
   });
 });
@@ -855,7 +968,7 @@ test('plan: si suben los roles, se relanza el brainstorm y el unificador no se q
     }
 
     // Y la peticion del unificador describe TRES roles, no uno.
-    const peticion = await readFile(segunda.peticionUnificador, 'utf8');
+    const peticion = await readFile(segunda.peticionUnificador!, 'utf8');
     assert.doesNotMatch(peticion, /se planifico con un solo rol/);
     assert.match(peticion, /No promedies/);
   });
@@ -903,7 +1016,7 @@ test('plan: bajar los roles sin llegar a cero no oculta las salidas que existen'
     // Pero los roles de la ronda reutilizada siguen siendo tres.
     assert.equal(segunda.roles.length, 3);
 
-    const peticion = await readFile(segunda.peticionUnificador, 'utf8');
+    const peticion = await readFile(segunda.peticionUnificador!, 'utf8');
     // Las TRES salidas reales se nombran, no solo la del rol que queda.
     for (const rol of ROLES_BRAINSTORM.slice(0, 3)) {
       assert.ok(
@@ -992,7 +1105,7 @@ test('plan: una salida huerfana de una ronda alta no secuestra la lista del unif
       repoCwd: repoRoot,
     });
 
-    const peticion = await readFile(segunda.peticionUnificador, 'utf8');
+    const peticion = await readFile(segunda.peticionUnificador!, 'utf8');
     const nombrados = [...peticion.matchAll(/`(salida-[a-z0-9-]+-\d+\.md)`/g)].map((m) => m[1]!);
     assert.equal(nombrados.length, 2);
     const enDisco = await readdir(dir);
@@ -1049,7 +1162,7 @@ test('plan: un scaffold de salida borrado se recrea aunque el brainstorm se reut
       '# respuesta real que no se puede pisar\n'
     );
     // El unificador nombra las dos, y sigue tratandolo como dos roles.
-    const peticion = await readFile(segunda.peticionUnificador, 'utf8');
+    const peticion = await readFile(segunda.peticionUnificador!, 'utf8');
     assert.ok(peticion.includes(nombreSalidaRolTest(rolA.id, 1)));
     assert.ok(peticion.includes(nombreSalidaRolTest(rolB.id, 1)));
     assert.doesNotMatch(
@@ -1186,7 +1299,7 @@ test('plan: bajar la complejidad no hace que el unificador ignore un brainstorm 
       'precondicion: trivial sin senales resuelve 0 roles'
     );
 
-    const peticion = await readFile(segunda.peticionUnificador, 'utf8');
+    const peticion = await readFile(segunda.peticionUnificador!, 'utf8');
     // Las dos salidas reales se nombran, en vez de negarse.
     for (const rol of ROLES_BRAINSTORM.slice(0, 2)) {
       assert.ok(
@@ -1214,7 +1327,10 @@ test('plan: bajar la complejidad no hace que el unificador ignore un brainstorm 
  */
 test('plan: con peticiones del mismo rol en dos rondas se reutiliza la mas alta', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    // TASK-042 (decision C4): la ronda 1 arranca en `media` (2 roles) y no
+    // en `simple`: con 1 rol ya no se escribe peticion de rol, solo la de
+    // redaccion, y no habria peticiones del mismo rol en dos rondas.
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media' }), BODY);
     commitAll(repoRoot, 'tarea TASK-800');
     const subirA = async (nivel: string, ruta: string): Promise<void> => {
       const c = await readFile(ruta, 'utf8');
@@ -1222,7 +1338,7 @@ test('plan: con peticiones del mismo rol en dos rondas se reutiliza la mas alta'
       commitAll(repoRoot, `complejidad ${nivel}`);
     };
 
-    // Ronda 1 con 1 rol.
+    // Ronda 1 con 2 roles.
     const r1 = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
     assert.equal(r1.rondaRoles, 1);
 
@@ -1239,7 +1355,7 @@ test('plan: con peticiones del mismo rol en dos rondas se reutiliza la mas alta'
 
     assert.equal(r3.rondaRoles, 2, 'se reutilizo un brainstorm viejo habiendo uno mas reciente');
     assert.equal(r3.roles.length, 3, 'la ronda 2 lanzo tres roles, no uno');
-    const peticion = await readFile(r3.peticionUnificador, 'utf8');
+    const peticion = await readFile(r3.peticionUnificador!, 'utf8');
     for (const rol of ROLES_BRAINSTORM.slice(0, 3)) {
       assert.ok(
         peticion.includes(nombreSalidaRolTest(rol.id, 2)),
@@ -1260,7 +1376,9 @@ test('plan: con peticiones del mismo rol en dos rondas se reutiliza la mas alta'
  */
 test('plan: una peticion de rol de cero bytes no cuenta como rol ya lanzado', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple' }), BODY);
+    // TASK-042 (decision C4): `media` y no `simple`: con 1 rol no hay
+    // peticion de rol que truncar.
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media' }), BODY);
     commitAll(repoRoot, 'tarea TASK-800');
 
     const primera = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {

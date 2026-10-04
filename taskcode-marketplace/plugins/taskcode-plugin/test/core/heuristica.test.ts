@@ -766,3 +766,17 @@ test('cargarHeuristica con una ruta que no existe aborta diciendo que hacer', ()
     errorAccionable(/No se pudo leer la heuristica de complejidad/)
   );
 });
+
+// --------------------------------------------------------------------
+// TASK-042 (decision C4): sin complejidad declarada decide la heuristica
+// --------------------------------------------------------------------
+
+test('no declarada (null): el numero de agentes es el de la heuristica, aunque sea menor que el de "media"', () => {
+  const r = resolverNumeroAgentes(tarea({ complejidad: null }), CUERPO_NEUTRO, H);
+  assert.equal(r.nivelDeclarado, null);
+  assert.equal(r.nivelHeuristico, 'trivial');
+  assert.equal(r.hayDiscrepancia, false, 'sin declarar no hay con que discrepar');
+  assert.equal(r.agentes, H.agentes_brainstorm_trivial);
+  assert.ok(H.agentes_brainstorm_media > H.agentes_brainstorm_trivial, 'la prueba necesita que media pida mas');
+  assert.equal(resolverNumeroAgentes(tarea(), CUERPO_NEUTRO, H).agentes, H.agentes_brainstorm_media);
+});

@@ -15,7 +15,7 @@ test('parseImportArgs: ruta obligatoria, defaults razonables', () => {
   assert.equal(a.filePath, 'docs/sprint-1.md');
   assert.equal(a.tipo, 'feature');
   assert.equal(a.sprint, 0);
-  assert.equal(a.complejidad, 'media');
+  assert.equal(a.complejidad, null, 'TASK-042: sin --complejidad decide la heuristica');
 });
 
 test('parseImportArgs: falla sin ruta', () => {

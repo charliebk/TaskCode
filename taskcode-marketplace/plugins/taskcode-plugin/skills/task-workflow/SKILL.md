@@ -68,8 +68,8 @@ Precondiciones de cada transicion:
   `planificacion/plan-final.md` — **el contenido lo escribe un agente**, no el
   CLI — y, en `planificacion/brainstorm/`, una peticion por cada rol de
   brainstorm que resuelva la complejidad de la tarea, mas la del agente
-  unificador (ver "El brainstorm de la fase de diseno"). **No invoca a ningun
-  modelo**: lanzar a esos agentes es trabajo de quien orquesta. Aborta sin
+  unificador (con 1 solo rol no hay unificador: ver "El brainstorm de la fase
+  de diseno"). **No invoca a ningun modelo**: lanzar a esos agentes es trabajo de quien orquesta. Aborta sin
   mover la tarea si el enunciado no esta listo (ver mas abajo).
 - **`approve`** — desde `en-diseno`, y tiene que existir un `plan-final.md`
   redactado: la plantilla sin rellenar se rechaza.
@@ -112,7 +112,7 @@ taskctl finish  TASK-NNN
 taskctl diagnose | pause [--push] | resume [<rama>] | recover [<rama>] | abort-merge
 ```
 
-Defaults: `--sprint 0`, `--complejidad media`, `--etiquetas` vacio. En
+Defaults: `--sprint 0`, sin complejidad (`null`), `--etiquetas` vacio. En
 `import`, `--tipo` es opcional (`feature`); en `new` es **obligatorio**.
 
 Detalles que muerden:
@@ -338,15 +338,14 @@ escribe lo que alguien tiene que disparar despues.
 tabla por complejidad que trae el plugin, y cuales, por un orden de prioridad
 fijo: **arquitectura, riesgos, testing, dominio**. Con un solo rol entra
 arquitectura, que es el unico que propone una forma para el cambio; el primero
-que se cae es dominio. Pueden salir **cero roles**: entonces no hay brainstorm
-y el plan se redacta directamente a partir del enunciado.
+que se cae es dominio. Pueden salir **cero roles**: no hay brainstorm y el plan
+se redacta a partir del enunciado.
 
-El numero es el **mayor** entre lo que pide la complejidad declarada en
-`tarea.md` y lo que pide la que la tabla calcula leyendo la tarea. Cuando esos
-dos niveles difieren, el comando lo dice: no es un error, es la eleccion
-conservadora.
+Sin complejidad declarada (`null`) decide la tabla, que calcula leyendo la
+tarea; declarada, se toma el **mayor** de las dos. Si difieren, el comando lo
+dice: no es un error, es la eleccion conservadora.
 
-**Lo que deja escrito**, en `planificacion/brainstorm/`:
+**Lo que deja escrito**, en `planificacion/brainstorm/` (con 1 rol, solo `peticion-plan-<ronda>.md`):
 
 | Fichero | Que es |
 |---|---|
@@ -358,7 +357,9 @@ conservadora.
 paralelo; volcar cada respuesta en su `salida-...`; y solo entonces lanzar al
 unificador, que es quien escribe `plan-final.md`. Los desacuerdos entre roles
 se senalan en el plan, no se promedian: dos roles que dicen lo contrario son
-informacion, y la media la tira.
+informacion, y la media la tira. **Con 1 solo rol no hay unificador ni
+`salida-...`**: se lanza ese agente con `peticion-plan-<ronda>.md` y su
+respuesta, que es el plan, se vuelca en `plan-final.md`.
 
 **`plan` valida el enunciado antes de mover nada** (con o sin roles). Bloquea:
 `## Objetivo` vacio, ningun criterio, un criterio vacio, **mas de 12
@@ -370,10 +371,9 @@ los criterios sin marcar.
 
 **Una re-planificacion no relanza el brainstorm.** La segunda vuelta
 (`en-diseno` con `plan_aprobado: false`) escribe solo otra
-`peticion-unificador-<ronda>.md`, que reprocesa las salidas de la ronda
-anterior mas el feedback. El feedback sobre un plan es una correccion
-incremental; tratarlo como un reinicio vuelve a gastar todos los agentes, y no
-se nota porque cada vuelta parece barata.
+`peticion-unificador-<ronda>.md` (con 1 rol, `peticion-plan-<ronda>.md`), que
+reprocesa las salidas de la ronda anterior mas el feedback. Es una correccion
+incremental: tratarla como un reinicio gasta de nuevo todos los agentes.
 
 ## La revision por pares
 

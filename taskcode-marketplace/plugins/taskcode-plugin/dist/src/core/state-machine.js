@@ -102,7 +102,7 @@ export function assertTransitionAllowed(command, task, ctx = {}) {
             if (task.estado !== 'en-diseno') {
                 throw err(task.id, command, task.estado, 'taskctl plan', `esta en estado "${task.estado}", no en "en-diseno". taskctl start requiere haber ejecutado taskctl plan primero.`);
             }
-            const exigeAprobacion = !TRIVIAL_SIN_APROBACION.includes(task.complejidad);
+            const exigeAprobacion = task.complejidad === null || !TRIVIAL_SIN_APROBACION.includes(task.complejidad);
             if (exigeAprobacion && !task.plan_aprobado) {
                 throw err(task.id, command, task.estado, 'taskctl approve', 'no ha pasado por taskctl approve. El checkpoint humano es obligatorio para todas las complejidades (seccion 14, punto 1).');
             }

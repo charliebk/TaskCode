@@ -108,3 +108,14 @@ test('validateTask: rechaza campo obligatorio ausente', () => {
     (e: unknown) => e instanceof TaskValidationError && e.field === 'rama'
   );
 });
+
+test('validateTask (TASK-042): complejidad null o ausente es "no declarada"; un valor invalido sigue fallando', () => {
+  assert.equal(validateTask(baseTaskData({ complejidad: null })).complejidad, null);
+  const sinClave = baseTaskData();
+  delete (sinClave as Record<string, unknown>)['complejidad'];
+  assert.equal(validateTask(sinClave).complejidad, null);
+  assert.throws(
+    () => validateTask(baseTaskData({ complejidad: 'enorme' })),
+    (e: unknown) => e instanceof TaskValidationError && e.field === 'complejidad'
+  );
+});

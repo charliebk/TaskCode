@@ -200,7 +200,8 @@ export function assertTransitionAllowed(
           `esta en estado "${task.estado}", no en "en-diseno". taskctl start requiere haber ejecutado taskctl plan primero.`
         );
       }
-      const exigeAprobacion = !TRIVIAL_SIN_APROBACION.includes(task.complejidad);
+      const exigeAprobacion =
+        task.complejidad === null || !TRIVIAL_SIN_APROBACION.includes(task.complejidad);
       if (exigeAprobacion && !task.plan_aprobado) {
         throw err(
           task.id,

@@ -359,3 +359,72 @@ test('main: "taskctl review" con un diff de 2 dominios imprime una linea de peti
     assert.equal(lineasLanza.length, 2, stdout);
   });
 });
+
+// TASK-042 (decision C4): con 1 rol el CLI no habla de unificador. Dice que
+// se lance ese agente con la peticion de redaccion y que el escribe el plan.
+// Mutacion que lo pone rojo: volver a anunciar "y luego el unificador" con 1 rol.
+test('main: taskctl plan con 1 rol anuncia la peticion de redaccion y que no hay unificador', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() =>
+      main(['new', '--titulo', 'Un solo rol', '--tipo', 'feature', '--complejidad', 'simple'])
+    );
+    assert.equal(creada.code, 0);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
+    commitAll(repoRoot, 'tarea nueva');
+
+    const { code, stdout } = await captureOutput(() => main(['plan', 'TASK-001']));
+
+    assert.equal(code, 0);
+    assert.ok(stdout.includes('1 rol, sin unificador'), stdout);
+    assert.ok(stdout.includes('peticion-plan-1.md'), stdout);
+    // IMP-1 de su revision: el agente de rol no tiene Write; la respuesta
+    // la vuelca quien orquesta.
+    assert.ok(stdout.includes('vuelca su respuesta en plan-final.md'), stdout);
+    assert.ok(!stdout.includes('luego el unificador'), stdout);
+    assert.ok(!stdout.includes('peticion-unificador'), stdout);
+
+    // MEN-1 de su revision: la segunda vuelta se anuncia como re-planificacion.
+    commitAll(repoRoot, 'en diseno');
+    const segunda = await captureOutput(() => main(['plan', 'TASK-001']));
+    assert.equal(segunda.code, 0, segunda.stderr);
+    assert.ok(segunda.stdout.includes('Re-planificacion (ronda 2): 1 rol, sin unificador'), segunda.stdout);
+    assert.ok(segunda.stdout.includes('peticion-plan-2.md'), segunda.stdout);
+
+    // MEN-4, MEN-5 y MEN-6 de la ronda 2: lo que lee el agente y el scaffold
+    // no le atribuyen escribir ficheros, y la re-planificacion pide el plan
+    // COMPLETO (la respuesta sustituye al fichero entero).
+    const carpeta = path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'planificacion');
+    const p1 = await readFile(path.join(carpeta, 'brainstorm', 'peticion-plan-1.md'), 'utf8');
+    assert.match(p1, /tu no escribes ficheros/);
+    assert.match(p1, /Quien orquesta vuelca tu respuesta en/);
+    assert.doesNotMatch(p1, /re-planificacion/);
+    const p2 = await readFile(path.join(carpeta, 'brainstorm', 'peticion-plan-2.md'), 'utf8');
+    assert.match(p2, /Devuelve el plan COMPLETO/);
+    const scaffold = await readFile(path.join(carpeta, 'plan-final.md'), 'utf8');
+    assert.match(scaffold, /volcada aqui por quien orquesta/);
+  });
+});
+
+// TASK-042, MEN-1 y MEN-3 de su revision: sin --complejidad nadie ve "null"
+// impreso, ni en stdout ni en las peticiones, y el mensaje de 0 roles no le
+// atribuye a la tarea el nivel que calculo la heuristica.
+// Mutaciones que lo ponen rojo: quitar cualquiera de los `?? 'no declarada...'`.
+test('main: taskctl plan sin complejidad declarada no imprime "null" en ningun sitio', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() => main(['new', '--titulo', 'Sin complejidad', '--tipo', 'feature']));
+    assert.equal(creada.code, 0, creada.stderr);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
+    commitAll(repoRoot, 'tarea nueva');
+
+    const { code, stdout, stderr } = await captureOutput(() => main(['plan', 'TASK-001']));
+    assert.equal(code, 0, stderr);
+    assert.doesNotMatch(stdout, /\bnull\b/);
+    assert.match(stdout, /complejidad no declarada; la heuristica da "trivial"/);
+
+    const carpeta = path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'planificacion');
+    const peticion = await readFile(path.join(carpeta, 'brainstorm', 'peticion-unificador-1.md'), 'utf8');
+    assert.doesNotMatch(peticion, /\bnull\b/);
+    assert.match(peticion, /Complejidad declarada: no declarada \(decide la heuristica\)/);
+    assert.match(peticion, /Declarada en la tarea: \*\*no declarada \(decide la heuristica\)\*\*/);
+  });
+});

@@ -867,3 +867,23 @@ suben (`--push` es explícito), o alguna otra interacción. Antes de asumir una
 causa, reproducirlo deliberadamente: lanzar un agente con `isolation:
 "worktree"` sobre una rama de tarea sin publicar y comprobar en qué commit
 aparece.
+
+**Actualizacion (2026-10-04, TASK-042):** el worktree volvio a aparecer en un
+commit anterior a la tarea, y ademas el sandbox le rechazo **todo** comando
+`git` (el hook `rtk` reescribe `git` a `rtk git` y el sandbox no puede probar
+que opera sobre el worktree). Un agente en worktree no puede ni hacer
+checkout ni commitear. Para trabajo de implementacion en paralelo: agente sin
+worktree, en el arbol compartido, con ficheros repartidos y sin `git`; el
+orquestador commitea.
+
+## `EPERM` en `start` con el shell dentro de la carpeta de la tarea (TASK-042)
+
+`taskctl start` fallo con `EPERM ... rename tareas/01-en-diseno/TASK-042`
+incluso con los reintentos de TASK-053. La causa: el directorio de trabajo del
+propio shell del orquestador estaba **dentro** de esa carpeta
+(`.../planificacion`, tras editar el plan), y Windows no deja renombrar un
+directorio que es el cwd de un proceso vivo. No es transitorio: los
+reintentos no lo arreglan. Salir de la carpeta y reintentar funciono; el
+fallo no dejo nada a medias (rama creada, arbol limpio, tarea sin mover).
+Regla: antes de un comando que mueve la tarea de estado, `cd` a la raiz del
+repo.

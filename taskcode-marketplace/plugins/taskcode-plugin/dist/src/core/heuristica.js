@@ -595,15 +595,20 @@ export function resolverNumeroAgentes(task, body, h) {
     const { puntos, senales } = puntuarTarea(task, body, h);
     const nivelDeclarado = task.complejidad;
     const nivelH = nivelHeuristico(puntos, h);
-    const agentes = Math.max(agentesBrainstorm(nivelDeclarado, task.tipo, h), agentesBrainstorm(nivelH, task.tipo, h));
-    const sinTope = Math.max(agentesPorNivel(nivelDeclarado, h), agentesPorNivel(nivelH, h));
+    // TASK-042 (decision C4): sin complejidad declarada decide SOLO la
+    // heuristica. Antes `new` escribia `media` por defecto y ese valor
+    // ganaba el maximo casi siempre: 2 roles + unificador para tareas que la
+    // heuristica veia simples.
+    const niveles = nivelDeclarado === null ? [nivelH] : [nivelDeclarado, nivelH];
+    const agentes = Math.max(...niveles.map((n) => agentesBrainstorm(n, task.tipo, h)));
+    const sinTope = Math.max(...niveles.map((n) => agentesPorNivel(n, h)));
     return {
         agentes,
         nivelDeclarado,
         nivelHeuristico: nivelH,
         puntos,
         senales,
-        hayDiscrepancia: nivelDeclarado !== nivelH,
+        hayDiscrepancia: nivelDeclarado !== null && nivelDeclarado !== nivelH,
         topeHotfixAplicado: agentes < sinTope,
     };
 }
