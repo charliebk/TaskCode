@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-042 (feature) — F4-T4 Complejidad por defecto por heuristica y un rol sin unificador (2026-10-04)
 - TASK-043 (feature) — F4-T2 Validacion antes de plan y puertas de cierre (2026-10-04)
 - TASK-046 (fix) — F5-T2 Secciones con subtitulos y criterios multilinea (2026-10-04)
 - TASK-041 (feature) — F4-T1 taskctl new con objetivo y criterios (2026-10-04)

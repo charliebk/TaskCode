@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-042 — F4-T4 Complejidad por defecto por heuristica y un rol sin unificador · etiquetas: (sin etiquetas) · rama feature/task-042-f4-t4-complejidad-por-defecto-por-heuris · terminada 2026-10-04 · tareas/04-terminadas/TASK-042/
 - TASK-043 — F4-T2 Validacion antes de plan y puertas de cierre · etiquetas: (sin etiquetas) · rama feature/task-043-f4-t2-validacion-antes-de-plan-y-puertas · terminada 2026-10-04 · tareas/04-terminadas/TASK-043/
 - TASK-046 — F5-T2 Secciones con subtitulos y criterios multilinea · etiquetas: (sin etiquetas) · rama fix/task-046-f5-t2-secciones-con-subtitulos-y-criteri · terminada 2026-10-04 · tareas/04-terminadas/TASK-046/
 - TASK-041 — F4-T1 taskctl new con objetivo y criterios · etiquetas: (sin etiquetas) · rama feature/task-041-f4-t1-taskctl-new-con-objetivo-y-criteri · terminada 2026-10-04 · tareas/04-terminadas/TASK-041/
