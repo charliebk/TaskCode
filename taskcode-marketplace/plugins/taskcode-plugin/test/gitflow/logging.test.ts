@@ -24,14 +24,14 @@ const LINEA = /^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] \[INFO \] hola mundo$/;
 async function conDateContado(
   cuerpo: string,
   env: Record<string, string> = {}
-): Promise<{ stdout: string; llamadasDate: number; log: string }> {
+): Promise<{ stdout: string; llamadasDate: number; argsDate: string[]; log: string }> {
   const repo = await mkdtemp(path.join(tmpdir(), 'taskctl-gflog-'));
   try {
     assert.equal(spawnSync('git', ['init', '-q'], { cwd: repo }).status, 0);
     const comun = COMMON.split(path.sep).join('/');
     const script =
       'DATE_LLAMADAS=0\n' +
-      'date() { DATE_LLAMADAS=$((DATE_LLAMADAS+1)); echo x >> .date-llamadas; command date "$@"; }\n' +
+      'date() { DATE_LLAMADAS=$((DATE_LLAMADAS+1)); printf "%s\\n" "$*" >> .date-llamadas; command date "$@"; }\n' +
       `source "${comun}"\n` +
       cuerpo +
       '\n';
@@ -41,16 +41,17 @@ async function conDateContado(
       env: { ...process.env, ...env },
     });
     assert.equal(r.status, 0, r.stderr);
-    let llamadas = 0;
+    let argsDate: string[] = [];
     try {
-      llamadas = (await readFile(path.join(repo, '.date-llamadas'), 'utf8')).split('\n').filter(Boolean).length;
+      argsDate = (await readFile(path.join(repo, '.date-llamadas'), 'utf8')).split('\n').filter(Boolean);
     } catch {
-      llamadas = 0;
+      argsDate = [];
     }
+    const llamadas = argsDate.length;
     const dirLog = path.join(repo, '.git', 'taskcode', 'gitflow');
     const ficheros = await readdir(dirLog);
     const log = await readFile(path.join(dirLog, ficheros[0] as string), 'utf8');
-    return { stdout: r.stdout, llamadasDate: llamadas, log };
+    return { stdout: r.stdout, llamadasDate: llamadas, argsDate, log };
   } finally {
     await rm(repo, { recursive: true, force: true, maxRetries: 5 }).catch(() => undefined);
   }
@@ -71,7 +72,14 @@ test('logging de Git-Flow (TASK-037): con bash moderno no lanza ningun date y la
 
 test('logging de Git-Flow (TASK-037): la caida para bash antiguo usa date y da la misma forma', async () => {
   const r = await conDateContado(CUERPO, { GF_FORZAR_DATE: '1' });
-  assert.ok(r.llamadasDate > 0, 'la caida tiene que usar date');
+  // MEN-1 de la revision: no basta con que date se llame (la epoch de
+  // _gf_epoch ya lo hace). La HORA de cada linea tiene que salir de date,
+  // porque en bash 3.2 `%(...)T` no existe y en bash 5 un mutante que la
+  // use pasaria igual.
+  assert.ok(
+    r.argsDate.some((a) => a.includes('%H:%M:%S')),
+    `la caida tiene que pedir la hora a date: ${r.argsDate.join(' | ')}`
+  );
   assert.match(r.stdout.trim().split('\n')[0] as string, LINEA);
   assert.ok(r.log.split(/\r?\n/).some((l) => LINEA.test(l)));
 });

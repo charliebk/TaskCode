@@ -60,3 +60,14 @@ funcion de bash que cuenta sus llamadas: el camino rapido no la llama ni una
 vez, la caida si, y las dos dan la linea `[AAAA-MM-DD HH:MM:SS] [INFO ] ...` en
 pantalla y en el fichero. Mutante (volver a `$(date)` en `_do_log`): rojo.
 `test/gitflow/`: 40/40.
+
+**Revision ronda 1: aprobada con correcciones** (0 criticos, 0 importantes, 2
+menores; suite completa 908 tests, solo los 3 rojos conocidos de Windows; 3 de
+4 mutantes en rojo). Por A3, sin ronda 2.
+- MEN-1, corregido: el test de la caida a `date` solo exigia que `date` se
+  llamara, y la epoch ya lo hace; un mutante que usara `%(...)T` en la caida
+  (lo que romperia bash 3.2) pasaba en bash 5. Ahora se graban los argumentos
+  de cada `date` y se exige que la hora se pida con `%H:%M:%S`; el mutante cae.
+- MEN-2, aceptado: en bash 4.2-4.4 un `EPOCHSECONDS` heredado del entorno se
+  daria por bueno (duracion `0s`). No verificable aqui y solo afecta a la
+  linea de duracion.
