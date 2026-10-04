@@ -6,7 +6,7 @@ sprint: 6
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-045-f5-t1-rama-base-de-punta-a-punta
 asignado_a: charlie.bk@gmail.com
