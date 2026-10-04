@@ -21,6 +21,17 @@ dependencias: []
 ---
 ## Objetivo
 
+Que una tarea `simple` lance un agente de brainstorm y no tres (auditoria del
+2026-10-03, decision C4). Hoy `new` e `import` escriben `complejidad: media`
+cuando no se declara, y ese valor por defecto domina el maximo con la
+heuristica: casi todas las tareas lanzan 2 roles mas el unificador, aunque la
+heuristica diga `simple`. Y con un solo rol, el unificador no consolida
+nada: es un agente mas que relee lo que el rol ya escribio.
+
+Decision C4 aprobada: la heuristica decide la complejidad cuando no se
+declara; con 1 rol no hay unificador y el rol escribe `plan-final.md`.
+
+Fuera de alcance: recalibrar la heuristica (TASK-052).
 
 ## Criterios de aceptacion
 - [ ] Sin `--complejidad` declarado, el numero de roles lo decide la heuristica
