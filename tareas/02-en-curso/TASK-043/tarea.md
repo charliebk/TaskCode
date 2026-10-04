@@ -6,7 +6,7 @@ sprint: 5
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-043-f4-t2-validacion-antes-de-plan-y-puertas
 asignado_a: charlie.bk@gmail.com
