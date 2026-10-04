@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: null
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-059-flujo-e-modo-automatico
 asignado_a: charlie.bk@gmail.com
