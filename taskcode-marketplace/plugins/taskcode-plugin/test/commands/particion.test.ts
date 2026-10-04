@@ -206,3 +206,16 @@ test('plan (TASK-044): demasiado grande y sin grupos, explica como agrupar', asy
   });
 });
 
+
+test('grupos (MEN-3 de la revision de TASK-044): Tras el cierre en negrita, transversal por la primera palabra, negrita mezclada no es cabecera', () => {
+  const s = extraerSecciones(
+    '## Criterios de aceptacion\n**Uno**\n- [ ] a\n**Comunes a ambos**\n- [ ] c\n**Nota** leer **antes**\n- [ ] d\n**Tras el cierre**\n- [ ] ci\n'
+  );
+  assert.deepEqual(s.criteriosTrasCierre, ['ci']);
+  assert.deepEqual(
+    s.grupos.map((g) => g.titulo),
+    ['Uno', 'Comunes a ambos'],
+    'la linea con negrita mezclada no abre grupo: su criterio sigue en el anterior'
+  );
+  assert.equal(proponerParticion(sampleTask(), s), null, '«Comunes a ambos» no es un frente');
+});

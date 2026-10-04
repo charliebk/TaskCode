@@ -66,7 +66,7 @@ export interface GrupoCriterios {
 }
 
 /** Linea sin sangrar hecha solo de negrita: cabecera de grupo (TASK-044). */
-const RE_GRUPO_NEGRITA = /^\*\*(.+?)\*\*:?\s*$/;
+const RE_GRUPO_NEGRITA = /^\*\*([^*]+)\*\*:?\s*$/;
 
 /** Cabecera ATX de nivel 2 a 6 (ver decision 2 de la cabecera). */
 const RE_CABECERA = /^ {0,3}#{2,6}(?:\s|$)/;
@@ -102,12 +102,12 @@ export function normalizarTexto(texto: string): string {
     .toLowerCase();
 }
 
-/** El titulo de una cabecera ATX, sin almohadillas ni diacriticos. */
 /** El titulo de una cabecera tal como se escribio (para mostrarlo). */
 function textoDeCabecera(linea: string): string {
   return linea.trim().replace(/^#+\s*/, '').replace(/\s*#+$/, '').trim();
 }
 
+/** El titulo de una cabecera ATX, sin almohadillas ni diacriticos. */
 function tituloDeCabecera(linea: string): string {
   return normalizarTexto(
     linea
@@ -203,7 +203,14 @@ export function extraerSecciones(body: string): SeccionesTarea {
       }
       const negrita = destino === normales ? RE_GRUPO_NEGRITA.exec(linea) : null;
       if (negrita !== null) {
-        titulosGrupo.push((negrita[1] ?? '').trim());
+        const tituloNegrita = (negrita[1] ?? '').trim();
+        // MEN-3 de la revision de TASK-044: `**Tras el cierre**` en negrita
+        // es lo mismo que el subtitulo, no un frente.
+        if (normalizarTexto(tituloNegrita).replace(/:$/, '').trim() === TITULO_TRAS_CIERRE) {
+          destino = trasCierre;
+        } else {
+          titulosGrupo.push(tituloNegrita);
+        }
         continuable = false;
         continue;
       }

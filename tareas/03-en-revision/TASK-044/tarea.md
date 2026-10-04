@@ -74,3 +74,31 @@ plan → import → plan de una hija contra un repo real con el caso de TASK-030
 Windows. Mutantes (8, todos muertos): hijas sin Objetivo, Transversal como
 frente, plan sin propuesta, sin grupos en negrita, sin comprobar el repo,
 umbral del aviso de frentes, y dos del parser de import.
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **aprobada-con-correcciones** (0 CRITICO, 0
+IMPORTANTE, 5 MENOR). Reprodujo la cadena con `bin/taskctl` sobre copias de
+TASK-029, 030 y 032 en un repo con espacios en la ruta y `tmpdir` en nombre
+8.3: las tres particiones tienen sentido (4, 2 y 3 hijas; la de TASK-030 es
+la que se hizo a mano), `import` crea las 9 y el `plan` de una hija pasa. Sin
+falsos positivos en las 54 tareas del repo; 50 000 ficheros aleatorios de
+import dan lo mismo que antes en las entradas que ya eran validas.
+
+- MEN-1 (no se corrige): la deduplicacion de titulos compara en minusculas,
+  pero import compara el slug (sin tildes, 40 caracteres): dos frentes con un
+  comienzo largo comun chocan. Recuperable: import lo avisa como omitida y
+  basta renombrar en el fichero.
+- MEN-2 (no se corrige): sin test para la numeracion de titulos repetidos, el
+  aviso de hijas de mas de 12 y el `>` de lineas en blanco del Objetivo. El
+  revisor comprobo a mano que el codigo hace lo correcto.
+- MEN-3 (corregido, con test): `**Tras el cierre**` en negrita ya no es un
+  frente; «Comunes a ambos» es transversal (cuenta la primera palabra); una
+  linea con negrita mezclada (`**Nota** leer **antes**`) ya no abre grupo.
+- MEN-4 (corregido): la skill documenta la particion propuesta y la sintaxis
+  `> texto` del Objetivo en el fichero de import.
+- MEN-5 (corregido): comentario de `tituloDeCabecera` en su sitio.
+
+Desviacion del criterio 1 (frentes en los criterios; con 12 o menos avisan):
+decision del orquestador documentada en el plan, pendiente de que una persona
+la acepte.

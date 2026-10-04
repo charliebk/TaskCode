@@ -5,7 +5,10 @@ const GRUPOS_TRANSVERSALES = ['transversal', 'transversales', 'comun', 'comunes'
 function esTransversal(g) {
     if (g.titulo === null)
         return true;
-    return GRUPOS_TRANSVERSALES.includes(normalizar(g.titulo).replace(/[^a-z]/g, ''));
+    // Basta la primera palabra: «Comunes a ambos» o «Transversal (suite)»
+    // tambien son transversales (MEN-3 de la revision de TASK-044).
+    const primera = normalizar(g.titulo).split(/[^a-z]+/).find((p) => p !== '') ?? '';
+    return GRUPOS_TRANSVERSALES.includes(primera);
 }
 /** Grupos que son un frente propio: con titulo y no transversales. */
 export function frentesDe(grupos) {
