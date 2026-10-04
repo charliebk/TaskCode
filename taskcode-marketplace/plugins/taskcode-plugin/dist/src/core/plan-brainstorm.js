@@ -24,8 +24,9 @@ export function nombrePeticionUnificador(ronda) {
 }
 /**
  * `peticion-plan-<ronda>.md` — TASK-042 (decision C4). Con UN solo rol no
- * hay unificador: esta peticion va al propio rol, que redacta
- * `plan-final.md`. Hace tambien de testigo de ronda (ver plan.ts).
+ * hay unificador: esta peticion va al propio rol, cuya respuesta es el
+ * plan (la vuelca en `plan-final.md` quien orquesta: los agentes de rol no
+ * tienen Write). Hace tambien de testigo de ronda (ver plan.ts).
  */
 export function nombrePeticionRedaccion(ronda) {
     return `peticion-plan-${ronda}.md`;
@@ -118,7 +119,7 @@ export function peticionRolTemplate(task, objetivo, criterios, rol, otrosRoles, 
  * (cabecera, bloque de complejidad, enunciado, "Que tiene que traer el
  * plan final") y del rol toma su pregunta y sus limites. Quien la recibe
  * es el autor del plan: no hay salida de rol intermedia ni nadie que
- * consolide, asi que escribe el plan final directamente.
+ * consolide, asi que su respuesta es el plan final.
  *
  * En la ronda 2 o siguientes lleva el bloque de re-planificacion: relanzar
  * al autor del plan ES la correccion incremental.
@@ -129,14 +130,15 @@ export function peticionRedaccionTemplate(task, objetivo, criterios, rol, ronda,
         : '## Esto es una re-planificacion, no un primer pase\n\n' +
             `Ya existe un plan redactado en \`${planFinalRelativo}\` y una persona ha pedido ` +
             'cambios sobre el. **Leelo antes que nada.** Tu trabajo es incorporar el feedback de la ' +
-            'persona al plan que ya hay, no reescribirlo entero — y menos volver a redactar desde el ' +
-            'enunciado como si fuera la primera vez.\n\n' +
+            'persona al plan que ya hay, no replantearlo — y menos volver a redactar desde el ' +
+            'enunciado como si fuera la primera vez. **Devuelve el plan COMPLETO** con el feedback ' +
+            'incorporado, no solo los cambios: tu respuesta sustituye al fichero entero.\n\n' +
             'Si el feedback dice que el enfoque entero esta mal, eso NO se arregla aqui: dilo en el ' +
             'plan y que alguien decida si se replantea.\n\n';
     return (`# Peticion de redaccion del plan — ${task.id} (ronda ${ronda})\n\n` +
         cabecera(task, ronda, fecha) +
         `- Rol: \`${rol.id}\` — lanzalo con el agente de ese mismo nombre\n` +
-        `- Vuelca el plan en: \`${planFinalRelativo}\`\n\n` +
+        `- Quien orquesta vuelca tu respuesta en: \`${planFinalRelativo}\`\n\n` +
         '**Esta tarea se planifica con un solo rol y no hay unificador**: tu respuesta ES ' +
         'el plan final. Redactala con las secciones de abajo; quien orquesta la vuelca tal cual ' +
         'en `plan-final.md` (tu no escribes ficheros), sin salida intermedia que consolidar.\n\n' +

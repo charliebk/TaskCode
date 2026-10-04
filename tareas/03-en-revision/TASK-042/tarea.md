@@ -98,3 +98,19 @@ a 2 roles funcionan.
   tarea.
 - Fuera de alcance, anotado para TASK-052: una tarea minima sin complejidad
   resuelve 0 roles porque la heuristica le da `trivial`.
+
+### Revision por pares (ronda 2, incremental)
+
+Revisor independiente: **aprobada-con-correcciones** (0 CRITICO, 0
+IMPORTANTE). IMP-1, MEN-1 y MEN-3 verificados como corregidos; MEN-2 aceptado.
+Tres MENOR nuevos, corregidos sin abrir otra ronda (politica A3):
+
+- MEN-4: el texto nuevo de la peticion y del scaffold no tenia test. Ahora
+  `cli/main` asevera el contenido de `peticion-plan-1.md`,
+  `peticion-plan-2.md` y del scaffold.
+- MEN-5: la cabecera de la peticion le ordenaba al agente «Vuelca el plan
+  en»; ahora dice «Quien orquesta vuelca tu respuesta en». Comentarios
+  internos alineados.
+- MEN-6: en re-planificacion la peticion decia «no reescribirlo entero»,
+  pero la respuesta se vuelca tal cual: se habria sobrescrito el plan con
+  solo los cambios. Ahora pide **el plan COMPLETO** con el feedback.

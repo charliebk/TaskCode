@@ -389,6 +389,19 @@ test('main: taskctl plan con 1 rol anuncia la peticion de redaccion y que no hay
     assert.equal(segunda.code, 0, segunda.stderr);
     assert.ok(segunda.stdout.includes('Re-planificacion (ronda 2): 1 rol, sin unificador'), segunda.stdout);
     assert.ok(segunda.stdout.includes('peticion-plan-2.md'), segunda.stdout);
+
+    // MEN-4, MEN-5 y MEN-6 de la ronda 2: lo que lee el agente y el scaffold
+    // no le atribuyen escribir ficheros, y la re-planificacion pide el plan
+    // COMPLETO (la respuesta sustituye al fichero entero).
+    const carpeta = path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'planificacion');
+    const p1 = await readFile(path.join(carpeta, 'brainstorm', 'peticion-plan-1.md'), 'utf8');
+    assert.match(p1, /tu no escribes ficheros/);
+    assert.match(p1, /Quien orquesta vuelca tu respuesta en/);
+    assert.doesNotMatch(p1, /re-planificacion/);
+    const p2 = await readFile(path.join(carpeta, 'brainstorm', 'peticion-plan-2.md'), 'utf8');
+    assert.match(p2, /Devuelve el plan COMPLETO/);
+    const scaffold = await readFile(path.join(carpeta, 'plan-final.md'), 'utf8');
+    assert.match(scaffold, /volcada aqui por quien orquesta/);
   });
 });
 

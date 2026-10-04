@@ -230,8 +230,8 @@ export function planTemplate(task: Task, roles: readonly RolBrainstorm[]): strin
     seccionRoles = '';
   } else if (roles.length === 1) {
     origen =
-      `(Es la respuesta del unico rol de brainstorm, ${roles[0]!.titulo}, volcada aqui por\n` +
-      'quien orquesta.\n' +
+      `(Es la respuesta del unico rol de brainstorm, ${roles[0]!.titulo},\n` +
+      'volcada aqui por quien orquesta.\n' +
       'Con un solo rol no hay unificador ni desacuerdos que resolver; en su lugar,\n' +
       'el plan senala lo que ese rol no cubrio.)\n';
     seccionRoles = '## Lo que el rol no cubrio\n\n\n';
@@ -290,7 +290,7 @@ export interface PlanCommandResult {
   peticionesRol: string[];
   /**
    * TASK-042 (decision C4): 'redaccion' con exactamente 1 rol (sin
-   * unificador: el rol escribe plan-final.md); 'unificador' en el resto.
+   * unificador: la respuesta del rol es plan-final.md); 'unificador' en el resto.
    */
   modo: 'unificador' | 'redaccion';
   /** Ruta de la peticion del unificador de esta ronda; null en modo 'redaccion'. */
