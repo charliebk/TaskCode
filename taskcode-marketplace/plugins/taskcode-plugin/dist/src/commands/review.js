@@ -139,9 +139,18 @@ export function informeTemplate(task, commitRevisado, ronda) {
         '- Revisor: (rellenar por el agente)\n' +
         // taskctl finish exige que TODAS las lineas "- Veredicto:" del
         // informe aprueben: hay que SUSTITUIR esta linea, no anadir otra.
-        '- Veredicto: PENDIENTE (sustituye esta unica linea por "aprobada" o "cambios-solicitados")\n\n' +
+        // TASK-036: el veredicto lo escribe `taskctl veredicto`, que deja la
+        // linea canonica y la commitea; escribirla a mano en otro vocabulario
+        // obligaba a commits de normalizacion.
+        '- Veredicto: PENDIENTE (escribelo con: taskctl veredicto ' +
+        `${task.id} aprobada | aprobada-con-correcciones | cambios-solicitados)\n\n` +
         '## Hallazgos\n\n' +
-        '(CRITICO / IMPORTANTE / MENOR con reproduccion, o "sin hallazgos" explicito.)\n');
+        // La tabla es para que una maquina la lea (la ronda incremental,
+        // TASK-040); la reproduccion de cada hallazgo va debajo, en prosa.
+        '| ID | Severidad | Estado | Fichero |\n' +
+        '|---|---|---|---|\n' +
+        '| (ej. IMP-1) | (CRITICO / IMPORTANTE / MENOR) | (abierto / corregido / aceptado) | (ruta:linea) |\n\n' +
+        'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n');
 }
 export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const { push, resto } = extraerPushFlag(argv);

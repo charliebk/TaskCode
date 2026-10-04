@@ -32,7 +32,7 @@ import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
 import { readTareaFile, isEexist, isEnoent } from '../fs/task-store.js';
-import { siguienteRonda } from '../fs/rondas.js';
+import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import {
@@ -59,7 +59,6 @@ export class CodexReviewCommandError extends Error {}
  * mas barato que acoplar codex-review.ts a un simbolo interno de otro
  * comando). Acepta el sufijo opcional de dominio de TASK-018.
  */
-const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 
 /**
  * Regex de la ronda de Codex. Codex lleva SU PROPIO contador de ronda,
@@ -108,26 +107,7 @@ export interface CodexReviewCommandResult {
  * paso por "taskctl review") da false, no un error.
  */
 async function revisionPrimariaAprobadaDe(revisionDir: string): Promise<boolean> {
-  let entries: string[];
-  try {
-    entries = await readdir(revisionDir);
-  } catch (e: unknown) {
-    if (isEnoent(e)) return false;
-    throw e;
-  }
-  let max = 0;
-  let nombres: string[] = [];
-  for (const entry of entries) {
-    const m = INFORME_REVISION_RE.exec(entry);
-    if (m === null) continue;
-    const n = Number(m[1]);
-    if (n > max) {
-      max = n;
-      nombres = [entry];
-    } else if (n === max) {
-      nombres.push(entry);
-    }
-  }
+  const { nombres } = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
   if (nombres.length === 0) return false;
   const contenidos = await Promise.all(
     nombres.map((nombre) => readFile(path.join(revisionDir, nombre), 'utf8'))

@@ -105,6 +105,7 @@ taskctl approve TASK-NNN
 taskctl start   TASK-NNN [--asignado-a <persona>]
 taskctl review  TASK-NNN
 taskctl codex-review TASK-NNN
+taskctl veredicto TASK-NNN <valor> [--informe <nombre>]
 taskctl finish  TASK-NNN
 
 taskctl diagnose | pause [--push] | resume [<rama>] | recover [<rama>] | abort-merge
@@ -413,28 +414,27 @@ una vez por ronda; los mutantes, con el fichero de test concreto.
 hace **fail-closed** a proposito: una version anterior buscaba la palabra
 "aprobada" en cualquier parte y aprobaba literalmente "no aprobada".
 
-Escribir exactamente esto, sustituyendo la linea de la plantilla — **no anadir
-otra debajo**, porque *todas* las lineas de veredicto tienen que aprobar:
+**Escribirla con el comando, no a mano:**
+`taskctl veredicto TASK-NNN aprobada | aprobada-con-correcciones | cambios-solicitados`
+deja una unica linea canonica en lugar de todas las que hubiera (porque *todas*
+tienen que aprobar) y la commitea. En una ronda fragmentada por dominio, cada
+revisor firma la suya con `--informe <nombre>`.
 
-```
-- Veredicto: aprobada
-```
-
-Lo que falla, y por que:
+Lo que acepta el gate, y por que:
 
 | Linea | Resultado |
 |---|---|
 | `- Veredicto: aprobada` | pasa |
 | `- Veredicto: aprobada con correcciones` | pasa (empieza por `aprobada`) |
-| `- Veredicto: **APROBADO**` | falla: los asteriscos rompen el inicio |
+| `- Veredicto: **aprobada**` | pasa: el enfasis de markdown se ignora |
+| `- Veredicto: **APROBADO**` | falla: `aprobado` no es `aprobada` |
 | `- Veredicto: APROBADO CON CAMBIOS` | falla: `aprobado` no es `aprobada` |
 | `- Veredicto: cambios-solicitados` | falla, y es lo correcto si pides cambios |
 | `- Veredicto: PENDIENTE (...)` | falla: la plantilla sin sustituir |
 | `Veredicto: aprobada` (sin el guion) | falla: no cuenta como linea de veredicto |
 
-El matiz del veredicto va en el **cuerpo** del informe, no en esa linea. Un
-revisor que escriba su veredicto en su propio vocabulario bloquea el cierre y
-obliga a un commit de normalizacion.
+El matiz va en el **cuerpo** del informe, con la tabla de hallazgos de la
+plantilla (`ID | Severidad | Estado | Fichero`), no en esa linea.
 
 ## Trampas que cuestan tiempo
 

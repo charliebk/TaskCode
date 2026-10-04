@@ -14,6 +14,7 @@ import { CatalogoSkillsError } from './core/catalogo-skills.js';
 import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex-review.js';
+import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import {
   isWrapperCommand,
@@ -60,6 +61,8 @@ Uso:
   taskctl approve TASK-NNN [--push]
   taskctl review TASK-NNN [--push]
   taskctl codex-review TASK-NNN [--push]
+  taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados>
+                    [--informe <nombre>] [--push]
   taskctl finish TASK-NNN [--push]
   taskctl diagnose
   taskctl pause [--push]
@@ -67,7 +70,7 @@ Uso:
   taskctl recover [<rama>]
   taskctl abort-merge
 
-Comandos: new, import, board, start, plan, approve, review, codex-review, finish.
+Comandos: new, import, board, start, plan, approve, review, codex-review, veredicto, finish.
 Wrappers de Git-Flow: diagnose, pause, resume, recover, abort-merge.
 --asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
 taskctl commitea SOLO los ficheros que el mismo escribe (nunca "git add -A"):
@@ -538,6 +541,33 @@ async function mainComando(argv: readonly string[]): Promise<number> {
         e instanceof GitLaunchError ||
         e instanceof GitCommandError ||
         e instanceof GitflowScriptLaunchError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'veredicto') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const result = await runVeredictoCommand(tareasRoot, argv.slice(1), { repoCwd });
+      process.stdout.write(
+        `Tarea ${result.id}: "${result.linea}" escrito en ${result.informePath} (ronda ${result.ronda}).
+`
+      );
+      printAutoCommit(result.autoCommit);
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof VeredictoCommandError ||
+        e instanceof StateMachineError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError
       ) {
         printCliError(e);
         return 1;
