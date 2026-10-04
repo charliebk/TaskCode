@@ -501,11 +501,12 @@ test('taskctl review: un diff que toca 1 dominio (java) genera 1 peticion con el
       scriptsDir: SCRIPTS_DIR,
     });
 
-    // tarea.md tambien esta en el diff (toda tarea lo commitea en su
-    // rama) y no casa ningun dominio: le toca al generico, ademas del
-    // grupo de dominio — el mismo criterio de aceptacion 4, no un caso
-    // aparte.
-    assert.equal(result.informes.length, 2);
+    // Expectativa cambiada en TASK-034: tarea.md esta en el diff (toda
+    // tarea lo commitea en su rama), pero tareas/** ya no se embebe ni se
+    // clasifica (excluir_de_revision por defecto). Antes le tocaba al
+    // generico una peticion entera solo para tarea.md; ahora no se lanza:
+    // un agente revisor menos por tarea de un solo dominio.
+    assert.equal(result.informes.length, 1);
     const grupo = result.informes.find((g) => g.revisor === 'java-spring-reviewer')!;
     assert.ok(grupo !== undefined, 'deberia haber un grupo para java-spring-reviewer');
     assert.notEqual(grupo.revisor, task.agente_revisor);
@@ -516,10 +517,15 @@ test('taskctl review: un diff que toca 1 dominio (java) genera 1 peticion con el
     const peticion = await readFile(grupo.peticionPath, 'utf8');
     assert.match(peticion, /Agente revisor sugerido: java-spring-reviewer/);
     assert.match(peticion, /UserService\.java/);
-    assert.doesNotMatch(peticion, /tarea\.md/);
+    // Desde TASK-034 tarea.md aparece en el --stat de excluidos, pero su
+    // diff no se embebe.
+    assert.doesNotMatch(peticion, /diff --git a\/tareas\//);
 
-    const generico = result.informes.find((g) => g.revisor === 'code-quality-reviewer')!;
-    assert.deepEqual(generico.ficheros, [rutaTareaMd('TASK-620')]);
+    assert.equal(
+      result.informes.find((g) => g.revisor === 'code-quality-reviewer'),
+      undefined,
+      'tarea.md solo ya no genera una peticion al generico (TASK-034)'
+    );
   });
 });
 
@@ -545,23 +551,17 @@ test('taskctl review: un diff que toca 2 dominios bajo el umbral genera 2 petici
       scriptsDir: SCRIPTS_DIR,
     });
 
-    // 2 grupos de dominio + el generico para tarea.md (que no casa
-    // ningun dominio, ver el test anterior).
-    assert.equal(result.informes.length, 3);
+    // 2 grupos de dominio. Desde TASK-034 ya no hay un tercero para
+    // tarea.md: tareas/** se excluye del diff y de la clasificacion.
+    assert.equal(result.informes.length, 2);
     const revisores = result.informes.map((g) => g.revisor).sort();
-    assert.deepEqual(revisores, [
-      'angular-vue-reviewer',
-      'code-quality-reviewer',
-      'java-spring-reviewer',
-    ]);
+    assert.deepEqual(revisores, ['angular-vue-reviewer', 'java-spring-reviewer']);
 
     const grupoJava = result.informes.find((g) => g.revisor === 'java-spring-reviewer')!;
     const grupoAngular = result.informes.find((g) => g.revisor === 'angular-vue-reviewer')!;
-    const grupoGenerico = result.informes.find((g) => g.revisor === 'code-quality-reviewer')!;
 
     assert.deepEqual(grupoJava.ficheros, ['src/main/java/com/acme/UserService.java']);
     assert.deepEqual(grupoAngular.ficheros, ['src/app/user-profile/user-profile.component.ts']);
-    assert.deepEqual(grupoGenerico.ficheros, [rutaTareaMd('TASK-621')]);
 
     const peticionJava = await readFile(grupoJava.peticionPath, 'utf8');
     assert.match(peticionJava, /UserService\.java/);
@@ -598,18 +598,15 @@ test('taskctl review: un diff que toca EXACTAMENTE 3 dominios sigue fragmentando
 
     // Con el catalogo real (3 revisores de dominio, umbral_dominios: 3),
     // exactamente 3 dominios SIGUE fragmentando: no cae al generico. Los
-    // 3 dominios detectados (lo que fija el criterio del umbral) mas el
-    // generico para tarea.md, que sigue sin casar ningun dominio.
-    assert.equal(result.informes.length, 4);
+    // 3 dominios detectados (lo que fija el criterio del umbral). Desde
+    // TASK-034 sin generico para tarea.md: tareas/** ya no se clasifica.
+    assert.equal(result.informes.length, 3);
     const revisores = result.informes.map((g) => g.revisor).sort();
     assert.deepEqual(revisores, [
       'angular-vue-reviewer',
-      'code-quality-reviewer',
       'csharp-autocad-ifc-reviewer',
       'java-spring-reviewer',
     ]);
-    const grupoGenerico = result.informes.find((g) => g.revisor === 'code-quality-reviewer')!;
-    assert.deepEqual(grupoGenerico.ficheros, [rutaTareaMd('TASK-622')]);
   });
 });
 
@@ -623,7 +620,8 @@ test('taskctl review: ficheros que no casan ningun dominio, con 1-3 dominios ya 
       'class UserService {}\n'
     );
     // Ruta ajena congelada en RUTAS_AJENAS (revisores.test.ts): no casa
-    // con ningun revisor de dominio, igual que tarea.md.
+    // con ningun revisor de dominio. Desde TASK-034 es el UNICO fichero
+    // del generico: tarea.md ya no se clasifica.
     await escribirFichero(repoRoot, 'src/index.ts', 'export const arranque = 1;\n');
     commitAll(repoRoot, 'servicio Java mas un fichero sin dominio');
     await advanceDevelop(repoRoot, task.rama);
@@ -639,13 +637,10 @@ test('taskctl review: ficheros que no casan ningun dominio, con 1-3 dominios ya 
     assert.ok(grupoJava !== undefined, 'el fichero Java deberia tener su propio grupo');
     assert.ok(
       grupoGenerico !== undefined,
-      'los ficheros sin dominio (src/index.ts, tarea.md) deberian cubrirlos el generico, sin quedar sin revisor'
+      'los ficheros sin dominio (src/index.ts) deberia cubrirlos el generico, sin quedar sin revisor'
     );
     assert.deepEqual(grupoJava!.ficheros, ['src/main/java/com/acme/UserService.java']);
-    assert.deepEqual(
-      [...grupoGenerico!.ficheros].sort(),
-      [rutaTareaMd('TASK-623'), 'src/index.ts'].sort()
-    );
+    assert.deepEqual([...grupoGenerico!.ficheros], ['src/index.ts']);
 
     const peticionGenerico = await readFile(grupoGenerico!.peticionPath, 'utf8');
     assert.match(peticionGenerico, /src\/index\.ts/);

@@ -318,15 +318,16 @@ test('main: "taskctl review" con un diff de 2 dominios imprime una linea de peti
     const { code, stdout } = await captureOutput(() => main(['review', 'TASK-001']));
 
     assert.equal(code, 0, stdout);
-    // Un grupo por dominio (java, angular) mas el generico (tarea.md no
-    // casa ningun dominio): 3 lineas de peticion, cada una con su propio
+    // Un grupo por dominio (java, angular): 2 lineas de peticion. Hasta
+    // TASK-034 habia una tercera, del generico, solo para tarea.md; ahora
+    // tareas/** no se clasifica. Cada linea con su propio
     // nombre de fichero y su propio revisor — antes de esta correccion,
     // ningun test comprobaba que el CLI (no solo runReviewCommand) listara
     // TODAS las peticiones y no, por ejemplo, solo la primera.
     const lineasPeticion = stdout
       .split('\n')
       .filter((linea) => linea.startsWith('Peticion de revision'));
-    assert.equal(lineasPeticion.length, 3, stdout);
+    assert.equal(lineasPeticion.length, 2, stdout);
     assert.ok(
       lineasPeticion.some((l) => l.includes('java-spring-reviewer') && l.includes('peticion-revision-1-java-spring-reviewer.md')),
       stdout
@@ -336,11 +337,11 @@ test('main: "taskctl review" con un diff de 2 dominios imprime una linea de peti
       stdout
     );
     assert.ok(
-      lineasPeticion.some((l) => l.includes('code-quality-reviewer') && l.includes('peticion-revision-1-code-quality-reviewer.md')),
-      stdout
+      !lineasPeticion.some((l) => l.includes('code-quality-reviewer')),
+      `tarea.md sola ya no genera peticion al generico: ${stdout}`
     );
     // Una linea de "Lanza ese agente..." por cada peticion tambien.
     const lineasLanza = stdout.split('\n').filter((linea) => linea.includes('Lanza ese agente'));
-    assert.equal(lineasLanza.length, 3, stdout);
+    assert.equal(lineasLanza.length, 2, stdout);
   });
 });
