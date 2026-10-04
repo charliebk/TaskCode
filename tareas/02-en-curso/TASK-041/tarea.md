@@ -6,7 +6,7 @@ sprint: 5
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-041-f4-t1-taskctl-new-con-objetivo-y-criteri
 asignado_a: charlie.bk@gmail.com
