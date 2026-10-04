@@ -21,6 +21,14 @@ dependencias: []
 ---
 ## Objetivo
 
+Quitar las llamadas `git` sobrantes de los comandos de `taskctl` sin cambiar su
+comportamiento (auditoria del 2026-10-03, B6). Medido con `GIT_TRACE2_EVENT`
+en un ciclo completo: `review` lanza 27 procesos `git` y `finish` 33. La mayor
+parte de los que se repiten no estan duplicados dentro del CLI: los hace una
+vez el comando y otra el script de Git-Flow, que es la fuente de verdad y no
+se toca aqui. Lo que si sobra esta en `autoCommit`: un `git add` por ruta (5
+en `finish`), `rev-parse --short` mas `show --name-only` para lo mismo, y el
+`maintenance run --auto` que Git lanza tras cada commit automatico.
 
 ## Criterios de aceptacion
 - [ ] `finish` baja de 35 a 20 o menos procesos `git` y `review` de 26 a 15 o menos, medido con `GIT_TRACE2_EVENT`
