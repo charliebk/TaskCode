@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-053 — moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows · etiquetas: (sin etiquetas) · rama fix/task-053-movetareafile-reintenta-el-rename-ante-u · terminada 2026-10-04 · tareas/04-terminadas/TASK-053/
 - TASK-040 — F3-T1 taskctl review para la ronda 2 y siguientes · etiquetas: (sin etiquetas) · rama feature/task-040-f3-t1-taskctl-review-para-la-ronda-2-y-s · terminada 2026-10-04 · tareas/04-terminadas/TASK-040/
 - TASK-039 — F2-T3 Menos llamadas git en los comandos · etiquetas: (sin etiquetas) · rama feature/task-039-f2-t3-menos-llamadas-git-en-los-comandos · terminada 2026-10-04 · tareas/04-terminadas/TASK-039/
 - TASK-038 — F2-T2 Una sola deteccion de origin por invocacion, con timeout · etiquetas: (sin etiquetas) · rama feature/task-038-f2-t2-una-sola-deteccion-de-origin-por-i · terminada 2026-10-04 · tareas/04-terminadas/TASK-038/

@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-10-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 26
+## Planificadas (00-planificadas) — 27
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -33,6 +33,7 @@ TASK-049  F6-T4 Metadatos del plugin y modelo de los agentes                    
 TASK-050  F6-T1 Suite rapida y repo plantilla en los tests                                            (sin asignar)
 TASK-051  F6-T2 Partir los ficheros de test mas largos                                                (sin asignar)
 TASK-052  F6-T5 Telemetria de fases y heuristica recalibrada                                          (sin asignar)
+TASK-054  Rutas no ASCII en el diff de revision fragmentado por dominio                               (sin asignar)
 ```
 
 ## En diseno (01-en-diseno) — 1
@@ -43,7 +44,7 @@ ID        Titulo                                Asignado
 TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 25
+## Terminadas (04-terminadas) — 26
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -73,4 +74,5 @@ TASK-037  F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos          
 TASK-038  F2-T2 Una sola deteccion de origin por invocacion, con timeout                           charlie.bk@gmail.com
 TASK-039  F2-T3 Menos llamadas git en los comandos                                                 charlie.bk@gmail.com
 TASK-040  F3-T1 taskctl review para la ronda 2 y siguientes                                        charlie.bk@gmail.com
+TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
 ```

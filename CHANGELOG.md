@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-053 (fix) — moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows (2026-10-04)
+
 ## 0.2.0 — 2026-10-04
 
 Fase 3 del plan de la auditoria: **revision incremental**. Sube la version
