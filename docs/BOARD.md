@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-10-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 23
+## Planificadas (00-planificadas) — 22
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,7 +21,6 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-044  F4-T3 Particion propuesta de las tareas grandes                                             (sin asignar)
 TASK-045  F5-T1 rama_base de punta a punta                                                            (sin asignar)
 TASK-047  F5-T3 Flags desconocidos y mensajes de review                                               (sin asignar)
 TASK-048  F6-T3 Skill de flujo mas ligera                                                             (sin asignar)
@@ -40,7 +39,7 @@ ID        Titulo                                Asignado
 TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 30
+## Terminadas (04-terminadas) — 31
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -73,6 +72,7 @@ TASK-040  F3-T1 taskctl review para la ronda 2 y siguientes                     
 TASK-041  F4-T1 taskctl new con objetivo y criterios                                               charlie.bk@gmail.com
 TASK-042  F4-T4 Complejidad por defecto por heuristica y un rol sin unificador                     charlie.bk@gmail.com
 TASK-043  F4-T2 Validacion antes de plan y puertas de cierre                                       charlie.bk@gmail.com
+TASK-044  F4-T3 Particion propuesta de las tareas grandes                                          charlie.bk@gmail.com
 TASK-046  F5-T2 Secciones con subtitulos y criterios multilinea                                    charlie.bk@gmail.com
 TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
 ```
