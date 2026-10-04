@@ -84,3 +84,14 @@ completa 912 tests, solo los 3 rojos conocidos; 4 mutantes, los 4 en rojo).
 - MEN-3, sin corregir: un timeout se lee como «la rama no esta en origin» en
   los `_gf_ls_remote ... | grep -q` (p. ej. `recover-branch`). El mensaje
   engana pero no se pierde nada; distinguirlo pide tocar cada llamador.
+
+**Revision ronda 2: aprobada** (solo el delta; 0 criticos, 0 importantes, 3
+menores; `test/gitflow/` 45/45). Sin corregir, documentados:
+- R2-MEN-1: no hay test para la lista de tags del mirror. Impacto bajo: el
+  `fetch --prune --tags` previo ya trae los tags; el revisor comprobo a mano
+  que la rama aborta bien con la lista de tags lenta.
+- R2-MEN-2: ningun test fija que `detect_origin_available` vaya antes de
+  `resolve_main_branch` (la correccion de MEN-1); el revisor midio 1 consulta
+  frente a 2 con un `uploadpack` que las cuenta.
+- R2-MEN-3, aceptado: el `.` de un nombre de rama actua como comodin en el
+  grep del paso 5; inofensivo (`rev-list` da 0 y la rama no sale divergente).
