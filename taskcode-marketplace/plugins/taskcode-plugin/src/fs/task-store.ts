@@ -11,6 +11,7 @@
  * como argumento de CLI (plan, approve, start...) un id sin sanear
  * como "../../etc" podria escapar de tareasRoot.
  */
+import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -192,6 +193,44 @@ export interface MoveTareaFileOptions {
    * pasa, en vez de "arreglarlo" en silencio.
    */
   tolerateMissingSource?: boolean;
+  /** Solo para tests (TASK-053): sustituye a `fs.rename`. */
+  renombrar?: (desde: string, hasta: string) => Promise<void>;
+  /** Solo para tests (TASK-053): esperas entre reintentos, en ms. */
+  esperasReintento?: readonly number[];
+}
+
+/** Esperas entre reintentos del rename: ~3 s en total. */
+const ESPERAS_RENAME_MS = [100, 200, 400, 800, 1600] as const;
+
+/**
+ * `rename` que reintenta ante EPERM o EBUSY (TASK-053). En Windows, un
+ * antivirus o el indexador pueden tener abierto un instante un fichero de
+ * la carpeta, y el rename falla aunque nada lo impida de verdad. Paso dos
+ * veces seguidas en `finish` (TASK-037 y TASK-040), con el merge ya hecho:
+ * la tarea quedaba a medias y habia que reintentar a mano. Cualquier otro
+ * error, o agotar los reintentos, se propaga igual que antes.
+ */
+async function renombrarConReintentos(
+  desde: string,
+  hasta: string,
+  renombrar: (a: string, b: string) => Promise<void>,
+  esperas: readonly number[]
+): Promise<void> {
+  for (let intento = 0; ; intento++) {
+    try {
+      await renombrar(desde, hasta);
+      return;
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      // MEN-1 de la revision: en Windows un rename puede MOVER la carpeta
+      // y aun asi devolver EPERM. Si al reintentar el origen ya no esta y
+      // el destino si, el movimiento ocurrio: no es un error.
+      if (intento > 0 && code === 'ENOENT' && existsSync(hasta) && !existsSync(desde)) return;
+      const transitorio = code === 'EPERM' || code === 'EBUSY';
+      if (!transitorio || intento >= esperas.length) throw e;
+      await new Promise((ok) => setTimeout(ok, esperas[intento]));
+    }
+  }
 }
 
 /**
@@ -231,7 +270,12 @@ export async function moveTareaFile(
     }
     await mkdir(path.dirname(newDir), { recursive: true });
     try {
-      await rename(oldDir, newDir);
+      await renombrarConReintentos(
+        oldDir,
+        newDir,
+        options.renombrar ?? rename,
+        options.esperasReintento ?? ESPERAS_RENAME_MS
+      );
     } catch (e: unknown) {
       if (!isEnoent(e) || !options.tolerateMissingSource) throw e;
       // La carpeta vieja no existe en el working tree actual y el
