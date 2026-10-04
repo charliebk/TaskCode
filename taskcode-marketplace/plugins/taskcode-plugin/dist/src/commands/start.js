@@ -19,7 +19,7 @@ import { escanearWip } from '../fs/wip-scan.js';
 import { ESTADOS_QUE_OCUPAN_WIP, tareasQueBloquean, resolverAsignado, mensajeWipExcedido, mensajeWipIndeterminado, personaDeTarea, } from '../core/wip.js';
 import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail, resolveBaseBranchForTipo, } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail, resolveBaseBranchForTipo, gitflowBaseArgs, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 export class StartCommandError extends Error {
@@ -161,7 +161,9 @@ export async function runStartCommand(tareasRoot, argv, today, deps) {
             'Corrige el campo "rama" en tarea.md antes de reintentar.');
     }
     const scriptName = SCRIPT_BY_TYPE[task.tipo];
-    const { code, signal } = runGitflowScript(scriptName, [task.rama], {
+    // La rama va primero: los scripts toman como nombre el primer no-flag.
+    const scriptArgs = [task.rama, ...gitflowBaseArgs(task.tipo, deps.repoCwd)];
+    const { code, signal } = runGitflowScript(scriptName, scriptArgs, {
         scriptsDir: deps.scriptsDir,
         cwd: deps.repoCwd,
     });

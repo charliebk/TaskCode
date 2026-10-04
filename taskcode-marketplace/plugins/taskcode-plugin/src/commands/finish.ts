@@ -36,6 +36,7 @@ import {
   showFileAtRef,
   mergeBase,
   checkoutBranch,
+  resolveIntegrationBranch,
 } from '../fs/git.js';
 import {
   autoCommit,
@@ -57,7 +58,7 @@ const SCRIPT_BY_TYPE: Record<Task['tipo'], string> = {
   release: 'merge-release-to-main.sh',
 };
 
-/** hotfix/release mergean a main (con tag) y backmergean a develop. */
+/** hotfix/release mergean a main (con tag) y backmergean a la rama de integracion. */
 const MERGEA_A_MAIN: Record<Task['tipo'], boolean> = {
   feature: false,
   fix: false,
@@ -65,7 +66,6 @@ const MERGEA_A_MAIN: Record<Task['tipo'], boolean> = {
   release: true,
 };
 
-const DEVELOP_BRANCH = 'develop';
 /**
  * TASK-018: una ronda de revision fragmentada por dominio deja N
  * informes, uno por revisor, con el nombre de la skill como sufijo
@@ -252,7 +252,7 @@ export interface FinishCommandDeps {
 export interface FinishCommandResult {
   id: string;
   rama: string;
-  /** Rama en la que termina el comando (develop). */
+  /** Rama en la que termina el comando: la de integracion (`rama_base`, develop por defecto). */
   baseBranch: string;
   /** Rama principal mergeada ademas, solo para hotfix/release. */
   mainBranch: string | null;
@@ -316,11 +316,17 @@ export async function runFinishCommand(
     );
   }
 
+  // TASK-045 (D1): la rama de integracion sale de `rama_base`, no de un
+  // literal "develop". Se resuelve una vez, antes de cualquier merge, y
+  // se pasa a los cuatro scripts con --develop (hotfix/release la
+  // necesitan para el backmerge).
+  const ramaIntegracion = resolveIntegrationBranch(deps.repoCwd);
+
   // Colision de IDs ANTES de mergear (criterio 4): se comprueba contra
-  // cada rama destino del merge. Para feature/fix solo develop; para
+  // cada rama destino del merge. Para feature/fix solo la de integracion; para
   // hotfix/release tambien la principal.
   const mainBranch = MERGEA_A_MAIN[tipo] ? resolveMainBranch(deps.repoCwd) : null;
-  const destinos = mainBranch === null ? [DEVELOP_BRANCH] : [mainBranch, DEVELOP_BRANCH];
+  const destinos = mainBranch === null ? [ramaIntegracion] : [mainBranch, ramaIntegracion];
   for (const destino of destinos) {
     const colision = detectarColisionId(id, titulo, rama, destino, deps.repoCwd);
     if (colision !== null) {
@@ -342,7 +348,7 @@ export async function runFinishCommand(
   }
 
   const scriptName = SCRIPT_BY_TYPE[tipo];
-  const integradaEnDevelop = isAncestor(rama, DEVELOP_BRANCH, deps.repoCwd);
+  const integradaEnDevelop = isAncestor(rama, ramaIntegracion, deps.repoCwd);
   const integradaEnMain = mainBranch === null || isAncestor(rama, mainBranch, deps.repoCwd);
 
   if (integradaEnDevelop && integradaEnMain) {
@@ -350,21 +356,21 @@ export async function runFinishCommand(
     // TASK-014): los merges ya estan consumados — p. ej. un reintento
     // tras resolver a mano un conflicto de backmerge. Reejecutar el
     // script moriria en el tag ya creado (hotfix/release); aqui solo
-    // queda cerrar: ponerse en develop y mover/renderizar.
-    if (currentBranch(deps.repoCwd) !== DEVELOP_BRANCH) {
-      checkoutBranch(DEVELOP_BRANCH, deps.repoCwd);
+    // queda cerrar: ponerse en la rama de integracion y mover/renderizar.
+    if (currentBranch(deps.repoCwd) !== ramaIntegracion) {
+      checkoutBranch(ramaIntegracion, deps.repoCwd);
     }
   } else if (mainBranch !== null && integradaEnMain && !integradaEnDevelop) {
     // Estado a medias: merge a main (y su tag) consumados, backmerge
     // pendiente. Reejecutar el script chocaria con el tag duplicado.
     throw new FinishCommandError(
       `[ERROR] ${id}: el merge a "${mainBranch}" (con su tag) ya esta consumado pero falta ` +
-        `el backmerge a "${DEVELOP_BRANCH}". No se reejecuta ${scriptName} (moriria en el tag ` +
-        `duplicado): completa el backmerge a mano — git checkout ${DEVELOP_BRANCH} && ` +
+        `el backmerge a "${ramaIntegracion}". No se reejecuta ${scriptName} (moriria en el tag ` +
+        `duplicado): completa el backmerge a mano — git checkout ${ramaIntegracion} && ` +
         `git merge --no-ff ${rama} — y reintenta taskctl finish.`
     );
   } else {
-    const { code, signal } = runGitflowScript(scriptName, [rama], {
+    const { code, signal } = runGitflowScript(scriptName, [rama, '--develop', ramaIntegracion], {
       scriptsDir: deps.scriptsDir,
       cwd: deps.repoCwd,
     });
@@ -378,21 +384,21 @@ export async function runFinishCommand(
     }
 
     // Evidencia, no suposicion (TASK-007/009): los cuatro scripts
-    // terminan en develop, con la rama de la tarea integrada; para
+    // terminan en la rama de integracion, con la rama de la tarea integrada; para
     // hotfix/release ademas integrada en la principal. Un backmerge
     // cancelado sale del script con exit 0 ("PARCIAL") — lo detecta la
     // ancestria, no el exit code.
     const branchNow = currentBranch(deps.repoCwd);
-    if (branchNow !== DEVELOP_BRANCH) {
+    if (branchNow !== ramaIntegracion) {
       throw new FinishCommandError(
         `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero la rama activa es ` +
-          `"${branchNow}", no "${DEVELOP_BRANCH}". No se actualiza la tarea; revisa el repo a mano.`
+          `"${branchNow}", no "${ramaIntegracion}". No se actualiza la tarea; revisa el repo a mano.`
       );
     }
     if (!isAncestor(rama, 'HEAD', deps.repoCwd)) {
       throw new FinishCommandError(
         `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero "${rama}" NO esta integrada ` +
-          `en "${DEVELOP_BRANCH}" (merge-base --is-ancestor lo niega). ¿Backmerge cancelado o ` +
+          `en "${ramaIntegracion}" (merge-base --is-ancestor lo niega). ¿Backmerge cancelado o ` +
           'merge a medias? No se actualiza la tarea; revisa el repo a mano.'
       );
     }
@@ -405,9 +411,9 @@ export async function runFinishCommand(
     }
   }
 
-  // Lectura FRESCA, ya en develop con el merge consumado: la unica que
+  // Lectura FRESCA, ya en la rama de integracion con el merge consumado: la unica que
   // decide la escritura. El contexto de aprobacion se recalcula sobre
-  // la carpeta que el merge dejo en develop.
+  // la carpeta que el merge dejo en ella.
   const existing = await readTareaFile(tareasRoot, id);
   const ctx =
     existing === null ? {} : await buildTransitionContext(path.dirname(existing.filePath));
@@ -441,7 +447,7 @@ export async function runFinishCommand(
 
   // Paso 5 de la 8.3 (TASK-030, item C2). "finish" commitea sobre
   // DEVELOP, no sobre la rama de la tarea: cuando llega aqui el merge
-  // ya esta consumado y el comando termina siempre en develop (se
+  // ya esta consumado y el comando termina siempre en la rama de integracion (se
   // comprueba mas arriba). Es lo que se venia haciendo a mano; queda
   // fijado con un test para que nadie lo "arregle" mas adelante.
   // Ademas de las dos carpetas de la tarea entran los tres artefactos
@@ -464,7 +470,7 @@ export async function runFinishCommand(
   return {
     id: task.id,
     rama,
-    baseBranch: DEVELOP_BRANCH,
+    baseBranch: ramaIntegracion,
     mainBranch,
     filePath: newFilePath,
     changelogPath,
