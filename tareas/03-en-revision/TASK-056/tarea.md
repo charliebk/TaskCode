@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: null
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-056-flujo-b-nucleo-determinista-del-siguient
 asignado_a: charlie.bk@gmail.com
