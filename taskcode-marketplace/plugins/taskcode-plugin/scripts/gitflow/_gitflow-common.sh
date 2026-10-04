@@ -251,6 +251,11 @@ ensure_workspace_ready() {
 # PATH lo encontrara primero la consulta fallaria siempre y todo iria en modo
 # local sin decirlo. Sin coreutils (macOS), se consulta sin limite, como antes.
 GF_TIMEOUT_REMOTO="${GF_TIMEOUT_REMOTO:-5}"
+case "$GF_TIMEOUT_REMOTO" in
+    ''|*[!0-9]*|0)
+        printf "[WARN ] GF_TIMEOUT_REMOTO='%s' no es un numero de segundos mayor que 0; se usa 5.\n" "$GF_TIMEOUT_REMOTO" >&2
+        GF_TIMEOUT_REMOTO=5 ;;
+esac
 if timeout --version > /dev/null 2>&1; then
     _gf_ls_remote() { GIT_TERMINAL_PROMPT=0 timeout "$GF_TIMEOUT_REMOTO" git ls-remote "$@"; }
 else

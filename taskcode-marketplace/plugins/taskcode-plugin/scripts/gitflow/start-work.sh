@@ -14,10 +14,11 @@ initialize_gitflow_log "start-work (main + $DEVELOP_BRANCH)"
 
 ensure_workspace_ready || exit 0
 
+# TASK-038: antes de resolve_main_branch, para que este use la cache.
+detect_origin_available
 MAIN_BRANCH=$(resolve_main_branch "$MAIN_BRANCH")
 log_info "Rama principal detectada: $MAIN_BRANCH"
 
-detect_origin_available
 
 if ! git show-ref --verify --quiet "refs/heads/$MAIN_BRANCH" 2>/dev/null; then
     if [ "$REMOTE_AVAILABLE" = true ]; then

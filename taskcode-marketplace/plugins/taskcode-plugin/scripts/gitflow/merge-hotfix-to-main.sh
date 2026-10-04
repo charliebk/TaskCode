@@ -22,13 +22,14 @@ ensure_workspace_ready \
     "Workspace no limpio antes de merge. Hacer commit local en la rama actual? Si/No" \
     "chore: commit local antes de merge hotfix->main" || exit 0
 
+# TASK-038: antes de resolve_main_branch, para que este use la cache.
+detect_origin_available
 MAIN_BRANCH=$(resolve_main_branch "$MAIN_BRANCH")
 log_info "Rama principal detectada: $MAIN_BRANCH"
 
 # Ajuste B2 (mismo guard que introdujo TASK-008 en los merge a develop):
 # antes se hacia "fetch origin" sin comprobar disponibilidad y el script
 # fallaba duro (exit 1) en cualquier repo sin origin configurado.
-detect_origin_available
 
 # Hallazgo IMPORTANTE de revision por pares (B2): origin configurado pero
 # inaccesible NO es lo mismo que no tener origin. Con el remoto caido, la
