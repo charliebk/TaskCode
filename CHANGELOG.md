@@ -2,6 +2,35 @@
 
 ## Sin publicar
 
+## 0.3.0 — 2026-10-04
+
+Fase 4 del plan de la auditoria: **tareas mas concretas y acotadas**. Sube la
+version menor porque cambia la complejidad por defecto y lo que `plan`
+acepta. Actualizar con `claude plugin marketplace update
+taskcode-marketplace`, `claude plugin update
+taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code.
+
+- `taskctl new` acepta `--objetivo`, `--criterio` (repetible) y `--desde`.
+- `taskctl plan` valida el enunciado antes de mover nada: bloquea objetivo
+  vacio, sin criterios, un criterio vacio, mas de 12 criterios o criterios
+  hechos solo de palabras vagas; avisa con 9 a 12 y con criterios sin nada
+  comprobable. **Las tareas ya creadas sin Objetivo tienen que redactarlo
+  antes de su `plan`.**
+- Con mas de 12 criterios agrupados por frente, `plan` deja fuera del repo
+  una particion lista para `taskctl import` (una tarea por frente, con los
+  criterios comunes copiados) y da el comando exacto.
+- `taskctl import`: las lineas `> texto` bajo el `###` y antes de los
+  criterios son el Objetivo de la tarea.
+- `approve` rechaza el `plan-final.md` sin rellenar; `finish` avisa antes del
+  merge de los criterios sin marcar.
+- Sin `--complejidad`, la tarea nace con `complejidad: null` y el numero de
+  roles lo decide la heuristica (antes, `media` por defecto: 2 roles casi
+  siempre). Con 1 rol no hay unificador: una sola `peticion-plan-N.md` cuya
+  respuesta es el plan.
+- Subtitulos `###` dentro del Objetivo y de los criterios ya no cortan la
+  seccion; criterios en varias lineas en `import`.
+- `finish` reintenta el rename ante un `EPERM`/`EBUSY` transitorio de Windows.
+
 - TASK-044 (feature) — F4-T3 Particion propuesta de las tareas grandes (2026-10-04)
 - TASK-042 (feature) — F4-T4 Complejidad por defecto por heuristica y un rol sin unificador (2026-10-04)
 - TASK-043 (feature) — F4-T2 Validacion antes de plan y puertas de cierre (2026-10-04)
