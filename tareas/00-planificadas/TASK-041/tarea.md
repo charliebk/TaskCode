@@ -21,6 +21,14 @@ dependencias: []
 ---
 ## Objetivo
 
+Que una tarea nazca con su objetivo y sus criterios, sin editar `tarea.md`
+despues (auditoria del 2026-10-03, C1). Hoy `taskctl new` deja el Objetivo
+vacio y un criterio `- [ ] ` vacio a proposito, y cada tarea de este backlog ha
+necesitado un commit aparte solo para escribirlos. Con `--objetivo` y
+`--criterio` (repetible), o con `--desde <fichero>` que ya tenga esas dos
+secciones, la tarea queda definida en el mismo commit en que se crea.
+
+Fuera de alcance: validar que los criterios sean verificables (TASK-043).
 
 ## Criterios de aceptacion
 - [ ] `taskctl new --objetivo "<texto>" --criterio "<texto>"` (repetible) escribe ambas secciones
