@@ -90,7 +90,8 @@ test('las siete skills de fase existen, con frontmatter portable y name igual al
     const ruta = path.join(SKILLS_DIR, fase, 'SKILL.md');
     assert.ok(await existe(ruta), `falta ${ruta}`);
     const texto = await readFile(ruta, 'utf8');
-    assert.ok(texto.startsWith('---\n'), `${fase}: el frontmatter tiene que abrir en la primera linea`);
+    // \r?\n: los .md no tienen eol fijado y un checkout de Windows los deja en CRLF.
+    assert.match(texto, /^---\r?\n/, `${fase}: el frontmatter tiene que abrir en la primera linea`);
     const { data, body } = parseFrontmatter(texto);
     assert.equal(data.name, fase, `${fase}: name tiene que ser el nombre del directorio`);
     const intrusas = Object.keys(data).filter((k) => !CLAVES_PERMITIDAS.has(k));
