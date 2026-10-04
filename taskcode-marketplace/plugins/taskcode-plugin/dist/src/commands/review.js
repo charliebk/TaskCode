@@ -19,11 +19,13 @@
  */
 import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { STATE_FOLDER } from '../core/task.js';
+import { resolverConfig } from '../core/config.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { siguienteRonda } from '../fs/rondas.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, isAncestor, headCommit, logOneline, diffRange, diffNameOnly, diffRangeForPaths, } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
@@ -63,7 +65,7 @@ export { fenceFor } from '../core/markdown.js';
  * diff embebido: "Diff completo" cuando la ronda no se fragmento,
  * "Diff de tu dominio" (con el recuento de ficheros) cuando si.
  */
-export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha, commits, diff, agenteRevisor, nombreInforme, alcanceDiff) {
+export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha, commits, diff, agenteRevisor, nombreInforme, alcanceDiff, extras = {}) {
     const commitsBlock = commits === '' ? '(sin commits nuevos respecto a la base)' : commits;
     const diffBlock = diff === '' ? '(sin diferencias respecto a la base)' : diff;
     const fence = fenceFor(commitsBlock, diffBlock);
@@ -73,7 +75,11 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `- Rama base: ${baseBranch}\n` +
         `- Commit revisado (HEAD): ${commitRevisado}\n` +
         `- Fecha: ${fecha}\n` +
-        `- Agente revisor sugerido: ${agenteRevisor}\n\n` +
+        `- Agente revisor sugerido: ${agenteRevisor}\n` +
+        (extras.carpetaTarea === undefined
+            ? ''
+            : `- Carpeta de la tarea: ${extras.carpetaTarea} (criterios de aceptacion y plan)\n`) +
+        '\n' +
         '## Instrucciones para el agente revisor\n\n' +
         'Eres un revisor INDEPENDIENTE del agente que implemento. Tu trabajo es\n' +
         'reproducir empiricamente, no leer el diff y opinar: clona el repo a un\n' +
@@ -92,6 +98,29 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `## ${alcanceDiff}\n\n` +
         `${fence}diff\n` +
         `${diffBlock}\n` +
+        `${fence}\n` +
+        seccionExcluidos(baseBranch, extras));
+}
+/**
+ * Lo excluido del diff no desaparece: se dice que es, cuanto pesa y con
+ * que orden se pide (TASK-034). Sin excluidos, no hay seccion.
+ */
+function seccionExcluidos(baseBranch, extras) {
+    const excluidos = extras.excluidos ?? [];
+    if (excluidos.length === 0)
+        return '';
+    const patrones = (extras.patrones ?? []).map((p) => `':(glob)${p}'`).join(' ');
+    const stat = (extras.stat ?? '').trim();
+    const fence = fenceFor(stat);
+    return (`\n## Excluido del diff (${excluidos.length} fichero(s))\n\n` +
+        'Su diff no se embebe: es codigo generado, lockfiles o la propia carpeta de\n' +
+        'tareas (clave `excluir_de_revision` de `.taskcode/config.yml`). Si lo\n' +
+        'necesitas, pidelo con:\n\n' +
+        `${fence}\n` +
+        `git diff ${baseBranch}..HEAD -- ${patrones}\n` +
+        `${fence}\n\n` +
+        `${fence}\n` +
+        `${stat}\n` +
         `${fence}\n`);
 }
 export function informeTemplate(task, commitRevisado, ronda) {
@@ -158,13 +187,20 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const { task, body, filePath } = existing;
     const commitRevisado = headCommit(deps.repoCwd);
     const commits = logOneline(baseBranch, 'HEAD', deps.repoCwd);
-    const diff = diffRange(baseBranch, 'HEAD', deps.repoCwd);
+    // TASK-034: lo generado (dist/, lockfiles) y la propia carpeta de
+    // tareas no se embeben: eran el 27 % de los bytes de las peticiones.
+    const excluir = resolverConfig(deps.repoCwd).excluir_de_revision;
+    const paraRevision = diffParaRevision(baseBranch, 'HEAD', excluir, deps.repoCwd);
+    const diff = paraRevision.diff;
     // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
     // el diff real de la rama, no `task.agente_revisor` del frontmatter,
     // decide quien revisa. El catalogo se relee de skills/*/SKILL.md en
     // CADA ejecucion (sin cache: HALLAZGOS.md documenta que una copia
     // congelada de patrones_archivo ya diverguio dos veces).
-    const ficherosTocados = diffNameOnly(baseBranch, 'HEAD', deps.repoCwd);
+    // Solo los INCLUIDOS se clasifican: un dist/*.js no debe activar un
+    // dominio ni fragmentar la revision por ficheros que nadie va a leer
+    // (correccion del rol de arquitectura, TASK-034).
+    const ficherosTocados = paraRevision.incluidos;
     const catalogoRevisores = cargarCatalogoRevisores();
     const plan = clasificarPorDominio(ficherosTocados, catalogoRevisores);
     const updated = { ...task, estado: 'en-revision', actualizado: today };
@@ -207,7 +243,14 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
                 ? `Diff de tu dominio (${escritura.ficheros.length} fichero(s) de ` +
                     `${ficherosTocados.length}; git diff ${baseBranch}..HEAD -- <tus ficheros>)`
                 : `Diff completo (git diff ${baseBranch}..HEAD)`;
-            await writeFile(path.join(revisionDir, escritura.nombrePeticion), peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diffDelGrupo, escritura.revisor, escritura.nombreInforme, alcanceDiff), { encoding: 'utf8', flag: 'wx' });
+            await writeFile(path.join(revisionDir, escritura.nombrePeticion), peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diffDelGrupo, escritura.revisor, escritura.nombreInforme, alcanceDiff, {
+                // La peticion se escribe ANTES de mover la tarea: la carpeta
+                // sale del estado destino, no de filePath.
+                carpetaTarea: `tareas/${STATE_FOLDER[updated.estado]}/${updated.id}`,
+                excluidos: paraRevision.excluidos,
+                stat: paraRevision.stat,
+                patrones: excluir,
+            }), { encoding: 'utf8', flag: 'wx' });
             await writeFile(path.join(revisionDir, escritura.nombreInforme), informeTemplate(updated, commitRevisado, ronda), { encoding: 'utf8', flag: 'wx' });
         }
     }

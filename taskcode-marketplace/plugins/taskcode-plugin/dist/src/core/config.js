@@ -11,6 +11,13 @@
  * | comando_sincronizacion       | null (desactivada)| fs/sincronizacion.ts    |
  * | rutas_sincronizacion         | []                | fs/sincronizacion.ts    |
  * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
+ * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
+ *
+ * `excluir_de_revision` la anadio TASK-034: la peticion de revision
+ * embebia el diff entero, y el JS compilado, los lockfiles y la propia
+ * carpeta de tareas eran el 27 % de sus bytes. Sus patrones siguen la
+ * semantica de `git :(glob)` (los interpreta Git, no `path.matchesGlob`
+ * como `patrones_archivo` de los revisores).
  *
  * Las tres de sincronizacion las anadio TASK-033 (version 0.1.1): un
  * proyecto que genera ficheros a partir del estado de las tareas (un
@@ -72,6 +79,12 @@ export const CONFIG_DEFAULTS = Object.freeze({
     comando_sincronizacion: null,
     rutas_sincronizacion: Object.freeze([]),
     timeout_sincronizacion: 60,
+    excluir_de_revision: Object.freeze([
+        '**/dist/**',
+        '**/*.lock',
+        '**/*-lock.*',
+        'tareas/**',
+    ]),
 });
 /** Las unicas claves admitidas. Cualquier otra aborta (regla 2). */
 export const CLAVES_CONFIG = [
@@ -81,6 +94,7 @@ export const CLAVES_CONFIG = [
     'comando_sincronizacion',
     'rutas_sincronizacion',
     'timeout_sincronizacion',
+    'excluir_de_revision',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -253,6 +267,9 @@ export function parsearConfig(contenido, ruta) {
             case 'timeout_sincronizacion':
                 config.timeout_sincronizacion = validarEnteroPositivo(donde, par.clave, par.valor);
                 break;
+            case 'excluir_de_revision':
+                config.excluir_de_revision = validarPatronesExclusion(donde, par.valor);
+                break;
         }
     }
     validarSincronizacionCompleta(ruta, vistas);
@@ -279,6 +296,40 @@ function validarSincronizacionCompleta(ruta, vistas) {
         throw new ConfigError(`[ERROR] ${ruta}: "timeout_sincronizacion" sin "comando_sincronizacion" no hace nada.\n` +
             '        Borrala, o configura tambien el comando y sus rutas.');
     }
+}
+/**
+ * Lista flow de patrones `git :(glob)`. A diferencia de
+ * `rutas_sincronizacion`, una lista vacia es valida (no excluir nada) y
+ * `tareas/` se puede nombrar: excluirla es justo el valor por defecto.
+ * Un patron sin `/` se ancla en cualquier carpeta (`*.lock` →
+ * `** /*.lock`), que es lo que una persona espera y no lo que hace
+ * `:(glob)` a secas, donde `*` no cruza carpetas.
+ */
+function validarPatronesExclusion(donde, valor) {
+    if (!Array.isArray(valor)) {
+        throw new ConfigError(`[ERROR] ${donde}: "excluir_de_revision" debe ser una lista entre corchetes, ` +
+            `y es ${describirValor(valor)}.\n` +
+            '        Ejemplo: excluir_de_revision: [**/dist/**, **/*.lock]. Para no excluir ' +
+            'nada: excluir_de_revision: [].');
+    }
+    const patrones = [];
+    for (const elemento of valor) {
+        if (typeof elemento !== 'string' || elemento.trim() === '') {
+            throw new ConfigError(`[ERROR] ${donde}: "excluir_de_revision" contiene un elemento vacio o que no es texto.`);
+        }
+        const conBarras = elemento.trim().replace(/\\/g, '/');
+        const absoluto = conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras);
+        if (absoluto || conBarras.split('/').includes('..')) {
+            throw new ConfigError(`[ERROR] ${donde}: el patron "${elemento.trim()}" de "excluir_de_revision" no vale: ` +
+                `${absoluto ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
+                '        Los patrones son relativos a la raiz del repo y siguen la semantica de ' +
+                'git :(glob) (por ejemplo **/dist/**).');
+        }
+        const anclado = conBarras.includes('/') ? conBarras : `**/${conBarras}`;
+        if (!patrones.includes(anclado))
+            patrones.push(anclado);
+    }
+    return patrones;
 }
 /** El comando, recortado. No se interpreta: lo ejecuta el shell del sistema tal cual. */
 function validarComando(donde, valor) {
