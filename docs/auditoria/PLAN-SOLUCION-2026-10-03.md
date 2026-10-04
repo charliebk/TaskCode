@@ -26,8 +26,22 @@ Se miden con los mismos scripts de la auditoría al cerrar cada fase.
 | A3 | Política de rondas | Sin CRÍTICO ni IMPORTANTE abiertos, una ronda cierra. Si solo se corrigen MENOR, no hay ronda 2 (basta suite en verde y commit). La ronda 2 solo revisa el delta y los hallazgos corregidos. |
 | C4 | Complejidad por defecto | Sin `--complejidad`, manda la heurística (no `media` fija). Con un solo rol, ese rol escribe el plan y no se lanza unificador. |
 
-Las tareas F1-T2 y F4-T4 dependen de estas dos decisiones. El resto se
-puede empezar ya.
+**Decididas por Carlos el 2026-10-03: A3 y C4 aprobadas tal como están
+propuestas.** Mientras F4-T4 no esté implementada, C4 se aplica a mano: en
+una tarea `simple`, el único rol escribe directamente `plan-final.md` y no se
+lanza unificador.
+
+## Tareas creadas (2026-10-03)
+
+| Plan | Tarea | Plan | Tarea | Plan | Tarea |
+|---|---|---|---|---|---|
+| F1-T1 | TASK-034 | F3-T1 | TASK-040 | F5-T2 | TASK-046 |
+| F1-T2 | TASK-035 | F4-T1 | TASK-041 | F5-T3 | TASK-047 |
+| F1-T3 | TASK-036 | F4-T4 | TASK-042 | F6-T3 | TASK-048 |
+| F2-T1 | TASK-037 | F4-T2 | TASK-043 | F6-T4 | TASK-049 |
+| F2-T2 | TASK-038 | F4-T3 | TASK-044 | F6-T1 | TASK-050 |
+| F2-T3 | TASK-039 | F5-T1 | TASK-045 | F6-T2 | TASK-051 |
+| | | | | F6-T5 | TASK-052 |
 
 ## Cómo se ejecuta
 
