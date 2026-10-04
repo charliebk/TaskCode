@@ -25,11 +25,16 @@ no deberian necesitar volver a preguntar.
    - **`fase: approve`** (plan redactado): mira en `plan-final.md` la seccion
      de cambios que deja approve al decir que no.
      - `## Cambios pedidos por la persona`, sin marca: hay que re-planificar.
-       Ejecuta `taskctl plan TASK-NNN` (abre la ronda N+1), cambia el
-       encabezado a `## Cambios pedidos por la persona (pendientes, ronda N+1)`
-       y commitea. Ve al paso 4.
-     - `(pendientes, ronda K)`: la re-planificacion se corto a medias. **No
-       ejecutes `taskctl plan`**: retoma la ronda K en el paso 4.
+       Primero marca la ronda que se va a abrir (K = la mayor N de
+       `planificacion/brainstorm/` + 1): cambia el encabezado a
+       `## Cambios pedidos por la persona (pendientes, ronda K)` y commitea.
+       Despues ejecuta `taskctl plan TASK-NNN`, que abre esa ronda K. Ve al
+       paso 4. (En este orden, un corte en medio nunca abre dos rondas.)
+     - `(pendientes, ronda K)`: la re-planificacion se corto a medias. Si ya
+       existe una peticion de la ronda K en `planificacion/brainstorm/`, **No
+       ejecutes `taskctl plan`**: retoma la ronda K en el paso 4. Si no
+       existe, el corte fue antes de abrirla: ejecuta `taskctl plan TASK-NNN`
+       una vez y ve al paso 4.
      - Sin seccion, o solo `(incorporados ...)`: no hay nada que re-planificar;
        el plan espera su aprobacion (paso 7).
    - Cualquier otra fase: no es trabajo de esta skill; sigue el paso 7.
@@ -45,12 +50,15 @@ no deberian necesitar volver a preguntar.
      plantilla de `plan-final.md`.
    Sigue en el paso 5.
 4. **Re-planificacion** (ronda K, la pendiente): no se relanza el brainstorm.
-   Lanza lo que haya para esa ronda en `planificacion/brainstorm/` (es lo que
-   nombro la salida de `taskctl plan`):
-   - `peticion-unificador-K.md`: el unificador, que reescribe `plan-final.md`
-     sobre las salidas de la ronda anterior y los cambios pedidos.
-   - `peticion-plan-K.md` (tarea de un rol): el agente de ese rol; su
-     respuesta es el plan nuevo: vuelcala en `plan-final.md`.
+   Segun lo que haya para esa ronda en `planificacion/brainstorm/`:
+   - `peticion-plan-K.md` (tarea de un rol): el agente de ese rol, el que
+     nombra la peticion; su respuesta es el plan nuevo: vuelcala en
+     `plan-final.md`.
+   - `peticion-unificador-K.md` con salidas de roles de rondas anteriores:
+     el unificador, que reescribe `plan-final.md` sobre esas salidas y los
+     cambios pedidos.
+   - Tarea sin roles (la salida de `taskctl plan` dijo «Sin brainstorm»):
+     reescribe tu el plan incorporando los cambios pedidos.
    El plan nuevo conserva los cambios pedidos con el encabezado
    `## Cambios pedidos por la persona (incorporados en la ronda K)`.
 5. Si el plan deja decisiones abiertas para una persona, preguntalas ahora y

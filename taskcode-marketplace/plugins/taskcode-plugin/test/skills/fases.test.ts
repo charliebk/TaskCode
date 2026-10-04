@@ -81,6 +81,11 @@ async function existe(p: string): Promise<boolean> {
  * Lo que SI puede nombrar "taskcode": el prefijo con que se invocan las skills
  * y la carpeta de configuracion que el plugin lee en el proyecto del usuario.
  */
+/** Los .md no tienen eol fijado: en un checkout de Windows salen en CRLF. */
+function lf(texto: string): string {
+  return texto.replace(/\r\n/g, '\n');
+}
+
 function sinPrefijoDelPlugin(texto: string): string {
   return texto.toLowerCase().split('taskcode-plugin').join('').split('.taskcode/').join('');
 }
@@ -182,15 +187,15 @@ test('las skills de fase y la seccion de avance no mencionan rutas ni documentos
 });
 
 test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en veredicto-codex (IMP-2)', async () => {
-  const plan = await readFile(path.join(SKILLS_DIR, 'plan', 'SKILL.md'), 'utf8');
+  const plan = await readFile(path.join(SKILLS_DIR, 'plan', 'SKILL.md'), 'utf8').then(lf);
   // Mira siguiente ANTES de ejecutar taskctl plan, y con la ronda abierta no lo ejecuta.
   assert.ok(plan.indexOf('taskctl siguiente') < plan.indexOf('taskctl plan TASK-NNN'), 'plan consulta siguiente primero');
   assert.match(plan, /\*\*No ejecutes `taskctl plan`\*\*/);
   assert.match(plan, /## Cambios pedidos por la persona/, 'la re-planificacion lee el feedback escrito');
-  const review = await readFile(path.join(SKILLS_DIR, 'review', 'SKILL.md'), 'utf8');
+  const review = await readFile(path.join(SKILLS_DIR, 'review', 'SKILL.md'), 'utf8').then(lf);
   assert.match(review, /`veredicto-codex`: paso 6\. \*\*No ejecutes `codex-review`\*\*/);
   assert.match(review, /lo decide una\s+persona/);
-  const approve = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8');
+  const approve = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8').then(lf);
   assert.match(approve, /`## Cambios pedidos por la persona`/, 'approve deja escrito el feedback del no');
   // pausa aborta con la carpeta sucia: primero se commitea el feedback (MEN-7, M3).
   assert.ok(
@@ -202,8 +207,23 @@ test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en 
   // y la seccion de cambios lleva su estado para que reanudar a medias no abra otra ronda.
   assert.match(plan, /`peticion-unificador-K\.md`/);
   assert.match(plan, /`peticion-plan-K\.md`/);
-  assert.match(plan, /\(pendientes, ronda N\+1\)/);
+  assert.match(plan, /\(pendientes, ronda K\)/);
   assert.match(plan, /\(incorporados en la ronda K\)/);
+  // MEN-8: la marca se commitea ANTES de abrir la ronda con taskctl plan.
+  const sinMarca = /- `## Cambios pedidos por la persona`, sin marca:[\s\S]*?(?=\n {5}- `\(pendientes)/.exec(plan);
+  assert.ok(sinMarca, 'plan tiene la vineta de la seccion sin marca');
+  assert.ok(
+    sinMarca[0].indexOf('(pendientes, ronda K)') < sinMarca[0].indexOf('taskctl plan TASK-NNN'),
+    'la marca va antes de taskctl plan'
+  );
+  // MEN-10: reanudar con la marca pendiente no reabre la ronda si ya existe su peticion,
+  // y el caso de un rol lanza el agente del rol, no el unificador.
+  const pendiente = /- `\(pendientes, ronda K\)`:[\s\S]*?(?=\n {5}- Sin seccion)/.exec(plan);
+  assert.ok(pendiente, 'plan tiene la vineta de la re-planificacion pendiente');
+  assert.match(pendiente[0], /\*\*No\s+ejecutes `taskctl plan`\*\*/);
+  const unRol = /- `peticion-plan-K\.md`[\s\S]*?(?=\n {3}- )/.exec(plan);
+  assert.ok(unRol, 'plan tiene el caso de un rol en la re-planificacion');
+  assert.doesNotMatch(unRol[0], /unificador/, 'con un rol no hay unificador');
 
   // El paso del veredicto de Codex no lanza otra ronda de Codex (MEN-7, M2).
   const paso6 = /6\. \*\*Veredicto de la segunda opinion\*\*[\s\S]*?(?=\n7\. )/.exec(review);

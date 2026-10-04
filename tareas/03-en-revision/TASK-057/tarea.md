@@ -133,3 +133,22 @@ incluido degradado). Hallazgos nuevos:
   corregir M4, M6, M7, M8 y M9: texto libre, mismo motivo que M10.
 
 Suite: 1025 tests, 1022 en verde (los 3 rojos conocidos de Windows).
+
+### Revision por pares (ronda 3)
+
+Revisor independiente: **aprobada-con-correcciones**. IMP-3 cerrado siguiendo
+`plan` y `approve` con 0, 1 y 2 roles (cortes de sesion, segundo «no»,
+`approve` final). Tres MENOR, corregidos sin abrir ronda 4:
+
+- MEN-8: la marca `(pendientes, ronda K)` se commitea antes de `taskctl
+  plan`; un corte en medio ya no abre dos rondas.
+- MEN-9: el caso sin roles de la re-planificacion se reescribe a mano, como
+  en el paso 3.
+- MEN-10: aserciones sobre lo que se hace con cada marca (no solo que exista
+  la cadena); los mutantes MC y ME mueren. Corrige tambien la frase de la
+  ronda 2 que decia que morian «los de IMP-3 y MEN-6»: entonces solo morian
+  las variantes que borraban la cadena. MH (sin seccion se re-planifica) y
+  los M4-M10 de texto libre quedan sin red, por el motivo ya documentado.
+
+El test normaliza CRLF: verificado con las skills en LF y en CRLF.
+Suite final: 1025 tests, 1022 en verde (los 3 rojos conocidos de Windows).
