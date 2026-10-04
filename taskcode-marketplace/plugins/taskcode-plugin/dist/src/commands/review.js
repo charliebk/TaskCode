@@ -35,7 +35,7 @@ import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../f
 import { commitRevisadoDe, hallazgosNoCerrados, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
@@ -255,7 +255,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     // base entraria en el delta); exige estar ya en la rama de la tarea.
     const { code, signal } = incremental
         ? { code: 0, signal: null }
-        : runGitflowScript(scriptName, [rama], {
+        : runGitflowScript(scriptName, [rama, ...gitflowBaseArgs(tipo, deps.repoCwd)], {
             scriptsDir: deps.scriptsDir,
             cwd: deps.repoCwd,
         });

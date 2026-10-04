@@ -5,7 +5,7 @@
  *
  * | clave                        | defecto           | quien la lee            |
  * |------------------------------|-------------------|-------------------------|
- * | rama_base                    | develop           | git.ts (feature/fix/release) |
+ * | rama_base                    | develop           | git.ts: start, review, finish |
  * | agente_revisor_por_defecto   | general-purpose   | new.ts, import.ts       |
  * | limite_wip                   | 1                 | wip.ts                  |
  * | comando_sincronizacion       | null (desactivada)| fs/sincronizacion.ts    |

@@ -493,7 +493,28 @@ const RAMA_BASE_ES_DEVELOP = {
 export function resolveBaseBranchForTipo(tipo, cwd) {
     if (!RAMA_BASE_ES_DEVELOP[tipo])
         return resolveMainBranch(cwd);
+    return resolveIntegrationBranch(cwd);
+}
+/**
+ * Rama de integracion: la `rama_base` del config ("develop" sin fichero).
+ * Es la base de feature/fix/release y el destino del backmerge de
+ * hotfix/release en finish — que por eso no puede usar
+ * resolveBaseBranchForTipo, que para hotfix devuelve la principal.
+ */
+export function resolveIntegrationBranch(cwd) {
     return resolverConfig(cwd).rama_base;
+}
+/**
+ * Argumentos con los que los scripts create-/update-* reciben la rama
+ * base (TASK-045). Los de feature/fix/release la toman de `--develop` y,
+ * sin el, usan "develop" literal; los de hotfix trabajan contra la
+ * principal y no conocen el flag, asi que no se les pasa (y no se
+ * resuelve nada: resolveMainBranch puede costar ls-remote).
+ */
+export function gitflowBaseArgs(tipo, cwd) {
+    if (!RAMA_BASE_ES_DEVELOP[tipo])
+        return [];
+    return ['--develop', resolveIntegrationBranch(cwd)];
 }
 export class BaseBranchGuardError extends Error {
 }

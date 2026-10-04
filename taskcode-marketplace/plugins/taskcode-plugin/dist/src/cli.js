@@ -586,7 +586,7 @@ async function mainComando(argv) {
                 `"${result.baseBranch}"${mainInfo}, tarea movida a ${result.filePath}.\n` +
                 `Actualizados: ${result.changelogPath}, ${result.indexPath} y ${result.boardPath}.\n`);
             printAutoCommit(result.autoCommit);
-            // --push empuja LA RAMA ACTUAL, que tras "finish" es develop
+            // --push empuja LA RAMA ACTUAL, que tras "finish" es la de integracion (rama_base)
             // (misma doctrina que "taskctl pause --push"). En hotfix/release
             // hay ademas un merge a main y un tag que NO se suben: callarlo
             // dejaria creer que la publicacion esta completa.

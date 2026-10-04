@@ -37,6 +37,7 @@ import {
   isValidBranchName,
   gitUserEmail,
   resolveBaseBranchForTipo,
+  gitflowBaseArgs,
 } from '../fs/git.js';
 import {
   autoCommit,
@@ -242,7 +243,9 @@ export async function runStartCommand(
   }
 
   const scriptName = SCRIPT_BY_TYPE[task.tipo];
-  const { code, signal } = runGitflowScript(scriptName, [task.rama], {
+  // La rama va primero: los scripts toman como nombre el primer no-flag.
+  const scriptArgs = [task.rama, ...gitflowBaseArgs(task.tipo, deps.repoCwd)];
+  const { code, signal } = runGitflowScript(scriptName, scriptArgs, {
     scriptsDir: deps.scriptsDir,
     cwd: deps.repoCwd,
   });

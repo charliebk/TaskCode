@@ -44,6 +44,7 @@ import {
   isWorkspaceClean,
   currentBranch,
   resolveBaseBranchForTipo,
+  gitflowBaseArgs,
   isAncestor,
   headCommit,
   logOneline,
@@ -386,7 +387,7 @@ export async function runReviewCommand(
   // base entraria en el delta); exige estar ya en la rama de la tarea.
   const { code, signal } = incremental
     ? { code: 0, signal: null }
-    : runGitflowScript(scriptName, [rama], {
+    : runGitflowScript(scriptName, [rama, ...gitflowBaseArgs(tipo, deps.repoCwd)], {
         scriptsDir: deps.scriptsDir,
         cwd: deps.repoCwd,
       });
