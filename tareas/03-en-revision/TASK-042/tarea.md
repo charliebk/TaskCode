@@ -6,7 +6,7 @@ sprint: 5
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-042-f4-t4-complejidad-por-defecto-por-heuris
 asignado_a: charlie.bk@gmail.com
