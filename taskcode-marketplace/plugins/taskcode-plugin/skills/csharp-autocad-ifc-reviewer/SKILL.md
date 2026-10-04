@@ -99,6 +99,12 @@ ejecutando:
    siempre, **y otra vez tras cada cambio de rama dentro del mismo clon**.
 2. **Correr la suite entera uno mismo**, y anotar el resultado real (numero de
    tests, fallos, tiempo). "Los tests pasan" sin haberlos corrido no vale.
+   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
+   pasada de la suite completa; no se repite. Los mutantes se comprueban con
+   el fichero o la clase de test concretos que cubren la linea mutada, no
+   con la suite entera. Con varios revisores en paralelo en la misma
+   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
+   compiten por la CPU y todas tardan mas.
 3. **Mutar las protecciones**: romper a proposito la linea que el diff dice
    proteger (el `Commit()`, la comprobacion de `IsErased`, el
    `CultureInfo.InvariantCulture`, el factor de unidades) y comprobar que

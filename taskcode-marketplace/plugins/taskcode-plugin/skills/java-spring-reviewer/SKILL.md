@@ -56,6 +56,12 @@ caso que lo demuestra**, no cuando parece que podria pasar.
 3. **Correr la suite entera antes de tocar nada**, para tener la linea base.
    Un test que ya estaba rojo antes del diff no es un hallazgo de esta
    tarea, pero si es un dato que va en el informe.
+   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
+   pasada de la suite completa; no se repite. Los mutantes se comprueban con
+   el fichero o la clase de test concretos que cubren la linea mutada, no
+   con la suite entera. Con varios revisores en paralelo en la misma
+   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
+   compiten por la CPU y todas tardan mas.
 4. **Construir el caso que rompe.** Un test nuevo que falla contra la rama,
    o una llamada real contra la aplicacion levantada. Lo que no se ha
    ejecutado no se afirma.
@@ -232,10 +238,11 @@ Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
 forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
 llegar a esa conclusion.
 
-Dos rondas es lo normal, no una excepcion: la ronda 2 revisa las
-correcciones de la ronda 1, que es justo donde entran los fallos nuevos. En
-la ronda 2 se comprueba **cada hallazgo de la ronda anterior** ademas del
-codigo nuevo.
+Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la tarea: los MENOR que
+se corrijan no abren otra ronda. La ronda 2 solo se pide si se corrigio
+algun CRITICO o IMPORTANTE, y entonces revisa el delta de la correccion y
+comprueba **cada uno de esos hallazgos**: las correcciones son justo donde
+entran los fallos nuevos.
 
 ## La linea del veredicto
 
