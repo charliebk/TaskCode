@@ -147,7 +147,7 @@ test('ciclo feature completo en semiautomatico: siguiente guia cada fase', async
     s = siguiente(repoRoot, id);
     assert.deepEqual(
       [s.estado, s.modo, s.fase, s.comando, s.accion, s.leidaDe],
-      ['en-curso', 'semiautomatico', 'review', `taskctl review ${id}`, 'preguntar', 'working-tree']
+      ['en-curso', 'semiautomatico', 'review', `taskctl review ${id}`, 'detener', 'working-tree']
     );
 
     await runReviewCommand(tareasRoot, [id], HOY, deps);

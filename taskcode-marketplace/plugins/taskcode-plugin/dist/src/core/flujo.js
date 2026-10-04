@@ -21,8 +21,13 @@ export const FASES_SIGUIENTE = [
  * marcan `exigePersona`: el veredicto de la segunda opinion y otra
  * codex-review tras pedir cambios preguntan en cualquier modo que encadene.
  */
-function accionPara(fase, modo, task, abreFase, exigePersona) {
+function accionPara(fase, modo, task, abreFase, exigePersona, faltaTrabajo) {
     if (fase === 'terminada' || modo === 'manual')
+        return 'detener';
+    // TASK-058 (IMP-3 de su revision): lo que falta no es una fase sino trabajo
+    // (implementar, o corregir tras cambios-solicitados). Encadenar la revision
+    // ahi la relanzaria sobre el mismo codigo. Se detiene en todos los modos.
+    if (faltaTrabajo)
         return 'detener';
     // Pasos que solo puede decidir una persona aunque el modo encadene.
     if (exigePersona)
@@ -31,15 +36,17 @@ function accionPara(fase, modo, task, abreFase, exigePersona) {
     // tag; en ningun modo se cierran sin preguntar.
     if (fase === 'finish' && (task.tipo === 'hotfix' || task.tipo === 'release'))
         return 'preguntar';
-    if (modo === 'automatico')
-        return 'continuar';
+    // TASK-058 (IMP-2 de su revision): hasta que el modo automatico tenga sus
+    // guardas (aprobacion automatica registrada, informe en commit propio, tope
+    // de rondas: TASK-059), se comporta como el semiautomatico. Encadenar sin
+    // ellas mergearia sin persona.
     return abreFase ? 'preguntar' : 'continuar';
 }
 export function siguienteFase(task, ctx, modo) {
-    const paso = (fase, abreFase, motivo, comando = `taskctl ${fase} ${task.id}`, exigePersona = false) => ({
+    const paso = (fase, abreFase, motivo, comando = `taskctl ${fase} ${task.id}`, exigePersona = false, faltaTrabajo = false) => ({
         fase,
         comando,
-        accion: accionPara(fase, modo, task, abreFase, exigePersona),
+        accion: accionPara(fase, modo, task, abreFase, exigePersona, faltaTrabajo),
         motivo,
     });
     switch (task.estado) {
@@ -60,11 +67,11 @@ export function siguienteFase(task, ctx, modo) {
             }
             return paso('approve', true, 'el plan esta redactado y sin aprobar');
         case 'en-curso':
-            return paso('review', true, 'cuando la implementacion este commiteada y la suite en verde, toca la revision');
+            return paso('review', true, 'cuando la implementacion este commiteada y la suite en verde, toca la revision', `taskctl review ${task.id}`, false, true);
         case 'en-revision':
             switch (ctx.veredicto) {
                 case 'cambios-solicitados':
-                    return paso('review', false, 'la ultima ronda pidio cambios: corregir y pedir otra ronda');
+                    return paso('review', false, 'la ultima ronda pidio cambios: corregir, commitear y pedir otra ronda', `taskctl review ${task.id}`, false, true);
                 case 'aprobada':
                     if (task.revision_codex) {
                         switch (ctx.veredictoCodex) {

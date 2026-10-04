@@ -10,7 +10,10 @@ Solo lee: no mueve ninguna tarea ni commitea nada.
 
 ## Pasos
 
-1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`.
+1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`. Si
+   `$ARGUMENTS` trae `--cadena <testigo>`, ejecuta `taskctl cadena comprobar <testigo>`
+   y para si falla; anade `--cadena <testigo>` a cada `taskctl` de esta skill que
+   escriba o cambie de rama (ver la cadena en `task-workflow/avance.md`).
 2. Ejecuta `taskctl board` (acepta `--sprint N` y `--asignado-a <persona>`
    si vienen en `$ARGUMENTS`) y muestra su salida tal cual.
 3. Si `$ARGUMENTS` trae un ID `TASK-NNN`, ejecuta tambien

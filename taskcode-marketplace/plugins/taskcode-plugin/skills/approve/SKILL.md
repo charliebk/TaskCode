@@ -10,7 +10,10 @@ Es el checkpoint humano: el plan no se aprueba porque un agente lo diga.
 
 ## Pasos
 
-1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`.
+1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`. Si
+   `$ARGUMENTS` trae `--cadena <testigo>`, ejecuta `taskctl cadena comprobar <testigo>`
+   y para si falla; anade `--cadena <testigo>` a cada `taskctl` de esta skill que
+   escriba o cambie de rama (ver la cadena en `task-workflow/avance.md`).
 2. Lee `planificacion/plan-final.md` de la tarea (el ID viene en
    `$ARGUMENTS`) y presentalo resumido: enfoque, riesgos, plan de pruebas y
    lo que pida decision de una persona.
@@ -26,6 +29,9 @@ Es el checkpoint humano: el plan no se aprueba porque un agente lo diga.
      «no» en el registro de la tarea sin cambiar su estado. Si hay que rehacer
      el plan, lo reanuda `/taskcode-plugin:plan TASK-NNN`; si basta con
      retocarlo a mano, `/taskcode-plugin:approve TASK-NNN` otra vez.
+     Si habia una cadena abierta, cierrala (`taskctl cadena cerrar <testigo>`) y
+     **termina aqui**, sin pasar por la seccion de avance: el «no» detiene la
+     cadena.
 4. Si `taskctl approve` falla (por ejemplo, el plan es la plantilla sin
    rellenar), muestra el error tal cual.
 5. Sigue la seccion de avance (`task-workflow/avance.md`):

@@ -11,7 +11,10 @@ arrancar sin volver a preguntar.
 
 ## Pasos
 
-1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`.
+1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`. Si
+   `$ARGUMENTS` trae `--cadena <testigo>`, ejecuta `taskctl cadena comprobar <testigo>`
+   y para si falla; anade `--cadena <testigo>` a cada `taskctl` de esta skill que
+   escriba o cambie de rama (ver la cadena en `task-workflow/avance.md`).
 2. Reune lo que falte de `$ARGUMENTS` preguntando a la persona (una sola
    pregunta con varias partes, mejor que cuatro seguidas):
    - **titulo** corto;

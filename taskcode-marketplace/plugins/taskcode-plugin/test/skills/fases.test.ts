@@ -231,6 +231,49 @@ test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en 
   assert.doesNotMatch(paso6[0], /taskctl codex-review/, 'el paso 6 no puede lanzar codex-review');
 });
 
+test('semiautomatico (TASK-058): preguntar y continuar encadenan con la herramienta Skill y la cadena bloquea el arbol', async () => {
+  const avance = lf(await readFile(AVANCE, 'utf8'));
+  const preguntar = /\*\*`preguntar`\*\*[\s\S]*?(?=\n- \*\*`continuar`)/.exec(avance);
+  assert.ok(preguntar, 'avance.md describe preguntar');
+  assert.match(preguntar[0], /AskUserQuestion/);
+  assert.match(preguntar[0], /taskctl pausa/, 'el no queda registrado con pausa');
+  assert.match(avance, /\*\*`continuar`\*\*: encadenar la skill siguiente sin preguntar/);
+  // La cadena: se abre, viaja con --cadena a la skill siguiente via Skill, y se cierra.
+  assert.match(avance, /taskctl cadena abrir TASK-NNN/);
+  assert.match(avance, /herramienta Skill/);
+  assert.match(avance, /TASK-NNN --cadena <testigo>/);
+  assert.match(avance, /taskctl cadena cerrar <testigo>/);
+  // En curso no se encadena: falta implementar.
+  assert.match(avance, /`review` con la\s+tarea `en-curso`/);
+  for (const fase of Object.keys(FASES)) {
+    const texto = await readFile(path.join(SKILLS_DIR, fase, 'SKILL.md'), 'utf8');
+    assert.ok(texto.includes('taskctl cadena comprobar <testigo>'), `${fase}: no comprueba la cadena recibida`);
+    assert.ok(lf(texto).includes('anade `--cadena <testigo>` a cada `taskctl`'), `${fase}: no pasa el testigo a sus taskctl`);
+  }
+});
+
+test('la cadena se cierra en cada camino de salida: detener, no, error (MEN-1 de la revision de TASK-058)', async () => {
+  const avance = lf(await readFile(AVANCE, 'utf8'));
+  const detener = /\*\*`detener`\*\*[\s\S]*?(?=\n- \*\*`preguntar`)/.exec(avance);
+  assert.ok(detener && /cadena abierta, cerrarla/.test(detener[0]), 'detener cierra la cadena');
+  const no = /\*\*No\*\*: ejecutar `taskctl pausa[\s\S]*?(?=\n- \*\*`continuar`)/.exec(avance);
+  assert.ok(no && /cerrar la cadena/.test(no[0]), 'el no de preguntar cierra la cadena');
+  assert.match(avance, /\*\*Un «no» o un error cierran la cadena\*\*, en este orden/);
+  // MEN-2 (r2): el no se registra con la cadena aun abierta; cerrar antes lo haria fallar.
+  const ordenNo = /- un «no»:[\s\S]*?(?=\n- un error)/.exec(avance);
+  assert.ok(ordenNo, 'avance.md da el orden del no');
+  assert.ok(
+    ordenNo[0].indexOf('taskctl pausa') < ordenNo[0].indexOf('taskctl cadena cerrar'),
+    'primero pausa, despues cerrar'
+  );
+  assert.match(avance, /- un error de un `taskctl`: `taskctl cadena cerrar <testigo>` y despues\s+muestra el error/);
+  assert.match(avance, /el CLI rechaza esos comandos mientras haya una cadena\s+abierta sin su testigo/);
+  // El no de approve detiene la cadena sin volver a avance (IMP-4).
+  const approve = lf(await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8'));
+  assert.match(approve, /cierrala \(`taskctl cadena cerrar <testigo>`\)/);
+  assert.match(approve, /\*\*termina aqui\*\*, sin pasar por la seccion de avance/);
+});
+
 test('approve es el checkpoint humano: solo aprueba con el si de la persona y registra el no con pausa', async () => {
   const texto = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8');
   assert.match(texto, /Pregunta a la persona/);

@@ -111,6 +111,8 @@ taskctl finish  TASK-NNN
 
 taskctl siguiente TASK-NNN [--json]   # que fase toca y si preguntar; solo lee
 taskctl pausa     TASK-NNN            # registra un «no seguir todavia», sin cambiar el estado
+taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar
+                  # con una cadena abierta, los comandos que escriben exigen --cadena <testigo>
 
 taskctl diagnose | pause [--push] | resume [<rama>] | recover [<rama>] | abort-merge
 ```
