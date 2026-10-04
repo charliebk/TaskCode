@@ -51,3 +51,9 @@ pasos de encima.
 
 **Pruebas.** `node --test dist/test/skills/*.test.js`: 40/40 (estructura,
 tamano, marcas prohibidas). Ningun «Dos rondas» queda en las skills.
+
+**Revision ronda 1: aprobada** (0 criticos, 0 importantes, 1 menor). Por A3,
+sin ronda 2. M1, aceptado sin corregir: `code-quality-reviewer` y
+`csharp-autocad-ifc-reviewer` no repiten que la ronda 2 revisa solo el delta;
+nunca tuvieron parrafo de rondas, no contradicen nada y la politica vive en
+`task-workflow`.
