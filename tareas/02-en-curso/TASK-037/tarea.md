@@ -33,7 +33,30 @@ antiguo (el `/bin/bash` 3.2 de macOS) se conserva `date` como caida. Fuera de
 alcance: la deteccion de origin (TASK-038).
 
 ## Criterios de aceptacion
-- [ ] `_gitflow-common.sh` usa `printf -v` en lugar de `$(date)` y `$(_do_log)`
-- [ ] Tiempo de `update-feature.sh` en un repo temporal medido antes y despues y anotado en el Resultado
-- [ ] Salida y fichero de log identicos (salvo la hora) en un caso de prueba
-- [ ] Tests de `test/gitflow/` en verde
+- [x] `_gitflow-common.sh` usa `printf -v` en lugar de `$(date)` y `$(_do_log)`
+- [x] Tiempo de `update-feature.sh` en un repo temporal medido antes y despues y anotado en el Resultado
+- [x] Salida y fichero de log identicos (salvo la hora) en un caso de prueba
+- [x] Tests de `test/gitflow/` en verde
+
+## Resultado
+
+**Implementado.** `_gitflow-common.sh`: helpers `_gf_hora VAR FORMATO` y
+`_gf_epoch VAR`. Con bash >= 4.2 usan `printf -v ... '%(...)T'` (y
+`EPOCHSECONDS` si existe); con bash anterior caen a `date` (forzable con
+`GF_FORZAR_DATE=1`). `_do_log` deja la linea en `GF_LINE` en vez de
+devolverla por stdout, asi que `log_info/ok/warn/error` ya no abren un
+subshell por linea. La interfaz publica (`log_*`) no cambia; ningun otro
+script llamaba a `_do_log`.
+
+**Medicion (Windows, Git Bash/Cygwin bash 5.3).**
+- `initialize_gitflow_log` + 20 `log_info`: 3,65 s → **1,05 s** (con `date`
+  forzado, el camino de bash 3.2: 3,15 s, lo de antes).
+- `update-feature.sh` completo en un repo temporal, 3 ejecuciones cada uno:
+  4,74 / 5,51 / 4,69 s → **3,52 / 4,11 / 3,42 s** (~26 % menos). Salida
+  identica salvo la linea de duracion.
+
+**Pruebas.** `test/gitflow/logging.test.ts` (3 tests) redefine `date` como
+funcion de bash que cuenta sus llamadas: el camino rapido no la llama ni una
+vez, la caida si, y las dos dan la linea `[AAAA-MM-DD HH:MM:SS] [INFO ] ...` en
+pantalla y en el fichero. Mutante (volver a `$(date)` en `_do_log`): rojo.
+`test/gitflow/`: 40/40.
