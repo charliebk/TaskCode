@@ -98,3 +98,19 @@ Revisor independiente: **cambios-solicitados** (1 CRITICO, 4 MENOR).
 - MEN-4 (corregido): la funcion de perfil ignora versiones que no son X.Y.Z
   (`-as [version]`) en lugar de imprimir un error. El test mete un
   `0.1.0-rc.1` en la cache falsa y exige stderr vacio; mutante muerto.
+
+### Revision por pares (ronda 2)
+
+Revisor independiente: **aprobada-con-correcciones**. CRIT-1 cerrado y
+verificado con 11 titulos con metacaracteres desde PowerShell 5.1 por la
+funcion de perfil, y con mutantes (la funcion vuelve al `.cmd`: rojo). Cuatro
+MENOR nuevos, corregidos sin abrir ronda 3:
+
+- MEN-5 (documentado): PowerShell 5.1 no escapa las comillas dobles internas
+  al llamar a `node`; el README lo avisa. No se escapa en la funcion: hacerlo
+  bien con `"` y `\` es facil de dejar a medias y el caso es de fidelidad, no
+  de seguridad.
+- MEN-6: comentario del `.cmd` (era «para cmd y PowerShell»).
+- MEN-7 y MEN-8: la funcion falla con «taskcode-plugin no esta instalado»
+  si no hay ninguna version X.Y.Z; test nuevo con una cache que solo trae
+  `0.4.0-beta`, que ademas mata el mutante que quita el filtro de versiones.
