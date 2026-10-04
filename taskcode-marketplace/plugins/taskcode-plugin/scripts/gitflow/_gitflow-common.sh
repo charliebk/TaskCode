@@ -10,10 +10,25 @@ GF_OPERATION=""
 C_GREEN="\033[32m"; C_YELLOW="\033[33m"; C_RED="\033[31m"
 C_CYAN="\033[36m";  C_WHITE="\033[97m";  C_DGRAY="\033[90m"; C_RESET="\033[0m"
 
+# ── Hora sin lanzar procesos (TASK-037) ──────────────────────────────────────
+# Cada `$(date ...)` es un proceso: en Windows ~0,1-0,15 s, y el log lanzaba
+# uno por linea (mas un subshell). Con bash >= 4.2, `printf -v` con el
+# formato `%(...)T` da la hora sin salir del shell. Con bash anterior (el
+# /bin/bash 3.2 de macOS) se cae a `date`, que es lo de siempre.
+# GF_FORZAR_DATE=1 fuerza la caida (solo para probarla).
+if [ -z "${GF_FORZAR_DATE:-}" ] && { [ "${BASH_VERSINFO[0]:-0}" -gt 4 ] || \
+     { [ "${BASH_VERSINFO[0]:-0}" -eq 4 ] && [ "${BASH_VERSINFO[1]:-0}" -ge 2 ]; }; }; then
+    _gf_hora()  { printf -v "$1" "%($2)T" -1; }
+    _gf_epoch() { if [ -n "${EPOCHSECONDS:-}" ]; then printf -v "$1" '%s' "$EPOCHSECONDS"; else printf -v "$1" '%(%s)T' -1; fi; }
+else
+    _gf_hora()  { printf -v "$1" '%s' "$(date +"$2")"; }
+    _gf_epoch() { printf -v "$1" '%s' "$(date +%s)"; }
+fi
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 initialize_gitflow_log() {
     GF_OPERATION="$1"
-    GF_START=$(date +%s)
+    _gf_epoch GF_START
     # Ajuste TASK-008 (hallazgo 1 de TASK-007): antes la ruta se calculaba
     # contando niveles de carpeta desde el script (valido solo en la
     # ubicacion original .idea/runConfigurations/local_git-flow-actions/).
@@ -60,33 +75,39 @@ initialize_gitflow_log() {
         log_dir=""
     fi
     if [ -n "$log_dir" ]; then
-        GF_LOG_FILE="$log_dir/gitflow-$(date +%Y-%m-%d).log"
+        local hoy
+        _gf_hora hoy '%Y-%m-%d'
+        GF_LOG_FILE="$log_dir/gitflow-$hoy.log"
         local sep
         sep=$(printf '=%.0s' {1..60})
         { printf "\n"; printf "%s\n" "$sep"; } >> "$GF_LOG_FILE"
     fi
-    _do_log "INFO " "INICIO: $GF_OPERATION" > /dev/null
+    _do_log "INFO " "INICIO: $GF_OPERATION"
 }
 
-# _do_log: escribe en fichero Y devuelve la linea formateada a stdout
+# _do_log: escribe la linea en el fichero de log y la deja en GF_LINE.
+# TASK-037: antes la devolvia por stdout y cada log_* la recogia con un
+# `$(_do_log ...)`, es decir, un subshell por linea. Ningun otro script la
+# llama: la interfaz publica son los log_* de abajo, que no cambian.
+GF_LINE=""
 _do_log() {
-    local level="$1" message="$2" ts line
-    ts=$(date +"%Y-%m-%d %H:%M:%S")
-    line="[$ts] [$level] $message"
-    [ -n "$GF_LOG_FILE" ] && printf "%s\n" "$line" >> "$GF_LOG_FILE"
-    printf "%s" "$line"
+    local level="$1" message="$2" ts
+    _gf_hora ts '%Y-%m-%d %H:%M:%S'
+    GF_LINE="[$ts] [$level] $message"
+    [ -n "$GF_LOG_FILE" ] && printf "%s\n" "$GF_LINE" >> "$GF_LOG_FILE"
+    return 0
 }
 
-log_info()  { printf "%s\n"                         "$(_do_log "INFO " "$1")"; }
-log_ok()    { printf "${C_GREEN}%s${C_RESET}\n"     "$(_do_log "OK   " "$1")"; }
-log_warn()  { printf "${C_YELLOW}%s${C_RESET}\n"    "$(_do_log "WARN " "$1")"; }
-log_error() { printf "${C_RED}%s${C_RESET}\n"       "$(_do_log "ERROR" "$1")"; }
+log_info()  { _do_log "INFO " "$1"; printf "%s\n"                     "$GF_LINE"; }
+log_ok()    { _do_log "OK   " "$1"; printf "${C_GREEN}%s${C_RESET}\n"  "$GF_LINE"; }
+log_warn()  { _do_log "WARN " "$1"; printf "${C_YELLOW}%s${C_RESET}\n" "$GF_LINE"; }
+log_error() { _do_log "ERROR" "$1"; printf "${C_RED}%s${C_RESET}\n"    "$GF_LINE"; }
 
 log_summary() {
     local result="${1:-COMPLETADO}" extra="${2:-}" elapsed="?" icon="[OK]"
     if [ -n "$GF_START" ]; then
         local end
-        end=$(date +%s)
+        _gf_epoch end
         elapsed="$((end - GF_START))s"
     fi
     local op="${GF_OPERATION:-operacion}"
