@@ -98,3 +98,30 @@ Revisor independiente: **cambios-solicitados** (5 IMPORTANTE, 3 MENOR).
 
 Mutantes: sin la guarda del CLI (IMP-1) y testigo libre (MEN-2), muertos.
 Suite: 1039 tests, 1036 en verde (los 3 rojos conocidos de Windows).
+
+### Revision por pares (ronda 2)
+
+Revisor independiente: **cambios-solicitados**. Confirmo cerrados los ocho
+hallazgos de la ronda 1 con el CLI real (los 14 comandos guardados de otra
+sesion abortan sin tocar nada; automatico y semiautomatico se detienen o
+preguntan donde deben). Hallazgos nuevos:
+
+- IMP-1 (r2) (corregido): la guarda solo tenia red para «approve sin
+  testigo»; se podia sacar `finish` o `start` de la lista, o aceptar
+  cualquier testigo, con la suite en verde. La lista vive ahora en
+  `cadena.ts` (`GUARDADOS_POR_CADENA`, exportada) y el test: compara la lista
+  con la esperada; con una cadena abierta lanza CADA comando sin testigo, con
+  uno ajeno y con uno de una cadena cerrada (rc != 0, HEAD y rama intactos);
+  sin cadena, un testigo cerrado tambien falla; y `--cadena=` y el testigo
+  antes del ID funcionan en `new`, `plan`, `pausa` y `approve`. Sus cinco
+  mutantes mueren.
+- MEN-1 (r2) (corregido): fuera de un repo la guarda no interviene; el
+  comando da su propio error. Test y mutante.
+- MEN-2 (r2) (corregido): el orden del «no» explicito en avance.md: `pausa`
+  con la cadena abierta, despues cerrar. El test fija el orden.
+- MEN-3 (r2) (corregido): la tabla de modos dice que el automatico pregunta
+  mientras no tenga sus guardas; `--cadena` y `taskctl cadena` en la ayuda y en
+  la skill de flujo. `board --escribir` sin guardar: aceptado (escribe un
+  fichero derivado, sin commit ni checkout).
+
+Suite: 1043 tests, 1040 en verde (los 3 rojos conocidos de Windows).

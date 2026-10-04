@@ -18,7 +18,7 @@ import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
 import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
-import { runCadenaCommand, CadenaCommandError, verificarCadena, extraerCadena, } from './commands/cadena.js';
+import { runCadenaCommand, CadenaCommandError, verificarCadena, extraerCadena, GUARDADOS_POR_CADENA, } from './commands/cadena.js';
 import { isWrapperCommand, runWrapperCommand, WrapperCommandError, } from './commands/wrappers.js';
 import { resolveGitflowScriptsDir, GitflowScriptLaunchError } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
@@ -67,7 +67,9 @@ Comandos: new, import, board, start, plan, approve, review, codex-review, veredi
 siguiente, pausa, cadena.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
-no quiere pasar todavia a la siguiente fase.
+no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
+las fases se encadenan: con una cadena abierta, los comandos que escriben o
+cambian de rama exigen --cadena <testigo>.
 Wrappers de Git-Flow: diagnose, pause, resume, recover, abort-merge.
 --asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
 taskctl commitea SOLO los ficheros que el mismo escribe (nunca "git add -A"):
@@ -264,27 +266,6 @@ export async function main(argv) {
     const codigo = await mainComando(argv);
     return codigo === 0 && sincronizacionPendiente ? CODIGO_SINCRONIZACION_NO_APLICADA : codigo;
 }
-/**
- * Comandos que escriben en el repo o cambian de rama: con una cadena de fases
- * abierta en el arbol (TASK-058) solo se ejecutan con su testigo. Los de solo
- * lectura (board, siguiente) y `cadena` quedan fuera.
- */
-const GUARDADOS_POR_CADENA = new Set([
-    'new',
-    'import',
-    'plan',
-    'approve',
-    'start',
-    'review',
-    'codex-review',
-    'veredicto',
-    'finish',
-    'pausa',
-    'pause',
-    'resume',
-    'recover',
-    'abort-merge',
-]);
 async function mainComando(argvEntrada) {
     let argv = argvEntrada;
     const cmd = argv[0];

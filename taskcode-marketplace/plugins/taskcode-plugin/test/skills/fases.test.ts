@@ -258,8 +258,15 @@ test('la cadena se cierra en cada camino de salida: detener, no, error (MEN-1 de
   assert.ok(detener && /cadena abierta, cerrarla/.test(detener[0]), 'detener cierra la cadena');
   const no = /\*\*No\*\*: ejecutar `taskctl pausa[\s\S]*?(?=\n- \*\*`continuar`)/.exec(avance);
   assert.ok(no && /cerrar la cadena/.test(no[0]), 'el no de preguntar cierra la cadena');
-  assert.match(avance, /\*\*Un «no» o un error cierran la cadena\.\*\*/);
-  assert.match(avance, /primero\s+`taskctl cadena cerrar <testigo>`, despues muestra el «no» o el error/);
+  assert.match(avance, /\*\*Un «no» o un error cierran la cadena\*\*, en este orden/);
+  // MEN-2 (r2): el no se registra con la cadena aun abierta; cerrar antes lo haria fallar.
+  const ordenNo = /- un «no»:[\s\S]*?(?=\n- un error)/.exec(avance);
+  assert.ok(ordenNo, 'avance.md da el orden del no');
+  assert.ok(
+    ordenNo[0].indexOf('taskctl pausa') < ordenNo[0].indexOf('taskctl cadena cerrar'),
+    'primero pausa, despues cerrar'
+  );
+  assert.match(avance, /- un error de un `taskctl`: `taskctl cadena cerrar <testigo>` y despues\s+muestra el error/);
   assert.match(avance, /el CLI rechaza esos comandos mientras haya una cadena\s+abierta sin su testigo/);
   // El no de approve detiene la cadena sin volver a avance (IMP-4).
   const approve = lf(await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8'));

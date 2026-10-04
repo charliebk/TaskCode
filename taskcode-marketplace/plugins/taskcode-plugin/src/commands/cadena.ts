@@ -167,6 +167,29 @@ export async function runCadenaCommand(
 }
 
 /**
+ * Comandos que escriben en el repo o cambian de rama: con una cadena abierta
+ * en el arbol solo se ejecutan con su testigo. Los de solo lectura (board,
+ * siguiente, diagnose) y `cadena` quedan fuera. Exportada para que el test
+ * recorra la lista entera (IMP-1 de la ronda 2 de la revision).
+ */
+export const GUARDADOS_POR_CADENA: ReadonlySet<string> = new Set([
+  'new',
+  'import',
+  'plan',
+  'approve',
+  'start',
+  'review',
+  'codex-review',
+  'veredicto',
+  'finish',
+  'pausa',
+  'pause',
+  'resume',
+  'recover',
+  'abort-merge',
+]);
+
+/**
  * IMP-1 de la revision: el bloqueo lo hace cumplir el CLI, no la buena
  * voluntad de las skills. Todo comando que escribe en el repo o cambia de
  * rama pasa por aqui antes de hacer nada:
@@ -178,7 +201,14 @@ export async function runCadenaCommand(
  */
 export async function verificarCadena(repoCwd: string, testigo: string | undefined, ahora = new Date()): Promise<void> {
   if (testigo !== undefined) exigirTestigo(testigo, 'taskctl <comando> ... --cadena <testigo>');
-  const ruta = rutaBloqueo(repoCwd);
+  let ruta: string;
+  try {
+    ruta = rutaBloqueo(repoCwd);
+  } catch {
+    // MEN-1 (r2): fuera de un repo no hay bloqueo que hacer cumplir; el
+    // comando dara su propio error, que dice que hacer.
+    return;
+  }
   const b = await leerBloqueo(ruta);
   if (b === null) {
     if (testigo === undefined) return;

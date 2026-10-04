@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { runCadenaCommand, CadenaCommandError } from '../../src/commands/cadena.js';
+import { runCadenaCommand, CadenaCommandError, GUARDADOS_POR_CADENA } from '../../src/commands/cadena.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..');
@@ -199,4 +199,112 @@ test('abrir sin ID valido, y subcomando desconocido, salen != 0 sin crear bloque
     assert.notEqual(cli(repoRoot, ['cadena', 'cerrar']).status, 0);
     assert.equal(await existe(lock), false);
   });
+});
+
+// --- La guarda del CLI (IMP-1 de las rondas 1 y 2 de la revision) --------------
+
+/** Lo que tiene que estar guardado: todo comando que escribe o cambia de rama. */
+const ESPERADOS = [
+  'new',
+  'import',
+  'plan',
+  'approve',
+  'start',
+  'review',
+  'codex-review',
+  'veredicto',
+  'finish',
+  'pausa',
+  'pause',
+  'resume',
+  'recover',
+  'abort-merge',
+];
+
+/** Argumentos minimos de cada comando (la guarda actua antes de mirarlos). */
+function argsDe(cmd: string): string[] {
+  switch (cmd) {
+    case 'new':
+      return ['--titulo', 'Otra', '--tipo', 'feature'];
+    case 'import':
+      return [path.join(tmpdir(), 'no-importa.md')];
+    case 'veredicto':
+      return ['TASK-001', 'aprobada'];
+    case 'resume':
+    case 'recover':
+      return ['develop'];
+    case 'pause':
+    case 'abort-merge':
+      return [];
+    default:
+      return ['TASK-001'];
+  }
+}
+
+test('la lista de comandos guardados es exactamente la esperada', () => {
+  assert.deepEqual([...GUARDADOS_POR_CADENA].sort(), [...ESPERADOS].sort());
+});
+
+test('con una cadena abierta, CADA comando guardado sin testigo, con uno ajeno o con uno cerrado aborta sin tocar nada', async () => {
+  await withRepo(async (repoRoot) => {
+    const viejo = cliOk(repoRoot, ['cadena', 'abrir', 'TASK-009']).stdout.trim();
+    cliOk(repoRoot, ['cadena', 'cerrar', viejo]);
+    cliOk(repoRoot, ['cadena', 'abrir', 'TASK-001']);
+    const head = git(['rev-parse', 'HEAD'], repoRoot);
+    const rama = git(['branch', '--show-current'], repoRoot);
+    for (const cmd of ESPERADOS) {
+      for (const [caso, extra] of [
+        ['sin testigo', []],
+        ['testigo ajeno', ['--cadena', '0123456789abcdef']],
+        ['testigo de una cadena cerrada', ['--cadena', viejo]],
+      ] as const) {
+        const r = cli(repoRoot, [cmd, ...argsDe(cmd), ...extra]);
+        assert.notEqual(r.status, 0, `${cmd} (${caso}) no deberia ejecutarse`);
+        assert.match(r.stderr, /otra cadena de fases en marcha/, `${cmd} (${caso}): ${r.stderr}`);
+      }
+    }
+    assert.equal(git(['rev-parse', 'HEAD'], repoRoot), head);
+    assert.equal(git(['branch', '--show-current'], repoRoot), rama);
+    assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
+  });
+});
+
+test('con su testigo, en cualquier posicion y con --cadena=, los comandos funcionan y no ven el flag', async () => {
+  await withRepo(async (repoRoot) => {
+    const t = cliOk(repoRoot, ['cadena', 'abrir', 'TASK-001']).stdout.trim();
+    cliOk(repoRoot, ['new', `--cadena=${t}`, '--titulo', 'Con testigo', '--tipo', 'feature',
+      '--objetivo', 'Probar la guarda', '--criterio', 'El comando approve acepta el testigo']);
+    cliOk(repoRoot, ['plan', 'TASK-001', '--cadena', t]);
+    await writeFile(
+      path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'planificacion', 'plan-final.md'),
+      '# Plan\n\n## Enfoque propuesto\n\nAlgo concreto.\n',
+      'utf8'
+    );
+    commitAll(repoRoot, 'plan');
+    // approve y pausa leen el ID como primer argumento: si --cadena no se sacara del
+    // argv, lo tomarian como ID y fallarian.
+    cliOk(repoRoot, ['pausa', `--cadena=${t}`, 'TASK-001']);
+    cliOk(repoRoot, ['approve', '--cadena', t, 'TASK-001']);
+    const tarea = await readFile(path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'tarea.md'), 'utf8');
+    assert.match(tarea, /plan_aprobado: true/);
+    cliOk(repoRoot, ['cadena', 'cerrar', t]);
+    // Sin ninguna cadena abierta, un testigo ya cerrado tampoco vale: seguiria
+    // encadenando sin bloqueo.
+    const head = git(['rev-parse', 'HEAD'], repoRoot);
+    const cerrado = cli(repoRoot, ['pausa', 'TASK-001', '--cadena', t]);
+    assert.notEqual(cerrado.status, 0);
+    assert.match(cerrado.stderr, /ya no esta abierta/);
+    assert.equal(git(['rev-parse', 'HEAD'], repoRoot), head);
+  });
+});
+
+test('fuera de un repo, la guarda no interviene: el comando da su propio error (MEN-1 r2)', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-sin-repo-'));
+  try {
+    const r = cli(dir, ['pause']);
+    assert.notEqual(r.status, 0);
+    assert.doesNotMatch(r.stderr, /cadena\.lock/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });

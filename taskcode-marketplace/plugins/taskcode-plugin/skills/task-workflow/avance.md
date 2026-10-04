@@ -20,7 +20,7 @@ cambia el modo de esa tarea.
 |---|---|
 | `manual` (por defecto) | Nada se encadena: la skill termina nombrando la siguiente |
 | `semiautomatico` | Se pregunta si seguir; un no queda registrado con `taskctl pausa` |
-| `automatico` | Las preguntas se hacen en `plan`; el resto se encadena hasta `finish` |
+| `automatico` | Las preguntas se hacen en `plan`; el resto se encadena hasta `finish` (mientras sus guardas propias no esten disponibles, pregunta como el semiautomatico) |
 
 En cualquier modo, hotfix y release preguntan antes de `finish`, nunca se
 sube nada con `--push` sin que la persona lo pida, y cada transicion deja
@@ -90,10 +90,13 @@ rama (`plan`, `approve`, `start`, `review`, `veredicto`, `codex-review`,
 abierta sin su testigo**, asi que una segunda sesion no puede tocar el arbol
 aunque no pase por `cadena abrir`. En modo `manual` no hay cadena.
 
-**Un «no» o un error cierran la cadena.** Si una skill registra un «no»
-(`taskctl pausa`), o un `taskctl` falla con una cadena abierta, primero
-`taskctl cadena cerrar <testigo>`, despues muestra el «no» o el error, y
-termina sin volver a pasar por esta seccion.
+**Un «no» o un error cierran la cadena**, en este orden:
+- un «no»: primero `taskctl pausa TASK-NNN --cadena <testigo>` (con la cadena
+  aun abierta, o el CLI lo rechaza y el «no» no queda registrado), despues
+  `taskctl cadena cerrar <testigo>`;
+- un error de un `taskctl`: `taskctl cadena cerrar <testigo>` y despues
+  muestra el error.
+En los dos casos la skill termina ahi, sin volver a pasar por esta seccion.
 
 ## Reglas que no cambian con el modo
 
