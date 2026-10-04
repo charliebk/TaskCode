@@ -54,6 +54,18 @@ test('new (TASK-041): --objetivo y --criterio repetido dejan la tarea definida e
   });
 });
 
+test('new (TASK-041, MEN-1 de su revision): un --criterio con saltos de linea queda en una sola linea', async () => {
+  await withRepo(async (repo, tareas) => {
+    const r = await runNewCommand(
+      tareas,
+      ['--titulo', 'P', '--tipo', 'feature', '--objetivo', 'O.', '--criterio', 'primera\nsegunda'],
+      '2026-10-04',
+      { repoCwd: repo }
+    );
+    assert.deepEqual(extraerSecciones(await cuerpoDe(r.filePath)).criterios, ['primera segunda']);
+  });
+});
+
 test('new (TASK-041): sin flags, el cuerpo es el de siempre', async () => {
   await withRepo(async (repo, tareas) => {
     const r = await runNewCommand(tareas, ['--titulo', 'Prueba', '--tipo', 'feature'], '2026-10-04', {
@@ -94,8 +106,16 @@ test('new (TASK-041): --desde toma las secciones del fichero, o el fichero enter
 
 test('new (TASK-041): --desde con --criterio, un --criterio vacio o un fichero que no existe abortan sin escribir nada', async () => {
   await withRepo(async (repo, tareas) => {
+    // MEN-3 de la revision: el fichero de --desde tiene que existir para que
+    // el caso pruebe la exclusion con --criterio y no el ENOENT.
+    const existe = path.join(tmpdir(), `taskctl-new-existe-${process.pid}.md`);
+    await writeFile(existe, '## Objetivo\n\nX.\n', 'utf8');
+    const vacio = path.join(tmpdir(), `taskctl-new-vacio-${process.pid}.md`);
+    await writeFile(vacio, '  \n', 'utf8');
     const casos: string[][] = [
-      ['--desde', 'x.md', '--criterio', 'A'],
+      ['--desde', existe, '--criterio', 'A'],
+      ['--desde', vacio],
+      ['--objetivo', 'Linea\n## Criterios de aceptacion\n- [ ] falso'],
       ['--criterio', ''],
       ['--objetivo'],
       ['--desde', path.join(tmpdir(), 'no-existe-taskctl.md')],
@@ -107,6 +127,8 @@ test('new (TASK-041): --desde con --criterio, un --criterio vacio o un fichero q
         extra.join(' ')
       );
     }
+    await rm(existe, { force: true });
+    await rm(vacio, { force: true });
     assert.equal(git(['status', '--porcelain'], repo).trim(), '');
     assert.equal(git(['log', '--oneline'], repo).trim().split('\n').length, 1, 'no se tenia que commitear nada');
   });

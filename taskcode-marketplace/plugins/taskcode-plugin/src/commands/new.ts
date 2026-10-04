@@ -91,8 +91,19 @@ export function extraerContenidoInicial(argv: readonly string[]): {
     if (valor.trim() === '') {
       throw new NewTaskArgError(`--${nombre} no puede estar vacio.`);
     }
-    if (nombre === 'criterio') contenido.criterios.push(valor.trim());
-    else if (nombre === 'objetivo') contenido.objetivo = valor.trim();
+    // MEN-1 de la revision: un criterio es UNA linea de checklist (con
+    // saltos, `plan` perdia lo que venia detras), y un objetivo con una
+    // cabecera `##` partiria las secciones de tarea.md.
+    if (nombre === 'criterio') contenido.criterios.push(valor.trim().replace(/\s*\r?\n\s*/g, ' '));
+    else if (nombre === 'objetivo') {
+      if (/^#{1,6}\s/m.test(valor)) {
+        throw new NewTaskArgError(
+          '--objetivo no puede contener cabeceras markdown (lineas que empiezan por "#"): ' +
+            'partirian las secciones de tarea.md. Usa --desde <fichero> para un objetivo con estructura.'
+        );
+      }
+      contenido.objetivo = valor.trim();
+    }
     else contenido.desde = valor;
   }
   if (contenido.desde !== null && (contenido.objetivo !== null || contenido.criterios.length > 0)) {
@@ -258,6 +269,8 @@ export function buildNewTask(id: string, opts: NewTaskOptions, today: string): T
 }
 
 export interface NewCommandResult {
+  /** TASK-041: true si la tarea nacio con objetivo o criterios. */
+  conContenido: boolean;
   id: string;
   filePath: string;
   baseBranchGuard: BaseBranchGuardResult;
@@ -302,6 +315,11 @@ export async function runNewCommand(
         `No se pudo leer --desde "${contenido.desde}": ${e instanceof Error ? e.message : String(e)}`
       );
     }
+    // MEN-7 de la revision: un fichero vacio no puede crear la tarea en
+    // silencio con el cuerpo por defecto.
+    if (texto.trim() === '') {
+      throw new NewTaskArgError(`--desde "${contenido.desde}" esta vacio.`);
+    }
     const secciones = extraerSecciones(vinetasComoCasillas(texto));
     const objetivo = secciones.objetivo.trim();
     const criterios = secciones.criterios.filter((c) => c.trim() !== '');
@@ -329,5 +347,11 @@ export async function runNewCommand(
     mensaje: mensajeChore(id, 'tarea creada'),
     push,
   });
-  return { id, filePath, baseBranchGuard, autoCommit: autoCommitResult };
+  return {
+    conContenido: cuerpo !== DEFAULT_BODY,
+    id,
+    filePath,
+    baseBranchGuard,
+    autoCommit: autoCommitResult,
+  };
 }

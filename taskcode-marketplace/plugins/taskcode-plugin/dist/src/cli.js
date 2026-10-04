@@ -262,8 +262,12 @@ async function mainComando(argv) {
                 // "plan" aborta si el objetivo esta vacio, y "new" lo deja
                 // vacio a proposito. Enterarse de la precondicion en el
                 // momento en que la incumples es peor que saberla al crear.
-                'Rellena "## Objetivo" y los criterios de aceptacion antes de "taskctl plan": el ' +
-                'brainstorm se lanza a partir de ese texto.\n');
+                // TASK-041 (MEN-2 de su revision): si ya nacio con contenido, el
+                // aviso de "rellena" seria falso.
+                (result.conContenido
+                    ? ''
+                    : 'Rellena "## Objetivo" y los criterios de aceptacion antes de "taskctl plan": el ' +
+                        'brainstorm se lanza a partir de ese texto (o pasalos con --objetivo y --criterio).\n'));
             printAutoCommit(result.autoCommit);
             return 0;
         }

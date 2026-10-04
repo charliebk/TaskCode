@@ -51,3 +51,21 @@ sin escribir nada. Ayuda del CLI y sinopsis de la skill actualizadas.
 flags repetidos en el mismo commit `tarea creada`; sin flags, `DEFAULT_BODY`
 intacto; `--desde` con y sin secciones; errores sin commit. Con `new`, `main`
 e `import`: 53/53.
+
+**Revision ronda 1: aprobada con correcciones** (0 criticos, 0 importantes, 7
+menores; suite completa 930 tests, solo los 3 rojos conocidos de Windows; CLI
+real: la tarea creada con flags la acepta `plan` y su parser lee objetivo y
+criterios). Por A3, sin ronda 2. Corregidos en el cierre:
+- MEN-1: un `--criterio` con saltos de linea se une en una sola linea (antes
+  `plan` perdia el resto), y un `--objetivo` con cabeceras `#` se rechaza (antes
+  partia las secciones de tarea.md).
+- MEN-2: la salida ya no dice «Rellena ## Objetivo» si la tarea nacio con
+  contenido.
+- MEN-3: el test de la exclusion `--desde`/`--criterio` usaba un fichero
+  inexistente y fallaba por el ENOENT; ahora prueba la exclusion.
+- MEN-7: un `--desde` vacio da error en vez de crear la tarea en blanco.
+Sin corregir, documentados: MEN-4 (`--criterio "--x"` se rechaza con «necesita
+un valor»; `--criterio=--x` funciona), MEN-5 (`vinetasComoCasillas` aplana
+viñetas anidadas y trata `#` de nivel 1 como cabecera), MEN-6 (la ayuda no
+avisa de que un `--desde` dentro del repo sin commitear aborta por workspace
+sucio).
