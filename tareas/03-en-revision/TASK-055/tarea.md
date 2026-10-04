@@ -66,3 +66,35 @@ Suite: 983 tests, 980 en verde (los 3 rojos conocidos de Windows).
 Mutantes: `%*` por `%1 %2` (muerto), sin la regla CRLF (muerto), sin
 `exit /b` (sobrevive: linea eliminada).
 
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **cambios-solicitados** (1 CRITICO, 4 MENOR).
+
+- CRIT-1 (corregido): desde PowerShell, con `bin` en el PATH, `taskctl`
+  resolvia a `taskctl.cmd` y PowerShell 5.1 pasa sin comillas los argumentos
+  sin espacios: un titulo `I+D&QA` se commiteaba truncado y ejecutaba `QA`, y
+  `foo->notas.txt` vaciaba `notas.txt`. No tiene arreglo dentro del `.cmd`
+  (cmd.exe interpreta la linea antes de ejecutarlo). Correccion: en
+  PowerShell la via es la funcion de perfil del README, que llama a `node`
+  sin pasar por cmd; el README avisa de no usar el PATH desde PowerShell, y
+  el `.cmd` queda para cmd con los argumentos entre comillas. Descartado un
+  `bin/taskctl.ps1`: con la politica de ejecucion por defecto de Windows
+  falla en vez de caer al `.cmd`.
+  **Divergencia con el criterio 1**, que pedia arrancar «desde PowerShell»
+  con `taskctl.cmd`: arranca, pero no es seguro con argumentos arbitrarios;
+  la via de PowerShell es la funcion. El test de PowerShell ejecuta el
+  fragmento del README tal cual (extraido del propio README) contra una cache
+  falsa enlazada al arbol exportado, con `I+D&QA|x>notas.txt` y 13
+  argumentos, y comprueba titulo, criterios, `notas.txt` intacto y workspace
+  limpio. Mutante «la funcion vuelve a llamar al .cmd»: muerto.
+- MEN-1 (corregido): `%1..%9` sobrevivia; los tests pasan ahora 13
+  argumentos. Mutante muerto.
+- MEN-2 (corregido en el README): en cmd, entrecomillar `& | < > ^`, y aviso
+  de que `%NOMBRE%` se expande aunque vaya entre comillas.
+- MEN-3 (aceptado): `%~dp0` falla si el lanzador se invoca entrecomillado por
+  el PATH (`""taskctl" uno"`). Fallo conocido de cmd.exe; quien escribe
+  `taskctl` sin comillas no lo ve.
+- MEN-4 (corregido): la funcion de perfil ignora versiones que no son X.Y.Z
+  (`-as [version]`) en lugar de imprimir un error. El test mete un
+  `0.1.0-rc.1` en la cache falsa y exige stderr vacio; mutante muerto.
