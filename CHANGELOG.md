@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-037 (feature) — F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos (2026-10-04)
+
 ## 0.1.2 — 2026-10-03
 
 Fase 1 del plan de la auditoria: **review mas barata**. Actualizar con
