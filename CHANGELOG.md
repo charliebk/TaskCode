@@ -1,6 +1,23 @@
 # Changelog
 
-## Sin publicar
+## 0.1.2 — 2026-10-03
+
+Fase 1 del plan de la auditoria: **review mas barata**. Actualizar con
+`claude plugin marketplace update taskcode-marketplace`, `claude plugin update
+taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code.
+
+- La peticion de `taskctl review` ya no embebe el diff de `dist/`, lockfiles ni
+  `tareas/` (aparecen en un `--stat` con la orden para pedirlos). Configurable
+  con `excluir_de_revision` en `.taskcode/config.yml`. TASK-031 habria pasado de
+  326 KB a ~72 KB, y una tarea de un solo dominio lanza un revisor, no dos.
+- Nuevo `taskctl veredicto TASK-NNN aprobada|aprobada-con-correcciones|cambios-solicitados`:
+  escribe la linea canonica y la commitea. El gate de `finish` ignora el
+  enfasis de markdown (`**aprobada**`), sin aflojar la regla.
+- Politica de rondas en las skills: sin CRITICO ni IMPORTANTE, una ronda cierra;
+  el revisor corre la suite completa una vez por ronda.
+- **Compatibilidad:** un plugin anterior aborta al leer `excluir_de_revision`.
+  No hace falta declararla para tener el comportamiento nuevo.
+
 
 - TASK-036 (feature) — F1-T3 Veredicto con un comando e informe estructurado (2026-10-04)
 - TASK-035 (feature) — F1-T2 Politica de rondas y una sola suite por ronda en las skills (2026-10-04)

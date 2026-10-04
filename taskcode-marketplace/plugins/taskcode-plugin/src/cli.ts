@@ -42,7 +42,7 @@ import {
 // del repo.
 import { ConfigError } from './core/config.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 
 const HELP = `taskctl ${VERSION} — TaskCode
 
