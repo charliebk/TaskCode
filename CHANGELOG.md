@@ -1,6 +1,26 @@
 # Changelog
 
-## Sin publicar
+## 0.2.0 — 2026-10-04
+
+Fase 3 del plan de la auditoria: **revision incremental**. Sube la version
+menor porque cambia la maquina de estados. Actualizar con `claude plugin
+marketplace update taskcode-marketplace`, `claude plugin update
+taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code.
+
+- `taskctl review` sobre una tarea en revision, con la ultima ronda en
+  `cambios-solicitados`, genera la ronda siguiente: solo el diff desde el
+  commit revisado en la ronda anterior, con los hallazgos aun abiertos de su
+  tabla, y sin integrar la rama base (lo hace `finish`). Se acabaron las
+  peticiones de ronda 2 escritas a mano.
+- Mensajes de error que ya no dan vueltas: una ronda aprobada manda a
+  `finish`, una PENDIENTE a `taskctl veredicto`, y `start` sobre una tarea en
+  revision manda a `review`.
+- `aprobada con correcciones` no abre otra ronda (politica: sin CRITICO ni
+  IMPORTANTE, una ronda cierra).
+- Nota: el tag `v0.2.0` se creo antes de este cierre por un `EPERM` transitorio
+  de Windows en `finish`; el codigo del tag es el de esta version y esta
+  seccion se escribio en el commit siguiente.
+
 
 - TASK-040 (feature) — F3-T1 taskctl review para la ronda 2 y siguientes (2026-10-04)
 
