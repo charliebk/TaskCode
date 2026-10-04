@@ -80,3 +80,17 @@ Comprobado por un agente contra la documentacion de plugins de Claude Code:
   habilitado**, sea cual sea el repo, con Git Bash por defecto en Windows. Da
   la razon al desacuerdo 1 (sin hooks). `stop_hook_active` no aparece en la
   documentacion: otra razon para no apoyar nada en un hook Stop.
+
+## Decisiones de Carlos (2026-10-04, al revisar el plan)
+
+- **Modo automatico sin checkpoint humano**: pedido por Carlos; deja sin
+  efecto la decision #1 solo en modo automatico. Divergencia documentada.
+- **hotfix y release en automatico paran y preguntan antes de finish**; ningun
+  camino automatico usa `--push`.
+- **Prefijo `/taskcode-plugin:<fase>`**: no se renombra el plugin; se corrige
+  el texto del criterio 2.
+- **Particion A→E aceptada**, en ese orden. TASK-055 pasa a ser la entrega A;
+  B-E se importan como tareas propias que remiten a este plan.
+- **El «no» del semiautomatico se registra** como fila «pausada por la
+  persona» en `## Transiciones`, con su commit (subcomando nuevo en B).
+- **Modo por defecto `manual`**: comportamiento identico al de hoy.
