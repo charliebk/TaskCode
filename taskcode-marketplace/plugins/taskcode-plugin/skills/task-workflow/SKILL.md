@@ -403,10 +403,12 @@ tener algo que reportar, no.
 `revision/`. **Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la
 tarea.** Los MENOR que se corrijan no abren ronda 2: basta la suite en verde,
 el commit de correccion y su nota en el `## Resultado`. La ronda 2 solo se
-pide si se corrigio algun CRITICO o IMPORTANTE, y entonces revisa el delta de
-la correccion y esos hallazgos, no la tarea entera: las correcciones son
-justo donde se cuelan los fallos nuevos. El revisor corre la suite completa
-una vez por ronda; los mutantes, con el fichero de test concreto.
+pide si se corrigio algun CRITICO o IMPORTANTE (veredicto `cambios-solicitados`):
+`taskctl review` sobre la tarea en revision la genera con solo el diff desde
+la ronda anterior y los hallazgos aun abiertos de su tabla, sin integrar la
+rama base (eso lo hace `finish`). Las correcciones son justo donde se cuelan
+los fallos nuevos. El revisor corre la suite completa una vez por ronda; los
+mutantes, con el fichero de test concreto.
 
 ### La linea del veredicto
 

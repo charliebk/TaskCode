@@ -27,6 +27,11 @@ export interface TransitionContext {
   revisionPrimariaAprobada?: boolean;
   /** Solo para "finish": si revision_codex es true, ¿esa revision esta aprobada? */
   revisionCodexAprobada?: boolean;
+  /**
+   * Solo para "review" con la tarea en en-revision (TASK-040): que dijo la
+   * ultima ronda. Lo calcula quien llama leyendo revision/.
+   */
+  veredictoRondaAnterior?: 'sin-linea' | 'pendiente' | 'cambios-solicitados' | 'aprobada' | 'desconocido';
 }
 
 export class StateMachineError extends Error {
@@ -174,6 +179,18 @@ export function assertTransitionAllowed(
     }
 
     case 'start': {
+      // TASK-040: con la tarea ya en revision, el siguiente paso es otra
+      // ronda de review, no volver a planificar (antes los errores daban
+      // vueltas en circulo: review -> start -> plan).
+      if (task.estado === 'en-revision') {
+        throw err(
+          task.id,
+          command,
+          task.estado,
+          'taskctl review',
+          'ya esta en revision. Para otra ronda tras corregir: taskctl review (con el ultimo veredicto en cambios-solicitados).'
+        );
+      }
       if (task.estado !== 'en-diseno') {
         throw err(
           task.id,
@@ -197,6 +214,26 @@ export function assertTransitionAllowed(
     }
 
     case 'review': {
+      // TASK-040: ronda N+1 desde en-revision, solo si la ronda N pidio
+      // cambios. `aprobada con correcciones` NO abre otra ronda: por la
+      // politica de rondas, una ronda sin CRITICO ni IMPORTANTE cierra, y
+      // abrir otra bloquearia una tarea que ya se puede cerrar.
+      if (task.estado === 'en-revision') {
+        switch (ctx.veredictoRondaAnterior) {
+          case 'cambios-solicitados':
+            return;
+          case 'aprobada':
+            throw err(task.id, command, task.estado, 'taskctl finish',
+              'tiene la ultima ronda de revision aprobada: no hace falta otra. Cierrala con taskctl finish.');
+          case 'pendiente':
+          case 'sin-linea':
+            throw err(task.id, command, task.estado, 'taskctl veredicto',
+              'tiene la ultima ronda de revision sin veredicto (PENDIENTE). Escribelo con taskctl veredicto antes de pedir otra ronda.');
+          default:
+            throw err(task.id, command, task.estado, 'taskctl veredicto',
+              'tiene un veredicto que taskctl no reconoce en la ultima ronda. Reescribelo con taskctl veredicto (aprobada | aprobada-con-correcciones | cambios-solicitados).');
+        }
+      }
       if (task.estado !== 'en-curso') {
         throw err(
           task.id,

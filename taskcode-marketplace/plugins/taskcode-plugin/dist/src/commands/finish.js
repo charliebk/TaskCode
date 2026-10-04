@@ -23,6 +23,7 @@ import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
+import { veredictoAprobado } from '../core/informe-revision.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
@@ -56,44 +57,9 @@ const DEVELOP_BRANCH = 'develop';
  * en curso con revisiones antiguas, deja de reconocerse.
  */
 const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
-/**
- * true solo si TODAS las lineas "- Veredicto:" del informe aprueban.
- * Fail-closed de verdad (hallazgo CRITICO de revision por pares,
- * TASK-014: la version anterior buscaba la palabra "aprobada" en
- * cualquier parte y aprobaba literalmente "no aprobada"):
- * - el VALOR del veredicto debe EMPEZAR por "aprobada" — una negacion
- *   delante ("no aprobada", "rechazada: aprobada seria...") no pasa;
- * - "pendiente" (con limites de palabra: "independiente" no cuenta) o
- *   "cambios-solicitados" en el valor lo tumban;
- * - si hay varias lineas Veredicto (p. ej. el placeholder de la
- *   plantilla sin borrar), TODAS deben aprobar;
- * - sin linea de veredicto (o sin informe), NO esta aprobada.
- */
-export function veredictoAprobado(informe) {
-    const prefijo = '- veredicto:';
-    const lineas = informe
-        .split('\n')
-        .filter((l) => l.trim().toLowerCase().startsWith(prefijo));
-    if (lineas.length === 0)
-        return false;
-    return lineas.every((linea) => {
-        // TASK-036: se recorta el enfasis de markdown (`**aprobada**`,
-        // `_aprobada_`, comillas invertidas) que los revisores ponen solos.
-        // No afloja la regla: el valor sigue anclado a `^aprobada\b`, asi que
-        // "no aprobada" y "**no aprobada**" siguen fallando.
-        const valor = linea
-            .trim()
-            .slice(prefijo.length)
-            .trim()
-            .replace(/^[*_`]+/, '')
-            .replace(/[*_`]+$/, '')
-            .trim()
-            .toLowerCase();
-        if (/\bpendiente\b/.test(valor) || valor.includes('cambios-solicitados'))
-            return false;
-        return /^aprobada\b/.test(valor);
-    });
-}
+// El gate de veredicto vive en core/informe-revision.ts desde TASK-040;
+// se reexporta aqui para no romper a quien lo importa de finish.
+export { veredictoAprobado } from '../core/informe-revision.js';
 /**
  * Contenidos de TODOS los informes de la ronda con mayor N segun `re`,
  * o [] si no hay ninguno. Antes de TASK-018 una ronda tenia como mucho

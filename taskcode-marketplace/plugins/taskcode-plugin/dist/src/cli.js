@@ -464,8 +464,12 @@ async function mainComando(argv) {
                 .map((grupo) => `Peticion de revision (ronda ${result.ronda}, ${grupo.revisor}): ${grupo.peticionPath}\n` +
                 `Lanza ese agente con esa peticion y vuelca su salida en ${grupo.informePath}.\n`)
                 .join('');
-            process.stdout.write(`Tarea ${result.id} en revision: "${result.baseBranch}" integrada en ` +
-                `"${result.rama}" (merge verificado), tarea movida a ${result.filePath}.\n` +
+            printAvisos(...result.avisos);
+            process.stdout.write((result.incremental
+                ? `Tarea ${result.id}: ronda ${result.ronda} de revision, solo con los cambios desde ` +
+                    `${result.desde} (sin update de "${result.baseBranch}": lo integra finish).\n`
+                : `Tarea ${result.id} en revision: "${result.baseBranch}" integrada en ` +
+                    `"${result.rama}" (merge verificado), tarea movida a ${result.filePath}.\n`) +
                 lineasInformes);
             printAutoCommit(result.autoCommit);
             return 0;

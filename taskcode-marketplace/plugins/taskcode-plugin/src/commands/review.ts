@@ -16,15 +16,30 @@
  * `ultimo_commit_revisado` NO se actualiza aqui a proposito: segun la
  * seccion 16.3 se actualiza cuando una revision TERMINA (informe
  * aprobado), no cuando se genera la peticion.
+ *
+ * TASK-040: con la tarea ya en `en-revision` y la ultima ronda en
+ * `cambios-solicitados`, `review` genera la ronda N+1 en modo
+ * INCREMENTAL: el diff va desde el commit revisado en la ronda N (la
+ * linea `- Commit revisado (HEAD):` de su peticion, que solo escribe el
+ * CLI) y la peticion lista los hallazgos de la ronda N que siguen
+ * abiertos. No se ejecuta el update de Git-Flow: el merge de la base
+ * entraria en el delta como si fuera una correccion; la base la integra
+ * `finish` al cerrar.
  */
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { STATE_FOLDER, type Task } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
-import { siguienteRonda } from '../fs/rondas.js';
+import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
+import {
+  commitRevisadoDe,
+  hallazgosNoCerrados,
+  veredictoDeRonda,
+  type VeredictoInforme,
+} from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
-import { assertTransitionAllowed } from '../core/state-machine.js';
+import { assertTransitionAllowed, type TransitionContext } from '../core/state-machine.js';
 import {
   isWorkspaceClean,
   currentBranch,
@@ -90,6 +105,12 @@ export interface RevisionGrupo {
 }
 
 export interface ReviewCommandResult {
+  /** TASK-040: true si es una ronda N+1 generada desde en-revision. */
+  incremental: boolean;
+  /** Inicio del rango del diff: la rama base, o el commit de la ronda anterior. */
+  desde: string;
+  /** Avisos no fatales (p. ej. el commit de la ronda anterior ya no es antepasado). */
+  avisos: string[];
   id: string;
   rama: string;
   baseBranch: string;
@@ -137,6 +158,9 @@ export function peticionTemplate(
   alcanceDiff: string,
   extras: ExtrasPeticion = {}
 ): string {
+  // TASK-040: en una ronda incremental el rango empieza en el commit
+  // revisado en la ronda anterior, no en la rama base.
+  const desde = extras.desde ?? baseBranch;
   const commitsBlock = commits === '' ? '(sin commits nuevos respecto a la base)' : commits;
   // MENOR-1 de la revision de TASK-034: si TODO quedo excluido, decir
   // "sin diferencias" seria falso.
@@ -158,6 +182,9 @@ export function peticionTemplate(
     (extras.carpetaTarea === undefined
       ? ''
       : `- Carpeta de la tarea: ${extras.carpetaTarea} (criterios de aceptacion y plan)\n`) +
+    (extras.desde === undefined
+      ? ''
+      : `- Revision incremental: solo los cambios desde ${extras.desde} (el commit revisado en la ronda anterior)\n`) +
     '\n' +
     '## Instrucciones para el agente revisor\n\n' +
     'Eres un revisor INDEPENDIENTE del agente que implemento. Tu trabajo es\n' +
@@ -170,7 +197,8 @@ export function peticionTemplate(
     'explicito tambien vale; inventar hallazgos, no. Vuelca tu salida en el\n' +
     `informe de esta ronda (${nombreInforme}), sin borrar la\n` +
     'peticion.\n\n' +
-    `## Commits a revisar (git log ${baseBranch}..HEAD)\n\n` +
+    (extras.seccionPrevia ?? '') +
+    `## Commits a revisar (git log ${desde}..HEAD)\n\n` +
     `${fence}\n` +
     `${commitsBlock}\n` +
     `${fence}\n\n` +
@@ -178,7 +206,7 @@ export function peticionTemplate(
     `${fence}diff\n` +
     `${diffBlock}\n` +
     `${fence}\n` +
-    seccionExcluidos(baseBranch, extras)
+    seccionExcluidos(desde, extras)
   );
 }
 
@@ -192,6 +220,66 @@ export interface ExtrasPeticion {
   stat?: string;
   /** Patrones de exclusion aplicados, para la orden que recupera su diff. */
   patrones?: readonly string[];
+  /** TASK-040: inicio del rango en una ronda incremental. */
+  desde?: string;
+  /** TASK-040: seccion con los hallazgos abiertos de la ronda anterior. */
+  seccionPrevia?: string;
+}
+
+/** Peticiones de revision, con o sin sufijo de dominio (TASK-018). */
+const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+
+/** Lo que hace falta saber de la ronda N para generar la N+1 (TASK-040). */
+interface RondaPrevia {
+  ronda: number;
+  veredicto: VeredictoInforme;
+  /** Commit revisado en la ronda N, o null si ninguna peticion lo dice. */
+  commit: string | null;
+  /** Seccion de la peticion con los hallazgos que siguen abiertos. */
+  seccion: string;
+}
+
+async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
+  const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
+  const textos = await Promise.all(
+    informes.nombres.map(async (n) => ({ nombre: n, texto: await readFile(path.join(revisionDir, n), 'utf8') }))
+  );
+  const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
+  let commit: string | null = null;
+  for (const n of peticiones.nombres) {
+    commit = commitRevisadoDe(await readFile(path.join(revisionDir, n), 'utf8'));
+    if (commit !== null) break;
+  }
+
+  const filas: string[] = [];
+  const sinTabla: string[] = [];
+  for (const { nombre, texto } of textos) {
+    const lectura = hallazgosNoCerrados(texto);
+    if (!lectura.tabla) {
+      sinTabla.push(nombre);
+      continue;
+    }
+    for (const h of lectura.abiertos) {
+      filas.push(`| ${h.id} | ${h.severidad} | ${h.estado} | ${h.fichero} | ${nombre} |`);
+    }
+  }
+  let seccion =
+    `## Hallazgos de la ronda ${informes.ronda} que siguen abiertos\n\n` +
+    'Comprueba que cada uno queda resuelto por los cambios de esta ronda, y que la\n' +
+    'correccion no abre otro fallo: es justo donde se cuelan.\n\n';
+  if (filas.length > 0) {
+    seccion += '| ID | Severidad | Estado | Fichero | Informe |\n|---|---|---|---|---|\n' + filas.join('\n') + '\n';
+  } else if (sinTabla.length === 0) {
+    seccion += '0 hallazgos abiertos en la tabla de la ronda anterior.\n';
+  }
+  if (sinTabla.length > 0) {
+    // Una tabla ausente NO es "0 abiertos": los informes anteriores a la
+    // tabla, o escritos a mano, hay que leerlos enteros.
+    seccion +=
+      `\nTabla de hallazgos ausente o ilegible en: ${sinTabla.join(', ')}. ` +
+      'Lee esos informes enteros.\n';
+  }
+  return { ronda: informes.ronda, veredicto: veredictoDeRonda(textos.map((t) => t.texto)), commit, seccion: seccion + '\n' };
 }
 
 /**
@@ -244,6 +332,15 @@ export function informeTemplate(task: Task, commitRevisado: string, ronda: numbe
   );
 }
 
+/** isAncestor sin lanzar: un SHA que ya no existe (gc) no es antepasado. */
+function esAntepasado(sha: string, cwd: string): boolean {
+  try {
+    return isAncestor(sha, 'HEAD', cwd);
+  } catch {
+    return false;
+  }
+}
+
 export async function runReviewCommand(
   tareasRoot: string,
   argv: readonly string[],
@@ -261,7 +358,16 @@ export async function runReviewCommand(
   // metadata estable que ningun comando reescribe. La lectura que
   // decide la escritura va DESPUES del script, que cambia de rama.
   const initial = await readTareaFile(tareasRoot, id);
-  assertTransitionAllowed('review', initial ? initial.task : null);
+  // TASK-040: con la tarea en en-revision, la guarda decide con el
+  // veredicto de la ultima ronda, leido de revision/.
+  const incremental = initial !== null && initial.task.estado === 'en-revision';
+  let previa: RondaPrevia | null = null;
+  const ctx: TransitionContext = {};
+  if (incremental) {
+    previa = await leerRondaPrevia(path.join(path.dirname(initial.filePath), REVISION_DIRNAME));
+    ctx.veredictoRondaAnterior = previa.veredicto;
+  }
+  assertTransitionAllowed('review', initial ? initial.task : null, ctx);
   const tipo = initial!.task.tipo;
   const rama = initial!.task.rama;
 
@@ -276,10 +382,14 @@ export async function runReviewCommand(
   }
 
   const scriptName = SCRIPT_BY_TYPE[tipo];
-  const { code, signal } = runGitflowScript(scriptName, [rama], {
-    scriptsDir: deps.scriptsDir,
-    cwd: deps.repoCwd,
-  });
+  // TASK-040: la ronda incremental no ejecuta el update (el merge de la
+  // base entraria en el delta); exige estar ya en la rama de la tarea.
+  const { code, signal } = incremental
+    ? { code: 0, signal: null }
+    : runGitflowScript(scriptName, [rama], {
+        scriptsDir: deps.scriptsDir,
+        cwd: deps.repoCwd,
+      });
   if (code !== 0) {
     const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
     throw new ReviewCommandError(
@@ -293,6 +403,12 @@ export async function runReviewCommand(
   // merge de la base ocurrido de verdad (la base es antepasada de
   // HEAD), no solo un exit 0 del script.
   const branchNow = currentBranch(deps.repoCwd);
+  if (incremental && branchNow !== rama) {
+    throw new ReviewCommandError(
+      `[ERROR] ${id}: la ronda incremental se genera desde la rama de la tarea, "${rama}", ` +
+        `y la activa es "${branchNow}". Cambia a "${rama}" (git checkout ${rama}) y reintenta.`
+    );
+  }
   if (branchNow !== rama) {
     throw new ReviewCommandError(
       `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero la rama activa es ` +
@@ -300,7 +416,7 @@ export async function runReviewCommand(
     );
   }
   const baseBranch = resolveBaseBranchForTipo(tipo, deps.repoCwd);
-  if (!isAncestor(baseBranch, 'HEAD', deps.repoCwd)) {
+  if (!incremental && !isAncestor(baseBranch, 'HEAD', deps.repoCwd)) {
     throw new ReviewCommandError(
       `[ERROR] ${id}: ${scriptName} termino con codigo 0 pero "${baseBranch}" NO esta ` +
         `integrada en "${rama}" (merge-base --is-ancestor lo niega). No se actualiza la ` +
@@ -312,15 +428,31 @@ export async function runReviewCommand(
   // decide si se muta algo y con que contenido (regla de la doble
   // lectura — el update pudo traer de la base un tarea.md mas nuevo).
   const existing = await readTareaFile(tareasRoot, id);
-  assertTransitionAllowed('review', existing ? existing.task : null);
+  assertTransitionAllowed('review', existing ? existing.task : null, ctx);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
   const commitRevisado = headCommit(deps.repoCwd);
-  const commits = logOneline(baseBranch, 'HEAD', deps.repoCwd);
+  // TASK-040: inicio del rango. En la ronda incremental, el commit
+  // revisado en la ronda N si sigue siendo antepasado de HEAD; si no (un
+  // rebase, un amend, un gc) o no consta, el diff completo con un aviso.
+  const avisos: string[] = [];
+  let desde = baseBranch;
+  if (incremental && previa !== null) {
+    const valido = previa.commit !== null && esAntepasado(previa.commit, deps.repoCwd);
+    if (valido) {
+      desde = previa.commit as string;
+    } else {
+      avisos.push(
+        `${id}: ${previa.commit === null ? 'ninguna peticion de la ronda ' + String(previa.ronda) + ' dice que commit se reviso' : `el commit revisado en la ronda ${previa.ronda} (${previa.commit}) ya no es antepasado de HEAD (¿rebase o amend?)`}. ` +
+          `La ronda ${String(previa.ronda + 1)} lleva el diff completo desde "${baseBranch}".`
+      );
+    }
+  }
+  const commits = logOneline(desde, 'HEAD', deps.repoCwd);
   // TASK-034: lo generado (dist/, lockfiles) y la propia carpeta de
   // tareas no se embeben: eran el 27 % de los bytes de las peticiones.
   const excluir = resolverConfig(deps.repoCwd).excluir_de_revision;
-  const paraRevision = diffParaRevision(baseBranch, 'HEAD', excluir, deps.repoCwd);
+  const paraRevision = diffParaRevision(desde, 'HEAD', excluir, deps.repoCwd);
   const diff = paraRevision.diff;
 
   // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
@@ -364,6 +496,16 @@ export async function runReviewCommand(
     };
   });
 
+  // TASK-040 (riesgo 1 del brainstorm): si una escritura falla a mitad,
+  // se borran las de esta invocacion. Sin esto, una ronda N+1 a medias
+  // dejaba la tarea sin salida: finish bloquea por el PENDIENTE y review
+  // rechaza otra ronda por lo mismo. Son ficheros nuevos ('wx'): no se
+  // borra nada que no se acabe de crear.
+  const escritos: string[] = [];
+  const escribir = async (ruta: string, contenido: string): Promise<void> => {
+    await writeFile(ruta, contenido, { encoding: 'utf8', flag: 'wx' });
+    escritos.push(ruta);
+  };
   try {
     for (const escritura of escrituras) {
       // Cada revisor recibe SOLO el subconjunto de su dominio (criterio
@@ -372,14 +514,16 @@ export async function runReviewCommand(
       // ficheros" y se reusa el diff completo ya calculado arriba, para
       // no repetir la misma llamada a Git dos veces.
       const diffDelGrupo = plan.fragmentado
-        ? diffRangeForPaths(baseBranch, 'HEAD', escritura.ficheros, deps.repoCwd)
+        ? diffRangeForPaths(desde, 'HEAD', escritura.ficheros, deps.repoCwd)
         : diff;
       const alcanceDiff = plan.fragmentado
         ? `Diff de tu dominio (${escritura.ficheros.length} fichero(s) de ` +
-          `${ficherosTocados.length}; git diff ${baseBranch}..HEAD -- <tus ficheros>)`
-        : `Diff completo (git diff ${baseBranch}..HEAD)`;
+          `${ficherosTocados.length}; git diff ${desde}..HEAD -- <tus ficheros>)`
+        : desde === baseBranch
+          ? `Diff completo (git diff ${baseBranch}..HEAD)`
+          : `Diff desde la ronda anterior (git diff ${desde}..HEAD)`;
 
-      await writeFile(
+      await escribir(
         path.join(revisionDir, escritura.nombrePeticion),
         peticionTemplate(
           updated,
@@ -399,17 +543,18 @@ export async function runReviewCommand(
             excluidos: paraRevision.excluidos,
             stat: paraRevision.stat,
             patrones: excluir,
+            ...(incremental && desde !== baseBranch ? { desde } : {}),
+            ...(previa !== null ? { seccionPrevia: previa.seccion } : {}),
           }
-        ),
-        { encoding: 'utf8', flag: 'wx' }
+        )
       );
-      await writeFile(
+      await escribir(
         path.join(revisionDir, escritura.nombreInforme),
-        informeTemplate(updated, commitRevisado, ronda),
-        { encoding: 'utf8', flag: 'wx' }
+        informeTemplate(updated, commitRevisado, ronda)
       );
     }
   } catch (e: unknown) {
+    await Promise.all(escritos.map((r) => unlink(r).catch(() => undefined)));
     if (!isEexist(e)) throw e;
     throw new ReviewCommandError(
       `[ERROR] ${id}: ya existe un fichero de la ronda ${ronda} en ${revisionDir} ` +
@@ -442,6 +587,9 @@ export async function runReviewCommand(
 
   return {
     autoCommit: commitResult,
+    incremental,
+    desde,
+    avisos,
     id: task.id,
     rama,
     baseBranch,

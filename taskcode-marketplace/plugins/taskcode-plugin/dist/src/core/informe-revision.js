@@ -1,0 +1,151 @@
+/**
+ * Lectura determinista de los ficheros de una ronda de revision —
+ * TASK-040. Modulo puro: recibe texto, no toca disco.
+ *
+ * Reune lo que antes estaba disperso (el gate de veredicto vivia en
+ * finish.ts y codex-review lo importaba de alli) y anade lo que necesita
+ * la ronda incremental de `taskctl review`: que dijo la ronda anterior,
+ * desde que commit se reviso y que hallazgos siguen abiertos.
+ */
+const PREFIJO_VEREDICTO = '- veredicto:';
+/** Valor de una linea `- Veredicto:` sin enfasis de markdown, en minusculas. */
+function valorDeLinea(linea) {
+    // TASK-036: se recorta el enfasis de markdown (`**aprobada**`,
+    // `_aprobada_`, comillas invertidas) que los revisores ponen solos.
+    return linea
+        .trim()
+        .slice(PREFIJO_VEREDICTO.length)
+        .trim()
+        .replace(/^[*_`]+/, '')
+        .replace(/[*_`]+$/, '')
+        .trim()
+        .toLowerCase();
+}
+function lineasDeVeredicto(informe) {
+    return informe
+        .split('\n')
+        .filter((l) => l.trim().toLowerCase().startsWith(PREFIJO_VEREDICTO));
+}
+/**
+ * true solo si TODAS las lineas "- Veredicto:" del informe aprueban.
+ * Fail-closed de verdad (hallazgo CRITICO de revision por pares,
+ * TASK-014): una version anterior buscaba "aprobada" en cualquier parte
+ * y aprobaba literalmente "no aprobada".
+ * - sin linea de veredicto (o sin informe), NO esta aprobada;
+ * - si hay varias (p. ej. una nueva y la de la plantilla sin borrar),
+ *   TODAS deben aprobar.
+ * Vive aqui desde TASK-040; finish.ts lo reexporta.
+ */
+export function veredictoAprobado(informe) {
+    const lineas = lineasDeVeredicto(informe);
+    if (lineas.length === 0)
+        return false;
+    return lineas.every((linea) => {
+        const valor = valorDeLinea(linea);
+        if (/\bpendiente\b/.test(valor) || valor.includes('cambios-solicitados'))
+            return false;
+        return /^aprobada\b/.test(valor);
+    });
+}
+export function veredictoDe(informe) {
+    const lineas = lineasDeVeredicto(informe);
+    if (lineas.length === 0)
+        return 'sin-linea';
+    const valores = lineas.map(valorDeLinea);
+    if (valores.some((v) => /\bpendiente\b/.test(v)))
+        return 'pendiente';
+    if (valores.some((v) => /^cambios[ -]solicitados\b/.test(v)))
+        return 'cambios-solicitados';
+    if (veredictoAprobado(informe))
+        return 'aprobada';
+    return 'desconocido';
+}
+/**
+ * Veredicto de una RONDA, que puede tener varios informes (revision
+ * fragmentada por dominio). Prioridad: si alguno no tiene veredicto o
+ * esta pendiente, la ronda esta pendiente (no se abre otra con un
+ * fragmento sin revisar); si alguno es desconocido, desconocido; si
+ * alguno pide cambios, cambios; si todos aprueban, aprobada.
+ */
+export function veredictoDeRonda(informes) {
+    if (informes.length === 0)
+        return 'sin-linea';
+    const v = informes.map(veredictoDe);
+    if (v.some((x) => x === 'sin-linea' || x === 'pendiente'))
+        return 'pendiente';
+    if (v.includes('desconocido'))
+        return 'desconocido';
+    if (v.includes('cambios-solicitados'))
+        return 'cambios-solicitados';
+    return 'aprobada';
+}
+/**
+ * SHA del commit revisado en una peticion de revision: la linea
+ * `- Commit revisado (HEAD): <sha>` que escribe solo el CLI. Se toma el
+ * SHA del principio y se ignora lo que venga detras. null si no esta.
+ */
+export function commitRevisadoDe(peticion) {
+    const m = /^- Commit revisado(?: \(HEAD\))?:\s*([0-9a-f]{7,40})\b/im.exec(peticion);
+    return m === null ? null : m[1];
+}
+function normalizarCelda(c) {
+    return c
+        .trim()
+        .replace(/^[*_`]+/, '')
+        .replace(/[*_`]+$/, '')
+        .trim()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '');
+}
+/**
+ * Hallazgos no cerrados de la primera tabla bajo `## Hallazgos` cuya
+ * cabecera tenga las columnas ID y Estado (por nombre, no por
+ * posicion). Cerrado = Estado `corregido` o `aceptado`; cualquier otro
+ * valor, tambien el vacio, cuenta como abierto: listar de mas es barato
+ * y omitir es caro. Se ignora la fila de ejemplo de la plantilla.
+ */
+export function hallazgosNoCerrados(informe) {
+    const lineas = informe.replace(/\r/g, '').split('\n');
+    const inicio = lineas.findIndex((l) => /^##\s+hallazgos\b/i.test(l.trim()));
+    if (inicio === -1)
+        return { tabla: false, abiertos: [] };
+    let i = inicio + 1;
+    while (i < lineas.length && !lineas[i].trim().startsWith('|')) {
+        if (/^##\s/.test(lineas[i].trim()))
+            return { tabla: false, abiertos: [] };
+        i++;
+    }
+    if (i >= lineas.length)
+        return { tabla: false, abiertos: [] };
+    const celdas = (l) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(normalizarCelda);
+    const cabecera = celdas(lineas[i]).map((c) => c.toLowerCase());
+    const col = (nombre) => cabecera.findIndex((c) => c === nombre);
+    const iId = col('id');
+    const iEstado = col('estado');
+    if (iId === -1 || iEstado === -1)
+        return { tabla: false, abiertos: [] };
+    const iSev = col('severidad');
+    const iFich = col('fichero');
+    const abiertos = [];
+    for (i++; i < lineas.length; i++) {
+        const l = lineas[i].trim();
+        if (!l.startsWith('|'))
+            break;
+        if (/^\|[\s:|-]+\|?$/.test(l))
+            continue;
+        const c = celdas(l);
+        const id = c[iId] ?? '';
+        if (id === '' || id.toLowerCase().startsWith('(ej.'))
+            continue;
+        const estado = (c[iEstado] ?? '').toLowerCase();
+        if (estado === 'corregido' || estado === 'aceptado')
+            continue;
+        abiertos.push({
+            id,
+            severidad: iSev === -1 ? '' : (c[iSev] ?? ''),
+            estado: c[iEstado] ?? '',
+            fichero: iFich === -1 ? '' : (c[iFich] ?? ''),
+        });
+    }
+    return { tabla: true, abiertos };
+}
