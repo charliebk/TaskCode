@@ -45,20 +45,44 @@ function filaATexto(f: FilaTransicion): string {
   return `| ${f.fecha} | ${f.fase} | ${f.modo} | ${f.decidido_por} |`;
 }
 
-/** Para cada linea, si esta dentro de un bloque de codigo (``` o ~~~). */
+/** Valla de apertura de CommonMark: 0-3 espacios, 3+ ` o ~ (con ` el texto de info no lleva `). */
+const VALLA_APERTURA = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})/;
+
+/**
+ * Para cada linea, si esta dentro de un bloque de codigo cercado (incluidas
+ * sus vallas). Sigue las reglas de CommonMark (IMP-4 de la revision): cierra
+ * una valla del MISMO caracter, de longitud IGUAL O MAYOR, sin texto detras
+ * y con 0-3 espacios de sangria — asi un ```` que envuelve un ejemplo con
+ * ``` no se cierra en el interior.
+ *
+ * Una valla que no se cierra NO abre bloque. CommonMark la extenderia hasta
+ * el final del documento, pero aqui eso se tragaria la seccion real, que el
+ * CLI anade al final: un ``` olvidado en el enunciado dejaria la tarea sin
+ * registro ni modo congelado y duplicaria la seccion en cada transicion.
+ */
 function dentroDeBloque(lineas: readonly string[]): boolean[] {
-  let abierto: string | null = null;
-  return lineas.map((l) => {
-    const valla = /^\s*(`{3,}|~{3,})/.exec(l);
-    if (valla === null) return abierto !== null;
-    const marca = (valla[1] as string)[0] as string;
-    if (abierto === null) {
-      abierto = marca;
-      return true;
+  const enBloque = lineas.map(() => false);
+  let i = 0;
+  while (i < lineas.length) {
+    const apertura = VALLA_APERTURA.exec(lineas[i] as string);
+    if (apertura === null) {
+      i++;
+      continue;
     }
-    if (marca === abierto) abierto = null;
-    return true;
-  });
+    const valla = apertura[1] as string;
+    const caracter = valla[0] === '`' ? '`' : '~';
+    const cierre = new RegExp(`^ {0,3}\\${caracter}{${String(valla.length)},}\\s*$`);
+    let j = i + 1;
+    while (j < lineas.length && !cierre.test(lineas[j] as string)) j++;
+    if (j === lineas.length) {
+      // Sin cerrar: no es bloque (ver arriba). Se sigue por la linea siguiente.
+      i++;
+      continue;
+    }
+    for (let k = i; k <= j; k++) enBloque[k] = true;
+    i = j + 1;
+  }
+  return enBloque;
 }
 
 /**

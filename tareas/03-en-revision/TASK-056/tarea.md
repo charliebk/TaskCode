@@ -124,3 +124,29 @@ Revisor independiente: **cambios-solicitados** (3 IMPORTANTE, 8 MENOR).
 - MEN-8 (aceptado): fuera de `approve`, `decidido_por` es `persona`. Las
   entregas D y E decidiran si start, review y finish encadenados por el agente
   se registran como `automatico`.
+
+### Revision por pares (ronda 2)
+
+Revisor independiente: **cambios-solicitados**. Confirmo cerrados IMP-1,
+IMP-3 y los MENOR de la ronda 1 (con el CLI real y un `codex` falso: tras
+cada `codex-review` el flujo se para en una persona; la guarda de `pausa` en
+los cuatro estados). Hallazgos nuevos:
+
+- IMP-4 (corregido): `dentroDeBloque` cerraba un bloque con cualquier valla
+  del mismo caracter, asi que un ```` que envuelve un ejemplo con ``` se
+  cerraba en el interior y volvia IMP-2; y una valla sin cerrar se tragaba la
+  seccion real (sin modo congelado y seccion duplicada en cada transicion:
+  regresion de la correccion de IMP-2). Ahora sigue CommonMark: cierra el
+  mismo caracter, longitud igual o mayor, sin texto detras, 0-3 espacios de
+  sangria. Una valla sin cerrar NO abre bloque (CommonMark la extenderia al
+  final del documento, pero aqui se tragaria el registro). Reproducidos los
+  dos casos con el CLI real tras la correccion: modo correcto y una sola
+  seccion real.
+- MEN-9 (corregido): tests para el ultimo encabezado, el fin de seccion con
+  un `## X` dentro de un bloque, la fila nueva fuera del bloque, `~~~`, el
+  cierre mas corto o con texto, la sangria de 4 espacios y la valla sin
+  cerrar. Los 7 mutantes, muertos.
+- MEN-10 (corregido): docstrings de `SiguientePaso.comando` y `accionPara`,
+  y el motivo de `veredicto-codex` con un veredicto desconocido.
+
+Suite: 1015 tests, 1012 en verde (los 3 rojos conocidos de Windows).

@@ -1,7 +1,9 @@
 /**
  * Fases que abren una fase NUEVA del ciclo: en semiautomatico se pregunta
- * antes de entrar. Las demas (veredicto, codex-review, otra ronda de
- * review) son pasos internos de la revision y siguen solas.
+ * antes de entrar. Las demas (veredicto, la primera codex-review, otra ronda
+ * de review) son pasos internos de la revision y siguen solas, salvo las que
+ * marcan `exigePersona`: el veredicto de la segunda opinion y otra
+ * codex-review tras pedir cambios preguntan en cualquier modo que encadene.
  */
 function accionPara(fase, modo, task, abreFase, exigePersona) {
     if (fase === 'terminada' || modo === 'manual')
@@ -62,7 +64,9 @@ export function siguienteFase(task, ctx, modo) {
                                 // No hay comando que escriba el veredicto de Codex, y que lo
                                 // escriba el mismo agente que encadena el flujo es el agujero
                                 // del veredicto autoescrito: lo decide una persona.
-                                return paso('veredicto-codex', false, 'el informe de la segunda opinion no tiene veredicto: una persona lo lee y escribe su linea "- Veredicto:"', null, true);
+                                return paso('veredicto-codex', false, ctx.veredictoCodex === 'desconocido'
+                                    ? 'el veredicto de la segunda opinion no se reconoce: una persona lo lee y reescribe su linea "- Veredicto:"'
+                                    : 'el informe de la segunda opinion no tiene veredicto: una persona lo lee y escribe su linea "- Veredicto:"', null, true);
                         }
                     }
                     return paso('finish', true, 'la revision esta aprobada');

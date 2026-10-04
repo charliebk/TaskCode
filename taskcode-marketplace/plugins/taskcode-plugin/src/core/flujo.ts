@@ -52,8 +52,10 @@ export interface ContextoFlujo {
 export interface SiguientePaso {
   fase: FaseSiguiente;
   /**
-   * Comando de taskctl de esa fase, o null si lo que toca es trabajo de un
-   * agente sin comando propio (redactar el plan) o la tarea esta terminada.
+   * Comando de taskctl de esa fase, o null si no hay comando que la haga:
+   * redactar el plan (trabajo de agente), escribir el veredicto de la segunda
+   * opinion (`veredicto-codex`, lo escribe una persona a mano) o la tarea
+   * terminada.
    */
   comando: string | null;
   accion: AccionFlujo;
@@ -62,8 +64,10 @@ export interface SiguientePaso {
 
 /**
  * Fases que abren una fase NUEVA del ciclo: en semiautomatico se pregunta
- * antes de entrar. Las demas (veredicto, codex-review, otra ronda de
- * review) son pasos internos de la revision y siguen solas.
+ * antes de entrar. Las demas (veredicto, la primera codex-review, otra ronda
+ * de review) son pasos internos de la revision y siguen solas, salvo las que
+ * marcan `exigePersona`: el veredicto de la segunda opinion y otra
+ * codex-review tras pedir cambios preguntan en cualquier modo que encadene.
  */
 function accionPara(
   fase: FaseSiguiente,
@@ -152,7 +156,9 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
                 return paso(
                   'veredicto-codex',
                   false,
-                  'el informe de la segunda opinion no tiene veredicto: una persona lo lee y escribe su linea "- Veredicto:"',
+                  ctx.veredictoCodex === 'desconocido'
+                    ? 'el veredicto de la segunda opinion no se reconoce: una persona lo lee y reescribe su linea "- Veredicto:"'
+                    : 'el informe de la segunda opinion no tiene veredicto: una persona lo lee y escribe su linea "- Veredicto:"',
                   null,
                   true
                 );

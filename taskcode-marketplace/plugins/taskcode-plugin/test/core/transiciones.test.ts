@@ -107,6 +107,81 @@ test('filas de tabla dentro de un bloque de codigo en la propia seccion se ignor
   assert.deepEqual(leerTransiciones(cuerpo), [fila()]);
 });
 
+const EJEMPLO_TABLA =
+  '## Transiciones\n\n| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n' +
+  '| 2026-01-01 | plan | automatico | persona |\n';
+
+test('IMP-4: un bloque de cuatro tildes que envuelve un ejemplo con tres no se cierra en el interior', () => {
+  const enunciado =
+    '## Objetivo\n\nAsi se documenta:\n\n````md\nAsi queda:\n```\n' +
+    EJEMPLO_TABLA +
+    '```\n````\n\n## Criterios de aceptacion\n- [ ] Que funcione\n';
+  assert.deepEqual(leerTransiciones(enunciado), []);
+  assert.equal(modoCongelado(enunciado), null);
+  const r = anadirTransicion(enunciado, fila());
+  assert.ok(r.startsWith(enunciado.trimEnd()), 'el ejemplo no cambia');
+  assert.deepEqual(leerTransiciones(r), [fila()]);
+});
+
+test('IMP-4: una valla sin cerrar en el enunciado no se traga la seccion real (no se duplica)', () => {
+  const enunciado = '## Objetivo\n\nEjecutar:\n\n```bash\nnpm test\n\n## Criterios de aceptacion\n- [ ] Que funcione\n';
+  let r = anadirTransicion(enunciado, fila({ modo: 'automatico' }));
+  r = anadirTransicion(r, fila({ fase: 'approve', modo: 'automatico', decidido_por: 'automatico' }));
+  assert.equal(r.split('\n').filter((l) => l === '## Transiciones').length, 1, 'una sola seccion');
+  assert.deepEqual(
+    leerTransiciones(r).map((f) => f.fase),
+    ['plan', 'approve']
+  );
+  assert.equal(modoCongelado(r), 'automatico');
+});
+
+test('IMP-4: una valla de cierre mas corta, con texto detras o de otro caracter no cierra', () => {
+  // Si cualquiera de esas lineas cerrase, el encabezado de ejemplo quedaria fuera de bloque.
+  for (const falsoCierre of ['```', '```` texto', '~~~~']) {
+    const cuerpo = `## Objetivo\n\n\`\`\`\`\n${falsoCierre}\n${EJEMPLO_TABLA}\`\`\`\`\n`;
+    assert.deepEqual(leerTransiciones(cuerpo), [], `falso cierre: ${falsoCierre}`);
+  }
+  // Una valla sangrada 4 espacios es codigo sangrado, no valla: no abre bloque,
+  // y el ``` de despues (sin pareja) tampoco. La tabla queda fuera de bloque.
+  const sangrada = '## Objetivo\n\n    ```\n\n' + EJEMPLO_TABLA + '```\n';
+  assert.equal(leerTransiciones(sangrada).length, 1);
+});
+
+test('MEN-9: tambien ~~~ es valla', () => {
+  const cuerpo = '## Objetivo\n\n~~~md\n' + EJEMPLO_TABLA + '~~~\n';
+  assert.deepEqual(leerTransiciones(cuerpo), []);
+});
+
+test('MEN-9: con dos encabezados reales, el registro es el ULTIMO', () => {
+  // Un "## Transiciones" suelto en el enunciado (sin bloque) no es el registro: el CLI escribe al final.
+  const cuerpo = '## Objetivo\n\n' + EJEMPLO_TABLA + '\n## Criterios de aceptacion\n- [ ] x\n';
+  const r = anadirTransicion(anadirTransicion(cuerpo, fila()), fila({ fase: 'start' }));
+  // anadirTransicion escribio en el que ya existia (el unico) la primera vez; desde ahi, el ultimo.
+  const conOtro = r + '\n## Transiciones\n\n| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n| 2026-10-05 | review | manual | persona |\n';
+  assert.deepEqual(
+    leerTransiciones(conOtro).map((f) => f.fase),
+    ['review']
+  );
+});
+
+test('MEN-9: un "## X" dentro de un bloque de la propia seccion no la corta, y la fila nueva no cae dentro del bloque', () => {
+  const base = anadirTransicion(CUERPO, fila());
+  const conBloque = base + '\n```md\n## Nota\n| 2026-01-01 | review | manual | persona |\n```\n';
+  const r = anadirTransicion(conBloque, fila({ fase: 'approve' }));
+  // La fila nueva va tras la ultima fila REAL de la tabla, antes del bloque, y se lee.
+  assert.deepEqual(
+    leerTransiciones(r).map((f) => f.fase),
+    ['plan', 'approve']
+  );
+  assert.ok(r.indexOf('| approve |') < r.indexOf('```md'), 'la fila no puede quedar dentro ni detras del bloque');
+  // Y una fila escrita a mano DESPUES del bloque sigue en la seccion: el "## Nota" del bloque no la corta.
+  const conFilaDetras = conBloque + '| 2026-10-06 | start | manual | persona |\n';
+  assert.deepEqual(
+    leerTransiciones(conFilaDetras).map((f) => f.fase),
+    ['plan', 'start']
+  );
+});
+
 test('registrarTransicion: plan toma el modo del config; el resto, el congelado aunque el config cambie', () => {
   const tras = registrarTransicion(CUERPO, 'plan', '2026-10-04', 'automatico');
   const aprobada = registrarTransicion(tras, 'approve', '2026-10-05', 'manual', 'automatico');

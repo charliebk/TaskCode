@@ -136,4 +136,15 @@ test('siguienteFase: un veredicto que no se reconoce no se presenta como "falta 
   const t = tarea({ estado: 'en-revision', plan_aprobado: true });
   assert.match(siguienteFase(t, { ...CTX, veredicto: 'desconocido' }, 'manual').motivo, /no se reconoce/);
   assert.match(siguienteFase(t, { ...CTX, veredicto: 'pendiente' }, 'manual').motivo, /falta el revisor/);
+  // Lo mismo en la segunda opinion (MEN-10).
+  const conCodex = tarea({ estado: 'en-revision', plan_aprobado: true, revision_codex: true });
+  const ctxCodex = { ...CTX, veredicto: 'aprobada' as const };
+  assert.match(
+    siguienteFase(conCodex, { ...ctxCodex, veredictoCodex: 'desconocido' }, 'manual').motivo,
+    /no se reconoce/
+  );
+  assert.match(
+    siguienteFase(conCodex, { ...ctxCodex, veredictoCodex: 'pendiente' }, 'manual').motivo,
+    /no tiene veredicto/
+  );
 });
