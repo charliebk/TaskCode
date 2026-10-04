@@ -100,3 +100,17 @@ test('casillasSinMarcar: cuenta solo las normales sin marcar; ignora "Tras el ci
   assert.deepEqual(casillasSinMarcar(body.replace(/\n/g, '\r\n')), ['pendiente uno', 'pendiente dos']);
   assert.deepEqual(casillasSinMarcar('## Criterios de aceptacion\n- [x] a\n'), []);
 });
+
+test('casillasSinMarcar (MEN-6 de su revision): un ### posterior a "Tras el cierre" vuelve a contar', () => {
+  const body = '## Criterios de aceptacion\n### Tras el cierre\n- [ ] CI\n### CLI\n- [ ] vuelve a contar\n';
+  assert.deepEqual(casillasSinMarcar(body), ['vuelve a contar']);
+});
+
+test('esSoloVago y tieneAncla (MEN-1 y MEN-2 de su revision): femeninos, conjugadas y barras sueltas', () => {
+  for (const vago of ['Que sea rapida', 'Es correcta', 'Que quede limpia', 'Optimizada', 'Que funcione correctamente']) {
+    assert.equal(esSoloVago(vago), true, vago);
+  }
+  assert.equal(tieneAncla('Robusto y/o eficiente'), false);
+  assert.equal(tieneAncla('si/no segun el caso'), false);
+  assert.equal(tieneAncla('toca src/core/x'), true);
+});

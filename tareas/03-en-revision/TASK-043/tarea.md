@@ -81,3 +81,26 @@ Mutantes (7, todos muertos): limite a 13, sin aviso en finish, sin puerta en
 approve, puerta solo con roles, contar `Tras el cierre`, sin avisos en plan,
 cabeceras como contenido propio. El de esSoloVago encontro un hueco real
 («que sea rapido» no se detectaba): anadidas formas copulativas.
+
+### Revision por pares (ronda 1)
+
+Revisor independiente (code-quality-reviewer): **aprobada-con-correcciones**,
+0 CRITICO, 0 IMPORTANTE, 6 MENOR. Reprodujo el ciclo entero con
+`bin/taskctl` en un repo temporal: el `[AVISO]` de finish sale antes del
+merge y no bloquea. Segun la politica de rondas, los MENOR no abren ronda 2.
+
+- MEN-1 (corregido): faltaban femeninos y conjugadas en las palabras vagas
+  («que sea rapida», «optimizada», «que funcione correctamente»).
+- MEN-2 (corregido): una sola barra («y/o», «si/no») contaba como ruta; ahora
+  hacen falta dos.
+- MEN-3 (no se corrige): approve no reconoce el esqueleto de la plantilla
+  anterior a TASK-016. Solo deja pasar, y no hay tareas asi en curso.
+- MEN-4 (no se corrige): un plan hecho solo de cabeceras propias se rechaza
+  con el mensaje de «plantilla sin rellenar». Es el comportamiento buscado (sin
+  cuerpo no hay plan); el mensaje es algo inexacto en ese caso raro.
+- MEN-5 (no se corrige): `casillasSinMarcar` solo reconoce `## Criterios`, no
+  `### Criterios`, y duplica la logica de secciones. Queda como deuda: solo
+  pierde un aviso.
+- MEN-6 (corregido en parte): test nuevo para el reinicio de `Tras el
+  cierre` tras otro `###`. El cableado de avisos en `cli.ts` sigue sin test
+  propio; la cobertura es la e2e del revisor.

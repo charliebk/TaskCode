@@ -6,9 +6,11 @@ export const AVISO_CRITERIOS = 8;
  * calibracion no tiene casos con los que validarla).
  */
 const PALABRAS_VAGAS = [
-    'mejorar', 'mejora', 'robusto', 'robusta', 'correctamente', 'adecuado', 'adecuadamente',
-    'bien', 'optimizar', 'optimizado', 'limpio', 'limpiar', 'eficiente', 'rapido', 'facil',
-    'mantenible', 'escalable', 'calidad', 'correcto', 'funciona',
+    'mejorar', 'mejora', 'mejorado', 'mejorada', 'robusto', 'robusta', 'correctamente',
+    'adecuado', 'adecuada', 'adecuadamente', 'bien', 'optimizar', 'optimizado', 'optimizada',
+    'limpio', 'limpia', 'limpiar', 'eficiente', 'eficientes', 'rapido', 'rapida', 'facil',
+    'mantenible', 'escalable', 'calidad', 'correcto', 'correcta', 'funciona', 'funcione',
+    'funcionen',
 ];
 /** Palabras vacias que no cuentan al decidir si un criterio es «solo vago». */
 const PALABRAS_VACIAS = new Set([
@@ -32,7 +34,9 @@ export function tieneAncla(criterio) {
         return true;
     if (/(^|\s)--[a-z]/i.test(criterio))
         return true;
-    if (/[\w.-]+\/[\w./-]+/.test(criterio) || /\b[\w-]+\.(ts|js|mjs|md|sh|json|yml|yaml|java|cs|vue|py)\b/i.test(criterio)) {
+    // Ruta: dos barras como minimo (`src/core/x`); con una sola, «y/o» o
+    // «si/no» pasarian por ancla (MEN-2 de la revision).
+    if (/[\w.-]+\/[\w.-]+\/[\w./-]+/.test(criterio) || /\b[\w-]+\.(ts|js|mjs|md|sh|json|yml|yaml|java|cs|vue|py)\b/i.test(criterio)) {
         return true;
     }
     const n = normalizar(criterio);
