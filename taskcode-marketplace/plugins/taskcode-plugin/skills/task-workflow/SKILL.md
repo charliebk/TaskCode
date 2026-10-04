@@ -96,6 +96,7 @@ taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release>
             [--sprint N] [--etiquetas a,b,c]
             [--complejidad trivial|simple|media|alta|critica]
             [--modelo-sugerido X] [--agente-revisor Y]
+            [--objetivo "<texto>"] [--criterio "<texto>"]... | [--desde <fichero>]
 
 taskctl import <fichero.md> [--tipo ...] [--sprint N] [--complejidad ...]
 taskctl board [--sprint N] [--asignado-a <persona>]

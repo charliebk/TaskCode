@@ -37,7 +37,8 @@ Uso:
   taskctl --version
   taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release> \\
               [--sprint N] [--etiquetas a,b,c] [--complejidad ...] \\
-              [--modelo-sugerido ...] [--agente-revisor ...]
+              [--modelo-sugerido ...] [--agente-revisor ...] \\
+              [--objetivo "<texto>"] [--criterio "<texto>"]... | [--desde <fichero.md>]
   taskctl import <fichero.md> [--tipo <feature|fix|hotfix|release>] \\
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
