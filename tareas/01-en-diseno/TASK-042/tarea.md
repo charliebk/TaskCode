@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-042-f4-t4-complejidad-por-defecto-por-heuris
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
