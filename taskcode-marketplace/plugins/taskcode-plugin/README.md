@@ -116,9 +116,16 @@ function taskctl {
   $bin = Get-ChildItem $taskcodeBase -Directory |
     Where-Object { $_.Name -as [version] } |
     Sort-Object { $_.Name -as [version] } | Select-Object -Last 1
+  if (-not $bin) { throw "taskcode-plugin no esta instalado en $taskcodeBase (instalalo con /plugin)" }
   node (Join-Path $bin.FullName 'bin\taskctl') @args
 }
 ```
+
+En Windows PowerShell 5.1, evita las comillas dobles dentro de un argumento
+(`--titulo 'Soporte "modo oscuro"'`): PowerShell 5.1 no las escapa al llamar
+a `node`, y el titulo llega sin ellas o partido en dos argumentos. Usa
+comillas simples dentro del texto, o PowerShell 7.3 o posterior, que las pasa
+bien.
 
 **No pongas `bin` en el PATH para usarlo desde PowerShell.** Ahi `taskctl`
 resolveria a `bin\taskctl.cmd`, y PowerShell le pasa sin comillas los

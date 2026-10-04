@@ -422,6 +422,23 @@ test('PowerShell: la funcion de perfil del README pasa intactos argumentos sin e
   }
 });
 
+test('PowerShell: sin ninguna version X.Y.Z instalada, la funcion del README falla diciendo que el plugin no esta instalado (MEN-7, MEN-8)', async (t) => {
+  if (!ES_WINDOWS) return t.skip('solo Windows: no hay powershell.exe');
+
+  const cache = await mkdtemp(path.join(tmpdir(), 'e6-cache-vacia-'));
+  try {
+    // Solo una version que no casa con [version]: el filtro tiene que
+    // descartarla, o la funcion intentaria lanzar un plugin inexistente.
+    await mkdir(path.join(cache, '0.4.0-beta', 'bin'), { recursive: true });
+    const funcion = await funcionPowerShellDelReadme(cache);
+    const r = desdePowerShell(funcion, ['--version'], cache);
+    assert.notEqual(r.status, 0, 'sin plugin instalado no puede salir 0');
+    assert.match(r.stderr, /taskcode-plugin no esta instalado/, `mensaje accionable: ${r.stderr}`);
+  } finally {
+    await rm(cache, { recursive: true, force: true });
+  }
+});
+
 test('el lanzador de Windows lleva CRLF fijado en .gitattributes, y el de Unix sigue en LF', async (t) => {
   const attrs = await readFile(path.join(PLUGIN_ROOT, '.gitattributes'), 'utf8');
   assert.match(attrs, /^bin\/\*\.cmd\s+text\s+eol=crlf$/m, 'el .cmd, con eol=crlf');
