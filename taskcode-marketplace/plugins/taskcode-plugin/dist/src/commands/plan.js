@@ -32,6 +32,7 @@ import { ensureBaseBranchReady, gitUserEmail } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { resolverAsignado } from '../core/wip.js';
 import { extraerSecciones } from '../core/tarea-body.js';
+import { validarEnunciado } from '../core/validacion-tarea.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
 import { seleccionarRoles, ROLES_BRAINSTORM, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
@@ -290,6 +291,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     const catalogoSkills = cargarCatalogoSkills();
     const seleccionSkill = seleccionarSkill(task, catalogoSkills);
     const secciones = extraerSecciones(body);
+    const avisosEnunciado = [];
     // Puerta del objetivo vacio. "taskctl new" deja el Objetivo en blanco
     // a proposito, y mientras "plan" solo escribia un scaffold eso era
     // inofensivo. Con N agentes detras deja de serlo: cada rol recibiria
@@ -305,12 +307,20 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // la propia TASK-016, cuyo Objetivo estaba vacio — y de paso hundio
     // su puntuacion heuristica, porque las palabras de riesgo son la
     // unica senal del YML que mira el contenido del trabajo.
-    if (roles.length > 0 && secciones.objetivo === '') {
-        throw new PlanCommandError(`[ERROR] ${task.id}: el "## Objetivo" de tarea.md esta vacio, y esta tarea lanza ` +
-            `${roles.length} agente(s) de brainstorm. Sin objetivo cada rol se inventaria el suyo y ` +
-            'el plan resultante pareceria fundado sin serlo. Escribe el objetivo en ' +
-            `"${filePath}" y reintenta. La tarea no se ha movido.`);
+    //
+    // TASK-043: la puerta pasa a ser la validacion entera del enunciado
+    // (objetivo, numero de criterios, criterios vacios o solo vagos), y se
+    // aplica TAMBIEN con 0 roles: una tarea mal definida es igual de cara
+    // de revisar aunque no lance brainstorm. Se valida la lectura FRESCA
+    // (la de la rama base, donde la persona ya esta y donde hay que editar).
+    const validacion = validarEnunciado(secciones);
+    if (validacion.bloqueos.length > 0) {
+        throw new PlanCommandError(`[ERROR] ${task.id}: la tarea no esta lista para planificar:\n` +
+            validacion.bloqueos.map((b) => `        - ${b}\n`).join('') +
+            `        Estas en la rama base: edita "${filePath}", commitea el cambio y reintenta ` +
+            '"taskctl plan". La tarea no se ha movido.');
     }
+    avisosEnunciado.push(...validacion.avisos);
     // El plan se escribe/migra en la carpeta ACTUAL, ANTES de mover la
     // tarea de estado — mismo orden y mismo motivo que "review" con
     // revision/ (TASK-013): si una escritura falla, la tarea no se ha
@@ -728,6 +738,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         }
     }
     return {
+        avisosEnunciado,
         autoCommit: commitResult,
         id: task.id,
         filePath: newFilePath,

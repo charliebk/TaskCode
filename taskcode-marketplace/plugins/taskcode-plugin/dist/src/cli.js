@@ -386,7 +386,7 @@ async function mainComando(argv) {
         try {
             const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
             printBaseBranchSwitchNotice(result.baseBranchGuard);
-            printAvisos(result.avisoIdentidad);
+            printAvisos(result.avisoIdentidad, ...result.avisosEnunciado);
             // Tres desenlaces posibles desde TASK-027 (item C3): scaffold
             // nuevo, plan que ya estaba en planificacion/, o plan legado
             // suelto en la raiz que esta invocacion acaba de mover ahi.
@@ -566,6 +566,7 @@ async function mainComando(argv) {
             const result = await runFinishCommand(tareasRoot, argv.slice(1), today(), {
                 repoCwd,
                 scriptsDir: resolveGitflowScriptsDir(),
+                onAviso: (aviso) => printAvisos(aviso),
             });
             const mainInfo = result.mainBranch === null ? '' : ` y en "${result.mainBranch}" (con tag)`;
             process.stdout.write(`Tarea ${result.id} terminada: "${result.rama}" integrada en ` +

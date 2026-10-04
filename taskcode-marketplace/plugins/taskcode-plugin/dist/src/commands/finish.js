@@ -24,6 +24,7 @@ import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
 import { veredictoAprobado } from '../core/informe-revision.js';
+import { casillasSinMarcar } from '../core/validacion-tarea.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
@@ -213,6 +214,15 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     }
     const ctxInicial = await buildTransitionContext(path.dirname(initial.filePath));
     assertTransitionAllowed('finish', initial.task, ctxInicial);
+    // TASK-043 (D5 de la auditoria): avisar, sin bloquear, de criterios sin
+    // marcar antes de mergear. No bloquea: hay criterios que se cumplen y no
+    // se marcan, y el veredicto del revisor ya es la puerta dura.
+    const sinMarcar = casillasSinMarcar(initial.body);
+    if (sinMarcar.length > 0) {
+        deps.onAviso?.(`${id}: ${String(sinMarcar.length)} criterio(s) de aceptacion sin marcar en tarea.md: ` +
+            `${sinMarcar.map((c) => `«${c}»`).join('; ')}. Si estan cumplidos, marcalos; si no, ` +
+            'la tarea se cierra igualmente (el veredicto del revisor es la puerta).');
+    }
     const tipo = initial.task.tipo;
     const rama = initial.task.rama;
     const titulo = initial.task.titulo;

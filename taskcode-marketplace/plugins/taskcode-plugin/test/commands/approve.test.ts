@@ -87,7 +87,7 @@ async function withTempRepo(fn: (repoRoot: string, tareasRoot: string) => Promis
 }
 
 /** Plan en la ubicacion canonica desde TASK-027: planificacion/plan-final.md. */
-async function writePlanFinal(tareasRoot: string, id: string, content = '# Plan real\n'): Promise<void> {
+async function writePlanFinal(tareasRoot: string, id: string, content = '# Plan real\n\nEnfoque: probar approve.\n'): Promise<void> {
   const dir = path.join(tareasRoot, '01-en-diseno', id, PLANIFICACION_DIRNAME);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, PLAN_FINAL_FILENAME), content, 'utf8');
@@ -101,7 +101,7 @@ async function writePlanFinal(tareasRoot: string, id: string, content = '# Plan 
 async function writePlanFinalLegado(
   tareasRoot: string,
   id: string,
-  content = '# Plan real legado\n'
+  content = '# Plan real legado\n\nEnfoque legado.\n'
 ): Promise<void> {
   await writeFile(path.join(tareasRoot, '01-en-diseno', id, PLAN_FINAL_FILENAME), content, 'utf8');
 }

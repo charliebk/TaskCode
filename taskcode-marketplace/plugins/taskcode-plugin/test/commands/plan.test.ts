@@ -64,7 +64,9 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
  * mide, y no la precondicion.
  */
 const BODY_CON_OBJETIVO =
-  '## Objetivo\n\nProbar el comando con una tarea que si dice a que viene.\n';
+  '## Objetivo\n\nProbar el comando con una tarea que si dice a que viene.\n\n' +
+  // TASK-043: plan exige al menos un criterio.
+  '## Criterios de aceptacion\n- [ ] `taskctl plan` mueve la tarea a 01-en-diseno.\n';
 
 function git(args: string[], cwd: string): void {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
