@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: null
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-058-flujo-d-modo-semiautomatico
 asignado_a: charlie.bk@gmail.com

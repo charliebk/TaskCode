@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-058 — Flujo D: modo semiautomatico · etiquetas: (sin etiquetas) · rama feature/task-058-flujo-d-modo-semiautomatico · terminada 2026-10-04 · tareas/04-terminadas/TASK-058/
 - TASK-057 — Flujo C: fases como skills invocables en modo manual · etiquetas: (sin etiquetas) · rama feature/task-057-flujo-c-fases-como-skills-invocables-en · terminada 2026-10-04 · tareas/04-terminadas/TASK-057/
 - TASK-056 — Flujo B: nucleo determinista del siguiente paso y registro de transiciones · etiquetas: (sin etiquetas) · rama feature/task-056-flujo-b-nucleo-determinista-del-siguient · terminada 2026-10-04 · tareas/04-terminadas/TASK-056/
 - TASK-055 — Flujo A: taskctl desde PowerShell y cmd · etiquetas: cli, skill, flujo · rama feature/task-055-flujo-guiado-por-fases-con-modos-manual · terminada 2026-10-04 · tareas/04-terminadas/TASK-055/
