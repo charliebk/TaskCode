@@ -1,6 +1,22 @@
 # Changelog
 
-## Sin publicar
+## 0.1.3 — 2026-10-04
+
+Fase 2 del plan de la auditoria: **Git-Flow mas rapido**. Actualizar con
+`claude plugin marketplace update taskcode-marketplace`, `claude plugin update
+taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code.
+
+- El log de los scripts de Git-Flow ya no lanza un `date` ni un subshell por
+  linea (bash >= 4.2; en bash 3.2 se mantiene `date`): `update-feature.sh`
+  ~26 % mas rapido.
+- Una sola consulta a `origin` por invocacion, con limite de 5 s
+  (`GF_TIMEOUT_REMOTO`) y sin esperar credenciales: con la VPN caida,
+  `update-feature.sh` pasa de ~23 s a ~7 s. El merge a `develop` con origin
+  configurado pero caido avisa de que `develop` puede estar desfasada.
+- `push-back-to-remote.sh --mirror` aborta si no puede listar el destino, en
+  vez de mostrar una vista previa vacia y borrar ramas.
+- Los commits automaticos lanzan menos procesos `git` (ciclo completo: 115 → 96).
+
 
 - TASK-039 (feature) — F2-T3 Menos llamadas git en los comandos (2026-10-04)
 - TASK-038 (feature) — F2-T2 Una sola deteccion de origin por invocacion, con timeout (2026-10-04)
