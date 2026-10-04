@@ -6,7 +6,7 @@ sprint: 2
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-036-f1-t3-veredicto-con-un-comando-e-informe
 asignado_a: charlie.bk@gmail.com

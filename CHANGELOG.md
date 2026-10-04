@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-036 (feature) — F1-T3 Veredicto con un comando e informe estructurado (2026-10-04)
 - TASK-035 (feature) — F1-T2 Politica de rondas y una sola suite por ronda en las skills (2026-10-04)
 - TASK-034 (feature) — F1-T1 Excluir lo generado del diff de revision (2026-10-04)
 

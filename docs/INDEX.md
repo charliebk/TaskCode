@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-036 — F1-T3 Veredicto con un comando e informe estructurado · etiquetas: (sin etiquetas) · rama feature/task-036-f1-t3-veredicto-con-un-comando-e-informe · terminada 2026-10-04 · tareas/04-terminadas/TASK-036/
 - TASK-035 — F1-T2 Politica de rondas y una sola suite por ronda en las skills · etiquetas: (sin etiquetas) · rama feature/task-035-f1-t2-politica-de-rondas-y-una-sola-suit · terminada 2026-10-04 · tareas/04-terminadas/TASK-035/
 - TASK-034 — F1-T1 Excluir lo generado del diff de revision · etiquetas: (sin etiquetas) · rama feature/task-034-f1-t1-excluir-lo-generado-del-diff-de-re · terminada 2026-10-04 · tareas/04-terminadas/TASK-034/
 - TASK-033 — Comando de sincronización tras cada transición y guía de criterios post-cierre (v0.1.1) · etiquetas: plugin, config, skill, correccion · rama fix/task-033-comando-de-sincronizacion-tras-cada-tran · terminada 2026-10-03 · tareas/04-terminadas/TASK-033/
