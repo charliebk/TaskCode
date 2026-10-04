@@ -137,6 +137,14 @@ test('veredicto: en una ronda fragmentada exige --informe y, con el, toca solo e
       await readFile(path.join(revisionDir, 'informe-revision-1-angular-vue-reviewer.md'), 'utf8'),
       /PENDIENTE/
     );
+    // MEN-3 de la revision: --informe con un nombre que no es de la ronda
+    // (o que sale de revision/) se rechaza sin tocar nada.
+    for (const malo of ['informe-revision-9.md', '../tarea.md']) {
+      await assert.rejects(
+        runVeredictoCommand(tareas, ['TASK-940', 'aprobada', '--informe', malo], { repoCwd: repo }),
+        (e: unknown) => e instanceof VeredictoCommandError && /no es un informe de la ronda/.test(e.message)
+      );
+    }
   });
 });
 
@@ -164,6 +172,13 @@ test('veredicto: un informe sin linea de veredicto o un valor desconocido dan er
       runVeredictoCommand(tareas, ['TASK-940', 'APROBADO'], { repoCwd: repo }),
       (e: unknown) => e instanceof VeredictoCommandError && /no reconocido/.test(e.message)
     );
+    // MEN-1: una clave heredada del objeto no es un veredicto.
+    for (const heredada of ['toString', '__proto__', 'constructor']) {
+      await assert.rejects(
+        runVeredictoCommand(tareas, ['TASK-940', heredada], { repoCwd: repo }),
+        (e: unknown) => e instanceof VeredictoCommandError && /no reconocido/.test(e.message)
+      );
+    }
     assert.equal(git(['rev-parse', 'HEAD'], repo).trim(), head);
   });
 });

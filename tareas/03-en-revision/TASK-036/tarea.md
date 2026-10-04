@@ -61,3 +61,18 @@ Codex (decidido sin `--codex`) y remitir alli al comando seria falso.
 `finish`, `codex-review`, la maquina de estados y `main`, 76/76. Contraprueba
 con 3 mutantes, los 3 en rojo: sin el recorte del enfasis, dejando las lineas
 duplicadas y sin la guarda de estado. La skill documenta el comando y el gate.
+
+**Revision ronda 1: aprobada con correcciones** (0 criticos, 0 importantes, 3
+menores; suite completa 905 tests, solo los 3 rojos conocidos de Windows; 4 de
+5 mutantes en rojo; test diferencial de `informesDeUltimaRonda` contra la
+implementacion anterior sobre 300 directorios aleatorios, 0 diferencias). El
+revisor escribio su veredicto con el propio `taskctl veredicto`: funciono a la
+primera (`52463f5`). Por A3, sin ronda 2. Corregidos en el cierre:
+- MEN-1: `valor in VEREDICTOS` aceptaba claves heredadas (`toString`,
+  `__proto__`) y commiteaba una linea absurda; ahora `Object.hasOwn`, con test.
+- MEN-3: la guarda de `--informe` con un nombre que no es de la ronda (o con
+  `..`) no tenia test; ahora si.
+Sin corregir, documentado: MEN-2, `sustituirVeredicto` quita tambien lineas
+`- Veredicto:` citadas dentro de un bloque de codigo. Es coherente con el gate
+de `finish`, que tambien las cuenta: respetar los bloques en un sitio y no en
+el otro abriria la divergencia que esta tarea cierra.

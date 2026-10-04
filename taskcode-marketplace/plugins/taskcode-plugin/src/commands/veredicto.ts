@@ -114,7 +114,9 @@ export async function runVeredictoCommand(
   if (id === undefined || id.trim() === '') {
     throw new VeredictoCommandError(`[ERROR] Falta el ID de la tarea. ${uso}`);
   }
-  if (valor === undefined || !(valor in VEREDICTOS)) {
+  // Object.hasOwn y no `in`: `in` acepta claves heredadas como `toString`
+  // (MEN-1 de la revision de TASK-036).
+  if (valor === undefined || !Object.hasOwn(VEREDICTOS, valor)) {
     throw new VeredictoCommandError(
       `[ERROR] Veredicto ${valor === undefined ? 'ausente' : `"${valor}" no reconocido`}. ` +
         `Valores: ${Object.keys(VEREDICTOS).join(', ')}. ${uso}`
