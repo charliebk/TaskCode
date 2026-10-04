@@ -34,16 +34,15 @@ TASK-058  Flujo D: modo semiautomatico                                          
 TASK-059  Flujo E: modo automatico                                                                    (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 2
+## En diseno (01-en-diseno) — 1
 
 ```text
-ID        Titulo                                   Asignado
---------  ---------------------------------------  --------------------
-TASK-023  Métricas de coste en tokens por fase     charlie.bk@gmail.com
-TASK-055  Flujo A: taskctl desde PowerShell y cmd  charlie.bk@gmail.com
+ID        Titulo                                Asignado
+--------  ------------------------------------  --------------------
+TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 32
+## Terminadas (04-terminadas) — 33
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -80,4 +79,5 @@ TASK-044  F4-T3 Particion propuesta de las tareas grandes                       
 TASK-045  F5-T1 rama_base de punta a punta                                                         charlie.bk@gmail.com
 TASK-046  F5-T2 Secciones con subtitulos y criterios multilinea                                    charlie.bk@gmail.com
 TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
+TASK-055  Flujo A: taskctl desde PowerShell y cmd                                                  charlie.bk@gmail.com
 ```
