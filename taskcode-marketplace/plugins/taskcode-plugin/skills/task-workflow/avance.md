@@ -49,11 +49,38 @@ commitearlo y dejar la suite en verde; despues, la revision.
 - **`detener`** (modo `manual`): no encadenar nada. Terminar diciendo a la
   persona, en una linea, el `motivo` y la skill de la siguiente fase con su
   ID, por ejemplo `/taskcode-plugin:approve TASK-NNN`. Si la tarea esta
-  terminada, decirlo y nada mas.
-- **`preguntar`** y **`continuar`**: los modos `semiautomatico` y
-  `automatico` todavia no encadenan fases desde las skills. Hasta entonces se
-  tratan exactamente igual que `detener`: es el fallo seguro, nunca se avanza
-  de mas.
+  terminada, decirlo y nada mas. Si habia una cadena abierta, cerrarla.
+- **`preguntar`**: preguntar a la persona con AskUserQuestion si pasar a la
+  siguiente fase, con el `motivo` y dos opciones.
+  - **Si**: encadenar la skill siguiente (abajo).
+  - **No**: ejecutar `taskctl pausa TASK-NNN` (deja el «no» en el registro de
+    la tarea, sin cambiar su estado), cerrar la cadena y terminar nombrando la
+    skill que la reanuda.
+- **`continuar`**: encadenar la skill siguiente sin preguntar.
+
+No se encadena, aunque la accion lo diga, cuando la `fase` es `review` con la
+tarea `en-curso`: primero hay que implementar el plan. La skill termina como
+en `detener`, diciendo que toca implementar y despues revisar.
+
+## Encadenar la skill siguiente (la cadena)
+
+Mientras una cadena de fases esta en marcha, el arbol de trabajo queda
+bloqueado para otras sesiones (dos sesiones encadenando sobre el mismo arbol
+se pisan las ramas). La cadena se identifica con un testigo:
+
+1. Si esta skill recibio `--cadena <testigo>` en `$ARGUMENTS`, la cadena ya
+   esta abierta: usa ese testigo. Si no, abrela ahora:
+   `taskctl cadena abrir TASK-NNN` imprime el testigo. Si aborta porque hay
+   otra cadena en marcha, muestra el error tal cual y para.
+2. Invoca la skill de la siguiente fase con la herramienta Skill:
+   `taskcode-plugin:<skill>` con argumentos `TASK-NNN --cadena <testigo>`.
+3. Cerrar la cadena: `taskctl cadena cerrar <testigo>`, cuando la cadena se
+   detiene (un `detener`, un «no», un error o la tarea terminada). Solo la
+   cierra quien tiene el testigo.
+
+Una skill que recibe `--cadena <testigo>` empieza, despues de situarse en la
+raiz, con `taskctl cadena comprobar <testigo>`; si falla, para y muestra el
+error. En modo `manual` no hay cadena ni bloqueo.
 
 ## Reglas que no cambian con el modo
 

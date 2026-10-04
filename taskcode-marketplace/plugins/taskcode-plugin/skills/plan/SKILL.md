@@ -12,7 +12,9 @@ no deberian necesitar volver a preguntar.
 
 ## Pasos
 
-1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`.
+1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`. Si
+   `$ARGUMENTS` trae `--cadena <testigo>`, ejecuta `taskctl cadena comprobar <testigo>`
+   y para si falla (ver la cadena en `task-workflow/avance.md`).
 2. Mira donde esta la tarea (el ID viene en `$ARGUMENTS`):
    `taskctl siguiente TASK-NNN --json`.
    - **`estado: planificada`**: ejecuta `taskctl plan TASK-NNN` y sigue en el

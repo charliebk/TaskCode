@@ -10,7 +10,9 @@ Mergea la rama de la tarea (sin borrarla) y la deja en `terminada`.
 
 ## Pasos
 
-1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`.
+1. Situate en la raiz del repo: `cd "$(git rev-parse --show-toplevel)"`. Si
+   `$ARGUMENTS` trae `--cadena <testigo>`, ejecuta `taskctl cadena comprobar <testigo>`
+   y para si falla (ver la cadena en `task-workflow/avance.md`).
 2. Comprueba que el `tarea.md` tiene los criterios de aceptacion marcados y
    una seccion `## Resultado` con lo implementado, lo que encontro la
    revision y lo que se decidio no corregir. Si falta, completalo y

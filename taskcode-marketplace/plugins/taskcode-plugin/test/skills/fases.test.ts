@@ -231,6 +231,26 @@ test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en 
   assert.doesNotMatch(paso6[0], /taskctl codex-review/, 'el paso 6 no puede lanzar codex-review');
 });
 
+test('semiautomatico (TASK-058): preguntar y continuar encadenan con la herramienta Skill y la cadena bloquea el arbol', async () => {
+  const avance = lf(await readFile(AVANCE, 'utf8'));
+  const preguntar = /\*\*`preguntar`\*\*[\s\S]*?(?=\n- \*\*`continuar`)/.exec(avance);
+  assert.ok(preguntar, 'avance.md describe preguntar');
+  assert.match(preguntar[0], /AskUserQuestion/);
+  assert.match(preguntar[0], /taskctl pausa/, 'el no queda registrado con pausa');
+  assert.match(avance, /\*\*`continuar`\*\*: encadenar la skill siguiente sin preguntar/);
+  // La cadena: se abre, viaja con --cadena a la skill siguiente via Skill, y se cierra.
+  assert.match(avance, /taskctl cadena abrir TASK-NNN/);
+  assert.match(avance, /herramienta Skill/);
+  assert.match(avance, /TASK-NNN --cadena <testigo>/);
+  assert.match(avance, /taskctl cadena cerrar <testigo>/);
+  // En curso no se encadena: falta implementar.
+  assert.match(avance, /`review` con la\s+tarea `en-curso`/);
+  for (const fase of Object.keys(FASES)) {
+    const texto = await readFile(path.join(SKILLS_DIR, fase, 'SKILL.md'), 'utf8');
+    assert.ok(texto.includes('taskctl cadena comprobar <testigo>'), `${fase}: no comprueba la cadena recibida`);
+  }
+});
+
 test('approve es el checkpoint humano: solo aprueba con el si de la persona y registra el no con pausa', async () => {
   const texto = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8');
   assert.match(texto, /Pregunta a la persona/);

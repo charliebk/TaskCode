@@ -18,6 +18,7 @@ import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
 import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
+import { runCadenaCommand, CadenaCommandError } from './commands/cadena.js';
 import { isWrapperCommand, runWrapperCommand, WrapperCommandError, } from './commands/wrappers.js';
 import { resolveGitflowScriptsDir, GitflowScriptLaunchError } from './fs/gitflow-runner.js';
 import { StateMachineError } from './core/state-machine.js';
@@ -55,6 +56,7 @@ Uso:
   taskctl finish TASK-NNN [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl pausa TASK-NNN [--push]
+  taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar
   taskctl diagnose
   taskctl pause [--push]
   taskctl resume [<rama>]
@@ -62,7 +64,7 @@ Uso:
   taskctl abort-merge
 
 Comandos: new, import, board, start, plan, approve, review, codex-review, veredicto, finish,
-siguiente, pausa.
+siguiente, pausa, cadena.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase.
@@ -540,6 +542,27 @@ async function mainComando(argv) {
                 e instanceof SiguienteCommandError ||
                 e instanceof GitLaunchError ||
                 e instanceof GitCommandError) {
+                printCliError(e);
+                return 1;
+            }
+            throw e;
+        }
+    }
+    if (cmd === 'cadena') {
+        const repoCwd = process.cwd();
+        try {
+            const r = await runCadenaCommand(argv.slice(1), { repoCwd });
+            // abrir imprime SOLO el testigo en stdout, para que una skill lo capture.
+            if (r.accion === 'abrir')
+                process.stdout.write(`${r.bloqueo.testigo}\n`);
+            else if (r.accion === 'comprobar')
+                process.stdout.write(`Cadena de ${r.bloqueo.tarea}: abierta.\n`);
+            else
+                process.stdout.write(r.existia ? 'Cadena cerrada.\n' : 'No habia ninguna cadena abierta.\n');
+            return 0;
+        }
+        catch (e) {
+            if (e instanceof CadenaCommandError || e instanceof GitLaunchError || e instanceof GitCommandError) {
                 printCliError(e);
                 return 1;
             }
