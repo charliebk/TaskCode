@@ -343,3 +343,33 @@ test('runImportCommand: dos imports concurrentes sobre el mismo repo no pierden 
     if (rb.errores.length > 0) assert.match(rb.errores[0]!.motivo, /concurrente/);
   });
 });
+
+test('runImportCommand: el Objetivo de la entrada se escribe en el tarea.md; sin Objetivo queda vacio como siempre', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const md = await writeFixture(
+      '### Con objetivo\n> Linea uno\n> linea dos\n>\n> Otro parrafo\n- criterio a\n\n### Sin objetivo\n- criterio b\n'
+    );
+
+    const result = await runImportCommand(tareasRoot, [md], '2026-09-03', { repoCwd: repoRoot });
+
+    assert.equal(result.creadas.length, 2);
+    const con = await readFile(result.creadas[0]!.filePath, 'utf8');
+    assert.match(
+      con.replace(/\r\n/g, '\n'),
+      /## Objetivo\n\nLinea uno\nlinea dos\n\nOtro parrafo\n\n## Criterios de aceptacion\n- \[ \] criterio a\n/
+    );
+    const sin = await readFile(result.creadas[1]!.filePath, 'utf8');
+    assert.match(sin.replace(/\r\n/g, '\n'), /## Objetivo\n\n\n## Criterios de aceptacion\n- \[ \] criterio b\n/);
+  });
+});
+
+test('runImportCommand: un ">" tras un criterio invalida la entrada y no crea nada', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const md = await writeFixture('### Mala\n> objetivo\n- criterio a\n> suelta\n');
+
+    const result = await runImportCommand(tareasRoot, [md], '2026-09-03', { repoCwd: repoRoot });
+
+    assert.equal(result.creadas.length, 0);
+    assert.equal(result.errores.length, 1);
+  });
+});

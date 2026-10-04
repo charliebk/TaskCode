@@ -180,7 +180,7 @@ export async function runImportCommand(tareasRoot, argv, today, deps) {
             continue;
         }
         const id = nextTaskId(existingIds);
-        const body = `## Objetivo\n\n\n## Criterios de aceptacion\n${entry.criterios
+        const body = `## Objetivo\n${entry.objetivo === '' ? '\n' : `\n${entry.objetivo}\n`}\n## Criterios de aceptacion\n${entry.criterios
             .map((c) => `- [ ] ${c}`)
             .join('\n')}\n`;
         const task = buildNewTask(id, {

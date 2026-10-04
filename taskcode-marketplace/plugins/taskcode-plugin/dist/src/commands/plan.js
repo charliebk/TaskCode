@@ -33,6 +33,8 @@ import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js'
 import { resolverAsignado } from '../core/wip.js';
 import { extraerSecciones } from '../core/tarea-body.js';
 import { validarEnunciado } from '../core/validacion-tarea.js';
+import { proponerParticion } from '../core/particion-tarea.js';
+import { escribirPropuestaParticion } from '../fs/particion.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
 import { seleccionarRoles, ROLES_BRAINSTORM, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, nombrePeticionRedaccion, peticionRedaccionTemplate, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
@@ -203,6 +205,33 @@ export function planTemplate(task, roles) {
         '## Plan de pruebas\n\n\n' +
         '## Lo que necesita decision de una persona\n\n');
 }
+/**
+ * TASK-044 (C3 de la auditoria): cuando la tarea es demasiado grande, la
+ * particion propuesta (una tarea por frente, lista para `import`) o, si no
+ * hay frentes, como conseguirlos. Se escribe FUERA del repo y antes de
+ * abortar, asi la tarea y el workspace siguen intactos.
+ */
+async function textoParticion(task, secciones, deps) {
+    const propuesta = proponerParticion(task, secciones);
+    if (propuesta === null) {
+        return ('        Para que "taskctl plan" proponga la particion, agrupa los criterios por frente bajo\n' +
+            '        un subtitulo "###" o una linea solo en negrita ("**Frente**"); los grupos\n' +
+            '        "Transversal", "Comunes" o "General" se copian en cada tarea.\n');
+    }
+    const r = await escribirPropuestaParticion(task.id, propuesta.markdown, deps.repoCwd, deps.dirParticion);
+    if (!r.escrito) {
+        return `        (No se pudo escribir la particion propuesta: ${r.motivo}.)\n`;
+    }
+    return (`        Particion propuesta en ${String(propuesta.titulos.length)} tareas, una por frente:\n` +
+        propuesta.titulos.map((t) => `          · ${t}\n`).join('') +
+        `        Revisala e importala con: taskctl import "${r.ruta}" --tipo ${task.tipo} --sprint ${String(task.sprint)}\n` +
+        (propuesta.hijasGrandes.length === 0
+            ? ''
+            : `        Ojo: ${propuesta.hijasGrandes.map((t) => `«${t}»`).join(', ')} sigue(n) con mas de 12 ` +
+                'criterios al copiar los comunes; recortalos en el fichero.\n') +
+        `        Tras importarla, ${task.id} sigue en 00-planificadas: retirala a mano (no hay comando ` +
+        'para cancelar una tarea).\n');
+}
 export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // El ID sale de los POSICIONALES, no de argv[0] a secas (item B6):
     // con "--asignado-a" en juego, "taskctl plan --asignado-a carlos
@@ -321,6 +350,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     if (validacion.bloqueos.length > 0) {
         throw new PlanCommandError(`[ERROR] ${task.id}: la tarea no esta lista para planificar:\n` +
             validacion.bloqueos.map((b) => `        - ${b}\n`).join('') +
+            (validacion.demasiadoGrande ? await textoParticion(task, secciones, deps) : '') +
             `        Estas en la rama base: edita "${filePath}", commitea el cambio y reintenta ` +
             '"taskctl plan". La tarea no se ha movido.');
     }

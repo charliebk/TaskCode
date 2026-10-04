@@ -98,7 +98,7 @@ taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release>
             [--modelo-sugerido X] [--agente-revisor Y]
             [--objetivo "<texto>"] [--criterio "<texto>"]... | [--desde <fichero>]
 
-taskctl import <fichero.md> [--tipo ...] [--sprint N] [--complejidad ...]
+taskctl import <fichero.md> [--tipo ...] [--sprint N] [--complejidad ...]   # `> texto` bajo el ### = Objetivo
 taskctl board [--sprint N] [--asignado-a <persona>]
 taskctl board --escribir          # no se combina con los filtros de arriba
 taskctl plan    TASK-NNN [--asignado-a <persona>]
@@ -363,11 +363,11 @@ respuesta, que es el plan, se vuelca en `plan-final.md`.
 
 **`plan` valida el enunciado antes de mover nada** (con o sin roles). Bloquea:
 `## Objetivo` vacio, ningun criterio, un criterio vacio, **mas de 12
-criterios** (partela) o un criterio hecho solo de palabras vagas («que sea
+criterios** (si estan agrupados por frente, deja fuera del repo una particion
+lista para `import`) o un criterio hecho solo de palabras vagas («que sea
 robusto»). Avisa con 9 a 12 criterios y con criterios sin nada comprobable
 (comando, ruta, numero, codigo o test). Al abortar estas en la rama base:
-edita `tarea.md`, commitea y reintenta. `finish` avisa antes del merge de
-los criterios sin marcar.
+edita `tarea.md`, commitea y reintenta. `finish` avisa antes del merge de los criterios sin marcar.
 
 **Una re-planificacion no relanza el brainstorm.** La segunda vuelta
 (`en-diseno` con `plan_aprobado: false`) escribe solo otra

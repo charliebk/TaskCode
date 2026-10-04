@@ -15,7 +15,7 @@ import {
 import type { SeccionesTarea } from '../../src/core/tarea-body.js';
 
 function secciones(objetivo: string, criterios: string[]): SeccionesTarea {
-  return { objetivo, criterios, criteriosTrasCierre: [] };
+  return { objetivo, criterios, criteriosTrasCierre: [], grupos: [] };
 }
 
 const n = (k: number): string[] => Array.from({ length: k }, (_, i) => `\`taskctl\` caso ${String(i + 1)}`);
@@ -30,7 +30,7 @@ test('validarEnunciado: objetivo vacio y cero criterios bloquean, con un motivo 
 test('validarEnunciado: el limite es exactamente 12 (bloquea 13) y el aviso empieza en 9', () => {
   assert.equal(MAX_CRITERIOS, 12);
   assert.equal(AVISO_CRITERIOS, 8);
-  assert.deepEqual(validarEnunciado(secciones('X', n(8))), { bloqueos: [], avisos: [] });
+  assert.deepEqual(validarEnunciado(secciones('X', n(8))), { bloqueos: [], avisos: [], demasiadoGrande: false });
   const nueve = validarEnunciado(secciones('X', n(9)));
   assert.equal(nueve.bloqueos.length, 0);
   assert.match(nueve.avisos[0] as string, /tiene 9 criterios/);

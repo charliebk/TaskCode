@@ -7,6 +7,9 @@
  *   - <criterio de aceptacion 1>
  *   - <criterio de aceptacion 2>
  *
+ * Opcional: lineas "> texto" justo bajo el "###" y antes del primer
+ * criterio forman el Objetivo de la entrada.
+ *
  * Solo los encabezados de nivel 3 ("###") delimitan una tarea; un
  * encabezado de cualquier otro nivel (#, ##, ####...) cierra la
  * entrada en curso (si la hay) sin consumirse como criterio, y
@@ -33,6 +36,8 @@ const ANY_HEADING_RE = /^#{1,6}\s/;
 // valido y visualmente identica a una sin indentar en cualquier
 // renderizador — anclarla a la columna 0 rechazaba la tarea ENTERA
 // con un mensaje que no explicaba la causa real.
+// Linea de cita (Objetivo): ">" en la columna 0, con un espacio opcional.
+const QUOTE_RE = /^>\s?(.*)$/;
 const LIST_ITEM_RE = /^\s*[-*]\s+(.+)$/;
 export function parseImportMarkdown(content) {
     const lines = content.split(/\r?\n/);
@@ -69,7 +74,13 @@ export function parseImportMarkdown(content) {
             });
         }
         else {
-            entries.push({ ok: true, titulo, lineNumber: current.lineNumber, criterios: current.criterios });
+            entries.push({
+                ok: true,
+                titulo,
+                lineNumber: current.lineNumber,
+                criterios: current.criterios,
+                objetivo: current.objetivoLineas.join('\n').trim(),
+            });
         }
         current = null;
     };
@@ -79,7 +90,7 @@ export function parseImportMarkdown(content) {
         const h3 = HEADING_LEVEL_3_RE.exec(line);
         if (h3) {
             flush();
-            current = { tituloRaw: h3[1] ?? '', lineNumber: i + 1, criterios: [], strayLine: null };
+            current = { tituloRaw: h3[1] ?? '', lineNumber: i + 1, criterios: [], objetivoLineas: [], strayLine: null };
             continue;
         }
         if (current === null)
@@ -95,6 +106,13 @@ export function parseImportMarkdown(content) {
             // sangrado ya no es la continuacion del criterio (puede ser un bloque
             // de codigo): vuelve a contar como linea suelta.
             pegadaACriterio = false;
+            continue;
+        }
+        // Objetivo: "> texto" antes del primer criterio. Tras un criterio (o con
+        // prosa suelta ya detectada) un ">" sigue siendo prosa suelta.
+        const quote = QUOTE_RE.exec(line);
+        if (quote && current.criterios.length === 0 && current.strayLine === null) {
+            current.objetivoLineas.push(quote[1] ?? '');
             continue;
         }
         const li = LIST_ITEM_RE.exec(line);

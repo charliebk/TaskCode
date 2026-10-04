@@ -14,7 +14,7 @@
  *   criterio hecho solo de palabras vagas sin nada comprobable.
  * - AVISA de lo que conviene mirar: 9 a 12 criterios y criterios sin ancla.
  */
-import type { SeccionesTarea } from './tarea-body.js';
+import type { GrupoCriterios, SeccionesTarea } from './tarea-body.js';
 
 export const MAX_CRITERIOS = 12;
 export const AVISO_CRITERIOS = 8;
@@ -22,6 +22,29 @@ export const AVISO_CRITERIOS = 8;
 export interface ResultadoValidacion {
   bloqueos: string[];
   avisos: string[];
+  /** TASK-044: bloquea por numero de criterios (plan propone particion). */
+  demasiadoGrande: boolean;
+}
+
+/** Titulos de grupo que no son un frente sino criterios de todos (TASK-044). */
+const GRUPOS_TRANSVERSALES = ['transversal', 'transversales', 'comun', 'comunes', 'general', 'generales'];
+
+function esTransversal(g: GrupoCriterios): boolean {
+  if (g.titulo === null) return true;
+  // Basta la primera palabra: «Comunes a ambos» o «Transversal (suite)»
+  // tambien son transversales (MEN-3 de la revision de TASK-044).
+  const primera = normalizar(g.titulo).split(/[^a-z]+/).find((p) => p !== '') ?? '';
+  return GRUPOS_TRANSVERSALES.includes(primera);
+}
+
+/** Grupos que son un frente propio: con titulo y no transversales. */
+export function frentesDe(grupos: readonly GrupoCriterios[]): GrupoCriterios[] {
+  return grupos.filter((g) => !esTransversal(g));
+}
+
+/** Grupos cuyos criterios valen para todos los frentes (y los sueltos). */
+export function gruposComunes(grupos: readonly GrupoCriterios[]): GrupoCriterios[] {
+  return grupos.filter(esTransversal);
 }
 
 /**
@@ -113,6 +136,16 @@ export function validarEnunciado(s: SeccionesTarea): ResultadoValidacion {
         'las revisiones se alargan; valora partirla'
     );
   }
+  // TASK-044: varios frentes con 12 criterios o menos AVISAN, no bloquean
+  // (decision 1 del plan: el bloqueo no tendria salida, y agrupar por capas
+  // una sola tarea es legitimo).
+  const frentes = frentesDe(s.grupos ?? []);
+  if (criterios.length <= MAX_CRITERIOS && frentes.length >= 2) {
+    avisos.push(
+      `tiene ${String(frentes.length)} frentes (${frentes.map((g) => `«${g.titulo ?? ''}»`).join(', ')}): ` +
+        'si son independientes, valora partirla en una tarea por frente'
+    );
+  }
   const vagos = criterios.filter((c) => c.trim() !== '' && esSoloVago(c) && !tieneAncla(c));
   for (const c of vagos) {
     bloqueos.push(`el criterio «${c}» solo dice palabras vagas: di como se comprueba`);
@@ -124,7 +157,7 @@ export function validarEnunciado(s: SeccionesTarea): ResultadoValidacion {
         `un numero, codigo o un test): ${sinAncla.map((c) => `«${c}»`).join('; ')}`
     );
   }
-  return { bloqueos, avisos };
+  return { bloqueos, avisos, demasiadoGrande: criterios.length > MAX_CRITERIOS };
 }
 
 /**
