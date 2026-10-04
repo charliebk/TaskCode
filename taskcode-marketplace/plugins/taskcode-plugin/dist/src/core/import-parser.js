@@ -73,6 +73,7 @@ export function parseImportMarkdown(content) {
         }
         current = null;
     };
+    let pegadaACriterio = false;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i] ?? '';
         const h3 = HEADING_LEVEL_3_RE.exec(line);
@@ -89,11 +90,26 @@ export function parseImportMarkdown(content) {
             flush();
             continue;
         }
-        if (line.trim() === '')
+        if (line.trim() === '') {
+            // MEN-2 de la revision de TASK-046: tras una linea en blanco, lo
+            // sangrado ya no es la continuacion del criterio (puede ser un bloque
+            // de codigo): vuelve a contar como linea suelta.
+            pegadaACriterio = false;
             continue;
+        }
         const li = LIST_ITEM_RE.exec(line);
         if (li) {
             current.criterios.push((li[1] ?? '').trim());
+            pegadaACriterio = true;
+            continue;
+        }
+        // TASK-046 (D7 de la auditoria): una linea SANGRADA justo despues de
+        // un criterio es su continuacion, como en tarea-body.ts. Antes
+        // invalidaba la entrada entera. La prosa sin sangrar sigue siendo un
+        // error: no es la continuacion de nada.
+        if (pegadaACriterio && /^\s+\S/.test(line) && current.criterios.length > 0 && current.strayLine === null) {
+            const ultimo = current.criterios.length - 1;
+            current.criterios[ultimo] = `${current.criterios[ultimo] ?? ''} ${line.trim()}`.trim();
             continue;
         }
         if (current.strayLine === null) {
