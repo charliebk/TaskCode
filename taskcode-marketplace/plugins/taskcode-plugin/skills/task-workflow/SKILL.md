@@ -358,8 +358,8 @@ paralelo; volcar cada respuesta en su `salida-...`; y solo entonces lanzar al
 unificador, que es quien escribe `plan-final.md`. Los desacuerdos entre roles
 se senalan en el plan, no se promedian: dos roles que dicen lo contrario son
 informacion, y la media la tira. **Con 1 solo rol no hay unificador ni
-`salida-...`**: se lanza ese agente con `peticion-plan-<ronda>.md` y escribe el
-`plan-final.md`.
+`salida-...`**: se lanza ese agente con `peticion-plan-<ronda>.md` y su
+respuesta, que es el plan, se vuelca en `plan-final.md`.
 
 **`plan` valida el enunciado antes de mover nada** (con o sin roles). Bloquea:
 `## Objetivo` vacio, ningun criterio, un criterio vacio, **mas de 12

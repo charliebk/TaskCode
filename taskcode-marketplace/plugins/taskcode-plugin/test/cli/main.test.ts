@@ -377,8 +377,41 @@ test('main: taskctl plan con 1 rol anuncia la peticion de redaccion y que no hay
     assert.equal(code, 0);
     assert.ok(stdout.includes('1 rol, sin unificador'), stdout);
     assert.ok(stdout.includes('peticion-plan-1.md'), stdout);
-    assert.ok(stdout.includes('escribe plan-final.md'), stdout);
+    // IMP-1 de su revision: el agente de rol no tiene Write; la respuesta
+    // la vuelca quien orquesta.
+    assert.ok(stdout.includes('vuelca su respuesta en plan-final.md'), stdout);
     assert.ok(!stdout.includes('luego el unificador'), stdout);
     assert.ok(!stdout.includes('peticion-unificador'), stdout);
+
+    // MEN-1 de su revision: la segunda vuelta se anuncia como re-planificacion.
+    commitAll(repoRoot, 'en diseno');
+    const segunda = await captureOutput(() => main(['plan', 'TASK-001']));
+    assert.equal(segunda.code, 0, segunda.stderr);
+    assert.ok(segunda.stdout.includes('Re-planificacion (ronda 2): 1 rol, sin unificador'), segunda.stdout);
+    assert.ok(segunda.stdout.includes('peticion-plan-2.md'), segunda.stdout);
+  });
+});
+
+// TASK-042, MEN-1 y MEN-3 de su revision: sin --complejidad nadie ve "null"
+// impreso, ni en stdout ni en las peticiones, y el mensaje de 0 roles no le
+// atribuye a la tarea el nivel que calculo la heuristica.
+// Mutaciones que lo ponen rojo: quitar cualquiera de los `?? 'no declarada...'`.
+test('main: taskctl plan sin complejidad declarada no imprime "null" en ningun sitio', async () => {
+  await withTempRepoCwd(async (repoRoot) => {
+    const creada = await captureOutput(() => main(['new', '--titulo', 'Sin complejidad', '--tipo', 'feature']));
+    assert.equal(creada.code, 0, creada.stderr);
+    await rellenarObjetivo(repoRoot, 'TASK-001');
+    commitAll(repoRoot, 'tarea nueva');
+
+    const { code, stdout, stderr } = await captureOutput(() => main(['plan', 'TASK-001']));
+    assert.equal(code, 0, stderr);
+    assert.doesNotMatch(stdout, /\bnull\b/);
+    assert.match(stdout, /complejidad no declarada; la heuristica da "trivial"/);
+
+    const carpeta = path.join(repoRoot, 'tareas', '01-en-diseno', 'TASK-001', 'planificacion');
+    const peticion = await readFile(path.join(carpeta, 'brainstorm', 'peticion-unificador-1.md'), 'utf8');
+    assert.doesNotMatch(peticion, /\bnull\b/);
+    assert.match(peticion, /Complejidad declarada: no declarada \(decide la heuristica\)/);
+    assert.match(peticion, /Declarada en la tarea: \*\*no declarada \(decide la heuristica\)\*\*/);
   });
 });

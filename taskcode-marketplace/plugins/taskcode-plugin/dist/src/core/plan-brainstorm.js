@@ -137,8 +137,9 @@ export function peticionRedaccionTemplate(task, objetivo, criterios, rol, ronda,
         cabecera(task, ronda, fecha) +
         `- Rol: \`${rol.id}\` — lanzalo con el agente de ese mismo nombre\n` +
         `- Vuelca el plan en: \`${planFinalRelativo}\`\n\n` +
-        '**Esta tarea se planifica con un solo rol y no hay unificador**: tu escribes ' +
-        '`plan-final.md` directamente, sin salida intermedia que nadie vaya a consolidar.\n\n' +
+        '**Esta tarea se planifica con un solo rol y no hay unificador**: tu respuesta ES ' +
+        'el plan final. Redactala con las secciones de abajo; quien orquesta la vuelca tal cual ' +
+        'en `plan-final.md` (tu no escribes ficheros), sin salida intermedia que consolidar.\n\n' +
         bloqueReplanificacion +
         '## Tu pregunta\n\n' +
         `> ${rol.pregunta}\n\n` +

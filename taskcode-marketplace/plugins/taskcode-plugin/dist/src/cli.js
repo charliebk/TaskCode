@@ -187,12 +187,14 @@ function brainstormNotice(result) {
     // nombraba las salidas reales. El artefacto bueno quedaba invisible.
     if (result.modo === 'redaccion') {
         // TASK-042 (decision C4): con 1 rol no hay unificador ni salida de
-        // rol. Una sola peticion, al propio rol, que escribe plan-final.md.
+        // rol. Una sola peticion, al propio rol; su respuesta es el plan y la
+        // vuelca quien orquesta (los agentes de rol no tienen Write; IMP-1 de
+        // la revision de TASK-042).
         // Va antes que las demas ramas: con 1 rol ninguna otra aplica.
         const rol = result.roles[0];
         lineas.push(`${result.ronda > 1 ? `Re-planificacion (ronda ${result.ronda}): ` : ''}1 rol, sin unificador. ` +
             `Lanza el agente ${rol === undefined ? 'del rol' : `"${rol.id}"`} con ` +
-            `${result.peticionRedaccion}: el rol escribe plan-final.md directamente.`);
+            `${result.peticionRedaccion} y vuelca su respuesta en plan-final.md (el agente no escribe ficheros).`);
     }
     else if (result.brainstormReutilizado) {
         lineas.push(`Re-planificacion (ronda ${result.ronda}): NO se relanza el brainstorm, que es el de la ` +
@@ -200,7 +202,9 @@ function brainstormNotice(result) {
             'que reprocesa esas salidas mas tu feedback.');
     }
     else if (result.roles.length === 0) {
-        lineas.push(`Sin brainstorm (complejidad "${result.resolucion.nivelDeclarado ?? result.resolucion.nivelHeuristico}" resuelve 0 roles). ` +
+        lineas.push(`Sin brainstorm (${result.resolucion.nivelDeclarado === null
+            ? `complejidad no declarada; la heuristica da "${result.resolucion.nivelHeuristico}"`
+            : `complejidad "${result.resolucion.nivelDeclarado}"`}: 0 roles). ` +
             `Redacta el plan y aprueba con "taskctl approve ${result.id}".`);
     }
     else {

@@ -182,7 +182,8 @@ export function planTemplate(task, roles) {
     }
     else if (roles.length === 1) {
         origen =
-            `(Lo redacta directamente el agente del unico rol de brainstorm: ${roles[0].titulo}.\n` +
+            `(Es la respuesta del unico rol de brainstorm, ${roles[0].titulo}, volcada aqui por\n` +
+                'quien orquesta.\n' +
                 'Con un solo rol no hay unificador ni desacuerdos que resolver; en su lugar,\n' +
                 'el plan senala lo que ese rol no cubrio.)\n';
         seccionRoles = '## Lo que el rol no cubrio\n\n\n';

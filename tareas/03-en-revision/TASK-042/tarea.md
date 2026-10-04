@@ -74,3 +74,27 @@ Suite: 960 tests, 957 en verde; los 3 rojos son los conocidos de Windows.
 Mutantes (8, todos muertos): null usa `media`, default `media` en `new` y en
 `import`, discrepancia con null, `roles.length === 1` desactivado, quitar
 `plan` o `unificador` del testigo, regla de 2 o mas salidas desactivada.
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **cambios-solicitados** (1 IMPORTANTE, 3 MENOR).
+Reprodujo E1-E9 con `bin/taskctl` en repos temporales; la persistencia de
+`null`, el modo de 1 rol, las carpetas antiguas y los cambios de 2 a 1 y de 1
+a 2 roles funcionan.
+
+- IMP-1 (corregido): CLI, peticion de redaccion, scaffold del plan y skill
+  decian que el rol escribe `plan-final.md`, pero los agentes de rol no tienen
+  `Write`. Ahora dicen que su respuesta es el plan y que la vuelca quien
+  orquesta. (El Resultado de arriba ya lo afirmaba; el texto no lo hacia.)
+- MEN-1 (corregido): test en `cli/main` que comprueba que sin complejidad no
+  aparece «null» ni en stdout ni en la peticion, y que la ronda 2 de 1 rol se
+  anuncia como re-planificacion. Los 4 mutantes supervivientes (M2, M6, M7 y
+  M8) mueren ahora.
+- MEN-2 (no se corrige): la regla de «2 o mas salidas» cuenta scaffolds por
+  nombre aunque esten vacios. Solo hace que se use el unificador de mas en un
+  caso raro (ronda cortada de 2+ roles); no es regresion.
+- MEN-3 (corregido): con `null`, el mensaje de 0 roles dice «complejidad no
+  declarada; la heuristica da "trivial"» en vez de atribuirle el nivel a la
+  tarea.
+- Fuera de alcance, anotado para TASK-052: una tarea minima sin complejidad
+  resuelve 0 roles porque la heuristica le da `trivial`.
