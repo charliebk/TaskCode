@@ -1,8 +1,8 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-10-03. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-10-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 14
+## Planificadas (00-planificadas) — 32
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,6 +21,24 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-035  F1-T2 Politica de rondas y una sola suite por ronda en las skills                           (sin asignar)
+TASK-036  F1-T3 Veredicto con un comando e informe estructurado                                       (sin asignar)
+TASK-037  F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos                                (sin asignar)
+TASK-038  F2-T2 Una sola deteccion de origin por invocacion, con timeout                              (sin asignar)
+TASK-039  F2-T3 Menos llamadas git en los comandos                                                    (sin asignar)
+TASK-040  F3-T1 taskctl review para la ronda 2 y siguientes                                           (sin asignar)
+TASK-041  F4-T1 taskctl new con objetivo y criterios                                                  (sin asignar)
+TASK-042  F4-T4 Complejidad por defecto por heuristica y un rol sin unificador                        (sin asignar)
+TASK-043  F4-T2 Validacion antes de plan y puertas de cierre                                          (sin asignar)
+TASK-044  F4-T3 Particion propuesta de las tareas grandes                                             (sin asignar)
+TASK-045  F5-T1 rama_base de punta a punta                                                            (sin asignar)
+TASK-046  F5-T2 Secciones con subtitulos y criterios multilinea                                       (sin asignar)
+TASK-047  F5-T3 Flags desconocidos y mensajes de review                                               (sin asignar)
+TASK-048  F6-T3 Skill de flujo mas ligera                                                             (sin asignar)
+TASK-049  F6-T4 Metadatos del plugin y modelo de los agentes                                          (sin asignar)
+TASK-050  F6-T1 Suite rapida y repo plantilla en los tests                                            (sin asignar)
+TASK-051  F6-T2 Partir los ficheros de test mas largos                                                (sin asignar)
+TASK-052  F6-T5 Telemetria de fases y heuristica recalibrada                                          (sin asignar)
 ```
 
 ## En diseno (01-en-diseno) — 1
@@ -31,7 +49,7 @@ ID        Titulo                                Asignado
 TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 18
+## Terminadas (04-terminadas) — 19
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -54,4 +72,5 @@ TASK-030  Auto-commit de taskctl y .taskcode/config.yml (items C2 y C4)         
 TASK-031  Distribucion del CLI: un clon debe traer un taskctl que arranque                         charlie.bk@gmail.com
 TASK-032  Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6)        charlie.bk@gmail.com
 TASK-033  Comando de sincronización tras cada transición y guía de criterios post-cierre (v0.1.1)  charlie.bk@gmail.com
+TASK-034  F1-T1 Excluir lo generado del diff de revision                                           charlie.bk@gmail.com
 ```
