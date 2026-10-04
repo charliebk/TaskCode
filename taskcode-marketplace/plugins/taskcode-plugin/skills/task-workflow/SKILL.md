@@ -70,9 +70,9 @@ Precondiciones de cada transicion:
   brainstorm que resuelva la complejidad de la tarea, mas la del agente
   unificador (ver "El brainstorm de la fase de diseno"). **No invoca a ningun
   modelo**: lanzar a esos agentes es trabajo de quien orquesta. Aborta sin
-  mover la tarea si el `## Objetivo` de `tarea.md` esta vacio y la tarea lanza
-  algun rol.
-- **`approve`** — desde `en-diseno`, y tiene que existir el `plan-final.md`.
+  mover la tarea si el enunciado no esta listo (ver mas abajo).
+- **`approve`** — desde `en-diseno`, y tiene que existir un `plan-final.md`
+  redactado: la plantilla sin rellenar se rechaza.
   Es el **checkpoint humano**: lo ejecuta la persona, no el agente.
 - **`start`** — desde `en-diseno` con `plan_aprobado: true`. No hay atajo por
   complejidad: **el checkpoint humano es obligatorio para todas las
@@ -120,9 +120,8 @@ Detalles que muerden:
 - **En `approve`, `review` y `finish` el ID tiene que ser el primer
   argumento.** Esos comandos leen el primer argumento tal cual, asi que
   `taskctl approve --loquesea TASK-001` intentaria usar `--loquesea` como ID.
-- **Los flags desconocidos se ignoran en silencio** en el resto de comandos.
-  Un flag mal escrito no da error: simplemente no hace nada. Comprobar la
-  salida, no suponer.
+- **Los flags desconocidos se ignoran en silencio** en el resto de comandos:
+  comprobar la salida, no suponer.
 - `board` solo escribe `docs/BOARD.md` si se le pasa `--escribir`, y ese
   flag **no se combina** con `--sprint` ni `--asignado-a`: el fichero es la
   foto completa, no una vista filtrada.
@@ -361,11 +360,13 @@ unificador, que es quien escribe `plan-final.md`. Los desacuerdos entre roles
 se senalan en el plan, no se promedian: dos roles que dicen lo contrario son
 informacion, y la media la tira.
 
-**El `## Objetivo` de `tarea.md` no puede estar vacio.** Si lo esta y la tarea
-lanza al menos un rol, `plan` aborta y la tarea no se mueve. `new` deja esa
-seccion en blanco a proposito, asi que hay que redactarla **antes** del primer
-`plan`. Sin objetivo cada rol se inventa el suyo, y el unificador consolida
-esas invenciones en un plan que parece fundado sin serlo.
+**`plan` valida el enunciado antes de mover nada** (con o sin roles). Bloquea:
+`## Objetivo` vacio, ningun criterio, un criterio vacio, **mas de 12
+criterios** (partela) o un criterio hecho solo de palabras vagas («que sea
+robusto»). Avisa con 9 a 12 criterios y con criterios sin nada comprobable
+(comando, ruta, numero, codigo o test). Al abortar estas en la rama base:
+edita `tarea.md`, commitea y reintenta. `finish` avisa antes del merge de
+los criterios sin marcar.
 
 **Una re-planificacion no relanza el brainstorm.** La segunda vuelta
 (`en-diseno` con `plan_aprobado: false`) escribe solo otra

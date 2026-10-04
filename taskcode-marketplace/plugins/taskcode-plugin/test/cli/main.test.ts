@@ -130,15 +130,24 @@ test('main: la ayuda documenta --asignado-a en plan y en start', async () => {
  * que esto es exactamente lo que hace una persona entre "new" y
  * "plan": es parte del flujo real, no un apano del test.
  */
+/**
+ * Escribe un plan-final.md con contenido propio: desde TASK-043 approve
+ * rechaza la plantilla que deja plan, igual que la rechazaria en uso real.
+ */
+async function redactarPlan(repoRoot: string, id: string): Promise<void> {
+  const md = path.join(repoRoot, 'tareas', '01-en-diseno', id, 'planificacion', 'plan-final.md');
+  await writeFile(md, '# Plan\n\nEnfoque: el minimo para probar el CLI.\n', 'utf8');
+}
+
 async function rellenarObjetivo(repoRoot: string, id: string): Promise<void> {
   const md = path.join(repoRoot, 'tareas', '00-planificadas', id, 'tarea.md');
   const contenido = await readFile(md, 'utf8');
   await writeFile(
     md,
-    contenido.replace(
-      '## Objetivo\n\n\n',
-      '## Objetivo\n\nProbar el ciclo con una tarea que dice a que viene.\n\n'
-    ),
+    // TASK-043: plan exige ademas criterios no vacios.
+    contenido
+      .replace('## Objetivo\n\n\n', '## Objetivo\n\nProbar el ciclo con una tarea que dice a que viene.\n\n')
+      .replace('- [ ] \n', '- [ ] `taskctl plan` mueve la tarea.\n'),
     'utf8'
   );
 }
@@ -252,6 +261,9 @@ test('main: taskctl start sale con codigo 1 y mensaje util cuando el limite esta
     // obligatorio tambien para `simple`, y sin el las dos fallarian
     // aqui — con lo que el test verde no probaria el limite de WIP,
     // que es lo unico que viene a medir.
+    await redactarPlan(repoRoot, 'TASK-001');
+    await redactarPlan(repoRoot, 'TASK-002');
+    commitAll(repoRoot, 'planes redactados');
     const a1 = await captureOutput(() => main(['approve', 'TASK-001']));
     assert.equal(a1.code, 0, a1.stderr);
     commitAll(repoRoot, 'primera aprobada');
@@ -288,6 +300,8 @@ test('main: "taskctl review" con un diff de 2 dominios imprime una linea de peti
     const plan = await captureOutput(() => main(['plan', 'TASK-001']));
     assert.equal(plan.code, 0, plan.stderr);
     commitAll(repoRoot, 'en diseno');
+    await redactarPlan(repoRoot, 'TASK-001');
+    commitAll(repoRoot, 'plan redactado');
 
     const approve = await captureOutput(() => main(['approve', 'TASK-001']));
     assert.equal(approve.code, 0, approve.stderr);

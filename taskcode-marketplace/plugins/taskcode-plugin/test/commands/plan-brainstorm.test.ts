@@ -72,7 +72,10 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
  * objetivo con "migracion" dentro haria que estos tests midieran otra
  * cosa sin avisar.
  */
-const BODY = '## Objetivo\n\nProbar que el brainstorm se escribe entero.\n';
+const BODY =
+  '## Objetivo\n\nProbar que el brainstorm se escribe entero.\n\n' +
+  // TASK-043: plan exige al menos un criterio.
+  '## Criterios de aceptacion\n- [ ] `taskctl plan` escribe las peticiones de rol.\n';
 
 function git(args: string[], cwd: string): void {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -470,8 +473,9 @@ test('plan: objetivo vacio con roles que lanzar aborta y NO mueve la tarea', asy
       (e: unknown) => {
         assert.ok(e instanceof PlanCommandError);
         assert.match(e.message, /Objetivo/);
-        // Convencion del proyecto: el error dice QUE HACER.
-        assert.match(e.message, /Escribe el objetivo en/);
+        // Convencion del proyecto: el error dice QUE HACER (TASK-043: y
+        // donde: en la rama base, editando y commiteando).
+        assert.match(e.message, /Estas en la rama base: edita .*commitea el cambio y reintenta/s);
         return true;
       }
     );
@@ -487,19 +491,27 @@ test('plan: objetivo vacio con roles que lanzar aborta y NO mueve la tarea', asy
 });
 
 /**
- * El simetrico, y no sobra: sin el, una puerta que abortara SIEMPRE
- * dejaria el test de arriba en verde. Ademas fija que el
- * comportamiento con 0 roles es identico al de antes de TASK-016, que
- * es lo que hace el cambio no-breaking.
+ * TASK-043 cambia el contrato de TASK-016: la puerta se aplica TAMBIEN
+ * con 0 roles (una tarea sin objetivo es igual de cara de revisar aunque
+ * no lance brainstorm). El simetrico sigue haciendo falta para que una
+ * puerta que abortara SIEMPRE no deje en verde el test de arriba: una
+ * tarea bien definida con 0 roles planifica.
  *
- * Mutacion que lo pone rojo: aplicar la puerta tambien cuando no hay
- * roles.
+ * Mutacion que lo pone rojo: volver a condicionar la puerta a roles > 0.
  */
-test('plan: objetivo vacio SIN roles que lanzar no aborta (comportamiento de antes de TASK-016)', async () => {
+test('plan (TASK-043): objetivo vacio SIN roles TAMBIEN aborta; bien definida, planifica', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'trivial' }), '## Objetivo\n\n');
     commitAll(repoRoot, 'tarea TASK-800');
 
+    await assert.rejects(
+      () => runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot }),
+      (e: unknown) => e instanceof PlanCommandError && /Objetivo/.test(e.message)
+    );
+    assert.equal((await readTareaFile(tareasRoot, 'TASK-800'))?.task.estado, 'planificada');
+
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'trivial' }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800 con objetivo');
     const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
       repoCwd: repoRoot,
     });
@@ -1302,7 +1314,7 @@ test('las plantillas generadas no filtran nada del repo que las escribe', async 
       // Titulo y objetivo neutros: si la tarea del usuario menciona algo,
       // eso viene de ella, no de la plantilla, y contaminaria la medida.
       sampleTask({ complejidad: 'critica', titulo: 'Una tarea cualquiera' }),
-      '## Objetivo\n\nUn objetivo cualquiera.\n'
+      '## Objetivo\n\nUn objetivo cualquiera.\n\n## Criterios de aceptacion\n- [ ] Un criterio cualquiera.\n'
     );
     commitAll(repoRoot, 'tarea TASK-800');
 

@@ -21,7 +21,10 @@ import path from 'node:path';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { resolverPlanFinal, type PlanFinalUbicacion } from './plan.js';
+import { planTemplate, resolverPlanFinal, type PlanFinalUbicacion } from './plan.js';
+import { readFile } from 'node:fs/promises';
+import { ROLES_BRAINSTORM, seleccionarRoles } from '../core/roles-brainstorm.js';
+import { planEsEsqueleto } from '../core/validacion-tarea.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 import {
   autoCommit,
@@ -129,6 +132,21 @@ export async function runApproveCommand(
   });
   assertPlanNoAmbiguo(id, ubicacion!);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
+
+  // TASK-043 (C6 de la auditoria): no se aprueba un plan-final.md que es
+  // la plantilla sin rellenar. Se compara con las plantillas posibles (los
+  // roles se eligen en un orden fijo, asi que solo hay 0..N prefijos), no
+  // con textos copiados, para que siga valiendo si la plantilla cambia.
+  const rutaPlan = ubicacion!.canonicaExiste ? ubicacion!.canonica : ubicacion!.legada;
+  const plantillas = Array.from({ length: ROLES_BRAINSTORM.length + 1 }, (_, k) =>
+    planTemplate(task, seleccionarRoles(k))
+  );
+  if (planEsEsqueleto(await readFile(rutaPlan, 'utf8'), plantillas)) {
+    throw new ApproveCommandError(
+      `[ERROR] ${task.id}: "${rutaPlan}" es la plantilla sin rellenar: no hay plan que aprobar. ` +
+        'Redactalo (enfoque, riesgos, pruebas) y reintenta "taskctl approve".'
+    );
+  }
 
   const updated: Task = { ...task, plan_aprobado: true, actualizado: today };
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);

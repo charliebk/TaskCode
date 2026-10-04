@@ -125,7 +125,8 @@ async function withRepoSincronizado(
     await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nProbar la sincronizacion.\n');
     const planDir = path.join(tareasRoot, '01-en-diseno', 'TASK-920', 'planificacion');
     await mkdir(planDir, { recursive: true });
-    await writeFile(path.join(planDir, 'plan-final.md'), '# Plan\n', 'utf8');
+    // TASK-043: approve rechaza un plan que es solo una cabecera.
+    await writeFile(path.join(planDir, 'plan-final.md'), '# Plan\n\nEnfoque: sincronizar.\n', 'utf8');
     await mkdir(path.join(repoRoot, 'scripts'), { recursive: true });
     await writeFile(path.join(repoRoot, 'scripts', 'sync.mjs'), SCRIPT_SYNC, 'utf8');
     if (config !== null) {

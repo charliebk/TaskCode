@@ -130,9 +130,13 @@ function assertNoSeLlevaTrabajoAjeno(repoRoot: string): void {
 
 // ─── plan / approve ────────────────────────────────────────────────────────
 
+/** TASK-043: plan exige objetivo y al menos un criterio. */
+const CUERPO_PLANIFICABLE =
+  '## Objetivo\nProbar.\n\n## Criterios de aceptacion\n- [ ] `taskctl plan` commitea el movimiento.\n';
+
 test('taskctl plan: commitea el movimiento a 01-en-diseno y el scaffold del plan, y deja tareas/ limpio', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nProbar.\n');
+    await writeTareaFile(tareasRoot, sampleTask(), CUERPO_PLANIFICABLE);
     commitAll(repoRoot, 'chore(TASK-910): tarea creada');
 
     const r = await runPlanCommand(tareasRoot, ['TASK-910'], '2026-09-07', { repoCwd: repoRoot });
@@ -166,7 +170,7 @@ test('taskctl approve: commitea el tarea.md aprobado con el mensaje del repo', a
     });
     await writeFile(
       path.join(tareasRoot, '01-en-diseno', 'TASK-910', 'planificacion', 'plan-final.md'),
-      '# Plan redactado\n',
+      '# Plan redactado\n\nEnfoque: probar el commit de approve.\n',
       'utf8'
     );
     commitAll(repoRoot, 'docs(TASK-910): plan final');
@@ -190,7 +194,7 @@ test('taskctl approve dos veces seguidas: la segunda no crea un commit vacio', a
     });
     await writeFile(
       path.join(tareasRoot, '01-en-diseno', 'TASK-910', 'planificacion', 'plan-final.md'),
-      '# Plan\n',
+      '# Plan\n\nEnfoque: aprobar dos veces.\n',
       'utf8'
     );
     commitAll(repoRoot, 'docs(TASK-910): plan final');
@@ -357,7 +361,7 @@ test('taskctl plan --push: con un origin bare real la rama llega; el flag va del
       git(['remote', 'add', 'origin', bare], repoRoot);
       git(['push', '-q', 'origin', 'develop'], repoRoot);
 
-      await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nX.\n');
+      await writeTareaFile(tareasRoot, sampleTask(), CUERPO_PLANIFICABLE);
       commitAll(repoRoot, 'chore(TASK-910): tarea creada');
 
       // --push DELANTE del ID: parseArgs se lo habria comido como valor
@@ -382,7 +386,7 @@ test('taskctl plan --push sin remoto: avisa, no lanza y sale con la tarea commit
   await withTempRepo(async (repoRoot, tareasRoot) => {
     // Con el cuerpo vacio "plan" aborta desde TASK-016 (puerta del
     // objetivo), y este test mide el --push, no esa puerta.
-    await writeTareaFile(tareasRoot, sampleTask(), '## Objetivo\nProbar el push.\n');
+    await writeTareaFile(tareasRoot, sampleTask(), CUERPO_PLANIFICABLE);
     commitAll(repoRoot, 'chore(TASK-910): tarea creada');
 
     const r = await runPlanCommand(tareasRoot, ['TASK-910', '--push'], '2026-09-07', {
