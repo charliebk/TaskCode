@@ -13,3 +13,8 @@ dist/** text eol=lf
 # Un CR delante del salto de la primera linea hace que el kernel no encuentre
 # el interprete, asi que su eol tampoco puede quedar al azar del checkout.
 bin/* text eol=lf
+
+# El lanzador de Windows (bin/taskctl.cmd) va al reves: CRLF. cmd.exe lee
+# los .cmd por bloques y con LF puede saltarse lineas o romper etiquetas;
+# esta regla va DESPUES de bin/* porque en .gitattributes gana la ultima.
+bin/*.cmd text eol=crlf

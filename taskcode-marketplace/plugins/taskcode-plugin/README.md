@@ -94,6 +94,60 @@ anotado porque condiciona **E1** (invitar colaboradores) y cualquier intento
 futuro de distribuir por esa vía, que obligaría a renunciar a `taskctl` como
 comando suelto o a reestructurar el plugin.
 
+## Usar `taskctl` fuera de Claude Code (PowerShell, cmd, Git Bash)
+
+Dentro de Claude Code no hay que hacer nada: `bin/` entra en el PATH del
+Bash tool mientras el plugin esta habilitado. **Fuera** (tu propia terminal)
+no: ni esta en el PATH ni, en Windows, PowerShell y cmd saben ejecutar
+`bin/taskctl`, que es un script de node sin extension.
+
+El plugin instalado vive en
+`~/.claude/plugins/cache/<marketplace>/taskcode-plugin/<version>/` (en
+Windows, `%USERPROFILE%\.claude\plugins\cache\...`). Hace falta `node` en
+el PATH. Una forma por shell:
+
+**PowerShell**: anade esto a tu perfil (`notepad $PROFILE`). Llama a `node`
+directamente y elige la version instalada mas alta, asi que sobrevive a las
+actualizaciones del plugin:
+
+```powershell
+$taskcodeBase = Join-Path $env:USERPROFILE '.claude\plugins\cache\taskcode-marketplace\taskcode-plugin'
+function taskctl {
+  $bin = Get-ChildItem $taskcodeBase -Directory |
+    Where-Object { $_.Name -as [version] } |
+    Sort-Object { $_.Name -as [version] } | Select-Object -Last 1
+  if (-not $bin) { throw "taskcode-plugin no esta instalado en $taskcodeBase (instalalo con /plugin)" }
+  node (Join-Path $bin.FullName 'bin\taskctl') @args
+}
+```
+
+En Windows PowerShell 5.1, evita las comillas dobles dentro de un argumento
+(`--titulo 'Soporte "modo oscuro"'`): PowerShell 5.1 no las escapa al llamar
+a `node`, y el titulo llega sin ellas o partido en dos argumentos. Usa
+comillas simples dentro del texto, o PowerShell 7.3 o posterior, que las pasa
+bien.
+
+**No pongas `bin` en el PATH para usarlo desde PowerShell.** Ahi `taskctl`
+resolveria a `bin\taskctl.cmd`, y PowerShell le pasa sin comillas los
+argumentos que no llevan espacios: un titulo como `Q&A` o `foo->notas.txt`
+lo interpreta cmd.exe, que ejecuta `A` o vacia `notas.txt`. La funcion de
+arriba no pasa por cmd y no tiene ese problema.
+
+**cmd**: `bin\taskctl.cmd` (desde la version que sigue a la 0.3.0). Anade la
+carpeta `bin` de la version instalada al PATH y escribe `taskctl`. Pon
+**siempre entre comillas dobles** los argumentos con `& | < > ^`
+(`taskctl new --titulo "Q&A"`): cmd.exe interpreta esos caracteres antes
+que nada, y el escape con `^` no sobrevive al reenvio a node. Ojo con
+`%NOMBRE%`: cmd lo sustituye por la variable de entorno aunque vaya entre
+comillas. Hay que actualizar la ruta cuando cambie la version del plugin.
+
+**Git Bash**: `alias taskctl='node "$(ls -d ~/.claude/plugins/cache/taskcode-marketplace/taskcode-plugin/*/ | sort -V | tail -1)bin/taskctl"'`
+en `~/.bashrc`.
+
+Los comandos que invocan Git-Flow (`start`, `review`, `finish`...) ejecutan
+`bash` por debajo: necesitan Git for Windows instalado, desde cualquier
+shell.
+
 ## `taskctl` en el PATH del Bash tool
 
 Según la referencia oficial (`https://code.claude.com/docs/en/plugins`,
