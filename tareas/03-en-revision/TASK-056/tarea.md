@@ -150,3 +150,19 @@ los cuatro estados). Hallazgos nuevos:
   y el motivo de `veredicto-codex` con un veredicto desconocido.
 
 Suite: 1015 tests, 1012 en verde (los 3 rojos conocidos de Windows).
+
+### Revision por pares (ronda 3)
+
+Revisor independiente: **aprobada-con-correcciones**. IMP-4 cerrado con el
+CLI real en siete escenarios de vallas (anidadas, sin cerrar, con info,
+`~~~`, sangradas) y contra los 59 `tarea.md` del repo (0 vallas sin cerrar).
+
+- MEN-11 (corregido): tres reglas de vallas sin test (cierre sangrado 4
+  espacios, ``` en mitad del texto, seguir buscando tras una valla sin
+  cerrar). Tres tests nuevos; sus cuatro mutantes mueren.
+- MEN-12 (aceptado, documentado en `dentroDeBloque`): si la valla sin cerrar
+  es justo la que envuelve un ejemplo del registro, el ejemplo cuenta como
+  registro. Ninguna regla salva a la vez ese caso y el del ``` olvidado; se
+  protege el registro real.
+
+Suite final: 1018 tests, 1015 en verde (los 3 rojos conocidos de Windows).

@@ -147,6 +147,24 @@ test('IMP-4: una valla de cierre mas corta, con texto detras o de otro caracter 
   assert.equal(leerTransiciones(sangrada).length, 1);
 });
 
+test('MEN-11: tras una valla sin cerrar se sigue buscando bloques (el ejemplo cercado despues sigue siendo ejemplo)', () => {
+  const cuerpo = '## Objetivo\n\n~~~bash\nnpm test\n\n````md\n' + EJEMPLO_TABLA + '````\n';
+  assert.deepEqual(leerTransiciones(cuerpo), []);
+  assert.equal(modoCongelado(cuerpo), null);
+});
+
+test('MEN-11: una linea con ``` en mitad del texto no es valla de apertura', () => {
+  // "```a``` es inline" no abre bloque (CommonMark: el texto de info no lleva `);
+  // si lo abriera, se emparejaria con el cierre del bloque bash y se tragaria la tabla.
+  const cuerpo = '```a``` es inline\n\n' + EJEMPLO_TABLA + '\n```bash\nx\n```\n';
+  assert.equal(leerTransiciones(cuerpo).length, 1);
+});
+
+test('MEN-11: una valla de cierre sangrada 4 espacios no cierra', () => {
+  const cuerpo = '````md\nmira:\n    ````\n' + EJEMPLO_TABLA + '````\n';
+  assert.deepEqual(leerTransiciones(cuerpo), []);
+});
+
 test('MEN-9: tambien ~~~ es valla', () => {
   const cuerpo = '## Objetivo\n\n~~~md\n' + EJEMPLO_TABLA + '~~~\n';
   assert.deepEqual(leerTransiciones(cuerpo), []);

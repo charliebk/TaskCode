@@ -59,6 +59,13 @@ const VALLA_APERTURA = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})/;
  * el final del documento, pero aqui eso se tragaria la seccion real, que el
  * CLI anade al final: un ``` olvidado en el enunciado dejaria la tarea sin
  * registro ni modo congelado y duplicaria la seccion en cada transicion.
+ *
+ * Lo que se sacrifica (MEN-12 de la revision, aceptado): si la valla sin
+ * cerrar es justo la que envuelve un EJEMPLO de `## Transiciones`, el ejemplo
+ * cuenta como registro (antes de `plan` se lee su modo, y las filas caen en
+ * el). Ninguna regla salva a la vez ese caso y el del ``` olvidado; se elige
+ * proteger el registro real. Hace falta un documento roto, ademas de un
+ * ejemplo del registro, para llegar ahi.
  */
 function dentroDeBloque(lineas: readonly string[]): boolean[] {
   const enBloque = lineas.map(() => false);
