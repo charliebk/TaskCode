@@ -10,7 +10,11 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 41 / 42 items terminados (98%)** · última actualización: 2026-09-16
+**Progreso global: 52 / 64 items terminados (81%)** · última actualización: 2026-10-04
+
+Desde el 2026-10-04 se suma la fase F: el plan de solución de la auditoría del
+2026-10-03 (`docs/auditoria/PLAN-SOLUCION-2026-10-03.md`), más TASK-033, TASK-053
+y TASK-054.
 
 El total baja de 43 a 42: **D4 se descarta** (ver su entrada). Y sube en 3 lo
 hecho: D6, D7 y el propio D4, que cuenta como resuelto porque la decisión está
@@ -24,7 +28,8 @@ tomada y documentada, no aplazada.
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **5** | ~9h |
-| **Total pendiente** | **1** | — | **~5h** |
+| F — Auditoría 2026-10-03 | 22 | **11** | — |
+| **Total pendiente** | **12** | — | — |
 
 ---
 
@@ -706,3 +711,30 @@ está a su derecha.
 **Fases A + B + C = 18 items, ~39h.** Dejan un sistema completo y usable,
 con la metodología cumplida en lo esencial y el brainstorm multi-agente
 pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
+
+---
+
+## F — Auditoría 2026-10-03 (11/22)
+
+- [x] TASK-033 — Comando de sincronización tras cada transición (v0.1.1)
+- [x] TASK-034 — F1-T1 Excluir lo generado del diff de revisión
+- [x] TASK-035 — F1-T2 Política de rondas y una sola suite por ronda
+- [x] TASK-036 — F1-T3 Veredicto con un comando e informe estructurado
+- [x] TASK-037 — F2-T1 Logging de Git-Flow sin lanzar procesos
+- [x] TASK-038 — F2-T2 Una sola detección de origin, con timeout
+- [x] TASK-039 — F2-T3 Menos llamadas git en los comandos
+- [x] TASK-040 — F3-T1 `taskctl review` para la ronda 2 y siguientes (v0.2.0)
+- [x] TASK-041 — F4-T1 `taskctl new` con objetivo y criterios
+- [x] TASK-043 — F4-T2 Validación antes de plan y puertas de cierre
+- [ ] TASK-044 — F4-T3 Partición propuesta de las tareas grandes
+- [ ] TASK-042 — F4-T4 Complejidad por heurística y un rol sin unificador
+- [ ] TASK-045 — F5-T1 `rama_base` de punta a punta
+- [x] TASK-046 — F5-T2 Secciones con subtítulos y criterios multilínea
+- [ ] TASK-047 — F5-T3 Flags desconocidos y mensajes de review
+- [ ] TASK-050 — F6-T1 Suite rápida y repo plantilla en los tests
+- [ ] TASK-051 — F6-T2 Partir los ficheros de test más largos
+- [ ] TASK-048 — F6-T3 Skill de flujo más ligera
+- [ ] TASK-049 — F6-T4 Metadatos del plugin y modelo de los agentes
+- [ ] TASK-052 — F6-T5 Telemetría de fases y heurística recalibrada
+- [x] TASK-053 — `moveTareaFile` reintenta el rename ante EPERM/EBUSY
+- [ ] TASK-054 — Rutas no ASCII en el diff de revisión por dominio
