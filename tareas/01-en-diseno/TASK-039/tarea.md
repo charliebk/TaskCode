@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-039-f2-t3-menos-llamadas-git-en-los-comandos
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
