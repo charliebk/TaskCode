@@ -33,16 +33,15 @@ TASK-052  F6-T5 Telemetria de fases y heuristica recalibrada                    
 TASK-054  Rutas no ASCII en el diff de revision fragmentado por dominio                               (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 2
+## En diseno (01-en-diseno) — 1
 
 ```text
-ID        Titulo                                              Asignado
---------  --------------------------------------------------  --------------------
-TASK-023  Métricas de coste en tokens por fase                charlie.bk@gmail.com
-TASK-043  F4-T2 Validacion antes de plan y puertas de cierre  charlie.bk@gmail.com
+ID        Titulo                                Asignado
+--------  ------------------------------------  --------------------
+TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 28
+## Terminadas (04-terminadas) — 29
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -73,6 +72,7 @@ TASK-038  F2-T2 Una sola deteccion de origin por invocacion, con timeout        
 TASK-039  F2-T3 Menos llamadas git en los comandos                                                 charlie.bk@gmail.com
 TASK-040  F3-T1 taskctl review para la ronda 2 y siguientes                                        charlie.bk@gmail.com
 TASK-041  F4-T1 taskctl new con objetivo y criterios                                               charlie.bk@gmail.com
+TASK-043  F4-T2 Validacion antes de plan y puertas de cierre                                       charlie.bk@gmail.com
 TASK-046  F5-T2 Secciones con subtitulos y criterios multilinea                                    charlie.bk@gmail.com
 TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
 ```
