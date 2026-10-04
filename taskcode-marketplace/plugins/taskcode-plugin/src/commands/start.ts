@@ -30,6 +30,7 @@ import {
   personaDeTarea,
 } from '../core/wip.js';
 import { resolverConfig } from '../core/config.js';
+import { registrarTransicion } from '../core/transiciones.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import {
   isWorkspaceClean,
@@ -285,7 +286,8 @@ export async function runStartCommand(
   // ver comentario de MoveTareaFileOptions en task-store.ts. task/body
   // ya se leyeron en memoria antes de invocar el script, asi que no se
   // pierde nada.
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body, {
+  const conRegistro = registrarTransicion(body, 'start', today, resolverConfig(deps.repoCwd).modo_flujo);
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro, {
     tolerateMissingSource: true,
   });
 

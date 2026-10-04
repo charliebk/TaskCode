@@ -30,6 +30,7 @@ import path from 'node:path';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { STATE_FOLDER, type Task } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
+import { registrarTransicion } from '../core/transiciones.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
 import {
@@ -564,7 +565,8 @@ export async function runReviewCommand(
     );
   }
 
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+  const conRegistro = registrarTransicion(body, 'review', today, resolverConfig(deps.repoCwd).modo_flujo);
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
   const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
   const informes: RevisionGrupo[] = escrituras.map((escritura) => ({
     revisor: escritura.revisor,

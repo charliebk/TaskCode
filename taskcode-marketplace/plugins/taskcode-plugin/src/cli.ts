@@ -16,6 +16,8 @@ import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex-review.js';
 import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
+import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
+import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
 import {
   isWrapperCommand,
   runWrapperCommand,
@@ -59,19 +61,25 @@ Uso:
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
-  taskctl approve TASK-NNN [--push]
+  taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
   taskctl review TASK-NNN [--push]
   taskctl codex-review TASK-NNN [--push]
   taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados>
                     [--informe <nombre>] [--push]
   taskctl finish TASK-NNN [--push]
+  taskctl siguiente TASK-NNN [--json]
+  taskctl pausa TASK-NNN [--push]
   taskctl diagnose
   taskctl pause [--push]
   taskctl resume [<rama>]
   taskctl recover [<rama>]
   taskctl abort-merge
 
-Comandos: new, import, board, start, plan, approve, review, codex-review, veredicto, finish.
+Comandos: new, import, board, start, plan, approve, review, codex-review, veredicto, finish,
+siguiente, pausa.
+siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
+manual, semiautomatico o automatico); solo lee. pausa registra que la persona
+no quiere pasar todavia a la siguiente fase.
 Wrappers de Git-Flow: diagnose, pause, resume, recover, abort-merge.
 --asignado-a se acepta tambien escrito --asignado_a, en los tres comandos.
 taskctl commitea SOLO los ficheros que el mismo escribe (nunca "git add -A"):
@@ -566,6 +574,61 @@ async function mainComando(argv: readonly string[]): Promise<number> {
         e instanceof GitLaunchError ||
         e instanceof GitCommandError ||
         e instanceof GitflowScriptLaunchError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'siguiente') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const r = await runSiguienteCommand(tareasRoot, argv.slice(1), { repoCwd });
+      if (r.json) {
+        const { json: _json, ...salida } = r;
+        process.stdout.write(`${JSON.stringify(salida)}\n`);
+      } else {
+        process.stdout.write(
+          `Tarea ${r.id} (${r.estado}, modo ${r.modo}): siguiente fase "${r.fase}" — ${r.motivo}.\n` +
+            (r.comando === null ? '' : `Comando: ${r.comando}\n`) +
+            `Accion: ${r.accion}.\n`
+        );
+      }
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof ConfigError ||
+        e instanceof SiguienteCommandError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'pausa') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const r = await runPausaCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+      process.stdout.write(
+        `Tarea ${r.id}: pausa registrada en ${r.filePath}. Para seguir: taskctl siguiente ${r.id}.\n`
+      );
+      printAutoCommit(r.autoCommit);
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof PausaCommandError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError
       ) {
         printCliError(e);
         return 1;

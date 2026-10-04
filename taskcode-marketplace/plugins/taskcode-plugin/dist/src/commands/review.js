@@ -30,6 +30,7 @@ import path from 'node:path';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { STATE_FOLDER } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
+import { registrarTransicion } from '../core/transiciones.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
 import { commitRevisadoDe, hallazgosNoCerrados, veredictoDeRonda, } from '../core/informe-revision.js';
@@ -395,7 +396,8 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
             '(¿restos con otro case en un filesystem case-insensitive?). La tarea NO se ha ' +
             'movido; limpia o renombra esos ficheros y reintenta.');
     }
-    const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, body);
+    const conRegistro = registrarTransicion(body, 'review', today, resolverConfig(deps.repoCwd).modo_flujo);
+    const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
     const informes = escrituras.map((escritura) => ({
         revisor: escritura.revisor,
