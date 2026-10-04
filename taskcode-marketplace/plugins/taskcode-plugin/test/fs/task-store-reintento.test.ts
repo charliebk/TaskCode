@@ -70,7 +70,7 @@ test('moveTareaFile (TASK-053): un EPERM que dura dos intentos no impide mover l
   });
 });
 
-test('moveTareaFile (TASK-053): un EPERM que no cede se propaga tras los reintentos y la tarea sigue en su sitio', async () => {
+test('moveTareaFile (TASK-053): un EBUSY que no cede se propaga tras los reintentos y la tarea sigue en su sitio', async () => {
   await conTarea(async (tareas, origen) => {
     let intentos = 0;
     const renombrar = async (): Promise<void> => {
@@ -86,6 +86,25 @@ test('moveTareaFile (TASK-053): un EPERM que no cede se propaga tras los reinten
     );
     assert.equal(intentos, 4, '1 intento + 3 reintentos');
     assert.ok(existsSync(origen));
+  });
+});
+
+test('moveTareaFile (TASK-053, MEN-1 de su revision): un rename que movio la carpeta pero devolvio EPERM se da por bueno', async () => {
+  await conTarea(async (tareas, origen) => {
+    let primera = true;
+    const renombrar = async (a: string, b: string): Promise<void> => {
+      if (primera) {
+        primera = false;
+        await rename(a, b);
+        throw errorDe('EPERM');
+      }
+      await rename(a, b);
+    };
+    const destino = await moveTareaFile(tareas, origen, { ...TASK, estado: 'terminada' }, 'x\n', {
+      renombrar,
+      esperasReintento: [1, 1, 1],
+    });
+    assert.ok(existsSync(destino));
   });
 });
 

@@ -11,6 +11,7 @@
  * como argumento de CLI (plan, approve, start...) un id sin sanear
  * como "../../etc" podria escapar de tareasRoot.
  */
+import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -221,6 +222,10 @@ async function renombrarConReintentos(
       return;
     } catch (e: unknown) {
       const code = (e as { code?: string }).code;
+      // MEN-1 de la revision: en Windows un rename puede MOVER la carpeta
+      // y aun asi devolver EPERM. Si al reintentar el origen ya no esta y
+      // el destino si, el movimiento ocurrio: no es un error.
+      if (intento > 0 && code === 'ENOENT' && existsSync(hasta) && !existsSync(desde)) return;
       const transitorio = code === 'EPERM' || code === 'EBUSY';
       if (!transitorio || intento >= esperas.length) throw e;
       await new Promise((ok) => setTimeout(ok, esperas[intento]));

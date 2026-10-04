@@ -49,3 +49,14 @@ las esperas son inyectables via `MoveTareaFileOptions` solo para los tests.
 un EPERM que dura dos intentos no impide mover la tarea; un EBUSY permanente
 se propaga tras 1 + 3 intentos y la tarea sigue en su sitio; un ENOTDIR no se
 reintenta. Con `task-store` y `finish`: 35/35.
+
+**Revision ronda 1: aprobada** (0 criticos, 0 importantes, 3 menores; suite
+completa 925 tests, solo los 3 rojos conocidos de Windows; 3 mutantes, los 3
+en rojo). Por A3, sin ronda 2.
+- MEN-1, corregido en el cierre: un rename que SI movio la carpeta pero devolvio
+  EPERM hacia que el reintento fallara con un ENOENT enganoso. Ahora, si al
+  reintentar el origen ya no esta y el destino si, se da por bueno. Test.
+- MEN-2, corregido: el titulo del test decia EPERM y simulaba EBUSY.
+- MEN-3, aceptado: el otro `rename` del CLI (migracion de `plan-final.md` en
+  `plan.ts`) no tiene reintento; mueve un fichero, antes de cualquier merge, y
+  `plan` se puede repetir sin dejar nada a medias.
