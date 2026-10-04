@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-10-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 24
+## Planificadas (00-planificadas) — 23
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -28,7 +28,6 @@ TASK-050  F6-T1 Suite rapida y repo plantilla en los tests                      
 TASK-051  F6-T2 Partir los ficheros de test mas largos                                                (sin asignar)
 TASK-052  F6-T5 Telemetria de fases y heuristica recalibrada                                          (sin asignar)
 TASK-054  Rutas no ASCII en el diff de revision fragmentado por dominio                               (sin asignar)
-TASK-057  Flujo C: fases como skills invocables en modo manual                                        (sin asignar)
 TASK-058  Flujo D: modo semiautomatico                                                                (sin asignar)
 TASK-059  Flujo E: modo automatico                                                                    (sin asignar)
 ```
@@ -41,7 +40,7 @@ ID        Titulo                                Asignado
 TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 34
+## Terminadas (04-terminadas) — 35
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -80,4 +79,5 @@ TASK-046  F5-T2 Secciones con subtitulos y criterios multilinea                 
 TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
 TASK-055  Flujo A: taskctl desde PowerShell y cmd                                                  charlie.bk@gmail.com
 TASK-056  Flujo B: nucleo determinista del siguiente paso y registro de transiciones               charlie.bk@gmail.com
+TASK-057  Flujo C: fases como skills invocables en modo manual                                     charlie.bk@gmail.com
 ```
