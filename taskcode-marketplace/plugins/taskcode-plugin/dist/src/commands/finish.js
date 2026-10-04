@@ -26,7 +26,7 @@ import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
 import { veredictoAprobado } from '../core/informe-revision.js';
 import { casillasSinMarcar } from '../core/validacion-tarea.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, resolveIntegrationBranch, } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, resolveIntegrationBranch, localBranchExists, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { runBoardCommand, boardFilePath } from './board.js';
@@ -235,6 +235,17 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     // se pasa a los cuatro scripts con --develop (hotfix/release la
     // necesitan para el backmerge).
     const ramaIntegracion = resolveIntegrationBranch(deps.repoCwd);
+    // MEN-1 de la revision: el config se lee del arbol de la rama de la
+    // tarea. Un hotfix nace de la principal, y si `rama_base` aun no ha
+    // llegado ahi se resuelve "develop", que quiza no existe: sin esto el
+    // error era un "Not a valid object name" de git en crudo.
+    if (!localBranchExists(ramaIntegracion, deps.repoCwd)) {
+        throw new FinishCommandError(`[ERROR] ${id}: la rama de integracion "${ramaIntegracion}" no existe en local. ` +
+            'Si el proyecto usa otra (clave rama_base de .taskcode/config.yml), ese config tiene que ' +
+            `estar commiteado tambien en "${rama}" — en un hotfix, en la rama principal de la que ` +
+            'nace. Si la rama existe solo en origin, traela con git checkout ' +
+            `${ramaIntegracion} y reintenta. No se ha tocado nada.`);
+    }
     // Colision de IDs ANTES de mergear (criterio 4): se comprueba contra
     // cada rama destino del merge. Para feature/fix solo la de integracion; para
     // hotfix/release tambien la principal.
@@ -333,8 +344,8 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     await appendEntry(indexPath, INDEX_INICIAL, INDEX_HEADER, indexEntry(updated, today));
     const board = await runBoardCommand(tareasRoot, []);
     await writeFile(boardPath, renderBoardMarkdown(board.output, board.advertencias, today, 'taskctl finish'), 'utf8');
-    // Paso 5 de la 8.3 (TASK-030, item C2). "finish" commitea sobre
-    // DEVELOP, no sobre la rama de la tarea: cuando llega aqui el merge
+    // Paso 5 de la 8.3 (TASK-030, item C2). "finish" commitea sobre la
+    // rama de integracion (`rama_base`), no sobre la rama de la tarea: cuando llega aqui el merge
     // ya esta consumado y el comando termina siempre en la rama de integracion (se
     // comprueba mas arriba). Es lo que se venia haciendo a mano; queda
     // fijado con un test para que nadie lo "arregle" mas adelante.

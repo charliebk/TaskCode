@@ -233,3 +233,40 @@ for (const caso of [
     });
   });
 }
+
+test('rama_base solo en dev: el finish de un hotfix (nacido de main, sin ese config) aborta diciendo que hacer, sin tocar nada (MEN-1 de la revision)', async () => {
+  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-rama-base-'));
+  try {
+    git(['init', '-q', '-b', 'main'], repoRoot);
+    git(['config', 'user.email', 'test@example.com'], repoRoot);
+    git(['config', 'user.name', 'Test'], repoRoot);
+    await writeFile(path.join(repoRoot, 'app.txt'), 'inicial\n', 'utf8');
+    commitAll(repoRoot, 'inicial');
+    // El config solo existe en dev: la rama del hotfix, nacida de main, no lo ve.
+    git(['checkout', '-q', '-b', 'dev'], repoRoot);
+    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), 'rama_base: dev\n', 'utf8');
+    commitAll(repoRoot, 'config');
+    const tareasRoot = path.join(repoRoot, 'tareas');
+    const task = {
+      ...tareaDeTipo('TASK-953', 'hotfix', 'hotfix/task-953-urgente'),
+      estado: 'en-revision' as const,
+    };
+    git(['checkout', '-q', '-b', task.rama, 'main'], repoRoot);
+    await writeTareaFile(tareasRoot, task, '## Objetivo\nProbar el aviso.\n');
+    const revisionDir = path.join(tareasRoot, '03-en-revision', task.id, 'revision');
+    await mkdir(revisionDir, { recursive: true });
+    await writeFile(path.join(revisionDir, 'informe-revision-1.md'), '- Veredicto: aprobada\n', 'utf8');
+    commitAll(repoRoot, 'hotfix revisado');
+    const antes = git(['rev-parse', 'HEAD', 'main', 'dev'], repoRoot);
+
+    await assert.rejects(
+      runFinishCommand(tareasRoot, [task.id], HOY, { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR }),
+      /rama de integracion "develop" no existe.*rama_base/s
+    );
+    assert.equal(git(['rev-parse', 'HEAD', 'main', 'dev'], repoRoot), antes, 'no se ha tocado nada');
+    assert.equal(git(['branch', '--show-current'], repoRoot).trim(), task.rama);
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+});

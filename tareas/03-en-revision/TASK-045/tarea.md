@@ -66,3 +66,20 @@ Suite: 979 tests, 976 en verde (los 3 rojos conocidos de Windows).
 Smoke con `bin/taskctl` en un repo temporal con `rama_base: dev`: el ciclo
 cierra con el merge `fix/... -> dev` y sin rama `develop`.
 
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **aprobada** (0 CRITICO, 0 IMPORTANTE, 3 MENOR), con
+mutantes y el CLI real en repos sin `develop`, incluido un hotfix con
+conflicto de backmerge resuelto a mano. Veredicto registrado como
+aprobada-con-correcciones por los MENOR corregidos:
+
+- MEN-1 (corregido): con el config solo en la rama de integracion, el finish
+  de un hotfix fallaba con un error de git en crudo. Ahora comprueba que la
+  rama de integracion existe y dice que hacer; test nuevo, mutante muerto.
+- MEN-3 (corregido): comentarios de finish.ts, cli.ts y config.ts.
+- MEN-2 (aceptado, sin corregir): el camino idempotente de finish con
+  `rama_base` distinta no tiene test propio (un mutante ahi sobrevive). El
+  codigo es correcto y lo ejercito el revisor con el CLI real; montar el
+  conflicto de backmerge en un test no compensaba frente a la urgencia de
+  TASK-055. Deuda de cobertura.
