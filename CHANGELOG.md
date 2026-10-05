@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-059 (feature) — Flujo E: modo automatico (2026-10-05)
 - TASK-058 (feature) — Flujo D: modo semiautomatico (2026-10-04)
 - TASK-057 (feature) — Flujo C: fases como skills invocables en modo manual (2026-10-04)
 - TASK-056 (feature) — Flujo B: nucleo determinista del siguiente paso y registro de transiciones (2026-10-04)
