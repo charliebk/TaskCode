@@ -1,8 +1,12 @@
 {
   "name": "taskcode-plugin",
+  "displayName": "TaskCode",
   "version": "0.4.0",
   "description": "Metodologia de tareas por sprints, revision por pares de agentes y Git-Flow determinista para Claude Code.",
   "author": {
     "name": "charlie.bk"
-  }
+  },
+  "repository": "https://github.com/charliebk/TaskCode",
+  "license": "MIT",
+  "keywords": ["git-flow", "tareas", "sprints", "revision-por-pares", "scrum"]
 }

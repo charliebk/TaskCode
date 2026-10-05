@@ -12,8 +12,28 @@ construye usándose a sí mismo** (dogfooding desde el Sprint 0).
 /plugin install taskcode-plugin@taskcode-marketplace
 ```
 
+O, desde la terminal:
+
+```bash
+claude plugin marketplace add charliebk/TaskCode
+claude plugin install taskcode-plugin@taskcode-marketplace
+```
+
 El repo es privado: hace falta acceso de lectura como colaborador, y las
 credenciales Git/GitHub que ya tengas configuradas (SSH o `gh`).
+
+### Actualizar
+
+```bash
+claude plugin marketplace update taskcode-marketplace
+claude plugin update taskcode-plugin@taskcode-marketplace
+```
+
+Y después **reinicia Claude Code** (o ejecuta `/reload-plugins` en la sesión
+abierta): una sesión en marcha conserva la versión que ya cargó. El plugin
+fija su `version`, así que solo llega una versión nueva cuando se publica.
+
+Licencia: [MIT](LICENSE).
 
 Para desarrollo sobre el propio plugin, sin instalarlo:
 
