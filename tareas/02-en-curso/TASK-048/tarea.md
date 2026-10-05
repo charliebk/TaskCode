@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-048-f6-t3-skill-de-flujo-mas-ligera
 asignado_a: charlie.bk@gmail.com
@@ -39,3 +39,4 @@ contenido generico que repiten las 4 skills revisoras pasa a un solo sitio.
 |---|---|---|---|
 | 2026-10-05 | plan | manual | persona |
 | 2026-10-05 | approve | manual | persona |
+| 2026-10-05 | start | manual | persona |
