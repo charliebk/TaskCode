@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 67 / 69 items terminados (97%)** · última actualización: 2026-10-05
+**Progreso global: 68 / 69 items terminados (99%)** · última actualización: 2026-10-05
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -30,9 +30,9 @@ tomada y documentada, no aplazada.
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **5** | ~9h |
-| F — Auditoría 2026-10-03 | 22 | **21** | — |
+| ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
-| **Total pendiente** | **2** | — | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -717,7 +717,10 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 
 ---
 
-## F — Auditoría 2026-10-03 (21/22)
+## ✅ F — Auditoría 2026-10-03 (22/22)
+
+*(El contador iba uno por debajo desde antes de la fase 6: las 22 casillas
+están marcadas. Corregido al publicar la 0.5.0.)*
 
 - [x] TASK-033 — Comando de sincronización tras cada transición (v0.1.1)
 - [x] TASK-034 — F1-T1 Excluir lo generado del diff de revisión

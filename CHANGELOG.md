@@ -2,11 +2,39 @@
 
 ## Sin publicar
 
+## 0.5.0 — 2026-10-05
+
+Fase 6 del plan de la auditoria: suite, skill y telemetria. Actualizar con
+`claude plugin marketplace update taskcode-marketplace`, `claude plugin
+update taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code (o
+`/reload-plugins`).
+
+- **Aviso de compatibilidad**: la tabla `## Transiciones` de cada tarea
+  guarda ahora el instante UTC (`2026-10-05T14:03:22Z`) en la columna
+  `fecha`. Una version anterior del plugin no reconoce esas filas: no veria
+  el modo de flujo congelado y caeria al de la config. Todo el equipo debe
+  pasar a la 0.5.0 a la vez.
+- `taskctl metricas [--heuristica]`: duracion de diseno, curso y revision,
+  rondas y cierre por tarea, desde `## Transiciones` o, en tareas antiguas,
+  desde los commits del ciclo.
+- Heuristica de complejidad recalibrada con las tareas cerradas
+  (`nivel_trivial_hasta` 1 → 0) y sin las claves que nada leia
+  (`tolerancia_*`, `modelo_consulta_discrepancia`). Un YML de heuristica
+  editado a mano con esas claves aborta: reinstala el plugin.
+- Skill `task-workflow` de 22 a 13 KB (referencias que se leen bajo demanda);
+  lo comun de las cuatro revisoras vive en un solo sitio, con la tabla del
+  veredicto corregida; descripciones de 300 caracteres o menos.
+- `plugin.json` con `displayName`, `repository`, `license` (MIT) y
+  `keywords`; LICENSE MIT. Los agentes de brainstorm no fijan `model:`.
+- Desarrollo: `npm run test:rapido` (core y cli, segundos) y la suite
+  completa un 31 % mas rapida.
+
 - TASK-052 (feature) — F6-T5 Telemetria de fases y heuristica recalibrada (2026-10-05)
 - TASK-049 (feature) — F6-T4 Metadatos del plugin y modelo de los agentes (2026-10-05)
 - TASK-048 (feature) — F6-T3 Skill de flujo mas ligera (2026-10-05)
 - TASK-051 (feature) — F6-T2 Partir los ficheros de test mas largos (2026-10-05)
 - TASK-050 (feature) — F6-T1 Suite rapida y repo plantilla en los tests (2026-10-05)
+
 ## 0.4.0 — 2026-10-05
 
 Fase G (el plugin conduce el ciclo) y fase 5 del plan de la auditoria. Sube

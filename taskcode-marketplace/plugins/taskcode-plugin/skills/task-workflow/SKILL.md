@@ -101,8 +101,8 @@ Detalles que muerden:
 - **En `approve`, `review` y `finish` el ID tiene que ser el primer
   argumento.** Esos comandos leen el primer argumento tal cual, asi que
   `taskctl approve --loquesea TASK-NNN` intentaria usar `--loquesea` como ID.
-- **Los flags desconocidos se ignoran en silencio** en el resto de comandos:
-  comprobar la salida, no suponer.
+- **Un flag desconocido aborta** en todos los comandos, con la lista de los
+  validos y el mas parecido; los booleanos no aceptan `=valor`.
 - `board` solo escribe `docs/BOARD.md` si se le pasa `--escribir`, y ese
   flag **no se combina** con `--sprint` ni `--asignado-a`: el fichero es la
   foto completa, no una vista filtrada.

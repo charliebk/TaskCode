@@ -1,6 +1,6 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-10-05** (fase 5 de la auditoría cerrada, v0.4.0).
+> Última actualización: **2026-10-05** (fase 6 de la auditoría cerrada, v0.5.0: el plan de la auditoría, terminado).
 > Este documento se actualiza al cerrar cada fase. Si lo que dice no cuadra
 > con el repo, gana el repo — y hay que corregir esto.
 
@@ -33,7 +33,16 @@ una tarea tras otra, con release y aviso a OpenGisViewer al cerrar cada fase.
   de punta a punta; un flag desconocido aborta en todo el CLI con sugerencia;
   `review` separa agente/modelo de la skill revisora; rutas no ASCII y de glob
   llegan con su diff a la petición de su dominio.
-- **Pendiente**: fase 6 (TASK-048 a 052) y E2 (TASK-023).
+- **v0.5.0** — fase 6 (TASK-050, 051, 048, 049, 052): `npm run test:rapido`
+  (357 tests en ~11 s) y suite completa de 633 a 436 s de media (partiendo
+  los ficheros largos); skill de flujo de 22 a 13 KB y lo común de las
+  revisoras en un solo sitio; `plugin.json` completo y licencia MIT;
+  `## Transiciones` con instante UTC, `taskctl metricas` y heurística
+  recalibrada (`nivel_trivial_hasta` 1 → 0). La nueva cola de la suite:
+  `siguiente`, `distribucion`, `plan-brainstorm`, `plan`.
+- **Pendiente**: E2 (TASK-023, coste en tokens por fase: encaja como columnas
+  de `taskctl metricas`) y el smoke del flujo guiado dentro de una sesión de
+  Claude Code.
 
 ## Dónde estamos
 
