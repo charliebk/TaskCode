@@ -6,17 +6,17 @@ sprint: 6
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-054-rutas-no-ascii-en-el-diff-de-revision-fr
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-10-04
-actualizado: 2026-10-04
+actualizado: 2026-10-05
 dependencias: []
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ el diff, y que el fichero aparezca en la peticion que le corresponde.
 ## Criterios de aceptacion
 - [ ] `diffNameOnly` y `diffParaRevision` usan `-z` (o `core.quotePath=false`) y una ruta con caracteres no ASCII aparece igual en la clasificacion y en el diff
 - [ ] Test con un fichero `src/acción.ts` en una revision fragmentada: su diff aparece en la peticion de su dominio
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-05 | plan | manual | persona |
