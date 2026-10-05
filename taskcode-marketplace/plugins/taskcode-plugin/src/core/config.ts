@@ -61,6 +61,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
+import { distanciaEdicion, masParecida } from './sugerencia.js';
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -485,45 +486,11 @@ function motivoRutaInvalida(original: string): string | null {
  * literal: `limite_wp`.
  */
 function mensajeClaveDesconocida(donde: string, clave: string): string {
-  const sugerida = claveMasParecida(clave);
+  const sugerida = masParecida(clave, CLAVES_CONFIG);
   const lineas = [`[ERROR] ${donde}: clave desconocida "${clave}".`];
   if (sugerida !== null) lineas.push(`        Quiza quisiste decir "${sugerida}".`);
   lineas.push(`        Claves validas: ${CLAVES_CONFIG.join(', ')}.`);
   return lineas.join('\n');
-}
-
-/** Distancia de edicion (Levenshtein) a mano — cero dependencias, como el resto. */
-function distanciaEdicion(a: string, b: string): number {
-  let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i++) {
-    const actual = [i];
-    for (let j = 1; j <= b.length; j++) {
-      const coste = a[i - 1] === b[j - 1] ? 0 : 1;
-      actual[j] = Math.min(
-        (actual[j - 1] as number) + 1,
-        (previa[j] as number) + 1,
-        (previa[j - 1] as number) + coste
-      );
-    }
-    previa = actual;
-  }
-  return previa[b.length] as number;
-}
-
-/** La clave valida mas cercana, si esta lo bastante cerca como para ser una errata. */
-function claveMasParecida(clave: string): string | null {
-  let mejor: string | null = null;
-  let mejorDistancia = Number.POSITIVE_INFINITY;
-  for (const valida of CLAVES_CONFIG) {
-    const d = distanciaEdicion(clave.toLowerCase(), valida);
-    if (d < mejorDistancia) {
-      mejorDistancia = d;
-      mejor = valida;
-    }
-  }
-  // Umbral: hasta un tercio de la clave. Sin el, "foo" propondria
-  // "rama_base" y el consejo dejaria de valer nada.
-  return mejorDistancia <= Math.max(1, Math.floor(clave.length / 3)) ? mejor : null;
 }
 
 /**
