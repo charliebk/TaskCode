@@ -65,6 +65,8 @@ export interface StartCommandDeps {
   repoCwd: string;
   /** Directorio scripts/gitflow/ a usar (ver resolveGitflowScriptsDir). */
   scriptsDir: string;
+  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  ahora?: string;
 }
 
 export interface StartCommandResult {
@@ -291,7 +293,7 @@ export async function runStartCommand(
   // ver comentario de MoveTareaFileOptions en task-store.ts. task/body
   // ya se leyeron en memoria antes de invocar el script, asi que no se
   // pierde nada.
-  const conRegistro = registrarTransicion(body, 'start', today, resolverConfig(deps.repoCwd).modo_flujo);
+  const conRegistro = registrarTransicion(body, 'start', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro, {
     tolerateMissingSource: true,
   });

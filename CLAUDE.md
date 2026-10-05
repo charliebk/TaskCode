@@ -43,8 +43,8 @@ npm test             # compila y corre la suite completa (~1090 tests, ~8 min) c
 npm run test:rapido  # core y cli sin procesos (~360 tests, ~10 s): para iterar, no para cerrar
 ```
 
-El CLI: `taskctl new | import | board | plan | approve | start | review |
-finish`, más los cinco wrappers de Git-Flow: `diagnose | pause | resume |
+El CLI: `taskctl new | import | board | metricas | plan | approve | start |
+review | finish`, más los cinco wrappers de Git-Flow: `diagnose | pause | resume |
 recover | abort-merge`. El ciclo de vida está completo: Fases A, B y C
 cerradas.
 

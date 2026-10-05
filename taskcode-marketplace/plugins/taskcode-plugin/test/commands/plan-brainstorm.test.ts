@@ -289,9 +289,9 @@ test('plan: una tarea "trivial" con dependencias sube a 1 rol por el max (efecto
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(
       tareasRoot,
-      // Dos dependencias = 2 puntos, que es justo lo que saca a la
-      // tarea de `trivial` (nivel_trivial_hasta: 1). Es la puntuacion
-      // real de TASK-005, la unica tarea declarada trivial del repo.
+      // Dos dependencias = 2 puntos, que la sacan de `trivial` (desde
+      // TASK-052 basta 1: nivel_trivial_hasta: 0). Es la puntuacion
+      // real de TASK-005, la primera tarea declarada trivial del repo.
       sampleTask({ complejidad: 'trivial', dependencias: ['TASK-798', 'TASK-799'] }),
       BODY
     );
@@ -302,6 +302,27 @@ test('plan: una tarea "trivial" con dependencias sube a 1 rol por el max (efecto
     });
 
     assert.equal(result.resolucion.nivelDeclarado, 'trivial');
+    assert.equal(result.resolucion.nivelHeuristico, 'simple');
+    assert.equal(result.roles.length, 1);
+  });
+});
+
+/**
+ * TASK-052: con `nivel_trivial_hasta: 0` (calibrado con rondas reales)
+ * UNA sola senal saca a la tarea de `trivial`. Una tarea declarada trivial
+ * con una dependencia (1 punto) lanza 1 rol. Mutacion comprobada: volver
+ * `nivel_trivial_hasta` a 1 en el YML la deja en 0 roles y pone rojo esto.
+ */
+test('plan: una tarea "trivial" con UNA dependencia (1 punto) ya lanza 1 rol (calibracion de TASK-052)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'trivial', dependencias: ['TASK-799'] }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', {
+      repoCwd: repoRoot,
+    });
+
+    assert.equal(result.resolucion.puntos, 1);
     assert.equal(result.resolucion.nivelHeuristico, 'simple');
     assert.equal(result.roles.length, 1);
   });

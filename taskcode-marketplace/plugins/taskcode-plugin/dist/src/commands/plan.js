@@ -762,7 +762,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         await regenerar(nombrePeticionUnificador(ronda), peticionUnificadorTemplate(updated, secciones.objetivo, secciones.criterios, rolesDeLaRonda, salidasAConsolidar, ronda, rondaRoles, today, resolucion, path.posix.join('..', PLAN_FINAL_FILENAME)));
     }
     // TASK-056: la fila de plan congela el modo de flujo del config en la tarea.
-    const conRegistro = registrarTransicion(body, 'plan', today, resolverConfig(deps.repoCwd).modo_flujo);
+    const conRegistro = registrarTransicion(body, 'plan', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
     // Paso 5 de la 8.3 (TASK-030, item C2): la carpeta de ORIGEN entra

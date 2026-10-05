@@ -340,6 +340,8 @@ export interface PlanCommandDeps {
   repoCwd: string;
   /** TASK-044: donde escribir la particion propuesta (por defecto os.tmpdir()). Para tests. */
   dirParticion?: string;
+  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  ahora?: string;
 }
 
 /**
@@ -1004,7 +1006,7 @@ export async function runPlanCommand(
     );
   }
   // TASK-056: la fila de plan congela el modo de flujo del config en la tarea.
-  const conRegistro = registrarTransicion(body, 'plan', today, resolverConfig(deps.repoCwd).modo_flujo);
+  const conRegistro = registrarTransicion(body, 'plan', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
   const planPath = path.join(path.dirname(newFilePath), PLANIFICACION_DIRNAME, PLAN_FINAL_FILENAME);
 

@@ -95,6 +95,8 @@ export interface ApproveCommandResult {
 export interface ApproveCommandDeps {
   /** Directorio de trabajo del repo Git del usuario (normalmente process.cwd()). */
   repoCwd: string;
+  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  ahora?: string;
 }
 
 export async function runApproveCommand(
@@ -179,7 +181,7 @@ export async function runApproveCommand(
   // asi la segunda vez sigue sin crear commit (es idempotente).
   const conRegistro = task.plan_aprobado
     ? body
-    : registrarTransicion(body, 'approve', today, resolverConfig(deps.repoCwd).modo_flujo, decididoPor);
+    : registrarTransicion(body, 'approve', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo, decididoPor);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
 
   // Paso 5 de la 8.3 (TASK-030, item C2). "approve" no cambia el

@@ -76,6 +76,7 @@ taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release>
 taskctl import <fichero.md> [--tipo ...] [--sprint N] [--complejidad ...]   # `> texto` bajo el ### = Objetivo
 taskctl board [--sprint N] [--asignado-a <persona>]
 taskctl board --escribir          # no se combina con los filtros de arriba
+taskctl metricas [--heuristica]   # duracion de cada fase y rondas por tarea; solo lee
 taskctl plan    TASK-NNN [--asignado-a <persona>]
 taskctl approve TASK-NNN [--decidido-por persona|automatico]
 taskctl start   TASK-NNN [--asignado-a <persona>]

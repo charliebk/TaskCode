@@ -6,6 +6,7 @@ import path from 'node:path';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
 import { runImportCommand, ImportCommandError } from './commands/import.js';
 import { runBoardCommand, BoardCommandError } from './commands/board.js';
+import { runMetricasCommand, MetricasCommandError } from './commands/metricas.js';
 import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError } from './commands/plan.js';
 import { HeuristicaError } from './core/heuristica.js';
@@ -32,6 +33,7 @@ import { CODIGO_SINCRONIZACION_NO_APLICADA, sincronizacionNoAplicada, } from './
 // taskctl arranco bien, lo que esta mal es el .taskcode/config.yml
 // del repo.
 import { ConfigError } from './core/config.js';
+import { formatearInstante } from './core/transiciones.js';
 const VERSION = '0.4.0';
 const HELP = `taskctl ${VERSION} — TaskCode
 
@@ -46,6 +48,7 @@ Uso:
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
+  taskctl metricas [--heuristica]
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
@@ -63,8 +66,11 @@ Uso:
   taskctl recover [<rama>]
   taskctl abort-merge
 
-Comandos: new, import, board, start, plan, approve, review, codex-review, veredicto, finish,
-siguiente, pausa, cadena.
+Comandos: new, import, board, metricas, start, plan, approve, review, codex-review, veredicto,
+finish, siguiente, pausa, cadena.
+metricas saca, por tarea, cuanto duro cada fase (diseno, curso, revision) y
+cuantas rondas de revision hubo; --heuristica compara la complejidad declarada
+con la que da la heuristica en las tareas terminadas. Solo lee.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
@@ -83,6 +89,15 @@ Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 function today() {
     return new Date().toISOString().slice(0, 10);
+}
+/**
+ * TASK-052: el instante que se escribe en `## Transiciones`. Misma fuente
+ * que today() (UTC, toISOString), al segundo: con hora local, una fila de
+ * las 23:30 en Madrid no casaria con su fecha. `today` sigue siendo lo que
+ * usan `actualizado` y el board.
+ */
+function ahora() {
+    return formatearInstante(new Date());
 }
 /**
  * Algunos errores del CLI ya se construyen con el prefijo "[ERROR]"
@@ -390,12 +405,37 @@ async function mainComando(argvEntrada) {
             throw e;
         }
     }
+    if (cmd === 'metricas') {
+        const repoCwd = process.cwd();
+        const tareasRoot = path.join(repoCwd, 'tareas');
+        try {
+            const result = await runMetricasCommand(tareasRoot, argv.slice(1), { repoCwd });
+            for (const aviso of result.advertencias) {
+                process.stderr.write(`[AVISO] ${aviso}\n`);
+            }
+            if (result.output === '') {
+                process.stdout.write('No hay tareas que medir (o no hay ninguna tarea todavia).\n');
+            }
+            else {
+                process.stdout.write(`${result.output}\n`);
+            }
+            return 0;
+        }
+        catch (e) {
+            if (e instanceof MetricasCommandError || e instanceof HeuristicaError) {
+                printCliError(e);
+                return 1;
+            }
+            throw e;
+        }
+    }
     if (cmd === 'start') {
         const repoCwd = process.cwd();
         const tareasRoot = path.join(repoCwd, 'tareas');
         try {
             const result = await runStartCommand(tareasRoot, argv.slice(1), today(), {
                 repoCwd,
+                ahora: ahora(),
                 scriptsDir: resolveGitflowScriptsDir(),
             });
             printAvisos(result.avisoIdentidad, result.avisoAtribucion, ...result.avisosWip);
@@ -424,7 +464,7 @@ async function mainComando(argvEntrada) {
         const repoCwd = process.cwd();
         const tareasRoot = path.join(repoCwd, 'tareas');
         try {
-            const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+            const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd, ahora: ahora() });
             printBaseBranchSwitchNotice(result.baseBranchGuard);
             printAvisos(result.avisoIdentidad, ...result.avisosEnunciado);
             // Tres desenlaces posibles desde TASK-027 (item C3): scaffold
@@ -469,7 +509,7 @@ async function mainComando(argvEntrada) {
         const repoCwd = process.cwd();
         const tareasRoot = path.join(repoCwd, 'tareas');
         try {
-            const result = await runApproveCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+            const result = await runApproveCommand(tareasRoot, argv.slice(1), today(), { repoCwd, ahora: ahora() });
             printBaseBranchSwitchNotice(result.baseBranchGuard);
             // Nota (hallazgo menor de revision por pares): para complejidad
             // trivial/simple, "taskctl start" nunca exigio plan_aprobado
@@ -499,6 +539,7 @@ async function mainComando(argvEntrada) {
         try {
             const result = await runReviewCommand(tareasRoot, argv.slice(1), today(), {
                 repoCwd,
+                ahora: ahora(),
                 scriptsDir: resolveGitflowScriptsDir(),
             });
             // TASK-018: N pares peticion/informe si el diff se fragmento por
@@ -591,7 +632,7 @@ async function mainComando(argvEntrada) {
         const repoCwd = process.cwd();
         const tareasRoot = path.join(repoCwd, 'tareas');
         try {
-            const r = await runPausaCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+            const r = await runPausaCommand(tareasRoot, argv.slice(1), today(), { repoCwd, ahora: ahora() });
             process.stdout.write(`Tarea ${r.id}: pausa registrada en ${r.filePath}. Para seguir: taskctl siguiente ${r.id}.\n`);
             printAutoCommit(r.autoCommit);
             return 0;
@@ -675,6 +716,7 @@ async function mainComando(argvEntrada) {
         try {
             const result = await runFinishCommand(tareasRoot, argv.slice(1), today(), {
                 repoCwd,
+                ahora: ahora(),
                 scriptsDir: resolveGitflowScriptsDir(),
                 onAviso: (aviso) => printAvisos(aviso),
             });

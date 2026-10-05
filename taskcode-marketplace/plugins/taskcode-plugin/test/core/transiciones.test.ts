@@ -10,6 +10,9 @@ import {
   modoCongelado,
   modoDeTarea,
   registrarTransicion,
+  precisionDeFecha,
+  instanteDe,
+  formatearInstante,
   type FilaTransicion,
 } from '../../src/core/transiciones.js';
 
@@ -211,4 +214,76 @@ test('registrarTransicion: plan toma el modo del config; el resto, el congelado 
   assert.equal(modoDeTarea(CUERPO, 'semiautomatico'), 'semiautomatico');
   const sinPlan = registrarTransicion(CUERPO, 'start', '2026-10-04', 'semiautomatico');
   assert.equal(leerTransiciones(sinPlan)[0]?.modo, 'semiautomatico');
+});
+
+// --------------------------------------------------------------------
+// TASK-052: la celda `fecha` lleva el instante UTC al segundo. Requisito del
+// rol de riesgos: el modo congelado se sigue leyendo con filas con hora y con
+// tablas mezcladas. Mutacion comprobada: volver al regex del dia a secas en
+// leerTransiciones (`/^\d{4}-\d{2}-\d{2}$/`) pone rojos estos tres tests.
+// --------------------------------------------------------------------
+
+const PLAN_AUTO_CON_HORA = fila({ fecha: '2026-10-05T14:03:22Z', modo: 'automatico' });
+
+test('TASK-052: registrarTransicion con instante lo escribe tal cual y leerTransiciones lo devuelve', () => {
+  const r = registrarTransicion(CUERPO, 'plan', '2026-10-05T14:03:22Z', 'automatico');
+  assert.ok(r.includes('| 2026-10-05T14:03:22Z | plan | automatico | persona |'), r);
+  assert.deepEqual(leerTransiciones(r), [PLAN_AUTO_CON_HORA]);
+});
+
+test('TASK-052: modoCongelado sigue funcionando con filas con hora', () => {
+  const r = anadirTransicion(CUERPO, PLAN_AUTO_CON_HORA);
+  assert.equal(modoCongelado(r), 'automatico');
+  // Y gana al config: es lo que impide aprobar en otro modo que el del plan.
+  assert.equal(modoDeTarea(r, 'manual'), 'automatico');
+  const aprobada = registrarTransicion(r, 'approve', '2026-10-05T14:10:00Z', 'manual');
+  assert.equal(leerTransiciones(aprobada)[1]?.modo, 'automatico');
+});
+
+test('TASK-052: tabla mezclada (filas viejas de dia y nuevas con hora) se lee entera y en orden', () => {
+  let r = anadirTransicion(CUERPO, fila({ fecha: '2026-10-04', modo: 'manual' }));
+  r = anadirTransicion(r, fila({ fecha: '2026-10-04', fase: 'approve' }));
+  // Un plan repetido despues de actualizar el plugin: el congelado es el ultimo.
+  r = anadirTransicion(r, PLAN_AUTO_CON_HORA);
+  r = anadirTransicion(r, fila({ fecha: '2026-10-05T15:00:00Z', fase: 'start', modo: 'automatico' }));
+  assert.deepEqual(
+    leerTransiciones(r).map((f) => [f.fecha, f.fase]),
+    [
+      ['2026-10-04', 'plan'],
+      ['2026-10-04', 'approve'],
+      ['2026-10-05T14:03:22Z', 'plan'],
+      ['2026-10-05T15:00:00Z', 'start'],
+    ]
+  );
+  assert.equal(modoCongelado(r), 'automatico');
+  // Al reves: plan nuevo con hora y despues una fila vieja sigue congelando el de la hora.
+  const solo = anadirTransicion(anadirTransicion(CUERPO, PLAN_AUTO_CON_HORA), fila({ fecha: '2026-10-06', fase: 'start' }));
+  assert.equal(modoCongelado(solo), 'automatico');
+});
+
+test('TASK-052: precisionDeFecha distingue dia e instante y rechaza lo demas', () => {
+  assert.equal(precisionDeFecha('2026-10-05'), 'dia');
+  assert.equal(precisionDeFecha('2026-10-05T14:03:22Z'), 'segundo');
+  for (const mala of [
+    '2026-10-05T14:03Z', // sin segundos
+    '2026-10-05T14:03:22.123Z', // con milisegundos
+    '2026-10-05T14:03:22+02:00', // con offset: la fuente es UTC
+    '2026-10-05 14:03:22',
+    '2026-02-30', // no existe
+    '2026-13-01',
+    '2026-10-05T25:00:00Z',
+    'ayer',
+  ]) {
+    assert.equal(precisionDeFecha(mala), null, mala);
+    const r = anadirTransicion(CUERPO, fila({ fecha: mala }));
+    assert.deepEqual(leerTransiciones(r), [], `una fila con fecha "${mala}" no cuenta`);
+  }
+});
+
+test('TASK-052: formatearInstante es UTC al segundo e instanteDe lo invierte', () => {
+  const d = new Date(Date.UTC(2026, 9, 5, 23, 59, 59, 987));
+  assert.equal(formatearInstante(d), '2026-10-05T23:59:59Z');
+  assert.equal(precisionDeFecha(formatearInstante(d)), 'segundo');
+  assert.equal(instanteDe('2026-10-05T23:59:59Z'), Date.UTC(2026, 9, 5, 23, 59, 59));
+  assert.equal(instanteDe('2026-10-05'), Date.UTC(2026, 9, 5));
 });

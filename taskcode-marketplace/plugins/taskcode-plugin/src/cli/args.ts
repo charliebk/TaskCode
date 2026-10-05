@@ -61,7 +61,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
  * `--flag=valor`. `validos` va con su prefijo (`--titulo`, `-p`).
  */
 /** Flags booleanos del CLI: los comandos solo reconocen el token suelto. */
-const FLAGS_SIN_VALOR: readonly string[] = ['--push', '--json', '--forzar', '--escribir'];
+const FLAGS_SIN_VALOR: readonly string[] = ['--push', '--json', '--forzar', '--escribir', '--heuristica'];
 
 export function rechazarFlagsDesconocidos(
   argv: readonly string[],

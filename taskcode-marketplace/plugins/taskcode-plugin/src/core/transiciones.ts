@@ -4,7 +4,17 @@
  *
  * | fecha | fase | modo | decidido_por |
  * |---|---|---|---|
- * | 2026-10-04 | plan | automatico | persona |
+ * | 2026-10-04T14:03:22Z | plan | automatico | persona |
+ *
+ * TASK-052: la celda `fecha` lleva el instante UTC con segundos
+ * (`toISOString` sin milisegundos), que es lo que mide `taskctl metricas`.
+ * Las filas anteriores, solo con el dia (`2026-10-04`), se siguen leyendo:
+ * cada fila expone su precision y nadie las reescribe. Una quinta columna
+ * `hora` se descarto porque rompia la lectura de todas las filas viejas
+ * (`celdas.length !== 4`); cambiar el contenido de la celda solo afecta a
+ * las nuevas. Lo que se pierde: un plugin ANTERIOR no reconoce las filas
+ * con hora (su regex es el del dia) y dejaria de ver el modo congelado;
+ * se acepta con una version del plugin por repo.
  *
  * Es el historico de quien decidio cada paso y en que modo, y viaja en el
  * mismo commit que la transicion (lo escribe el comando antes de su
@@ -31,10 +41,42 @@ export type DecididoPor = 'persona' | 'automatico';
 export const DECIDIDO_POR: readonly DecididoPor[] = ['persona', 'automatico'];
 
 export interface FilaTransicion {
+  /** `YYYY-MM-DD` (filas anteriores a TASK-052) o `YYYY-MM-DDTHH:MM:SSZ`. */
   fecha: string;
   fase: FaseRegistrada;
   modo: ModoFlujo;
   decidido_por: DecididoPor;
+}
+
+/** Precision de la celda `fecha`: solo el dia, o el instante al segundo. */
+export type PrecisionFecha = 'dia' | 'segundo';
+
+const FECHA_DIA_RE = /^\d{4}-\d{2}-\d{2}$/;
+const FECHA_INSTANTE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+
+/**
+ * Precision de una celda `fecha`, o null si no es ninguna de las dos formas
+ * (fila editada a mano: se ignora, como cualquier otra celda invalida).
+ * Valida ademas que la fecha exista: `2026-02-30` no es un dia.
+ */
+export function precisionDeFecha(fecha: string): PrecisionFecha | null {
+  const precision = FECHA_DIA_RE.test(fecha) ? 'dia' : FECHA_INSTANTE_RE.test(fecha) ? 'segundo' : null;
+  if (precision === null) return null;
+  const ms = Date.parse(precision === 'dia' ? `${fecha}T00:00:00Z` : fecha);
+  if (Number.isNaN(ms)) return null;
+  // Date.parse normaliza el 30 de febrero al 2 de marzo: se exige la vuelta.
+  if (new Date(ms).toISOString().slice(0, 10) !== fecha.slice(0, 10)) return null;
+  return precision;
+}
+
+/** El instante de una fila en milisegundos UTC (a medianoche si es de dia). */
+export function instanteDe(fecha: string): number {
+  return Date.parse(FECHA_DIA_RE.test(fecha) ? `${fecha}T00:00:00Z` : fecha);
+}
+
+/** El instante actual con el formato de la celda: UTC, al segundo. */
+export function formatearInstante(d: Date): string {
+  return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 const FASES: readonly FaseRegistrada[] = ['plan', 'approve', 'start', 'review', 'finish', 'pausa'];
@@ -162,7 +204,10 @@ export function leerTransiciones(body: string): FilaTransicion[] {
       .map((c) => c.trim());
     if (celdas.length !== 4) continue;
     const [fecha, fase, modo, decidido] = celdas as [string, string, string, string];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) continue;
+    // TASK-052: dia (filas viejas) o instante (nuevas). El regex del dia a
+    // secas haria invisibles las filas nuevas y apagaria en silencio el
+    // modo congelado (riesgo del plan): hay un test que lo fija.
+    if (precisionDeFecha(fecha) === null) continue;
     if (!(FASES as readonly string[]).includes(fase)) continue;
     if (!(MODOS_FLUJO as readonly string[]).includes(modo)) continue;
     if (!(DECIDIDO_POR as readonly string[]).includes(decidido)) continue;
@@ -194,6 +239,8 @@ export function modoDeTarea(body: string, modoConfig: ModoFlujo): ModoFlujo {
 /**
  * La fila que deja cada comando al cambiar de fase. En `plan` el modo es el
  * del config, y con eso queda congelado; en el resto, el congelado.
+ * `fecha` es el instante (`formatearInstante`) desde TASK-052; un dia a
+ * secas se sigue aceptando para quien no tenga reloj que pasar.
  */
 export function registrarTransicion(
   body: string,

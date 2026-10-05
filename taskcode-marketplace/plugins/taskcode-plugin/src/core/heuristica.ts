@@ -15,7 +15,7 @@
  *    ABORTAN. Nunca hay caida al default en silencio. Aqui la regla
  *    aprieta MAS que en config.yml: alli las tres claves son
  *    opcionales porque un repo sin configuracion es normal; aqui NO
- *    hay defaults en codigo y las 22 claves son obligatorias, porque
+ *    hay defaults en codigo y las 19 claves son obligatorias, porque
  *    este fichero lo distribuye el propio plugin y una clave que falta
  *    no significa "usa lo de siempre", significa que el fichero esta
  *    roto o que alguien lo edito a medias.
@@ -29,18 +29,20 @@
  *    cuenta.
  *
  * ------------------------------------------------------------------
- * DIVERGENCIA DELIBERADA CON LA SECCION 5 DEL YML (aprobada por
+ * LA DISCREPANCIA SE RESUELVE SIN CONSULTAR A NADIE (aprobado por
  * Carlos, 2026-09-08).
  *
- * La seccion 5 del fichero dice que, cuando el nivel heuristico y el
- * declarado por la persona disten mas de `tolerancia_niveles`
- * escalones, se consulte a un modelo barato para desempatar. Este
- * modulo NO hace eso, porque el CLI no invoca modelos: `taskctl` hace
- * lo determinista y deja escrito lo que otro tiene que disparar (mismo
- * reparto que `taskctl review` establecio en TASK-013). Meter aqui una
- * llamada a un modelo cambiaria esa frontera entera.
+ * El YML llego a decir que, cuando el nivel heuristico y el declarado
+ * por la persona distaran mas de una tolerancia, se consultara a un
+ * modelo barato para desempatar. Este modulo nunca lo hizo, porque el
+ * CLI no invoca modelos: `taskctl` hace lo determinista y deja escrito
+ * lo que otro tiene que disparar (mismo reparto que `taskctl review`
+ * establecio en TASK-013). Las tres claves de esa consulta
+ * (`tolerancia_niveles`, `tolerancia_extra_si_heuristica_menor` y
+ * `modelo_consulta_discrepancia`) se validaban sin que nada las leyera,
+ * y TASK-052 las quito del fichero y de aqui.
  *
- * En su lugar, resolverNumeroAgentes() resuelve la discrepancia SIN
+ * resolverNumeroAgentes() resuelve la discrepancia SIN
  * consultar a nadie: se queda con el MAYOR de los dos numeros de
  * agentes. Es la eleccion conservadora en la direccion que el propio
  * YML senala como la cara ("infraestimar deja la tarea con menos
@@ -71,22 +73,14 @@
  * heuristica la suba a `simple` y el max le ponga un rol. La unica
  * tarea declarada `trivial` del repo (TASK-005) sale con 1.
  *
+ * TASK-052 lo acentua a sabiendas: con `nivel_trivial_hasta: 0`
+ * (calibrado con las rondas de revision de 43 tareas cerradas, ver el
+ * YML) basta UNA senal para salir de `trivial`.
+ *
  * No se corrige por cuenta propia porque el max lo aprobo Carlos con
  * el caso delante, y respetar el suelo del declarado seria reabrir esa
  * decision. Queda escrito aqui y fijado en un test para que sea una
  * eleccion consciente y no un descubrimiento dentro de seis meses.
- *
- * CONSECUENCIA QUE HAY QUE DECIR EN VOZ ALTA: `tolerancia_niveles`,
- * `tolerancia_extra_si_heuristica_menor` y
- * `modelo_consulta_discrepancia` SE PARSEAN Y SE VALIDAN, PERO HOY NO
- * TIENEN NINGUN CONSUMIDOR. No las lee nadie para decidir nada. Se
- * siguen validando para que el fichero no pueda degradarse sin que
- * salte nada, y estan en la interfaz `Heuristica` para que quien
- * implemente la consulta a un modelo (fuera del CLI) las tenga. Pero
- * no se finge que se aplican: hoy el comportamiento seria identico si
- * el fichero dijera `tolerancia_niveles: 99`. Este proyecto ya se
- * quemo con `codex-review`, una clave documentada e inexistente; la
- * respuesta a eso es decirlo, no disimularlo.
  * ------------------------------------------------------------------
  */
 import { readFileSync } from 'node:fs';
@@ -124,9 +118,6 @@ export interface Heuristica {
   agentes_brainstorm_alta: number;
   agentes_brainstorm_critica: number;
   agentes_brainstorm_hotfix: number;
-  tolerancia_niveles: number;
-  tolerancia_extra_si_heuristica_menor: number;
-  modelo_consulta_discrepancia: string;
 }
 
 /** Una senal encontrada al puntuar, para poder explicar el resultado. */
@@ -174,19 +165,21 @@ const CLAVES_NUMERICAS = [
   'agentes_brainstorm_alta',
   'agentes_brainstorm_critica',
   'agentes_brainstorm_hotfix',
-  'tolerancia_niveles',
-  'tolerancia_extra_si_heuristica_menor',
 ] as const;
 
 const CLAVE_PALABRAS = 'palabras_alto_riesgo';
-const CLAVE_MODELO = 'modelo_consulta_discrepancia';
 
 /** Las unicas claves admitidas. Cualquier otra aborta (regla 1). */
-export const CLAVES_HEURISTICA: readonly string[] = [
-  ...CLAVES_NUMERICAS,
-  CLAVE_PALABRAS,
-  CLAVE_MODELO,
-];
+export const CLAVES_HEURISTICA: readonly string[] = [...CLAVES_NUMERICAS, CLAVE_PALABRAS];
+
+/**
+ * Lo que se dice cuando el fichero no tiene las claves que este codigo
+ * espera: casi siempre es que el YML y el codigo son de versiones
+ * distintas del plugin (TASK-052 quito tres claves), no una errata.
+ */
+const AVISO_REINSTALAR =
+  '        Si no lo has editado a mano, el fichero y taskctl son de versiones distintas\n' +
+  '        del plugin: reinstala el plugin para que vuelvan a coincidir.';
 
 /** Nombre del fichero dentro de `scripts/`. */
 export const FICHERO_HEURISTICA = 'heuristica-complejidad.yml';
@@ -262,7 +255,6 @@ export function parsearHeuristica(contenido: string, ruta: string): Heuristica {
 
   const numeros = new Map<string, number>();
   let palabras: string[] | undefined;
-  let modelo: string | undefined;
   const vistas = new Set<string>();
 
   for (const par of pares) {
@@ -284,8 +276,6 @@ export function parsearHeuristica(contenido: string, ruta: string): Heuristica {
 
     if (par.clave === CLAVE_PALABRAS) {
       palabras = validarListaDeTexto(donde, par.clave, par.valor);
-    } else if (par.clave === CLAVE_MODELO) {
-      modelo = validarTextoNoVacio(donde, par.clave, par.valor);
     } else {
       numeros.set(par.clave, validarEnteroNoNegativo(donde, par.clave, par.valor));
     }
@@ -315,13 +305,6 @@ export function parsearHeuristica(contenido: string, ruta: string): Heuristica {
     agentes_brainstorm_alta: exigirNumero(numeros, 'agentes_brainstorm_alta', ruta),
     agentes_brainstorm_critica: exigirNumero(numeros, 'agentes_brainstorm_critica', ruta),
     agentes_brainstorm_hotfix: exigirNumero(numeros, 'agentes_brainstorm_hotfix', ruta),
-    tolerancia_niveles: exigirNumero(numeros, 'tolerancia_niveles', ruta),
-    tolerancia_extra_si_heuristica_menor: exigirNumero(
-      numeros,
-      'tolerancia_extra_si_heuristica_menor',
-      ruta
-    ),
-    modelo_consulta_discrepancia: exigirTexto(modelo, CLAVE_MODELO, ruta),
   };
 
   validarEscalaDeNiveles(h, ruta);
@@ -383,6 +366,7 @@ function mensajeClaveDesconocida(donde: string, clave: string): string {
   if (sugerida !== null) lineas.push(`        Quiza quisiste decir "${sugerida}".`);
   lineas.push('        Borrala o corrigela: taskctl no usa una heuristica que no entiende.');
   lineas.push(`        Claves validas: ${CLAVES_HEURISTICA.join(', ')}.`);
+  lineas.push(AVISO_REINSTALAR);
   return lineas.join('\n');
 }
 
@@ -390,8 +374,7 @@ function mensajeClaveDesconocida(donde: string, clave: string): string {
  * Entero >= 0. El cero SI es legitimo aqui, a diferencia de
  * `limite_wip` en config.ts: `agentes_brainstorm_trivial: 0` es la
  * decision central del fichero (no se paga un brainstorm para algo
- * trivial) y `tolerancia_extra_si_heuristica_menor: 0` es su valor por
- * defecto declarado. Lo que no puede ser es negativo: un peso negativo
+ * trivial). Lo que no puede ser es negativo: un peso negativo
  * restaria complejidad por tener una senal mas, que es lo contrario de
  * lo que el fichero dice hacer.
  */
@@ -449,16 +432,6 @@ function validarListaDeTexto(donde: string, clave: string, valor: unknown): stri
   return entradas;
 }
 
-function validarTextoNoVacio(donde: string, clave: string, valor: unknown): string {
-  if (typeof valor !== 'string' || valor.trim() === '') {
-    throw new HeuristicaError(
-      `[ERROR] ${donde}: "${clave}" debe ser texto no vacio, y es ${describirValor(valor)}.\n` +
-        '        Ponle el nombre de un modelo (p. ej. haiku) o corrige la linea.'
-    );
-  }
-  return valor.trim();
-}
-
 /** Como se nombra un valor rechazado en un mensaje de error. */
 function describirValor(valor: unknown): string {
   if (valor === null) return 'un valor vacio';
@@ -473,7 +446,8 @@ function mensajeClaveAusente(ruta: string, clave: string): string {
     '        Todas las claves de este fichero son obligatorias: no hay valores por\n' +
     '        defecto en el codigo a proposito, para que la heuristica sea siempre la\n' +
     `        que pone el fichero. Anade la linea "${clave}: <valor>" o restaura el\n` +
-    '        fichero que trae el plugin.'
+    '        fichero que trae el plugin.\n' +
+    AVISO_REINSTALAR
   );
 }
 
@@ -488,10 +462,6 @@ function exigirLista(valor: string[] | undefined, clave: string, ruta: string): 
   return valor;
 }
 
-function exigirTexto(valor: string | undefined, clave: string, ruta: string): string {
-  if (valor === undefined) throw new HeuristicaError(mensajeClaveAusente(ruta, clave));
-  return valor;
-}
 
 /**
  * Puntua una tarea sumando las senales de la seccion 1 del YML. No hay

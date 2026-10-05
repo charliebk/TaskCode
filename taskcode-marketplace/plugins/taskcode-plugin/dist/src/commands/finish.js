@@ -301,7 +301,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     assertTransitionAllowed('finish', existing ? existing.task : null, ctx);
     const { task, body, filePath } = existing;
     const updated = { ...task, estado: 'terminada', actualizado: today };
-    const conRegistro = registrarTransicion(body, 'finish', today, resolverConfig(deps.repoCwd).modo_flujo);
+    const conRegistro = registrarTransicion(body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     // Renderizado de cierre (criterio 3): plantillas desde el
     // frontmatter. BOARD.md se regenera entero reutilizando el mismo

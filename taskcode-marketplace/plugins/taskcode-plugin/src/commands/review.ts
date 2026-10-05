@@ -94,6 +94,8 @@ export interface ReviewCommandDeps {
   repoCwd: string;
   /** Directorio scripts/gitflow/ a usar (ver resolveGitflowScriptsDir). */
   scriptsDir: string;
+  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  ahora?: string;
 }
 
 /**
@@ -581,7 +583,7 @@ export async function runReviewCommand(
     );
   }
 
-  const conRegistro = registrarTransicion(body, 'review', today, resolverConfig(deps.repoCwd).modo_flujo);
+  const conRegistro = registrarTransicion(body, 'review', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
   const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
   const informes: RevisionGrupo[] = escrituras.map((escritura) => ({
