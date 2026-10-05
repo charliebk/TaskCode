@@ -41,10 +41,12 @@ test('la licencia viaja dentro del plugin y coincide con la del repo', async () 
   assert.ok(existsSync(delPlugin), 'falta LICENSE en la carpeta del plugin');
   const texto = await readFile(delPlugin, 'utf8');
   assert.match(texto, /^MIT License/);
+  // Fuera de su repo (plugin instalado) no hay raiz que comparar; dentro,
+  // la LICENSE de la raiz es obligatoria y tiene que ser la misma.
+  if (!existsSync(path.join(REPO_ROOT, '.claude-plugin', 'marketplace.json'))) return;
   const delRepo = path.join(REPO_ROOT, 'LICENSE');
-  if (existsSync(delRepo)) {
-    assert.equal(texto.replace(/\r\n/g, '\n'), (await readFile(delRepo, 'utf8')).replace(/\r\n/g, '\n'));
-  }
+  assert.ok(existsSync(delRepo), 'falta LICENSE en la raiz del repo');
+  assert.equal(texto.replace(/\r\n/g, '\n'), (await readFile(delRepo, 'utf8')).replace(/\r\n/g, '\n'));
 });
 
 test('plugin.json y la entrada del marketplace no se desalinean', async (t) => {

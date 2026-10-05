@@ -18,7 +18,10 @@ en su frontmatter. Es una decisión, no un olvido (TASK-049, comprobado el
 - El campo admite `sonnet`, `opus`, `haiku`, `fable`, un ID completo (por
   ejemplo `claude-opus-5-5`) o `inherit`. Sin él, Claude Code resuelve el
   modelo así: el parámetro `model` de cada invocación, después
-  `CLAUDE_CODE_SUBAGENT_MODEL` y por último el de la conversación.
+  `CLAUDE_CODE_SUBAGENT_MODEL` y por último el de la conversación. Ese orden
+  rige desde Claude Code 2.1.251; antes, la variable iba la primera. Y con
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (2.1.257 o posterior) la variable manda
+  sobre todo, también sobre el `model` de cada invocación.
 - Un alias fijo y barato iría contra la metodología: el modelo depende de la
   complejidad de cada tarea (`modelo_sugerido` en `tarea.md`), y cambiarlo
   obligaría a publicar una versión del plugin.

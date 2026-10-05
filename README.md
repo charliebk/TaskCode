@@ -22,6 +22,16 @@ claude plugin install taskcode-plugin@taskcode-marketplace
 El repo es privado: hace falta acceso de lectura como colaborador, y las
 credenciales Git/GitHub que ya tengas configuradas (SSH o `gh`).
 
+Para desarrollo sobre el propio plugin, sin instalarlo:
+
+```bash
+cd taskcode-marketplace/plugins/taskcode-plugin
+npm install && npm run build
+claude --plugin-dir "$(pwd)"
+```
+
+Licencia: [MIT](LICENSE).
+
 ### Actualizar
 
 ```bash
@@ -32,16 +42,6 @@ claude plugin update taskcode-plugin@taskcode-marketplace
 Y después **reinicia Claude Code** (o ejecuta `/reload-plugins` en la sesión
 abierta): una sesión en marcha conserva la versión que ya cargó. El plugin
 fija su `version`, así que solo llega una versión nueva cuando se publica.
-
-Licencia: [MIT](LICENSE).
-
-Para desarrollo sobre el propio plugin, sin instalarlo:
-
-```bash
-cd taskcode-marketplace/plugins/taskcode-plugin
-npm install && npm run build
-claude --plugin-dir "$(pwd)"
-```
 
 ## El CLI
 
