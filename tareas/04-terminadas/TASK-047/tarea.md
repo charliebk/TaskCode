@@ -6,7 +6,7 @@ sprint: 6
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-047-f5-t3-flags-desconocidos-y-mensajes-de-r
 asignado_a: charlie.bk@gmail.com
@@ -79,3 +79,4 @@ codex-review y la puerta de rondas ponen rojos sus tests). Por A3, sin ronda 2.
 | 2026-10-05 | approve | manual | persona |
 | 2026-10-05 | start | manual | persona |
 | 2026-10-05 | review | manual | persona |
+| 2026-10-05 | finish | manual | persona |

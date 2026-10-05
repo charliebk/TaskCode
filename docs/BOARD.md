@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-10-05. No editar a mano.
 
-## Planificadas (00-planificadas) — 21
+## Planificadas (00-planificadas) — 20
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,7 +21,6 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-047  F5-T3 Flags desconocidos y mensajes de review                                               (sin asignar)
 TASK-048  F6-T3 Skill de flujo mas ligera                                                             (sin asignar)
 TASK-049  F6-T4 Metadatos del plugin y modelo de los agentes                                          (sin asignar)
 TASK-050  F6-T1 Suite rapida y repo plantilla en los tests                                            (sin asignar)
@@ -38,7 +37,7 @@ ID        Titulo                                Asignado
 TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 37
+## Terminadas (04-terminadas) — 38
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -74,6 +73,7 @@ TASK-043  F4-T2 Validacion antes de plan y puertas de cierre                    
 TASK-044  F4-T3 Particion propuesta de las tareas grandes                                          charlie.bk@gmail.com
 TASK-045  F5-T1 rama_base de punta a punta                                                         charlie.bk@gmail.com
 TASK-046  F5-T2 Secciones con subtitulos y criterios multilinea                                    charlie.bk@gmail.com
+TASK-047  F5-T3 Flags desconocidos y mensajes de review                                            charlie.bk@gmail.com
 TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
 TASK-055  Flujo A: taskctl desde PowerShell y cmd                                                  charlie.bk@gmail.com
 TASK-056  Flujo B: nucleo determinista del siguiente paso y registro de transiciones               charlie.bk@gmail.com
