@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-050 (feature) — F6-T1 Suite rapida y repo plantilla en los tests (2026-10-05)
 ## 0.4.0 — 2026-10-05
 
 Fase G (el plugin conduce el ciclo) y fase 5 del plan de la auditoria. Sube

@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-050-f6-t1-suite-rapida-y-repo-plantilla-en-l
 asignado_a: charlie.bk@gmail.com
@@ -90,3 +90,4 @@ va en un `test:cov` aparte.
 | 2026-10-05 | start | manual | persona |
 | 2026-10-05 | review | manual | persona |
 | 2026-10-05 | review | manual | persona |
+| 2026-10-05 | finish | manual | persona |

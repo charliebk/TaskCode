@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-050 — F6-T1 Suite rapida y repo plantilla en los tests · etiquetas: (sin etiquetas) · rama feature/task-050-f6-t1-suite-rapida-y-repo-plantilla-en-l · terminada 2026-10-05 · tareas/04-terminadas/TASK-050/
 - TASK-054 — Rutas no ASCII en el diff de revision fragmentado por dominio · etiquetas: (sin etiquetas) · rama fix/task-054-rutas-no-ascii-en-el-diff-de-revision-fr · terminada 2026-10-05 · tareas/04-terminadas/TASK-054/
 - TASK-047 — F5-T3 Flags desconocidos y mensajes de review · etiquetas: (sin etiquetas) · rama fix/task-047-f5-t3-flags-desconocidos-y-mensajes-de-r · terminada 2026-10-05 · tareas/04-terminadas/TASK-047/
 - TASK-059 — Flujo E: modo automatico · etiquetas: (sin etiquetas) · rama feature/task-059-flujo-e-modo-automatico · terminada 2026-10-05 · tareas/04-terminadas/TASK-059/
