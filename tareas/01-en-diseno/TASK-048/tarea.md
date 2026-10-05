@@ -6,17 +6,17 @@ sprint: 7
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-048-f6-t3-skill-de-flujo-mas-ligera
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-10-04
-actualizado: 2026-10-04
+actualizado: 2026-10-05
 dependencias: []
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ contenido generico que repiten las 4 skills revisoras pasa a un solo sitio.
 - [ ] `task-workflow/SKILL.md` por debajo de 15 KB; sincronizacion, post-cierre y prerrequisitos en ficheros de referencia bajo demanda
 - [ ] Descripciones de las 5 skills por debajo de 300 caracteres cada una, sin perder los disparadores reales
 - [ ] El contenido generico repetido en las 4 revisoras vive en un solo sitio
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-05 | plan | manual | persona |
