@@ -32,7 +32,7 @@ import { CODIGO_SINCRONIZACION_NO_APLICADA, sincronizacionNoAplicada, } from './
 // taskctl arranco bien, lo que esta mal es el .taskcode/config.yml
 // del repo.
 import { ConfigError } from './core/config.js';
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const HELP = `taskctl ${VERSION} — TaskCode
 
 Uso:

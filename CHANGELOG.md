@@ -2,6 +2,31 @@
 
 ## Sin publicar
 
+## 0.4.0 — 2026-10-05
+
+Fase G (el plugin conduce el ciclo) y fase 5 del plan de la auditoria. Sube
+la version menor por las fases invocables y porque **un flag desconocido
+ahora aborta**. Actualizar con `claude plugin marketplace update
+taskcode-marketplace`, `claude plugin update
+taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code.
+
+- Fases como skills (`/taskcode-plugin:<fase>`) y `taskctl siguiente`, que
+  decide el paso. `modo_flujo` manual / semiautomatico / automatico, congelado
+  en la tarea; registro `## Transiciones`, `taskctl pausa` y cadena con
+  bloqueo por arbol. El automatico para en hotfix/release antes de `finish`,
+  al tope de 3 rondas y en sus guardas.
+- `taskctl` desde cmd (`bin\taskctl.cmd`) y desde PowerShell (funcion de
+  perfil del README).
+- `rama_base` de punta a punta.
+- **Un flag mal escrito aborta** con la lista de flags validos y el mas
+  parecido (`--complejida` → `--complejidad`), en todos los comandos. Los
+  booleanos (`--push`, `--json`, `--forzar`, `--escribir`) no aceptan
+  `=valor`.
+- La salida de `review` separa el agente que se lanza y su modelo
+  (`agente_revisor`, `modelo_sugerido`) de la skill revisora que carga.
+- Las rutas no ASCII (y las de glob, como `pages/[id].vue`) llegan con su
+  diff a la peticion de revision de su dominio.
+
 - TASK-054 (fix) — Rutas no ASCII en el diff de revision fragmentado por dominio (2026-10-05)
 - TASK-047 (fix) — F5-T3 Flags desconocidos y mensajes de review (2026-10-05)
 - TASK-059 (feature) — Flujo E: modo automatico (2026-10-05)

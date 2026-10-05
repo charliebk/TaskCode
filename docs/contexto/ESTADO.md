@@ -1,6 +1,6 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-10-04** (fase 4 de la auditoría cerrada, v0.3.0).
+> Última actualización: **2026-10-05** (fase 5 de la auditoría cerrada, v0.4.0).
 > Este documento se actualiza al cerrar cada fase. Si lo que dice no cuadra
 > con el repo, gana el repo — y hay que corregir esto.
 
@@ -29,8 +29,11 @@ una tarea tras otra, con release y aviso a OpenGisViewer al cerrar cada fase.
   hotfix/release preguntan). Ademas `taskctl.cmd` y la funcion de perfil de
   PowerShell. Pendiente: smoke dentro de una sesion de Claude Code (este
   entorno no autentica `claude -p`).
-- TASK-045 (fase 5) cerrada: `rama_base` de punta a punta.
-- **Pendiente**: fase 5 (TASK-047, 054) y fase 6 (TASK-048 a 052).
+- **v0.4.0** — fase G entera y fase 5 (TASK-045, 046, 047, 054): `rama_base`
+  de punta a punta; un flag desconocido aborta en todo el CLI con sugerencia;
+  `review` separa agente/modelo de la skill revisora; rutas no ASCII y de glob
+  llegan con su diff a la petición de su dominio.
+- **Pendiente**: fase 6 (TASK-048 a 052) y E2 (TASK-023).
 
 ## Dónde estamos
 

@@ -133,7 +133,7 @@ argumentos que no llevan espacios: un titulo como `Q&A` o `foo->notas.txt`
 lo interpreta cmd.exe, que ejecuta `A` o vacia `notas.txt`. La funcion de
 arriba no pasa por cmd y no tiene ese problema.
 
-**cmd**: `bin\taskctl.cmd` (desde la version que sigue a la 0.3.0). Anade la
+**cmd**: `bin\taskctl.cmd` (desde la 0.4.0). Anade la
 carpeta `bin` de la version instalada al PATH y escribe `taskctl`. Pon
 **siempre entre comillas dobles** los argumentos con `& | < > ^`
 (`taskctl new --titulo "Q&A"`): cmd.exe interpreta esos caracteres antes
@@ -226,15 +226,15 @@ ejecución aplicado:
 
 ```
 $ node bin/taskctl --help
-taskctl 0.3.0 — TaskCode
+taskctl 0.4.0 — TaskCode
 [...]
 
 $ ./bin/taskctl --help          # ejecución directa vía shebang + bit +x
-taskctl 0.3.0 — TaskCode
+taskctl 0.4.0 — TaskCode
 [...]                            # salida idéntica
 
 $ PATH="$(pwd)/bin:$PATH" taskctl --version   # simula resolución por PATH
-0.3.0
+0.4.0
 
 $ PATH="$(pwd)/bin:$PATH" which taskctl
 .../taskcode-plugin/bin/taskctl
@@ -257,8 +257,8 @@ $ ls -la bin/taskctl          # tras un clon limpio, sin tocar permisos a mano
 -rwxr-xr-x 1 ... bin/taskctl
 
 $ node bin/taskctl --help     # OK
-$ ./bin/taskctl --version     # OK — 0.3.0
-$ PATH="$(pwd)/bin:$PATH" taskctl --version   # OK — 0.3.0, resuelto como comando suelto
+$ ./bin/taskctl --version     # OK — 0.4.0
+$ PATH="$(pwd)/bin:$PATH" taskctl --version   # OK — 0.4.0, resuelto como comando suelto
 ```
 
 El bit de ejecución sobrevive un `git clone` normal en un filesystem POSIX
@@ -352,7 +352,7 @@ $ claude plugin install taskcode-plugin@taskcode-marketplace
 | Pregunta | Respuesta |
 |---|---|
 | ¿El plugin se instala desde el marketplace? | **Sí**, `enabled`, scope `user` |
-| ¿`taskctl` arranca desde la caché, sin compilar? | **Sí**: `node <cache>/bin/taskctl --version` → `0.3.0` |
+| ¿`taskctl` arranca desde la caché, sin compilar? | **Sí**: `node <cache>/bin/taskctl --version` → `0.4.0` |
 | ¿La copia cacheada trae `dist/`? | Sí, **pero esta instalación no lo demuestra** — ver abajo |
 | ¿Claude Code instala las deps npm en la copia? | Sí, **pero no por la razón que parece** — ver abajo |
 | ¿Existe de verdad el mecanismo de `bin/` en PATH? | **Sí** — confirmado abajo |
@@ -394,11 +394,11 @@ la sesión y el plugin se instaló después — pero *eso no se ha comprobado*.
 Confirmarlo cuesta un comando en la siguiente sesión:
 
 ```bash
-taskctl --version   # deberia imprimir 0.3.0 sin ruta ni node delante
+taskctl --version   # deberia imprimir 0.4.0 sin ruta ni node delante
 ```
 
 Mientras tanto, lo que sí está probado es que el ejecutable de la caché es
-válido: con su directorio en el `PATH`, `taskctl --version` responde `0.3.0`.
+válido: con su directorio en el `PATH`, `taskctl --version` responde `0.4.0`.
 
 ### Segunda limitación, específica de este repo: `core.fileMode=false`
 

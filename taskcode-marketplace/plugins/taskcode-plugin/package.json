@@ -1,6 +1,6 @@
 {
   "name": "taskcode-plugin",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "TaskCode: metodologia de tareas/sprints + Git-Flow + revision por pares de agentes, como plugin de Claude Code.",
   "private": true,
   "type": "module",
