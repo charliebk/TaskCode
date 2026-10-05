@@ -6,7 +6,7 @@ sprint: 6
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-047-f5-t3-flags-desconocidos-y-mensajes-de-r
 asignado_a: charlie.bk@gmail.com
@@ -41,3 +41,4 @@ de `finish.ts`: debe reutilizarlos.
 |---|---|---|---|
 | 2026-10-05 | plan | manual | persona |
 | 2026-10-05 | approve | manual | persona |
+| 2026-10-05 | start | manual | persona |
