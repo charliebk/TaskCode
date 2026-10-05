@@ -52,7 +52,7 @@ export async function runPausaCommand(tareasRoot, argv, today, deps) {
         throw new PausaCommandError(`[ERROR] ${id}: la carpeta de la tarea tiene cambios sin commitear. Commitealos o ` +
             'descartalos antes de "taskctl pausa": su commit se los llevaria. No se ha tocado nada.');
     }
-    const conRegistro = registrarTransicion(body, 'pausa', today, modoConfig, 'persona');
+    const conRegistro = registrarTransicion(body, 'pausa', deps.ahora ?? today, modoConfig, 'persona');
     const nuevo = await moveTareaFile(tareasRoot, filePath, task, conRegistro);
     const commit = autoCommit({
         cwd: deps.repoCwd,

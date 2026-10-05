@@ -218,6 +218,8 @@ export interface FinishCommandDeps {
    * resultado llega despues del merge, cuando ya no hay vuelta atras.
    */
   onAviso?: (aviso: string) => void;
+  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  ahora?: string;
 }
 
 export interface FinishCommandResult {
@@ -407,7 +409,7 @@ export async function runFinishCommand(
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
   const updated: Task = { ...task, estado: 'terminada', actualizado: today };
-  const conRegistro = registrarTransicion(body, 'finish', today, resolverConfig(deps.repoCwd).modo_flujo);
+  const conRegistro = registrarTransicion(body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
 
   // Renderizado de cierre (criterio 3): plantillas desde el

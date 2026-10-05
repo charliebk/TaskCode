@@ -520,3 +520,16 @@ pide el criterio de aceptación.
 Ver `taskctl --help` (arriba) para la lista completa y actualizada. Guía
 extendida de la metodología: `docs/PROPUESTA_METODOLOGIA.md` y
 `docs/PLAN_SPRINTS.md` en la raíz del repo `TaskCode`.
+
+`taskctl metricas [--heuristica]` (solo lectura) saca una fila por tarea
+con la duración de calendario de cada fase (diseño = plan→start, curso =
+start→primer review, revisión = primer review→finish), las rondas de
+revisión, el día de cierre y el origen del dato: la tabla `## Transiciones`
+del `tarea.md` (cuya columna `fecha` lleva el instante UTC al segundo desde
+la 0.5.0; las filas antiguas, solo el día, dan la duración en días), o, si
+la tarea no la tiene, los commits automáticos `chore(TASK-NNN): ...` con un
+único `git log`; si tampoco, «—». Las pausas no se descuentan.
+`--heuristica` añade a las tareas terminadas con informes de revisión la
+puntuación y el nivel de la heurística de complejidad vigente, más un
+resumen de rondas medias por nivel declarado y heurístico: es la tabla con
+la que se calibra `scripts/heuristica-complejidad.yml`.

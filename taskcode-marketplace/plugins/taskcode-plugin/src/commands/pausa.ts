@@ -30,6 +30,8 @@ export const FLAGS_PAUSA: readonly string[] = ['--push', '-p'];
 
 export interface PausaCommandDeps {
   repoCwd: string;
+  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  ahora?: string;
 }
 
 export interface PausaCommandResult {
@@ -85,7 +87,7 @@ export async function runPausaCommand(
     );
   }
 
-  const conRegistro = registrarTransicion(body, 'pausa', today, modoConfig, 'persona');
+  const conRegistro = registrarTransicion(body, 'pausa', deps.ahora ?? today, modoConfig, 'persona');
   const nuevo = await moveTareaFile(tareasRoot, filePath, task, conRegistro);
   const commit = autoCommit({
     cwd: deps.repoCwd,

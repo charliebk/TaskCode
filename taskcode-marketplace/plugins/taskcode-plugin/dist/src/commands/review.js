@@ -403,7 +403,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
             '(¿restos con otro case en un filesystem case-insensitive?). La tarea NO se ha ' +
             'movido; limpia o renombra esos ficheros y reintenta.');
     }
-    const conRegistro = registrarTransicion(body, 'review', today, resolverConfig(deps.repoCwd).modo_flujo);
+    const conRegistro = registrarTransicion(body, 'review', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
     const informes = escrituras.map((escritura) => ({

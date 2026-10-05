@@ -134,7 +134,7 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
     // asi la segunda vez sigue sin crear commit (es idempotente).
     const conRegistro = task.plan_aprobado
         ? body
-        : registrarTransicion(body, 'approve', today, resolverConfig(deps.repoCwd).modo_flujo, decididoPor);
+        : registrarTransicion(body, 'approve', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo, decididoPor);
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     // Paso 5 de la 8.3 (TASK-030, item C2). "approve" no cambia el
     // estado de la tarea, asi que origen y destino son la MISMA carpeta;
