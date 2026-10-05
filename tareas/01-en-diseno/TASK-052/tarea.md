@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-052-f6-t5-telemetria-de-fases-y-heuristica-r
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,3 +38,4 @@ claves que nada lee (`tolerancia_*`, `modelo_consulta_discrepancia`).
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-05 | plan | manual | persona |
+| 2026-10-05 | approve | manual | persona |
