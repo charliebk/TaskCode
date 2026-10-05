@@ -21,6 +21,12 @@ dependencias: []
 ---
 ## Objetivo
 
+La skill `task-workflow` pesa unos 25 KB y se carga entera cada vez que se
+invoca, y las descripciones de las skills se cargan en todas las sesiones
+(auditoria E1, E2, E3). Se adelgaza `SKILL.md` moviendo sincronizacion,
+post-cierre y prerrequisitos a ficheros de referencia que se leen bajo
+demanda, se acortan las descripciones sin perder sus disparadores, y el
+contenido generico que repiten las 4 skills revisoras pasa a un solo sitio.
 
 ## Criterios de aceptacion
 - [ ] `task-workflow/SKILL.md` por debajo de 15 KB; sincronizacion, post-cierre y prerrequisitos en ficheros de referencia bajo demanda

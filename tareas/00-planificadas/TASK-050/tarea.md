@@ -21,6 +21,12 @@ dependencias: []
 ---
 ## Objetivo
 
+La suite completa tarda unos 11 minutos y no hay forma de iterar mas rapido
+(auditoria B3, B4, B7). Se anade `npm run test:rapido` con los tests de core
+y cli que no lanzan procesos, se crea un helper que monta el repo Git base
+una vez por fichero y lo copia con `fs.cp` en vez de repetir los `git init`
+y commits de cada test, y se mide cuanto cuesta la cobertura para decidir si
+va en un `test:cov` aparte.
 
 ## Criterios de aceptacion
 - [ ] `npm run test:rapido` (core y cli, sin procesos) en menos de 1 min; `npm test` sigue siendo la suite completa

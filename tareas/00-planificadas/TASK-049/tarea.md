@@ -21,6 +21,12 @@ dependencias: []
 ---
 ## Objetivo
 
+Para quien instala el plugin desde fuera (como OpenGisViewer) faltan
+metadatos y no hay instrucciones de actualizacion (auditoria E4, E5). Se
+completa `plugin.json` (`displayName`, `repository`, `license`, `keywords`)
+hasta que `claude plugin validate` salga limpio, el README explica como
+instalar y actualizar, y se decide, con el ID de modelo comprobado en la
+documentacion actual, si los agentes de brainstorm llevan `model:` propio.
 
 ## Criterios de aceptacion
 - [ ] `plugin.json` con `displayName`, `repository`, `license` y `keywords`; `claude plugin validate` limpio

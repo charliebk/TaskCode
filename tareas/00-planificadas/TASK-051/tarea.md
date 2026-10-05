@@ -21,6 +21,11 @@ dependencias: []
 ---
 ## Objetivo
 
+Los ficheros de test de `start`, `finish`, `review`, `sincronizacion` y
+`gitflow` son el camino critico secuencial de la suite (auditoria B5): el
+runner paraleliza por fichero y esos cinco tardan mas que todo lo demas. Se
+parten en ficheros mas pequenos (o se les da concurrencia interna) y se mide
+el tiempo de la suite completa antes y despues, sin carga en la maquina.
 
 ## Criterios de aceptacion
 - [ ] `start`, `finish`, `review`, `sincronizacion` y `gitflow` divididos o con concurrencia interna

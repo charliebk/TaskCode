@@ -21,6 +21,13 @@ dependencias: []
 ---
 ## Objetivo
 
+Hoy saber cuanto tardo cada fase de una tarea exige reconstruirlo a mano
+desde los mensajes de commit, y la heuristica de complejidad no ha acertado
+nunca su senal de riesgo (auditoria B8, C5). Cada transicion escribira su
+marca de tiempo en el frontmatter, `taskctl metricas` sacara la tabla de
+fases por tarea, y la heuristica se recalibra con las tareas cerradas
+usando las rondas de revision como coste real, quitando de la config las
+claves que nada lee (`tolerancia_*`, `modelo_consulta_discrepancia`).
 
 ## Criterios de aceptacion
 - [ ] Cada transicion escribe su marca de tiempo en el frontmatter y `taskctl metricas` saca la tabla de fases por tarea
