@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import { runReviewCommand, ReviewCommandError } from '../../src/commands/review.js';
+import { diffParaRevision, diffRangeForPaths } from '../../src/fs/git.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import type { Task } from '../../src/core/task.js';
 
@@ -759,5 +760,68 @@ test('taskctl review: error claro si falta el ID o la tarea no existe', async ()
         }),
       StateMachineError
     );
+  });
+});
+
+// --- TASK-054: rutas no ASCII y con caracteres de glob ----------------------
+//
+// Sin core.quotePath=false y -z, Git entrecomillaba y escapaba en octal la
+// ruta con tilde: la clasificacion la veia escapada, el pathspec no casaba y
+// el diff del fichero no llegaba a la peticion de su dominio. Mutacion que
+// lo pone rojo: quitar SIN_COMILLAS o el -z de diffParaRevision.
+
+test('taskctl review: un fichero con tilde llega con su diff a la peticion de su dominio (TASK-054)', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-654', rama: 'feature/task-654-no-ascii' });
+    await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
+    await escribirFichero(repoRoot, 'src/main/java/com/acme/Acción.java', 'class Accion { int ñandú; }\n');
+    await escribirFichero(
+      repoRoot,
+      'src/app/user-profile/user-profile.component.ts',
+      'export class UserProfileComponent {}\n'
+    );
+    commitAll(repoRoot, 'java con tilde y angular');
+    await advanceDevelop(repoRoot, task.rama);
+
+    const result = await runReviewCommand(tareasRoot, ['TASK-654'], '2026-10-05', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+    });
+
+    const java = result.informes.find((g) => g.revisor === 'java-spring-reviewer');
+    assert.ok(java !== undefined, JSON.stringify(result.informes));
+    assert.deepEqual(java.ficheros, ['src/main/java/com/acme/Acción.java']);
+    const peticion = await readFile(java.peticionPath, 'utf8');
+    assert.ok(peticion.includes('diff --git a/src/main/java/com/acme/Acción.java'), peticion);
+    assert.ok(peticion.includes('int ñandú;'), peticion);
+    // Ni comillas ni escape octal (`"src/.../Acci\303\263n.java"`).
+    assert.ok(!peticion.includes('Acci\\303'), peticion);
+    // El otro dominio no se lleva el fichero con tilde.
+    const angular = result.informes.find((g) => g.revisor === 'angular-vue-reviewer');
+    assert.ok(angular !== undefined);
+    assert.doesNotMatch(await readFile(angular.peticionPath, 'utf8'), /Acción\.java/);
+  });
+});
+
+test('diffParaRevision y diffRangeForPaths: rutas no ASCII sin comillas y rutas de glob como literales (TASK-054)', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const base = git(['rev-parse', 'HEAD'], repoRoot).trim();
+    await escribirFichero(repoRoot, 'src/acción.ts', 'export const a = 1;\n');
+    await escribirFichero(repoRoot, 'pages/[id].vue', '<template>id</template>\n');
+    await escribirFichero(repoRoot, 'pages/i.vue', '<template>i</template>\n');
+    await escribirFichero(repoRoot, 'docs/guía.md', 'texto\n');
+    commitAll(repoRoot, 'rutas raras');
+
+    const r = diffParaRevision(base, 'HEAD', ['docs/**'], repoRoot);
+    assert.ok(r.incluidos.includes('src/acción.ts'), JSON.stringify(r.incluidos));
+    assert.ok(r.incluidos.includes('pages/[id].vue'));
+    assert.deepEqual(r.excluidos, ['docs/guía.md']);
+    assert.ok(r.diff.includes('diff --git a/src/acción.ts b/src/acción.ts'), r.diff);
+    assert.ok(r.stat.includes('docs/guía.md'), r.stat);
+
+    const soloId = diffRangeForPaths(base, 'HEAD', ['pages/[id].vue'], repoRoot);
+    assert.ok(soloId.includes('pages/[id].vue'), soloId);
+    assert.ok(!soloId.includes('pages/i.vue'), soloId);
+    assert.ok(diffRangeForPaths(base, 'HEAD', ['src/acción.ts'], repoRoot).includes('export const a = 1;'));
   });
 });
