@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-10-04
-actualizado: 2026-10-04
+actualizado: 2026-10-05
 dependencias: []
 ---
 ## Objetivo
