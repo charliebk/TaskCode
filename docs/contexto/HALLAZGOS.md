@@ -557,7 +557,11 @@ sigue valiendo, y porque dos de ellos cambiaron la solución al medirla.
   transversal del CLI, no de un comando — anotado sin corregir. **B6 lo tapó
   solo para `--asignado-a`**, aceptando las dos grafías en los tres comandos
   que lo usan, después de que la revisión encontrara el fallo ya
-  materializado en `board`. El resto de flags sigue igual.
+  materializado en `board`. **Corregido para todo el CLI en TASK-047**: cada
+  comando declara sus flags (`FLAGS_<CMD>`) y `rechazarFlagsDesconocidos`
+  (`src/cli/args.ts`) aborta antes de cualquier efecto con la lista de los
+  válidos y el más parecido. Un valor que empiece por `--` sigue pasando con
+  `--flag=valor`.
 - **El plugin no tiene `skills/` ni `agents/`.** Hoy es un CLI y unos scripts:
   todo el discurso de agentes especializados de la metodología no tiene aún
   ningún artefacto.

@@ -26,7 +26,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseArgs } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
 import { TASK_TYPES, TASK_COMPLEXITIES, TaskValidationError } from '../core/task.js';
@@ -38,6 +38,8 @@ import { slugify, buildNewTask, SLUG_FALLBACK } from './new.js';
 import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 export class ImportCommandError extends Error {
 }
+/** Flags de `taskctl import`: parseImportArgs y extraerPushFlag. */
+export const FLAGS_IMPORT = ['--tipo', '--sprint', '--complejidad', '--modelo-sugerido', '--agente-revisor', '--push', '-p'];
 const DEFAULT_SPRINT = 0;
 /**
  * Sin --complejidad la tarea nace sin declararla (null): la decide la
@@ -118,6 +120,8 @@ export function normalizedTitleKey(titulo) {
     return `${SLUG_FALLBACK}:${titulo.trim().toLowerCase()}`;
 }
 export async function runImportCommand(tareasRoot, argv, today, deps) {
+    // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+    rechazarFlagsDesconocidos(argv, FLAGS_IMPORT, 'import', (m) => new ImportCommandError(m));
     // Igual que en new.ts (TASK-030, item C4): el config se resuelve lo
     // primero, para que un `.taskcode/config.yml` roto aborte antes de
     // leer el fichero a importar y antes de cualquier cambio de rama.

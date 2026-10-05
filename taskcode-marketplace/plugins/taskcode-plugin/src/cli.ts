@@ -571,7 +571,8 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         .map(
           (grupo) =>
             `Peticion de revision (ronda ${result.ronda}, ${grupo.revisor}): ${grupo.peticionPath}\n` +
-            `Lanza ese agente con esa peticion y vuelca su salida en ${grupo.informePath}.\n`
+            `Lanza el agente "${result.agente}" (modelo ${result.modelo}) cargando la skill ` +
+            `"${grupo.revisor}" con esa peticion y vuelca su salida en ${grupo.informePath}.\n`
         )
         .join('');
       printAvisos(...result.avisos);

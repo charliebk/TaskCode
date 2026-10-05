@@ -13,6 +13,7 @@
  * Asi `siguiente` da lo mismo desde la rama base que desde la de la tarea.
  */
 import path from 'node:path';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readFile } from 'node:fs/promises';
 import { readTareaFile } from '../fs/task-store.js';
 import { parseTareaFile } from '../core/tarea-file.js';
@@ -21,6 +22,7 @@ import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase, type ContextoFlujo, type SiguientePaso } from '../core/flujo.js';
 import { commitRevisadoDe, veredictoDeRonda, type VeredictoInforme } from '../core/informe-revision.js';
 import {
+  INFORME_CODEX_RE,
   INFORME_REVISION_RE,
   informesDeUltimaRonda,
   nombresDeUltimaRonda,
@@ -35,10 +37,12 @@ import {
 } from '../fs/git.js';
 import type { Task } from '../core/task.js';
 import { REVISION_DIRNAME, PETICION_REVISION_RE } from './review.js';
-import { INFORME_CODEX_RE } from './codex-review.js';
 import { planRedactado } from './approve.js';
 
 export class SiguienteCommandError extends Error {}
+
+/** Flags de `taskctl siguiente`: solo --json. */
+export const FLAGS_SIGUIENTE: readonly string[] = ['--json'];
 
 export interface SiguienteCommandDeps {
   repoCwd: string;
@@ -108,6 +112,8 @@ export async function runSiguienteCommand(
   argv: readonly string[],
   deps: SiguienteCommandDeps
 ): Promise<SiguienteCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_SIGUIENTE, 'siguiente', (m) => new SiguienteCommandError(m));
   const json = argv.includes('--json');
   const id = argv.find((a) => !a.startsWith('--'));
   if (id === undefined || id.trim() === '') {

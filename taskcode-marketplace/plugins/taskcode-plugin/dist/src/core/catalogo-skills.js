@@ -31,6 +31,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
+import { masParecida } from './sugerencia.js';
 const MAX_TOTAL_SKILLS = 1000;
 export class CatalogoSkillsError extends Error {
     constructor(message) {
@@ -317,38 +318,13 @@ function mensajeClaveRepetida(donde, clave) {
  * `total_skills`), a diferencia de CLAVES_HEURISTICA.
  */
 function mensajeClaveDesconocida(donde, clave, validas) {
-    const sugerida = claveMasParecida(clave, validas);
+    const sugerida = masParecida(clave, validas);
     const lineas = [`[ERROR] ${donde}: clave desconocida "${clave}".`];
     if (sugerida !== null)
         lineas.push(`        Quiza quisiste decir "${sugerida}".`);
     lineas.push('        Borrala o corrigela: taskctl no usa un catalogo que no entiende.');
     lineas.push('        Si es una entrada nueva, recuerda subir "total_skills" para que su bloque cuente.');
     return lineas.join('\n');
-}
-function claveMasParecida(clave, validas) {
-    let mejor = null;
-    let mejorDistancia = Number.POSITIVE_INFINITY;
-    for (const valida of validas) {
-        const d = distanciaEdicion(clave.toLowerCase(), valida);
-        if (d < mejorDistancia) {
-            mejorDistancia = d;
-            mejor = valida;
-        }
-    }
-    return mejorDistancia <= Math.max(1, Math.floor(clave.length / 3)) ? mejor : null;
-}
-/** Distancia de edicion (Levenshtein) a mano — cero dependencias. */
-function distanciaEdicion(a, b) {
-    let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
-    for (let i = 1; i <= a.length; i++) {
-        const actual = [i];
-        for (let j = 1; j <= b.length; j++) {
-            const coste = a[i - 1] === b[j - 1] ? 0 : 1;
-            actual[j] = Math.min(actual[j - 1] + 1, previa[j] + 1, previa[j - 1] + coste);
-        }
-        previa = actual;
-    }
-    return previa[b.length];
 }
 /**
  * Paso 1 de 6.6: cruza `task.etiquetas` contra las `etiquetas` de cada

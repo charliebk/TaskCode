@@ -18,6 +18,7 @@
  * seccion 8.3 (ensureBaseBranchReady) antes de escribir nada.
  */
 import path from 'node:path';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { registrarTransicion, modoCongelado, DECIDIDO_POR, } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
@@ -30,6 +31,8 @@ import { ensureBaseBranchReady } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 export class ApproveCommandError extends Error {
 }
+/** Flags de `taskctl approve`: extraerDecididoPor y extraerPushFlag. */
+export const FLAGS_APPROVE = ['--decidido-por', '--push', '-p'];
 /**
  * Acepta el plan en CUALQUIERA de sus dos ubicaciones (TASK-027, item
  * C3): `planificacion/plan-final.md` (canonica) o suelto en la raiz de
@@ -65,6 +68,8 @@ function assertPlanNoAmbiguo(id, u) {
     }
 }
 export async function runApproveCommand(tareasRoot, argv, today, deps) {
+    // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+    rechazarFlagsDesconocidos(argv, FLAGS_APPROVE, 'approve', (m) => new ApproveCommandError(m));
     // --push se saca ANTES de leer el ID: es booleano puro y va delante
     // o detras indistintamente ("taskctl approve --push TASK-030").
     const { push, resto: sinPush } = extraerPushFlag(argv);

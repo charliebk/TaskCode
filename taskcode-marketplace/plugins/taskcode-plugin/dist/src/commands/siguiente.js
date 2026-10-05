@@ -13,6 +13,7 @@
  * Asi `siguiente` da lo mismo desde la rama base que desde la de la tarea.
  */
 import path from 'node:path';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readFile } from 'node:fs/promises';
 import { readTareaFile } from '../fs/task-store.js';
 import { parseTareaFile } from '../core/tarea-file.js';
@@ -20,13 +21,14 @@ import { resolverConfig } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
 import { commitRevisadoDe, veredictoDeRonda } from '../core/informe-revision.js';
-import { INFORME_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
+import { INFORME_CODEX_RE, INFORME_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
 import { currentBranch, isAncestor, localBranchExists, lsTreeNames, runGit, showFileAtRef, } from '../fs/git.js';
 import { REVISION_DIRNAME, PETICION_REVISION_RE } from './review.js';
-import { INFORME_CODEX_RE } from './codex-review.js';
 import { planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
 }
+/** Flags de `taskctl siguiente`: solo --json. */
+export const FLAGS_SIGUIENTE = ['--json'];
 /**
  * ¿Lo escribio un revisor? (IMP-1 y MEN-6 de la revision de TASK-059): una
  * linea `- Revisor:` rellenada (no la de la plantilla) y sin la fila de
@@ -69,6 +71,8 @@ function veredictoDe(informes) {
     return informes.length === 0 ? null : veredictoDeRonda(informes);
 }
 export async function runSiguienteCommand(tareasRoot, argv, deps) {
+    // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+    rechazarFlagsDesconocidos(argv, FLAGS_SIGUIENTE, 'siguiente', (m) => new SiguienteCommandError(m));
     const json = argv.includes('--json');
     const id = argv.find((a) => !a.startsWith('--'));
     if (id === undefined || id.trim() === '') {

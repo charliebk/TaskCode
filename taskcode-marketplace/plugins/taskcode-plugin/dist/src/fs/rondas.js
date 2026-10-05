@@ -27,7 +27,9 @@
  * patron ya generalizaba. Lo unico que se amplio es el regex que le pasa
  * el llamador.
  */
-import { readdir } from 'node:fs/promises';
+import path from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { veredictoAprobado } from '../core/informe-revision.js';
 import { isEnoent, isEnotdir } from './task-store.js';
 /**
  * El mayor N que aparezca en el primer grupo de captura de `patron`
@@ -120,6 +122,28 @@ export function nombresDeUltimaRonda(entries, patron) {
         }
     }
     return { ronda, nombres };
+}
+/**
+ * Informes de la segunda opinion de Codex (TASK-020). Codex lleva su propio
+ * contador de ronda, independiente del de la revision primaria, y no se
+ * fragmenta por dominio. Vive aqui desde TASK-047: antes estaba copiada en
+ * finish.ts y en codex-review.ts.
+ */
+export const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
+/**
+ * true si la ronda de mayor N segun `patron` tiene al menos un informe y
+ * TODOS aprueban. Fail-closed (TASK-018): con la ronda fragmentada por
+ * dominio, basta con que uno de los N falte o siga en PENDIENTE para que no
+ * cuente como aprobada. Sin revision/ (la tarea nunca paso por `review`) da
+ * false, no un error. La puerta de `finish` y la de `codex-review` son esta
+ * misma funcion (TASK-047; antes codex-review la reimplementaba).
+ */
+export async function ultimaRondaAprobada(dir, patron) {
+    const { nombres } = await informesDeUltimaRonda(dir, patron);
+    if (nombres.length === 0)
+        return false;
+    const contenidos = await Promise.all(nombres.map((nombre) => readFile(path.join(dir, nombre), 'utf8')));
+    return contenidos.every((c) => veredictoAprobado(c));
 }
 /** Primera ronda libre: la ultima que haya + 1. */
 export async function siguienteRonda(dir, patron) {

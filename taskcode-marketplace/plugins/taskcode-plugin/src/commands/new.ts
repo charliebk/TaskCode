@@ -12,7 +12,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseArgs } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
   autoCommit,
   extraerPushFlag,
@@ -33,6 +33,9 @@ import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 import { extraerSecciones } from '../core/tarea-body.js';
 
 export class NewTaskArgError extends Error {}
+
+/** Flags de `taskctl new`: parseNewTaskArgs (titulo..agente-revisor), extraerContenidoInicial (objetivo, criterio, desde) y extraerPushFlag. */
+export const FLAGS_NEW: readonly string[] = ['--titulo', '--tipo', '--sprint', '--etiquetas', '--complejidad', '--modelo-sugerido', '--agente-revisor', '--objetivo', '--criterio', '--desde', '--push', '-p'];
 
 export interface NewTaskOptions {
   titulo: string;
@@ -292,6 +295,8 @@ export async function runNewCommand(
   today: string,
   deps: NewCommandDeps
 ): Promise<NewCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_NEW, 'new', (m) => new NewTaskArgError(m));
   // El config se resuelve ANTES de parsear los argumentos (TASK-030,
   // item C4): si esta roto, se aborta sin haber tocado nada y sin
   // haber cambiado de rama. Un `.taskcode/config.yml` invalido es un

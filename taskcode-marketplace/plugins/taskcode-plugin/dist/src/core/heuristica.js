@@ -93,6 +93,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
+import { masParecida } from './sugerencia.js';
 import { extraerSecciones, normalizarTexto } from './tarea-body.js';
 export class HeuristicaError extends Error {
     constructor(message) {
@@ -299,40 +300,13 @@ function validarEscalaDeNiveles(h, ruta) {
  * que esta mal Y cuales son las validas.
  */
 function mensajeClaveDesconocida(donde, clave) {
-    const sugerida = claveMasParecida(clave);
+    const sugerida = masParecida(clave, CLAVES_HEURISTICA);
     const lineas = [`[ERROR] ${donde}: clave desconocida "${clave}".`];
     if (sugerida !== null)
         lineas.push(`        Quiza quisiste decir "${sugerida}".`);
     lineas.push('        Borrala o corrigela: taskctl no usa una heuristica que no entiende.');
     lineas.push(`        Claves validas: ${CLAVES_HEURISTICA.join(', ')}.`);
     return lineas.join('\n');
-}
-/** Distancia de edicion (Levenshtein) a mano — cero dependencias. */
-function distanciaEdicion(a, b) {
-    let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
-    for (let i = 1; i <= a.length; i++) {
-        const actual = [i];
-        for (let j = 1; j <= b.length; j++) {
-            const coste = a[i - 1] === b[j - 1] ? 0 : 1;
-            actual[j] = Math.min(actual[j - 1] + 1, previa[j] + 1, previa[j - 1] + coste);
-        }
-        previa = actual;
-    }
-    return previa[b.length];
-}
-function claveMasParecida(clave) {
-    let mejor = null;
-    let mejorDistancia = Number.POSITIVE_INFINITY;
-    for (const valida of CLAVES_HEURISTICA) {
-        const d = distanciaEdicion(clave.toLowerCase(), valida);
-        if (d < mejorDistancia) {
-            mejorDistancia = d;
-            mejor = valida;
-        }
-    }
-    // Umbral: hasta un tercio de la clave, como en config.ts. Sin el,
-    // "foo" propondria una clave cualquiera y el consejo no valdria nada.
-    return mejorDistancia <= Math.max(1, Math.floor(clave.length / 3)) ? mejor : null;
 }
 /**
  * Entero >= 0. El cero SI es legitimo aqui, a diferencia de

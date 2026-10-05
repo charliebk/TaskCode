@@ -12,7 +12,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseArgs } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
 import { TASK_TYPES, TASK_COMPLEXITIES, } from '../core/task.js';
@@ -22,6 +22,8 @@ import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 import { extraerSecciones } from '../core/tarea-body.js';
 export class NewTaskArgError extends Error {
 }
+/** Flags de `taskctl new`: parseNewTaskArgs (titulo..agente-revisor), extraerContenidoInicial (objetivo, criterio, desde) y extraerPushFlag. */
+export const FLAGS_NEW = ['--titulo', '--tipo', '--sprint', '--etiquetas', '--complejidad', '--modelo-sugerido', '--agente-revisor', '--objetivo', '--criterio', '--desde', '--push', '-p'];
 const DEFAULT_SPRINT = 0;
 /**
  * Sin --complejidad la tarea nace sin declararla (null): la decide la
@@ -207,6 +209,8 @@ export function buildNewTask(id, opts, today) {
     };
 }
 export async function runNewCommand(tareasRoot, argv, today, deps) {
+    // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+    rechazarFlagsDesconocidos(argv, FLAGS_NEW, 'new', (m) => new NewTaskArgError(m));
     // El config se resuelve ANTES de parsear los argumentos (TASK-030,
     // item C4): si esta roto, se aborta sin haber tocado nada y sin
     // haber cambiado de rama. Un `.taskcode/config.yml` invalido es un

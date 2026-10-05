@@ -21,6 +21,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
@@ -33,6 +34,9 @@ import {
 import { REVISION_DIRNAME } from './review.js';
 
 export class VeredictoCommandError extends Error {}
+
+/** Flags de `taskctl veredicto`: extraerInforme y extraerPushFlag. */
+export const FLAGS_VEREDICTO: readonly string[] = ['--informe', '--push', '-p'];
 
 /** Valor del argumento → texto canonico de la linea. */
 export const VEREDICTOS = {
@@ -105,6 +109,8 @@ export async function runVeredictoCommand(
   argv: readonly string[],
   deps: VeredictoCommandDeps
 ): Promise<VeredictoCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_VEREDICTO, 'veredicto', (m) => new VeredictoCommandError(m));
   const { push, resto: sinPush } = extraerPushFlag(argv);
   const { informe: informePedido, resto } = extraerInforme(sinPush);
   const [id, valor, ...sobra] = resto;

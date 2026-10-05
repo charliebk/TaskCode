@@ -18,7 +18,7 @@
  */
 import path from 'node:path';
 import { mkdir, writeFile, stat } from 'node:fs/promises';
-import { parseArgs } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { parseAsignadoAFlag } from '../cli/asignado.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, type Task } from '../core/task.js';
@@ -31,6 +31,9 @@ import {
 import { listExistingTaskIds, readTareaFile, isEnoent } from '../fs/task-store.js';
 
 export class BoardCommandError extends Error {}
+
+/** Flags de `taskctl board`: parseBoardArgs, parseEscribirFlag y parseAsignadoAFlag (con su alias). */
+export const FLAGS_BOARD: readonly string[] = ['--sprint', '--asignado-a', '--asignado_a', '--escribir'];
 
 /** Ruta de docs/BOARD.md dentro del repo del usuario. */
 export function boardFilePath(repoCwd: string): string {
@@ -109,6 +112,8 @@ export async function runBoardCommand(
   argv: readonly string[],
   deps: BoardCommandDeps = {}
 ): Promise<BoardCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_BOARD, 'board', (m) => new BoardCommandError(m));
   const filters = parseBoardArgs(argv);
   const escribir = parseEscribirFlag(argv);
 

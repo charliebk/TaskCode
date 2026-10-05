@@ -515,7 +515,14 @@ test('taskctl review: un diff que toca 1 dominio (java) genera 1 peticion con el
     assert.deepEqual(grupo.ficheros, ['src/main/java/com/acme/UserService.java']);
 
     const peticion = await readFile(grupo.peticionPath, 'utf8');
-    assert.match(peticion, /Agente revisor sugerido: java-spring-reviewer/);
+    // TASK-047: agente y skill por separado, y el modelo de la tarea.
+    assert.match(peticion, /Skill revisora a cargar: java-spring-reviewer/);
+    assert.ok(
+      peticion.includes(`Agente a lanzar: ${task.agente_revisor} (modelo sugerido: ${task.modelo_sugerido})`),
+      peticion
+    );
+    assert.equal(result.agente, task.agente_revisor);
+    assert.equal(result.modelo, task.modelo_sugerido);
     assert.match(peticion, /UserService\.java/);
     // Desde TASK-034 tarea.md aparece en el --stat de excluidos, pero su
     // diff no se embebe.
