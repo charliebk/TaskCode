@@ -6,17 +6,17 @@ sprint: 7
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-049-f6-t4-metadatos-del-plugin-y-modelo-de-l
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-10-04
-actualizado: 2026-10-04
+actualizado: 2026-10-05
 dependencias: []
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ documentacion actual, si los agentes de brainstorm llevan `model:` propio.
 - [ ] `plugin.json` con `displayName`, `repository`, `license` y `keywords`; `claude plugin validate` limpio
 - [ ] README con instalacion y actualizacion: `claude plugin marketplace update`, `claude plugin update`, reiniciar
 - [ ] Decision documentada sobre `model:` en los agentes de brainstorm, con el ID de modelo comprobado en la documentacion actual
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-05 | plan | manual | persona |
