@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-049-f6-t4-metadatos-del-plugin-y-modelo-de-l
 asignado_a: charlie.bk@gmail.com
@@ -79,3 +79,4 @@ IMPORTANTE.
 | 2026-10-05 | approve | manual | persona |
 | 2026-10-05 | start | manual | persona |
 | 2026-10-05 | review | manual | persona |
+| 2026-10-05 | finish | manual | persona |

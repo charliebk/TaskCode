@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-049 — F6-T4 Metadatos del plugin y modelo de los agentes · etiquetas: (sin etiquetas) · rama feature/task-049-f6-t4-metadatos-del-plugin-y-modelo-de-l · terminada 2026-10-05 · tareas/04-terminadas/TASK-049/
 - TASK-048 — F6-T3 Skill de flujo mas ligera · etiquetas: (sin etiquetas) · rama feature/task-048-f6-t3-skill-de-flujo-mas-ligera · terminada 2026-10-05 · tareas/04-terminadas/TASK-048/
 - TASK-051 — F6-T2 Partir los ficheros de test mas largos · etiquetas: (sin etiquetas) · rama feature/task-051-f6-t2-partir-los-ficheros-de-test-mas-la · terminada 2026-10-05 · tareas/04-terminadas/TASK-051/
 - TASK-050 — F6-T1 Suite rapida y repo plantilla en los tests · etiquetas: (sin etiquetas) · rama feature/task-050-f6-t1-suite-rapida-y-repo-plantilla-en-l · terminada 2026-10-05 · tareas/04-terminadas/TASK-050/
