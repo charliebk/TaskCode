@@ -24,7 +24,7 @@
  */
 import path from 'node:path';
 import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { parseArgs } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
   parseAsignadoAFlag,
   identidadUsable,
@@ -82,6 +82,9 @@ import {
 import { comprobarSkillInstalado } from '../core/plugin-instalado.js';
 
 export class PlanCommandError extends Error {}
+
+/** Flags de `taskctl plan`: parseAsignadoAFlag (con su alias) y extraerPushFlag. */
+export const FLAGS_PLAN: readonly string[] = ['--asignado-a', '--asignado_a', '--push', '-p'];
 
 export const PLAN_FINAL_FILENAME = 'plan-final.md';
 
@@ -381,6 +384,8 @@ export async function runPlanCommand(
   today: string,
   deps: PlanCommandDeps
 ): Promise<PlanCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_PLAN, 'plan', (m) => new PlanCommandError(m));
   // El ID sale de los POSICIONALES, no de argv[0] a secas (item B6):
   // con "--asignado-a" en juego, "taskctl plan --asignado-a carlos
   // TASK-001" tiene que funcionar igual que con el flag detras. De

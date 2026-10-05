@@ -9,11 +9,9 @@
  * (`review.ts`).
  *
  * Solo se ejecuta si la tarea esta en-revision, `revision_codex: true`
- * y la revision primaria de mayor ronda ya aprobo — se recalcula aqui
- * con el MISMO criterio que `buildTransitionContext` de finish.ts (que
- * no se toca ni se exporta, asi que este comando reimplementa esa
- * unica pieza que necesita, en vez de acoplarse a un modulo interno de
- * otro comando).
+ * y la revision primaria de mayor ronda ya aprobo — con la misma
+ * funcion que la puerta de finish (`ultimaRondaAprobada` de
+ * fs/rondas.ts, TASK-047; antes este comando la reimplementaba).
  *
  * Decision de Carlos (2026-09-12, plan-final.md): TODO fallo de
  * "codex" — ausente del PATH (ENOENT) o presente pero con exit
@@ -29,45 +27,24 @@
  * finish.ts YA lo hacen, y no se tocan en esta tarea).
  */
 import path from 'node:path';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { readTareaFile, isEexist } from '../fs/task-store.js';
-import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
+import { INFORME_CODEX_RE, INFORME_REVISION_RE, siguienteRonda, ultimaRondaAprobada, } from '../fs/rondas.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { headCommit, resolveBaseBranchForTipo, runCodexReview, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
-import { veredictoAprobado } from './finish.js';
 import { REVISION_DIRNAME } from './review.js';
 export class CodexReviewCommandError extends Error {
 }
+/** Flags de `taskctl codex-review`: solo extraerPushFlag. */
+export const FLAGS_CODEX_REVIEW = ['--push', '-p'];
 /**
- * Mismo patron que INFORME_REVISION_RE de finish.ts (no exportada de
- * alli, asi que se redefine aqui: una unica linea de regex duplicada es
- * mas barato que acoplar codex-review.ts a un simbolo interno de otro
- * comando). Acepta el sufijo opcional de dominio de TASK-018.
+ * Regex de la ronda de Codex: vive en fs/rondas.ts desde TASK-047 y se
+ * reexporta aqui para no romper a quien la importa de este modulo.
  */
-/**
- * Regex de la ronda de Codex. Codex lleva SU PROPIO contador de ronda,
- * independiente del de la revision primaria (no hay garantia de que
- * coincidan: una tarea puede reintentar codex-review sin que la
- * revision primaria haya tenido una ronda nueva).
- */
-export const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
-/**
- * true si TODOS los informes de la ronda de MAYOR numero de la revision
- * primaria aprueban — mismo criterio fail-closed que
- * `buildTransitionContext` de finish.ts (informesDeLaRonda +
- * veredictoAprobado), reimplementado aqui porque esa funcion no esta
- * exportada. Un directorio de revision/ inexistente (tarea que nunca
- * paso por "taskctl review") da false, no un error.
- */
-async function revisionPrimariaAprobadaDe(revisionDir) {
-    const { nombres } = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
-    if (nombres.length === 0)
-        return false;
-    const contenidos = await Promise.all(nombres.map((nombre) => readFile(path.join(revisionDir, nombre), 'utf8')));
-    return contenidos.every((c) => veredictoAprobado(c));
-}
+export { INFORME_CODEX_RE } from '../fs/rondas.js';
 /**
  * Scaffold del informe de Codex: mismo contrato que `informeTemplate`
  * de review.ts — taskctl finish exige que TODAS las lineas
@@ -98,6 +75,8 @@ export function codexInformeTemplate(task, commitRevisado, ronda, salidaCodex) {
  * revision/, asi que no hay ningun campo "actualizado" que tocar.
  */
 export async function runCodexReviewCommand(tareasRoot, argv, _today, deps) {
+    // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+    rechazarFlagsDesconocidos(argv, FLAGS_CODEX_REVIEW, 'codex-review', (m) => new CodexReviewCommandError(m));
     const { push, resto } = extraerPushFlag(argv);
     const id = resto[0];
     if (id === undefined || id.trim() === '') {
@@ -105,7 +84,7 @@ export async function runCodexReviewCommand(tareasRoot, argv, _today, deps) {
     }
     const existing = await readTareaFile(tareasRoot, id);
     const revisionDir = existing === null ? null : path.join(path.dirname(existing.filePath), REVISION_DIRNAME);
-    const revisionPrimariaAprobada = revisionDir === null ? false : await revisionPrimariaAprobadaDe(revisionDir);
+    const revisionPrimariaAprobada = revisionDir === null ? false : await ultimaRondaAprobada(revisionDir, INFORME_REVISION_RE);
     assertTransitionAllowed('codex-review', existing ? existing.task : null, {
         revisionPrimariaAprobada,
     });

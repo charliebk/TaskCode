@@ -17,10 +17,11 @@
  * lo especifico el Objetivo de TASK-005 (igual al nombre del campo del
  * frontmatter). Esa inconsistencia es previa a B6 y no se puede
  * resolver sin romper una de las dos: se acepta el alias con guion
- * bajo tambien aqui, porque parseArgs IGNORA EN SILENCIO los flags
- * desconocidos (divergencia ya documentada en HALLAZGOS.md), asi que
- * un "taskctl plan TASK-001 --asignado_a carlos" sin el alias saldria
- * con codigo 0 sin haber asignado a nadie.
+ * bajo tambien aqui, porque parseArgs IGNORABA EN SILENCIO los flags
+ * desconocidos, asi que un "taskctl plan TASK-001 --asignado_a carlos"
+ * sin el alias salia con codigo 0 sin haber asignado a nadie. Desde
+ * TASK-047 un flag desconocido aborta (rechazarFlagsDesconocidos), pero
+ * el alias se conserva: quitarlo romperia a quien ya lo usa.
  */
 import { parseArgs } from './args.js';
 /** Nombre canonico del flag (seccion 8.2 de la metodologia). */

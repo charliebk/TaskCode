@@ -17,7 +17,8 @@
  *
  */
 import path from 'node:path';
-import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
@@ -25,8 +26,7 @@ import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
 import { registrarTransicion } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
-import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
-import { veredictoAprobado } from '../core/informe-revision.js';
+import { INFORME_CODEX_RE, INFORME_REVISION_RE, ultimaRondaAprobada } from '../fs/rondas.js';
 import { casillasSinMarcar } from '../core/validacion-tarea.js';
 import { assertTransitionAllowed, type TransitionContext } from '../core/state-machine.js';
 import {
@@ -54,6 +54,9 @@ import { REVISION_DIRNAME } from './review.js';
 
 export class FinishCommandError extends Error {}
 
+/** Flags de `taskctl finish`: solo extraerPushFlag. */
+export const FLAGS_FINISH: readonly string[] = ['--push', '-p'];
+
 const SCRIPT_BY_TYPE: Record<Task['tipo'], string> = {
   feature: 'merge-feature-to-develop.sh',
   fix: 'merge-fix-to-develop.sh',
@@ -69,57 +72,22 @@ const MERGEA_A_MAIN: Record<Task['tipo'], boolean> = {
   release: true,
 };
 
-/**
- * TASK-018: una ronda de revision fragmentada por dominio deja N
- * informes, uno por revisor, con el nombre de la skill como sufijo
- * (p. ej. `informe-revision-2-java-spring-reviewer.md`). El sufijo es
- * OPCIONAL a proposito: una ronda sin fragmentar (0 dominios detectados,
- * o mas del umbral) sigue dejando `informe-revision-<N>.md` sin sufijo,
- * igual que antes de esta tarea — ninguna tarea ya cerrada, ni ninguna
- * en curso con revisiones antiguas, deja de reconocerse.
- */
-const INFORME_CODEX_RE = /^informe-codex-(\d+)\.md$/;
-
 // El gate de veredicto vive en core/informe-revision.ts desde TASK-040;
 // se reexporta aqui para no romper a quien lo importa de finish.
 export { veredictoAprobado } from '../core/informe-revision.js';
 
 /**
- * Contenidos de TODOS los informes de la ronda con mayor N segun `re`,
- * o [] si no hay ninguno. Antes de TASK-018 una ronda tenia como mucho
- * UN informe por convencion (`re` solo casaba ese nombre exacto), asi
- * que "el de mayor N" y "todos los de mayor N" coincidian; con la
- * revision fragmentada por dominio una misma ronda puede dejar varios
- * ficheros con el MISMO N (uno por revisor) y hay que devolverlos
- * todos, no solo el primero que se encuentre.
- */
-async function informesDeLaRonda(revisionDir: string, re: RegExp): Promise<string[]> {
-  const { nombres } = await informesDeUltimaRonda(revisionDir, re);
-  return Promise.all(nombres.map((nombre) => readFile(path.join(revisionDir, nombre), 'utf8')));
-}
-
-/**
  * Contexto de aprobacion para la maquina de estados, derivado de los
- * informes de revision/ de la carpeta de la tarea. La convencion del
- * informe de Codex (informe-codex-<n>.md) la producira TASK-020; leerla
- * ya aqui deja a finish preparado sin acoplarse a ese comando.
- *
- * TASK-018: si la ronda de revision primaria se fragmento por dominio,
- * "aprobada" exige que TODOS los informes de esa ronda aprueben, no solo
- * uno — fail-closed: que falte AUNQUE SEA UNO de los N (o que su
- * veredicto siga en PENDIENTE) basta para que la tarea no pueda
- * cerrarse. El informe de Codex sigue sin fragmentarse (TASK-020 es un
- * unico agente independiente, no un enrutado por dominio), pero se
- * reusa la misma funcion: con un solo fichero por ronda el resultado es
- * identico al de antes de esta tarea.
+ * informes de revision/ de la carpeta de la tarea: la ultima ronda de la
+ * revision primaria y la de Codex, cada una aprobada solo si TODOS sus
+ * informes aprueban (`ultimaRondaAprobada`, fail-closed, TASK-018).
+ * Codex-review usa la misma funcion para su propia puerta (TASK-047).
  */
 async function buildTransitionContext(taskDir: string): Promise<TransitionContext> {
   const revisionDir = path.join(taskDir, REVISION_DIRNAME);
-  const informes = await informesDeLaRonda(revisionDir, INFORME_REVISION_RE);
-  const informesCodex = await informesDeLaRonda(revisionDir, INFORME_CODEX_RE);
   return {
-    revisionPrimariaAprobada: informes.length > 0 && informes.every((i) => veredictoAprobado(i)),
-    revisionCodexAprobada: informesCodex.length > 0 && informesCodex.every((i) => veredictoAprobado(i)),
+    revisionPrimariaAprobada: await ultimaRondaAprobada(revisionDir, INFORME_REVISION_RE),
+    revisionCodexAprobada: await ultimaRondaAprobada(revisionDir, INFORME_CODEX_RE),
   };
 }
 
@@ -273,6 +241,8 @@ export async function runFinishCommand(
   today: string,
   deps: FinishCommandDeps
 ): Promise<FinishCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_FINISH, 'finish', (m) => new FinishCommandError(m));
   const { push, resto } = extraerPushFlag(argv);
   const id = resto[0];
   if (id === undefined || id.trim() === '') {

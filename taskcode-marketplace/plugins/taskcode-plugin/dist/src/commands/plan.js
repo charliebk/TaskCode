@@ -24,7 +24,7 @@
  */
 import path from 'node:path';
 import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { parseArgs } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { parseAsignadoAFlag, identidadUsable, PISTA_VACIO_ESCRITURA, } from '../cli/asignado.js';
 import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { registrarTransicion } from '../core/transiciones.js';
@@ -45,6 +45,8 @@ import { PETICION_DESEMPATE_SKILL_FILENAME, SALIDA_DESEMPATE_SKILL_FILENAME, pet
 import { comprobarSkillInstalado } from '../core/plugin-instalado.js';
 export class PlanCommandError extends Error {
 }
+/** Flags de `taskctl plan`: parseAsignadoAFlag (con su alias) y extraerPushFlag. */
+export const FLAGS_PLAN = ['--asignado-a', '--asignado_a', '--push', '-p'];
 export const PLAN_FINAL_FILENAME = 'plan-final.md';
 /**
  * Subcarpeta del brainstorm, DENTRO de `planificacion/` y no colgando
@@ -235,6 +237,8 @@ async function textoParticion(task, secciones, deps) {
         'para cancelar una tarea).\n');
 }
 export async function runPlanCommand(tareasRoot, argv, today, deps) {
+    // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+    rechazarFlagsDesconocidos(argv, FLAGS_PLAN, 'plan', (m) => new PlanCommandError(m));
     // El ID sale de los POSICIONALES, no de argv[0] a secas (item B6):
     // con "--asignado-a" en juego, "taskctl plan --asignado-a carlos
     // TASK-001" tiene que funcionar igual que con el flag detras. De

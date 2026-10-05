@@ -20,11 +20,15 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { runGit } from '../fs/git.js';
 import { isEexist, isEnoent } from '../fs/task-store.js';
 import { isValidTaskId } from '../core/task.js';
 
 export class CadenaCommandError extends Error {}
+
+/** Flags de `taskctl cadena`: solo --forzar (de `cerrar`). --cadena no va aqui: cli.ts lo quita antes de despachar. */
+export const FLAGS_CADENA: readonly string[] = ['--forzar'];
 
 export interface CadenaCommandDeps {
   repoCwd: string;
@@ -98,6 +102,8 @@ export async function runCadenaCommand(
   argv: readonly string[],
   deps: CadenaCommandDeps
 ): Promise<CadenaCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_CADENA, 'cadena', (m) => new CadenaCommandError(m));
   const ahora = (deps.ahora ?? (() => new Date()))();
   const [accion, arg] = argv;
   const ruta = rutaBloqueo(deps.repoCwd);

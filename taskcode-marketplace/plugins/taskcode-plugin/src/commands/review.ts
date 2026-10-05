@@ -27,6 +27,7 @@
  * `finish` al cerrar.
  */
 import path from 'node:path';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { STATE_FOLDER, type Task } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
@@ -62,6 +63,9 @@ import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 
 export class ReviewCommandError extends Error {}
+
+/** Flags de `taskctl review`: solo extraerPushFlag. */
+export const FLAGS_REVIEW: readonly string[] = ['--push', '-p'];
 
 const SCRIPT_BY_TYPE: Record<Task['tipo'], string> = {
   feature: 'update-feature.sh',
@@ -121,6 +125,14 @@ export interface ReviewCommandResult {
   ronda: number;
   filePath: string;
   /**
+   * Agente que se lanza para revisar (`agente_revisor` de la tarea) y el
+   * modelo con que se lanza (`modelo_sugerido`: por la seccion 16.6 de la
+   * metodologia, el revisor usa el mismo modelo que la tarea). TASK-047: la
+   * skill revisora de cada grupo es otra cosa y va en `informes[].revisor`.
+   */
+  agente: string;
+  modelo: string;
+  /**
    * Un elemento por revisor que interviene en esta ronda (TASK-018): uno
    * solo, con el generico, si el diff no se fragmento por dominio; uno
    * por dominio detectado (mas el generico, si sobran ficheros sin
@@ -140,10 +152,11 @@ export interface ReviewCommandResult {
 export { fenceFor } from '../core/markdown.js';
 
 /**
- * `agenteRevisor` y `nombreInforme` (TASK-018) los decide el
+ * `skillRevisora` y `nombreInforme` (TASK-018) los decide el
  * clasificador por dominio en runReviewCommand, NO `task.agente_revisor`
- * del frontmatter: ese era justo el defecto que esta tarea corrige (ver
- * el Objetivo de tarea.md). `alcanceDiff` es el titulo de la seccion del
+ * del frontmatter. Desde TASK-047 la peticion separa la skill que el
+ * revisor carga (la del dominio) del agente que se lanza y su modelo
+ * (`task.agente_revisor` y `task.modelo_sugerido`). `alcanceDiff` es el titulo de la seccion del
  * diff embebido: "Diff completo" cuando la ronda no se fragmento,
  * "Diff de tu dominio" (con el recuento de ficheros) cuando si.
  */
@@ -155,7 +168,7 @@ export function peticionTemplate(
   fecha: string,
   commits: string,
   diff: string,
-  agenteRevisor: string,
+  skillRevisora: string,
   nombreInforme: string,
   alcanceDiff: string,
   extras: ExtrasPeticion = {}
@@ -180,7 +193,8 @@ export function peticionTemplate(
     `- Rama base: ${baseBranch}\n` +
     `- Commit revisado (HEAD): ${commitRevisado}\n` +
     `- Fecha: ${fecha}\n` +
-    `- Agente revisor sugerido: ${agenteRevisor}\n` +
+    `- Agente a lanzar: ${task.agente_revisor} (modelo sugerido: ${task.modelo_sugerido})\n` +
+    `- Skill revisora a cargar: ${skillRevisora}\n` +
     (extras.carpetaTarea === undefined
       ? ''
       : `- Carpeta de la tarea: ${extras.carpetaTarea} (criterios de aceptacion y plan)\n`) +
@@ -349,6 +363,8 @@ export async function runReviewCommand(
   today: string,
   deps: ReviewCommandDeps
 ): Promise<ReviewCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_REVIEW, 'review', (m) => new ReviewCommandError(m));
   const { push, resto } = extraerPushFlag(argv);
   const id = resto[0];
   if (id === undefined || id.trim() === '') {
@@ -599,6 +615,8 @@ export async function runReviewCommand(
     commitRevisado,
     ronda,
     filePath: newFilePath,
+    agente: updated.agente_revisor,
+    modelo: updated.modelo_sugerido,
     informes,
   };
 }

@@ -354,9 +354,14 @@ test('main: "taskctl review" con un diff de 2 dominios imprime una linea de peti
       !lineasPeticion.some((l) => l.includes('code-quality-reviewer')),
       `tarea.md sola ya no genera peticion al generico: ${stdout}`
     );
-    // Una linea de "Lanza ese agente..." por cada peticion tambien.
-    const lineasLanza = stdout.split('\n').filter((linea) => linea.includes('Lanza ese agente'));
+    // Una linea de "Lanza el agente..." por cada peticion tambien, con el
+    // agente, el modelo y la skill de su grupo por separado (TASK-047).
+    const lineasLanza = stdout.split('\n').filter((linea) => linea.includes('Lanza el agente'));
     assert.equal(lineasLanza.length, 2, stdout);
+    assert.ok(
+      lineasLanza.some((l) => /\(modelo [^)]+\) cargando la skill "java-spring-reviewer"/.test(l)),
+      stdout
+    );
   });
 });
 

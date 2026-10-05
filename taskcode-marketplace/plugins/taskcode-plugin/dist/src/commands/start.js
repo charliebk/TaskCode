@@ -12,7 +12,7 @@
  * llamar al script, en vez de delegar en su prompt interactivo.
  */
 import path from 'node:path';
-import { parseArgs } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { parseAsignadoAFlag, identidadUsable, PISTA_VACIO_ESCRITURA, } from '../cli/asignado.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { escanearWip } from '../fs/wip-scan.js';
@@ -25,6 +25,8 @@ import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js'
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 export class StartCommandError extends Error {
 }
+/** Flags de `taskctl start`: parseAsignadoAFlag (con su alias) y extraerPushFlag. */
+export const FLAGS_START = ['--asignado-a', '--asignado_a', '--push', '-p'];
 const SCRIPT_BY_TYPE = {
     feature: 'create-feature.sh',
     fix: 'create-fix.sh',
@@ -32,6 +34,8 @@ const SCRIPT_BY_TYPE = {
     release: 'create-release.sh',
 };
 export async function runStartCommand(tareasRoot, argv, today, deps) {
+    // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+    rechazarFlagsDesconocidos(argv, FLAGS_START, 'start', (m) => new StartCommandError(m));
     // --push fuera antes de nada (TASK-030): parseArgs trata
     // "--flag valor" como par y se habria comido el ID.
     const { push, resto } = extraerPushFlag(argv);

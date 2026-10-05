@@ -11,6 +11,7 @@
  * en la copia vieja de la rama base la perderia en el merge).
  */
 import path from 'node:path';
+import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { resolverConfig } from '../core/config.js';
 import { registrarTransicion } from '../core/transiciones.js';
@@ -23,6 +24,9 @@ import {
 } from '../fs/git-commit.js';
 
 export class PausaCommandError extends Error {}
+
+/** Flags de `taskctl pausa`: solo extraerPushFlag. */
+export const FLAGS_PAUSA: readonly string[] = ['--push', '-p'];
 
 export interface PausaCommandDeps {
   repoCwd: string;
@@ -40,6 +44,8 @@ export async function runPausaCommand(
   today: string,
   deps: PausaCommandDeps
 ): Promise<PausaCommandResult> {
+  // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
+  rechazarFlagsDesconocidos(argv, FLAGS_PAUSA, 'pausa', (m) => new PausaCommandError(m));
   const { push, resto } = extraerPushFlag(argv);
   const id = resto[0];
   if (id === undefined || id.trim() === '' || id.startsWith('--')) {
