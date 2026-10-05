@@ -20,9 +20,17 @@ una tarea tras otra, con release y aviso a OpenGisViewer al cerrar cada fase.
   puerta de `plan` habría bloqueado solo TASK-029, 030 y 032 (las de
   peticiones de 110-160 KB), y la partición propuesta de las tres coincide
   con la que se hizo a mano. Una tarea `simple` lanza 1 agente en vez de 3.
-- **Pendiente**: fase 5 (TASK-045, 047, 054) y fase 6 (TASK-048 a 052).
-  Las tareas planificadas no tienen Objetivo: hay que redactarlo antes de su
-  `plan`.
+- **Fase G** (urgente, pedida por Carlos el 2026-10-04; TASK-055 a 059):
+  el plugin conduce el ciclo. Fases como skills (`/taskcode-plugin:<fase>`),
+  `taskctl siguiente` decide el paso, `modo_flujo` manual / semiautomatico /
+  automatico congelado en la tarea, registro `## Transiciones`, `taskctl
+  pausa`, cadena con bloqueo por arbol que hace cumplir el CLI, y el
+  automatico con sus guardas (lo cerrado = lo revisado, tope de 3 rondas,
+  hotfix/release preguntan). Ademas `taskctl.cmd` y la funcion de perfil de
+  PowerShell. Pendiente: smoke dentro de una sesion de Claude Code (este
+  entorno no autentica `claude -p`).
+- TASK-045 (fase 5) cerrada: `rama_base` de punta a punta.
+- **Pendiente**: fase 5 (TASK-047, 054) y fase 6 (TASK-048 a 052).
 
 ## Dónde estamos
 
