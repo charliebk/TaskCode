@@ -6,17 +6,17 @@ sprint: 7
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-051-f6-t2-partir-los-ficheros-de-test-mas-la
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-10-04
-actualizado: 2026-10-04
+actualizado: 2026-10-05
 dependencias: []
 ---
 ## Objetivo
@@ -30,3 +30,9 @@ el tiempo de la suite completa antes y despues, sin carga en la maquina.
 ## Criterios de aceptacion
 - [ ] `start`, `finish`, `review`, `sincronizacion` y `gitflow` divididos o con concurrencia interna
 - [ ] Tiempo de la suite completa antes y despues medido sin carga
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-05 | plan | manual | persona |
