@@ -89,3 +89,4 @@ va en un `test:cov` aparte.
 | 2026-10-05 | approve | manual | persona |
 | 2026-10-05 | start | manual | persona |
 | 2026-10-05 | review | manual | persona |
+| 2026-10-05 | review | manual | persona |
