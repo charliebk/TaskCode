@@ -308,10 +308,7 @@ export function diffParaRevision(
   const rango = `${desde}..${hasta}`;
   const sinExcluidos = ['--', '.', ...excluir.map((p) => `:(exclude,glob)${p}`)];
   const nombres = (args: readonly string[]): string[] =>
-    runGit(['diff', '--name-only', rango, ...args], cwd)
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l !== '');
+    partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', rango, ...args], cwd));
 
   const todos = nombres([]);
   const incluidos = excluir.length === 0 ? todos : nombres(sinExcluidos);
@@ -320,26 +317,49 @@ export function diffParaRevision(
   return {
     incluidos,
     excluidos,
-    diff: excluir.length === 0 ? runGit(['diff', rango], cwd) : runGit(['diff', rango, ...sinExcluidos], cwd),
+    diff:
+      excluir.length === 0
+        ? runGit([...SIN_COMILLAS, 'diff', rango], cwd)
+        : runGit([...SIN_COMILLAS, 'diff', rango, ...sinExcluidos], cwd),
     stat:
       excluidos.length === 0
         ? ''
         : // --stat=200: a 80 columnas Git abrevia las rutas con ".../" y
           // el revisor no sabria que pedir (MENOR-3 de la revision).
-          runGit(['diff', '--stat=200', rango, '--', ...excluir.map((p) => `:(glob)${p}`)], cwd),
+          runGit(
+            [...SIN_COMILLAS, 'diff', '--stat=200', rango, '--', ...excluir.map((p) => `:(glob)${p}`)],
+            cwd
+          ),
   };
+}
+
+/**
+ * TASK-054: sin esto Git entrecomilla las rutas no ASCII y las escapa en
+ * octal; la clasificacion por dominio trabajaba con esa ruta escapada y el
+ * diff del fichero no llegaba a la peticion de su dominio. Va en los
+ * nombres, en el diff y en el --stat, para que todos digan la misma ruta.
+ */
+const SIN_COMILLAS: readonly string[] = ['-c', 'core.quotePath=false'];
+
+/**
+ * Salida de `--name-only -z`: rutas separadas por NUL, sin comillas ni
+ * escapes, asi que una ruta con espacios, comillas o un salto de linea
+ * sale tal cual. No se recorta: un espacio al final es parte del nombre.
+ */
+function partirNul(salida: string): string[] {
+  return salida.split('\0').filter((r) => r !== '');
 }
 
 /**
  * Rutas (con "/" de Git) que cambian entre `desde` y `hasta`, sin el
  * contenido del diff (TASK-018: es la entrada del clasificador por
  * dominio de "taskctl review" — clasificar necesita solo los nombres,
- * no el diff completo). Mismo estilo que lsTreeNames.
+ * no el diff completo). Mismo estilo que lsTreeNames. Hoy `review` saca
+ * los nombres de `diffParaRevision`; esta se mantiene con el mismo
+ * tratamiento de rutas (TASK-054).
  */
 export function diffNameOnly(desde: string, hasta: string, cwd: string): string[] {
-  return runGit(['diff', '--name-only', `${desde}..${hasta}`], cwd)
-    .split('\n')
-    .filter((line) => line !== '');
+  return partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', `${desde}..${hasta}`], cwd));
 }
 
 /**
@@ -467,7 +487,13 @@ export function diffRangeForPaths(
   cwd: string
 ): string {
   if (paths.length === 0) return '';
-  return runGit(['diff', `${desde}..${hasta}`, '--', ...paths], cwd);
+  // `:(literal)` (TASK-054): son rutas reales, no patrones. Sin el,
+  // `pages/[id].vue` se leeria como glob y el diff del grupo saldria vacio
+  // o con otros ficheros.
+  return runGit(
+    [...SIN_COMILLAS, 'diff', `${desde}..${hasta}`, '--', ...paths.map((p) => `:(literal)${p}`)],
+    cwd
+  );
 }
 
 /**
