@@ -1,6 +1,6 @@
 ---
 name: csharp-autocad-ifc-reviewer
-description: Revision por pares de codigo C# que interopera con la API de AutoCAD o que produce/consume modelos IFC. Se usa cuando el diff de una tarea toca ficheros .cs, .csproj, .sln, .ifc o .ifcxml, o cuando la tarea menciona AutoCAD, ObjectARX, AcDbMgd, Civil 3D, BricsCAD, IFC, IfcOpenShell, xBIM o BIM. Es una skill de revision, no de implementacion.
+description: Revisor por pares de C# sobre la API de AutoCAD o modelos IFC. Se usa si el diff toca .cs, .csproj, .sln, .ifc o .ifcxml, o la tarea menciona AutoCAD, ObjectARX, AcDbMgd, Civil 3D, BricsCAD, IFC, IfcOpenShell, xBIM o BIM. Es una skill de revision, no de implementacion.
 ---
 
 # Revisor de C# sobre AutoCAD e IFC
@@ -8,6 +8,12 @@ description: Revision por pares de codigo C# que interopera con la API de AutoCA
 Revisa el trabajo de **otro** agente sobre codigo C# que habla con la API de
 AutoCAD, con un modelo IFC, o con los dos. El objetivo no es opinar sobre el
 diff: es **encontrar el caso que lo rompe y demostrarlo**.
+
+Antes de empezar, lee [revision.md](../task-workflow/revision.md): lo comun a
+toda revision (la puerta determinista, una sola ejecucion de la suite por
+ronda, la plantilla de cada hallazgo, las rondas, la linea del veredicto que
+`taskctl finish` acepta y lo que un revisor no hace). Aqui queda lo propio de
+C# sobre AutoCAD e IFC.
 
 ## Cuando aplica
 
@@ -70,18 +76,14 @@ hallazgo concreto lo necesita para sostenerse.
 
 ## Antes de revisar: la puerta determinista
 
-La revision **no empieza** hasta que pasan, en este orden:
+La revision **no empieza** hasta que pasan, en este orden (las reglas de la
+puerta estan en revision.md):
 
 1. **Build** (`dotnet build` / la solucion completa, en Release si el proyecto
    lo usa).
 2. **Linter / analizadores** (analizadores de Roslyn, `dotnet format
    --verify-no-changes`, reglas del `.editorconfig`).
 3. **La suite de tests existente**, entera.
-
-Si algo de eso falla, la revision **se detiene ahi**: se reporta el fallo y se
-devuelve la tarea. No se gasta un solo token revisando codigo que no compila o
-que ya tiene la suite en rojo. Un fallo en la puerta no es un hallazgo de
-revision; es un requisito que no se cumplio.
 
 Advertencia especifica del dominio: en muchos entornos la puerta **no puede
 incluir a AutoCAD**, porque el producto no esta instalado en la maquina donde
@@ -99,12 +101,7 @@ ejecutando:
    siempre, **y otra vez tras cada cambio de rama dentro del mismo clon**.
 2. **Correr la suite entera uno mismo**, y anotar el resultado real (numero de
    tests, fallos, tiempo). "Los tests pasan" sin haberlos corrido no vale.
-   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
-   pasada de la suite completa; no se repite. Los mutantes se comprueban con
-   el fichero o la clase de test concretos que cubren la linea mutada, no
-   con la suite entera. Con varios revisores en paralelo en la misma
-   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
-   compiten por la CPU y todas tardan mas.
+   Una sola vez por ronda (ver revision.md).
 3. **Mutar las protecciones**: romper a proposito la linea que el diff dice
    proteger (el `Commit()`, la comprobacion de `IsErased`, el
    `CultureInfo.InvariantCulture`, el factor de unidades) y comprobar que
@@ -261,11 +258,6 @@ contrario de lo que dice. En este dominio:
 **MENOR** — todo lo demas: nombres, comentarios que ya no son ciertos,
 duplicacion sin consecuencia demostrada, un `using` de mas, estilo.
 
-**Todos los hallazgos se documentan, tambien los que se decide no corregir**,
-con el motivo. Sin esa nota, el siguiente lector concluye que hay un bug donde
-hay una decision. Un "sin hallazgos" explicito es una respuesta valida;
-inventar hallazgos para tener algo que reportar, no.
-
 ## Lo que no se puede reproducir
 
 Si AutoCAD no esta disponible en la maquina de revision, hay hallazgos que no
@@ -286,7 +278,8 @@ decirlo.
 ## El informe
 
 Se escribe sobre el fichero de informe de la ronda que genera `taskctl
-review`, sin borrar la peticion. Estructura fija:
+review`, sin borrar la peticion, con las reglas de revision.md. La cabecera,
+con el nombre de esta skill:
 
 ```
 # Informe de revision — <ID de la tarea> (ronda <N>)
@@ -297,61 +290,9 @@ review`, sin borrar la peticion. Estructura fija:
 
 ## Hallazgos
 
-### CRITICO-1 — <titulo corto>
-- Donde: <fichero:linea>
-- Que pasa: <comportamiento observado, en una o dos frases>
-- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
-- Impacto: <la consecuencia concreta para quien use esto>
-- Sugerencia: <la direccion de la correccion, no el parche>
-
-### IMPORTANTE-1 — <titulo corto>
-<mismos campos>
-
-### MENOR-1 — <titulo corto>
-<mismos campos, mas si se propone no corregirlo y por que>
+<un bloque por hallazgo, con la plantilla de revision.md>
 ```
-
-Si no hay nada que reportar, la seccion de hallazgos dice **"sin hallazgos"**
-de forma explicita, y se anade que se ejecuto para llegar a esa conclusion.
-
-### La linea del veredicto
-
-`taskctl finish` decide si la tarea puede cerrarse leyendo esa linea, y lo
-hace fail-closed. **Sustituye** la linea de la plantilla; no anadas otra
-debajo, porque *todas* las lineas de veredicto del informe tienen que aprobar.
-
-| Linea escrita | Resultado |
-|---|---|
-| `- Veredicto: aprobada` | aprueba |
-| `- Veredicto: aprobada con menores documentados` | aprueba (el valor empieza por `aprobada`) |
-| `- Veredicto: cambios-solicitados` | **no aprueba** — es lo correcto si pides cambios |
-| `- Veredicto: rechazada` | **no aprueba** |
-| `- Veredicto: PENDIENTE (...)` | **no aprueba** — es la plantilla sin sustituir |
-| `- Veredicto: **aprobada**` | **no aprueba** — los asteriscos rompen el inicio |
-| `- Veredicto: aprobado` | **no aprueba** — `aprobado` no es `aprobada` |
-| `Veredicto: aprobada` (sin el guion) | **no aprueba** — no cuenta como linea de veredicto |
-| (sin ninguna linea de veredicto) | **no aprueba** |
-
-Reglas del valor, para no pelearse con el parser: tiene que **empezar** por
-`aprobada`, y no puede contener la palabra `pendiente` ni la cadena
-`cambios-solicitados`. El matiz va en el **cuerpo** del informe, no en esa
-linea.
 
 ## Lo que esta skill NO hace
 
-- **No implementa la correccion.** Escribe el caso que falla y donde; el
-  arreglo lo hace quien implemento la tarea.
-- **No reescribe el codigo del otro** ni "aprovecha para" refactorizar,
-  renombrar o reordenar. Un revisor que edita deja de ser independiente.
-- **No redisena la tarea.** Si la implementacion contradice al diseno, se
-  documenta la divergencia; cambiarlo es una decision de la persona
-  responsable.
-- **No aprueba por simpatia**, ni porque "casi todo esta bien", ni porque la
-  tarea ya vaya por la tercera ronda. Tampoco inventa hallazgos para justificar
-  el pase.
-- **No sustituye a la puerta determinista** de build, linter y tests. Si esa
-  puerta esta en rojo, aqui no se empieza.
-- **No mueve la tarea de estado, no mergea y no commitea.** Eso es trabajo de
-  `taskctl finish`, y solo ocurre si el veredicto aprueba.
-- **No revisa el repositorio entero**: revisa el diff que le llega. Si de
-  verdad necesita mas contexto, lo pide para un hallazgo concreto.
+Lo que ningun revisor hace esta en revision.md; este no anade nada propio.

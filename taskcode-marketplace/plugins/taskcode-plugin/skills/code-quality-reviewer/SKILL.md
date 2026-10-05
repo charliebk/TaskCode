@@ -1,6 +1,6 @@
 ---
 name: code-quality-reviewer
-description: Revisor por pares generico, independiente del lenguaje. Se usa cuando el diff de una tarea no cae en ningun dominio con revisor propio, y tambien cuando cae en demasiados a la vez (mas de tres), donde sustituye a la fragmentacion por dominio con un unico pase. Revisa correccion, casos borde, duplicacion real, calidad de los tests, limites de responsabilidad, legibilidad y seguridad de la entrada externa.
+description: Revisor por pares generico, independiente del lenguaje. Se usa si el diff no cae en ningun dominio con revisor propio, o cae en mas de tres (un unico pase). Revisa correccion, casos borde, duplicacion real, tests, limites de responsabilidad, legibilidad y seguridad de la entrada externa.
 ---
 
 # Revisor generico de calidad
@@ -12,6 +12,12 @@ minimo que **todo** cambio tiene que superar.
 
 El objetivo no es opinar sobre el diff: es **encontrar el caso que lo rompe y
 demostrarlo**.
+
+Antes de empezar, lee [revision.md](../task-workflow/revision.md): lo comun a
+toda revision (la puerta determinista, una sola ejecucion de la suite por
+ronda, la plantilla de cada hallazgo, las rondas, la linea del veredicto que
+`taskctl finish` acepta y lo que un revisor no hace). Aqui queda lo propio del
+pase generico.
 
 ## Cuando aplica
 
@@ -53,19 +59,9 @@ porque se lo pidieron (caso 3).
 
 ## Antes de revisar: la puerta determinista
 
-La revision **no empieza** hasta que pasan, en este orden:
-
-1. **Build o compilacion**, con el comando que use el proyecto.
-2. **Linter / formateador**, en modo verificacion.
-3. **La suite de tests existente**, entera.
-
-Si algo de eso falla, la revision **se detiene ahi**: se reporta el fallo y se
-devuelve la tarea. Cero tokens gastados revisando codigo que no compila o que
-ya tiene la suite en rojo. Un fallo de la puerta no es un hallazgo de
-revision: es un requisito que no se cumplio.
-
-Si el proyecto no tiene alguno de los tres pasos, dilo en el informe. "No hay
-linter configurado" es informacion; suponer que se ejecuto, no.
+Build, linter y la suite entera, con los comandos que use el proyecto, en el
+orden y con las reglas de revision.md. Si la puerta esta en rojo, la revision
+no empieza.
 
 ## Como se revisa: reproducir, no leer
 
@@ -80,12 +76,7 @@ ejecutando:
 2. **Correr la suite entera uno mismo** y anotar el resultado real: cuantos
    tests, cuantos fallan, cuales. "Los tests pasan" sin haberlos corrido no
    vale, y `exit 0` no prueba que ocurriera nada — hay que comprobar el hecho.
-   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
-   pasada de la suite completa; no se repite. Los mutantes se comprueban con
-   el fichero o la clase de test concretos que cubren la linea mutada, no
-   con la suite entera. Con varios revisores en paralelo en la misma
-   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
-   compiten por la CPU y todas tardan mas.
+   Una sola vez por ronda (ver revision.md).
 3. **Mutar**: romper a proposito la linea que el diff dice proteger y
    comprobar que algun test se pone rojo. Si sigue verde, no hay red de
    regresion, y eso ya es un hallazgo por si solo.
@@ -271,15 +262,11 @@ contrario de lo que dice:
 duplicacion sin consecuencia demostrable, numeros magicos, orden de las
 funciones.
 
-**Todos los hallazgos se documentan, tambien los que se decide no corregir**,
-con el motivo. Sin esa nota, el siguiente lector concluye que hay un bug donde
-hay una decision. Un "sin hallazgos" explicito es una respuesta valida;
-inventar hallazgos para tener algo que reportar, no.
-
 ## El informe
 
 Se escribe sobre el fichero de informe de la ronda que genera `taskctl
-review`, sin borrar la peticion. Estructura fija:
+review`, sin borrar la peticion, con las reglas de revision.md. La cabecera,
+con el nombre de esta skill:
 
 ```
 # Informe de revision — <ID de la tarea> (ronda <N>)
@@ -290,70 +277,10 @@ review`, sin borrar la peticion. Estructura fija:
 
 ## Hallazgos
 
-### CRITICO-1 — <titulo corto>
-- Donde: <fichero:linea>
-- Que pasa: <comportamiento observado, en una o dos frases>
-- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
-- Impacto: <la consecuencia concreta para quien use esto>
-- Sugerencia: <la direccion de la correccion, no el parche>
-
-### IMPORTANTE-1 — <titulo corto>
-<mismos campos>
-
-### MENOR-1 — <titulo corto>
-<mismos campos, mas si se propone no corregirlo y por que>
+<un bloque por hallazgo, con la plantilla de revision.md>
 ```
-
-Si no hay nada que reportar, la seccion de hallazgos dice **"sin hallazgos"**
-de forma explicita, y se anade que se ejecuto para llegar a esa conclusion:
-que comandos, que suite, que mutaciones. Un "sin hallazgos" sin esa lista no
-se distingue de no haber mirado.
-
-### La linea del veredicto
-
-`taskctl finish` decide si la tarea puede cerrarse leyendo esa linea, y lo
-hace fail-closed. **Sustituye** la linea de la plantilla; no anadas otra
-debajo, porque *todas* las lineas de veredicto del informe tienen que aprobar.
-
-| Linea escrita | Resultado |
-|---|---|
-| `- Veredicto: aprobada` | aprueba |
-| `- Veredicto: aprobada con menores documentados` | aprueba (el valor empieza por `aprobada`) |
-| `- Veredicto: cambios-solicitados` | **no aprueba** — es lo correcto si pides cambios |
-| `- Veredicto: rechazada` | **no aprueba** |
-| `- Veredicto: PENDIENTE (...)` | **no aprueba** — es la plantilla sin sustituir |
-| `- Veredicto: **aprobada**` | **no aprueba** — los asteriscos rompen el inicio |
-| `- Veredicto: aprobado` | **no aprueba** — `aprobado` no es `aprobada` |
-| `Veredicto: aprobada` (sin el guion) | **no aprueba** — no cuenta como linea de veredicto |
-| (sin ninguna linea de veredicto) | **no aprueba** |
-
-Reglas del valor, para no pelearse con el parser: tiene que **empezar** por
-`aprobada`, y no puede contener la palabra `pendiente` ni la cadena
-`cambios-solicitados`. El matiz va en el **cuerpo** del informe, no en esa
-linea.
-
-Criterio para elegirlo, y no es negociable: **CRITICO o IMPORTANTE sin
-corregir implica `cambios-solicitados`**. Con solo hallazgos MENOR se puede
-aprobar, siempre que queden documentados con su motivo.
 
 ## Lo que esta skill NO hace
 
-- **No implementa la correccion.** Escribe el caso que falla y donde; el
-  arreglo lo hace quien implemento la tarea.
-- **No reescribe el codigo del otro** ni "aprovecha para" refactorizar,
-  renombrar o reordenar. Un revisor que edita deja de ser independiente, y la
-  siguiente ronda ya no tiene a nadie que la revise.
-- **No redisena la tarea.** Si la implementacion contradice al diseno, se
-  documenta la divergencia; cambiarlo es una decision de la persona
-  responsable.
-- **No aprueba por simpatia**, ni porque "casi todo esta bien", ni porque la
-  tarea ya vaya por la tercera ronda, ni porque el hallazgo obligue a repetir
-  trabajo. Tampoco inventa hallazgos para justificar el pase.
-- **No convierte preferencias de estilo en bloqueos.** Si no puedes nombrar el
-  fallo que produce, es MENOR.
-- **No sustituye a la puerta determinista** de build, linter y tests. Si esa
-  puerta esta en rojo, aqui no se empieza.
-- **No mueve la tarea de estado, no mergea y no commitea.** Eso es trabajo de
-  `taskctl finish`, y solo ocurre si el veredicto aprueba.
-- **No revisa el repositorio entero**: revisa el diff que le llega. Si de
-  verdad necesita mas contexto, lo pide para un hallazgo concreto.
+Lo que ningun revisor hace esta en revision.md; el pase generico no anade nada
+propio.

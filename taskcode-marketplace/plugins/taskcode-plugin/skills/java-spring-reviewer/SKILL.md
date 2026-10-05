@@ -1,6 +1,6 @@
 ---
 name: java-spring-reviewer
-description: Revisor por pares de diffs de Java y Spring Boot. Se usa cuando el diff de una tarea toca ficheros .java, pom.xml, build.gradle o application*.yml y hay que revisar capas de servicio y repositorio, limites transaccionales, gestion de excepciones, inyeccion, consultas N+1, validacion de entrada, configuracion por perfiles y tests con contexto real antes de cerrar la tarea.
+description: Revisor por pares de Java y Spring Boot. Se usa si el diff toca .java, pom.xml, build.gradle o application*.yml. Revisa capas de servicio y repositorio, transacciones, excepciones, inyeccion, consultas N+1, validacion de entrada, perfiles y tests con contexto real antes de cerrar la tarea.
 ---
 
 # Revision por pares de Java y Spring
@@ -8,6 +8,12 @@ description: Revisor por pares de diffs de Java y Spring Boot. Se usa cuando el 
 Revisa el diff de una tarea que toca codigo Java o Spring Boot. **Lo revisa
 un agente que no implemento la tarea**: la independencia es el punto, no un
 formalismo.
+
+Antes de empezar, lee [revision.md](../task-workflow/revision.md): lo comun a
+toda revision (la puerta determinista, una sola ejecucion de la suite por
+ronda, la plantilla de cada hallazgo, las rondas, la linea del veredicto que
+`taskctl finish` acepta y lo que un revisor no hace). Aqui queda lo propio de
+Java y Spring.
 
 ## Que recibe este revisor y que no
 
@@ -55,13 +61,8 @@ caso que lo demuestra**, no cuando parece que podria pasar.
    revision: se reporta eso y nada mas.
 3. **Correr la suite entera antes de tocar nada**, para tener la linea base.
    Un test que ya estaba rojo antes del diff no es un hallazgo de esta
-   tarea, pero si es un dato que va en el informe.
-   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
-   pasada de la suite completa; no se repite. Los mutantes se comprueban con
-   el fichero o la clase de test concretos que cubren la linea mutada, no
-   con la suite entera. Con varios revisores en paralelo en la misma
-   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
-   compiten por la CPU y todas tardan mas.
+   tarea, pero si es un dato que va en el informe. Una sola vez por ronda
+   (ver revision.md).
 4. **Construir el caso que rompe.** Un test nuevo que falla contra la rama,
    o una llamada real contra la aplicacion levantada. Lo que no se ha
    ejecutado no se afirma.
@@ -183,19 +184,12 @@ contrario de lo que dice:
 - Nombre de metodo de repositorio que no describe lo que consulta.
 - Import o dependencia que el diff deja sin usar.
 
-Todos los hallazgos se documentan, **tambien los que se decide no
-corregir**, con el motivo. Un "sin hallazgos" explicito es una respuesta
-valida; inventar hallazgos para tener algo que reportar, no.
-
 ## Estructura del informe
 
-`taskctl review` deja el esqueleto del informe en la carpeta de revision de
-la tarea, numerado por ronda. **Se rellena ese esqueleto, respetando su
-cabecera**: el titulo tal cual, la linea `- Commit revisado:` con el sha, la
-linea `- Revisor:` con el nombre de esta skill, y la linea `- Veredicto:`,
-que se **sustituye** en su sitio — nunca se borra de la cabecera ni se
-repite mas abajo. Las secciones propias de este revisor van **despues** de
-`## Hallazgos`, donde no chocan con lo que el esqueleto ya trae:
+Se rellena el esqueleto que deja `taskctl review`, respetando su cabecera
+(ver revision.md), con el nombre de esta skill en `- Revisor:`. Las secciones
+propias de este revisor van **despues** de `## Hallazgos`, donde no chocan con
+lo que el esqueleto ya trae:
 
 ```markdown
 # Informe de revision — <ID de la tarea> (ronda <N>)
@@ -206,18 +200,7 @@ repite mas abajo. Las secciones propias de este revisor van **despues** de
 
 ## Hallazgos
 
-### CRITICO-1 — <titulo corto>
-- Donde: <fichero:linea>
-- Que pasa: <comportamiento observado, en una o dos frases>
-- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
-- Impacto: <la consecuencia concreta para quien use esto>
-- Sugerencia: <la direccion de la correccion, no el parche>
-
-### IMPORTANTE-1 — <titulo corto>
-<mismos campos>
-
-### MENOR-1 — <titulo corto>
-<mismos campos, mas si se propone no corregirlo y por que>
+<un bloque por hallazgo, con la plantilla de revision.md>
 
 ## Alcance
 - Ficheros revisados: <los del diff que casaron con los patrones>
@@ -238,49 +221,6 @@ Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
 forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
 llegar a esa conclusion.
 
-Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la tarea: los MENOR que
-se corrijan no abren otra ronda. La ronda 2 solo se pide si se corrigio
-algun CRITICO o IMPORTANTE, y entonces revisa el delta de la correccion y
-comprueba **cada uno de esos hallazgos**: las correcciones son justo donde
-entran los fallos nuevos.
-
-## La linea del veredicto
-
-`taskctl finish` decide si la tarea puede cerrarse leyendo esa linea, y lo
-hace fail-closed: acepta una linea que, sin espacios y en minusculas,
-empiece por `- veredicto:` y cuyo **valor empiece** por `aprobada`. Si el
-valor contiene `pendiente` o `cambios-solicitados`, no aprueba. Y si el
-informe tiene varias lineas de veredicto, **todas** tienen que aprobar — por
-eso se **sustituye** la linea de la plantilla, no se anade otra debajo.
-
-| Linea escrita | Resultado |
-|---|---|
-| `- Veredicto: aprobada` | aprueba |
-| `- Veredicto: aprobada con correcciones menores` | aprueba (el valor empieza por `aprobada`) |
-| `- Veredicto: cambios-solicitados` | no aprueba, y es lo correcto si hay CRITICO o IMPORTANTE |
-| `- Veredicto: rechazada` | no aprueba |
-| `- Veredicto: no aprobada` | no aprueba: el valor no *empieza* por `aprobada` |
-| `- Veredicto: PENDIENTE (rellenar)` | no aprueba: es la plantilla sin sustituir |
-| `- Veredicto: **APROBADA**` | no aprueba: los asteriscos rompen el inicio |
-| `- Veredicto: aprobado` | no aprueba: `aprobado` no es `aprobada` |
-| `Veredicto: aprobada` | no cuenta como linea de veredicto, y sin ninguna no aprueba |
-
-El matiz va en el cuerpo del informe, nunca en esa linea. Un revisor que
-escriba el veredicto en su propio vocabulario bloquea el cierre y obliga a
-un commit de normalizacion que no arregla nada.
-
 ## Lo que esta skill no hace
 
-- **No implementa la correccion.** Propone el arreglo en el informe; lo
-  aplica quien implemento la tarea.
-- **No reescribe el codigo ajeno** ni commitea en la rama revisada. Los
-  unicos ficheros que toca son los suyos temporales y el informe.
-- **No aprueba por simpatia.** Si hay un CRITICO o un IMPORTANTE sin
-  corregir, el veredicto es `cambios-solicitados`, aunque el resto del diff
-  este impecable y aunque la tarea vaya con prisa.
-- **No inventa hallazgos** para que el informe no salga vacio.
-- **No revisa ficheros fuera de sus patrones**: si al leer el diff aparece
-  algo de otro dominio que preocupa, se anota en una linea y se deja para su
-  revisor, no se juzga aqui.
-- **No sustituye a la puerta determinista** (build, linter, tests). Si eso
-  esta rojo, no hay nada que revisar todavia.
+Lo que ningun revisor hace esta en revision.md; este no anade nada propio.
