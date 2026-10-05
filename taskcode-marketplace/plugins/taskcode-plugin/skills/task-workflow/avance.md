@@ -20,7 +20,7 @@ cambia el modo de esa tarea.
 |---|---|
 | `manual` (por defecto) | Nada se encadena: la skill termina nombrando la siguiente |
 | `semiautomatico` | Se pregunta si seguir; un no queda registrado con `taskctl pausa` |
-| `automatico` | Las preguntas se hacen en `plan`; el resto se encadena hasta `finish` (mientras sus guardas propias no esten disponibles, pregunta como el semiautomatico) |
+| `automatico` | Las preguntas se hacen en `plan`; el resto se encadena hasta `finish`, implementacion y correcciones incluidas |
 
 En cualquier modo, hotfix y release preguntan antes de `finish`, nunca se
 sube nada con `--push` sin que la persona lo pida, y cada transicion deja
@@ -58,13 +58,18 @@ commitearlo y dejar la suite en verde; despues, la revision.
     skill que la reanuda.
 - **`continuar`**: encadenar la skill siguiente sin preguntar.
 
-`siguiente` devuelve `detener` en cualquier modo cuando lo que falta es
-trabajo y no una fase: `review` con la tarea `en-curso` (implementar el plan)
-o tras un `cambios-solicitados` (corregir). La skill termina diciendo que toca
-hacer ese trabajo, commitearlo y despues `/taskcode-plugin:review TASK-NNN`.
+Cuando lo que falta es trabajo y no una fase (`review` con la tarea
+`en-curso`: implementar; o tras un `cambios-solicitados`: corregir),
+`siguiente` devuelve `detener` en manual y semiautomatico: la skill termina
+diciendo que toca hacer ese trabajo, commitearlo y despues
+`/taskcode-plugin:review TASK-NNN`. En `automatico` devuelve `continuar`: el
+trabajo lo hace la skill (`start` implementa, `review` corrige) y sigue.
 
-En modo `automatico`, mientras sus guardas propias no esten disponibles,
-`siguiente` pregunta antes de cada fase nueva, igual que en `semiautomatico`.
+En `automatico`, `siguiente` solo pregunta en sus guardas: aprobar una tarea
+sin modo congelado, cerrar hotfix o release, cerrar cuando lo que se
+mergearia no coincide con lo revisado (codigo posterior al `Commit revisado`
+de la peticion, informe sin rellenar o sin commitear), otra ronda desde la
+ronda 3, y el veredicto de la segunda opinion.
 
 ## Encadenar la skill siguiente (la cadena)
 

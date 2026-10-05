@@ -17,7 +17,13 @@ Es el checkpoint humano: el plan no se aprueba porque un agente lo diga.
 2. Lee `planificacion/plan-final.md` de la tarea (el ID viene en
    `$ARGUMENTS`) y presentalo resumido: enfoque, riesgos, plan de pruebas y
    lo que pida decision de una persona.
-3. Pregunta a la persona si lo aprueba.
+3. **Modo automatico**: si `taskctl siguiente TASK-NNN --json` dice
+   `"modo":"automatico"` y `accion` `continuar` (las preguntas ya se hicieron
+   en plan), aprueba sin preguntar con
+   `taskctl approve TASK-NNN --decidido-por automatico`: queda registrado como
+   aprobacion automatica. El CLI lo rechaza si la tarea no se planifico en
+   automatico; entonces, y en cualquier otro modo, sigue con la pregunta.
+   Pregunta a la persona si lo aprueba.
    - **Si**: ejecuta `taskctl approve TASK-NNN`.
    - **No**: pregunta que habria que cambiar y escribelo, con sus palabras, al
      final de `plan-final.md` en una seccion con este encabezado exacto (asi

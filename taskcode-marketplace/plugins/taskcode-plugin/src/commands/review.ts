@@ -229,7 +229,7 @@ export interface ExtrasPeticion {
 }
 
 /** Peticiones de revision, con o sin sufijo de dominio (TASK-018). */
-const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+export const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 
 /** Lo que hace falta saber de la ronda N para generar la N+1 (TASK-040). */
 interface RondaPrevia {

@@ -19,13 +19,50 @@ import { parseTareaFile } from '../core/tarea-file.js';
 import { resolverConfig } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
-import { veredictoDeRonda } from '../core/informe-revision.js';
+import { commitRevisadoDe, veredictoDeRonda } from '../core/informe-revision.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
-import { currentBranch, isAncestor, localBranchExists, lsTreeNames, showFileAtRef, } from '../fs/git.js';
-import { REVISION_DIRNAME } from './review.js';
+import { currentBranch, isAncestor, localBranchExists, lsTreeNames, runGit, showFileAtRef, } from '../fs/git.js';
+import { REVISION_DIRNAME, PETICION_REVISION_RE } from './review.js';
 import { INFORME_CODEX_RE } from './codex-review.js';
 import { planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
+}
+/**
+ * ¿Lo escribio un revisor? (IMP-1 y MEN-6 de la revision de TASK-059): una
+ * linea `- Revisor:` rellenada (no la de la plantilla) y sin la fila de
+ * ejemplo de la tabla. No prueba quien lo escribio: ese riesgo residual esta
+ * documentado y aceptado; esto descarta el informe que nadie relleno.
+ */
+function informeRellenado(texto) {
+    return /^- Revisor:[ \t]*(?!\(rellenar)\S/m.test(texto) && !texto.includes('(ej. IMP-1)');
+}
+/**
+ * ¿Lo aprobado es exactamente lo que se reviso? (TASK-059; CRIT-1 de su
+ * revision). La referencia es el `Commit revisado` que el CLI escribe en la
+ * peticion de la ronda, no el «ultimo commit de codigo»:
+ * - no hay cambios fuera de `tareas/` entre ese commit y `ref`, en TODO el
+ *   repo (`:(top)`, no solo bajo el cwd: MEN-7): el codigo que se va a
+ *   mergear es el que vio el revisor. Esto cubre tambien el informe
+ *   commiteado junto a codigo (ese codigo aparece en el diff), que antes se
+ *   tapaba con el commit limpio de `taskctl veredicto`;
+ * - y no hay cambios sin commitear en la carpeta `revision/`.
+ * Que el informe no sea la plantilla lo comprueba `informeRellenado`.
+ * `dirRevision` es la ruta POSIX relativa a la raiz del repo, acabada en /.
+ */
+function informeEnCommitPropio(ref, dirRevision, nombres, revisados, cwd) {
+    if (nombres.length === 0 || revisados.length === 0)
+        return false;
+    if (ref === 'HEAD' && runGit(['status', '--porcelain', '--', dirRevision], cwd) !== '')
+        return false;
+    const tareasDesdeLaRaiz = `${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`;
+    for (const revisado of revisados) {
+        if (revisado === null || !isAncestor(revisado, ref, cwd))
+            return false;
+        const cambios = runGit(['diff', '--name-only', revisado, ref, '--', ':(top)', `:(top,exclude)${tareasDesdeLaRaiz}`], cwd);
+        if (cambios !== '')
+            return false;
+    }
+    return true;
 }
 /** Veredicto de una ronda a partir de sus informes; null si no hay ninguno. */
 function veredictoDe(informes) {
@@ -56,6 +93,12 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
     // del disco.
     let primarios;
     let codex;
+    // Para la guarda del commit propio y el tope de rondas (TASK-059).
+    let rondaRevision;
+    let nombresPrimarios;
+    let dirRevisionRepo;
+    let refInformes;
+    let revisados;
     if (enOtraRama) {
         const enRama = lsTreeNames(rama, 'tareas', deps.repoCwd);
         const rutaTarea = enRama.find((n) => n.endsWith(`/${id}/tarea.md`));
@@ -69,7 +112,13 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
             .map((n) => n.slice(dirRevision.length));
         const leer = (n) => showFileAtRef(rama, dirRevision + n, deps.repoCwd);
         // En la rama la tarea ya paso por start: el plan dejo de importar.
-        primarios = nombresDeUltimaRonda(nombres, INFORME_REVISION_RE).nombres.map(leer);
+        const ultima = nombresDeUltimaRonda(nombres, INFORME_REVISION_RE);
+        rondaRevision = ultima.ronda;
+        nombresPrimarios = ultima.nombres;
+        dirRevisionRepo = dirRevision;
+        refInformes = rama;
+        primarios = ultima.nombres.map(leer);
+        revisados = nombresDeUltimaRonda(nombres, PETICION_REVISION_RE).nombres.map((n) => commitRevisadoDe(leer(n)));
         codex = nombresDeUltimaRonda(nombres, INFORME_CODEX_RE).nombres.map(leer);
     }
     else {
@@ -77,7 +126,13 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         const taskDir = path.dirname(local.filePath);
         const revisionDir = path.join(taskDir, REVISION_DIRNAME);
         const leer = (n) => readFile(path.join(revisionDir, n), 'utf8');
-        primarios = await Promise.all((await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE)).nombres.map(leer));
+        const ultima = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
+        rondaRevision = ultima.ronda;
+        nombresPrimarios = ultima.nombres;
+        dirRevisionRepo = `${path.relative(deps.repoCwd, revisionDir).split(path.sep).join('/')}/`;
+        refInformes = 'HEAD';
+        primarios = await Promise.all(ultima.nombres.map(leer));
+        revisados = (await Promise.all((await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE)).nombres.map(leer))).map((t) => commitRevisadoDe(t));
         codex = await Promise.all((await informesDeUltimaRonda(revisionDir, INFORME_CODEX_RE)).nombres.map(leer));
         if (task.estado === 'en-diseno')
             planEstaRedactado = await planRedactado(task, taskDir);
@@ -87,6 +142,11 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         veredicto: veredictoDe(primarios),
         veredictoCodex: veredictoDe(codex),
         modoCongelado: modoCongelado(body) !== null,
+        rondaRevision,
+        informeEnCommitPropio: task.estado === 'en-revision' &&
+            // IMP-1: un informe que conserva la plantilla no lo escribio ningun revisor.
+            primarios.every(informeRellenado) &&
+            informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, revisados, deps.repoCwd),
     };
     const modo = modoDeTarea(body, modoConfig);
     return {

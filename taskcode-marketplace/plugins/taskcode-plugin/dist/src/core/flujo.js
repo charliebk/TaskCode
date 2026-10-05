@@ -14,6 +14,8 @@ export const FASES_SIGUIENTE = [
     'finish',
     'terminada',
 ];
+/** Tope de rondas de revision: desde esta, otra ronda la decide una persona. */
+export const TOPE_RONDAS = 3;
 /**
  * Fases que abren una fase NUEVA del ciclo: en semiautomatico se pregunta
  * antes de entrar. Las demas (veredicto, la primera codex-review, otra ronda
@@ -24,22 +26,28 @@ export const FASES_SIGUIENTE = [
 function accionPara(fase, modo, task, abreFase, exigePersona, faltaTrabajo) {
     if (fase === 'terminada' || modo === 'manual')
         return 'detener';
-    // TASK-058 (IMP-3 de su revision): lo que falta no es una fase sino trabajo
-    // (implementar, o corregir tras cambios-solicitados). Encadenar la revision
-    // ahi la relanzaria sobre el mismo codigo. Se detiene en todos los modos.
-    if (faltaTrabajo)
+    // Lo que falta no es una fase sino trabajo (implementar, o corregir tras
+    // cambios-solicitados). Fuera del automatico se detiene SIEMPRE, tambien en
+    // el tope de rondas: encadenar la revision ahi la relanzaria sobre el mismo
+    // codigo (IMP-3 de la revision de TASK-058; IMP-2 de la de TASK-059).
+    if (faltaTrabajo && modo !== 'automatico')
         return 'detener';
-    // Pasos que solo puede decidir una persona aunque el modo encadene.
+    // Pasos que solo puede decidir una persona aunque el modo encadene (tambien
+    // los topes: ronda de mas, finish con algo distinto de lo revisado).
     if (exigePersona)
         return 'preguntar';
+    // En automatico el trabajo pendiente lo hace la skill y sigue (TASK-059).
+    if (faltaTrabajo)
+        return 'continuar';
     // Decision de Carlos (2026-10-04): hotfix y release mergean a main con
     // tag; en ningun modo se cierran sin preguntar.
     if (fase === 'finish' && (task.tipo === 'hotfix' || task.tipo === 'release'))
         return 'preguntar';
-    // TASK-058 (IMP-2 de su revision): hasta que el modo automatico tenga sus
-    // guardas (aprobacion automatica registrada, informe en commit propio, tope
-    // de rondas: TASK-059), se comporta como el semiautomatico. Encadenar sin
-    // ellas mergearia sin persona.
+    // Automatico (TASK-059): todas las preguntas se hicieron en plan; sus guardas
+    // (modo congelado, lo revisado = lo que se cierra, tope de rondas, hotfix/release)
+    // llegan aqui como exigePersona.
+    if (modo === 'automatico')
+        return 'continuar';
     return abreFase ? 'preguntar' : 'continuar';
 }
 export function siguienteFase(task, ctx, modo) {
@@ -71,6 +79,9 @@ export function siguienteFase(task, ctx, modo) {
         case 'en-revision':
             switch (ctx.veredicto) {
                 case 'cambios-solicitados':
+                    if (ctx.rondaRevision >= TOPE_RONDAS) {
+                        return paso('review', false, `la ronda ${String(ctx.rondaRevision)} tambien pidio cambios: tope de rondas alcanzado; corregir y abrir otra ronda lo decide una persona`, `taskctl review ${task.id}`, true, true);
+                    }
                     return paso('review', false, 'la ultima ronda pidio cambios: corregir, commitear y pedir otra ronda', `taskctl review ${task.id}`, false, true);
                 case 'aprobada':
                     if (task.revision_codex) {
@@ -91,6 +102,9 @@ export function siguienteFase(task, ctx, modo) {
                                     ? 'el veredicto de la segunda opinion no se reconoce: una persona lo lee y reescribe su linea "- Veredicto:"'
                                     : 'el informe de la segunda opinion no tiene veredicto: una persona lo lee y escribe su linea "- Veredicto:"', null, true);
                         }
+                    }
+                    if (!ctx.informeEnCommitPropio) {
+                        return paso('finish', true, 'la revision esta aprobada, pero lo que se cerraria no coincide con lo revisado (codigo posterior al Commit revisado, informe sin rellenar o sin commitear, o peticion sin Commit revisado): el cierre lo decide una persona', `taskctl finish ${task.id}`, true);
                     }
                     return paso('finish', true, 'la revision esta aprobada');
                 default:
