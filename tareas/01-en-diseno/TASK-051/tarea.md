@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-051-f6-t2-partir-los-ficheros-de-test-mas-la
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -36,3 +36,4 @@ el tiempo de la suite completa antes y despues, sin carga en la maquina.
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-05 | plan | manual | persona |
+| 2026-10-05 | approve | manual | persona |
