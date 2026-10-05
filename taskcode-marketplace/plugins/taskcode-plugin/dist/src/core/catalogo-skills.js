@@ -10,7 +10,7 @@
  * de frontmatter.ts) y un solo punto de resolucion
  * (`cargarCatalogoSkills`).
  *
- * LA UNICA DIFERENCIA DE FONDO CON heuristica.ts: alli las 22 claves
+ * LA UNICA DIFERENCIA DE FONDO CON heuristica.ts: alli las 19 claves
  * cubren TODA tarea por construccion, asi que cualquier ausencia es un
  * fallo. Aqui el catalogo es EXPLICITAMENTE NO EXHAUSTIVO — cero
  * candidatos tras cruzar `etiquetas` con la tarea es un resultado

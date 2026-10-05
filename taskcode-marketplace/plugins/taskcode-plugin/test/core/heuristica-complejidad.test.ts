@@ -164,10 +164,8 @@ const ESPERADO: Record<string, unknown> = {
   // Excepcion por tipo, no por nivel: un hotfix se planifica con un
   // solo agente y sin brainstorm multi-agente.
   agentes_brainstorm_hotfix: 1,
-  // Tolerancia y asimetria.
-  tolerancia_niveles: 1,
-  tolerancia_extra_si_heuristica_menor: 0,
-  modelo_consulta_discrepancia: 'haiku',
+  // TASK-052: tolerancia_niveles, tolerancia_extra_si_heuristica_menor y
+  // modelo_consulta_discrepancia salieron (nada las leia).
 };
 
 test('el fichero se parsea entero con el parser del plugin y dice exactamente lo esperado', () => {
@@ -285,10 +283,6 @@ test('todos los pesos y umbrales son enteros, no textos entrecomillados', () => 
   const { data } = parsear();
   for (const clave of Object.keys(ESPERADO)) {
     if (clave === 'palabras_alto_riesgo') continue;
-    if (clave === 'modelo_consulta_discrepancia') {
-      assert.equal(typeof data[clave], 'string', `"${clave}" deberia ser texto`);
-      continue;
-    }
     const valor = data[clave];
     assert.equal(typeof valor, 'number', `"${clave}" deberia ser un numero, y es ${typeof valor}`);
     assert.equal(Number.isInteger(valor), true, `"${clave}" deberia ser entero`);
@@ -448,28 +442,15 @@ test('la regla de conteo de palabras de riesgo esta escrita y cuadra con la list
   assert.equal(Number(total), lista.length * peso, 'la cota escrita no es entradas x peso');
 });
 
-test('la tolerancia acepta la coincidencia y un nivel de distancia, y la asimetria queda declarada', () => {
+// TASK-052: revierte la decision de TASK-032 (seccion 5 del fichero): la
+// tolerancia y el modelo de consulta se validaban sin que nada los leyera. El
+// deepEqual del primer test ya prohibe que vuelvan; este lo dice por su nombre.
+test('el fichero ya no declara la consulta a un modelo: ni tolerancia_* ni modelo_consulta_discrepancia', () => {
   const { data } = parsear();
-  assert.equal(data['tolerancia_niveles'], 1, 'se acepta hasta un nivel de distancia sin gastar modelo');
-  // La direccion que importa (heuristica por encima de lo declarado)
-  // ya la fija el nombre de esta clave: no hay una clave aparte para
-  // declararla porque solo podria valer una cosa.
-  assert.equal(data['tolerancia_extra_si_heuristica_menor'], 0);
-  // Se asevera el PREFIJO, no un nombre concreto. `direccion_de_riesgo`
-  // no ha existido nunca y el deepEqual del primer test ya prohibe
-  // cualquier clave no listada: aquel `undefined` no podia fallar sin
-  // que fallasen antes otros dos tests (ronda 3, menor 8). Lo que se
-  // quiere decir es que una direccion con un solo valor posible no se
-  // declara en ninguna clave, se escribe en el comentario de la de
-  // arriba; y eso si es aseverable.
-  const clavesDeDireccion = Object.keys(data).filter((c) => c.startsWith('direccion_'));
-  assert.deepEqual(
-    clavesDeDireccion,
-    [],
-    `"${clavesDeDireccion.join(', ')}": una direccion con un solo valor posible va en comentario, no en una clave`
+  const retiradas = Object.keys(data).filter(
+    (c) => c.startsWith('tolerancia_') || c.startsWith('modelo_') || c.startsWith('direccion_')
   );
-  assert.equal(typeof data['modelo_consulta_discrepancia'], 'string');
-  assert.notEqual((data['modelo_consulta_discrepancia'] as string).trim(), '');
+  assert.deepEqual(retiradas, [], `claves sin consumidor: ${retiradas.join(', ')}`);
 });
 
 test('las palabras de alto riesgo son genericas, sin vocabulario de ningun proyecto', () => {

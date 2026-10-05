@@ -94,7 +94,7 @@
 # equipo a mano".
 #
 # NINGUN SKILL DE ESTE FICHERO ES OBLIGATORIO. A diferencia de
-# heuristica-complejidad.yml (22 claves obligatorias que cubren TODA tarea
+# heuristica-complejidad.yml (19 claves obligatorias que cubren TODA tarea
 # por construccion), este catalogo es explicitamente no exhaustivo: cero
 # candidatos tras cruzar `etiquetas` es un resultado VALIDO (selección
 # vacia + aviso), no un fallo de configuracion. Lo que SI es fail-closed es

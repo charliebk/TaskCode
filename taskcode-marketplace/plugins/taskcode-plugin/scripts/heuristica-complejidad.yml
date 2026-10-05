@@ -164,31 +164,3 @@ agentes_brainstorm_critica: 4
 # de cuatro puntos de vista. La revision por pares posterior no se
 # toca: un hotfix se revisa igual que cualquier otra tarea.
 agentes_brainstorm_hotfix: 1
-
-# ---------------------------------------------------------------------
-# 5. Tolerancia frente a la complejidad declarada por la persona.
-#
-# El nivel heuristico NO manda: se compara con el declarado. Si
-# coinciden, o si distan como mucho tolerancia_niveles escalones, se
-# acepta el declarado sin consultar a ningun modelo. Solo si discrepan
-# mas que eso se consulta a uno barato, y se le pasan unicamente los
-# dos niveles y que senales dispararon la puntuacion: el calculo ya
-# esta hecho, reenviarle el objetivo entero seria pagarlo dos veces.
-# ---------------------------------------------------------------------
-tolerancia_niveles: 1
-
-# La discrepancia NO es simetrica. Que la heuristica sugiera MAS
-# complejidad que la declarada es el caso que importa capturar:
-# infraestimar deja la tarea con menos revision y un modelo mas flojo
-# de los que necesita. Que sugiera MENOS es barato de dejar pasar, asi
-# que en esa direccion se puede ser mas permisivo para reducir las
-# consultas. Esa holgura extra se suma a tolerancia_niveles solo cuando
-# la heuristica queda POR DEBAJO de lo declarado, y arranca en 0: hoy el
-# comportamiento es simetrico y subirla es una decision consciente. La
-# direccion no se declara en una clave aparte porque solo podria valer
-# una cosa: ya la fija el nombre de la clave que viene aqui debajo.
-tolerancia_extra_si_heuristica_menor: 0
-
-# Modelo al que se consulta la discrepancia. Barato a proposito: la
-# pregunta es un desempate entre dos etiquetas, no un analisis.
-modelo_consulta_discrepancia: haiku

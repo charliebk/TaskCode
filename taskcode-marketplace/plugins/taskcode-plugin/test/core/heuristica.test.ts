@@ -249,7 +249,6 @@ test('el fichero real da valores concretos y ya tipados', () => {
   // como texto es lo que este test anade sobre los del propio YML.
   assert.equal(H.agentes_brainstorm_trivial, 0);
   assert.equal(H.agentes_brainstorm_critica, 4);
-  assert.equal(H.modelo_consulta_discrepancia, 'haiku');
   assert.ok(Array.isArray(H.palabras_alto_riesgo));
   assert.ok(H.palabras_alto_riesgo.includes('migracion'));
   assert.equal(
@@ -673,10 +672,34 @@ test('una clave obligatoria ausente aborta nombrandola', () => {
     () => parsearHeuristica(sinLineaDe('palabras_alto_riesgo'), RUTA_YML),
     errorAccionable(/falta la clave obligatoria "palabras_alto_riesgo"/)
   );
+  // TASK-052: la clave ausente suele ser un YML de otra version del plugin.
   assert.throws(
-    () => parsearHeuristica(sinLineaDe('modelo_consulta_discrepancia'), RUTA_YML),
-    errorAccionable(/falta la clave obligatoria "modelo_consulta_discrepancia"/)
+    () => parsearHeuristica(sinLineaDe('peso_dependencia'), RUTA_YML),
+    errorAccionable(/reinstala el plugin/)
   );
+});
+
+// TASK-052: las tres claves de la consulta a un modelo no las leia nadie y
+// salieron del fichero y del codigo en el mismo commit. Un YML de una version
+// anterior que aun las traiga aborta diciendo que se reinstale el plugin.
+// Revierte la decision de TASK-032 de validarlas sin consumidor.
+test('las claves retiradas (tolerancia_*, modelo_consulta_discrepancia) abortan pidiendo reinstalar', () => {
+  for (const linea of [
+    'tolerancia_niveles: 1',
+    'tolerancia_extra_si_heuristica_menor: 0',
+    'modelo_consulta_discrepancia: haiku',
+  ]) {
+    const clave = linea.slice(0, linea.indexOf(':'));
+    assert.throws(
+      () => parsearHeuristica(conLineaExtra(linea), RUTA_YML),
+      errorAccionable(new RegExp(`clave desconocida "${clave}"[\\s\\S]*reinstala el plugin`))
+    );
+  }
+  for (const clave of ['tolerancia_niveles', 'tolerancia_extra_si_heuristica_menor', 'modelo_consulta_discrepancia']) {
+    assert.equal(CLAVES_HEURISTICA.includes(clave), false, `"${clave}" sigue entre las claves validas`);
+    assert.equal(clave in H, false, `"${clave}" sigue en el objeto Heuristica`);
+  }
+  assert.equal(CLAVES_HEURISTICA.length, 19);
 });
 
 test('un valor no numerico donde se espera un numero aborta', () => {
