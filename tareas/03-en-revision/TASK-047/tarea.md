@@ -31,9 +31,45 @@ el agente que se lanza (`agente_revisor`) de la skill que carga, y usar
 de `finish.ts`: debe reutilizarlos.
 
 ## Criterios de aceptacion
-- [ ] Un flag desconocido aborta con la lista de flags validos y una sugerencia
-- [ ] La salida de `review` nombra agente y skill por separado y usa `modelo_sugerido`
-- [ ] `codex-review.ts` reutiliza los helpers de `finish.ts` en lugar de duplicarlos
+- [x] Un flag desconocido aborta con la lista de flags validos y una sugerencia
+- [x] La salida de `review` nombra agente y skill por separado y usa `modelo_sugerido`
+- [x] `codex-review.ts` reutiliza los helpers de `finish.ts` en lugar de duplicarlos
+
+## Resultado
+
+**Implementado.**
+- **Flags desconocidos** (D4): `rechazarFlagsDesconocidos` en `src/cli/args.ts`.
+  Cada comando de `src/commands/` (new, import, board, start, plan, approve,
+  review, finish, codex-review, veredicto, pausa, siguiente, cadena) declara su
+  `FLAGS_<CMD>` y la llama como primera linea de su `runXCommand`, con su
+  propia clase de error. Aborta antes de cualquier efecto con la lista de
+  validos y el mas parecido (`--complejida` → `--complejidad`). La
+  sugerencia es ahora una sola, `src/core/sugerencia.ts`, que sustituye las
+  tres copias privadas de config, heuristica y catalogo.
+- **Salida de review** (D6): la peticion dice `Agente a lanzar: <agente_revisor>
+  (modelo sugerido: <modelo_sugerido>)` y `Skill revisora a cargar: <skill>`,
+  y el CLI `Lanza el agente "X" (modelo Y) cargando la skill "Z"...`. El modelo
+  del revisor es el de la tarea por la seccion 16.6 de la metodologia.
+- **Helpers compartidos** (D10): `INFORME_CODEX_RE` y `ultimaRondaAprobada` en
+  `src/fs/rondas.ts`; finish y codex-review usan la misma puerta.
+  **Desviacion de la letra del criterio 3**, aprobada en el plan: el helper se
+  saco a `fs/rondas.ts` en vez de exportarlo desde `finish.ts`, para que un
+  comando no importe internos de otro. Una sola implementacion, que es el fin.
+
+**Pruebas.** `test/cli/flags-desconocidos.test.ts` (21: unitarios y los 13
+comandos contra repos temporales, sin commits ni ficheros tras abortar),
+`test/fs/rondas-aprobada.test.ts` (5), y los asserts de review y main que
+citaban el texto viejo. Suite completa: 1081 tests, solo los 3 rojos
+conocidos de Windows.
+
+**Revision ronda 1: aprobada** (0 criticos, 0 importantes, 2 menores; suite
+en clon limpio con los mismos 3 rojos; mutaciones sobre la guarda de finish,
+codex-review y la puerta de rondas ponen rojos sus tests). Por A3, sin ronda 2.
+- MEN-1, corregido en el cierre: `--push=1` o `siguiente --json=1` pasaban la
+  guarda y se ignoraban. Los flags booleanos (`--push`, `--json`, `--forzar`,
+  `--escribir`) con `=valor` abortan ahora con «no lleva valor». Test.
+- MEN-2, sin cambio: un `--` suelto se rechaza como flag desconocido. Ningun
+  comando lo usa; es coherente con la guarda.
 
 ## Transiciones
 

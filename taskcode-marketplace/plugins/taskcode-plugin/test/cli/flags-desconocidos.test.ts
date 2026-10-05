@@ -45,6 +45,17 @@ test('rechazarFlagsDesconocidos: --x=1 mira solo el nombre', () => {
   assert.match(m, /flag desconocido "--inventado"/);
 });
 
+// MENOR-1 de la revision: `--push=1` pasaba la guarda y no empujaba.
+test('rechazarFlagsDesconocidos: un flag booleano con =valor aborta', () => {
+  const m = mensajeDe(['--push=1']);
+  assert.ok(m !== null);
+  assert.match(m, /"--push" no lleva valor/);
+  assert.equal(mensajeDe(['--push']), null);
+  const j = mensajeDe(['--json=1'], ['--json']);
+  assert.ok(j !== null);
+  assert.match(j, /"--json" no lleva valor/);
+});
+
 test('rechazarFlagsDesconocidos: -1 no es un flag', () => {
   assert.equal(mensajeDe(['--titulo', 'X', '-1']), null);
 });

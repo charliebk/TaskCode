@@ -60,6 +60,9 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
  * `parseArgs` haria con el; para pasar un valor que empieza por `--` esta
  * `--flag=valor`. `validos` va con su prefijo (`--titulo`, `-p`).
  */
+/** Flags booleanos del CLI: los comandos solo reconocen el token suelto. */
+const FLAGS_SIN_VALOR: readonly string[] = ['--push', '--json', '--forzar', '--escribir'];
+
 export function rechazarFlagsDesconocidos(
   argv: readonly string[],
   validos: readonly string[],
@@ -76,7 +79,16 @@ export function rechazarFlagsDesconocidos(
     } else {
       continue;
     }
-    if (validos.includes(flag)) continue;
+    if (validos.includes(flag)) {
+      // MENOR-1 de la revision de TASK-047: `--push=1` o `--json=1` pasaban
+      // la guarda y el comando, que mira el token suelto, los ignoraba.
+      if (flag !== arg && FLAGS_SIN_VALOR.includes(flag)) {
+        throw fail(
+          `[ERROR] taskctl ${comando}: "${flag}" no lleva valor: usalo suelto (${flag}).`
+        );
+      }
+      continue;
+    }
     const sugerida = flag.startsWith('--') && flag.length > 2
       ? masParecida(flag.slice(2), validos.filter((v) => v.startsWith('--')).map((v) => v.slice(2)))
       : null;
