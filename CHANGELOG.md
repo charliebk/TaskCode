@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-054 (fix) — Rutas no ASCII en el diff de revision fragmentado por dominio (2026-10-05)
 - TASK-047 (fix) — F5-T3 Flags desconocidos y mensajes de review (2026-10-05)
 - TASK-059 (feature) — Flujo E: modo automatico (2026-10-05)
 - TASK-058 (feature) — Flujo D: modo semiautomatico (2026-10-04)

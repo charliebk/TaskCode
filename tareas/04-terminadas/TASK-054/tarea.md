@@ -6,7 +6,7 @@ sprint: 6
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-054-rutas-no-ascii-en-el-diff-de-revision-fr
 asignado_a: charlie.bk@gmail.com
@@ -72,3 +72,4 @@ config global, que `-c` sobreescribe; mutaciones de `SIN_COMILLAS`,
 | 2026-10-05 | approve | manual | persona |
 | 2026-10-05 | start | manual | persona |
 | 2026-10-05 | review | manual | persona |
+| 2026-10-05 | finish | manual | persona |
