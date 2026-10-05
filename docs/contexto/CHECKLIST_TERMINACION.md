@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 60 / 69 items terminados (87%)** · última actualización: 2026-10-04
+**Progreso global: 61 / 69 items terminados (88%)** · última actualización: 2026-10-05
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -30,9 +30,9 @@ tomada y documentada, no aplazada.
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
 | E — Cierre | 6 | **5** | ~9h |
-| F — Auditoría 2026-10-03 | 22 | **14** | — |
+| F — Auditoría 2026-10-03 | 22 | **15** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
-| **Total pendiente** | **9** | — | — |
+| **Total pendiente** | **8** | — | — |
 
 ---
 
@@ -717,7 +717,7 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 
 ---
 
-## F — Auditoría 2026-10-03 (14/22)
+## F — Auditoría 2026-10-03 (15/22)
 
 - [x] TASK-033 — Comando de sincronización tras cada transición (v0.1.1)
 - [x] TASK-034 — F1-T1 Excluir lo generado del diff de revisión
@@ -733,7 +733,7 @@ pendiente como mejora futura. Si hay que parar antes de tiempo, es aquí.
 - [x] TASK-042 — F4-T4 Complejidad por heurística y un rol sin unificador
 - [x] TASK-045 — F5-T1 `rama_base` de punta a punta
 - [x] TASK-046 — F5-T2 Secciones con subtítulos y criterios multilínea
-- [ ] TASK-047 — F5-T3 Flags desconocidos y mensajes de review
+- [x] TASK-047 — F5-T3 Flags desconocidos y mensajes de review
 - [ ] TASK-050 — F6-T1 Suite rápida y repo plantilla en los tests
 - [ ] TASK-051 — F6-T2 Partir los ficheros de test más largos
 - [ ] TASK-048 — F6-T3 Skill de flujo más ligera
