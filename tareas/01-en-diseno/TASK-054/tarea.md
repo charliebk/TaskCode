@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-054-rutas-no-ascii-en-el-diff-de-revision-fr
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,3 +38,4 @@ el diff, y que el fichero aparezca en la peticion que le corresponde.
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-05 | plan | manual | persona |
+| 2026-10-05 | approve | manual | persona |
