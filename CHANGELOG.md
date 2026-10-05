@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-048 (feature) — F6-T3 Skill de flujo mas ligera (2026-10-05)
 - TASK-051 (feature) — F6-T2 Partir los ficheros de test mas largos (2026-10-05)
 - TASK-050 (feature) — F6-T1 Suite rapida y repo plantilla en los tests (2026-10-05)
 ## 0.4.0 — 2026-10-05
