@@ -39,7 +39,8 @@ procesan).
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test     # compila y corre 630 tests con cobertura
+npm test             # compila y corre la suite completa (~1090 tests, ~8 min) con cobertura
+npm run test:rapido  # core y cli sin procesos (~360 tests, ~10 s): para iterar, no para cerrar
 ```
 
 El CLI: `taskctl new | import | board | plan | approve | start | review |
