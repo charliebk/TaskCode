@@ -73,6 +73,10 @@
  * heuristica la suba a `simple` y el max le ponga un rol. La unica
  * tarea declarada `trivial` del repo (TASK-005) sale con 1.
  *
+ * TASK-052 lo acentua a sabiendas: con `nivel_trivial_hasta: 0`
+ * (calibrado con las rondas de revision de 43 tareas cerradas, ver el
+ * YML) basta UNA senal para salir de `trivial`.
+ *
  * No se corrige por cuenta propia porque el max lo aprobo Carlos con
  * el caso delante, y respetar el suelo del declarado seria reabrir esa
  * decision. Queda escrito aqui y fijado en un test para que sea una

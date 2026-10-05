@@ -133,7 +133,8 @@ const ESPERADO: Record<string, unknown> = {
   // 6-7 alta, 8+ critica. El cuarto nivel se llama `alta` y no
   // `compleja` porque `alta` es lo que acepta el enum del plugin;
   // divergencia con la 16.1 documentada en el propio fichero.
-  nivel_trivial_hasta: 1,
+  // TASK-052: 1 -> 0, calibrado con rondas reales (ver el comentario del YML).
+  nivel_trivial_hasta: 0,
   nivel_simple_hasta: 3,
   nivel_media_hasta: 5,
   nivel_alta_hasta: 7,
@@ -306,8 +307,9 @@ test('el mapeo a niveles es una escala coherente y sin huecos', () => {
   // Sin hueco entre el ultimo nivel cerrado y el abierto: una
   // puntuacion de alta+1 tiene que caer en critica y en nada mas.
   assert.equal(critica, alta + 1, 'entre alta y critica no puede quedar ninguna puntuacion huerfana');
-  // La escala de la 16.1, literal.
-  assert.deepEqual([trivial, simple, media, alta, critica], [1, 3, 5, 7, 8]);
+  // La escala de la 16.1 salvo el primer corte, que TASK-052 bajo de 1 a 0
+  // con la muestra de rondas reales (divergencia documentada en el YML).
+  assert.deepEqual([trivial, simple, media, alta, critica], [0, 3, 5, 7, 8]);
 });
 
 test('la tabla de agentes de brainstorm es monotona y respeta los extremos de la decision #2', () => {

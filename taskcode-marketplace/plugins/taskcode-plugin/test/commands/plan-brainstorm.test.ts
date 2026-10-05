@@ -289,9 +289,9 @@ test('plan: una tarea "trivial" con dependencias sube a 1 rol por el max (efecto
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(
       tareasRoot,
-      // Dos dependencias = 2 puntos, que es justo lo que saca a la
-      // tarea de `trivial` (nivel_trivial_hasta: 1). Es la puntuacion
-      // real de TASK-005, la unica tarea declarada trivial del repo.
+      // Dos dependencias = 2 puntos, que la sacan de `trivial` (desde
+      // TASK-052 basta 1: nivel_trivial_hasta: 0). Es la puntuacion
+      // real de TASK-005, la primera tarea declarada trivial del repo.
       sampleTask({ complejidad: 'trivial', dependencias: ['TASK-798', 'TASK-799'] }),
       BODY
     );
