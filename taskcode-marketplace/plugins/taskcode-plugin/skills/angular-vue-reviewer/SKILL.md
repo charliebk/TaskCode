@@ -1,6 +1,6 @@
 ---
 name: angular-vue-reviewer
-description: Revisor por pares de Angular y Vue. Se usa si el diff toca .vue, .component.ts, .directive.ts, composables, o plantillas, rutas o app.config bajo src/app (Angular 20+). Revisa reactividad y estado, fugas de suscripciones, limites entre componentes, accesibilidad, renderizado, tipado y tests.
+description: Revisor por pares de Angular y Vue. Se usa si el diff toca .vue, .component.ts o .directive.ts (Angular 19 o anterior), composables, o plantillas, rutas o app.config bajo src/app (Angular 20+). Revisa reactividad, fugas, limites entre componentes, accesibilidad, renderizado, tipado y tests.
 ---
 
 # Revision por pares de Angular y Vue

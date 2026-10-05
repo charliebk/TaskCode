@@ -943,6 +943,13 @@ const SOLO_EN_REVISION = [
   '### IMPORTANTE-1 — <titulo corto>',
   'No aprueba por simpatia',
   'Un revisor que escriba el veredicto en su propio vocabulario',
+  // Una frase por seccion de revision.md, para que borrar una entera
+  // (la puerta, la clasificacion, las rondas) no pase desapercibido.
+  'Cero tokens gastados',
+  'CRITICO: perdida de datos, corrupcion de estado',
+  'Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la',
+  // La fila que corrige la afirmacion vieja de las revisoras.
+  '| `- Veredicto: **aprobada**` | aprueba',
 ];
 
 /** Fila de una tabla de veredictos, con o sin el guion de la linea. */

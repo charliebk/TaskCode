@@ -562,6 +562,26 @@ test('19. toda skill del plugin tiene una description de 300 caracteres o menos'
   assert.deepEqual(largas, [], `descriptions de mas de ${MAX_DESCRIPTION_CORTA} caracteres: ${largas.join(', ')}`);
 });
 
+// Acortar una description es lo que pide el 19; dejarla sin los terminos que
+// la disparan es una regresion que el 19 no ve. Estos son los minimos.
+const DISPARADORES: Record<string, string[]> = {
+  'task-workflow': ['taskctl', 'tareas/', 'TASK-NNN', 'revision por pares', 'Git-Flow', 'planificar', 'cerrar'],
+  'code-quality-reviewer': ['ningun dominio', 'mas de tres', 'casos borde', 'seguridad'],
+  'java-spring-reviewer': ['.java', 'pom.xml', 'build.gradle', 'application*.yml', 'Spring'],
+  'angular-vue-reviewer': ['.vue', '.component.ts', '.directive.ts', 'composables', 'src/app', 'Angular 19', 'Angular 20'],
+  'csharp-autocad-ifc-reviewer': ['.cs', '.csproj', '.ifc', 'AutoCAD', 'ObjectARX', 'IfcOpenShell', 'BIM'],
+};
+
+test('19b. las descriptions acortadas conservan sus disparadores', async () => {
+  const faltan: string[] = [];
+  for (const [dir, terminos] of Object.entries(DISPARADORES)) {
+    const { data } = parseFrontmatter(await readFile(path.join(SKILLS_DIR, dir, SKILL_FILE_NAME), 'utf8'));
+    const d = String(data.description);
+    for (const t of terminos) if (!d.includes(t)) faltan.push(`${dir}: "${t}"`);
+  }
+  assert.deepEqual(faltan, [], `descriptions sin su disparador: ${faltan.join(', ')}`);
+});
+
 test('20. todo enlace relativo a un .md desde un SKILL.md o desde las referencias de task-workflow existe', async () => {
   const origenes = [
     ...(await dirsDeSkill()).map((d) => path.join(SKILLS_DIR, d, SKILL_FILE_NAME)),

@@ -159,9 +159,10 @@ y obliga a un commit de normalizacion que no arregla nada.
 - **No implementa la correccion.** Escribe el caso que falla y donde, y
   propone el arreglo en el informe; lo aplica quien implemento la tarea.
 - **No reescribe el codigo ajeno** ni "aprovecha para" refactorizar,
-  renombrar o reordenar, ni commitea en la rama revisada. Los unicos ficheros
-  que toca son los suyos temporales y el informe. Un revisor que edita deja de
-  ser independiente, y la siguiente ronda ya no tiene a nadie que la revise.
+  renombrar o reordenar, ni commitea codigo en la rama revisada. Los unicos
+  ficheros que toca son los suyos temporales y el informe; el unico commit que
+  le corresponde es el de su veredicto, que hace `taskctl veredicto`. Un
+  revisor que edita deja de ser independiente, y la siguiente ronda ya no tiene a nadie que la revise.
 - **No redisena la tarea.** Si la implementacion contradice al diseno, se
   documenta la divergencia; cambiarlo es una decision de la persona
   responsable.
@@ -175,7 +176,7 @@ y obliga a un commit de normalizacion que no arregla nada.
   fallo que produce, es MENOR.
 - **No sustituye a la puerta determinista** (build, linter, tests). Si esa
   puerta esta en rojo, no hay nada que revisar todavia.
-- **No mueve la tarea de estado, no mergea y no commitea.** Eso es trabajo de
+- **No mueve la tarea de estado ni mergea.** Eso es trabajo de
   `taskctl finish`, y solo ocurre si el veredicto aprueba.
 - **No revisa el repositorio entero**: revisa el diff que le llega. Si de
   verdad necesita mas contexto, lo pide para un hallazgo concreto.
