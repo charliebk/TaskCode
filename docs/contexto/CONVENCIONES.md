@@ -33,7 +33,9 @@ casi todas salieron de algo que salió mal una vez.
 1. La tarea existe como carpeta en `tareas/00-planificadas/TASK-NNN/`.
 2. Rama de trabajo creada con Git-Flow.
 3. Implementación + tests reales.
-4. `npm test` en verde **antes** de commitear.
+4. `npm test` en verde **antes** de commitear. `npm run test:rapido` sirve
+   para iterar, pero no vale para cerrar: deja fuera `agents/`, `skills/`,
+   `empaquetado/` y todo lo que lanza Git.
 5. Smoke test manual de punta a punta cuando la tarea toca el CLI o Git.
 6. Commit de implementación.
 7. **Revisión por pares con un agente independiente** (ver abajo).

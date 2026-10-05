@@ -29,7 +29,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  comprobarSkillInstalado,
   interpretarResultadoPluginList,
   type EstadoInstalacionSkill,
 } from '../../src/core/plugin-instalado.js';
@@ -172,8 +171,5 @@ test('entradas sin "id" (o con "id" no string) se ignoran sin lanzar cuando OTRA
   assert.equal(estado, 'instalado');
 });
 
-test('comprobarSkillInstalado nunca lanza y siempre devuelve un estado valido', () => {
-  const ESTADOS_VALIDOS: readonly EstadoInstalacionSkill[] = ['instalado', 'no-instalado', 'no-verificable'];
-  const estado = comprobarSkillInstalado('plugin-inventado@marketplace-inventado-para-el-test');
-  assert.ok(ESTADOS_VALIDOS.includes(estado), `estado inesperado: ${String(estado)}`);
-});
+// `comprobarSkillInstalado`, que lanza el binario real, se prueba en
+// test/integracion/plugin-instalado.test.ts.

@@ -86,7 +86,8 @@ El hito de usabilidad diaria es el final de la **Fase B** (`review` + `finish`
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test        # compila y corre la suite con cobertura
+npm test             # compila y corre la suite completa con cobertura
+npm run test:rapido  # solo core y cli, sin procesos (segundos): para iterar
 ```
 
 Cero dependencias de runtime a propósito: el parser de YAML-frontmatter y el

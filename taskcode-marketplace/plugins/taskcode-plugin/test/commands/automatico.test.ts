@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { plantillaRepo, type ConRepo } from '../helpers/repo-plantilla.js';
 import { readTareaFile } from '../../src/fs/task-store.js';
 import { leerTransiciones } from '../../src/core/transiciones.js';
 
@@ -50,24 +51,29 @@ function resumen(s: Record<string, unknown>): [unknown, unknown] {
   return [s.fase, s.accion];
 }
 
-async function withRepo(
+// Repo base montado una vez por fichero (y por config) y copiado en cada
+// test (test/helpers/repo-plantilla.ts). La receta es la de siempre.
+const plantillasPorConfig = new Map<string, ConRepo>();
+
+function withRepo(
   config: string,
   fn: (repoRoot: string, tareasRoot: string) => Promise<void>
 ): Promise<void> {
-  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-auto-'));
-  try {
-    git(['init', '-q', '-b', 'main'], repoRoot);
-    git(['config', 'user.email', 'test@example.com'], repoRoot);
-    git(['config', 'user.name', 'Test'], repoRoot);
-    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
-    await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), config, 'utf8');
-    await writeFile(path.join(repoRoot, 'app.txt'), 'inicial\n', 'utf8');
-    commitAll(repoRoot, 'inicial');
-    git(['checkout', '-q', '-b', 'develop'], repoRoot);
-    await fn(repoRoot, path.join(repoRoot, 'tareas'));
-  } finally {
-    await rm(repoRoot, { recursive: true, force: true });
+  let conRepo = plantillasPorConfig.get(config);
+  if (conRepo === undefined) {
+    conRepo = plantillaRepo('taskctl-auto-', async (repoRoot) => {
+      git(['init', '-q', '-b', 'main'], repoRoot);
+      git(['config', 'user.email', 'test@example.com'], repoRoot);
+      git(['config', 'user.name', 'Test'], repoRoot);
+      await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+      await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), config, 'utf8');
+      await writeFile(path.join(repoRoot, 'app.txt'), 'inicial\n', 'utf8');
+      commitAll(repoRoot, 'inicial');
+      git(['checkout', '-q', '-b', 'develop'], repoRoot);
+    });
+    plantillasPorConfig.set(config, conRepo);
   }
+  return conRepo(fn);
 }
 
 /** `taskctl new` por CLI; devuelve el ID creado (TASK-001 en un repo vacio). */

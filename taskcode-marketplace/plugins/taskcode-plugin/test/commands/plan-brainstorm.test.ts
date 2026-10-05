@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { plantillaRepo, type ConRepo } from '../helpers/repo-plantilla.js';
 import { writeTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import {
   runPlanCommand,
@@ -88,22 +89,16 @@ function commitAll(repoRoot: string, message: string): void {
   git(['commit', '-q', '-m', message], repoRoot);
 }
 
-async function withTempRepo(
-  fn: (repoRoot: string, tareasRoot: string) => Promise<void>
-): Promise<void> {
-  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-brainstorm-'));
-  try {
+// Repo base montado una vez por fichero y copiado en cada test
+// (test/helpers/repo-plantilla.ts). La receta es la de siempre.
+const withTempRepo: ConRepo = plantillaRepo('taskctl-brainstorm-', async (repoRoot) => {
     git(['init', '-q', '-b', 'main'], repoRoot);
     git(['config', 'user.email', 'test@example.com'], repoRoot);
     git(['config', 'user.name', 'Test'], repoRoot);
     await writeFile(path.join(repoRoot, 'README.md'), '# repo de prueba\n', 'utf8');
     commitAll(repoRoot, 'inicial');
     git(['checkout', '-q', '-b', 'develop'], repoRoot);
-    await fn(repoRoot, path.join(repoRoot, 'tareas'));
-  } finally {
-    await rm(repoRoot, { recursive: true, force: true });
-  }
-}
+});
 
 /**
  * Lleva a `main` lo que hay en `develop`. Hace falta solo para las
