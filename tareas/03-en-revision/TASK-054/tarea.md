@@ -30,8 +30,39 @@ TASK-034). El objetivo es que la ruta sea la misma en la clasificacion y en
 el diff, y que el fichero aparezca en la peticion que le corresponde.
 
 ## Criterios de aceptacion
-- [ ] `diffNameOnly` y `diffParaRevision` usan `-z` (o `core.quotePath=false`) y una ruta con caracteres no ASCII aparece igual en la clasificacion y en el diff
-- [ ] Test con un fichero `src/acción.ts` en una revision fragmentada: su diff aparece en la peticion de su dominio
+- [x] `diffNameOnly` y `diffParaRevision` usan `-z` (o `core.quotePath=false`) y una ruta con caracteres no ASCII aparece igual en la clasificacion y en el diff
+- [x] Test con un fichero `src/acción.ts` en una revision fragmentada: su diff aparece en la peticion de su dominio
+
+## Resultado
+
+**Implementado.** En `src/fs/git.ts`, `diffParaRevision` y `diffNameOnly` piden
+los nombres con `git -c core.quotePath=false diff --name-only -z` y los parten
+por NUL (`partirNul`): una ruta con tilde sale igual en la clasificacion, en
+el diff y en el `--stat` de excluidos, que tambien van con
+`core.quotePath=false`. Ademas, `diffRangeForPaths` pasa cada ruta como
+`:(literal)<ruta>`: `pages/[id].vue` ya no se interpreta como glob (mismo
+sintoma, el fichero no llegaba a la peticion de su dominio). `diffNameOnly`
+no la llama hoy nadie en `src/`; se corrige igual y se anota en su comentario.
+
+**Pruebas.** En `test/commands/review.test.ts`: una revision fragmentada real
+con `src/main/java/com/acme/Acción.java` y un componente Angular (el diff con
+tilde llega a la peticion de Java, sin escapes, y no a la de Angular), y
+`diffParaRevision`/`diffRangeForPaths` con `src/acción.ts`, `docs/guía.md`
+excluido y `pages/[id].vue` junto a `pages/i.vue`. Mutacion: con el
+`git.ts` anterior los dos tests salen rojos. Suite completa: 1083 tests, solo
+los 3 rojos conocidos de Windows.
+
+**Revision ronda 1: aprobada** (0 criticos, 0 importantes, 2 menores; suite
+en clon limpio con los mismos 3 rojos; probado ademas con CJK, espacios,
+comilla simple, `git mv` con tildes, borrados y `core.quotepath=true` en la
+config global, que `-c` sobreescribe; mutaciones de `SIN_COMILLAS`,
+`:(literal)` y `-z` ponen rojos sus tests). Por A3, sin ronda 2. Sin cambio:
+- MEN-1: `lsTreeNames`, dos lecturas de `git-commit.ts` y el `porcelain` de
+  `sincronizacion.ts` siguen partiendo por salto de linea sin `-z`. Solo ven
+  rutas bajo `tareas/`, ASCII por construccion (los nombres de carpeta los
+  genera taskctl); fuera del alcance.
+- MEN-2: un renombrado se revisa como alta completa bajo la ruta final. Es
+  el comportamiento previo, ya documentado en `core/revisores.ts`.
 
 ## Transiciones
 
