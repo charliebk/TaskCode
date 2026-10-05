@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-051-f6-t2-partir-los-ficheros-de-test-mas-la
 asignado_a: charlie.bk@gmail.com
@@ -38,3 +38,4 @@ el tiempo de la suite completa antes y despues, sin carga en la maquina.
 | 2026-10-05 | plan | manual | persona |
 | 2026-10-05 | approve | manual | persona |
 | 2026-10-05 | start | manual | persona |
+| 2026-10-05 | review | manual | persona |
