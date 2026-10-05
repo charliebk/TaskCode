@@ -54,20 +54,27 @@ export interface SiguienteCommandResult extends SiguientePaso {
   json: boolean;
 }
 
-/** Marcas de la plantilla del informe sin rellenar (IMP-1 de la revision de TASK-059). */
-const MARCAS_PLANTILLA = ['Revisor: (rellenar', '(ej. IMP-1)'];
+/**
+ * ¿Lo escribio un revisor? (IMP-1 y MEN-6 de la revision de TASK-059): una
+ * linea `- Revisor:` rellenada (no la de la plantilla) y sin la fila de
+ * ejemplo de la tabla. No prueba quien lo escribio: ese riesgo residual esta
+ * documentado y aceptado; esto descarta el informe que nadie relleno.
+ */
+function informeRellenado(texto: string): boolean {
+  return /^- Revisor:[ \t]*(?!\(rellenar)\S/m.test(texto) && !texto.includes('(ej. IMP-1)');
+}
 
 /**
  * ¿Lo aprobado es exactamente lo que se reviso? (TASK-059; CRIT-1 de su
  * revision). La referencia es el `Commit revisado` que el CLI escribe en la
  * peticion de la ronda, no el «ultimo commit de codigo»:
- * - no hay cambios fuera de `tareas/` entre ese commit y `ref`: el codigo que
- *   se va a mergear es el que vio el revisor. Esto cubre tambien el informe
+ * - no hay cambios fuera de `tareas/` entre ese commit y `ref`, en TODO el
+ *   repo (`:(top)`, no solo bajo el cwd: MEN-7): el codigo que se va a
+ *   mergear es el que vio el revisor. Esto cubre tambien el informe
  *   commiteado junto a codigo (ese codigo aparece en el diff), que antes se
  *   tapaba con el commit limpio de `taskctl veredicto`;
- * - cada informe se escribio despues de pedir la revision (algun commit lo
- *   toca desde el commit revisado);
- * - y no hay cambios sin commitear en esa carpeta.
+ * - y no hay cambios sin commitear en la carpeta `revision/`.
+ * Que el informe no sea la plantilla lo comprueba `informeRellenado`.
  * `dirRevision` es la ruta POSIX relativa a la raiz del repo, acabada en /.
  */
 function informeEnCommitPropio(
@@ -79,15 +86,14 @@ function informeEnCommitPropio(
 ): boolean {
   if (nombres.length === 0 || revisados.length === 0) return false;
   if (ref === 'HEAD' && runGit(['status', '--porcelain', '--', dirRevision], cwd) !== '') return false;
+  const tareasDesdeLaRaiz = `${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`;
   for (const revisado of revisados) {
     if (revisado === null || !isAncestor(revisado, ref, cwd)) return false;
-    if (runGit(['diff', '--name-only', revisado, ref, '--', '.', ':(exclude)tareas/'], cwd) !== '') return false;
-    for (const nombre of nombres) {
-      const commits = runGit(['log', '--format=%H', `${revisado}..${ref}`, '--', dirRevision + nombre], cwd)
-        .split('\n')
-        .filter((c) => c !== '');
-      if (commits.length === 0) return false;
-    }
+    const cambios = runGit(
+      ['diff', '--name-only', revisado, ref, '--', ':(top)', `:(top,exclude)${tareasDesdeLaRaiz}`],
+      cwd
+    );
+    if (cambios !== '') return false;
   }
   return true;
 }
@@ -190,7 +196,7 @@ export async function runSiguienteCommand(
     informeEnCommitPropio:
       task.estado === 'en-revision' &&
       // IMP-1: un informe que conserva la plantilla no lo escribio ningun revisor.
-      !primarios.some((t) => MARCAS_PLANTILLA.some((m) => t.includes(m))) &&
+      primarios.every(informeRellenado) &&
       informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, revisados, deps.repoCwd),
   };
 

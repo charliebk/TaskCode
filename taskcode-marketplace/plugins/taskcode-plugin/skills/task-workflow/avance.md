@@ -66,9 +66,10 @@ diciendo que toca hacer ese trabajo, commitearlo y despues
 trabajo lo hace la skill (`start` implementa, `review` corrige) y sigue.
 
 En `automatico`, `siguiente` solo pregunta en sus guardas: aprobar una tarea
-sin modo congelado, cerrar hotfix o release, cerrar con algun informe que no
-este en un commit propio posterior al codigo, otra ronda desde la ronda 3, y
-el veredicto de la segunda opinion.
+sin modo congelado, cerrar hotfix o release, cerrar cuando lo que se
+mergearia no coincide con lo revisado (codigo posterior al `Commit revisado`
+de la peticion, informe sin rellenar o sin commitear), otra ronda desde la
+ronda 3, y el veredicto de la segunda opinion.
 
 ## Encadenar la skill siguiente (la cadena)
 

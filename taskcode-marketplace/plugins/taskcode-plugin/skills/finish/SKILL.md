@@ -18,7 +18,9 @@ Mergea la rama de la tarea (sin borrarla) y la deja en `terminada`.
    una seccion `## Resultado` con lo implementado, lo que encontro la
    revision y lo que se decidio no corregir. Si falta, completalo y
    commitealo antes.
-3. Ejecuta `taskctl finish TASK-NNN` (el ID viene en `$ARGUMENTS`). Solo
+3. Desde la rama de la tarea (si estas en otra: `git checkout <rama>` del
+   `tarea.md`; desde la rama base `finish` lee la copia vieja y aborta),
+   ejecuta `taskctl finish TASK-NNN` (el ID viene en `$ARGUMENTS`). Solo
    cierra si el ultimo informe aprueba; si no, muestra el error tal cual.
    No uses `--push` salvo que la persona lo pida: subir es un acto aparte.
 4. Si la tarea tiene criterios bajo `### Tras el cierre`, verificalos ahora en

@@ -115,3 +115,26 @@ comprobar que el commit revisado es antecesor»: solo importa si se reescribe
 la historia de la rama tras pedir la revision; es una defensa de mas que no
 compensa un test con historia reescrita.
 Suite: 1055 tests, 1052 en verde (los 3 rojos conocidos de Windows).
+
+### Revision por pares (ronda 2)
+
+Revisor independiente: **aprobada**. Con el CLI real no encontro ningun
+camino por el que el automatico mergee codigo que el revisor no vio (ronda 2
+incremental, fix posterior al review, peticion sin `Commit revisado`,
+renombre hacia `tareas/`, develop integrado antes y despues de la revision,
+lectura desde develop, codigo sin commitear, CRLF). Siete MENOR (cuatro
+nuevos) y una observacion, corregidos sin abrir ronda 3:
+
+- MEN-4: la comprobacion «el informe tiene algun commit desde lo revisado»
+  era siempre verdadera (el commit de la peticion crea el informe):
+  eliminada. La proteccion real es el diff vacio y la plantilla.
+- MEN-5: el motivo de `siguiente` y `avance.md` describen la guarda real.
+- MEN-6: se exige una linea `- Revisor:` rellenada (no basta con no tener las
+  marcas de la plantilla); la skill review dice que la fila de ejemplo se
+  borra aunque no haya hallazgos. Test nuevo; su mutante muere.
+- MEN-7: el diff de la guarda mira todo el repo (`:(top)`), no solo el
+  subarbol del cwd; latente hoy (finish falla en ese layout).
+- Observacion: la skill finish dice que se lance desde la rama de la tarea
+  (desde la base lee la copia vieja y aborta).
+
+Suite final: 1055 tests, 1052 en verde (los 3 rojos conocidos de Windows).

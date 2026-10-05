@@ -33,7 +33,7 @@ function accionPara(fase, modo, task, abreFase, exigePersona, faltaTrabajo) {
     if (faltaTrabajo && modo !== 'automatico')
         return 'detener';
     // Pasos que solo puede decidir una persona aunque el modo encadene (tambien
-    // los topes: ronda de mas, finish sin informe en commit propio).
+    // los topes: ronda de mas, finish con algo distinto de lo revisado).
     if (exigePersona)
         return 'preguntar';
     // En automatico el trabajo pendiente lo hace la skill y sigue (TASK-059).
@@ -44,7 +44,7 @@ function accionPara(fase, modo, task, abreFase, exigePersona, faltaTrabajo) {
     if (fase === 'finish' && (task.tipo === 'hotfix' || task.tipo === 'release'))
         return 'preguntar';
     // Automatico (TASK-059): todas las preguntas se hicieron en plan; sus guardas
-    // (modo congelado, informe en commit propio, tope de rondas, hotfix/release)
+    // (modo congelado, lo revisado = lo que se cierra, tope de rondas, hotfix/release)
     // llegan aqui como exigePersona.
     if (modo === 'automatico')
         return 'continuar';
@@ -104,7 +104,7 @@ export function siguienteFase(task, ctx, modo) {
                         }
                     }
                     if (!ctx.informeEnCommitPropio) {
-                        return paso('finish', true, 'la revision esta aprobada, pero algun informe no esta en un commit propio posterior al codigo: el cierre lo decide una persona', `taskctl finish ${task.id}`, true);
+                        return paso('finish', true, 'la revision esta aprobada, pero lo que se cerraria no coincide con lo revisado (codigo posterior al Commit revisado, informe sin rellenar o sin commitear, o peticion sin Commit revisado): el cierre lo decide una persona', `taskctl finish ${task.id}`, true);
                     }
                     return paso('finish', true, 'la revision esta aprobada');
                 default:

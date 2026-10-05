@@ -231,6 +231,11 @@ test('finish solo sigue solo si lo aprobado es exactamente lo revisado (CRIT-1 e
     assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'preguntar']);
     await writeFile(informe, commiteado, 'utf8');
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
+
+    // MEN-6: un informe reescrito sin linea de revisor tampoco cuenta como revisado.
+    await writeFile(informe, '# Informe\n\n- Veredicto: aprobada\n\nsin hallazgos\n', 'utf8');
+    commitAll(repoRoot, `docs(${ID}): informe sin revisor`);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'preguntar']);
   });
 });
 

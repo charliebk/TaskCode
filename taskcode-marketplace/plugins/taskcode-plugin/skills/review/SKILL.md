@@ -30,8 +30,9 @@ punto, no un formalismo.
    temporal, suite una vez, mutantes) y devuelva su informe con la tabla de
    hallazgos. Vuelca cada respuesta en su `informe-revision-N*.md`
    **conservando la cabecera de la plantilla** con la linea `- Revisor:`
-   rellenada y su linea `- Veredicto:`; un informe que conserve la plantilla
-   sin rellenar no cuenta como revisado,
+   rellenada, su linea `- Veredicto:`, y la fila de ejemplo de la tabla
+   borrada (tambien sin hallazgos); un informe que conserve la plantilla sin
+   rellenar no cuenta como revisado,
    y commitealo **solo, en un commit que no toque nada mas**: en modo
    automatico, `finish` no sigue solo si un informe va mezclado con codigo.
 4. Escribe cada veredicto con el comando, no a mano:
