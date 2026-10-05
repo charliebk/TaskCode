@@ -2,7 +2,7 @@
 
 - Commit revisado: 08977c80ffc447842eb363168c0d7317a8a2aec7
 - Revisor: agente general-purpose independiente con la skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-059 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
