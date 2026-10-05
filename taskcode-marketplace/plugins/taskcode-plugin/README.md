@@ -5,6 +5,32 @@ revisión por pares de agentes y Git-Flow determinista descrita en
 `docs/PROPUESTA_METODOLOGIA.md` (raíz del repo `TaskCode`). Expone el CLI
 `taskctl`.
 
+Para instalarlo y actualizarlo desde el marketplace, ver el README de la raíz
+del repo («Instalar el plugin» y «Actualizar»). Licencia: MIT.
+
+## Modelo de los agentes
+
+Los agentes de brainstorm (`agents/brainstorm-*.md`) **no declaran `model:`**
+en su frontmatter. Es una decisión, no un olvido (TASK-049, comprobado el
+2026-10-05 con Claude Code 2.1.288 en
+<https://code.claude.com/docs/en/sub-agents>):
+
+- El campo admite `sonnet`, `opus`, `haiku`, `fable`, un ID completo (por
+  ejemplo `claude-opus-5-5`) o `inherit`. Sin él, Claude Code resuelve el
+  modelo así: el parámetro `model` de cada invocación, después
+  `CLAUDE_CODE_SUBAGENT_MODEL` y por último el de la conversación. Ese orden
+  rige desde Claude Code 2.1.251; antes, la variable iba la primera. Y con
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (2.1.257 o posterior) la variable manda
+  sobre todo, también sobre el `model` de cada invocación.
+- Un alias fijo y barato iría contra la metodología: el modelo depende de la
+  complejidad de cada tarea (`modelo_sugerido` en `tarea.md`), y cambiarlo
+  obligaría a publicar una versión del plugin.
+- `inherit` explícito anularía `CLAUDE_CODE_SUBAGENT_MODEL`, que es la palanca
+  de coste de quien instala el plugin.
+
+Quien orquesta pasa `modelo_sugerido` como `model` al lanzar cada agente (la
+salida de `taskctl review` ya lo nombra).
+
 ## Instalación local (para desarrollo y pruebas)
 
 **Corrección respecto al texto original de TASK-006:** la tarea describía
