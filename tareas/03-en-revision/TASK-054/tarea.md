@@ -6,7 +6,7 @@ sprint: 6
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-054-rutas-no-ascii-en-el-diff-de-revision-fr
 asignado_a: charlie.bk@gmail.com
@@ -40,3 +40,4 @@ el diff, y que el fichero aparezca en la peticion que le corresponde.
 | 2026-10-05 | plan | manual | persona |
 | 2026-10-05 | approve | manual | persona |
 | 2026-10-05 | start | manual | persona |
+| 2026-10-05 | review | manual | persona |
