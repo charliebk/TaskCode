@@ -6,7 +6,7 @@ sprint: 7
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-052-f6-t5-telemetria-de-fases-y-heuristica-r
 asignado_a: charlie.bk@gmail.com
@@ -92,3 +92,4 @@ claves que nada lee (`tolerancia_*`, `modelo_consulta_discrepancia`).
 | 2026-10-05 | approve | manual | persona |
 | 2026-10-05 | start | manual | persona |
 | 2026-10-05 | review | manual | persona |
+| 2026-10-05 | finish | manual | persona |

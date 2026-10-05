@@ -23,16 +23,15 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 2
+## En diseno (01-en-diseno) — 1
 
 ```text
-ID        Titulo                                              Asignado
---------  --------------------------------------------------  --------------------
-TASK-023  Métricas de coste en tokens por fase                charlie.bk@gmail.com
-TASK-052  F6-T5 Telemetria de fases y heuristica recalibrada  charlie.bk@gmail.com
+ID        Titulo                                Asignado
+--------  ------------------------------------  --------------------
+TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 43
+## Terminadas (04-terminadas) — 44
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -73,6 +72,7 @@ TASK-048  F6-T3 Skill de flujo mas ligera                                       
 TASK-049  F6-T4 Metadatos del plugin y modelo de los agentes                                       charlie.bk@gmail.com
 TASK-050  F6-T1 Suite rapida y repo plantilla en los tests                                         charlie.bk@gmail.com
 TASK-051  F6-T2 Partir los ficheros de test mas largos                                             charlie.bk@gmail.com
+TASK-052  F6-T5 Telemetria de fases y heuristica recalibrada                                       charlie.bk@gmail.com
 TASK-053  moveTareaFile reintenta el rename ante un EPERM o EBUSY transitorio de Windows           charlie.bk@gmail.com
 TASK-054  Rutas no ASCII en el diff de revision fragmentado por dominio                            charlie.bk@gmail.com
 TASK-055  Flujo A: taskctl desde PowerShell y cmd                                                  charlie.bk@gmail.com

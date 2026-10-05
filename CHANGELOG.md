@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-052 (feature) — F6-T5 Telemetria de fases y heuristica recalibrada (2026-10-05)
 - TASK-049 (feature) — F6-T4 Metadatos del plugin y modelo de los agentes (2026-10-05)
 - TASK-048 (feature) — F6-T3 Skill de flujo mas ligera (2026-10-05)
 - TASK-051 (feature) — F6-T2 Partir los ficheros de test mas largos (2026-10-05)
