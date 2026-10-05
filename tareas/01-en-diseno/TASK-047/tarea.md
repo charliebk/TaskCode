@@ -6,17 +6,17 @@ sprint: 6
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-047-f5-t3-flags-desconocidos-y-mensajes-de-r
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-10-04
-actualizado: 2026-10-04
+actualizado: 2026-10-05
 dependencias: []
 ---
 ## Objetivo
@@ -34,3 +34,9 @@ de `finish.ts`: debe reutilizarlos.
 - [ ] Un flag desconocido aborta con la lista de flags validos y una sugerencia
 - [ ] La salida de `review` nombra agente y skill por separado y usa `modelo_sugerido`
 - [ ] `codex-review.ts` reutiliza los helpers de `finish.ts` en lugar de duplicarlos
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-05 | plan | manual | persona |
