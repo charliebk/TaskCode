@@ -29,7 +29,9 @@ punto, no un formalismo.
    skill revisora que nombra la peticion. Que reproduzca empiricamente (clon
    temporal, suite una vez, mutantes) y devuelva su informe con la tabla de
    hallazgos. Vuelca cada respuesta en su `informe-revision-N*.md`
-   **conservando la cabecera de la plantilla**, con su linea `- Veredicto:`,
+   **conservando la cabecera de la plantilla** con la linea `- Revisor:`
+   rellenada y su linea `- Veredicto:`; un informe que conserve la plantilla
+   sin rellenar no cuenta como revisado,
    y commitealo **solo, en un commit que no toque nada mas**: en modo
    automatico, `finish` no sigue solo si un informe va mezclado con codigo.
 4. Escribe cada veredicto con el comando, no a mano:
@@ -41,7 +43,13 @@ punto, no un formalismo.
    `siguiente` da `fase: review` con `accion: continuar` tras los cambios,
    corrige tu los CRITICO e IMPORTANTE del informe (y los MENOR baratos),
    commitea, deja la suite en verde y vuelve al paso 2. Desde la ronda 3,
-   `siguiente` pregunta: otra ronda la decide una persona.
+   `siguiente` pregunta: otra ronda la decide una persona, y un «si» quiere
+   decir corregir primero y despues abrir la ronda, nunca relanzarla sobre el
+   mismo codigo.
+   En automatico, `aprobada-con-correcciones` no se corrige despues: el codigo
+   que se mergea tiene que ser el revisado (`finish` pregunta si cambia). Los
+   MENOR que merezca la pena corregir se piden como `cambios-solicitados`; el
+   resto se documentan como aceptados en el `## Resultado`.
 5. **Segunda opinion** (`revision_codex: true` y primaria aprobada):
    ejecuta `taskctl codex-review TASK-NNN` una vez.
    - Si avisa de que Codex no respondio y no escribio informe, muestra el

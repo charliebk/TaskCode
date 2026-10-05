@@ -26,16 +26,19 @@ export const TOPE_RONDAS = 3;
 function accionPara(fase, modo, task, abreFase, exigePersona, faltaTrabajo) {
     if (fase === 'terminada' || modo === 'manual')
         return 'detener';
+    // Lo que falta no es una fase sino trabajo (implementar, o corregir tras
+    // cambios-solicitados). Fuera del automatico se detiene SIEMPRE, tambien en
+    // el tope de rondas: encadenar la revision ahi la relanzaria sobre el mismo
+    // codigo (IMP-3 de la revision de TASK-058; IMP-2 de la de TASK-059).
+    if (faltaTrabajo && modo !== 'automatico')
+        return 'detener';
     // Pasos que solo puede decidir una persona aunque el modo encadene (tambien
     // los topes: ronda de mas, finish sin informe en commit propio).
     if (exigePersona)
         return 'preguntar';
-    // Lo que falta no es una fase sino trabajo (implementar, o corregir tras
-    // cambios-solicitados). En automatico lo hace la skill y sigue (TASK-059);
-    // en semiautomatico se detiene: encadenar la revision ahi la relanzaria
-    // sobre el mismo codigo (IMP-3 de la revision de TASK-058).
+    // En automatico el trabajo pendiente lo hace la skill y sigue (TASK-059).
     if (faltaTrabajo)
-        return modo === 'automatico' ? 'continuar' : 'detener';
+        return 'continuar';
     // Decision de Carlos (2026-10-04): hotfix y release mergean a main con
     // tag; en ningun modo se cierran sin preguntar.
     if (fase === 'finish' && (task.tipo === 'hotfix' || task.tipo === 'release'))
@@ -77,7 +80,7 @@ export function siguienteFase(task, ctx, modo) {
             switch (ctx.veredicto) {
                 case 'cambios-solicitados':
                     if (ctx.rondaRevision >= TOPE_RONDAS) {
-                        return paso('review', false, `la ronda ${String(ctx.rondaRevision)} tambien pidio cambios: tope de rondas alcanzado, otra ronda la decide una persona`, `taskctl review ${task.id}`, true);
+                        return paso('review', false, `la ronda ${String(ctx.rondaRevision)} tambien pidio cambios: tope de rondas alcanzado; corregir y abrir otra ronda lo decide una persona`, `taskctl review ${task.id}`, true, true);
                     }
                     return paso('review', false, 'la ultima ronda pidio cambios: corregir, commitear y pedir otra ronda', `taskctl review ${task.id}`, false, true);
                 case 'aprobada':

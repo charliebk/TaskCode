@@ -113,6 +113,20 @@ async function hastaCodigo(repoRoot: string, tareasRoot: string, tipo = 'feature
   await codigo(repoRoot, 'cambiado\n', `feat(${ID}): trabajo`);
 }
 
+/**
+ * Lo que hace el revisor: rellena la cabecera y la tabla de hallazgos del
+ * informe (sin tocar la linea de veredicto) y lo commitea SOLO.
+ */
+async function rellenarInforme(repoRoot: string, informe: string): Promise<void> {
+  const texto = await readFile(informe, 'utf8');
+  const relleno = texto
+    .replace(/^- Revisor: \(rellenar.*$/m, '- Revisor: revisor independiente de prueba')
+    .replace(/^\| \(ej\. IMP-1\).*$/m, '| MEN-1 | MENOR | aceptado | app.txt |');
+  assert.notEqual(relleno, texto, 'el informe tenia la plantilla');
+  await writeFile(informe, relleno, 'utf8');
+  commitAll(repoRoot, `docs(${ID}): informe de revision`);
+}
+
 /** Sustituye la linea de veredicto del informe 1 sin commitear (a mano, como un agente). */
 async function escribirVeredicto(informe: string, valor: string): Promise<void> {
   const texto = await readFile(informe, 'utf8');
@@ -150,6 +164,7 @@ test('ciclo feature completo en automatico: tras plan nunca se pregunta y cada t
 
     s = ver();
     assert.deepEqual([s.estado, ...resumen(s)], ['en-revision', 'veredicto', 'continuar']);
+    await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot), 'informe-revision-1.md'));
     cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
 
     s = ver();
@@ -196,58 +211,77 @@ test('ciclo feature completo en automatico: tras plan nunca se pregunta y cada t
   });
 });
 
-test('informe aprobado fuera de commit propio: finish pregunta (mezclado, con codigo posterior y sin commitear)', async () => {
+test('finish solo sigue solo si lo aprobado es exactamente lo revisado (CRIT-1 e IMP-1 de la revision)', async () => {
   await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
     await hastaCodigo(repoRoot, tareasRoot);
     cliOk(repoRoot, ['review', ID]);
     const informe = path.join(dirRevision(tareasRoot), 'informe-revision-1.md');
-    assert.deepEqual(resumen(siguiente(repoRoot)), ['veredicto', 'continuar']);
 
-    // (c) aprobado en disco, sin commitear.
-    await escribirVeredicto(informe, 'aprobada');
-    let s = siguiente(repoRoot);
-    assert.deepEqual(resumen(s), ['finish', 'preguntar']);
-    assert.equal(s.comando, `taskctl finish ${ID}`);
+    // IMP-1: sin revisor (plantilla sin rellenar) + taskctl veredicto aprobada → pregunta.
+    cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'preguntar']);
 
-    // (a) informe aprobado en el MISMO commit que un cambio de codigo.
-    await writeFile(path.join(repoRoot, 'app.txt'), 'mezclado\n', 'utf8');
-    commitAll(repoRoot, `feat(${ID}): codigo con veredicto dentro`);
-    s = siguiente(repoRoot);
-    assert.deepEqual(resumen(s), ['finish', 'preguntar']);
+    // Con el informe rellenado por el revisor y commiteado solo: sigue solo.
+    await rellenarInforme(repoRoot, informe);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'continuar']);
 
-    // Contraprueba: el informe re-commiteado SOLO (con un cambio inocuo en el
-    // informe) y posterior al codigo vuelve a ser seguro.
-    await writeFile(informe, (await readFile(informe, 'utf8')) + '\nsin hallazgos\n', 'utf8');
-    commitAll(repoRoot, `chore(${ID}): informe solo`);
-    s = siguiente(repoRoot);
-    assert.deepEqual(resumen(s), ['finish', 'continuar']);
-
-    // Con el informe ya bien commiteado, una edicion sin commitear vuelve a
-    // preguntar: lo que se lee del disco no esta en ningun commit. Aqui la unica
-    // que lo detecta es la comprobacion del workspace (el ultimo commit del
-    // informe es correcto).
+    // Edicion del informe sin commitear: lo leido no esta en ningun commit → pregunta.
     const commiteado = await readFile(informe, 'utf8');
     await writeFile(informe, commiteado + '\nnota sin commitear\n', 'utf8');
-    s = siguiente(repoRoot);
-    assert.deepEqual(resumen(s), ['finish', 'preguntar']);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'preguntar']);
     await writeFile(informe, commiteado, 'utf8');
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
-
-    // (b) informe en commit propio pero con un commit de codigo POSTERIOR.
-    await codigo(repoRoot, 'despues del informe\n', `feat(${ID}): codigo tras el informe`);
-    s = siguiente(repoRoot);
-    assert.deepEqual(resumen(s), ['finish', 'preguntar']);
   });
 });
 
-test('informe aprobado con taskctl veredicto y codigo posterior: finish pregunta', async () => {
+test('CRIT-1 (a): codigo commiteado tras pedir la revision y antes del veredicto → finish pregunta', async () => {
   await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
     await hastaCodigo(repoRoot, tareasRoot);
     cliOk(repoRoot, ['review', ID]);
+    await codigo(repoRoot, 'codigo posterior a la peticion\n', `feat(${ID}): colado`);
+    await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot), 'informe-revision-1.md'));
     cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
-    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'continuar']);
-    await codigo(repoRoot, 'colado despues\n', `feat(${ID}): codigo tras el veredicto`);
+    // El informe esta en commits propios y posteriores, pero el codigo no es el revisado.
     assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'preguntar']);
+  });
+});
+
+test('CRIT-1 (b): informe commiteado junto a codigo y despues taskctl veredicto → finish pregunta', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await hastaCodigo(repoRoot, tareasRoot);
+    cliOk(repoRoot, ['review', ID]);
+    const informe = path.join(dirRevision(tareasRoot), 'informe-revision-1.md');
+    const texto = await readFile(informe, 'utf8');
+    await writeFile(
+      informe,
+      texto
+        .replace(/^- Revisor: \(rellenar.*$/m, '- Revisor: revisor de prueba')
+        .replace(/^\| \(ej\. IMP-1\).*$/m, '| MEN-1 | MENOR | aceptado | app.txt |'),
+      'utf8'
+    );
+    await writeFile(path.join(repoRoot, 'app.txt'), 'codigo nuevo no revisado\n', 'utf8');
+    commitAll(repoRoot, `feat(${ID}): informe y codigo juntos`);
+    // taskctl veredicto deja un commit que solo toca el informe, encima del mezclado.
+    cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'preguntar']);
+  });
+});
+
+test('IMP-3: la guarda leida desde develop (tarea en su rama) tambien pregunta con codigo no revisado', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await hastaCodigo(repoRoot, tareasRoot);
+    cliOk(repoRoot, ['review', ID]);
+    await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot), 'informe-revision-1.md'));
+    cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
+    const rama = git(['branch', '--show-current'], repoRoot).trim();
+    git(['checkout', '-q', 'develop'], repoRoot);
+    let s = siguiente(repoRoot);
+    assert.deepEqual([s.leidaDe, ...resumen(s)], ['rama', 'finish', 'continuar']);
+    git(['checkout', '-q', rama], repoRoot);
+    await codigo(repoRoot, 'colado tras el veredicto\n', `feat(${ID}): colado`);
+    git(['checkout', '-q', 'develop'], repoRoot);
+    s = siguiente(repoRoot);
+    assert.deepEqual([s.leidaDe, ...resumen(s)], ['rama', 'finish', 'preguntar']);
   });
 });
 

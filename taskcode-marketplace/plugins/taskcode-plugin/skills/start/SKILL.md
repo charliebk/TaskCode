@@ -19,13 +19,14 @@ Abre la rama de la tarea con Git-Flow y la pasa a `en-curso`.
    tarea hay que cerrar primero. No lo rodees.
 3. Lee `planificacion/plan-final.md` y, si lo hay, `skills_recomendados` del
    `tarea.md`: es lo que guia la implementacion.
-4. **Modo automatico** (`siguiente` da `fase: review` con `accion: continuar`):
+4. Ejecuta `taskctl siguiente TASK-NNN --json`. **Modo automatico** (da
+   `fase: review` con `accion: continuar`):
    implementa el plan en esta rama, con sus tests y con los skills
    recomendados; commitea; ejecuta la suite del proyecto y no sigas hasta que
    este en verde. Despues encadena `/taskcode-plugin:review` (seccion de
    avance). Si no consigues dejar la suite en verde, para y dilo: no se revisa
    codigo roto.
-5. Sigue la seccion de avance (`task-workflow/avance.md`):
+5. En el resto de casos, sigue la seccion de avance (`task-workflow/avance.md`):
    `taskctl siguiente TASK-NNN --json`. Tras `start` la fase es `review`,
    que significa: primero implementar el plan en esta rama, con tests,
    commitearlo y dejar la suite en verde; despues,

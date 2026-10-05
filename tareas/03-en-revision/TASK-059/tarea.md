@@ -73,3 +73,45 @@ informe sin commitear, automatico como semi): todos muertos.
 Suite: 1053 tests, 1050 en verde (los 3 rojos conocidos de Windows).
 
 El smoke dentro de una sesion de Claude Code paso a «Tras el cierre».
+
+### Revision por pares (ronda 1)
+
+Revisor independiente: **cambios-solicitados** (1 CRITICO, 3 IMPORTANTE, 3
+MENOR).
+
+- CRIT-1 (corregido): la guarda comparaba el informe con el «ultimo commit
+  de codigo», no con lo revisado. Codigo commiteado entre `taskctl review` y
+  el veredicto se mergeaba solo; y un informe commiteado junto a codigo
+  quedaba tapado por el commit limpio de `taskctl veredicto` (reproducido los
+  dos). Ahora la referencia es el `Commit revisado` que el CLI escribe en la
+  peticion de la ronda: no puede haber cambios fuera de `tareas/` entre ese
+  commit y lo que se va a mergear, y cada informe tiene que haberse escrito
+  despues. Tests nuevos para los dos caminos.
+- IMP-1 (corregido en parte): la plantilla sin rellenar mas `taskctl
+  veredicto aprobada` cerraba sola. Ahora un informe que conserva las marcas
+  de la plantilla (`Revisor: (rellenar`, la fila de ejemplo) no cuenta: el
+  automatico pregunta. **Riesgo residual, documentado**: el CLI no puede
+  probar que el informe lo escribio un agente distinto del que implemento; el
+  «registro de quien lanza al revisor» del plan de referencia no se entrega.
+  Lo contienen la plantilla rellenada exigida, el commit revisado y la
+  revision independiente que las skills ordenan.
+- IMP-2 (corregido): en el tope de rondas el semiautomatico vuelve a
+  `detener` (trabajo pendiente antes que pregunta); en automatico pregunta, y
+  la skill review dice que un «si» es corregir primero, nunca relanzar sobre
+  el mismo codigo. Expectativa de semi restaurada en la tabla.
+- IMP-3 (corregido): test en automatico leyendo desde develop con la tarea en
+  su rama (codigo colado tras el veredicto → `preguntar`, `leidaDe: rama`).
+- MEN-1 (aceptado): el codigo bajo `tareas/` no cuenta como codigo
+  (`tareas/` es documentacion de tareas por convencion).
+- MEN-2 (corregido en la skill review): en automatico,
+  `aprobada-con-correcciones` no se corrige despues (el codigo mergeado tiene
+  que ser el revisado); los MENOR que valga la pena corregir se piden como
+  `cambios-solicitados`.
+- MEN-3 (corregido): `start` ejecuta `siguiente` antes de decidir.
+
+Mutantes: sin la comparacion con lo revisado, sin mirar la plantilla, semi
+preguntando en el tope y rama sin commits revisados: muertos. Sobrevive «sin
+comprobar que el commit revisado es antecesor»: solo importa si se reescribe
+la historia de la rama tras pedir la revision; es una defensa de mas que no
+compensa un test con historia reescrita.
+Suite: 1055 tests, 1052 en verde (los 3 rojos conocidos de Windows).

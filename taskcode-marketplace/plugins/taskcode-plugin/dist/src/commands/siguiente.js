@@ -19,42 +19,46 @@ import { parseTareaFile } from '../core/tarea-file.js';
 import { resolverConfig } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
-import { veredictoDeRonda } from '../core/informe-revision.js';
+import { commitRevisadoDe, veredictoDeRonda } from '../core/informe-revision.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
 import { currentBranch, isAncestor, localBranchExists, lsTreeNames, runGit, showFileAtRef, } from '../fs/git.js';
-import { REVISION_DIRNAME } from './review.js';
+import { REVISION_DIRNAME, PETICION_REVISION_RE } from './review.js';
 import { INFORME_CODEX_RE } from './codex-review.js';
 import { planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
 }
+/** Marcas de la plantilla del informe sin rellenar (IMP-1 de la revision de TASK-059). */
+const MARCAS_PLANTILLA = ['Revisor: (rellenar', '(ej. IMP-1)'];
 /**
- * ¿Cada informe esta en un commit propio, posterior al codigo? (TASK-059)
- * - el ultimo commit que toco cada informe en `ref` solo toca la carpeta
- *   `revision/` de la tarea (no se mezclo con codigo);
- * - es posterior (descendiente) al ultimo commit que toca algo fuera de
- *   `tareas/`, es decir, a la implementacion;
- * - y no hay cambios sin commitear en esa carpeta (si los hay, lo que se lee
- *   del disco no es lo que esta en ningun commit).
+ * ¿Lo aprobado es exactamente lo que se reviso? (TASK-059; CRIT-1 de su
+ * revision). La referencia es el `Commit revisado` que el CLI escribe en la
+ * peticion de la ronda, no el «ultimo commit de codigo»:
+ * - no hay cambios fuera de `tareas/` entre ese commit y `ref`: el codigo que
+ *   se va a mergear es el que vio el revisor. Esto cubre tambien el informe
+ *   commiteado junto a codigo (ese codigo aparece en el diff), que antes se
+ *   tapaba con el commit limpio de `taskctl veredicto`;
+ * - cada informe se escribio despues de pedir la revision (algun commit lo
+ *   toca desde el commit revisado);
+ * - y no hay cambios sin commitear en esa carpeta.
  * `dirRevision` es la ruta POSIX relativa a la raiz del repo, acabada en /.
  */
-function informeEnCommitPropio(ref, dirRevision, nombres, cwd) {
-    if (nombres.length === 0)
+function informeEnCommitPropio(ref, dirRevision, nombres, revisados, cwd) {
+    if (nombres.length === 0 || revisados.length === 0)
         return false;
     if (ref === 'HEAD' && runGit(['status', '--porcelain', '--', dirRevision], cwd) !== '')
         return false;
-    const codigo = runGit(['log', '-1', '--format=%H', ref, '--', '.', ':(exclude)tareas/'], cwd);
-    for (const nombre of nombres) {
-        const commit = runGit(['log', '-1', '--format=%H', ref, '--', dirRevision + nombre], cwd);
-        if (commit === '')
+    for (const revisado of revisados) {
+        if (revisado === null || !isAncestor(revisado, ref, cwd))
             return false;
-        const tocados = runGit(['show', '--name-only', '--format=', commit], cwd)
-            .split('\n')
-            .map((l) => l.trim())
-            .filter((l) => l !== '');
-        if (tocados.some((f) => !f.startsWith(dirRevision)))
+        if (runGit(['diff', '--name-only', revisado, ref, '--', '.', ':(exclude)tareas/'], cwd) !== '')
             return false;
-        if (codigo !== '' && !isAncestor(codigo, commit, cwd))
-            return false;
+        for (const nombre of nombres) {
+            const commits = runGit(['log', '--format=%H', `${revisado}..${ref}`, '--', dirRevision + nombre], cwd)
+                .split('\n')
+                .filter((c) => c !== '');
+            if (commits.length === 0)
+                return false;
+        }
     }
     return true;
 }
@@ -92,6 +96,7 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
     let nombresPrimarios;
     let dirRevisionRepo;
     let refInformes;
+    let revisados;
     if (enOtraRama) {
         const enRama = lsTreeNames(rama, 'tareas', deps.repoCwd);
         const rutaTarea = enRama.find((n) => n.endsWith(`/${id}/tarea.md`));
@@ -111,6 +116,7 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         dirRevisionRepo = dirRevision;
         refInformes = rama;
         primarios = ultima.nombres.map(leer);
+        revisados = nombresDeUltimaRonda(nombres, PETICION_REVISION_RE).nombres.map((n) => commitRevisadoDe(leer(n)));
         codex = nombresDeUltimaRonda(nombres, INFORME_CODEX_RE).nombres.map(leer);
     }
     else {
@@ -124,6 +130,7 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         dirRevisionRepo = `${path.relative(deps.repoCwd, revisionDir).split(path.sep).join('/')}/`;
         refInformes = 'HEAD';
         primarios = await Promise.all(ultima.nombres.map(leer));
+        revisados = (await Promise.all((await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE)).nombres.map(leer))).map((t) => commitRevisadoDe(t));
         codex = await Promise.all((await informesDeUltimaRonda(revisionDir, INFORME_CODEX_RE)).nombres.map(leer));
         if (task.estado === 'en-diseno')
             planEstaRedactado = await planRedactado(task, taskDir);
@@ -135,7 +142,9 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         modoCongelado: modoCongelado(body) !== null,
         rondaRevision,
         informeEnCommitPropio: task.estado === 'en-revision' &&
-            informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, deps.repoCwd),
+            // IMP-1: un informe que conserva la plantilla no lo escribio ningun revisor.
+            !primarios.some((t) => MARCAS_PLANTILLA.some((m) => t.includes(m))) &&
+            informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, revisados, deps.repoCwd),
     };
     const modo = modoDeTarea(body, modoConfig);
     return {

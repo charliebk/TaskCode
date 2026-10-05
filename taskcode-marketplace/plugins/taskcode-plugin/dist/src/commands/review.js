@@ -126,7 +126,7 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         seccionExcluidos(desde, extras));
 }
 /** Peticiones de revision, con o sin sufijo de dominio (TASK-018). */
-const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+export const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 async function leerRondaPrevia(revisionDir) {
     const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
     const textos = await Promise.all(informes.nombres.map(async (n) => ({ nombre: n, texto: await readFile(path.join(revisionDir, n), 'utf8') })));
