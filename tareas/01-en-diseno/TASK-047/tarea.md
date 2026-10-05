@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-047-f5-t3-flags-desconocidos-y-mensajes-de-r
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -40,3 +40,4 @@ de `finish.ts`: debe reutilizarlos.
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-05 | plan | manual | persona |
+| 2026-10-05 | approve | manual | persona |
