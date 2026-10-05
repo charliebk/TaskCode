@@ -123,6 +123,20 @@ test('metricas: un flag desconocido aborta sin sacar tabla, y --heuristica no ll
   });
 });
 
+// MENOR-2 de la revision: con tareas pero ninguna terminada con informes,
+// --heuristica no puede decir que no hay tareas.
+test('metricas --heuristica sin ninguna tarea terminada con informes: n=0, no "no hay tareas"', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await hastaCodigo(repoRoot, tareasRoot);
+    const h = cliOk(repoRoot, ['metricas', '--heuristica']);
+    assert.match(h.stdout, /^n=0: ninguna tarea terminada con informes de revision/);
+    assert.doesNotMatch(h.stdout, /No hay tareas/);
+    // Sin el flag, la tarea en curso si sale.
+    const r = cliOk(repoRoot, ['metricas']);
+    assert.equal(filaDe(r.stdout)[0], ID);
+  });
+});
+
 test('metricas fuera de un repo Git: las tareas sin registro salen con "—" y un aviso, sin fallar', async () => {
   await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
     await cicloCompleto(repoRoot, tareasRoot);

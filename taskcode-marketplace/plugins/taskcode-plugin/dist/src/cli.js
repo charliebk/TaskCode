@@ -413,7 +413,7 @@ async function mainComando(argvEntrada) {
             for (const aviso of result.advertencias) {
                 process.stderr.write(`[AVISO] ${aviso}\n`);
             }
-            if (result.totalTareas === 0) {
+            if (result.output === '') {
                 process.stdout.write('No hay tareas que medir (o no hay ninguna tarea todavia).\n');
             }
             else {

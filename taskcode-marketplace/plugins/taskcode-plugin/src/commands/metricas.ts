@@ -41,10 +41,16 @@ export class MetricasCommandError extends Error {}
 export const FLAGS_METRICAS: readonly string[] = ['--heuristica'];
 
 export interface MetricasCommandResult {
+  /** Vacio solo cuando no hay ni una tarea que leer. */
   output: string;
   totalTareas: number;
   advertencias: string[];
 }
+
+/** MENOR-2 de la revision: hay tareas, pero ninguna entra en la muestra. */
+export const MUESTRA_HEURISTICA_VACIA =
+  'n=0: ninguna tarea terminada con informes de revision; no hay muestra con la que ' +
+  'comparar la heuristica. Sin --heuristica salen todas las tareas.';
 
 export interface MetricasCommandDeps {
   /** Raiz del repo donde se consulta git log. */
@@ -156,6 +162,8 @@ export async function runMetricasCommand(
     })
   );
 
+  if (filas.length === 0) return { output: '', totalTareas: 0, advertencias };
+
   if (h === null) {
     return {
       output: `${formatearTabla(filas, COLUMNAS_METRICAS)}\n\n${NOTA_CALENDARIO}`,
@@ -170,6 +178,7 @@ export async function runMetricasCommand(
     const { puntos } = puntuarTarea(leida.task, leida.body, h);
     return { ...f, heuristica: { puntos, nivel: nivelHeuristico(puntos, h) } };
   });
+  if (filas.length === 0) return { output: MUESTRA_HEURISTICA_VACIA, totalTareas: 0, advertencias };
   const coinciden = filas.filter((f) => f.heuristica?.nivel === f.complejidad).length;
   const salida = [
     formatearTabla(filas, [...COLUMNAS_METRICAS, ...COLUMNAS_HEURISTICA]),

@@ -103,6 +103,12 @@ umbral_criterios_aceptacion: 5
 #    tareas mas recientes: 1,19 frente a 1,90). Con el corte en 1, el 70%
 #    de la muestra caia en trivial (30 de 43) y declarado y heuristico
 #    coincidian en 5 de 43; con el corte en 0, en 9 de 43.
+#    CONFUSOR que no se puede descartar: las 16 tareas de 0 puntos son
+#    todas de la epoca reciente (tareas cortas y acotadas), el mismo
+#    argumento por el que abajo no se toca el peso de las dependencias.
+#    Lo que lo atenua es que el corte se mantiene dentro de esa misma
+#    epoca; aun asi, la muestra es de un solo proyecto y una sola epoca
+#    para el lado de los 0 puntos, y conviene volver a medirlo.
 #    Por eso nivel_trivial_hasta pasa de 1 a 0: una sola senal ya saca a
 #    la tarea de trivial. El efecto practico se limita a las tareas que
 #    puntuan 1 y se declaran trivial: suben de 0 a 1 rol de brainstorm

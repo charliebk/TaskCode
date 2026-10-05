@@ -27,6 +27,9 @@ import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 export class MetricasCommandError extends Error {
 }
 export const FLAGS_METRICAS = ['--heuristica'];
+/** MENOR-2 de la revision: hay tareas, pero ninguna entra en la muestra. */
+export const MUESTRA_HEURISTICA_VACIA = 'n=0: ninguna tarea terminada con informes de revision; no hay muestra con la que ' +
+    'comparar la heuristica. Sin --heuristica salen todas las tareas.';
 const NOTA_CALENDARIO = 'Duraciones de calendario: diseno = plan->start, curso = start->primer review, ' +
     'revision = primer review->finish. Las pausas no se descuentan. Con origen "registro" ' +
     'de filas antiguas (solo el dia) o mezcladas, la duracion va en dias ("N d").';
@@ -114,6 +117,8 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
         ronda: l.ronda,
         eventosGit: porId.get(l.task.task.id) ?? [],
     }));
+    if (filas.length === 0)
+        return { output: '', totalTareas: 0, advertencias };
     if (h === null) {
         return {
             output: `${formatearTabla(filas, COLUMNAS_METRICAS)}\n\n${NOTA_CALENDARIO}`,
@@ -127,6 +132,8 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
         const { puntos } = puntuarTarea(leida.task, leida.body, h);
         return { ...f, heuristica: { puntos, nivel: nivelHeuristico(puntos, h) } };
     });
+    if (filas.length === 0)
+        return { output: MUESTRA_HEURISTICA_VACIA, totalTareas: 0, advertencias };
     const coinciden = filas.filter((f) => f.heuristica?.nivel === f.complejidad).length;
     const salida = [
         formatearTabla(filas, [...COLUMNAS_METRICAS, ...COLUMNAS_HEURISTICA]),

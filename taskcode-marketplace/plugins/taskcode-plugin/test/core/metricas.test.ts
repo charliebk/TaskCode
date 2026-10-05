@@ -117,6 +117,28 @@ test('plan repetido: diseno mide desde el PRIMER plan; varias reviews: curso has
   assert.equal(formatearDuracion(f.revision), '3h 00m');
 });
 
+// MENOR-1 de la revision: dos pares review/finish (tarea reabierta). La
+// revision mide hasta el ULTIMO finish y el cierre es su dia. Mutacion
+// comprobada: tomar finishes[0] pone rojo este test.
+test('dos pares review/finish: revision llega al ULTIMO finish y el cierre es el suyo', () => {
+  const f = calcularFila(
+    entrada({
+      body: cuerpoCon([
+        ['2026-10-05T10:00:00Z', 'plan'],
+        ['2026-10-05T11:00:00Z', 'start'],
+        ['2026-10-05T12:00:00Z', 'review'],
+        ['2026-10-05T13:00:00Z', 'finish'],
+        ['2026-10-06T09:00:00Z', 'review'],
+        ['2026-10-07T12:30:00Z', 'finish'],
+      ]),
+      ronda: 2,
+    })
+  );
+  assert.equal(formatearDuracion(f.revision), '2d 00h');
+  assert.deepEqual(f.revision, { valor: (48 * 60 + 30) * 60_000, precision: 'segundo' });
+  assert.equal(f.cierre, '2026-10-07');
+});
+
 test('pausa se cuenta pero no se descuenta: la duracion es de calendario', () => {
   const f = calcularFila(
     entrada({
