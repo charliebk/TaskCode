@@ -494,6 +494,162 @@ test('17. la skill enumera los roles de brainstorm en el orden de prioridad del 
   );
 });
 
+// --- 1ter. Una skill ligera y sus referencias bajo demanda (TASK-048) -----
+//
+// El cuerpo de SKILL.md se carga entero cada vez que la skill se invoca, y
+// la description de cada skill en TODAS las sesiones. Lo que solo hace falta
+// en un momento concreto (prerrequisitos, cierre, revision, trampas) vive en
+// ficheros hermanos que SKILL.md enlaza diciendo cuando leerlos. Estos tests
+// impiden que el cuerpo vuelva a engordar, que un enlace a una referencia se
+// rompa y que una referencia nueva arrastre marcas de este repo.
+
+/** 15 KB: por encima, la skill vuelve a pesar lo que pesaba antes de partirla. */
+const MAX_BYTES_SKILL = 15360;
+
+/** La description se carga en todas las sesiones, se use la skill o no. */
+const MAX_DESCRIPTION_CORTA = 300;
+
+/** Directorios de skill del plugin, del listado real. */
+async function dirsDeSkill(): Promise<string[]> {
+  const entradas = await readdir(SKILLS_DIR, { withFileTypes: true });
+  const dirs: string[] = [];
+  for (const e of entradas) {
+    if (e.isDirectory() && (await existe(path.join(SKILLS_DIR, e.name, SKILL_FILE_NAME)))) {
+      dirs.push(e.name);
+    }
+  }
+  return dirs;
+}
+
+/** Los .md de task-workflow: SKILL.md y sus referencias hermanas. */
+async function mdsDeTaskWorkflow(): Promise<string[]> {
+  return (await readdir(SKILL_DIR)).filter((f) => f.endsWith('.md')).map((f) => path.join(SKILL_DIR, f));
+}
+
+/** Destinos relativos a un .md de los enlaces markdown de un texto. */
+function enlacesRelativosAMd(texto: string): string[] {
+  const destinos: string[] = [];
+  const re = /\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(texto)) !== null) {
+    const destino = (m[1] ?? '').split('#')[0] ?? '';
+    if (destino === '' || /^(?:https?:|mailto:)/i.test(destino)) continue;
+    if (destino.endsWith('.md')) destinos.push(destino);
+  }
+  return destinos;
+}
+
+test('18. task-workflow/SKILL.md pesa menos de 15 KB', async () => {
+  const bytes = (await leerSkillBytes()).length;
+  assert.ok(
+    bytes < MAX_BYTES_SKILL,
+    `SKILL.md pesa ${bytes} bytes (limite ${MAX_BYTES_SKILL}): lo que solo se lee en un momento ` +
+      'concreto va a un fichero hermano enlazado desde el cuerpo, no al cuerpo'
+  );
+});
+
+test('19. toda skill del plugin tiene una description de 300 caracteres o menos', async () => {
+  const dirs = await dirsDeSkill();
+  // Guard de no-vacuidad: task-workflow, las cuatro revisoras y las fases.
+  assert.ok(dirs.length >= 12, `solo se encontraron ${dirs.length} skills: ${dirs.join(', ')}`);
+  const largas: string[] = [];
+  for (const dir of dirs) {
+    const { data } = parseFrontmatter(await readFile(path.join(SKILLS_DIR, dir, SKILL_FILE_NAME), 'utf8'));
+    const d = data.description;
+    assert.equal(typeof d, 'string', `${dir}: sin description`);
+    if ((d as string).length > MAX_DESCRIPTION_CORTA) largas.push(`${dir} (${(d as string).length})`);
+  }
+  assert.deepEqual(largas, [], `descriptions de mas de ${MAX_DESCRIPTION_CORTA} caracteres: ${largas.join(', ')}`);
+});
+
+test('20. todo enlace relativo a un .md desde un SKILL.md o desde las referencias de task-workflow existe', async () => {
+  const origenes = [
+    ...(await dirsDeSkill()).map((d) => path.join(SKILLS_DIR, d, SKILL_FILE_NAME)),
+    ...(await mdsDeTaskWorkflow()).filter((f) => path.basename(f) !== SKILL_FILE_NAME),
+  ];
+  let comprobados = 0;
+  const rotos: string[] = [];
+  for (const origen of origenes) {
+    for (const rel of enlacesRelativosAMd(await readFile(origen, 'utf8'))) {
+      comprobados++;
+      const absoluta = path.resolve(path.dirname(origen), rel);
+      if (!(await existe(absoluta))) rotos.push(`${path.relative(SKILLS_DIR, origen)} -> ${rel}`);
+    }
+  }
+  // Guard de no-vacuidad: SKILL.md enlaza al menos sus seis referencias y
+  // cada revisora la suya. Si el patron dejara de casar, esto saldria verde.
+  assert.ok(comprobados >= 10, `solo se comprobaron ${comprobados} enlaces: el patron no casa`);
+  assert.deepEqual(rotos, [], `enlaces a .md rotos: ${rotos.join(' | ')}`);
+});
+
+test('20b. SKILL.md enlaza cada referencia hermana: ninguna queda huerfana', async () => {
+  const body = parseFrontmatter(await leerSkillTexto()).body;
+  const enlazadas = new Set(enlacesRelativosAMd(body));
+  const hermanas = (await mdsDeTaskWorkflow()).map((f) => path.basename(f)).filter((f) => f !== SKILL_FILE_NAME);
+  for (const esperada of ['prerrequisitos.md', 'cierre.md', 'trampas.md', 'revision.md']) {
+    assert.ok(hermanas.includes(esperada), `falta la referencia ${esperada}`);
+  }
+  const huerfanas = hermanas.filter((h) => !enlazadas.has(h));
+  assert.deepEqual(huerfanas, [], `referencias que SKILL.md no enlaza (nadie las leeria): ${huerfanas.join(', ')}`);
+});
+
+/**
+ * Marcas de ESTE repo para los .md de task-workflow. Es la lista de las
+ * skills de fase y no la estricta de las revisoras, a proposito: esta skill
+ * SI nombra `tareas/`, `plan-final.md`, `taskctl` y los ficheros que el
+ * plugin escribe en el proyecto del usuario. Lo que puede contener
+ * "taskcode" esta acotado en `PERMITIDO_CON_TASKCODE`.
+ */
+const MARCAS_DEL_REPO = [
+  'taskcode',
+  'docs/contexto',
+  'propuesta_metodologia',
+  'checklist_terminacion',
+  'plan_sprints',
+  'hallazgos.md',
+  'task-0',
+  'ieca',
+  'movetareafile',
+  'printclierror',
+  'veredictoaprobado',
+  'informetemplate',
+  'src/commands/',
+  'src/core/',
+];
+
+/**
+ * Lo unico que puede llevar "taskcode": el prefijo con que se invocan las
+ * skills, la carpeta de configuracion y la del registro de Git-Flow (los
+ * dos se crean en el proyecto del usuario).
+ */
+const PERMITIDO_CON_TASKCODE = ['taskcode-plugin', '.taskcode/', 'taskcode/gitflow'];
+
+/** Documentos que el plugin si escribe o pone de ejemplo en el proyecto del usuario. */
+const DOCUMENTOS_DEL_USUARIO = ['docs/BOARD.md', 'docs/PLAN.md'];
+const DOCUMENTO_INTERNO = /docs\/[A-Z_]+\.md/;
+
+test('21. ningun .md de task-workflow arrastra marcas de este repo ni rutas de maquina', async () => {
+  const ficheros = await mdsDeTaskWorkflow();
+  assert.ok(ficheros.length >= 7, `solo hay ${ficheros.length} .md en task-workflow`);
+  for (const fichero of ficheros) {
+    const nombre = path.basename(fichero);
+    const texto = await readFile(fichero, 'utf8');
+    let minusculas = texto.toLowerCase();
+    for (const p of PERMITIDO_CON_TASKCODE) minusculas = minusculas.split(p).join('');
+    const marcas = MARCAS_DEL_REPO.filter((m) => minusculas.includes(m));
+    assert.deepEqual(marcas, [], `${nombre}: marcas de este repo, que no significan nada donde se instala`);
+
+    let sinDocsDelUsuario = texto;
+    for (const d of DOCUMENTOS_DEL_USUARIO) sinDocsDelUsuario = sinDocsDelUsuario.split(d).join('');
+    const doc = DOCUMENTO_INTERNO.exec(sinDocsDelUsuario);
+    assert.equal(doc, null, `${nombre}: nombra el documento interno "${doc?.[0]}"`);
+
+    for (const ruta of RUTAS_DE_MAQUINA) {
+      assert.ok(!texto.includes(ruta), `${nombre}: contiene la ruta de maquina "${ruta}"`);
+    }
+  }
+});
+
 // --- 2. De integracion: el validador oficial ----------------------------
 
 interface ResultadoValidate {

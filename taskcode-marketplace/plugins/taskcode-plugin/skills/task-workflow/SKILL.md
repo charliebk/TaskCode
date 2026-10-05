@@ -1,6 +1,6 @@
 ---
 name: task-workflow
-description: Metodologia de tareas por sprints con revision por pares y Git-Flow determinista. Se usa cuando el proyecto tiene una carpeta "tareas/" con subcarpetas 00-planificadas .. 04-terminadas, o cuando se pide "crear una tarea", "planificar una tarea", "aprobar un plan", "empezar una tarea", "revisar por pares", "cerrar una tarea", o se menciona taskctl, una tarea TASK-NNN, el tablero de tareas o el flujo de Git-Flow del proyecto.
+description: Flujo de tareas por sprints con revision por pares y Git-Flow determinista (taskctl). Se usa si el proyecto tiene tareas/ con 00-planificadas .. 04-terminadas, o se pide crear, planificar, aprobar, empezar, revisar por pares o cerrar una tarea, o se menciona taskctl, una TASK-NNN o el tablero.
 ---
 
 # Flujo de trabajo de tareas (taskctl)
@@ -18,35 +18,10 @@ aplica.
 
 Comprobar el estado real antes de nada: `taskctl board`.
 
-**Prerrequisito 1 — `taskctl` disponible**: lo aporta este mismo plugin. Su
-ejecutable vive en `bin/`, que Claude Code anade al PATH del Bash tool
-mientras el plugin este habilitado, y no hay que compilar ni instalar nada
-aparte. Comprobarlo con `taskctl --version`, que debe imprimir un numero de
-version. Si no responde, en este orden:
-
-1. Reinicia la sesion de Claude Code. El PATH se compone al arrancar, asi que
-   un plugin instalado a mitad de sesion no aparece hasta la siguiente.
-2. Si sigue sin responder, mira **primero** si la variable tiene valor:
-   `echo "$CLAUDE_PLUGIN_ROOT"`.
-   - Si imprime una ruta, invocalo por ahi:
-     `node "$CLAUDE_PLUGIN_ROOT/bin/taskctl" --version`. Todos los comandos de
-     esta skill funcionan igual por esa via.
-   - **Si sale vacia, este paso no aplica y no dice nada** sobre si el plugin
-     esta activo: esa variable no esta exportada en todos los entornos, y
-     usarla vacia construye una ruta que no existe (`/bin/taskctl`) y falla
-     por un motivo que no tiene nada que ver.
-3. Solo si el paso 2 llego a ejecutarse con una ruta que **contiene de verdad
-   `bin/taskctl`** y aun asi no respondio, el plugin no esta activo y ningun
-   paso de esta skill va a funcionar. Si la ruta apuntaba a otro sitio, el
-   fallo no dice nada: vuelve al paso 1.
-
-No des por hecho el paso 3 al primer `command not found`: el caso normal es
-el 1.
-
-**Prerrequisito 2**: el repo necesita una rama `develop`. Los comandos la
-esperan por nombre para las tareas de tipo `feature`, `fix` y `release`; las
-de tipo `hotfix` van contra la principal (`main` o `master`, lo que exista).
-Sin `develop`, el primer comando que escriba en `tareas/` ya falla.
+**Prerrequisitos**: `taskctl` en el PATH (lo aporta este plugin;
+`taskctl --version` imprime su version) y una rama `develop` en el repo. Si
+`taskctl` no responde o no hay `develop`, lee [prerrequisitos.md](prerrequisitos.md)
+antes de seguir: dice en que orden comprobarlo y que no dar por hecho.
 
 ## El ciclo de vida
 
@@ -83,8 +58,8 @@ Precondiciones de cada transicion:
   informe. **No invoca a ningun agente**: lanzar al revisor es trabajo de
   quien orquesta.
 - **`finish`** — desde `en-revision`, y solo si el ultimo informe de revision
-  aprueba (ver "La linea del veredicto"). Mergea, mueve la tarea y regenera
-  los artefactos del repo.
+  aprueba (ver la linea del veredicto en [revision.md](revision.md)).
+  Mergea, mueve la tarea y regenera los artefactos del repo.
 
 La carpeta de cada tarea es `tarea.md` + `planificacion/` + `revision/`. Las
 dos subcarpetas se crean bajo demanda, cuando hay algo que escribir dentro.
@@ -124,7 +99,7 @@ Detalles que muerden:
 
 - **En `approve`, `review` y `finish` el ID tiene que ser el primer
   argumento.** Esos comandos leen el primer argumento tal cual, asi que
-  `taskctl approve --loquesea TASK-001` intentaria usar `--loquesea` como ID.
+  `taskctl approve --loquesea TASK-NNN` intentaria usar `--loquesea` como ID.
 - **Los flags desconocidos se ignoran en silencio** en el resto de comandos:
   comprobar la salida, no suponer.
 - `board` solo escribe `docs/BOARD.md` si se le pasa `--escribir`, y ese
@@ -205,53 +180,12 @@ derivados tras cada transicion. Sin fichero, todo por defecto; una clave mal
 escrita aborta todos los comandos. La sincronizacion (y sus trampas: no usar un
 hook de pre-commit, codigo de salida 3) esta en [sincronizacion.md](sincronizacion.md).
 
-## Criterios verificables tras el cierre (post-finish)
+## Cerrar una tarea
 
-Algunos criterios de aceptacion solo se pueden demostrar despues de que
-`taskctl finish` fusione la rama en la rama base: un CI que pase en verde tras
-el merge, una publicacion en produccion desde esa rama, o una ejecucion en vivo
-que dependa del merge realizado. Esos criterios **no se pueden marcar antes de
-cerrar la tarea**.
-
-**Como declararlos en `tarea.md`:**
-
-Dentro de la seccion `## Criterios de aceptacion`, añade una subseccion
-`### Tras el cierre` para los que solo se verifican despues de `finish`:
-
-```markdown
-## Criterios de aceptacion
-
-(Criterios normales que se verifican antes de finish)
-- [ ] El parser acepta ficheros UTF-8 con BOM.
-- [ ] La sintaxis de error da consejos especificos.
-
-### Tras el cierre
-
-(Se verifican despues de finish, en la rama base)
-- [ ] La rama base pasa el CI a verde.
-- [ ] La documentacion se publica automaticamente en main.
-```
-
-**Reglas:**
-
-- Los criterios normales **deben estar todos marcados antes de `finish`**.
-  `finish` no lee las casillas: lo comprueba quien cierra y el revisor.
-- Los de "Tras el cierre" no cuentan para cerrar.
-- Despues de cerrar, quien lanzo `finish` verifica esos criterios en la rama
-  base mientras se resuelven los detalles de publicacion o despliegue.
-- La evidencia de que pasaron se registra en **un commit posterior**, en la
-  seccion `## Resultado` de la tarea en su carpeta de terminadas (o en el
-  registro de progreso del proyecto si la estructura es distinta).
-
-**Si un criterio post-cierre falla:**
-
-No se reabre la tarea ya cerrada. En su lugar:
-
-1. Documenta el fallo en el `## Resultado` de la tarea cerrada: qué
-   criterio fallo, por que, y que evidencia se recopilo.
-2. Abre una tarea **nueva de tipo `fix`** (en `00-planificadas/`) que corrija
-   el problema. Referencia la tarea original en su descripcion.
-3. Sigue el flujo normal: `plan`, `approve`, `start`, revision, `finish`.
+Antes de lanzar `finish`, y otra vez justo despues, lee [cierre.md](cierre.md):
+lo que tiene que estar hecho al cerrar (suite, smoke test, criterios marcados,
+`## Resultado`, registro de progreso) y como declarar y verificar los criterios
+que solo se comprueban despues del merge (`### Tras el cierre`).
 
 ## El brainstorm de la fase de diseno
 
@@ -302,129 +236,14 @@ incremental: tratarla como un reinicio gasta de nuevo todos los agentes.
 
 ## La revision por pares
 
-**Quien.** Un agente que no implemento la tarea. La independencia es el punto,
-no un formalismo.
-
-**Como.** No es leer el diff y opinar. Es clonar el repo a un directorio
-temporal, compilar, correr la suite uno mismo, y **construir el caso que rompe
-el codigo antes de reportarlo**. Lo que mas hallazgos ha dado:
-
-- **Mutacion**: romper a proposito cada proteccion y ver si algun test se
-  entera. Asi se descubre que un flag defensivo se habia quedado sin cobertura.
-- **Ejercitar el CLI real**, no solo la API interna.
-- **Comprobar los tests que cambiaron de expectativa**: que sigan aseverando
-  lo mismo y no escondan una regresion.
-- **Reconstruir el build**: un clon no hereda binarios compilados, y cada rama
-  compila algo distinto.
-
-**Clasificacion.** CRITICO: perdida de datos, corrupcion de estado, o el
-comando hace lo contrario de lo que dice. IMPORTANTE: comportamiento
-incorrecto en un caso real, no de borde. MENOR: todo lo demas.
-
-Un "sin hallazgos" explicito es una respuesta valida. Inventar hallazgos para
-tener algo que reportar, no.
-
-**Rondas.** Se numeran: `peticion-revision-N.md` e `informe-revision-N.md` en
-`revision/`. **Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la
-tarea.** Los MENOR que se corrijan no abren ronda 2: basta la suite en verde,
-el commit de correccion y su nota en el `## Resultado`. La ronda 2 solo se
-pide si se corrigio algun CRITICO o IMPORTANTE (veredicto `cambios-solicitados`):
-`taskctl review` sobre la tarea en revision la genera con solo el diff desde
-la ronda anterior y los hallazgos aun abiertos de su tabla, sin integrar la
-rama base (eso lo hace `finish`). Las correcciones son justo donde se cuelan
-los fallos nuevos. El revisor corre la suite completa una vez por ronda; los
-mutantes, con el fichero de test concreto.
-
-### La linea del veredicto
-
-`finish` decide si la tarea puede cerrarse leyendo el informe de mayor N, y lo
-hace **fail-closed** a proposito: una version anterior buscaba la palabra
-"aprobada" en cualquier parte y aprobaba literalmente "no aprobada".
-
-**Escribirla con el comando, no a mano:**
-`taskctl veredicto TASK-NNN aprobada | aprobada-con-correcciones | cambios-solicitados`
-deja una unica linea canonica en lugar de todas las que hubiera (porque *todas*
-tienen que aprobar) y la commitea. En una ronda fragmentada por dominio, cada
-revisor firma la suya con `--informe <nombre>`.
-
-Lo que acepta el gate, y por que:
-
-| Linea | Resultado |
-|---|---|
-| `- Veredicto: aprobada` | pasa |
-| `- Veredicto: aprobada con correcciones` | pasa (empieza por `aprobada`) |
-| `- Veredicto: **aprobada**` | pasa: el enfasis de markdown se ignora |
-| `- Veredicto: **APROBADO**` | falla: `aprobado` no es `aprobada` |
-| `- Veredicto: APROBADO CON CAMBIOS` | falla: `aprobado` no es `aprobada` |
-| `- Veredicto: cambios-solicitados` | falla, y es lo correcto si pides cambios |
-| `- Veredicto: PENDIENTE (...)` | falla: la plantilla sin sustituir |
-| `Veredicto: aprobada` (sin el guion) | falla: no cuenta como linea de veredicto |
-
-El matiz va en el **cuerpo** del informe, con la tabla de hallazgos de la
-plantilla (`ID | Severidad | Estado | Fichero`), no en esa linea.
+Antes de lanzar o de hacer una revision, y antes de escribir el veredicto, lee
+[revision.md](revision.md): quien revisa y como (reproducir, no leer el diff),
+la puerta determinista, la clasificacion CRITICO / IMPORTANTE / MENOR, las
+rondas, la plantilla del informe y la linea del veredicto que `finish` acepta,
+con su tabla. Es el mismo fichero que siguen las skills revisoras.
 
 ## Trampas que cuestan tiempo
 
-**Los scripts de Git-Flow se invocan como `bash script.sh`, nunca por ruta
-directa.** El bit de ejecucion no viaja por Git en todas las configuraciones.
-En Windows hay una segunda capa: `bash` desde PowerShell puede resolver al de
-WSL y reventar; hace falta el `bash` de Git con su directorio de utilidades en
-el PATH, o se queda sin las herramientas que los scripts usan.
-
-**Los scripts escriben un registro de cada ejecucion** dentro del directorio
-de Git, en `taskcode/gitflow/gitflow-FECHA.log`. La ruta exacta la da
-`git rev-parse --git-path taskcode/gitflow`, y preguntarla es mejor que
-componerla: en un repo normal sale bajo `.git/`, pero en un **worktree
-enlazado** el directorio de Git es otro y el registro vive ahi. Va fuera del
-arbol de trabajo a proposito: durante
-mucho tiempo lo escribian dentro del repo, nada mas arrancar y antes de mirar
-si el workspace estaba limpio, asi que **se ensuciaban el workspace ellos
-mismos** y el comando de reanudar quedaba inservible en cualquier repo que no
-ignorara esa ruta. No hace falta anadir nada al `.gitignore`.
-
-**La herramienta commitea solo lo que escribe** (mas las rutas de
-sincronizacion, si las hay): nunca un `git add` global. Los ficheros que se le
-pasen a `import` tienen que vivir **fuera** del repo: dentro, ensucian el
-workspace y abortan el propio import.
-
-**Los comandos que escriben en `tareas/` exigen estar en la rama base.** Son
-`new`, `import`, `plan` y `approve`. Si el workspace esta limpio **cambian de
-rama solos y lo dicen despues**; si esta sucio, abortan. `start`, `review` y
-`finish` solo exigen workspace limpio. Los ficheros sin trackear cuentan como
-sucio.
-
-**Sin terminal, stdin se ignora.** Los comandos que envuelven scripts
-interactivos heredan stdin solo si hay TTY. Sin el, el script recibe EOF y
-toma su valor por defecto — que a veces es "no hacer nada" y salir 0. Heredar
-siempre no es la alternativa segura: una tuberia abierta que nadie cierra
-cuelga el comando **para siempre**, y eso lo produce cualquier arnes de agente
-y tambien el runner de tests.
-
-**Un clon nuevo no hereda nada.** Ni dependencias, ni binarios compilados, ni
-identidad de Git. Instalar y compilar siempre, **y otra vez tras cada cambio
-de rama dentro del mismo clon**. Sin `user.email` y `user.name` configurados,
-cualquier commit falla.
-
-**Un fix de errno validado en una sola plataforma no esta validado.** Codigos
-distintos describen el mismo hecho segun el sistema operativo. Lo caro no es
-el bug: es que el test escrito para cerrarlo hereda el mismo punto ciego, pasa
-en local y cae en el CI de la otra plataforma.
-
-## Al cerrar una tarea
-
-1. Suite en verde **antes** de commitear.
-2. Smoke test manual de punta a punta si la tarea toca el CLI o Git. Ha
-   encontrado fallos **antes** que la revision mas de una vez, porque ejercita
-   el flujo real en vez del orden mas comodo.
-3. Criterios de aceptacion marcados en `tarea.md`, y seccion `## Resultado`
-   con que se implemento, que encontro la revision, que se corrigio y que se
-   dejo sin corregir. Es el unico sitio donde queda la experiencia: el diff no
-   la cuenta. (Nota: si existen criterios bajo "Tras el cierre", se verifican
-   despues de `finish` — ver "Criterios verificables tras el cierre
-   (post-finish)".)
-4. Actualizar el registro de progreso que use el proyecto.
-5. `taskctl finish`.
-
-Commits: mensajes en el idioma del proyecto, una rama por tarea, merge sin
-fast-forward. Si el repo tiene activada la politica de conservar ramas, no se
-borran tras el merge.
+Cuando un comando de `taskctl` o un script de Git-Flow falle de forma rara (se
+cuelga, sale 0 sin hacer nada, se queja del workspace o de la rama), y antes de
+trabajar en un clon nuevo o en Windows, lee [trampas.md](trampas.md).

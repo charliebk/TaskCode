@@ -1,6 +1,6 @@
 ---
 name: angular-vue-reviewer
-description: Revisor por pares de diffs de frontend Angular y Vue. Se usa cuando el diff de una tarea toca ficheros .vue, ficheros .component.ts o .directive.ts de Angular hasta la version 19, plantillas, ficheros de rutas o configuracion de arranque bajo src/app en Angular 20 o posterior, o composables, y hay que revisar reactividad y gestion de estado, fugas de suscripciones, limites entre componentes, accesibilidad, rendimiento de renderizado, tipado de props y entradas, y tests de componente antes de cerrar la tarea.
+description: Revisor por pares de Angular y Vue. Se usa si el diff toca .vue, .component.ts, .directive.ts, composables, o plantillas, rutas o app.config bajo src/app (Angular 20+). Revisa reactividad y estado, fugas de suscripciones, limites entre componentes, accesibilidad, renderizado, tipado y tests.
 ---
 
 # Revision por pares de Angular y Vue
@@ -8,6 +8,12 @@ description: Revisor por pares de diffs de frontend Angular y Vue. Se usa cuando
 Revisa el diff de una tarea que toca la capa de interfaz en Angular o Vue.
 **Lo revisa un agente que no implemento la tarea**: la independencia es el
 punto, no un formalismo.
+
+Antes de empezar, lee [revision.md](../task-workflow/revision.md): lo comun a
+toda revision (la puerta determinista, una sola ejecucion de la suite por
+ronda, la plantilla de cada hallazgo, las rondas, la linea del veredicto que
+`taskctl finish` acepta y lo que un revisor no hace). Aqui queda lo propio de
+Angular y Vue.
 
 ## Que recibe este revisor y que no
 
@@ -150,12 +156,7 @@ ejercita la vista.
    solo el servidor de desarrollo. Muchos errores de tipado solo salen ahi.
    Si no compila, ahi acaba la revision.
 4. **Correr la suite entera antes de tocar nada**, para tener la linea base.
-   **Una sola ejecucion por ronda:** la puerta y la linea base son la misma
-   pasada de la suite completa; no se repite. Los mutantes se comprueban con
-   el fichero o la clase de test concretos que cubren la linea mutada, no
-   con la suite entera. Con varios revisores en paralelo en la misma
-   maquina, la suite se corre con concurrencia reducida o por turnos: si no,
-   compiten por la CPU y todas tardan mas.
+   Una sola vez por ronda (ver revision.md).
 5. **Levantar la aplicacion y ejercitar la vista de verdad**, con el
    navegador, entrando y saliendo de la ruta y con datos que se parezcan a
    los reales en volumen.
@@ -283,19 +284,12 @@ contrario de lo que dice:
 - Texto alternativo redundante que el lector de pantalla repite.
 - Import o dependencia que el diff deja sin usar.
 
-Todos los hallazgos se documentan, **tambien los que se decide no
-corregir**, con el motivo. Un "sin hallazgos" explicito es una respuesta
-valida; inventar hallazgos para tener algo que reportar, no.
-
 ## Estructura del informe
 
-`taskctl review` deja el esqueleto del informe en la carpeta de revision de
-la tarea, numerado por ronda. **Se rellena ese esqueleto, respetando su
-cabecera**: el titulo tal cual, la linea `- Commit revisado:` con el sha, la
-linea `- Revisor:` con el nombre de esta skill, y la linea `- Veredicto:`,
-que se **sustituye** en su sitio — nunca se borra de la cabecera ni se
-repite mas abajo. Las secciones propias de este revisor van **despues** de
-`## Hallazgos`, donde no chocan con lo que el esqueleto ya trae:
+Se rellena el esqueleto que deja `taskctl review`, respetando su cabecera
+(ver revision.md), con el nombre de esta skill en `- Revisor:`. Las secciones
+propias de este revisor van **despues** de `## Hallazgos`, donde no chocan con
+lo que el esqueleto ya trae:
 
 ```markdown
 # Informe de revision — <ID de la tarea> (ronda <N>)
@@ -306,18 +300,7 @@ repite mas abajo. Las secciones propias de este revisor van **despues** de
 
 ## Hallazgos
 
-### CRITICO-1 — <titulo corto>
-- Donde: <fichero:linea>
-- Que pasa: <comportamiento observado, en una o dos frases>
-- Reproduccion: <los pasos exactos que se ejecutaron, y su salida>
-- Impacto: <la consecuencia concreta para quien use esto>
-- Sugerencia: <la direccion de la correccion, no el parche>
-
-### IMPORTANTE-1 — <titulo corto>
-<mismos campos>
-
-### MENOR-1 — <titulo corto>
-<mismos campos, mas si se propone no corregirlo y por que>
+<un bloque por hallazgo, con la plantilla de revision.md>
 
 ## Alcance
 - Ficheros revisados: <los del diff que casaron con los patrones>
@@ -339,53 +322,11 @@ Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
 forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
 llegar a esa conclusion.
 
-Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la tarea: los MENOR que
-se corrijan no abren otra ronda. La ronda 2 solo se pide si se corrigio
-algun CRITICO o IMPORTANTE, y entonces revisa el delta de la correccion y
-comprueba **cada uno de esos hallazgos**: las correcciones son justo donde
-entran los fallos nuevos.
-
-## La linea del veredicto
-
-`taskctl finish` decide si la tarea puede cerrarse leyendo esa linea, y lo
-hace fail-closed: acepta una linea que, sin espacios y en minusculas,
-empiece por `- veredicto:` y cuyo **valor empiece** por `aprobada`. Si el
-valor contiene `pendiente` o `cambios-solicitados`, no aprueba. Y si el
-informe tiene varias lineas de veredicto, **todas** tienen que aprobar — por
-eso se **sustituye** la linea de la plantilla, no se anade otra debajo.
-
-| Linea escrita | Resultado |
-|---|---|
-| `- Veredicto: aprobada` | aprueba |
-| `- Veredicto: aprobada con correcciones menores` | aprueba (el valor empieza por `aprobada`) |
-| `- Veredicto: cambios-solicitados` | no aprueba, y es lo correcto si hay CRITICO o IMPORTANTE |
-| `- Veredicto: rechazada` | no aprueba |
-| `- Veredicto: no aprobada` | no aprueba: el valor no *empieza* por `aprobada` |
-| `- Veredicto: PENDIENTE (rellenar)` | no aprueba: es la plantilla sin sustituir |
-| `- Veredicto: **APROBADA**` | no aprueba: los asteriscos rompen el inicio |
-| `- Veredicto: aprobado` | no aprueba: `aprobado` no es `aprobada` |
-| `Veredicto: aprobada` | no cuenta como linea de veredicto, y sin ninguna no aprueba |
-
-El matiz va en el cuerpo del informe, nunca en esa linea. Un revisor que
-escriba el veredicto en su propio vocabulario bloquea el cierre y obliga a
-un commit de normalizacion que no arregla nada.
-
 ## Lo que esta skill no hace
 
-- **No implementa la correccion.** Propone el arreglo en el informe; lo
-  aplica quien implemento la tarea.
-- **No reescribe el codigo ajeno** ni commitea en la rama revisada. Los
-  unicos ficheros que toca son los suyos temporales y el informe.
-- **No aprueba por simpatia.** Si hay un CRITICO o un IMPORTANTE sin
-  corregir, el veredicto es `cambios-solicitados`, aunque el resto del diff
-  este impecable y aunque la tarea vaya con prisa.
+Ademas de lo que ningun revisor hace (ver revision.md):
+
 - **No es una revision de estetica.** Se revisa comportamiento,
   accesibilidad y contratos, no si el color gusta ni si el espaciado
   convence. Una preferencia visual sin consecuencia medible no es un
   hallazgo.
-- **No inventa hallazgos** para que el informe no salga vacio.
-- **No revisa ficheros fuera de sus patrones**: si al leer el diff aparece
-  algo de otro dominio que preocupa, se anota en una linea y se deja para su
-  revisor, no se juzga aqui.
-- **No sustituye a la puerta determinista** (build, linter, tests). Si eso
-  esta rojo, no hay nada que revisar todavia.

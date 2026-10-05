@@ -125,6 +125,21 @@ async function leer(nombre: string): Promise<string> {
 }
 
 /**
+ * Lo comun a las cuatro revisoras (plantilla de hallazgos, rondas, linea del
+ * veredicto con su tabla, lo que un revisor no hace) vive una sola vez en la
+ * skill de flujo, desde TASK-048: cuatro copias ya habian divergido (las
+ * cuatro decian que `**aprobada**` no aprueba despues de que el gate empezara
+ * a recortar el enfasis). Cada revisora lo enlaza con esta ruta relativa.
+ */
+const REVISION_MD = path.join(SKILLS_DIR, 'task-workflow', 'revision.md');
+const ENLACE_A_REVISION = '](../task-workflow/revision.md)';
+
+/** Lo que lee de verdad un revisor: su skill mas la referencia comun. */
+async function textoEfectivo(nombre: string): Promise<string> {
+  return `${await leer(nombre)}\n${await readFile(REVISION_MD, 'utf8')}`;
+}
+
+/**
  * Extrae el primer bloque ```yaml del cuerpo y lo parsea con el parser del
  * repo. Devuelve tambien las lineas crudas: el parser aplana lo que puede,
  * asi que aseverar solo sobre su salida dejaria pasar formas que Claude
@@ -566,7 +581,7 @@ test('7. la linea de veredicto que cada skill prescribe la ACEPTA finish.ts', as
 
 test('8. cada skill prescribe tambien la forma de NO aprobar, y finish.ts la rechaza', async () => {
   for (const nombre of REVISORES) {
-    const texto = await leer(nombre);
+    const texto = await textoEfectivo(nombre);
     assert.ok(
       texto.includes('cambios-solicitados'),
       `${nombre}: no dice como pedir cambios; sin eso solo sabe aprobar`
@@ -905,11 +920,144 @@ test('10c. las cuatro prescriben el esqueleto que taskctl review genera de verda
   }
 });
 
+// --- 3ter. Lo comun, en un solo sitio (TASK-048) -------------------------
+
+test('10d. cada revisora enlaza la referencia comun, y la referencia existe', async () => {
+  await readFile(REVISION_MD, 'utf8'); // lanza si no existe
+  for (const nombre of REVISORES) {
+    assert.ok(
+      (await leer(nombre)).includes(ENLACE_A_REVISION),
+      `${nombre}: no enlaza ${ENLACE_A_REVISION.slice(2, -1)}, donde vive lo comun a toda revision`
+    );
+  }
+});
+
+/**
+ * Frases que solo pueden estar en revision.md. Si una revisora vuelve a
+ * copiarlas, hay dos sitios que mantener y el dia que se toque uno solo
+ * divergen, que es lo que ya paso con la tabla del veredicto.
+ */
+const SOLO_EN_REVISION = [
+  'Una sola ejecucion de la suite por ronda',
+  '- Sugerencia: <la direccion de la correccion, no el parche>',
+  '### IMPORTANTE-1 — <titulo corto>',
+  'No aprueba por simpatia',
+  'Un revisor que escriba el veredicto en su propio vocabulario',
+];
+
+/** Fila de una tabla de veredictos, con o sin el guion de la linea. */
+const FILA_DE_VEREDICTO = /^\|\s*`-?\s*Veredicto:/im;
+
+async function todosLosMd(): Promise<string[]> {
+  const ficheros: string[] = [];
+  for (const dir of await readdir(SKILLS_DIR, { withFileTypes: true })) {
+    if (!dir.isDirectory()) continue;
+    for (const f of await readdir(path.join(SKILLS_DIR, dir.name))) {
+      if (f.endsWith('.md')) ficheros.push(path.join(SKILLS_DIR, dir.name, f));
+    }
+  }
+  return ficheros;
+}
+
+test('10e. lo comun a las revisoras y la tabla del veredicto viven solo en revision.md', async () => {
+  const comun = await readFile(REVISION_MD, 'utf8');
+  for (const frase of SOLO_EN_REVISION) {
+    assert.ok(comun.includes(frase), `revision.md ya no contiene "${frase}": el test no mide nada`);
+  }
+  assert.ok(FILA_DE_VEREDICTO.test(comun), 'revision.md no tiene la tabla del veredicto');
+
+  const ficheros = (await todosLosMd()).filter((f) => path.resolve(f) !== path.resolve(REVISION_MD));
+  assert.ok(ficheros.length >= 15, `solo se encontraron ${ficheros.length} .md en skills/`);
+  for (const fichero of ficheros) {
+    const texto = await readFile(fichero, 'utf8');
+    const rel = path.relative(SKILLS_DIR, fichero);
+    for (const frase of SOLO_EN_REVISION) {
+      assert.ok(!texto.includes(frase), `${rel}: copia "${frase}", que vive en revision.md`);
+    }
+    assert.ok(!FILA_DE_VEREDICTO.test(texto), `${rel}: tiene su propia tabla del veredicto`);
+  }
+});
+
+/** Las filas de la tabla del veredicto de revision.md, tal cual. */
+function filasDeVeredicto(texto: string): Array<{ celda: string; resultado: string }> {
+  const filas: Array<{ celda: string; resultado: string }> = [];
+  let enTabla = false;
+  for (const linea of texto.split(/\r?\n/)) {
+    if (/^\|\s*Linea escrita\s*\|\s*Resultado\s*\|/.test(linea)) {
+      enTabla = true;
+      continue;
+    }
+    if (!enTabla) continue;
+    if (!linea.startsWith('|')) break;
+    if (/^\|[\s|:-]+$/.test(linea)) continue; // separador |---|---|
+    const celdas = linea.split('|').slice(1, -1).map((c) => c.trim());
+    filas.push({ celda: celdas[0] ?? '', resultado: celdas[1] ?? '' });
+  }
+  return filas;
+}
+
+/** Que informe representa la primera celda: su codigo, o nada si no hay linea. */
+function informeDeCelda(celda: string): string {
+  const codigo = /^`([^`]+)`/.exec(celda);
+  if (codigo) return codigo[1] as string;
+  assert.equal(celda, '(sin ninguna linea de veredicto)', `celda que el test no sabe leer: "${celda}"`);
+  return '';
+}
+
+/** Lo que la tabla dice del resultado: aprueba (true) o no (false). */
+function resultadoDeCelda(resultado: string): boolean {
+  if (/^no aprueba\b/i.test(resultado)) return false;
+  if (/^aprueba\b/i.test(resultado)) return true;
+  return assert.fail(`resultado que el test no sabe leer: "${resultado}"`);
+}
+
+test('10f. cada fila de la tabla del veredicto de revision.md dice lo que hace finish.ts', async () => {
+  const filas = filasDeVeredicto(await readFile(REVISION_MD, 'utf8'));
+  // Guard de no-vacuidad: si la cabecera cambia, filasDeVeredicto no lee
+  // nada y el bucle de abajo saldria verde sin comprobar ninguna fila.
+  assert.ok(filas.length >= 10, `la tabla tiene ${filas.length} filas: no se esta leyendo`);
+  const dice = filas.map((f) => resultadoDeCelda(f.resultado));
+  assert.ok(dice.includes(true) && dice.includes(false), 'la tabla tiene que tener filas que aprueban y que no');
+
+  const mal: string[] = [];
+  for (const [i, fila] of filas.entries()) {
+    const real = veredictoAprobado(informeDeCelda(fila.celda));
+    if (real !== dice[i]) {
+      mal.push(`  ${fila.celda}: la tabla dice "${fila.resultado}" y finish.ts ${real ? 'aprueba' : 'no aprueba'}`);
+    }
+  }
+  assert.deepEqual(mal, [], `filas de la tabla que no coinciden con veredictoAprobado:\n${mal.join('\n')}`);
+});
+
+test('10g. la lectura de la tabla discrimina (contraprueba del 10f)', () => {
+  const tabla = [
+    'texto antes',
+    '| Linea escrita | Resultado |',
+    '|---|---|',
+    '| `- Veredicto: aprobada` | aprueba |',
+    '| (sin ninguna linea de veredicto) | no aprueba |',
+    '',
+    '| `- Veredicto: fuera de la tabla` | aprueba |',
+  ].join('\n');
+  const filas = filasDeVeredicto(tabla);
+  assert.equal(filas.length, 2, 'la tabla no acaba en la primera linea que no es fila');
+  assert.equal(informeDeCelda(filas[0]?.celda ?? ''), '- Veredicto: aprobada');
+  assert.equal(informeDeCelda(filas[1]?.celda ?? ''), '');
+  assert.equal(resultadoDeCelda('no aprueba: motivo'), false, '"no aprueba" se lee como aprueba');
+  assert.equal(resultadoDeCelda('aprueba: motivo'), true);
+  assert.throws(() => resultadoDeCelda('pasa'), 'un resultado ilegible no puede contar como ninguno');
+  assert.throws(() => informeDeCelda('linea sin codigo'), 'una celda ilegible no puede contar como informe vacio');
+});
+
 // --- 4. Portabilidad ----------------------------------------------------
 
 test('11. ninguna skill arrastra marcas de este repo ni rutas de maquina', async () => {
-  for (const nombre of REVISORES) {
-    const texto = await leer(nombre);
+  // revision.md entra con la lista estricta de las revisoras: es parte de lo
+  // que cada una lee, aunque viva en la carpeta de la skill de flujo.
+  const ficheros: Array<[string, string]> = REVISORES.map((n) => [n, rutaSkill(n)]);
+  ficheros.push(['task-workflow/revision.md', REVISION_MD]);
+  for (const [nombre, ruta] of ficheros) {
+    const texto = await readFile(ruta, 'utf8');
     const enMinusculas = texto.toLowerCase();
 
     for (const marca of MARCAS_DEL_REPO) {
@@ -991,7 +1139,8 @@ test(
       await cp(path.join(PLUGIN_ROOT, '.claude-plugin'), path.join(copia, '.claude-plugin'), {
         recursive: true,
       });
-      for (const nombre of REVISORES) {
+      // task-workflow viaja con ellas: las cuatro enlazan su revision.md.
+      for (const nombre of [...REVISORES, 'task-workflow']) {
         await cp(path.join(SKILLS_DIR, nombre), path.join(copia, 'skills', nombre), {
           recursive: true,
         });
