@@ -195,6 +195,19 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             `${sinMarcar.map((c) => `«${c}»`).join('; ')}. Si estan cumplidos, marcalos; si no, ` +
             'la tarea se cierra igualmente (el veredicto del revisor es la puerta).');
     }
+    // TASK-023: avisar, sin bloquear (misma doctrina que el aviso de arriba),
+    // de las fases con LLM sin coste registrado. tokens_implementacion no avisa:
+    // puede no haber habido subagentes en el curso.
+    const sinCoste = [
+        ['diseno', initial.task.tokens_diseno],
+        ['revision', initial.task.tokens_revision],
+    ].filter(([, v]) => v === null);
+    for (const [fase] of sinCoste) {
+        deps.onAviso?.(`${id}: sin coste de ${fase} registrado (tokens_${fase}). Registralo con ` +
+            `taskctl registrar-coste ${id} --fase ${fase} --agente <id> [--agente <id2>...], con el id ` +
+            'de cada subagente de la fase (suma el uso de su transcripcion; la cifra que se ve al terminar ' +
+            'un agente es su contexto final, no su coste). La tarea se cierra igualmente.');
+    }
     const tipo = initial.task.tipo;
     const rama = initial.task.rama;
     const titulo = initial.task.titulo;

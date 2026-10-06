@@ -189,6 +189,7 @@ export const GUARDADOS_POR_CADENA: ReadonlySet<string> = new Set([
   'veredicto',
   'finish',
   'pausa',
+  'registrar-coste',
   'pause',
   'resume',
   'recover',

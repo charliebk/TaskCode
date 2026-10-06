@@ -157,6 +157,7 @@ export const GUARDADOS_POR_CADENA = new Set([
     'veredicto',
     'finish',
     'pausa',
+    'registrar-coste',
     'pause',
     'resume',
     'recover',

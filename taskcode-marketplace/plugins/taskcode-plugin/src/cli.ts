@@ -19,6 +19,7 @@ import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
 import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
+import { runRegistrarCosteCommand, RegistrarCosteCommandError } from './commands/registrar-coste.js';
 import {
   runCadenaCommand,
   CadenaCommandError,
@@ -68,7 +69,7 @@ Uso:
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
-  taskctl metricas [--heuristica]
+  taskctl metricas [--heuristica] [--tokens [--escribir]]
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
@@ -79,6 +80,8 @@ Uso:
   taskctl finish TASK-NNN [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl pausa TASK-NNN [--push]
+  taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
+                          (--agente <id>... | --tokens N) [--push]
   taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar
   taskctl diagnose
   taskctl pause [--push]
@@ -87,10 +90,16 @@ Uso:
   taskctl abort-merge
 
 Comandos: new, import, board, metricas, start, plan, approve, review, codex-review, veredicto,
-finish, siguiente, pausa, cadena.
+finish, siguiente, pausa, registrar-coste, cadena.
 metricas saca, por tarea, cuanto duro cada fase (diseno, curso, revision) y
 cuantas rondas de revision hubo; --heuristica compara la complejidad declarada
-con la que da la heuristica en las tareas terminadas. Solo lee.
+con la que da la heuristica en las tareas terminadas. --tokens anade el coste en
+tokens por fase y un resumen por sprint y por complejidad; con --escribir lo
+regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
+--escribir solo lee.
+registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
+--agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la
+herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
@@ -471,6 +480,13 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
       } else {
         process.stdout.write(`${result.output}\n`);
       }
+      if (result.metricasPath !== null) {
+        process.stdout.write(
+          result.escritura === 'sin-cambios'
+            ? `\nBloque de tokens de ${result.metricasPath} ya al dia: sin cambios.\n`
+            : `\nRegenerado el bloque de tokens de ${result.metricasPath} (recuerda commitearlo).\n`
+        );
+      }
       return 0;
     } catch (e) {
       if (e instanceof MetricasCommandError || e instanceof HeuristicaError) {
@@ -712,6 +728,32 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         e instanceof AutoCommitError ||
         e instanceof ConfigError ||
         e instanceof PausaCommandError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'registrar-coste') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const r = await runRegistrarCosteCommand(tareasRoot, argv.slice(1), { repoCwd });
+      process.stdout.write(
+        `Tarea ${r.id}: +${String(r.sumado)} tokens de ${r.fase}${r.agentes > 0 ? ` (${String(r.agentes)} subagente(s))` : ''}; total de la fase: ${String(r.total)} ` +
+          `(${r.filePath}).\n`
+      );
+      printAutoCommit(r.autoCommit);
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof RegistrarCosteCommandError ||
         e instanceof GitLaunchError ||
         e instanceof GitCommandError
       ) {

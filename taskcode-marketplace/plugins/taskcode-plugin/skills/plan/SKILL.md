@@ -67,7 +67,12 @@ no deberian necesitar volver a preguntar.
 5. Si el plan deja decisiones abiertas para una persona, preguntalas ahora y
    anota las respuestas en el propio plan. Si la salida de `taskctl plan`
    nombro `skills_recomendados`, dejalos anotados para la implementacion.
-6. Commitea lo escrito en la carpeta de la tarea
+6. Registra el coste del diseno (`task-workflow/coste.md`): con el id que
+   devolvio la herramienta Agent de cada subagente de esta ronda (roles,
+   unificador), `taskctl registrar-coste TASK-NNN --fase diseno --agente <id>
+   [--agente <id2>...]`. La cifra que muestra Claude Code al terminar un agente
+   NO es su coste (es su contexto final). Tu parte, si quieres, estimada y
+   aparte con `--tokens N`. Sin agentes, no registres nada. Commitea lo escrito en la carpeta de la tarea
    (`git add <carpeta de la tarea> && git commit -m "docs(TASK-NNN): plan final"`).
    Los comandos siguientes exigen el workspace limpio.
 7. Sigue la seccion de avance (`task-workflow/avance.md`):

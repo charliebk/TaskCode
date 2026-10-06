@@ -533,3 +533,34 @@ la tarea no la tiene, los commits automáticos `chore(TASK-NNN): ...` con un
 puntuación y el nivel de la heurística de complejidad vigente, más un
 resumen de rondas medias por nivel declarado y heurístico: es la tabla con
 la que se calibra `scripts/heuristica-complejidad.yml`.
+
+`taskctl metricas --tokens` añade las columnas de coste en tokens por fase
+(`tok_diseno`, `tok_curso` = implementación, `tok_revision`, `tok_total`; «—»
+si no hay dato, que no es 0) y, debajo, un resumen por sprint y por
+complejidad declarada: tareas con dato / total, suma y media por fase y el %
+de cada fase sobre el total. Las tareas sin ningún dato salen en la tabla y no
+entran en el resumen. Se combina con `--heuristica` (el resumen es entonces
+sobre la muestra). `taskctl metricas --tokens --escribir` regenera en
+`docs/METRICAS.md` solo el bloque entre `<!-- taskctl metricas --tokens: inicio -->`
+y `<!-- taskctl metricas --tokens: fin -->` (si no están, los añade al final;
+el resto del fichero, CRLF incluido, no cambia ni un byte) y no lo commitea,
+como `board --escribir`. No se combina con `--heuristica`.
+
+`taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision
+(--agente <id>... | --tokens N) [--push]` **suma** al coste de esa fase
+(`tokens_diseno`, `tokens_implementacion`, `tokens_revision` del `tarea.md`;
+`null` = sin registrar y solo cuenta como 0 al sumar). `taskctl` no ve el
+consumo del agente, así que lo registra quien lo ve. **La cifra que Claude Code
+muestra al terminar un subagente no es lo que ha gastado: es el tamaño de su
+contexto final.** Con `--agente <id>` (repetible; el `agentId` que devuelve la
+herramienta Agent) `taskctl` lee la transcripción del subagente en
+`<config>/projects/*/*/subagents/agent-<id>.jsonl` (`<config>` = `CLAUDE_CONFIG_DIR`
+o `~/.claude`) y suma, por `message.id` único (la última aparición), entrada +
+escritura y lectura de caché + salida de cada llamada. Varios `--agente` van en
+un solo registro y un solo commit. `--tokens N` da una cifra a mano (la parte del
+orquestador, estimada) y se excluye con `--agente`. Si el id no se encuentra, está
+en más de una sesión o la transcripción no trae `usage`, aborta diciendo qué hacer
+(`--tokens N` como salida). Funciona en cualquier estado, también `terminada`;
+escribe y commitea solo ese `tarea.md` (aborta si tiene cambios sin commitear o si
+la copia al día de la tarea está en su rama) y rechaza cifras de 0. `taskctl finish`
+avisa, sin bloquear, si falta el coste de diseño o de revisión.

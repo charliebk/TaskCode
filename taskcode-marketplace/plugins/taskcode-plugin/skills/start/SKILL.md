@@ -23,10 +23,16 @@ Abre la rama de la tarea con Git-Flow y la pasa a `en-curso`.
    `fase: review` con `accion: continuar`):
    implementa el plan en esta rama, con sus tests y con los skills
    recomendados; commitea; ejecuta la suite del proyecto y no sigas hasta que
-   este en verde. Despues encadena `/taskcode-plugin:review` (seccion de
+   este en verde. Registra el coste (paso 5) y despues encadena `/taskcode-plugin:review` (seccion de
    avance). Si no consigues dejar la suite en verde, para y dilo: no se revisa
    codigo roto.
-5. En el resto de casos, sigue la seccion de avance (`task-workflow/avance.md`):
+5. Al terminar la implementacion (con o sin subagentes) y antes de la revision, registra su coste
+   (`task-workflow/coste.md`): con el id que devolvio la herramienta Agent de
+   cada subagente, `taskctl registrar-coste TASK-NNN --fase implementacion
+   --agente <id> [--agente <id2>...]`. La cifra que muestra Claude Code al
+   terminar un agente NO es su coste (es su contexto final). Tu parte, si
+   quieres, estimada y aparte con `--tokens N`. Sin subagentes, no registres nada.
+6. En el resto de casos, sigue la seccion de avance (`task-workflow/avance.md`):
    `taskctl siguiente TASK-NNN --json`. Tras `start` la fase es `review`,
    que significa: primero implementar el plan en esta rama, con tests,
    commitearlo y dejar la suite en verde; despues,
