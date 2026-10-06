@@ -1,6 +1,14 @@
 # Changelog
 
 ## Sin publicar
+
+## 0.6.0 — 2026-10-06
+
+Coste en tokens por fase y opciones de cierre en `finish`. Actualizar con
+`claude plugin marketplace update taskcode-marketplace`, `claude plugin
+update taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code (o
+`/reload-plugins`).
+
 - TASK-060 (feature) — Opciones de cierre en finish: merge normal, merge request y tag (2026-10-06)
 - TASK-023 (feature) — Métricas de coste en tokens por fase (2026-10-06)
 

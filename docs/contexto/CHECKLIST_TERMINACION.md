@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 69 / 69 items terminados (100%)** · última actualización: 2026-10-06
+**Progreso global: 70 / 70 items terminados (100%)** · última actualización: 2026-10-06
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -32,6 +32,7 @@ tomada y documentada, no aplazada.
 | ✅ E — Cierre | 6 | **6** | ~9h |
 | ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
+| ✅ H — Peticiones tras el plan | 1 | **1** | — |
 | **Total pendiente** | **0** | — | — |
 
 ---
@@ -764,3 +765,18 @@ Plan de referencia: `tareas/.../TASK-055/planificacion/plan-final.md`.
 - [x] TASK-057 — Flujo C: fases como skills invocables en modo manual
 - [x] TASK-058 — Flujo D: modo semiautomático
 - [x] TASK-059 — Flujo E: modo automático
+
+## H — Peticiones tras el plan (1/1)
+
+Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
+
+- [x] TASK-060 — Opciones de cierre en `finish`: merge normal (por defecto),
+      merge request y tag — cerrada el 2026-10-06, publicada en la 0.6.0
+      *`--tag <nombre>` pone un tag anotado sobre el commit de merge, validado
+      antes de mergear y subido solo con `--push`; en hotfix y release le da
+      nombre al tag del script. `--merge-request` abre el PR en GitHub o el MR
+      en GitLab tras un preflight sin efectos, y un segundo `finish` cierra
+      cuando la plataforma lo da por mergeado. Clave `cierre_por_defecto` y
+      la skill `finish` pregunta salvo en automático. Hubo 2 rondas: 1
+      IMPORTANTE (la rama se daba por integrada con commits que no estaban en
+      el MR) y 5 MENOR, todos corregidos.*
