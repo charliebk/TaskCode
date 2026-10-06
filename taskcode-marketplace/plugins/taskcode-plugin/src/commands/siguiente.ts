@@ -17,7 +17,7 @@ import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readFile } from 'node:fs/promises';
 import { readTareaFile } from '../fs/task-store.js';
 import { parseTareaFile } from '../core/tarea-file.js';
-import { resolverConfig, type ModoFlujo } from '../core/config.js';
+import { resolverConfig, type CierrePorDefecto, type ModoFlujo } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase, type ContextoFlujo, type SiguientePaso } from '../core/flujo.js';
 import { commitRevisadoDe, veredictoDeRonda, type VeredictoInforme } from '../core/informe-revision.js';
@@ -52,6 +52,11 @@ export interface SiguienteCommandResult extends SiguientePaso {
   id: string;
   estado: Task['estado'];
   modo: ModoFlujo;
+  /**
+   * TASK-060: `cierre_por_defecto` del config. Lo lee la skill `finish` en el
+   * modo automatico para decidir, sin preguntar, entre merge y merge request.
+   */
+  cierre: CierrePorDefecto;
   /** De donde se leyo la tarea: el working tree o la rama de la tarea. */
   leidaDe: 'working-tree' | 'rama';
   /** true si se pidio --json. */
@@ -120,7 +125,8 @@ export async function runSiguienteCommand(
     throw new SiguienteCommandError('[ERROR] Falta el ID de la tarea: taskctl siguiente TASK-NNN [--json].');
   }
   // Config roto: ConfigError, que el CLI convierte en salida != 0.
-  const modoConfig = resolverConfig(deps.repoCwd).modo_flujo;
+  const config = resolverConfig(deps.repoCwd);
+  const modoConfig = config.modo_flujo;
 
   const local = await readTareaFile(tareasRoot, id);
   if (local === null) {
@@ -211,6 +217,7 @@ export async function runSiguienteCommand(
     id: task.id,
     estado: task.estado,
     modo,
+    cierre: config.cierre_por_defecto,
     leidaDe: enOtraRama ? 'rama' : 'working-tree',
     json,
     ...siguienteFase(task, ctx, modo),

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_gitflow-common.sh"
 
-PUSH=false; NAME=""; MAIN_BRANCH=""; DEVELOP_BRANCH="develop"
+PUSH=false; NAME=""; MAIN_BRANCH=""; DEVELOP_BRANCH="develop"; TAG_OVERRIDE=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --push|-p) PUSH=true ;;
         --main)    MAIN_BRANCH="$2";    shift ;;
         --develop) DEVELOP_BRANCH="$2"; shift ;;
+        --tag)     TAG_OVERRIDE="$2"; shift ;;
         *)         [ -z "$NAME" ] && NAME="$1" ;;
     esac
     shift
@@ -17,6 +18,21 @@ NAME="${NAME#"${NAME%%[![:space:]]*}"}"; NAME="${NAME%"${NAME##*[![:space:]]}"}"
 [[ "$NAME" != hotfix/* ]] && NAME="hotfix/$NAME"
 
 initialize_gitflow_log "merge-hotfix -> main ($NAME)"
+
+# TASK-060: --tag sustituye el nombre que el script calcula (sigue habiendo UN
+# solo tag, el del merge a main). Se valida ANTES de tocar ninguna rama: un
+# nombre invalido, con "-" inicial (se leeria como opcion de git) o ya usado
+# abortaria despues del merge, con main ya movida.
+if [ -n "$TAG_OVERRIDE" ]; then
+    if [[ "$TAG_OVERRIDE" == -* ]] || ! git check-ref-format "refs/tags/$TAG_OVERRIDE" 2>/dev/null; then
+        log_error "El nombre de tag '$TAG_OVERRIDE' no es valido (git check-ref-format, y sin '-' inicial). No se ha tocado nada."
+        exit 1
+    fi
+    if git show-ref --verify --quiet "refs/tags/$TAG_OVERRIDE" 2>/dev/null; then
+        log_error "El tag '$TAG_OVERRIDE' ya existe. Elige otro nombre con --tag. No se ha tocado nada."
+        exit 1
+    fi
+fi
 
 ensure_workspace_ready \
     "Workspace no limpio antes de merge. Hacer commit local en la rama actual? Si/No" \
@@ -85,6 +101,7 @@ invoke_git "No se pudo hacer merge de $NAME en $MAIN_BRANCH." \
 
 TAG_NAME="${NAME#hotfix/}"
 [[ "$TAG_NAME" =~ ^[0-9] ]] && TAG_NAME="v$TAG_NAME"
+[ -n "$TAG_OVERRIDE" ] && TAG_NAME="$TAG_OVERRIDE"
 invoke_git "No se pudo crear tag $TAG_NAME en $MAIN_BRANCH." \
     tag -a "$TAG_NAME" -m "Hotfix $TAG_NAME"
 log_ok "Tag creado: $TAG_NAME"

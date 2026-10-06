@@ -27,6 +27,13 @@ sube nada con `--push` sin que la persona lo pida, y cada transicion deja
 una fila en la seccion `## Transiciones` de `tarea.md` (fecha, fase, modo y
 quien decidio) en el mismo commit que la transicion.
 
+Al cerrar, la skill `finish` pregunta en `manual` y `semiautomatico` (merge
+normal, merge request, tag opcional); en `automatico` no pregunta y usa el
+campo `cierre` de `siguiente --json` (clave `cierre_por_defecto` de la
+configuracion: `merge` por defecto, o `merge-request`). Un merge request deja
+la tarea en `en-revision` hasta que se mergee: el avance se detiene ahi y un
+segundo `finish` la cierra.
+
 ## Que skill corresponde a cada fase
 
 | `fase` de `siguiente` | Skill |

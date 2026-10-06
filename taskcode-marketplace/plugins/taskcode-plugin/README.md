@@ -564,3 +564,48 @@ en más de una sesión o la transcripción no trae `usage`, aborta diciendo qué
 escribe y commitea solo ese `tarea.md` (aborta si tiene cambios sin commitear o si
 la copia al día de la tarea está en su rama) y rechaza cifras de 0. `taskctl finish`
 avisa, sin bloquear, si falta el coste de diseño o de revisión.
+
+`taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--push]` cierra la
+tarea. Sin los flags nuevos hace lo de siempre: merge `--no-ff` con el script de
+Git-Flow del tipo y tarea a `terminada`.
+
+- `--tag <nombre>` pone un tag **anotado** (mensaje = título de la tarea) sobre
+  el commit de merge, que se calcula de forma explícita y no es `HEAD` (tras el
+  merge hay un commit de cierre encima). El nombre se valida **antes** de
+  mergear: `git check-ref-format "refs/tags/<nombre>"`, sin `-` inicial, y que no
+  exista en local ni en `origin` (con origin caído y `--push`, aborta; sin
+  `--push`, avisa). En un reintento (el merge ya está hecho) un tag que apunta
+  al merge de esa tarea se salta y uno ajeno aborta. **Solo se sube con
+  `--push`**, y solo si la rama destino ya está en origin con ese commit; sin
+  `--push` la salida dice que el tag quedó solo en local. En hotfix y release
+  `--tag` pasa a `merge-hotfix-to-main.sh` / `merge-release-to-main.sh`, que
+  aceptan `--tag <nombre>` y lo usan en lugar del calculado: sigue habiendo un
+  solo tag. `finish --push` no sube `main` (se avisa), así que en un hotfix el
+  tag solo se sube si `main` ya estaba en origin con el merge.
+- `--merge-request` (solo feature y fix) **no mergea**: sube la rama (siempre,
+  aunque no pases `--push`: sin ella no hay merge request, y la salida lo dice),
+  abre un pull request (`origin` en `github.com`, con `gh`) o un merge request
+  (host que contiene «gitlab», con `glab`, también autoalojado) contra la rama
+  base, anota su URL en una sección `## Merge request` de `tarea.md`, la
+  commitea en la rama de la tarea y la deja en `en-revision`. Un host de origin
+  desconocido **aborta** nombrando qué configurar: no se supone GitLab. Antes
+  de subir nada se comprueba que hay `origin`, que el CLI está instalado y que
+  tiene sesión (`gh auth status` / `glab auth status`); cada fallo dice qué
+  instalar o configurar. Antes de crear se busca un PR/MR abierto de esa rama
+  para no duplicarlo. La URL de `origin` (puede llevar credenciales) no se
+  imprime ni se escribe en ningún sitio.
+- **Segundo `finish`** (`taskctl finish TASK-NNN --merge-request [--tag <n>]`;
+  el flag es opcional si `tarea.md` ya tiene la sección `## Merge request`):
+  pregunta a la plataforma por el estado del PR/MR **por nombre de rama**. Si
+  está `merged` (con merge, squash o rebase: no se exige ancestría) hace
+  `fetch`, comprueba que el commit resultante está en `origin/<base>`, avanza la
+  base local con fast-forward, mueve la tarea a `terminada` y regenera
+  CHANGELOG, INDEX y BOARD; con `--tag`, el tag va sobre el commit que la
+  plataforma da como resultado del merge. Si sigue abierto, o se cerró sin
+  mergear, o no se puede saber (red, error del CLI), aborta sin tocar nada.
+- `.taskcode/config.yml` admite `cierre_por_defecto: merge | merge-request`
+  (por defecto `merge`). `taskctl finish` **no** la lee: la usa la skill
+  `finish` en modo automático, que no pregunta, a través de `taskctl siguiente
+  --json` (campo `cierre`). En manual y semiautomático la skill pregunta.
+  Como cualquier clave del config, un valor mal escrito aborta, y una versión
+  anterior del plugin rechazaría la clave: todo el equipo actualiza a la vez.

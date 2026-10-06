@@ -10,6 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { resolverConfig } from '../core/config.js';
+import { ocultarCredenciales } from '../core/plataforma-remota.js';
 export class GitCommandError extends Error {
     args;
     stderr;
@@ -611,4 +612,185 @@ export function ensureBaseBranchReady(tipo, cwd) {
             'No se ha tocado ningun fichero de la tarea; revisa el repo a mano.');
     }
     return { baseBranch, switched: true, branchAntes };
+}
+/**
+ * `runGit` para operaciones que hablan con origin (fetch, push, ls-remote):
+ * el stderr de Git a veces repite la URL del remoto, que puede llevar
+ * credenciales (TASK-060), y de aqui sale a un mensaje de error.
+ */
+function runGitRemoto(args, cwd) {
+    try {
+        return runGit(args, cwd);
+    }
+    catch (e) {
+        if (e instanceof GitCommandError)
+            throw new GitCommandError(args, ocultarCredenciales(e.stderr));
+        throw e;
+    }
+}
+// ---------------------------------------------------------------------
+// TASK-060: tags, remoto y commit de merge para `taskctl finish`.
+// ---------------------------------------------------------------------
+/**
+ * true si `nombre` vale como nombre de tag: `git check-ref-format` sobre
+ * `refs/tags/<nombre>` (con ese prefijo, que es como lo evalua Git al crear
+ * el tag) y, ademas, sin "-" inicial: `refs/tags/-x` es un nombre legal, pero
+ * `-x` en la linea de `git tag` o de un script se leeria como una opcion.
+ */
+export function isValidTagName(nombre, cwd) {
+    if (nombre === '' || nombre.startsWith('-'))
+        return false;
+    const result = spawnSync('git', ['check-ref-format', `refs/tags/${nombre}`], { cwd, encoding: 'utf8' });
+    if (result.error)
+        throw new GitLaunchError(result.error);
+    return result.status === 0;
+}
+/** SHA del commit al que apunta el tag LOCAL (desreferenciado), o null si no existe. */
+export function tagCommit(nombre, cwd) {
+    const result = spawnSync('git', ['rev-parse', '--verify', '--quiet', '--end-of-options', `refs/tags/${nombre}^{commit}`], { cwd, encoding: 'utf8' });
+    if (result.error)
+        throw new GitLaunchError(result.error);
+    return result.status === 0 ? (result.stdout ?? '').trim() : null;
+}
+/** true si hay un remoto `origin` configurado (no dice si responde). */
+export function hasOrigin(cwd) {
+    const result = spawnSync('git', ['remote', 'get-url', 'origin'], { cwd, encoding: 'utf8' });
+    if (result.error)
+        throw new GitLaunchError(result.error);
+    return result.status === 0;
+}
+/**
+ * URLs de origin con las que decidir la plataforma: la efectiva (con las
+ * reglas `url.*.insteadOf` ya aplicadas) y la escrita en la config. Solo
+ * para `detectarPlataforma`: PUEDEN llevar credenciales y no se muestran ni
+ * se guardan en ningun sitio.
+ */
+export function urlsDeOrigin(cwd) {
+    const urls = [];
+    for (const args of [
+        ['remote', 'get-url', 'origin'],
+        ['config', '--get', 'remote.origin.url'],
+    ]) {
+        const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+        if (result.error)
+            throw new GitLaunchError(result.error);
+        const url = (result.stdout ?? '').trim();
+        if (result.status === 0 && url !== '' && !urls.includes(url))
+            urls.push(url);
+    }
+    return urls;
+}
+/** El tag en origin (`ls-remote --tags`): ausente, o presente con el commit al que apunta. */
+export function tagRemoto(nombre, cwd) {
+    if (!hasOrigin(cwd))
+        return { estado: 'sin-origin' };
+    const ref = `refs/tags/${nombre}`;
+    const result = spawnSync('git', ['ls-remote', '--tags', 'origin', ref, `${ref}^{}`], { cwd, encoding: 'utf8' });
+    if (result.error)
+        throw new GitLaunchError(result.error);
+    if (result.status !== 0)
+        return { estado: 'inalcanzable' };
+    let sha = null;
+    for (const linea of (result.stdout ?? '').split(/\r?\n/)) {
+        const [oid, nombreRef] = linea.trim().split(/\s+/);
+        // El anotado lista el objeto tag y, aparte, el commit con "^{}": manda el commit.
+        if (oid !== undefined && nombreRef === `${ref}^{}`)
+            return { estado: 'presente', commit: oid };
+        if (oid !== undefined && nombreRef === ref)
+            sha = oid;
+    }
+    return sha === null ? { estado: 'ausente' } : { estado: 'presente', commit: sha };
+}
+/** Crea un tag ANOTADO sobre `commit`. El mensaje va en `--message=` (texto libre: puede empezar por "-"). */
+export function crearTagAnotado(nombre, commit, mensaje, cwd) {
+    runGit(['tag', '--annotate', `--message=${mensaje}`, '--', nombre, commit], cwd);
+}
+/** Sube un tag. Refspec completo: no puede leerse como opcion ni como rama. */
+export function pushTag(nombre, cwd) {
+    runGitRemoto(['push', 'origin', `refs/tags/${nombre}:refs/tags/${nombre}`], cwd);
+}
+/** Sube una rama local a la del mismo nombre en origin. */
+export function pushRama(rama, cwd) {
+    runGitRemoto(['push', 'origin', `refs/heads/${rama}:refs/heads/${rama}`], cwd);
+}
+/** `git fetch origin` (ramas; los tags que apunten a lo traido van con el). */
+export function fetchOrigin(cwd) {
+    runGitRemoto(['fetch', '--quiet', 'origin'], cwd);
+}
+/** SHA completo de un commit-ish, o null si no existe. */
+export function resolverCommit(ref, cwd) {
+    const result = spawnSync('git', ['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], {
+        cwd,
+        encoding: 'utf8',
+    });
+    if (result.error)
+        throw new GitLaunchError(result.error);
+    return result.status === 0 ? (result.stdout ?? '').trim() : null;
+}
+/** `git merge --ff-only` sobre la rama actual. */
+export function fastForwardDesde(ref, cwd) {
+    runGit(['merge', '--ff-only', '--quiet', '--end-of-options', ref], cwd);
+}
+/**
+ * true si la rama `rama` de ORIGIN ya contiene `commit`: se lee su punta con
+ * `ls-remote` y se comprueba la ancestria en local. Si el commit o la punta
+ * no existen en local la respuesta es false (no se puede afirmar).
+ */
+export function ramaRemotaContiene(rama, commit, cwd) {
+    if (!hasOrigin(cwd))
+        return false;
+    const ls = spawnSync('git', ['ls-remote', '--heads', 'origin', `refs/heads/${rama}`], { cwd, encoding: 'utf8' });
+    if (ls.error)
+        throw new GitLaunchError(ls.error);
+    if (ls.status !== 0)
+        return false;
+    const punta = (ls.stdout ?? '').trim().split(/\s+/)[0];
+    if (punta === undefined || punta === '')
+        return false;
+    const anc = spawnSync('git', ['merge-base', '--is-ancestor', '--end-of-options', commit, punta], {
+        cwd,
+        encoding: 'utf8',
+    });
+    if (anc.error)
+        throw new GitLaunchError(anc.error);
+    return anc.status === 0;
+}
+/**
+ * El commit con el que `rama` entro en `destino`: el PRIMERO de la cadena
+ * first-parent de `destino` que ya contiene la punta de `rama`. Con un merge
+ * `--no-ff` es el commit de merge; se calcula asi y no con `HEAD` porque un
+ * tag es de facto irreversible una vez subido y HEAD puede ser otra cosa (un
+ * pull que trajo mas, un commit posterior). null si `rama` no esta en
+ * `destino`. Busqueda binaria: "contiene la rama" es monotono a lo largo de
+ * la cadena, asi que cuesta log(n) llamadas a Git y no n.
+ *
+ * `rama` y `destino` son nombres de rama local; para una remota, pasar
+ * `refs/remotes/...` con el prefijo `refs/` ya puesto.
+ */
+export function commitDeIntegracion(rama, destino, cwd) {
+    const refRama = rama.startsWith('refs/') ? rama : `refs/heads/${rama}`;
+    const refDestino = destino.startsWith('refs/') ? destino : `refs/heads/${destino}`;
+    const cadena = runGit(['rev-list', '--first-parent', '--reverse', '--end-of-options', `${refRama}..${refDestino}`], cwd)
+        .split('\n')
+        .filter((l) => l !== '');
+    let lo = 0;
+    let hi = cadena.length - 1;
+    let hallado = null;
+    while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const c = cadena[mid];
+        if (isAncestor(refRama, c, cwd)) {
+            hallado = c;
+            hi = mid - 1;
+        }
+        else {
+            lo = mid + 1;
+        }
+    }
+    return hallado;
+}
+/** Numero de padres de un commit. */
+export function numeroDePadres(commit, cwd) {
+    const linea = runGit(['rev-list', '--parents', '-n', '1', '--end-of-options', commit], cwd);
+    return linea.split(/\s+/).filter((t) => t !== '').length - 1;
 }

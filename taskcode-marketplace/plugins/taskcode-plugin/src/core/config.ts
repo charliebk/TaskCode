@@ -13,6 +13,7 @@
  * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
  * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
  * | modo_flujo                   | manual            | core/flujo.ts, plan.ts, approve.ts |
+ * | cierre_por_defecto           | merge             | siguiente.ts -> skill finish (modo automatico) |
  *
  * `excluir_de_revision` la anadio TASK-034: la peticion de revision
  * embebia el diff entero, y el JS compilado, los lockfiles y la propia
@@ -108,10 +109,21 @@ export interface TaskcodeConfig {
    * encadena. Se congela en la tarea al cerrar `plan` (core/transiciones.ts).
    */
   modo_flujo: ModoFlujo;
+  /**
+   * TASK-060: como cierra `finish` en el modo automatico, que no pregunta:
+   * `merge` (merge local, lo de siempre) o `merge-request` (abre el PR/MR en
+   * la plataforma del remoto). En manual y semiautomatico la skill pregunta
+   * y esta clave no interviene. `taskctl finish` no la lee: solo la skill, a
+   * traves de `taskctl siguiente --json`.
+   */
+  cierre_por_defecto: CierrePorDefecto;
 }
 
 export type ModoFlujo = 'manual' | 'semiautomatico' | 'automatico';
 export const MODOS_FLUJO: readonly ModoFlujo[] = ['manual', 'semiautomatico', 'automatico'];
+
+export type CierrePorDefecto = 'merge' | 'merge-request';
+export const CIERRES_POR_DEFECTO: readonly CierrePorDefecto[] = ['merge', 'merge-request'];
 
 /**
  * El comportamiento de hoy, escrito una sola vez. Antes de C4 estos
@@ -133,6 +145,7 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
     'tareas/**',
   ]) as readonly string[],
   modo_flujo: 'manual',
+  cierre_por_defecto: 'merge',
 });
 
 /** Las unicas claves admitidas. Cualquier otra aborta (regla 2). */
@@ -145,6 +158,7 @@ export const CLAVES_CONFIG = [
   'timeout_sincronizacion',
   'excluir_de_revision',
   'modo_flujo',
+  'cierre_por_defecto',
 ] as const;
 
 /**
@@ -335,6 +349,9 @@ export function parsearConfig(contenido: string, ruta: string): TaskcodeConfig {
         break;
       case 'modo_flujo':
         config.modo_flujo = validarModoFlujo(donde, par.valor);
+        break;
+      case 'cierre_por_defecto':
+        config.cierre_por_defecto = validarCierrePorDefecto(donde, par.valor);
         break;
     }
   }
@@ -571,5 +588,25 @@ function validarModoFlujo(donde: string, valor: unknown): ModoFlujo {
   throw new ConfigError(
     `[ERROR] ${donde}: modo_flujo "${modo}" no es valido.${sugerencia}\n` +
       `        Valores validos: ${MODOS_FLUJO.join(', ')} (sin la clave, manual).`
+  );
+}
+
+/**
+ * TASK-060: `cierre_por_defecto` es un enumerado, con la misma doctrina que
+ * `modo_flujo`: un valor mal escrito aborta nombrando los validos. Caer a
+ * `merge` en silencio mergearia en local un cierre que el equipo quiere por
+ * merge request.
+ */
+function validarCierrePorDefecto(donde: string, valor: unknown): CierrePorDefecto {
+  const cierre = validarTextoNoVacio(donde, 'cierre_por_defecto', valor);
+  if ((CIERRES_POR_DEFECTO as readonly string[]).includes(cierre)) return cierre as CierrePorDefecto;
+  const parecido = CIERRES_POR_DEFECTO.map((c) => ({ c, d: distanciaEdicion(cierre.toLowerCase(), c) }))
+    .sort((a, b) => a.d - b.d)[0];
+  const sugerencia =
+    parecido !== undefined && parecido.d <= 3 ? ` ¿Querias decir "${parecido.c}"?` : '';
+  throw new ConfigError(
+    `[ERROR] ${donde}: cierre_por_defecto "${cierre}" no es valido.${sugerencia}
+` +
+      `        Valores validos: ${CIERRES_POR_DEFECTO.join(', ')} (sin la clave, merge).`
   );
 }

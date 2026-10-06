@@ -122,3 +122,14 @@ repo temporal y no dentro de `scripts/gitflow/`. Se ejecuta con:
 ```bash
 bash scripts/gitflow/test/smoke-test.sh
 ```
+
+## `--tag <nombre>` en los merge a main (TASK-060)
+
+`merge-hotfix-to-main.sh` y `merge-release-to-main.sh` aceptan `--tag
+<nombre>` y lo usan **en lugar** del nombre que calculan (`v<nombre>` o el
+nombre de la rama sin su prefijo): sigue habiendo un solo tag, el del merge a
+`main`. Lo pasa `taskctl finish --tag`. El script valida el nombre antes de
+tocar ninguna rama (`git check-ref-format "refs/tags/<nombre>"`, sin `-`
+inicial, y que no exista) y aborta sin cambiar nada si no vale. Sin `--tag` el
+comportamiento es el de siempre. Los scripts se siguen invocando como `bash
+script.sh`. Cubierto por `test/gitflow/merge-to-main-tag.test.ts`.
