@@ -1,6 +1,6 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-10-05. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-10-06. No editar a mano.
 
 ## Planificadas (00-planificadas) — 14
 
@@ -23,15 +23,7 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 1
-
-```text
-ID        Titulo                                Asignado
---------  ------------------------------------  --------------------
-TASK-023  Métricas de coste en tokens por fase  charlie.bk@gmail.com
-```
-
-## Terminadas (04-terminadas) — 44
+## Terminadas (04-terminadas) — 45
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -44,6 +36,7 @@ TASK-017  Catálogo de skills determinista con selección en dos pasos          
 TASK-018  Enrutado de revisor por diff real, fragmentado por dominio                               charlie.bk@gmail.com
 TASK-020  Comando taskctl codex-review (segunda opinión independiente)                             charlie.bk@gmail.com
 TASK-022  Documentación de equipo e incorporación de colaboradores                                 charlie.bk@gmail.com
+TASK-023  Métricas de coste en tokens por fase                                                     charlie.bk@gmail.com
 TASK-024  asignado_a por defecto desde la identidad Git                                            charlie.bk@gmail.com
 TASK-025  El limite de WIP mira las ramas de trabajo, no el arbol activo                           charlie.bk@gmail.com
 TASK-026  Wrappers de Git-Flow en taskctl: diagnose, pause, resume, recover y abort-merge          charlie.bk@gmail.com

@@ -6,7 +6,7 @@ sprint: 4
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-023-metricas-de-coste-en-tokens-por-fase
 asignado_a: charlie.bk@gmail.com
@@ -117,3 +117,4 @@ revisión 8,7 M (2 rondas). No incluye la parte del orquestador.
 | 2026-10-06T11:08:43Z | start | manual | persona |
 | 2026-10-06T13:13:14Z | review | manual | persona |
 | 2026-10-06T14:26:20Z | review | manual | persona |
+| 2026-10-06T14:45:27Z | finish | manual | persona |
