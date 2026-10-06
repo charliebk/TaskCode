@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-060 (feature) — Opciones de cierre en finish: merge normal, merge request y tag (2026-10-06)
 - TASK-023 (feature) — Métricas de coste en tokens por fase (2026-10-06)
 
 Coste en tokens por fase (TASK-023).

@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-060 — Opciones de cierre en finish: merge normal, merge request y tag · etiquetas: (sin etiquetas) · rama feature/task-060-opciones-de-cierre-en-finish-merge-norma · terminada 2026-10-06 · tareas/04-terminadas/TASK-060/
 - TASK-023 — Métricas de coste en tokens por fase · etiquetas: (sin etiquetas) · rama feature/task-023-metricas-de-coste-en-tokens-por-fase · terminada 2026-10-06 · tareas/04-terminadas/TASK-023/
 - TASK-052 — F6-T5 Telemetria de fases y heuristica recalibrada · etiquetas: (sin etiquetas) · rama feature/task-052-f6-t5-telemetria-de-fases-y-heuristica-r · terminada 2026-10-05 · tareas/04-terminadas/TASK-052/
 - TASK-049 — F6-T4 Metadatos del plugin y modelo de los agentes · etiquetas: (sin etiquetas) · rama feature/task-049-f6-t4-metadatos-del-plugin-y-modelo-de-l · terminada 2026-10-05 · tareas/04-terminadas/TASK-049/

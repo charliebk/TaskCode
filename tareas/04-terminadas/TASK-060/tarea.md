@@ -6,7 +6,7 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-060-opciones-de-cierre-en-finish-merge-norma
 asignado_a: charlie.bk@gmail.com
@@ -129,3 +129,4 @@ Cerrada el 2026-10-06 en 2 rondas de revision por pares.
 | 2026-10-06T17:24:13Z | start | manual | persona |
 | 2026-10-06T19:13:26Z | review | manual | persona |
 | 2026-10-06T20:30:24Z | review | manual | persona |
+| 2026-10-06T21:41:09Z | finish | manual | persona |

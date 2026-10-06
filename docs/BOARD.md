@@ -23,7 +23,7 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 45
+## Terminadas (04-terminadas) — 46
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -73,4 +73,5 @@ TASK-056  Flujo B: nucleo determinista del siguiente paso y registro de transici
 TASK-057  Flujo C: fases como skills invocables en modo manual                                     charlie.bk@gmail.com
 TASK-058  Flujo D: modo semiautomatico                                                             charlie.bk@gmail.com
 TASK-059  Flujo E: modo automatico                                                                 charlie.bk@gmail.com
+TASK-060  Opciones de cierre en finish: merge normal, merge request y tag                          charlie.bk@gmail.com
 ```
