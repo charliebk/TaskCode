@@ -57,3 +57,4 @@ siguen siendo razonables o hace falta ajustarlos.
 |---|---|---|---|
 | 2026-10-06T11:08:43Z | start | manual | persona |
 | 2026-10-06T13:13:14Z | review | manual | persona |
+| 2026-10-06T14:26:20Z | review | manual | persona |
