@@ -2,7 +2,7 @@
 
 - Commit revisado: 4d3c626901128091c6ae0f9989fbbaa7ca3c5174
 - Revisor: code-quality-reviewer (independiente)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-023 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
