@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 68 / 69 items terminados (99%)** · última actualización: 2026-10-05
+**Progreso global: 69 / 69 items terminados (100%)** · última actualización: 2026-10-06
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -29,10 +29,10 @@ tomada y documentada, no aplazada.
 | ✅ B — Cerrar el ciclo de vida | 7 | **7** | ~18h |
 | ✅ C — Tapar huecos | 8 | **8** | ~25h |
 | ✅ D — Inteligencia del proceso | 6 | **6** | ~35h |
-| E — Cierre | 6 | **5** | ~9h |
+| ✅ E — Cierre | 6 | **6** | ~9h |
 | ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
-| **Total pendiente** | **1** | — | — |
+| **Total pendiente** | **0** | — | — |
 
 ---
 
@@ -495,7 +495,16 @@ satisfacía con una etiqueta que otro test obliga a estar presente.*
       instalación de plugin que nunca ejecuta) + ronda 3 (aprobada, 3
       menores no bloqueantes, aplicados igualmente). Detalle completo en el
       `## Resultado` de `tareas/04-terminadas/TASK-022/tarea.md`.*
-- [ ] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — ~5h
+- [x] **E2** · TASK-023 — Métricas de coste en tokens por fase (§16) — cerrada el 2026-10-06
+      *`taskctl registrar-coste` (`--agente <id>` suma el uso real de la
+      transcripción del subagente; la cifra que Claude Code muestra al
+      terminarlo es su contexto final, no su coste), `metricas --tokens
+      [--escribir]` y un aviso no bloqueante en `finish`. Histórico de 41
+      tareas en la §11 de `docs/METRICAS.md`: la revisión se lleva el
+      71-100 % del gasto de subagentes y **los pesos de la heurística no se
+      tocan**. 2 rondas: 1 IMPORTANTE (aviso de `finish` con la semántica
+      descartada) y 5 MENOR, todos corregidos. Detalle en el `## Resultado`
+      de `tareas/04-terminadas/TASK-023/tarea.md`.*
 - [x] **E3** · Validación en Windows nativo — **resuelta por el CI, no por una sesión nativa**
       *El job `windows-latest` asevera cada hipótesis como un step propio.
       Las cinco en verde: el bit `+x` sobrevive el checkout nativo, `taskctl`

@@ -577,7 +577,7 @@ Se revisará cuando haya unas 10 tareas por nivel con `tokens_*` registrados:
 | TASK-020 | 3      | media       | —          | —         | —            | —         |
 | TASK-021 | 4      | simple      | —          | —         | —            | —         |
 | TASK-022 | 4      | simple      | —          | —         | —            | —         |
-| TASK-023 | 4      | media       | 3445774    | 18803413  | —            | 22249187  |
+| TASK-023 | 4      | media       | 3445774    | 18803413  | 8699214      | 30948401  |
 | TASK-024 | 2      | simple      | —          | —         | —            | —         |
 | TASK-025 | 2      | media       | —          | —         | —            | —         |
 | TASK-026 | 2      | media       | —          | —         | —            | —         |
@@ -617,26 +617,26 @@ Se revisará cuando haya unas 10 tareas por nivel con `tokens_*` registrados:
 
 ### Resumen por sprint
 
-| sprint | con dato/total | diseno                         | curso                            | revision | total (media)             |
-|--------|----------------|--------------------------------|----------------------------------|----------|---------------------------|
-| 0      | 0/11           | —                              | —                                | —        | —                         |
-| 1      | 0/5            | —                              | —                                | —        | —                         |
-| 2      | 0/11           | —                              | —                                | —        | —                         |
-| 3      | 0/9            | —                              | —                                | —        | —                         |
-| 4      | 1/4            | 3445774 (media 3445774, 15.5%) | 18803413 (media 18803413, 84.5%) | —        | 22249187 (media 22249187) |
-| 5      | 0/4            | —                              | —                                | —        | —                         |
-| 6      | 0/5            | —                              | —                                | —        | —                         |
-| 7      | 0/10           | —                              | —                                | —        | —                         |
+| sprint | con dato/total | diseno                         | curso                            | revision                       | total (media)             |
+|--------|----------------|--------------------------------|----------------------------------|--------------------------------|---------------------------|
+| 0      | 0/11           | —                              | —                                | —                              | —                         |
+| 1      | 0/5            | —                              | —                                | —                              | —                         |
+| 2      | 0/11           | —                              | —                                | —                              | —                         |
+| 3      | 0/9            | —                              | —                                | —                              | —                         |
+| 4      | 1/4            | 3445774 (media 3445774, 11.1%) | 18803413 (media 18803413, 60.8%) | 8699214 (media 8699214, 28.1%) | 30948401 (media 30948401) |
+| 5      | 0/4            | —                              | —                                | —                              | —                         |
+| 6      | 0/5            | —                              | —                                | —                              | —                         |
+| 7      | 0/10           | —                              | —                                | —                              | —                         |
 
 ### Resumen por complejidad declarada
 
-| complejidad | con dato/total | diseno                         | curso                            | revision | total (media)             |
-|-------------|----------------|--------------------------------|----------------------------------|----------|---------------------------|
-| trivial     | 0/4            | —                              | —                                | —        | —                         |
-| simple      | 0/28           | —                              | —                                | —        | —                         |
-| media       | 1/20           | 3445774 (media 3445774, 15.5%) | 18803413 (media 18803413, 84.5%) | —        | 22249187 (media 22249187) |
-| alta        | 0/3            | —                              | —                                | —        | —                         |
-| —           | 0/4            | —                              | —                                | —        | —                         |
+| complejidad | con dato/total | diseno                         | curso                            | revision                       | total (media)             |
+|-------------|----------------|--------------------------------|----------------------------------|--------------------------------|---------------------------|
+| trivial     | 0/4            | —                              | —                                | —                              | —                         |
+| simple      | 0/28           | —                              | —                                | —                              | —                         |
+| media       | 1/20           | 3445774 (media 3445774, 11.1%) | 18803413 (media 18803413, 60.8%) | 8699214 (media 8699214, 28.1%) | 30948401 (media 30948401) |
+| alta        | 0/3            | —                              | —                                | —                              | —                         |
+| —           | 0/4            | —                              | —                                | —                              | —                         |
 
 Tokens procesados (entrada + cache + salida) por fase; «curso» es la implementacion. «—» = sin registrar (no es 0). Los resumenes solo cuentan tareas con algun dato (con dato/total): las demas salen en la tabla y no en el resumen. Cada media es sobre las tareas que tienen esa fase; el % es de la fase sobre el total del grupo.
 <!-- taskctl metricas --tokens: fin -->

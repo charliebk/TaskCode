@@ -40,9 +40,13 @@ una tarea tras otra, con release y aviso a OpenGisViewer al cerrar cada fase.
   `## Transiciones` con instante UTC, `taskctl metricas` y heurística
   recalibrada (`nivel_trivial_hasta` 1 → 0). La nueva cola de la suite:
   `siguiente`, `distribucion`, `plan-brainstorm`, `plan`.
-- **Pendiente**: E2 (TASK-023, coste en tokens por fase: encaja como columnas
-  de `taskctl metricas`) y el smoke del flujo guiado dentro de una sesión de
-  Claude Code.
+- **TASK-023 (E2), sin publicar todavía**: coste en tokens por fase.
+  `taskctl registrar-coste --agente <id>` suma el uso real de la transcripción
+  de cada subagente, `taskctl metricas --tokens [--escribir]` lo agrega, y la
+  §11 de `docs/METRICAS.md` trae el histórico de 41 tareas. Con esto **el plan
+  de terminación está completo: 69/69**.
+- **Pendiente**: el smoke del flujo guiado dentro de una sesión real de Claude
+  Code (lo hace Carlos) y publicar la 0.6.0.
 
 ## Dónde estamos
 
