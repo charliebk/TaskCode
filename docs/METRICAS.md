@@ -534,3 +534,97 @@ baratas.
 
 Se revisará cuando haya unas 10 tareas por nivel con `tokens_*` registrados:
 `taskctl metricas --tokens` da ya el resumen por complejidad.
+
+<!-- taskctl metricas --tokens: inicio -->
+## Coste en tokens por tarea (generado)
+
+> Generado por `taskctl metricas --tokens --escribir`. No editar a mano: lo que haya entre
+> los marcadores se sobrescribe.
+
+| id       | sprint | complejidad | tok_diseno | tok_curso | tok_revision | tok_total |
+|----------|--------|-------------|------------|-----------|--------------|-----------|
+| TASK-001 | 0      | simple      | —          | —         | —            | —         |
+| TASK-002 | 0      | media       | —          | —         | —            | —         |
+| TASK-003 | 0      | simple      | —          | —         | —            | —         |
+| TASK-004 | 0      | media       | —          | —         | —            | —         |
+| TASK-005 | 0      | trivial     | —          | —         | —            | —         |
+| TASK-006 | 0      | simple      | —          | —         | —            | —         |
+| TASK-007 | 0      | simple      | —          | —         | —            | —         |
+| TASK-008 | 1      | simple      | —          | —         | —            | —         |
+| TASK-009 | 1      | simple      | —          | —         | —            | —         |
+| TASK-010 | 1      | simple      | —          | —         | —            | —         |
+| TASK-011 | 1      | simple      | —          | —         | —            | —         |
+| TASK-012 | 1      | media       | —          | —         | —            | —         |
+| TASK-013 | 2      | media       | —          | —         | —            | —         |
+| TASK-014 | 2      | media       | —          | —         | —            | —         |
+| TASK-015 | 2      | simple      | —          | —         | —            | —         |
+| TASK-016 | 3      | alta        | —          | —         | —            | —         |
+| TASK-017 | 3      | alta        | —          | —         | —            | —         |
+| TASK-018 | 3      | alta        | —          | —         | —            | —         |
+| TASK-019 | 3      | simple      | —          | —         | —            | —         |
+| TASK-020 | 3      | media       | —          | —         | —            | —         |
+| TASK-021 | 4      | simple      | —          | —         | —            | —         |
+| TASK-022 | 4      | simple      | —          | —         | —            | —         |
+| TASK-023 | 4      | media       | 3445774    | 18803413  | —            | 22249187  |
+| TASK-024 | 2      | simple      | —          | —         | —            | —         |
+| TASK-025 | 2      | media       | —          | —         | —            | —         |
+| TASK-026 | 2      | media       | —          | —         | —            | —         |
+| TASK-027 | 2      | simple      | —          | —         | —            | —         |
+| TASK-028 | 2      | simple      | —          | —         | —            | —         |
+| TASK-029 | 0      | media       | —          | —         | —            | —         |
+| TASK-030 | 0      | media       | —          | —         | —            | —         |
+| TASK-031 | 0      | media       | —          | —         | —            | —         |
+| TASK-032 | 3      | media       | —          | —         | —            | —         |
+| TASK-033 | 0      | media       | —          | —         | —            | —         |
+| TASK-034 | 2      | simple      | —          | —         | —            | —         |
+| TASK-035 | 2      | trivial     | —          | —         | —            | —         |
+| TASK-036 | 2      | simple      | —          | —         | —            | —         |
+| TASK-037 | 3      | simple      | —          | —         | —            | —         |
+| TASK-038 | 3      | simple      | —          | —         | —            | —         |
+| TASK-039 | 3      | simple      | —          | —         | —            | —         |
+| TASK-040 | 4      | media       | —          | —         | —            | —         |
+| TASK-041 | 5      | simple      | —          | —         | —            | —         |
+| TASK-042 | 5      | simple      | —          | —         | —            | —         |
+| TASK-043 | 5      | media       | —          | —         | —            | —         |
+| TASK-044 | 5      | media       | —          | —         | —            | —         |
+| TASK-045 | 6      | simple      | —          | —         | —            | —         |
+| TASK-046 | 6      | trivial     | —          | —         | —            | —         |
+| TASK-047 | 6      | simple      | —          | —         | —            | —         |
+| TASK-048 | 7      | simple      | —          | —         | —            | —         |
+| TASK-049 | 7      | simple      | —          | —         | —            | —         |
+| TASK-050 | 7      | media       | —          | —         | —            | —         |
+| TASK-051 | 7      | media       | —          | —         | —            | —         |
+| TASK-052 | 7      | media       | —          | —         | —            | —         |
+| TASK-053 | 6      | trivial     | —          | —         | —            | —         |
+| TASK-054 | 6      | simple      | —          | —         | —            | —         |
+| TASK-055 | 7      | simple      | —          | —         | —            | —         |
+| TASK-056 | 7      | —           | —          | —         | —            | —         |
+| TASK-057 | 7      | —           | —          | —         | —            | —         |
+| TASK-058 | 7      | —           | —          | —         | —            | —         |
+| TASK-059 | 7      | —           | —          | —         | —            | —         |
+
+### Resumen por sprint
+
+| sprint | con dato/total | diseno                         | curso                            | revision | total (media)             |
+|--------|----------------|--------------------------------|----------------------------------|----------|---------------------------|
+| 0      | 0/11           | —                              | —                                | —        | —                         |
+| 1      | 0/5            | —                              | —                                | —        | —                         |
+| 2      | 0/11           | —                              | —                                | —        | —                         |
+| 3      | 0/9            | —                              | —                                | —        | —                         |
+| 4      | 1/4            | 3445774 (media 3445774, 15.5%) | 18803413 (media 18803413, 84.5%) | —        | 22249187 (media 22249187) |
+| 5      | 0/4            | —                              | —                                | —        | —                         |
+| 6      | 0/5            | —                              | —                                | —        | —                         |
+| 7      | 0/10           | —                              | —                                | —        | —                         |
+
+### Resumen por complejidad declarada
+
+| complejidad | con dato/total | diseno                         | curso                            | revision | total (media)             |
+|-------------|----------------|--------------------------------|----------------------------------|----------|---------------------------|
+| trivial     | 0/4            | —                              | —                                | —        | —                         |
+| simple      | 0/28           | —                              | —                                | —        | —                         |
+| media       | 1/20           | 3445774 (media 3445774, 15.5%) | 18803413 (media 18803413, 84.5%) | —        | 22249187 (media 22249187) |
+| alta        | 0/3            | —                              | —                                | —        | —                         |
+| —           | 0/4            | —                              | —                                | —        | —                         |
+
+Tokens procesados (entrada + cache + salida) por fase; «curso» es la implementacion. «—» = sin registrar (no es 0). Los resumenes solo cuentan tareas con algun dato (con dato/total): las demas salen en la tabla y no en el resumen. Cada media es sobre las tareas que tienen esa fase; el % es de la fase sobre el total del grupo.
+<!-- taskctl metricas --tokens: fin -->
