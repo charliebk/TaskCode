@@ -72,6 +72,7 @@ import {
   fetchOrigin,
   resolverCommit,
   fastForwardDesde,
+  runGit,
   GitCommandError,
 } from '../fs/git.js';
 import {
@@ -455,6 +456,7 @@ export async function runFinishCommand(
     const integrado = (mrCtx as ContextoMergeRequest).estado as Extract<EstadoMergeRequest, { tipo: 'integrado' }>;
     commitParaTag = traerIntegracionDeLaPlataforma({
       id,
+      rama,
       integrado,
       ramaIntegracion,
       nombreTag,
@@ -840,6 +842,7 @@ async function abrirMergeRequestYAnotar(o: AbrirMergeRequestOpts): Promise<Finis
 
 interface TraerIntegracionOpts {
   id: string;
+  rama: string;
   integrado: Extract<EstadoMergeRequest, { tipo: 'integrado' }>;
   ramaIntegracion: string;
   nombreTag: string | null;
@@ -854,6 +857,47 @@ interface TraerIntegracionOpts {
  * van ANTES de cambiar de rama. Devuelve el commit que la plataforma da como
  * resultado del merge (el del tag), o null si no lo informa.
  */
+/**
+ * IMP-1 de la revision: con squash o rebase la ancestria no dice si la rama
+ * esta integrada (decision de Carlos), pero SI se sabe que punta integro la
+ * plataforma (`headCommit`) y que hay en origin y en local tras el fetch:
+ *
+ * - la rama de origin no puede haber avanzado despues de ese merge (se subieron
+ *   commits tras mergear: no estan integrados);
+ * - la rama local solo puede llevar, sobre lo integrado, el commit de
+ *   anotacion del propio primer finish: cualquier otro commit local es trabajo
+ *   que nunca llego al merge request.
+ * Sin `headCommit` (la plataforma no lo informa) la referencia es la rama de
+ * origin. Aborta sin tocar nada.
+ */
+function comprobarRamaIntegrada(o: TraerIntegracionOpts): void {
+  const { id, rama, integrado, cwd } = o;
+  const remota = resolverCommit(`refs/remotes/origin/${rama}`, cwd);
+  const head = integrado.headCommit;
+  const nada = 'No se ha tocado nada.';
+  if (head !== null && remota !== null && remota !== head) {
+    throw new FinishCommandError(
+      `[ERROR] ${id}: "origin/${rama}" avanzo DESPUES de que la plataforma mergeara el merge request ` +
+        `(integro ${head.slice(0, 10)}, la rama en origin esta en ${remota.slice(0, 10)}): esos commits no ` +
+        'estan integrados en la base. Abre otro merge request con ellos (taskctl finish --merge-request tras ' +
+        `borrar la seccion "## Merge request" de tarea.md) o descartalos. ${nada}`
+    );
+  }
+  const referencia = head !== null && resolverCommit(head, cwd) !== null ? head : remota;
+  if (referencia === null) return;
+  const sinIntegrar = runGit(['log', '--format=%s', '--end-of-options', `${referencia}..refs/heads/${rama}`], cwd)
+    .split('\n')
+    .filter((l) => l !== '' && l !== mensajeChore(id, 'merge request abierto'));
+  if (sinIntegrar.length > 0) {
+    throw new FinishCommandError(
+      `[ERROR] ${id}: "${rama}" tiene ${String(sinIntegrar.length)} commit(s) locales que no estaban en el merge ` +
+        `request cuando se mergeo (${sinIntegrar.slice(0, 3).map((s) => `«${s}»`).join(', ')}), asi que NO estan en ` +
+        `"${integrado.base}". Subelos (git push origin ${rama}) y que la plataforma los integre en otro merge ` +
+        `request (borra la seccion "## Merge request" de tarea.md para abrirlo), o descartalos. ${nada}`
+    );
+  }
+}
+
 function traerIntegracionDeLaPlataforma(o: TraerIntegracionOpts): string | null {
   const { id, integrado, ramaIntegracion, cwd } = o;
   if (integrado.base !== ramaIntegracion) {
@@ -876,6 +920,7 @@ function traerIntegracionDeLaPlataforma(o: TraerIntegracionOpts): string | null 
       `[ERROR] ${id}: origin no tiene la rama "${ramaIntegracion}" tras el fetch. No se ha tocado nada.`
     );
   }
+  comprobarRamaIntegrada(o);
   const commit = integrado.commit;
   if (commit !== null) {
     if (resolverCommit(commit, cwd) === null || !isAncestor(commit, origenBase, cwd)) {

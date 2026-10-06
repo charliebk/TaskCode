@@ -23,7 +23,11 @@ cambia el modo de esa tarea.
 | `automatico` | Las preguntas se hacen en `plan`; el resto se encadena hasta `finish`, implementacion y correcciones incluidas |
 
 En cualquier modo, hotfix y release preguntan antes de `finish`, nunca se
-sube nada con `--push` sin que la persona lo pida, y cada transicion deja
+sube nada con `--push` sin que la persona lo pida (la unica excepcion es la
+rama de un merge request: `finish --merge-request` la sube siempre, porque sin
+ella no hay merge request; en `automatico` con `cierre_por_defecto:
+merge-request` eso ocurre sin preguntar, y el tag nunca se sube sin `--push`),
+y cada transicion deja
 una fila en la seccion `## Transiciones` de `tarea.md` (fecha, fase, modo y
 quien decidio) en el mismo commit que la transicion.
 

@@ -105,14 +105,17 @@ function candidatosGithub(lista, rama) {
         const merge = o['mergeCommit'];
         const oid = typeof merge === 'object' && merge !== null ? texto(merge['oid']) : null;
         if (estado === 'OPEN')
-            salida.push({ estado: 'abierto', url, base, commit: null });
+            salida.push({ estado: 'abierto', url, base, commit: null, head: null });
         else if (estado === 'MERGED') {
             if (oid !== null && !SHA.test(oid))
                 return 'mergeCommit.oid no es un SHA';
-            salida.push({ estado: 'integrado', url, base, commit: oid });
+            const head = texto(o['headRefOid']);
+            if (head !== null && !SHA.test(head))
+                return 'headRefOid no es un SHA';
+            salida.push({ estado: 'integrado', url, base, commit: oid, head });
         }
         else if (estado === 'CLOSED')
-            salida.push({ estado: 'cerrado', url, base, commit: null });
+            salida.push({ estado: 'cerrado', url, base, commit: null, head: null });
         else
             return `estado de PR desconocido (${String(estado)})`;
     }
@@ -132,15 +135,18 @@ function candidatosGitlab(lista, rama) {
         if (!esUrlPublicable(url) || base === null)
             return 'una entrada del listado no trae web_url o target_branch';
         if (estado === 'opened' || estado === 'locked')
-            salida.push({ estado: 'abierto', url, base, commit: null });
+            salida.push({ estado: 'abierto', url, base, commit: null, head: null });
         else if (estado === 'merged') {
             const oid = texto(o['merge_commit_sha']) ?? texto(o['squash_commit_sha']);
             if (oid !== null && !SHA.test(oid))
                 return 'merge_commit_sha no es un SHA';
-            salida.push({ estado: 'integrado', url, base, commit: oid });
+            const head = texto(o['sha']);
+            if (head !== null && !SHA.test(head))
+                return 'sha no es un SHA';
+            salida.push({ estado: 'integrado', url, base, commit: oid, head });
         }
         else if (estado === 'closed')
-            salida.push({ estado: 'cerrado', url, base, commit: null });
+            salida.push({ estado: 'cerrado', url, base, commit: null, head: null });
         else
             return `estado de MR desconocido (${String(estado)})`;
     }
@@ -175,7 +181,13 @@ export function interpretarListado(plataforma, stdout, rama) {
         return { tipo: 'abierto', url: abierto.url };
     const integrado = candidatos.find((c) => c.estado === 'integrado');
     if (integrado !== undefined) {
-        return { tipo: 'integrado', url: integrado.url, base: integrado.base, commit: integrado.commit };
+        return {
+            tipo: 'integrado',
+            url: integrado.url,
+            base: integrado.base,
+            commit: integrado.commit,
+            headCommit: integrado.head,
+        };
     }
     const cerrado = candidatos.find((c) => c.estado === 'cerrado');
     if (cerrado !== undefined)

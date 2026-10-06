@@ -109,7 +109,7 @@ export function estadoMergeRequest(remoto: RemotoPlataforma, rama: string, cwd: 
           `--head=${rama}`,
           '--state=all',
           '--limit=100',
-          '--json=number,state,url,baseRefName,headRefName,mergeCommit',
+          '--json=number,state,url,baseRefName,headRefName,headRefOid,mergeCommit',
         ]
       : ['mr', 'list', `--source-branch=${rama}`, '--all', '--per-page=100', '--output=json'];
   const r = lanzar(cli, args, cwd);

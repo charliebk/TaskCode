@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -87,11 +87,13 @@ async function abrirMr(e: Escenario, extra: string[] = []): Promise<string> {
 
 /** La plataforma "mergea": el merge ocurre de verdad en el bare y el doble pasa a decir `integrado`. */
 async function mergearPr(e: Escenario, dbl: ControlDoble, url: string, modo: 'merge' | 'squash' | 'rebase', informar = true): Promise<string> {
+  // La punta que integra la plataforma es la que hay en el remoto al mergear.
+  const headSha = ramaEnBare(e.origin.bare, e.task.rama);
   const commit = await mergearEnPlataforma(e.origin.bare, e.task.rama, 'develop', modo);
   const estado = dbl.leer();
   dbl.escribir({
     ...estado,
-    prs: [{ estado: 'integrado', url, base: 'develop', head: e.task.rama, commit: informar ? commit : null }],
+    prs: [{ estado: 'integrado', url, base: 'develop', head: e.task.rama, commit: informar ? commit : null, headSha }],
   });
   return commit;
 }
@@ -599,5 +601,69 @@ test('main: sin el CLI de la plataforma sale con codigo 1 y el mensaje dice que 
       process.chdir(cwdAntes);
     }
     assert.equal(ramaEnBare(e.origin.bare, e.task.rama), null);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// IMP-1 de la revision: la rama no puede tener nada que la plataforma no integro
+// ---------------------------------------------------------------------------
+
+for (const modo of ['merge', 'squash'] as const) {
+  test(`segundo finish (${modo}) con un commit LOCAL sin subir al MR aborta sin tocar nada: la tarea no se da por integrada`, async () => {
+    await escenario(URL_GITHUB, async (e) => {
+      await conDoblePlataforma(SIN_PRS, async (dbl) => {
+        const url = await abrirMr(e);
+        // Trabajo posterior al PR, commiteado en la rama y NO subido.
+        await writeFile(path.join(e.repoRoot, 'extra.txt'), 'trabajo que no llego al MR\n', 'utf8');
+        commitAll(e.repoRoot, 'extra');
+        await mergearPr(e, dbl, url, modo);
+        const antes = huella(e);
+        await assert.rejects(
+          () => finish(e, [ID, '--merge-request']),
+          /tiene 1 commit\(s\) locales que no estaban en el merge request.*«extra».*NO estan en "develop"/s
+        );
+        assert.equal(huella(e), antes);
+        assert.equal(existsSync(path.join(e.tareasRoot, '04-terminadas', ID)), false);
+      });
+    });
+  });
+}
+
+test('segundo finish con commits SUBIDOS a la rama DESPUES de que la plataforma mergeara aborta sin tocar nada', async () => {
+  await escenario(URL_GITHUB, async (e) => {
+    await conDoblePlataforma(SIN_PRS, async (dbl) => {
+      const url = await abrirMr(e);
+      await mergearPr(e, dbl, url, 'squash');
+      await writeFile(path.join(e.repoRoot, 'tarde.txt'), 'subido tras mergear\n', 'utf8');
+      commitAll(e.repoRoot, 'tarde');
+      git(['push', '-q', 'origin', e.task.rama], e.repoRoot);
+      const antes = huella(e);
+      await assert.rejects(() => finish(e, [ID, '--merge-request']), /avanzo DESPUES de que la plataforma mergeara/);
+      assert.equal(huella(e), antes);
+    });
+  });
+});
+
+test('segundo finish: la anotacion del propio primer finish (subida o no) NO cuenta como commit sin integrar', async () => {
+  await escenario(URL_GITHUB, async (e) => {
+    await conDoblePlataforma(SIN_PRS, async (dbl) => {
+      const url = await abrirMr(e, ['--push']);
+      await mergearPr(e, dbl, url, 'squash');
+      const r = await finish(e, [ID, '--merge-request']);
+      assert.equal(r.cierre, 'terminada');
+    });
+  });
+});
+
+// Un PR CERRADO sin mergear nunca se lee como integrado, ni siquiera con un commit "de merge".
+test('un PR CERRADO que trae mergeCommit no se lee como integrado: aborta y no cierra', async () => {
+  await escenario(URL_GITHUB, async (e) => {
+    await conDoblePlataforma(SIN_PRS, async (dbl) => {
+      const url = await abrirMr(e);
+      const commit = await mergearEnPlataforma(e.origin.bare, e.task.rama, 'develop', 'merge');
+      dbl.escribir({ ...dbl.leer(), prs: [{ estado: 'cerrado', url, base: 'develop', head: e.task.rama, commit }] });
+      await assert.rejects(() => finish(e, [ID, '--merge-request']), /esta CERRADO sin mergear/);
+      assert.equal(existsSync(path.join(e.tareasRoot, '04-terminadas', ID)), false);
+    });
   });
 });

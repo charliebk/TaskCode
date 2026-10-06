@@ -61,8 +61,16 @@ test('interpretarListado (gh): abierto gana a mergeado y mergeado a cerrado; vac
     url: 'https://github.com/a/b/pull/1',
     base: 'develop',
     commit: sha,
+    headCommit: null,
   });
   assert.equal(interpretarListado('github', j([GH('CLOSED')]), 'feature/x').tipo, 'cerrado');
+  // Un PR CERRADO nunca es integrado, aunque el listado traiga un mergeCommit.
+  assert.equal(interpretarListado('github', j([GH('CLOSED', { mergeCommit: { oid: sha } })]), 'feature/x').tipo, 'cerrado');
+  assert.equal(interpretarListado('gitlab', JSON.stringify([GL('closed', { merge_commit_sha: sha })]), 'feature/x').tipo, 'cerrado');
+  // La punta integrada (headRefOid / sha) se lee, y un valor que no es SHA es desconocido.
+  assert.equal((interpretarListado('github', j([GH('MERGED', { headRefOid: sha })]), 'feature/x') as { headCommit: unknown }).headCommit, sha);
+  assert.equal(interpretarListado('github', j([GH('MERGED', { headRefOid: 'zz' })]), 'feature/x').tipo, 'desconocido');
+  assert.equal((interpretarListado('gitlab', JSON.stringify([GL('merged', { sha })]), 'feature/x') as { headCommit: unknown }).headCommit, sha);
   // Un PR de otra rama (la plataforma devolvio de mas) no cuenta.
   assert.deepEqual(interpretarListado('github', j([GH('OPEN', { headRefName: 'otra' })]), 'feature/x'), { tipo: 'ninguno' });
 });
@@ -76,6 +84,7 @@ test('interpretarListado (glab): opened/merged/closed, merge_commit_sha o squash
     url: 'https://gitlab.com/a/b/-/merge_requests/1',
     base: 'develop',
     commit: sha,
+    headCommit: null,
   });
   assert.equal((interpretarListado('gitlab', j([GL('merged')]), 'feature/x') as { commit: unknown }).commit, null);
   assert.equal(interpretarListado('gitlab', j([GL('closed')]), 'feature/x').tipo, 'cerrado');

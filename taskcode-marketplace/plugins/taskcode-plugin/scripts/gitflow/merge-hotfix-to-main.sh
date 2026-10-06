@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_gitflow-common.sh"
 
-PUSH=false; NAME=""; MAIN_BRANCH=""; DEVELOP_BRANCH="develop"; TAG_OVERRIDE=""
+PUSH=false; NAME=""; MAIN_BRANCH=""; DEVELOP_BRANCH="develop"; TAG_OVERRIDE=""; TAG_SEEN=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --push|-p) PUSH=true ;;
         --main)    MAIN_BRANCH="$2";    shift ;;
         --develop) DEVELOP_BRANCH="$2"; shift ;;
-        --tag)     TAG_OVERRIDE="$2"; shift ;;
+        --tag)     TAG_SEEN=true; TAG_OVERRIDE="${2:-}"; shift ;;
         *)         [ -z "$NAME" ] && NAME="$1" ;;
     esac
     shift
@@ -23,6 +23,10 @@ initialize_gitflow_log "merge-hotfix -> main ($NAME)"
 # solo tag, el del merge a main). Se valida ANTES de tocar ninguna rama: un
 # nombre invalido, con "-" inicial (se leeria como opcion de git) o ya usado
 # abortaria despues del merge, con main ya movida.
+if [ "$TAG_SEEN" = true ] && [ -z "$TAG_OVERRIDE" ]; then
+    log_error "--tag necesita un nombre (--tag v1.2.0). No se ha tocado nada."
+    exit 1
+fi
 if [ -n "$TAG_OVERRIDE" ]; then
     if [[ "$TAG_OVERRIDE" == -* ]] || ! git check-ref-format "refs/tags/$TAG_OVERRIDE" 2>/dev/null; then
         log_error "El nombre de tag '$TAG_OVERRIDE' no es valido (git check-ref-format, y sin '-' inicial). No se ha tocado nada."

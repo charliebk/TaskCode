@@ -36,6 +36,8 @@ export interface PrDoble {
   head: string;
   /** Commit resultante del merge (merge, squash o rebase); null = la plataforma no lo informa. */
   commit?: string | null;
+  /** Punta de la rama que la plataforma integro (headRefOid / sha). */
+  headSha?: string | null;
 }
 
 export interface EstadoDoble {
@@ -87,10 +89,10 @@ const CODIGO_DOBLE = [
   '    const lista = st.prs.filter((p) => p.head === head).map((p, i) => {',
   "      if (cli === 'gh') {",
   "        const estado = { abierto: 'OPEN', integrado: 'MERGED', cerrado: 'CLOSED' }[p.estado];",
-  "        return { number: i + 1, state: estado, url: p.url, baseRefName: p.base, headRefName: p.head, mergeCommit: p.commit ? { oid: p.commit } : null };",
+  "        return { number: i + 1, state: estado, url: p.url, baseRefName: p.base, headRefName: p.head, headRefOid: p.headSha || null, mergeCommit: p.commit ? { oid: p.commit } : null };",
   '      }',
   "      const estado = { abierto: 'opened', integrado: 'merged', cerrado: 'closed' }[p.estado];",
-  "      return { iid: i + 1, state: estado, web_url: p.url, target_branch: p.base, source_branch: p.head, merge_commit_sha: p.commit || null, squash_commit_sha: null };",
+  "      return { iid: i + 1, state: estado, web_url: p.url, target_branch: p.base, source_branch: p.head, merge_commit_sha: p.commit || null, squash_commit_sha: null, sha: p.headSha || null };",
   '    });',
   '    salir(0, JSON.stringify(lista) + "\\n", "");',
   '  }',

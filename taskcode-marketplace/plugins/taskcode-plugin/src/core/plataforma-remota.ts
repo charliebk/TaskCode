@@ -103,9 +103,10 @@ export type EstadoMergeRequest =
   /**
    * Mergeado, sea con merge, squash o rebase. `commit` es el que la
    * plataforma da como resultado (el de merge, o el squash); null si no lo
-   * informa (glab con fast-forward).
+   * informa (glab con fast-forward). `headCommit` es la punta de la rama que la
+   * plataforma integro (lo unico que discrimina con squash/rebase).
    */
-  | { tipo: 'integrado'; url: string; base: string; commit: string | null }
+  | { tipo: 'integrado'; url: string; base: string; commit: string | null; headCommit: string | null }
   | { tipo: 'cerrado'; url: string }
   /** No se pudo saber (red, error del CLI, salida que no se entiende). */
   | { tipo: 'desconocido'; motivo: string };
@@ -115,6 +116,7 @@ interface Candidato {
   url: string;
   base: string;
   commit: string | null;
+  head: string | null;
 }
 
 const SHA = /^[0-9a-f]{7,64}$/i;
@@ -138,11 +140,13 @@ function candidatosGithub(lista: readonly unknown[], rama: string): Candidato[] 
     const merge = o['mergeCommit'];
     const oid =
       typeof merge === 'object' && merge !== null ? texto((merge as Record<string, unknown>)['oid']) : null;
-    if (estado === 'OPEN') salida.push({ estado: 'abierto', url, base, commit: null });
+    if (estado === 'OPEN') salida.push({ estado: 'abierto', url, base, commit: null, head: null });
     else if (estado === 'MERGED') {
       if (oid !== null && !SHA.test(oid)) return 'mergeCommit.oid no es un SHA';
-      salida.push({ estado: 'integrado', url, base, commit: oid });
-    } else if (estado === 'CLOSED') salida.push({ estado: 'cerrado', url, base, commit: null });
+      const head = texto(o['headRefOid']);
+      if (head !== null && !SHA.test(head)) return 'headRefOid no es un SHA';
+      salida.push({ estado: 'integrado', url, base, commit: oid, head });
+    } else if (estado === 'CLOSED') salida.push({ estado: 'cerrado', url, base, commit: null, head: null });
     else return `estado de PR desconocido (${String(estado)})`;
   }
   return salida;
@@ -158,12 +162,14 @@ function candidatosGitlab(lista: readonly unknown[], rama: string): Candidato[] 
     const url = o['web_url'];
     const base = texto(o['target_branch']);
     if (!esUrlPublicable(url) || base === null) return 'una entrada del listado no trae web_url o target_branch';
-    if (estado === 'opened' || estado === 'locked') salida.push({ estado: 'abierto', url, base, commit: null });
+    if (estado === 'opened' || estado === 'locked') salida.push({ estado: 'abierto', url, base, commit: null, head: null });
     else if (estado === 'merged') {
       const oid = texto(o['merge_commit_sha']) ?? texto(o['squash_commit_sha']);
       if (oid !== null && !SHA.test(oid)) return 'merge_commit_sha no es un SHA';
-      salida.push({ estado: 'integrado', url, base, commit: oid });
-    } else if (estado === 'closed') salida.push({ estado: 'cerrado', url, base, commit: null });
+      const head = texto(o['sha']);
+      if (head !== null && !SHA.test(head)) return 'sha no es un SHA';
+      salida.push({ estado: 'integrado', url, base, commit: oid, head });
+    } else if (estado === 'closed') salida.push({ estado: 'cerrado', url, base, commit: null, head: null });
     else return `estado de MR desconocido (${String(estado)})`;
   }
   return salida;
@@ -193,7 +199,13 @@ export function interpretarListado(plataforma: Plataforma, stdout: string, rama:
   if (abierto !== undefined) return { tipo: 'abierto', url: abierto.url };
   const integrado = candidatos.find((c) => c.estado === 'integrado');
   if (integrado !== undefined) {
-    return { tipo: 'integrado', url: integrado.url, base: integrado.base, commit: integrado.commit };
+    return {
+      tipo: 'integrado',
+      url: integrado.url,
+      base: integrado.base,
+      commit: integrado.commit,
+      headCommit: integrado.head,
+    };
   }
   const cerrado = candidatos.find((c) => c.estado === 'cerrado');
   if (cerrado !== undefined) return { tipo: 'cerrado', url: cerrado.url };

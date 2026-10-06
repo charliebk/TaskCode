@@ -87,6 +87,18 @@ for (const { script, tipo, base } of CASOS) {
     });
   });
 
+  test(`${script} --tag SIN valor aborta con mensaje y sin tocar nada (no se ignora en silencio)`, async () => {
+    await conRamaDeTrabajo(tipo, base, async (repoRoot, rama) => {
+      const mainAntes = git(['rev-parse', 'main'], repoRoot).trim();
+      const { status, output } = runScript(script, ['950-con-tag', '--develop', 'develop', '--tag'], repoRoot);
+      assert.notEqual(status, 0, output);
+      assert.match(output, /--tag necesita un nombre/);
+      assert.equal(git(['tag', '-l'], repoRoot).trim(), '');
+      assert.equal(git(['rev-parse', 'main'], repoRoot).trim(), mainAntes);
+      assert.equal(git(['branch', '--show-current'], repoRoot).trim(), rama);
+    });
+  });
+
   test(`${script} sin --tag sigue poniendo el tag calculado (el flag es opcional)`, async () => {
     await conRamaDeTrabajo(tipo, base, async (repoRoot) => {
       const { status, output } = runScript(script, ['950-con-tag'], repoRoot);
