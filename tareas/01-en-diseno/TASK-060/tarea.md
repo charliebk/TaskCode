@@ -6,10 +6,10 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-060-opciones-de-cierre-en-finish-merge-norma
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -38,3 +38,9 @@ dependencias: []
 - [ ] [ ] `.taskcode/config.yml` acepta una clave para el cierre por defecto (merge normal o merge request) que usa el modo automatico; una clave o valor mal escrito aborta como el resto de claves.
 - [ ] [ ] La skill `finish` pregunta en modo manual y semiautomatico (merge normal por defecto, merge request, tag opcional) y en automatico no pregunta; la skill no menciona el proyecto ni rutas internas.
 - [ ] [ ] Tests contra repos Git temporales reales para merge normal con tag, tag duplicado, push del tag a un remoto bare, y el ciclo MR con un CLI de plataforma simulado por un ejecutable de prueba en el PATH (el unico doble admitido: no hay GitHub ni GitLab en el CI).
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-06T17:09:04Z | plan | manual | persona |
