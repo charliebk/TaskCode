@@ -4,26 +4,46 @@
 orquesta: el coste lo registra quien lo ve, la sesion del agente, al terminar
 cada fase en la que hubo agentes.
 
-## Que se suma
+## Que cifra vale
 
-Por cada fase con agentes (diseno = `plan` y la ronda de roles y unificador;
-implementacion = el curso de la tarea; revision = revisores y segunda opinion):
+**La cifra que Claude Code muestra al terminar un subagente NO es lo que ha
+gastado**: es el tamano de su contexto final. Lo gastado es la suma del uso de
+todas las llamadas que hizo, y esa suma la calcula `taskctl` leyendo la
+transcripcion del subagente. Por eso no se apunta la cifra de la notificacion:
+se apunta el **id del agente** (`agentId`, hexadecimal), que devuelve la
+herramienta Agent al lanzarlo.
 
-1. Cada subagente que lanzaste devuelve, al terminar, el uso de la llamada
-   (total de tokens). Apunta la cifra de cada uno.
-2. Estima la parte tuya, la del orquestador, en esa fase (lo que leiste,
-   escribiste y razonaste fuera de los subagentes). Es una estimacion y esta
-   bien que lo sea: dilo como tal en el `## Resultado`.
-3. Registra cada cifra con el comando. Suma sobre lo que ya hubiera, asi que
-   puedes dar una llamada por subagente o una sola con el total:
+## Como se registra
+
+Al terminar cada subagente de la fase (diseno = la ronda de roles y el
+unificador; implementacion = los agentes del curso de la tarea; revision =
+revisores y segunda opinion), con su id:
 
 ```bash
-taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision --tokens N
+taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision --agente <id>
+taskctl registrar-coste TASK-NNN --fase revision --agente <id1> --agente <id2>   # varios, un solo registro
 ```
 
-`N` es un entero positivo (tokens procesados: entrada, cache y salida, sin
-separadores). `0` se rechaza: si la fase no tuvo agentes, no registres nada y
-queda «sin dato», que no es lo mismo que cero.
+La parte del propio orquestador (lo que leiste, escribiste y razonaste fuera
+de los subagentes) no tiene transcripcion que leer: si quieres registrarla,
+estimala y dala aparte, en otra llamada (`--agente` y `--tokens` no se
+combinan):
+
+```bash
+taskctl registrar-coste TASK-NNN --fase diseno --tokens N
+```
+
+Todo **suma** sobre lo que ya hubiera. `N` es un entero positivo (tokens
+procesados: entrada, cache y salida, sin separadores); `0` se rechaza: si la
+fase no tuvo agentes, no registres nada y queda «sin dato», que no es lo mismo
+que cero.
+
+Las transcripciones se buscan en `projects/*/*/subagents/agent-<id>.jsonl`
+bajo el directorio de configuracion de Claude Code (`CLAUDE_CONFIG_DIR` si
+esta definida, si no la carpeta `.claude` del usuario). Si el comando no encuentra el id, lo
+encuentra en mas de una sesion o la transcripcion no tiene el formato esperado,
+dice que hacer: la salida de emergencia es `--tokens N` con tu estimacion, y
+dilo como estimacion en el `## Resultado`.
 
 ## Cuando
 

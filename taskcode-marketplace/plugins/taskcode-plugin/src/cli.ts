@@ -80,7 +80,8 @@ Uso:
   taskctl finish TASK-NNN [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl pausa TASK-NNN [--push]
-  taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> --tokens N [--push]
+  taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
+                          (--agente <id>... | --tokens N) [--push]
   taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar
   taskctl diagnose
   taskctl pause [--push]
@@ -96,8 +97,9 @@ con la que da la heuristica en las tareas terminadas. --tokens anade el coste en
 tokens por fase y un resumen por sprint y por complejidad; con --escribir lo
 regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
 --escribir solo lee.
-registrar-coste SUMA tokens al coste de una fase de la tarea (en cualquier estado) y
-lo commitea; 0 se rechaza.
+registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
+--agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la
+herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
@@ -742,7 +744,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
     try {
       const r = await runRegistrarCosteCommand(tareasRoot, argv.slice(1), { repoCwd });
       process.stdout.write(
-        `Tarea ${r.id}: +${String(r.sumado)} tokens de ${r.fase}; total de la fase: ${String(r.total)} ` +
+        `Tarea ${r.id}: +${String(r.sumado)} tokens de ${r.fase}${r.agentes > 0 ? ` (${String(r.agentes)} subagente(s))` : ''}; total de la fase: ${String(r.total)} ` +
           `(${r.filePath}).\n`
       );
       printAutoCommit(r.autoCommit);

@@ -19,9 +19,10 @@ Mergea la rama de la tarea (sin borrarla) y la deja en `terminada`.
    revision y lo que se decidio no corregir. Si falta, completalo y
    commitealo antes.
 3. Si `taskctl finish` avisa de que falta el coste de diseno o de revision y lo
-   tienes (la suma del uso de cada subagente mas tu estimacion), registralo con
-   `taskctl registrar-coste TASK-NNN --fase diseno|revision --tokens N`
-   (`task-workflow/coste.md`); el aviso no bloquea y tambien se puede registrar
+   tienes (los ids de los subagentes de esa fase), registralo con
+   `taskctl registrar-coste TASK-NNN --fase diseno|revision --agente <id>`
+   (`task-workflow/coste.md`; la cifra que muestra Claude Code al terminar un
+   agente no es su coste); el aviso no bloquea y tambien se puede registrar
    despues del cierre.
    Desde la rama de la tarea (si estas en otra: `git checkout <rama>` del
    `tarea.md`; desde la rama base `finish` lee la copia vieja y aborta),

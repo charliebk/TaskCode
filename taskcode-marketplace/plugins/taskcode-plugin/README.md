@@ -547,13 +547,20 @@ el resto del fichero, CRLF incluido, no cambia ni un byte) y no lo commitea,
 como `board --escribir`. No se combina con `--heuristica`.
 
 `taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision
---tokens N [--push]` **suma** N al coste de esa fase (`tokens_diseno`,
-`tokens_implementacion`, `tokens_revision` del `tarea.md`; `null` = sin
-registrar y solo cuenta como 0 al sumar). `taskctl` no ve el consumo del
-agente, así que lo registra quien lo ve: la suma del uso que Claude Code
-devuelve al terminar cada subagente de la fase más una estimación de la parte
-propia (lo explica la referencia `coste.md` de la skill `task-workflow`).
-Funciona en cualquier estado, también `terminada`; escribe y commitea solo ese
-`tarea.md` (aborta si tiene cambios sin commitear o si la copia al día de la
-tarea está en su rama), y rechaza `--tokens 0`. `taskctl finish` avisa, sin
-bloquear, si falta el coste de diseño o de revisión.
+(--agente <id>... | --tokens N) [--push]` **suma** al coste de esa fase
+(`tokens_diseno`, `tokens_implementacion`, `tokens_revision` del `tarea.md`;
+`null` = sin registrar y solo cuenta como 0 al sumar). `taskctl` no ve el
+consumo del agente, así que lo registra quien lo ve. **La cifra que Claude Code
+muestra al terminar un subagente no es lo que ha gastado: es el tamaño de su
+contexto final.** Con `--agente <id>` (repetible; el `agentId` que devuelve la
+herramienta Agent) `taskctl` lee la transcripción del subagente en
+`<config>/projects/*/*/subagents/agent-<id>.jsonl` (`<config>` = `CLAUDE_CONFIG_DIR`
+o `~/.claude`) y suma, por `message.id` único (la última aparición), entrada +
+escritura y lectura de caché + salida de cada llamada. Varios `--agente` van en
+un solo registro y un solo commit. `--tokens N` da una cifra a mano (la parte del
+orquestador, estimada) y se excluye con `--agente`. Si el id no se encuentra, está
+en más de una sesión o la transcripción no trae `usage`, aborta diciendo qué hacer
+(`--tokens N` como salida). Funciona en cualquier estado, también `terminada`;
+escribe y commitea solo ese `tarea.md` (aborta si tiene cambios sin commitear o si
+la copia al día de la tarea está en su rama) y rechaza cifras de 0. `taskctl finish`
+avisa, sin bloquear, si falta el coste de diseño o de revisión.

@@ -87,7 +87,7 @@ taskctl finish  TASK-NNN
 
 taskctl siguiente TASK-NNN [--json]   # que fase toca y si preguntar; solo lee
 taskctl pausa     TASK-NNN            # registra un «no seguir todavia», sin cambiar el estado
-taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision --tokens N   # suma
+taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision (--agente <id>... | --tokens N)
 taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar
                   # con una cadena abierta, los comandos que escriben exigen --cadena <testigo>
 
@@ -246,8 +246,7 @@ con su tabla. Es el mismo fichero que siguen las skills revisoras.
 
 ## Coste en tokens
 
-Al terminar cada fase con agentes, suma el uso que devuelve cada subagente mas una
-estimacion de lo tuyo y registralo: [coste.md](coste.md).
+Al terminar cada subagente de una fase, registra su id con `--agente`: la cifra que Claude Code muestra al terminar NO es su coste. Detalle: [coste.md](coste.md).
 
 ## Trampas que cuestan tiempo
 

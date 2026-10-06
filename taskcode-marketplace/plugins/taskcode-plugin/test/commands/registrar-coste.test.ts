@@ -77,7 +77,7 @@ test('registrar-coste: rechaza 0, negativos, no numeros, flotantes, fase invalid
       [[ID, '--fase', 'diseno', '--tokens', 'abc'], /"abc" no es un entero positivo/],
       [[ID, '--fase', 'diseno', '--tokens', '12k'], /"12k" no es un entero positivo/],
       [[ID, '--fase', 'diseno', '--tokens', '1.5'], /"1.5" no es un entero positivo/],
-      [[ID, '--fase', 'diseno'], /--tokens falta/],
+      [[ID, '--fase', 'diseno'], /Falta el coste: pasa --agente/],
       [[ID, '--fase', 'diseno', '--tokens'], /--tokens falta/],
       [[ID, '--fase', 'diseno', '--tokens', '99999999999999999999'], /demasiado grande/],
       [[ID, '--fase', 'curso', '--tokens', '5'], /--fase "curso" no reconocida.*diseno, implementacion, revision/s],

@@ -27,10 +27,11 @@ Abre la rama de la tarea con Git-Flow y la pasa a `en-curso`.
    avance). Si no consigues dejar la suite en verde, para y dilo: no se revisa
    codigo roto.
 5. Al terminar la implementacion (con o sin subagentes) y antes de la revision, registra su coste
-   (`task-workflow/coste.md`): suma el total de tokens de cada subagente mas una
-   estimacion de lo tuyo con
-   `taskctl registrar-coste TASK-NNN --fase implementacion --tokens N`. Si no hubo
-   nada que medir, no registres nada.
+   (`task-workflow/coste.md`): con el id que devolvio la herramienta Agent de
+   cada subagente, `taskctl registrar-coste TASK-NNN --fase implementacion
+   --agente <id> [--agente <id2>...]`. La cifra que muestra Claude Code al
+   terminar un agente NO es su coste (es su contexto final). Tu parte, si
+   quieres, estimada y aparte con `--tokens N`. Sin subagentes, no registres nada.
 6. En el resto de casos, sigue la seccion de avance (`task-workflow/avance.md`):
    `taskctl siguiente TASK-NNN --json`. Tras `start` la fase es `review`,
    que significa: primero implementar el plan en esta rama, con tests,
