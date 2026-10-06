@@ -61,3 +61,25 @@ Roles: complejidad declarada media, heuristica simple (1 punto: 11 criterios); s
 4. Clave nueva `cierre_por_defecto` frente a plugins antiguos (riesgos). Opciones: (a) aceptar el fallo en todos los comandos y exigir actualizar el plugin; (b) tolerar claves desconocidas, cambio de comportamiento de `config.ts`; (c) documentarlo y no anadir la clave aun. Sin recomendacion de las salidas: arquitectura no lo trato.
 5. Host de origin desconocido: tratarlo como GitLab autoalojado (arquitectura, "a confirmar") o abortar nombrando que configurar (riesgos #6). Desprendido: abortar es lo que pide el criterio 6 para "origin no reconocido".
 6. Aprobacion del plan entero con `taskctl approve`.
+
+## Decisiones tomadas por Carlos (2026-10-06)
+
+Resuelven las «Decisiones pendientes de Carlos» de arriba:
+
+1. **`--tag` en hotfix/release sustituye el nombre.** Los scripts
+   `merge-hotfix-to-main.sh` y `merge-release-to-main.sh` aceptan
+   `--tag <nombre>` y lo usan en lugar del calculado. Sigue habiendo un solo
+   tag, que pone el script en main. Feature y fix: tag desde TypeScript.
+2. **`--merge-request` sube la rama siempre**, sin exigir `--push` (sin rama
+   en el remoto no hay MR), y la salida lo dice. El tag sigue sin subirse
+   salvo con `--push`.
+3. **«Integrado» es el estado `merged` del PR/MR en la plataforma**, sea cual
+   sea el metodo (merge, squash o rebase). El tag va sobre el commit que la
+   plataforma da como resultado del merge, traido con fetch. Un MR cerrado sin
+   mergear aborta y lo dice. Con red caida o un estado que no se pueda saber,
+   aborta sin tocar nada (riesgo 4).
+4. **La clave `cierre_por_defecto` se añade**, con aviso de compatibilidad en
+   el CHANGELOG, igual que en la 0.5.0: todo el equipo actualiza a la vez. Es
+   opcional.
+5. **Host de origin desconocido: aborta** nombrando que configurar (criterio
+   6). No se supone GitLab.
