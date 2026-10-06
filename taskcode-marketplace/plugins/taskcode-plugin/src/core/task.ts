@@ -76,7 +76,8 @@ export interface Task {
   /**
    * TASK-023: coste en tokens de cada fase: tokens procesados por sus
    * subagentes, sumados de sus transcripciones (`registrar-coste --agente`),
-   * mas lo que se registre a mano con `--tokens` (la parte del orquestador). null = no registrado; en el fichero, ausente tambien es
+   * mas lo que se registre a mano con `--tokens` (la parte del orquestador).
+   * null = no registrado; en el fichero, ausente tambien es
    * null, asi las tareas anteriores siguen validando. Los suma
    * `taskctl registrar-coste`.
    */
