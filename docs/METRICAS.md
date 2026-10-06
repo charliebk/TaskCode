@@ -412,3 +412,125 @@ ficheros—, y por tanto **una tarea arrancada con `taskctl start` no se puede
 cerrar con el sistema**: hay que terminarla a mano, exactamente como se han
 terminado estas 12. Ese es el hito real de usabilidad diaria, y
 `docs/contexto/CHECKLIST_TERMINACION.md` lo sitúa en su Fase B.
+
+## 11. Coste real en tokens de los subagentes (histórico, TASK-005 a TASK-059)
+
+> Añadido el 2026-10-06 por TASK-023. Es la primera medición de coste real
+> que tiene el proyecto: la sección 16 de `PROPUESTA_METODOLOGIA.md` solo
+> estimó **dónde** hace falta un LLM, nunca **cuánto**.
+
+**Fuente.** Claude Code guarda la transcripción de cada subagente
+(`~/.claude/projects/<proyecto>/<sesion>/subagents/agent-*.jsonl`), con el
+`usage` de cada llamada a la API. Para cada uno de los 190 subagentes
+guardados se suman, por mensaje único, entrada + escritura de caché + lectura
+de caché + salida: **tokens procesados**, no coste en euros. La lectura de
+caché domina las cifras y es la parte barata. La tarea se toma del TASK-NNN de
+la descripción o el prompt del agente, y la fase de la descripción (los
+`brainstorm-*`, unificador y plan son diseño; las implementaciones y las
+correcciones son implementación; las revisiones, rondas y smokes son
+revisión).
+
+**Es una cota inferior, y no se escribe en los `tarea.md`.** Faltan:
+
+- la parte del orquestador, que en las tareas antiguas implementaba él mismo;
+- los subagentes cuyo prompt nombraba varias tareas (203 M de 799 M), y 110 M
+  sin tarea identificable;
+- Codex;
+- las sesiones anteriores a que Claude Code guardara transcripciones de
+  subagentes.
+
+Por eso estas cifras no rellenan `tokens_*`, que significan coste de la fase.
+TASK-023 es la primera tarea con esos campos rellenos con
+`taskctl registrar-coste`.
+
+Cifras en millones de tokens procesados por los subagentes atribuibles a una
+sola tarea. Las tareas sin complejidad conocida quedan fuera.
+
+| tarea | declarada | heuristica | rondas | diseno | implementacion | revision | total |
+|---|---|---|---|---:|---:|---:|---:|
+| TASK-015 | simple | simple | 1 | — | — | 8.0 | 8.0 |
+| TASK-016 | alta | simple | 5 | — | 5.5 | 38.2 | 43.6 |
+| TASK-017 | alta | simple | 5 | 6.7 | — | 22.4 | 29.1 |
+| TASK-018 | alta | simple | 2 | 4.7 | 16.0 | 19.1 | 39.7 |
+| TASK-020 | media | simple | 3 | 0.8 | — | 13.4 | 14.2 |
+| TASK-022 | simple | simple | 3 | — | — | 2.1 | 2.1 |
+| TASK-025 | media | simple | 1 | — | — | 7.6 | 7.6 |
+| TASK-026 | media | simple | 2 | — | — | 14.2 | 14.2 |
+| TASK-027 | simple | simple | 2 | — | — | 22.6 | 22.6 |
+| TASK-028 | simple | simple | 1 | — | 5.1 | 23.6 | 28.7 |
+| TASK-029 | media | simple | 2 | — | 5.5 | 19.4 | 24.9 |
+| TASK-030 | media | simple | 2 | — | 15.0 | 21.4 | 36.5 |
+| TASK-031 | media | simple | 3 | — | — | 14.4 | 14.4 |
+| TASK-032 | media | simple | 3 | 7.9 | 20.9 | 49.6 | 78.4 |
+| TASK-033 | media | media | 2 | 0.3 | 1.7 | 7.0 | 9.0 |
+| TASK-034 | simple | trivial | 1 | — | — | 2.1 | 2.1 |
+| TASK-035 | trivial | simple | 1 | — | — | 0.6 | 0.6 |
+| TASK-036 | simple | trivial | 1 | 0.1 | — | 2.9 | 3.0 |
+| TASK-037 | simple | trivial | 1 | — | — | 1.8 | 1.8 |
+| TASK-038 | simple | trivial | 2 | — | — | 4.7 | 4.7 |
+| TASK-039 | simple | trivial | 1 | — | — | 1.9 | 1.9 |
+| TASK-040 | media | simple | 1 | 0.7 | — | 2.8 | 3.4 |
+| TASK-041 | simple | trivial | 1 | — | — | 1.9 | 1.9 |
+| TASK-042 | simple | trivial | 2 | 0.9 | 5.1 | 2.8 | 8.8 |
+| TASK-043 | media | simple | 1 | 0.8 | — | 2.0 | 2.7 |
+| TASK-044 | media | trivial | 1 | 0.1 | 0.5 | — | 0.6 |
+| TASK-045 | simple | trivial | 1 | 0.6 | — | 5.4 | 5.9 |
+| TASK-046 | trivial | trivial | 1 | — | — | 2.4 | 2.4 |
+| TASK-047 | simple | trivial | 1 | 1.5 | 1.3 | 1.7 | 4.5 |
+| TASK-048 | simple | trivial | 1 | 1.3 | — | 2.5 | 3.9 |
+| TASK-049 | simple | trivial | 1 | 0.4 | — | 1.2 | 1.6 |
+| TASK-050 | media | trivial | 2 | 1.0 | — | 3.2 | 4.1 |
+| TASK-051 | media | simple | 1 | — | — | 1.7 | 1.7 |
+| TASK-052 | media | trivial | 1 | 0.7 | — | 5.6 | 6.3 |
+| TASK-053 | trivial | trivial | 1 | — | — | 2.0 | 2.0 |
+| TASK-054 | simple | trivial | 1 | — | — | 0.9 | 0.9 |
+| TASK-055 | simple | simple | 2 | 1.0 | — | 7.4 | 8.5 |
+| TASK-056 | — | simple | 3 | — | — | 9.3 | 9.3 |
+| TASK-057 | — | simple | 3 | — | — | 6.5 | 6.5 |
+| TASK-058 | — | simple | 3 | — | — | 9.9 | 9.9 |
+| TASK-059 | — | simple | 2 | — | — | 3.9 | 3.9 |
+
+### 11.1 Contraste con la sección 16
+
+- **El gasto está donde la §16 dijo que estaría**, y en ningún otro sitio: el
+  brainstorm, la revisión y las implementaciones delegadas. Todo lo demás es
+  `taskctl`, que no gasta tokens.
+- **Pero la proporción no es la que se intuía.** La revisión se lleva entre
+  el 71 % y el 100 % del gasto de subagentes en todos los niveles de
+  complejidad. El brainstorm, que es la parte que la §16.3 acota por
+  complejidad, queda entre el 0 % y el 12 %. Acotar los roles de brainstorm
+  ahorra poco; lo caro es cada ronda de revisión.
+- **Lo que mejor predice el coste son las rondas.** La correlación de
+  Spearman con el total es de 0,69 para las rondas, 0,54 para la complejidad
+  declarada y 0,52 para los puntos de la heurística (n = 37 a 41). En el
+  periodo homogéneo (TASK-033 en adelante, mismas herramientas y mismos
+  revisores), la media es de 2,6 M con 1 ronda (n = 18), 6,5 M con 2 (n = 6)
+  y 8,5 M con 3 (n = 3).
+
+### 11.2 Revisión de los pesos de la heurística (punto 15 de la sección 14)
+
+En el periodo homogéneo, el coste medio por nivel es este:
+
+- **Heurística:** trivial 3,3 M (n = 17), simple 5,2 M (n = 9), media 9,0 M
+  (n = 1). Es monótona.
+- **Complejidad declarada:** trivial 1,7 M (n = 3), simple 3,8 M (n = 13),
+  media 4,0 M (n = 7). Simple y media cuestan casi lo mismo.
+
+La heurística separa el coste algo mejor que la etiqueta que pone la persona,
+y su corte en `nivel_trivial_hasta: 0` (TASK-052) deja juntas a las tareas
+baratas.
+
+**Decisión: los pesos no se tocan.** Las razones:
+
+1. Los datos no señalan ningún peso concreto que esté mal, solo que el orden
+   que dan los niveles es razonable.
+2. Los niveles media, alta y crítica tienen n ≤ 1 en el periodo homogéneo:
+   no hay muestra con la que mover sus umbrales.
+3. La variable que más explica el coste, las rondas, no se conoce al
+   planificar, así que no puede entrar en la heurística.
+4. El periodo anterior (TASK-016 a TASK-032) no es comparable: revisores
+   generalistas con contextos de 8 a 20 M por pasada. Mezclarlo inflaría el
+   nivel simple, al que pertenecen casi todas esas tareas.
+
+Se revisará cuando haya unas 10 tareas por nivel con `tokens_*` registrados:
+`taskctl metricas --tokens` da ya el resumen por complejidad.
