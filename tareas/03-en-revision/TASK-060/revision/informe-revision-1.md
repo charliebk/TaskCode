@@ -2,7 +2,7 @@
 
 - Commit revisado: cf84a14030c019e830aba6c77fd7f67cac749785
 - Revisor: code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-060 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Puerta y metodo
 
