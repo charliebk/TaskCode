@@ -79,7 +79,8 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         throw new SiguienteCommandError('[ERROR] Falta el ID de la tarea: taskctl siguiente TASK-NNN [--json].');
     }
     // Config roto: ConfigError, que el CLI convierte en salida != 0.
-    const modoConfig = resolverConfig(deps.repoCwd).modo_flujo;
+    const config = resolverConfig(deps.repoCwd);
+    const modoConfig = config.modo_flujo;
     const local = await readTareaFile(tareasRoot, id);
     if (local === null) {
         throw new SiguienteCommandError(`[ERROR] ${id}: no se encuentra en el working tree de la rama actual. ` +
@@ -157,6 +158,7 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         id: task.id,
         estado: task.estado,
         modo,
+        cierre: config.cierre_por_defecto,
         leidaDe: enOtraRama ? 'rama' : 'working-tree',
         json,
         ...siguienteFase(task, ctx, modo),

@@ -458,3 +458,22 @@ test('hotfix en automatico con revision aprobada: finish sigue siendo preguntar'
     );
   });
 });
+
+test('siguiente --json expone cierre (cierre_por_defecto): merge por defecto, merge-request si el config lo dice (TASK-060)', async () => {
+  await withRepo(null, async (repoRoot, tareasRoot) => {
+    const id = await nuevaTarea(repoRoot, tareasRoot);
+    assert.equal(siguiente(repoRoot, id).cierre, 'merge');
+  });
+  await withRepo('cierre_por_defecto: merge-request\n', async (repoRoot, tareasRoot) => {
+    const id = await nuevaTarea(repoRoot, tareasRoot);
+    assert.equal(siguiente(repoRoot, id).cierre, 'merge-request');
+  });
+  await withRepo(null, async (repoRoot, tareasRoot) => {
+    const id = await nuevaTarea(repoRoot, tareasRoot);
+    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), 'cierre_por_defecto: pr\n', 'utf8');
+    const r = cli(repoRoot, ['siguiente', id, '--json']);
+    assert.equal(r.status, 1, 'un valor mal escrito aborta como el resto de claves');
+    assert.match(r.stderr, /cierre_por_defecto "pr" no es valido/);
+  });
+});

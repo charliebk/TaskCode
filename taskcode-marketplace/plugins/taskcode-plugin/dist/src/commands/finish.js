@@ -15,9 +15,17 @@
  * artefactos de cierre, y nada mas — sobre develop, que es donde
  * termina el comando. Con --push sube ademas la rama.
  *
+ * Desde TASK-060 admite `--tag <nombre>` (tag anotado sobre el commit de
+ * merge), `--merge-request` (sube la rama y abre un PR/MR en lugar de
+ * mergear; un segundo `finish` lo cierra cuando la plataforma lo da por
+ * mergeado) y `--push` tambien para el tag. Las piezas estan en
+ * finish-opciones.ts; sin esos flags el comando es el de siempre.
  */
 import path from 'node:path';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { FinishCommandError, FLAGS_FINISH, extraerFlagsCierre, validarNombreTag, comprobarTagLibre, planificarTag, ponerTag, subirTag, preflightMergeRequest, } from './finish-opciones.js';
+import { anotarMergeRequest, ocultarCredenciales, urlMergeRequestAnotada, } from '../core/plataforma-remota.js';
+import { abrirMergeRequest, estadoMergeRequest, MergeRequestError } from '../fs/merge-request.js';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
@@ -28,16 +36,15 @@ import { resolverConfig } from '../core/config.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, ultimaRondaAprobada } from '../fs/rondas.js';
 import { casillasSinMarcar } from '../core/validacion-tarea.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, resolveIntegrationBranch, localBranchExists, } from '../fs/git.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, resolveIntegrationBranch, localBranchExists, commitDeIntegracion, numeroDePadres, pushRama, fetchOrigin, resolverCommit, fastForwardDesde, runGit, GitCommandError, } from '../fs/git.js';
+import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { runBoardCommand, boardFilePath } from './board.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
-export class FinishCommandError extends Error {
-}
-/** Flags de `taskctl finish`: solo extraerPushFlag. */
-export const FLAGS_FINISH = ['--push', '-p'];
+// Definidos en finish-opciones.ts (el error lo comparten las dos); se reexportan
+// aqui porque es de donde los importan el CLI y los tests.
+export { FinishCommandError, FLAGS_FINISH };
 const SCRIPT_BY_TYPE = {
     feature: 'merge-feature-to-develop.sh',
     fix: 'merge-fix-to-develop.sh',
@@ -166,7 +173,8 @@ async function appendEntry(filePath, inicial, header, entry) {
 export async function runFinishCommand(tareasRoot, argv, today, deps) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_FINISH, 'finish', (m) => new FinishCommandError(m));
-    const { push, resto } = extraerPushFlag(argv);
+    const { push, resto: sinPush } = extraerPushFlag(argv);
+    const { tag: nombreTag, mergeRequest: pideMergeRequest, resto } = extraerFlagsCierre(sinPush);
     const id = resto[0];
     if (id === undefined || id.trim() === '') {
         throw new FinishCommandError('[ERROR] Falta el ID de la tarea: taskctl finish TASK-NNN.');
@@ -232,12 +240,29 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             'nace. Si la rama existe solo en origin, traela con git checkout ' +
             `${ramaIntegracion} y reintenta. No se ha tocado nada.`);
     }
+    // TASK-060: opciones de cierre. TODO lo que sigue hasta el primer efecto
+    // (push, merge, tag) solo lee y aborta sin tocar nada.
+    const urlMrAnotada = urlMergeRequestAnotada(initial.body);
+    // Una tarea que ya tiene su merge request anotado sigue por el camino del MR
+    // aunque no se repita el flag: mergear en local lo que otro merge request
+    // tiene abierto seria chocar con el.
+    const modoMergeRequest = pideMergeRequest || urlMrAnotada !== null;
+    if (modoMergeRequest && (tipo === 'hotfix' || tipo === 'release')) {
+        throw new FinishCommandError(`[ERROR] ${id}: un ${tipo} se cierra con merge a la rama principal, tag y backmerge: no tiene ` +
+            'merge request. Cierralo sin --merge-request.' +
+            (urlMrAnotada !== null ? ' (tarea.md tiene una seccion "## Merge request": borrala si no aplica.)' : ''));
+    }
+    if (nombreTag !== null)
+        validarNombreTag(nombreTag, id, deps.repoCwd);
+    const mrCtx = modoMergeRequest ? resolverMergeRequest(id, rama, urlMrAnotada, deps.repoCwd) : null;
+    const integradaPorMergeRequest = mrCtx !== null && mrCtx.estado.tipo === 'integrado';
     // Colision de IDs ANTES de mergear (criterio 4): se comprueba contra
     // cada rama destino del merge. Para feature/fix solo la de integracion; para
-    // hotfix/release tambien la principal.
+    // hotfix/release tambien la principal. Un MR ya mergeado en la plataforma
+    // no mergea nada aqui: la carpeta de la tarea ya llego con su historia.
     const mainBranch = MERGEA_A_MAIN[tipo] ? resolveMainBranch(deps.repoCwd) : null;
     const destinos = mainBranch === null ? [ramaIntegracion] : [mainBranch, ramaIntegracion];
-    for (const destino of destinos) {
+    for (const destino of integradaPorMergeRequest ? [] : destinos) {
         const colision = detectarColisionId(id, titulo, rama, destino, deps.repoCwd);
         if (colision !== null) {
             const detalle = colision.motivo === 'titulo-distinto'
@@ -253,15 +278,52 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
                 'antes de reintentar; no se ha tocado nada.');
         }
     }
+    if (mrCtx !== null && mrCtx.estado.tipo === 'ninguno') {
+        return abrirMergeRequestYAnotar({
+            tareasRoot,
+            id,
+            today,
+            push,
+            deps,
+            initial: initial,
+            ramaIntegracion,
+            remoto: mrCtx.remoto,
+            nombreTag,
+        });
+    }
     const scriptName = SCRIPT_BY_TYPE[tipo];
     const integradaEnDevelop = isAncestor(rama, ramaIntegracion, deps.repoCwd);
     const integradaEnMain = mainBranch === null || isAncestor(rama, mainBranch, deps.repoCwd);
-    if (integradaEnDevelop && integradaEnMain) {
+    // TASK-060: el tag se valida ANTES de mergear. Si el merge ya esta hecho
+    // (reintento) no se exige "libre": un tag propio se reconoce despues.
+    if (nombreTag !== null && !integradaPorMergeRequest && !(integradaEnDevelop && integradaEnMain)) {
+        comprobarTagLibre(nombreTag, id, push, deps.repoCwd, deps.onAviso);
+    }
+    // Commit de merge sobre el que va el tag, si ya se conoce (el del MR), y si
+    // fue el script de hotfix/release quien creo el tag.
+    let commitParaTag = null;
+    let tagLoPusoElScript = false;
+    if (integradaPorMergeRequest) {
+        const integrado = mrCtx.estado;
+        commitParaTag = traerIntegracionDeLaPlataforma({
+            id,
+            rama,
+            integrado,
+            ramaIntegracion,
+            nombreTag,
+            cwd: deps.repoCwd,
+        });
+    }
+    else if (integradaEnDevelop && integradaEnMain) {
         // Camino idempotente (hallazgo IMPORTANTE de revision por pares,
         // TASK-014): los merges ya estan consumados — p. ej. un reintento
         // tras resolver a mano un conflicto de backmerge. Reejecutar el
         // script moriria en el tag ya creado (hotfix/release); aqui solo
         // queda cerrar: ponerse en la rama de integracion y mover/renderizar.
+        // TASK-060: un tag ajeno aborta ANTES de cambiar de rama.
+        if (nombreTag !== null) {
+            commitParaTag = comprobarTagDeReintento(id, tipo, rama, mainBranch ?? ramaIntegracion, mainBranch !== null, nombreTag, deps.repoCwd);
+        }
         if (currentBranch(deps.repoCwd) !== ramaIntegracion) {
             checkoutBranch(ramaIntegracion, deps.repoCwd);
         }
@@ -275,7 +337,13 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             `git merge --no-ff ${rama} — y reintenta taskctl finish.`);
     }
     else {
-        const { code, signal } = runGitflowScript(scriptName, [rama, '--develop', ramaIntegracion], {
+        const argsScript = [rama, '--develop', ramaIntegracion];
+        // hotfix/release: el script pone el tag en main; --tag le da el nombre.
+        if (nombreTag !== null && mainBranch !== null) {
+            argsScript.push('--tag', nombreTag);
+            tagLoPusoElScript = true;
+        }
+        const { code, signal } = runGitflowScript(scriptName, argsScript, {
             scriptsDir: deps.scriptsDir,
             cwd: deps.repoCwd,
         });
@@ -304,6 +372,39 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             throw new FinishCommandError(`[ERROR] ${id}: ${scriptName} termino con codigo 0 pero "${rama}" NO esta integrada ` +
                 `en "${mainBranch}" (merge-base --is-ancestor lo niega). No se actualiza la tarea; ` +
                 'revisa el repo a mano.');
+        }
+    }
+    // TASK-060: el tag, ya con el merge hecho y ANTES de mover la tarea: si
+    // falla (tag ajeno, sin commit de merge) el reintento sigue siendo posible.
+    let tag = null;
+    const ramaDelTag = mainBranch ?? ramaIntegracion;
+    if (nombreTag !== null) {
+        if (commitParaTag === null) {
+            commitParaTag = commitDeMergeParaTag(id, rama, ramaDelTag, nombreTag, deps.repoCwd);
+        }
+        if (mainBranch !== null) {
+            // hotfix/release: UN solo tag por tarea, el del script. Se comprueba que
+            // existe con el nombre pedido y sobre el merge a main; crear otro con
+            // otro nombre en un reintento seria el segundo tag que se quiere evitar.
+            if (planificarTag(nombreTag, commitParaTag, id, deps.repoCwd) !== 'existe-local') {
+                throw new FinishCommandError(tagLoPusoElScript
+                    ? `[ERROR] ${id}: ${scriptName} termino bien pero el tag "${nombreTag}" no esta sobre el merge a ` +
+                        `"${ramaDelTag}". Revisa el repo a mano.`
+                    : `[ERROR] ${id}: el merge a "${mainBranch}" ya esta hecho (con el tag que puso el script) y ` +
+                        `"${nombreTag}" no es ese tag. Un ${tipo} lleva un solo tag: no se crea un segundo. ` +
+                        'Reintenta sin --tag, o con --tag igual al que ya existe.');
+            }
+            tag = {
+                nombre: nombreTag,
+                commit: commitParaTag,
+                creado: tagLoPusoElScript,
+                subida: 'no-solicitada',
+                rama: ramaDelTag,
+                detalle: null,
+            };
+        }
+        else {
+            tag = ponerTag(nombreTag, commitParaTag, titulo, id, ramaDelTag, deps.repoCwd);
         }
     }
     // Lectura FRESCA, ya en la rama de integracion con el merge consumado: la unica que
@@ -352,6 +453,10 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
         mensaje: mensajeChore(task.id, 'tarea terminada y artefactos de cierre'),
         push,
     });
+    // El tag se sube DESPUES del commit y del push de la rama: asi la rama
+    // destino ya esta en origin cuando se comprueba (subirTag lo verifica).
+    if (tag !== null)
+        tag = subirTag(tag, push, deps.repoCwd);
     return {
         id: task.id,
         rama,
@@ -362,5 +467,238 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
         indexPath,
         boardPath,
         autoCommit: commitResult,
+        cierre: 'terminada',
+        tag,
+        tagSolicitado: nombreTag,
+        mergeRequest: mrCtx !== null && mrCtx.estado.tipo === 'integrado'
+            ? { url: mrCtx.estado.url, plataforma: mrCtx.remoto.plataforma, accion: 'integrado' }
+            : null,
     };
+}
+// ---------------------------------------------------------------------
+// TASK-060: camino del merge request.
+// ---------------------------------------------------------------------
+/**
+ * Preflight y estado del PR/MR de la rama (solo lectura): aborta si no hay
+ * plataforma o CLI, si el MR sigue abierto, si se cerro sin mergear o si no
+ * se puede saber. Devuelve `ninguno` (primer finish: hay que abrirlo) o
+ * `integrado` (segundo finish: hay que cerrar la tarea).
+ */
+function resolverMergeRequest(id, rama, urlAnotada, cwd) {
+    const remoto = preflightMergeRequest(id, cwd);
+    const estado = estadoMergeRequest(remoto, rama, cwd);
+    const nada = 'No se ha tocado nada.';
+    switch (estado.tipo) {
+        case 'desconocido':
+            throw new FinishCommandError(`[ERROR] ${id}: no se pudo saber el estado del merge request de "${rama}" en ${remoto.plataforma} ` +
+                `(${estado.motivo}). Comprueba la red y la sesion del CLI y reintenta; ${nada.toLowerCase()}`);
+        case 'abierto':
+            throw new FinishCommandError(`[ERROR] ${id}: el merge request de "${rama}" sigue abierto (${estado.url}). Cuando se merge en la ` +
+                `plataforma, vuelve a ejecutar taskctl finish ${id}. ${nada}`);
+        case 'cerrado':
+            throw new FinishCommandError(`[ERROR] ${id}: el merge request de "${rama}" esta CERRADO sin mergear (${estado.url}). Reabrelo y ` +
+                'mergealo, o decide como cerrar la tarea (borra la seccion "## Merge request" de tarea.md para ' +
+                `cerrar con merge normal o abrir otro). ${nada}`);
+        case 'ninguno':
+            if (urlAnotada !== null) {
+                throw new FinishCommandError(`[ERROR] ${id}: tarea.md anota un merge request (${urlAnotada}) pero ${remoto.plataforma} no tiene ` +
+                    `ninguno para "${rama}". Si ya no aplica, borra la seccion "## Merge request" de tarea.md. ${nada}`);
+            }
+            return { remoto, estado };
+        case 'integrado':
+            return { remoto, estado };
+    }
+}
+/**
+ * El commit de merge de `rama` en `destino`, donde va el tag. Se calcula de
+ * forma explicita (no HEAD) y tiene que ser un commit de merge: con un
+ * fast-forward no hay un commit "de la tarea" en el que etiquetar sin
+ * adivinar, y se aborta (el merge esta hecho, la tarea sin mover).
+ */
+function commitDeMergeParaTag(id, rama, destino, nombreTag, cwd) {
+    const commit = commitDeIntegracion(rama, destino, cwd);
+    if (commit === null || numeroDePadres(commit, cwd) < 2) {
+        throw new FinishCommandError(`[ERROR] ${id}: "${rama}" esta integrada en "${destino}" pero no se encuentra el commit de merge ` +
+            `en el que poner el tag "${nombreTag}" (¿fast-forward o historia reescrita?). El merge esta hecho y ` +
+            'la tarea sin mover: pon el tag a mano sobre el commit correcto y reintenta sin --tag.');
+    }
+    return commit;
+}
+/**
+ * Reintento con el merge ya hecho: el tag, si existe, tiene que ser el de
+ * esta tarea (apuntar a su commit de merge). feature/fix: uno ajeno aborta y
+ * uno propio se salta. hotfix/release: ya lo puso el script, y un nombre
+ * distinto no crea un segundo tag. Devuelve el commit de merge.
+ */
+function comprobarTagDeReintento(id, tipo, rama, destino, mergeaAMain, nombreTag, cwd) {
+    const commit = commitDeMergeParaTag(id, rama, destino, nombreTag, cwd);
+    const accion = planificarTag(nombreTag, commit, id, cwd);
+    if (mergeaAMain && accion !== 'existe-local') {
+        throw new FinishCommandError(`[ERROR] ${id}: el merge a "${destino}" ya esta hecho (con el tag que puso el script) y ` +
+            `"${nombreTag}" no es ese tag. Un ${tipo} lleva un solo tag: no se crea un segundo. ` +
+            'Reintenta sin --tag, o con --tag igual al que ya existe.');
+    }
+    return commit;
+}
+/**
+ * Primer `finish --merge-request`: sube la rama (siempre: sin ella en el
+ * remoto no hay MR; la salida lo dice), abre el PR/MR contra la rama de
+ * integracion, anota su URL en tarea.md y lo commitea en la rama de la tarea.
+ * La tarea sigue en `en-revision`. Con `--tag` el nombre se valida ahora y el
+ * tag se pone en el segundo `finish`.
+ */
+async function abrirMergeRequestYAnotar(o) {
+    const { id, deps, initial, ramaIntegracion } = o;
+    const { task } = initial;
+    const cwd = deps.repoCwd;
+    if (currentBranch(cwd) !== task.rama) {
+        throw new FinishCommandError(`[ERROR] ${id}: --merge-request se ejecuta desde la rama de la tarea ("${task.rama}"), y estas en ` +
+            `"${currentBranch(cwd)}": la anotacion del merge request se commitea en ella. Cambiate con ` +
+            `git checkout ${task.rama}; no se ha subido nada.`);
+    }
+    if (o.nombreTag !== null)
+        comprobarTagLibre(o.nombreTag, id, o.push, cwd, deps.onAviso);
+    // Primer efecto: subir la rama.
+    try {
+        pushRama(task.rama, cwd);
+    }
+    catch (e) {
+        const msg = e instanceof GitCommandError ? e.stderr.trim() || e.message : String(e);
+        throw new FinishCommandError(`[ERROR] ${id}: no se pudo subir "${task.rama}" a origin: ${ocultarCredenciales(msg)}. ` +
+            'Sin la rama en el remoto no hay merge request; no se ha abierto nada.');
+    }
+    let url;
+    try {
+        url = abrirMergeRequest(o.remoto, {
+            rama: task.rama,
+            base: ramaIntegracion,
+            titulo: `${id}: ${task.titulo}`,
+            cuerpo: `Cierre de ${id} (${task.titulo}): rama ${task.rama} contra ${ramaIntegracion}. Abierto por taskctl finish.`,
+        }, cwd);
+    }
+    catch (e) {
+        if (e instanceof MergeRequestError) {
+            throw new FinishCommandError(`[ERROR] ${id}: "${task.rama}" ya esta subida a origin, pero ${e.message}. Reintenta taskctl ` +
+                `finish ${id} --merge-request: no se duplicara (se comprueba si ya hay uno abierto).`);
+        }
+        throw e;
+    }
+    const body = anotarMergeRequest(initial.body, url, o.remoto.plataforma);
+    const filePath = await moveTareaFile(o.tareasRoot, initial.filePath, { ...task, actualizado: o.today }, body);
+    let commit;
+    try {
+        commit = autoCommit({
+            cwd,
+            rutas: [path.dirname(filePath)],
+            mensaje: mensajeChore(task.id, 'merge request abierto'),
+            push: o.push,
+        });
+    }
+    catch (e) {
+        if (e instanceof AutoCommitError) {
+            throw new FinishCommandError(`${e.message}\n        El merge request SI se abrio: ${url}`);
+        }
+        throw e;
+    }
+    return {
+        id: task.id,
+        rama: task.rama,
+        baseBranch: ramaIntegracion,
+        mainBranch: null,
+        filePath,
+        changelogPath: path.join(cwd, 'CHANGELOG.md'),
+        indexPath: path.join(cwd, 'docs', 'INDEX.md'),
+        boardPath: boardFilePath(cwd),
+        autoCommit: commit,
+        cierre: 'esperando-merge-request',
+        tag: null,
+        tagSolicitado: o.nombreTag,
+        mergeRequest: { url, plataforma: o.remoto.plataforma, accion: 'abierto' },
+    };
+}
+/**
+ * Segundo `finish`, con el MR mergeado en la plataforma (merge, squash o
+ * rebase: el criterio es el estado `merged`, no la ancestria): trae origin,
+ * comprueba que el resultado del merge esta en la rama de integracion del
+ * remoto y deja la local al dia con un fast-forward. Todas las comprobaciones
+ * van ANTES de cambiar de rama. Devuelve el commit que la plataforma da como
+ * resultado del merge (el del tag), o null si no lo informa.
+ */
+/**
+ * IMP-1 de la revision: con squash o rebase la ancestria no dice si la rama
+ * esta integrada (decision de Carlos), pero SI se sabe que punta integro la
+ * plataforma (`headCommit`) y que hay en origin y en local tras el fetch:
+ *
+ * - la rama de origin no puede haber avanzado despues de ese merge (se subieron
+ *   commits tras mergear: no estan integrados);
+ * - la rama local solo puede llevar, sobre lo integrado, el commit de
+ *   anotacion del propio primer finish: cualquier otro commit local es trabajo
+ *   que nunca llego al merge request.
+ * Sin `headCommit` (la plataforma no lo informa) la referencia es la rama de
+ * origin. Aborta sin tocar nada.
+ */
+function comprobarRamaIntegrada(o) {
+    const { id, rama, integrado, cwd } = o;
+    const remota = resolverCommit(`refs/remotes/origin/${rama}`, cwd);
+    const head = integrado.headCommit;
+    const nada = 'No se ha tocado nada.';
+    if (head !== null && remota !== null && remota !== head) {
+        throw new FinishCommandError(`[ERROR] ${id}: "origin/${rama}" avanzo DESPUES de que la plataforma mergeara el merge request ` +
+            `(integro ${head.slice(0, 10)}, la rama en origin esta en ${remota.slice(0, 10)}): esos commits no ` +
+            'estan integrados en la base. Abre otro merge request con ellos (taskctl finish --merge-request tras ' +
+            `borrar la seccion "## Merge request" de tarea.md) o descartalos. ${nada}`);
+    }
+    const referencia = head !== null && resolverCommit(head, cwd) !== null ? head : remota;
+    if (referencia === null)
+        return;
+    const sinIntegrar = runGit(['log', '--format=%s', '--end-of-options', `${referencia}..refs/heads/${rama}`], cwd)
+        .split('\n')
+        .filter((l) => l !== '' && l !== mensajeChore(id, 'merge request abierto'));
+    if (sinIntegrar.length > 0) {
+        throw new FinishCommandError(`[ERROR] ${id}: "${rama}" tiene ${String(sinIntegrar.length)} commit(s) locales que no estaban en el merge ` +
+            `request cuando se mergeo (${sinIntegrar.slice(0, 3).map((s) => `«${s}»`).join(', ')}), asi que NO estan en ` +
+            `"${integrado.base}". Subelos (git push origin ${rama}) y que la plataforma los integre en otro merge ` +
+            `request (borra la seccion "## Merge request" de tarea.md para abrirlo), o descartalos. ${nada}`);
+    }
+}
+function traerIntegracionDeLaPlataforma(o) {
+    const { id, integrado, ramaIntegracion, cwd } = o;
+    if (integrado.base !== ramaIntegracion) {
+        throw new FinishCommandError(`[ERROR] ${id}: el merge request (${integrado.url}) se mergeo contra "${integrado.base}", no contra la ` +
+            `rama de integracion "${ramaIntegracion}" (clave rama_base). No se cierra la tarea; no se ha tocado nada.`);
+    }
+    try {
+        fetchOrigin(cwd);
+    }
+    catch (e) {
+        const msg = e instanceof GitCommandError ? e.stderr.trim() || e.message : String(e);
+        throw new FinishCommandError(`[ERROR] ${id}: no se pudo traer origin (${ocultarCredenciales(msg)}). Reintenta con red; no se ha tocado nada.`);
+    }
+    const origenBase = `refs/remotes/origin/${ramaIntegracion}`;
+    if (resolverCommit(origenBase, cwd) === null) {
+        throw new FinishCommandError(`[ERROR] ${id}: origin no tiene la rama "${ramaIntegracion}" tras el fetch. No se ha tocado nada.`);
+    }
+    comprobarRamaIntegrada(o);
+    const commit = integrado.commit;
+    if (commit !== null) {
+        if (resolverCommit(commit, cwd) === null || !isAncestor(commit, origenBase, cwd)) {
+            throw new FinishCommandError(`[ERROR] ${id}: la plataforma dice que el merge produjo ${commit.slice(0, 10)}, pero ese commit no esta ` +
+                `en "origin/${ramaIntegracion}" tras el fetch. No se cierra la tarea; no se ha tocado nada.`);
+        }
+    }
+    else if (o.nombreTag !== null) {
+        throw new FinishCommandError(`[ERROR] ${id}: la plataforma no informa del commit que resulto del merge, y sin el no se puede poner el ` +
+            `tag "${o.nombreTag}" con seguridad. Cierra sin --tag y etiqueta a mano; no se ha tocado nada.`);
+    }
+    if (!isAncestor(`refs/heads/${ramaIntegracion}`, origenBase, cwd)) {
+        throw new FinishCommandError(`[ERROR] ${id}: tu "${ramaIntegracion}" local tiene commits que no estan en origin y no se puede ` +
+            'avanzar con fast-forward. Resuelvelo a mano (git pull --rebase o push) y reintenta; no se ha tocado nada.');
+    }
+    // Un tag ajeno aborta ANTES de mover nada.
+    if (o.nombreTag !== null && commit !== null)
+        planificarTag(o.nombreTag, commit, id, cwd);
+    if (currentBranch(cwd) !== ramaIntegracion)
+        checkoutBranch(ramaIntegracion, cwd);
+    fastForwardDesde(origenBase, cwd);
+    return commit;
 }

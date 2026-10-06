@@ -44,7 +44,7 @@ npm run test:rapido  # core y cli sin procesos (~360 tests, ~10 s): para iterar,
 ```
 
 El CLI: `taskctl new | import | board | metricas [--tokens [--escribir]] | plan |
-approve | start | review | finish | registrar-coste TASK-NNN --fase <f> (--agente <id>... | --tokens N)`, más los cinco wrappers de Git-Flow: `diagnose | pause | resume |
+approve | start | review | finish [--tag <nombre>] [--merge-request] [--push] | registrar-coste TASK-NNN --fase <f> (--agente <id>... | --tokens N)`, más los cinco wrappers de Git-Flow: `diagnose | pause | resume |
 recover | abort-merge`. El ciclo de vida está completo: Fases A, B y C
 cerradas.
 
@@ -63,6 +63,12 @@ que lo comprueban.
   si no, ensucian el workspace y el guard de §8.3 aborta el propio import.
 - `taskctl import` no se puede ejecutar dos veces seguidas sin commitear en
   medio, por lo mismo.
+- Los tests de `finish --merge-request` no tienen GitHub ni GitLab: usan un
+  `gh`/`glab` de prueba en el PATH (`test/helpers/plataforma-doble.ts`) que lee y
+  escribe un fichero de estado; es el único doble de la suite. En Windows es un
+  `.exe` (enlace a `node.exe` + `--require` en `NODE_OPTIONS`) porque
+  `spawnSync` sin shell no ejecuta un `.cmd`. Una máquina con `gh`/`glab`
+  reales instalados no los usa: el doble va delante en el PATH.
 - El glob de `npm test` va entrecomillado a propósito: lo expande Node, no el
   shell. Sin comillas, la suite entera falla en `cmd.exe`.
 - En Windows nativo **fallan 3 tests y no son regresiones**: uno por el truco

@@ -10,6 +10,30 @@ Coste en tokens por fase (TASK-023).
 - `taskctl finish` avisa, sin bloquear, si falta el coste de diseno o de revision. `taskctl new` escribe los tres campos a `null`.
 - La skill `task-workflow` (referencia `coste.md`) y las de fase `plan`, `start`, `review` y `finish` piden registrar cada subagente de la fase con `--agente <id>`.
 
+Opciones de cierre en `taskctl finish` (TASK-060).
+
+- **Aviso de compatibilidad**: `.taskcode/config.yml` admite una clave nueva,
+  `cierre_por_defecto` (`merge` | `merge-request`, opcional, por defecto
+  `merge`). Una version anterior del plugin aborta ante una clave que no
+  conoce, en TODOS los comandos, asi que quien la escriba obliga a que todo el
+  equipo actualice a la vez (mismo caso que la 0.5.0). Sin la clave no cambia
+  nada.
+- `taskctl finish TASK-NNN --tag <nombre>`: tag anotado (mensaje = titulo de la
+  tarea) sobre el commit de merge. Se valida antes de mergear (nombre valido,
+  sin existir en local ni en origin); solo se sube con `--push`. En hotfix y
+  release `--tag` da el nombre al tag que ya ponia el script
+  (`merge-hotfix-to-main.sh` y `merge-release-to-main.sh` aceptan `--tag`):
+  sigue habiendo uno solo.
+- `taskctl finish TASK-NNN --merge-request` (feature y fix): sube la rama, abre
+  un PR (`gh`, origin en github.com) o MR (`glab`, host con "gitlab") contra la
+  rama base y deja la tarea en `en-revision` con su URL anotada. Un segundo
+  `finish` consulta el estado a la plataforma por nombre de rama y, si esta
+  mergeado (merge, squash o rebase), cierra la tarea; si no, aborta sin tocar
+  nada. Host desconocido, CLI sin instalar o sin sesion abortan antes de subir
+  nada.
+- `taskctl siguiente --json` incluye `cierre`; la skill `finish` pregunta en
+  manual y semiautomatico y en automatico usa `cierre_por_defecto`.
+
 ## 0.5.0 — 2026-10-05
 
 Fase 6 del plan de la auditoria: suite, skill y telemetria. Actualizar con

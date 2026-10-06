@@ -57,7 +57,7 @@ Uso:
   taskctl codex-review TASK-NNN [--push]
   taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados>
                     [--informe <nombre>] [--push]
-  taskctl finish TASK-NNN [--push]
+  taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl pausa TASK-NNN [--push]
   taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
@@ -80,6 +80,13 @@ regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
 registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
 --agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la
 herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza.
+finish cierra con merge normal (lo de siempre). --tag <nombre> pone un tag anotado (titulo de
+la tarea) sobre el commit de merge; solo se sube con --push. --merge-request sube la rama
+y abre un PR (github.com, gh) o un MR (host con "gitlab", glab) contra la rama base en lugar
+de mergear: la tarea sigue en en-revision y, cuando la plataforma lo da por mergeado,
+taskctl finish TASK-NNN [--tag <nombre>] la cierra (el estado lo da la plataforma). Con
+--merge-request el tag va en ese segundo finish. En hotfix/release --tag da el nombre al
+tag que ya ponia el script.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
@@ -756,9 +763,23 @@ async function mainComando(argvEntrada) {
                 scriptsDir: resolveGitflowScriptsDir(),
                 onAviso: (aviso) => printAvisos(aviso),
             });
+            if (result.cierre === 'esperando-merge-request' && result.mergeRequest !== null) {
+                const mr = result.mergeRequest;
+                const conTag = result.tagSolicitado === null ? '' : ` --tag ${result.tagSolicitado}`;
+                process.stdout.write(`Tarea ${result.id}: ${mr.plataforma === 'github' ? 'pull request' : 'merge request'} abierto en ` +
+                    `${mr.url} contra "${result.baseBranch}".\n` +
+                    `La rama "${result.rama}" se ha subido a origin aunque no pasaras --push (sin ella no hay ` +
+                    'merge request). La tarea sigue en en-revision y su URL queda anotada en tarea.md.\n' +
+                    `Cuando se mergee en la plataforma, ejecuta: taskctl finish ${result.id} --merge-request${conTag}\n`);
+                printAutoCommit(result.autoCommit);
+                return 0;
+            }
             const mainInfo = result.mainBranch === null ? '' : ` y en "${result.mainBranch}" (con tag)`;
+            const viaMr = result.mergeRequest === null
+                ? ''
+                : ` (merge request ${result.mergeRequest.url} mergeado en la plataforma)`;
             process.stdout.write(`Tarea ${result.id} terminada: "${result.rama}" integrada en ` +
-                `"${result.baseBranch}"${mainInfo}, tarea movida a ${result.filePath}.\n` +
+                `"${result.baseBranch}"${mainInfo}${viaMr}, tarea movida a ${result.filePath}.\n` +
                 `Actualizados: ${result.changelogPath}, ${result.indexPath} y ${result.boardPath}.\n`);
             printAutoCommit(result.autoCommit);
             // --push empuja LA RAMA ACTUAL, que tras "finish" es la de integracion (rama_base)
@@ -769,6 +790,32 @@ async function mainComando(argvEntrada) {
                 printAvisos(`--push ha subido "${result.autoCommit.rama}", pero NO "${result.mainBranch}" ni el ` +
                     `tag de esta ${result.rama.split('/')[0]}: subelos tu ` +
                     `("git push origin ${result.mainBranch} --follow-tags").`);
+            }
+            if (result.tag !== null) {
+                const t = result.tag;
+                const que = `Tag anotado "${t.nombre}" ${t.creado ? 'creado' : 'ya existia'} sobre ${t.commit.slice(0, 10)}`;
+                const subir = `git push origin refs/tags/${t.nombre}`;
+                switch (t.subida) {
+                    case 'subido':
+                        process.stdout.write(`${que}; subido a origin.\n`);
+                        break;
+                    case 'ya-en-remoto':
+                        process.stdout.write(`${que}; ya estaba en origin sobre ese commit.\n`);
+                        break;
+                    case 'no-solicitada':
+                        process.stdout.write(`${que}. Quedo SOLO en local (el tag no se sube sin --push); para subirlo: ${subir}\n`);
+                        break;
+                    case 'sin-remoto':
+                    case 'rama-no-publicada':
+                    case 'fallida':
+                        printAvisos(`${que}, pero NO se ha subido: ${t.detalle ?? t.subida}. Quedo SOLO en local; ` +
+                            (t.subida === 'rama-no-publicada'
+                                ? `sube antes "${t.rama}" y despues el tag: ${subir}`
+                                : `cuando puedas: ${subir}`));
+                        if (t.subida === 'fallida')
+                            return 1;
+                        break;
+                }
             }
             return 0;
         }
