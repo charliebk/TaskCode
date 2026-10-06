@@ -262,7 +262,9 @@ test('finish (TASK-023): avisa del coste de diseno y revision sin registrar, ANT
     });
     assert.equal(avisos.length, 2, 'uno por diseno y otro por revision; implementacion no avisa');
     assert.ok(avisos.every((a) => !a.integrada), 'los avisos llegan antes de mergear');
-    assert.match(avisos[0]?.texto ?? '', /sin coste de diseno registrado.*taskctl registrar-coste TASK-430 --fase diseno --tokens N/);
+    assert.match(avisos[0]?.texto ?? '', /sin coste de diseno registrado.*taskctl registrar-coste TASK-430 --fase diseno --agente <id>/);
+    // IMP-1 de la revision: el aviso no puede proponer la cifra de la notificacion.
+    assert.doesNotMatch(avisos[0]?.texto ?? '', /--tokens N/);
     assert.match(avisos[1]?.texto ?? '', /sin coste de revision registrado.*--fase revision/);
     assert.ok(avisos.every((a) => !/implementacion/.test(a.texto)));
     assert.match(r.filePath, /04-terminadas/, 'no bloquea');

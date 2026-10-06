@@ -204,8 +204,9 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     ].filter(([, v]) => v === null);
     for (const [fase] of sinCoste) {
         deps.onAviso?.(`${id}: sin coste de ${fase} registrado (tokens_${fase}). Registralo con ` +
-            `taskctl registrar-coste ${id} --fase ${fase} --tokens N (suma el uso de cada subagente ` +
-            'de la fase mas una estimacion de la parte propia); la tarea se cierra igualmente.');
+            `taskctl registrar-coste ${id} --fase ${fase} --agente <id> [--agente <id2>...], con el id ` +
+            'de cada subagente de la fase (suma el uso de su transcripcion; la cifra que se ve al terminar ' +
+            'un agente es su contexto final, no su coste). La tarea se cierra igualmente.');
     }
     const tipo = initial.task.tipo;
     const rama = initial.task.rama;

@@ -74,9 +74,9 @@ export interface Task {
   ultimo_commit_revisado: string | null;
   revision_codex: boolean;
   /**
-   * TASK-023: coste en tokens de cada fase (suma del uso que Claude Code
-   * devuelve al terminar cada subagente, mas la estimacion de la parte del
-   * orquestador). null = no registrado; en el fichero, ausente tambien es
+   * TASK-023: coste en tokens de cada fase: tokens procesados por sus
+   * subagentes, sumados de sus transcripciones (`registrar-coste --agente`),
+   * mas lo que se registre a mano con `--tokens` (la parte del orquestador). null = no registrado; en el fichero, ausente tambien es
    * null, asi las tareas anteriores siguen validando. Los suma
    * `taskctl registrar-coste`.
    */

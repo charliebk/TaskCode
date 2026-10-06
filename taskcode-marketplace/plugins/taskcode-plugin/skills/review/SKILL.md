@@ -35,8 +35,8 @@ punto, no un formalismo.
    rellenar no cuenta como revisado,
    y commitealo **solo, en un commit que no toque nada mas**: en modo
    automatico, `finish` no sigue solo si un informe va mezclado con codigo.
-4. Registra el coste de la revision (`task-workflow/coste.md`): suma el total de
-   tokens: con el id que devolvio la herramienta Agent de cada revisor,
+4. Registra el coste de la revision (`task-workflow/coste.md`) con el id que
+   devolvio la herramienta Agent de cada revisor:
    `taskctl registrar-coste TASK-NNN --fase revision --agente <id>
    [--agente <id2>...]` (una vez por ronda; suma). La cifra que muestra Claude
    Code al terminar un agente NO es su coste (es su contexto final). Tu parte,

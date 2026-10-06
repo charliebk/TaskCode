@@ -424,8 +424,9 @@ terminado estas 12. Ese es el hito real de usabilidad diaria, y
 `usage` de cada llamada a la API. Para cada uno de los 190 subagentes
 guardados se suman, por mensaje único, entrada + escritura de caché + lectura
 de caché + salida: **tokens procesados**, no coste en euros. La lectura de
-caché domina las cifras y es la parte barata. La tarea se toma del TASK-NNN de
-la descripción o el prompt del agente, y la fase de la descripción (los
+caché domina las cifras y es la parte barata. La tarea es el único TASK-NNN que aparece en la descripción del agente o en
+los primeros 3000 caracteres de su prompt (si aparecen varios, el agente no
+se atribuye), y la fase de la descripción (los
 `brainstorm-*`, unificador y plan son diseño; las implementaciones y las
 correcciones son implementación; las revisiones, rondas y smokes son
 revisión).
@@ -444,7 +445,16 @@ TASK-023 es la primera tarea con esos campos rellenos con
 `taskctl registrar-coste`.
 
 Cifras en millones de tokens procesados por los subagentes atribuibles a una
-sola tarea. Las tareas sin complejidad conocida quedan fuera.
+sola tarea. Quedan fuera las tareas sin informes de revisión (no salen en
+`taskctl metricas --heuristica`). Las de complejidad declarada «—» sí están en
+la tabla, pero no cuentan en las medias por complejidad declarada.
+
+**Las filas anteriores a TASK-033 son menos fiables.** Sus prompts
+mencionaban a menudo otras tareas como ejemplo, y la atribución cambia
+bastante según cuánto prompt se mire: con el prompt entero, 9 de esas filas
+cambian (TASK-016 pasa de 43,6 a 35,6). Las filas de TASK-033 en adelante
+salen iguales con cualquiera de las dos reglas, y son las únicas en las que
+se apoyan las conclusiones de 11.1 y 11.2.
 
 | tarea | declarada | heuristica | rondas | diseno | implementacion | revision | total |
 |---|---|---|---|---:|---:|---:|---:|
@@ -500,9 +510,11 @@ sola tarea. Las tareas sin complejidad conocida quedan fuera.
   complejidad. El brainstorm, que es la parte que la §16.3 acota por
   complejidad, queda entre el 0 % y el 12 %. Acotar los roles de brainstorm
   ahorra poco; lo caro es cada ronda de revisión.
-- **Lo que mejor predice el coste son las rondas.** La correlación de
-  Spearman con el total es de 0,69 para las rondas, 0,54 para la complejidad
-  declarada y 0,52 para los puntos de la heurística (n = 37 a 41). En el
+- **Lo que más pesa en el coste son las rondas.** No sorprende, porque cada
+  ronda es otra pasada completa de revisores, pero sí da la escala: una ronda
+  más cuesta más que todo el brainstorm. La correlación de Spearman con el
+  total es de 0,69 para las rondas, 0,54 para la complejidad declarada, 0,52
+  para los puntos de la heurística y 0,57 para su nivel (n = 37 a 41). En el
   periodo homogéneo (TASK-033 en adelante, mismas herramientas y mismos
   revisores), la media es de 2,6 M con 1 ronda (n = 18), 6,5 M con 2 (n = 6)
   y 8,5 M con 3 (n = 3).
