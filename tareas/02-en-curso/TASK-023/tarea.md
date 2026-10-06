@@ -6,7 +6,7 @@ sprint: 4
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-023-metricas-de-coste-en-tokens-por-fase
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 creado: 2026-09-05
-actualizado: 2026-09-16
+actualizado: 2026-10-06
 dependencias: [TASK-014]
 ---
 ## Objetivo
@@ -47,3 +47,9 @@ siguen siendo razonables o hace falta ajustarlos.
 - [ ] `docs/METRICAS.md` agrega esos datos por sprint y los contrasta con las estimaciones de la sección 16.
 - [ ] Con esos datos reales se revisan los pesos de la heurística de complejidad, que es el punto 15 de la sección 14.
 - [ ] Tests del cálculo de agregados con datos de ejemplo.
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-06T11:08:43Z | start | manual | persona |
