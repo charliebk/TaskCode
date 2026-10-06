@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-060-opciones-de-cierre-en-finish-merge-norma
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -44,3 +44,4 @@ dependencias: []
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-06T17:09:04Z | plan | manual | persona |
+| 2026-10-06T17:24:12Z | approve | manual | persona |
