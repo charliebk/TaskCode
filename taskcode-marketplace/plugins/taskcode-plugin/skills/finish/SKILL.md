@@ -25,12 +25,16 @@ formas de cerrar, todas opcionales salvo la primera, que es la de siempre:
    una seccion `## Resultado` con lo implementado, lo que encontro la
    revision y lo que se decidio no corregir. Si falta, completalo y
    commitealo antes.
-3. Si `taskctl finish` avisa de que falta el coste de diseno o de revision y lo
-   tienes (los ids de los subagentes de esa fase), registralo con
+3. Si en el `tarea.md` falta el coste de diseno o de revision
+   (`tokens_diseno` o `tokens_revision` a `null`) y lo tienes (los ids de los
+   subagentes de esa fase), registralo **antes** de `taskctl finish` con
    `taskctl registrar-coste TASK-NNN --fase diseno|revision --agente <id>`
    (`task-workflow/coste.md`; la cifra que muestra Claude Code al terminar un
-   agente no es su coste); el aviso no bloquea y tambien se puede registrar
-   despues del cierre.
+   agente no es su coste). Si no, `finish` avisa sin bloquear y se puede
+   registrar despues del cierre, ya en la rama base. **Con merge request, no
+   commitees nada en la rama de la tarea entre el primer `finish` y el
+   segundo**: ese commit no esta en el merge request, el segundo `finish` lo
+   detecta y aborta. Lo que falte, despues del cierre.
 4. **Decide como cerrar** (ver «Como cerrar» abajo) y ejecuta `taskctl finish`
    con lo decidido desde la rama de la tarea (si estas en otra:
    `git checkout <rama>` del `tarea.md`; desde la rama base `finish` lee la

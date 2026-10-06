@@ -667,3 +667,31 @@ test('un PR CERRADO que trae mergeCommit no se lee como integrado: aborta y no c
     });
   });
 });
+
+// MENOR-5: la plataforma borra la rama de origen al mergear y no queda origin/<rama>:
+// la referencia tiene que ser la punta que integro la plataforma, no origin/<rama>.
+for (const conExtra of [true, false]) {
+  test(`segundo finish con la rama de origen BORRADA tras mergear (sin origin/<rama>): ${conExtra ? 'un commit local sin subir aborta sin tocar nada' : 'sin commit extra cierra'}`, async () => {
+    await escenario(URL_GITHUB, async (e) => {
+      await conDoblePlataforma(SIN_PRS, async (dbl) => {
+        const url = await abrirMr(e);
+        if (conExtra) {
+          await writeFile(path.join(e.repoRoot, 'extra.txt'), 'no llego al MR\n', 'utf8');
+          commitAll(e.repoRoot, 'extra');
+        }
+        await mergearPr(e, dbl, url, 'squash');
+        // La plataforma borra la rama de origen; el clon hace prune y ya no hay origin/<rama>.
+        git(['--git-dir', e.origin.bare, 'branch', '-D', e.task.rama], e.repoRoot);
+        git(['update-ref', '-d', `refs/remotes/origin/${e.task.rama}`], e.repoRoot);
+        assert.equal(spawnSync('git', ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${e.task.rama}`], { cwd: e.repoRoot }).status, 1);
+        const antes = huella(e);
+        if (conExtra) {
+          await assert.rejects(() => finish(e, [ID, '--merge-request']), /tiene 1 commit\(s\) locales que no estaban en el merge request.*«extra»/s);
+          assert.equal(huella(e), antes);
+        } else {
+          assert.equal((await finish(e, [ID, '--merge-request'])).cierre, 'terminada');
+        }
+      });
+    });
+  });
+}
