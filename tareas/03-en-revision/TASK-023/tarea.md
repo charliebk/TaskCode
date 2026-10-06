@@ -6,7 +6,7 @@ sprint: 4
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-023-metricas-de-coste-en-tokens-por-fase
 asignado_a: charlie.bk@gmail.com
@@ -56,3 +56,4 @@ siguen siendo razonables o hace falta ajustarlos.
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-06T11:08:43Z | start | manual | persona |
+| 2026-10-06T13:13:14Z | review | manual | persona |
