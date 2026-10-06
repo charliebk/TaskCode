@@ -46,10 +46,69 @@ reales para revisar si los pesos de `scripts/heuristica-complejidad.yml`
 siguen siendo razonables o hace falta ajustarlos.
 
 ## Criterios de aceptacion
-- [ ] Cada tarea registra en su `tarea.md` el coste en tokens de sus fases de diseño, implementación y revisión.
-- [ ] `docs/METRICAS.md` agrega esos datos por sprint y los contrasta con las estimaciones de la sección 16.
-- [ ] Con esos datos reales se revisan los pesos de la heurística de complejidad, que es el punto 15 de la sección 14.
-- [ ] Tests del cálculo de agregados con datos de ejemplo.
+- [x] Cada tarea registra en su `tarea.md` el coste en tokens de sus fases de diseño, implementación y revisión.
+- [x] `docs/METRICAS.md` agrega esos datos por sprint y los contrasta con las estimaciones de la sección 16.
+- [x] Con esos datos reales se revisan los pesos de la heurística de complejidad, que es el punto 15 de la sección 14.
+- [x] Tests del cálculo de agregados con datos de ejemplo.
+
+## Resultado
+
+Cerrada el 2026-10-06 en 2 rondas de revisión por pares.
+
+**Divergencias aprobadas por Carlos al arrancar** (detalle al final de
+`planificacion/plan-final.md`): no hay `board --tokens`; los tokens son
+columnas de `taskctl metricas` (TASK-052 lo creó después de aprobarse el
+plan). Y la fuente del dato no es «de memoria».
+
+**Hallazgo durante la implementación que cambió el diseño.** La cifra que
+Claude Code muestra al terminar un subagente es su **contexto final**, no su
+coste: el agente implementador marcó 232 391 y su transcripción suma 12,7 M
+de tokens procesados en 83 llamadas. Carlos decidió medir lo acumulado:
+`registrar-coste --agente <id>` lee la transcripción del subagente
+(`<CLAUDE_CONFIG_DIR o ~/.claude>/projects/*/*/subagents/agent-<id>.jsonl`) y
+suma el `usage` de cada llamada, deduplicando por `message.id` (última
+aparición). Si el formato cambia, aborta y queda `--tokens N` a mano.
+
+**Lo entregado.**
+- Campos `tokens_diseno`, `tokens_implementacion` y `tokens_revision`
+  (nullable; ausente = null, así validan las tareas viejas, con un test que
+  relee todas las de `04-terminadas/`).
+- `taskctl registrar-coste TASK-NNN --fase F (--agente <id>... | --tokens N)`,
+  que suma, vale en cualquier estado (también terminada) y commitea solo
+  `tarea.md`.
+- `taskctl metricas --tokens [--escribir]`: columnas por fase, resumen por
+  sprint y por complejidad, y un bloque regenerable e idempotente en
+  `docs/METRICAS.md` que conserva el resto del fichero byte a byte.
+- Aviso no bloqueante en `finish` si falta el coste de diseño o revisión.
+- La instrucción de registrar el coste en las skills de fase
+  (`task-workflow/coste.md`).
+
+**CA2 y CA3.** La sección 11 de `docs/METRICAS.md` (a mano) recupera el coste
+real de los subagentes de 41 tareas pasadas desde las transcripciones, como
+cota inferior. No se escribe en sus `tarea.md`. La revisión se lleva el
+71-100 % del gasto, frente al 0-12 % del brainstorm, y las rondas son lo que
+más pesa. **Los pesos de la heurística no se tocan**: el orden de sus niveles
+es razonable y no hay muestra en media, alta y crítica.
+
+**Coste de esta tarea** (registrado con el propio comando): diseño 3,4 M (3
+subagentes, 2026-09-16), implementación 18,8 M (1 agente, dos pasadas) y
+revisión 8,7 M (2 rondas). No incluye la parte del orquestador.
+
+**Revisión por pares.**
+- *Ronda 1* (cambios-solicitados), 1 IMPORTANTE y 4 MENOR, todos corregidos:
+  - **IMP-1**: el aviso de `finish` proponía `--tokens N` con la cifra de
+    la notificación. Ahora propone `--agente <id>`, fijado por un test
+    comprobado por mutación.
+  - **MEN-1**: comentario de `Task`.
+  - **MEN-2**: paso 4 de la skill `review`.
+  - **MEN-3**: alcance de la tabla histórica.
+  - **MEN-4**: regla de atribución explícita, más la nota de que las filas
+    anteriores a TASK-033 cambian según la regla (las conclusiones solo usan
+    las de TASK-033 en adelante) y la lectura de las rondas.
+- *Ronda 2* (aprobada): todo cerrado y verificado con el CLI real. **MEN-5**
+  (comentario sin refluir) se corrigió después, sin ronda 3.
+- Suite completa: 1176 tests, 1173 pasan y 3 fallan, que son los rojos
+  conocidos de Windows.
 
 ## Transiciones
 
