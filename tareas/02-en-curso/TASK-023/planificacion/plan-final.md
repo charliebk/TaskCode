@@ -46,3 +46,32 @@ Orden: 1) helper + campos + tests de validación → 2) `registrar-coste` + avis
 - **Olvido silencioso**: `taskctl finish` imprime un aviso si alguna fase que usó LLM (brainstorm, revisión, Codex) no tiene coste registrado, pero **no bloquea** el cierre — visibilidad sin fricción nueva. No se añade gate duro en la máquina de estados.
 - **Agregación**: se extiende `taskctl board` con un flag `--tokens` (mismo patrón que `--escribir`), y `docs/METRICAS.md` gana una sección delimitada que ese flag regenera — mismo patrón que `docs/BOARD.md`. No se crea un comando `taskctl metricas` separado.
 - Aprobación completa del plan con `taskctl approve` — sigue siendo obligatoria antes de implementar.
+
+## Divergencias aprobadas por Carlos (2026-10-06, al arrancar)
+
+El plan se aprobo el 2026-09-16, antes de TASK-052, que creo
+`taskctl metricas` (tabla de fases por tarea, solo lectura). Dos decisiones
+de arriba quedan sustituidas:
+
+- **Agregacion**: no hay `board --tokens`. Los tokens son columnas de
+  `taskctl metricas` (`--tokens`, con resumen por sprint y por nivel de
+  complejidad), y `taskctl metricas --tokens --escribir` regenera una seccion
+  delimitada de `docs/METRICAS.md`, con el mismo patron que `docs/BOARD.md`.
+  Se reutiliza la lectura y el formateo de tablas de metricas.
+- **Fuente del dato**: no es «de memoria». Se suma el uso exacto que Claude
+  Code devuelve al terminar cada subagente de la fase (roles, unificador,
+  revisores, implementador), mas una estimacion de la parte del orquestador.
+  La cifra es tokens procesados: entrada + escritura y lectura de cache +
+  salida.
+
+Y una de alcance, mia, por evidencia:
+
+- **Historico**: las transcripciones de subagentes que guarda Claude Code
+  (`~/.claude/projects/<proyecto>/<sesion>/subagents/*.jsonl`) traen el
+  `usage` de cada llamada. De ahi sale el coste real de los subagentes de
+  unas 45 tareas pasadas. **No se escribe en los `tarea.md`**: es una cota
+  inferior (falta el orquestador y los agentes que tocaban varias tareas), y
+  el campo significa coste de la fase. Va a una seccion propia de
+  `docs/METRICAS.md`, escrita a mano, y es la muestra con la que se revisan
+  los pesos de la heuristica (CA3). TASK-023 es la primera tarea con los
+  campos rellenos.
