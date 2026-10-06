@@ -73,6 +73,16 @@ export interface Task {
   regla_seleccion_skill: ReglaSeleccionSkill | null;
   ultimo_commit_revisado: string | null;
   revision_codex: boolean;
+  /**
+   * TASK-023: coste en tokens de cada fase (suma del uso que Claude Code
+   * devuelve al terminar cada subagente, mas la estimacion de la parte del
+   * orquestador). null = no registrado; en el fichero, ausente tambien es
+   * null, asi las tareas anteriores siguen validando. Los suma
+   * `taskctl registrar-coste`.
+   */
+  tokens_diseno: number | null;
+  tokens_implementacion: number | null;
+  tokens_revision: number | null;
   creado: string;
   actualizado: string;
   dependencias: string[];
@@ -110,6 +120,9 @@ export const TASK_FIELD_ORDER: readonly (keyof Task)[] = [
   'regla_seleccion_skill',
   'ultimo_commit_revisado',
   'revision_codex',
+  'tokens_diseno',
+  'tokens_implementacion',
+  'tokens_revision',
   'creado',
   'actualizado',
   'dependencias',
@@ -169,6 +182,19 @@ function requireNullableString(data: Record<string, unknown>, field: string): st
     fail(field, `El campo "${field}" debe ser una cadena o null.`);
   }
   return v as string;
+}
+
+/**
+ * Entero >= 0 o null (ausente = null). Rechaza cadenas, flotantes y
+ * negativos: un coste de «12k» o de -5 es un dato mal escrito, no un cero.
+ */
+export function requireNullableNumber(data: Record<string, unknown>, field: string): number | null {
+  const v = data[field];
+  if (v === null || v === undefined) return null;
+  if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) {
+    fail(field, `El campo "${field}" debe ser un numero entero >= 0 o null.`);
+  }
+  return v as number;
 }
 
 function requireNumber(data: Record<string, unknown>, field: string): number {
@@ -258,6 +284,9 @@ export function validateTask(data: Record<string, unknown>): Task {
     ),
     ultimo_commit_revisado: requireNullableString(data, 'ultimo_commit_revisado'),
     revision_codex: requireBoolean(data, 'revision_codex'),
+    tokens_diseno: requireNullableNumber(data, 'tokens_diseno'),
+    tokens_implementacion: requireNullableNumber(data, 'tokens_implementacion'),
+    tokens_revision: requireNullableNumber(data, 'tokens_revision'),
     creado: requireString(data, 'creado'),
     actualizado: requireString(data, 'actualizado'),
     dependencias: requireStringArray(data, 'dependencias'),

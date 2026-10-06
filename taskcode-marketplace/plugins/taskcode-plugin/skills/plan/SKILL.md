@@ -67,7 +67,11 @@ no deberian necesitar volver a preguntar.
 5. Si el plan deja decisiones abiertas para una persona, preguntalas ahora y
    anota las respuestas en el propio plan. Si la salida de `taskctl plan`
    nombro `skills_recomendados`, dejalos anotados para la implementacion.
-6. Commitea lo escrito en la carpeta de la tarea
+6. Registra el coste del diseno (`task-workflow/coste.md`): suma el total de tokens
+   que devolvio cada subagente de esta ronda (roles, unificador) mas una
+   estimacion de lo tuyo y ejecuta
+   `taskctl registrar-coste TASK-NNN --fase diseno --tokens N`. Sin agentes, no
+   registres nada. Commitea lo escrito en la carpeta de la tarea
    (`git add <carpeta de la tarea> && git commit -m "docs(TASK-NNN): plan final"`).
    Los comandos siguientes exigen el workspace limpio.
 7. Sigue la seccion de avance (`task-workflow/avance.md`):

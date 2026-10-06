@@ -35,7 +35,11 @@ punto, no un formalismo.
    rellenar no cuenta como revisado,
    y commitealo **solo, en un commit que no toque nada mas**: en modo
    automatico, `finish` no sigue solo si un informe va mezclado con codigo.
-4. Escribe cada veredicto con el comando, no a mano:
+4. Registra el coste de la revision (`task-workflow/coste.md`): suma el total de
+   tokens que devolvio cada revisor mas una estimacion de lo tuyo y ejecuta
+   `taskctl registrar-coste TASK-NNN --fase revision --tokens N` (una vez por
+   ronda; suma). Es un commit propio: hazlo despues de commitear los informes.
+   Escribe cada veredicto con el comando, no a mano:
    `taskctl veredicto TASK-NNN aprobada|aprobada-con-correcciones|cambios-solicitados`.
    Si la ronda esta fragmentada, uno por informe, con el nombre de fichero
    completo: `--informe informe-revision-N-<revisor>.md`. Con CRITICO o

@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+Coste en tokens por fase (TASK-023).
+
+- Nuevo `taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision --tokens N`: suma el coste de una fase en `tokens_diseno`, `tokens_implementacion` o `tokens_revision` del `tarea.md` (campos nuevos, `null` = sin registrar; las tareas anteriores siguen validando) y lo commitea. Funciona en cualquier estado; rechaza `--tokens 0`.
+- `taskctl metricas --tokens`: columnas de tokens por fase y resumen por sprint y por complejidad declarada (tareas con dato / total, suma, media y % por fase). `--tokens --escribir` regenera el bloque delimitado por marcadores HTML de `docs/METRICAS.md` sin tocar el resto del fichero.
+- `taskctl finish` avisa, sin bloquear, si falta el coste de diseno o de revision. `taskctl new` escribe los tres campos a `null`.
+- La skill `task-workflow` (referencia `coste.md`) y las de fase `plan`, `start`, `review` y `finish` piden sumar el uso de cada subagente de la fase mas una estimacion propia y registrarlo.
+
 ## 0.5.0 — 2026-10-05
 
 Fase 6 del plan de la auditoria: suite, skill y telemetria. Actualizar con

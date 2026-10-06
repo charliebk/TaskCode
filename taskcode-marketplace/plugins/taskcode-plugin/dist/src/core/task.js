@@ -49,6 +49,9 @@ export const TASK_FIELD_ORDER = [
     'regla_seleccion_skill',
     'ultimo_commit_revisado',
     'revision_codex',
+    'tokens_diseno',
+    'tokens_implementacion',
+    'tokens_revision',
     'creado',
     'actualizado',
     'dependencias',
@@ -100,6 +103,19 @@ function requireNullableString(data, field) {
         return null;
     if (typeof v !== 'string') {
         fail(field, `El campo "${field}" debe ser una cadena o null.`);
+    }
+    return v;
+}
+/**
+ * Entero >= 0 o null (ausente = null). Rechaza cadenas, flotantes y
+ * negativos: un coste de «12k» o de -5 es un dato mal escrito, no un cero.
+ */
+export function requireNullableNumber(data, field) {
+    const v = data[field];
+    if (v === null || v === undefined)
+        return null;
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) {
+        fail(field, `El campo "${field}" debe ser un numero entero >= 0 o null.`);
     }
     return v;
 }
@@ -167,6 +183,9 @@ export function validateTask(data) {
         regla_seleccion_skill: requireNullableEnum(data, 'regla_seleccion_skill', REGLAS_SELECCION_SKILL),
         ultimo_commit_revisado: requireNullableString(data, 'ultimo_commit_revisado'),
         revision_codex: requireBoolean(data, 'revision_codex'),
+        tokens_diseno: requireNullableNumber(data, 'tokens_diseno'),
+        tokens_implementacion: requireNullableNumber(data, 'tokens_implementacion'),
+        tokens_revision: requireNullableNumber(data, 'tokens_revision'),
         creado: requireString(data, 'creado'),
         actualizado: requireString(data, 'actualizado'),
         dependencias: requireStringArray(data, 'dependencias'),

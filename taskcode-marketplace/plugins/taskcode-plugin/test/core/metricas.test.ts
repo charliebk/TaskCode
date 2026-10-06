@@ -6,7 +6,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  BloqueTokensError,
   COLUMNAS_HEURISTICA,
+  COLUMNAS_TOKENS,
+  MARCADOR_FIN_TOKENS,
+  MARCADOR_INICIO_TOKENS,
+  formatearResumenTokens,
+  renderBloqueTokens,
+  resumenesTokens,
+  resumirTokens,
+  sustituirBloqueTokens,
+  totalTokens,
+  type ResumenTokensGrupo,
   COLUMNAS_METRICAS,
   calcularFila,
   duracionEntre,
@@ -39,6 +50,9 @@ function tarea(o: Partial<Task> = {}): Task {
     regla_seleccion_skill: null,
     ultimo_commit_revisado: null,
     revision_codex: false,
+    tokens_diseno: null,
+    tokens_implementacion: null,
+    tokens_revision: null,
     creado: '2026-10-01',
     actualizado: '2026-10-05',
     dependencias: [],
@@ -268,4 +282,176 @@ test('formatearTabla: cabecera, separador y columnas alineadas', () => {
   assert.match(lineas[0] as string, /^\| id +\| complejidad \| diseno \| curso +\| revision \| rondas \| cierre +\| origen +\|$/);
   assert.match(lineas[1] as string, /^\|-+\|-+\|/);
   assert.equal(new Set(lineas.map((l) => l.length)).size, 1, 'todas las lineas miden lo mismo');
+});
+
+// --- Coste en tokens (TASK-023) ---------------------------------------------
+
+/** Una fila de ejemplo con el coste dado; el resto como una tarea terminada cualquiera. */
+function conCoste(
+  id: string,
+  sprint: number,
+  complejidad: Task['complejidad'],
+  d: number | null,
+  i: number | null,
+  r: number | null
+): FilaMetricas {
+  return calcularFila(
+    entrada({
+      task: tarea({ id, sprint, complejidad, tokens_diseno: d, tokens_implementacion: i, tokens_revision: r }),
+    })
+  );
+}
+
+// Datos de ejemplo a mano: las cuentas de cada celda se verifican con la
+// aritmetica del propio test, no con el codigo que se prueba.
+const MUESTRA_TOKENS: FilaMetricas[] = [
+  conCoste('TASK-001', 1, 'simple', 100, 200, 300),
+  conCoste('TASK-002', 1, 'media', 300, null, 100),
+  conCoste('TASK-003', 2, 'simple', null, null, null), // sin ningun dato
+  conCoste('TASK-004', 2, 'simple', 50, 150, null),
+  conCoste('TASK-005', 3, null, null, null, null), // sprint entero sin datos, complejidad no declarada
+];
+
+test('tokens: totalTokens suma lo registrado, es null sin ningun dato y un 0 registrado SI es dato', () => {
+  assert.equal(totalTokens({ diseno: 100, implementacion: 200, revision: 300 }), 600);
+  assert.equal(totalTokens({ diseno: 300, implementacion: null, revision: 100 }), 400);
+  assert.equal(totalTokens({ diseno: null, implementacion: null, revision: null }), null);
+  assert.equal(totalTokens({ diseno: 0, implementacion: null, revision: null }), 0);
+});
+
+test('tokens: calcularFila copia sprint y las tres fases de la tarea', () => {
+  const f = MUESTRA_TOKENS[1] as FilaMetricas;
+  assert.equal(f.sprint, 1);
+  assert.deepEqual(f.tokens, { diseno: 300, implementacion: null, revision: 100 });
+});
+
+test('tokens: columnas de la tabla, «—» para null y curso = implementacion', () => {
+  const celdas = (f: FilaMetricas): string[] => COLUMNAS_TOKENS.map((c) => c.valor(f));
+  assert.deepEqual(COLUMNAS_TOKENS.map((c) => c.cabecera), ['tok_diseno', 'tok_curso', 'tok_revision', 'tok_total']);
+  assert.deepEqual(celdas(MUESTRA_TOKENS[0] as FilaMetricas), ['100', '200', '300', '600']);
+  assert.deepEqual(celdas(MUESTRA_TOKENS[1] as FilaMetricas), ['300', '—', '100', '400']);
+  assert.deepEqual(celdas(MUESTRA_TOKENS[2] as FilaMetricas), ['—', '—', '—', '—']);
+});
+
+test('tokens: la tabla incluye la tarea sin datos (no se excluye de la tabla, solo del resumen)', () => {
+  const tabla = formatearTabla(MUESTRA_TOKENS, [...COLUMNAS_METRICAS, ...COLUMNAS_TOKENS]);
+  const lineas = tabla.split('\n');
+  assert.equal(lineas.length, 2 + MUESTRA_TOKENS.length);
+  const sinDatos = lineas.find((l) => l.startsWith('| TASK-003 ')) as string;
+  assert.ok(sinDatos, tabla);
+  assert.match(sinDatos, /\| — +\| — +\| — +\| — +\|$/);
+});
+
+test('tokens: resumen por sprint: suma, media por fase sobre las tareas que la tienen, % y n con dato/total', () => {
+  const r = resumirTokens(MUESTRA_TOKENS, (f) => String(f.sprint), ['1', '2', '3']);
+  assert.deepEqual(r.map((g) => [g.grupo, g.nConDato, g.nTotal]), [['1', 2, 2], ['2', 1, 2], ['3', 0, 1]]);
+
+  const s1 = r[0] as ResumenTokensGrupo;
+  assert.deepEqual(s1.fases.diseno, { suma: 400, n: 2, media: 200, porcentaje: 40 });
+  // implementacion: solo TASK-001 la tiene; la media NO divide entre 2 (null no es 0).
+  assert.deepEqual(s1.fases.implementacion, { suma: 200, n: 1, media: 200, porcentaje: 20 });
+  assert.deepEqual(s1.fases.revision, { suma: 400, n: 2, media: 200, porcentaje: 40 });
+  assert.equal(s1.total, 1000);
+  assert.equal(s1.mediaTotal, 500);
+
+  // Sprint 2: TASK-003 no tiene dato y no entra en medias ni sumas.
+  const s2 = r[1] as ResumenTokensGrupo;
+  assert.deepEqual(s2.fases.diseno, { suma: 50, n: 1, media: 50, porcentaje: 25 });
+  assert.deepEqual(s2.fases.implementacion, { suma: 150, n: 1, media: 150, porcentaje: 75 });
+  assert.deepEqual(s2.fases.revision, { suma: 0, n: 0, media: null, porcentaje: 0 });
+  assert.equal(s2.mediaTotal, 200, 'media sobre la unica tarea con dato, no sobre las 2');
+
+  // Sprint 3: existe, y dice que no tiene datos en vez de desaparecer o dar NaN.
+  const s3 = r[2] as ResumenTokensGrupo;
+  assert.equal(s3.mediaTotal, null);
+  assert.equal(s3.total, 0);
+  assert.deepEqual(s3.fases.diseno, { suma: 0, n: 0, media: null, porcentaje: null });
+});
+
+test('tokens: resumen por complejidad declarada, con «—» para las no declaradas, en el orden del enum', () => {
+  const r = resumirTokens(MUESTRA_TOKENS, (f) => f.complejidad ?? '—', [...TASK_COMPLEXITIES, '—']);
+  assert.deepEqual(r.map((g) => [g.grupo, g.nConDato, g.nTotal, g.total]), [
+    ['simple', 2, 3, 800], // 600 + 200; TASK-003 sin datos
+    ['media', 1, 1, 400],
+    ['—', 0, 1, 0],
+  ]);
+});
+
+test('tokens: un total registrado de 0 no divide entre cero (sin NaN ni Infinity)', () => {
+  const r = resumirTokens([conCoste('TASK-009', 1, 'simple', 0, 0, 0)], (f) => String(f.sprint));
+  assert.equal(r[0]?.nConDato, 1, 'un 0 registrado es un dato');
+  assert.equal(r[0]?.fases.diseno.porcentaje, null);
+  const texto = formatearResumenTokens('sprint', r);
+  assert.doesNotMatch(texto, /NaN|Infinity|undefined/);
+});
+
+test('tokens: el resumen formateado dice con dato/total y no cuenta las tareas sin datos', () => {
+  const { porSprint, porComplejidad } = resumenesTokens(MUESTRA_TOKENS);
+  const lineas = porSprint.split('\n');
+  assert.match(lineas[0] as string, /^\| sprint +\| con dato\/total +\| diseno +\| curso +\| revision +\| total \(media\) +\|$/);
+  assert.match(lineas[2] as string, /^\| 1 +\| 2\/2 +\| 400 \(media 200, 40\.0%\) +\| 200 \(media 200, 20\.0%\) +\| 400 \(media 200, 40\.0%\) +\| 1000 \(media 500\) +\|$/);
+  assert.match(lineas[3] as string, /^\| 2 +\| 1\/2 +\| 50 \(media 50, 25\.0%\) +\| 150 \(media 150, 75\.0%\) +\| — +\| 200 \(media 200\) +\|$/);
+  assert.match(lineas[4] as string, /^\| 3 +\| 0\/1 +\| — +\| — +\| — +\| — +\|$/);
+  assert.match(porComplejidad, /\| simple +\| 2\/3 /);
+  assert.doesNotMatch(porSprint + porComplejidad, /NaN|undefined/);
+});
+
+test('tokens: sin ninguna tarea con dato, todos los grupos salen 0/N y sin cifras', () => {
+  const filas = [conCoste('TASK-001', 1, 'simple', null, null, null), conCoste('TASK-002', 1, 'simple', null, null, null)];
+  const g = resumirTokens(filas, (f) => String(f.sprint));
+  assert.deepEqual(g.map((x) => [x.nConDato, x.nTotal, x.mediaTotal]), [[0, 2, null]]);
+});
+
+test('bloque de tokens: determinista, con marcadores y sin ninguna fecha que ensucie los diffs', () => {
+  const a = renderBloqueTokens(MUESTRA_TOKENS);
+  assert.equal(renderBloqueTokens([...MUESTRA_TOKENS]), a);
+  assert.ok(a.startsWith(`${MARCADOR_INICIO_TOKENS}\n`));
+  assert.ok(a.endsWith(`\n${MARCADOR_FIN_TOKENS}`));
+  assert.doesNotMatch(a, /\d{4}-\d{2}-\d{2}/);
+  assert.match(a, /\| TASK-003 +\| 2 +\| simple +\| — +\| — +\| — +\| — +\|/);
+  assert.ok(!a.includes('\r'));
+});
+
+const BLOQUE = `${MARCADOR_INICIO_TOKENS}\nuno\n${MARCADOR_FIN_TOKENS}`;
+
+test('sustituirBloqueTokens: sin marcadores anade el bloque al final y no toca lo anterior', () => {
+  const previo = '# Metricas\n\ntexto con acentos: sesion 11 — cierre\n';
+  const r = sustituirBloqueTokens(previo, BLOQUE);
+  assert.ok(r.startsWith(previo), 'el resto queda byte a byte');
+  assert.equal(r, `${previo}\n${BLOQUE}\n`);
+  // Fichero que no acaba en salto de linea: se cierra la ultima linea sin comerse nada.
+  assert.equal(sustituirBloqueTokens('sin salto', BLOQUE), `sin salto\n\n${BLOQUE}\n`);
+  assert.equal(sustituirBloqueTokens('', BLOQUE), `${BLOQUE}\n`);
+});
+
+test('sustituirBloqueTokens: con marcadores sustituye SOLO lo de dentro y es idempotente', () => {
+  const antes = '# Metricas\n\nintro\n\n';
+  const despues = '\n\n## Otra seccion\n\ncola sin salto';
+  const viejo = `${MARCADOR_INICIO_TOKENS}\nVIEJO\n${MARCADOR_FIN_TOKENS}`;
+  const nuevo = `${MARCADOR_INICIO_TOKENS}\nNUEVO\n${MARCADOR_FIN_TOKENS}`;
+  const r = sustituirBloqueTokens(`${antes}${viejo}${despues}`, nuevo);
+  assert.equal(r, `${antes}${nuevo}${despues}`);
+  assert.equal(sustituirBloqueTokens(r, nuevo), r, 'segunda vez: ni un byte');
+});
+
+test('sustituirBloqueTokens: un fichero CRLF sigue siendo CRLF, bloque incluido, y lo de fuera no cambia', () => {
+  const previo = '# Metricas\r\n\r\ntexto\r\n';
+  const r = sustituirBloqueTokens(previo, BLOQUE);
+  assert.ok(r.startsWith(previo));
+  assert.ok(!/[^\r]\n/.test(r), 'ningun LF sin CR');
+  const otra = BLOQUE.replace('uno', 'dos');
+  const r2 = sustituirBloqueTokens(r, otra);
+  assert.ok(r2.startsWith(previo) && r2.includes('dos') && !r2.includes('uno'));
+  assert.ok(!/[^\r]\n/.test(r2));
+  assert.equal(sustituirBloqueTokens(r2, otra), r2);
+});
+
+test('sustituirBloqueTokens: marcadores sueltos, repetidos o desordenados se rechazan sin adivinar', () => {
+  const malos = [
+    `a\n${MARCADOR_INICIO_TOKENS}\nb\n`,
+    `a\n${MARCADOR_FIN_TOKENS}\nb\n`,
+    `${MARCADOR_FIN_TOKENS}\n${MARCADOR_INICIO_TOKENS}\n`,
+    `${BLOQUE}\n${BLOQUE}\n`,
+  ];
+  for (const m of malos) assert.throws(() => sustituirBloqueTokens(m, BLOQUE), BloqueTokensError);
 });

@@ -76,7 +76,7 @@ taskctl new --titulo "<texto>" --tipo <feature|fix|hotfix|release>
 taskctl import <fichero.md> [--tipo ...] [--sprint N] [--complejidad ...]   # `> texto` bajo el ### = Objetivo
 taskctl board [--sprint N] [--asignado-a <persona>]
 taskctl board --escribir          # no se combina con los filtros de arriba
-taskctl metricas [--heuristica]   # duracion de cada fase y rondas por tarea; solo lee
+taskctl metricas [--heuristica] [--tokens [--escribir]]   # duracion y coste por fase; solo lee salvo --escribir
 taskctl plan    TASK-NNN [--asignado-a <persona>]
 taskctl approve TASK-NNN [--decidido-por persona|automatico]
 taskctl start   TASK-NNN [--asignado-a <persona>]
@@ -87,6 +87,7 @@ taskctl finish  TASK-NNN
 
 taskctl siguiente TASK-NNN [--json]   # que fase toca y si preguntar; solo lee
 taskctl pausa     TASK-NNN            # registra un «no seguir todavia», sin cambiar el estado
+taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision --tokens N   # suma
 taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar
                   # con una cadena abierta, los comandos que escriben exigen --cadena <testigo>
 
@@ -242,6 +243,11 @@ Antes de lanzar o de hacer una revision, y antes de escribir el veredicto, lee
 la puerta determinista, la clasificacion CRITICO / IMPORTANTE / MENOR, las
 rondas, la plantilla del informe y la linea del veredicto que `finish` acepta,
 con su tabla. Es el mismo fichero que siguen las skills revisoras.
+
+## Coste en tokens
+
+Al terminar cada fase con agentes, suma el uso que devuelve cada subagente mas una
+estimacion de lo tuyo y registralo: [coste.md](coste.md).
 
 ## Trampas que cuestan tiempo
 

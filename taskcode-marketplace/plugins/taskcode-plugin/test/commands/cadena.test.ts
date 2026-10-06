@@ -215,6 +215,7 @@ const ESPERADOS = [
   'veredicto',
   'finish',
   'pausa',
+  'registrar-coste',
   'pause',
   'resume',
   'recover',

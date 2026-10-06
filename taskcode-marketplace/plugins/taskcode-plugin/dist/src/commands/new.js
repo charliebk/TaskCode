@@ -203,6 +203,11 @@ export function buildNewTask(id, opts, today) {
         regla_seleccion_skill: null,
         ultimo_commit_revisado: null,
         revision_codex: false,
+        // Como ultimo_commit_revisado: null explicito al nacer, para que los
+        // campos se vean en el fichero y registrar-coste tenga donde sumar.
+        tokens_diseno: null,
+        tokens_implementacion: null,
+        tokens_revision: null,
         creado: today,
         actualizado: today,
         dependencias: [],

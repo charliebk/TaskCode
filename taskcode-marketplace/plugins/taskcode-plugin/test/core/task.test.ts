@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateTask, TaskValidationError } from '../../src/core/task.js';
+import { validateTask, requireNullableNumber, TaskValidationError } from '../../src/core/task.js';
 
 function baseTaskData(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -118,4 +118,44 @@ test('validateTask (TASK-042): complejidad null o ausente es "no declarada"; un 
     () => validateTask(baseTaskData({ complejidad: 'enorme' })),
     (e: unknown) => e instanceof TaskValidationError && e.field === 'complejidad'
   );
+});
+
+// --- TASK-023: tokens_diseno / tokens_implementacion / tokens_revision -----
+
+const CAMPOS_TOKENS = ['tokens_diseno', 'tokens_implementacion', 'tokens_revision'] as const;
+
+test('requireNullableNumber: null y ausente dan null; un entero >= 0 pasa (0 incluido)', () => {
+  assert.equal(requireNullableNumber({ x: null }, 'x'), null);
+  assert.equal(requireNullableNumber({}, 'x'), null);
+  assert.equal(requireNullableNumber({ x: 0 }, 'x'), 0);
+  assert.equal(requireNullableNumber({ x: 48213 }, 'x'), 48213);
+});
+
+test('requireNullableNumber: rechaza cadena, flotante, negativo, NaN, infinito y booleano', () => {
+  for (const malo of ['12', '12k', '', 1.5, -1, -0.5, NaN, Infinity, true, [], {}]) {
+    assert.throws(
+      () => requireNullableNumber({ x: malo }, 'x'),
+      (e: unknown) => e instanceof TaskValidationError && e.field === 'x',
+      `deberia rechazar ${JSON.stringify(malo)}`
+    );
+  }
+});
+
+test('validateTask (TASK-023): una tarea SIN los campos de tokens valida y los deja en null', () => {
+  const t = validateTask(baseTaskData());
+  for (const c of CAMPOS_TOKENS) assert.equal(t[c], null, c);
+});
+
+test('validateTask (TASK-023): acepta enteros y null en cada campo, y rechaza lo demas con el campo en el error', () => {
+  const t = validateTask(baseTaskData({ tokens_diseno: 120000, tokens_implementacion: null, tokens_revision: 0 }));
+  assert.deepEqual([t.tokens_diseno, t.tokens_implementacion, t.tokens_revision], [120000, null, 0]);
+  for (const c of CAMPOS_TOKENS) {
+    for (const malo of ['12k', 1.5, -3]) {
+      assert.throws(
+        () => validateTask(baseTaskData({ [c]: malo })),
+        (e: unknown) => e instanceof TaskValidationError && e.field === c,
+        `${c}=${JSON.stringify(malo)}`
+      );
+    }
+  }
 });

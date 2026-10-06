@@ -279,6 +279,22 @@ export async function runFinishCommand(
         'la tarea se cierra igualmente (el veredicto del revisor es la puerta).'
     );
   }
+  // TASK-023: avisar, sin bloquear (misma doctrina que el aviso de arriba),
+  // de las fases con LLM sin coste registrado. tokens_implementacion no avisa:
+  // puede no haber habido subagentes en el curso.
+  const sinCoste = (
+    [
+      ['diseno', initial.task.tokens_diseno],
+      ['revision', initial.task.tokens_revision],
+    ] as const
+  ).filter(([, v]) => v === null);
+  for (const [fase] of sinCoste) {
+    deps.onAviso?.(
+      `${id}: sin coste de ${fase} registrado (tokens_${fase}). Registralo con ` +
+        `taskctl registrar-coste ${id} --fase ${fase} --tokens N (suma el uso de cada subagente ` +
+        'de la fase mas una estimacion de la parte propia); la tarea se cierra igualmente.'
+    );
+  }
   const tipo = initial.task.tipo;
   const rama = initial.task.rama;
   const titulo = initial.task.titulo;

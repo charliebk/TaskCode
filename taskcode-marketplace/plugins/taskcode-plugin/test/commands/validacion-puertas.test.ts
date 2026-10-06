@@ -44,6 +44,9 @@ function sampleTask(overrides: Partial<Task> = {}): Task {
     regla_seleccion_skill: null,
     ultimo_commit_revisado: null,
     revision_codex: false,
+    tokens_diseno: null,
+    tokens_implementacion: null,
+    tokens_revision: null,
     creado: '2026-10-04',
     actualizado: '2026-10-04',
     dependencias: [],
@@ -167,8 +170,13 @@ test('approve (TASK-043): rechaza el esqueleto que deja plan; con contenido prop
 
 // ─── finish ────────────────────────────────────────────────────────────
 
-async function setupEnRevision(repoRoot: string, tareasRoot: string, body: string): Promise<Task> {
-  const task = sampleTask({ estado: 'en-revision', plan_aprobado: true });
+async function setupEnRevision(
+  repoRoot: string,
+  tareasRoot: string,
+  body: string,
+  costes: Partial<Task> = { tokens_diseno: 1, tokens_revision: 1 }
+): Promise<Task> {
+  const task = sampleTask({ estado: 'en-revision', plan_aprobado: true, ...costes });
   git(['checkout', '-q', '-b', task.rama, 'develop'], repoRoot);
   await writeTareaFile(tareasRoot, task, body);
   await writeFile(path.join(repoRoot, 'trabajo.txt'), 'trabajo\n', 'utf8');
@@ -220,6 +228,72 @@ test('finish (TASK-043): avisa de los criterios sin marcar ANTES del merge, y ci
 test('finish (TASK-043): con todos los criterios marcados no hay aviso', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await setupEnRevision(repoRoot, tareasRoot, '## Objetivo\nX.\n\n## Criterios de aceptacion\n- [x] hecho\n');
+    const avisos: string[] = [];
+    await runFinishCommand(tareasRoot, ['TASK-430'], '2026-10-04', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+      onAviso: (a) => avisos.push(a),
+    });
+    assert.deepEqual(avisos, []);
+  });
+});
+
+/**
+ * TASK-023. Mutaciones que lo ponen rojo: bloquear en vez de avisar, avisar
+ * tambien de tokens_implementacion, o no mirar tokens_revision.
+ */
+test('finish (TASK-023): avisa del coste de diseno y revision sin registrar, ANTES del merge, y cierra igualmente', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = await setupEnRevision(
+      repoRoot,
+      tareasRoot,
+      '## Objetivo\nX.\n\n## Criterios de aceptacion\n- [x] hecho\n',
+      { tokens_diseno: null, tokens_implementacion: null, tokens_revision: null }
+    );
+    const avisos: { texto: string; integrada: boolean }[] = [];
+    const r = await runFinishCommand(tareasRoot, ['TASK-430'], '2026-10-04', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+      onAviso: (texto) => {
+        const integrada =
+          spawnSync('git', ['merge-base', '--is-ancestor', task.rama, 'develop'], { cwd: repoRoot }).status === 0;
+        avisos.push({ texto, integrada });
+      },
+    });
+    assert.equal(avisos.length, 2, 'uno por diseno y otro por revision; implementacion no avisa');
+    assert.ok(avisos.every((a) => !a.integrada), 'los avisos llegan antes de mergear');
+    assert.match(avisos[0]?.texto ?? '', /sin coste de diseno registrado.*taskctl registrar-coste TASK-430 --fase diseno --tokens N/);
+    assert.match(avisos[1]?.texto ?? '', /sin coste de revision registrado.*--fase revision/);
+    assert.ok(avisos.every((a) => !/implementacion/.test(a.texto)));
+    assert.match(r.filePath, /04-terminadas/, 'no bloquea');
+  });
+});
+
+test('finish (TASK-023): solo avisa de la fase que falta, y con diseno y revision registrados no avisa', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await setupEnRevision(repoRoot, tareasRoot, '## Objetivo\nX.\n', {
+      tokens_diseno: 5000,
+      tokens_implementacion: null,
+      tokens_revision: null,
+    });
+    const avisos: string[] = [];
+    await runFinishCommand(tareasRoot, ['TASK-430'], '2026-10-04', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+      onAviso: (a) => avisos.push(a),
+    });
+    assert.equal(avisos.length, 1);
+    assert.match(avisos[0] ?? '', /sin coste de revision/);
+  });
+});
+
+test('finish (TASK-023): con diseno y revision registrados (implementacion sin registrar) no hay aviso de coste', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await setupEnRevision(repoRoot, tareasRoot, '## Objetivo\nX.\n', {
+      tokens_diseno: 5000,
+      tokens_implementacion: null,
+      tokens_revision: 7000,
+    });
     const avisos: string[] = [];
     await runFinishCommand(tareasRoot, ['TASK-430'], '2026-10-04', {
       repoCwd: repoRoot,
