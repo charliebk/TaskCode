@@ -48,6 +48,8 @@ export interface PrDoble {
   url: string;
   base: string;
   head: string;
+  /** Titulo con el que se creo (lo apunta el doble al crear por API). */
+  titulo?: string | null;
   /** Commit resultante del merge (merge, squash o rebase); null = la plataforma no lo informa. */
   commit?: string | null;
   /** Punta de la rama que la plataforma integro (headRefOid / sha). */
@@ -111,6 +113,7 @@ const CODIGO_DOBLE = [
   '  }',
   "  const listar = (cli === 'gh' && args[0] === 'pr' && args[1] === 'list') || (cli === 'glab' && args[0] === 'mr' && args[1] === 'list');",
   "  const crear = (cli === 'gh' && args[0] === 'pr' && args[1] === 'create') || (cli === 'glab' && args[0] === 'mr' && args[1] === 'create');",
+  "  const crearApi = cli === 'glab' && args[0] === 'api' && /^projects\\//.test(args[1] || '') && args.includes('--method=POST');",
   '  if (listar) {',
   "    if (st.listarFalla) salir(1, '', 'error: Post \"https://usuario:secreto@github.com/graphql\": dial tcp: no network\\n');",
   "    const head = cli === 'gh' ? valor(args, 'head') : valor(args, 'source-branch');",
@@ -124,11 +127,21 @@ const CODIGO_DOBLE = [
   '    });',
   '    salir(0, JSON.stringify(lista) + "\\n", "");',
   '  }',
-  '  if (crear) {',
+  '  if (crear || crearApi) {',
   "    if (st.crearFalla) salir(1, '', 'GraphQL: could not create the pull request\\n');",
-  "    const head = cli === 'gh' ? valor(args, 'head') : valor(args, 'source-branch');",
-  "    const base = cli === 'gh' ? valor(args, 'base') : valor(args, 'target-branch');",
+  "    // glab real: mr create exige que un remoto de Git corresponda a GITLAB_HOST y compara solo el host,",
+  "    // asi que con una instancia bajo una ruta aborta siempre (glab 1.102.0, TASK-061). glab api no mira los remotos.",
+  "    if (cli === 'glab' && crear && e.GITLAB_HOST && /^https?:\\/\\/[^/]+\\/./.test(e.GITLAB_HOST)) salir(1, '', 'ERROR None of the git remotes configured for this repository correspond to the GITLAB_HOST environment variable. Try setting a remote\\n');",
+  "    const head = cli === 'gh' ? valor(args, 'head') : crearApi ? valor(args, 'raw-field=source_branch') : valor(args, 'source-branch');",
+  "    const base = cli === 'gh' ? valor(args, 'base') : crearApi ? valor(args, 'raw-field=target_branch') : valor(args, 'target-branch');",
+  "    const titulo = crearApi ? valor(args, 'raw-field=title') : (valor(args, 'title') || null);",
   '    const n = st.prs.length + 1;',
+  "    if (crearApi) {",
+  "      const urlApi = (e.GITLAB_HOST || 'https://gitlab.example.com') + '/' + decodeURIComponent(args[1].split('/')[1]) + '/-/merge_requests/' + n;",
+  "      st.prs.push({ estado: 'abierto', url: urlApi, base: base, head: head, commit: null, titulo: titulo });",
+  '      guardar();',
+  "      salir(0, JSON.stringify({ iid: n, web_url: urlApi, state: 'opened', source_branch: head, target_branch: base }) + '\\n', '');",
+  '    }',
   "    const r = args.indexOf('-R');",
   "    const url = cli === 'gh' ? 'https://github.com/acme/repo/pull/' + n : (e.GITLAB_HOST && r >= 0 ? e.GITLAB_HOST + '/' + args[r + 1] : 'https://gitlab.example.com/acme/repo') + '/-/merge_requests/' + n;",
   "    st.prs.push({ estado: 'abierto', url: url, base: base, head: head, commit: null });",

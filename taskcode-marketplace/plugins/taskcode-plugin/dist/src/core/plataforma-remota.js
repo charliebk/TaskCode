@@ -150,7 +150,8 @@ export function partesDeOrigin(url) {
             segs[ultimo] = sinGit;
     }
     const puerto = esquema === 'https' && aut.puerto !== '443' ? aut.puerto : null;
-    return { esquema, host: aut.host, puerto, segmentos: segs };
+    const puertoHttp = esquema === 'http' && aut.puerto !== null && aut.puerto !== '80' ? aut.puerto : null;
+    return { esquema, host: aut.host, puerto, puertoHttp, segmentos: segs };
 }
 /**
  * El proyecto (`grupo/subgrupo/repo`, sin `.git`) de una URL de origin
@@ -215,6 +216,11 @@ export function resolverRemotoDeclarado(urls, declarado) {
     let causa = null;
     for (const { u, p } of red) {
         const parte = p;
+        if (declaradaNormal === null && parte.puertoHttp !== null) {
+            // glab solo habla https: el puerto de un origin http no es el de la web https.
+            causa ??= 'http-con-puerto';
+            continue;
+        }
         const base = declaradaNormal !== null && declaradaNormal.ok
             ? declaradaNormal.base
             : `https://${parte.host}${parte.puerto === null ? '' : `:${parte.puerto}`}`;

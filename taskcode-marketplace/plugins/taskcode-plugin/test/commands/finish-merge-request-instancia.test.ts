@@ -119,9 +119,15 @@ function assertContexto(dbl: ControlDoble, base: string, proyecto: string): void
   }
   assert.deepEqual(
     reg.slice(0, 3).map((r) => r.llamada.slice(1, 3).join(' ')),
-    ['api user', 'mr list', 'mr create']
+    ['api user', 'mr list', `api projects/${encodeURIComponent(proyecto)}/merge_requests`],
+    'con instancia declarada el MR se crea por la API (glab mr create falla con una ruta), nunca con mr create'
   );
-  // El MR creado cuelga de la base y el proyecto: la URL la compone el doble como glab.
+  assert.equal(dbl.llamadasDe('mr', 'create').length, 0);
+}
+
+/** Llamadas que crean un MR por API (`glab api projects/<p>/merge_requests --method=POST`). */
+function creaciones(dbl: ControlDoble): string[][] {
+  return dbl.leer().llamadas.filter((l) => l[1] === 'api' && (l[2] ?? '').startsWith('projects/'));
 }
 
 /** Todo lo que el flujo deja escrito o impreso, en un texto, para buscar fugas. */
@@ -192,9 +198,11 @@ for (const [forma, origen] of [
           accion: 'abierto',
         });
         assertContexto(dbl, 'https://git.empresa.com', 'acme/sub/repo');
-        const [crear] = dbl.llamadasDe('mr', 'create');
-        assert.ok(crear?.includes('--target-branch=develop'));
-        assert.ok(crear?.includes(`--source-branch=${e.task.rama}`));
+        const [crear] = creaciones(dbl);
+        assert.ok(crear?.includes('--method=POST'));
+        assert.ok(crear?.includes('--raw-field=target_branch=develop'));
+        assert.ok(crear?.includes(`--raw-field=source_branch=${e.task.rama}`));
+        assert.ok(crear?.some((a) => a.startsWith('--raw-field=title=') && a.includes(ID)));
         assert.equal(dbl.llamadasDe('auth', 'status').length, 0, 'la sesion se comprueba con api user, no con auth status');
       });
       assert.notEqual(ramaEnBare(e.origin.bare, e.task.rama), null, 'la rama se subio');
@@ -241,7 +249,7 @@ for (const [forma, origen, base] of [
           assert.equal(x.entorno['GITLAB_HOST'], BASE_SUB);
           if (x.llamada[1] === 'mr') assert.equal(x.repo, 'grupo/sub/repo');
         }
-        assert.equal(dbl.llamadasDe('mr', 'create').length, 1);
+        assert.equal(creaciones(dbl).length, 1);
         assert.equal(git(['branch', '--show-current'], e.repoRoot).trim(), 'develop');
       });
     });
@@ -435,7 +443,7 @@ test('instancia inalcanzable aborta antes de subir nada y la URL con credenciale
           return true;
         }
       );
-      assert.equal(dbl.llamadasDe('mr', 'create').length, 0);
+      assert.equal(creaciones(dbl).length, 0);
     });
     assert.equal(ramaEnBare(e.origin.bare, e.task.rama), null);
   });
@@ -497,6 +505,75 @@ test('segundo finish con un commit local que no llego al MR aborta sin tocar nad
       await assert.rejects(() => finish(e, [ID, '--merge-request']), /tiene 1 commit\(s\) locales que no estaban en el merge request/);
       assert.equal(git(['branch', '--show-current'], e.repoRoot).trim(), e.task.rama);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Creacion por API (glab mr create no vale bajo una ruta)
+// ---------------------------------------------------------------------------
+
+test('el MR de una instancia bajo una ruta se crea por la API: glab mr create real falla ahi y el doble lo reproduce', async () => {
+  await escenario(ORIGEN_SUB_HTTPS, CFG_SUB, async (e) => {
+    await conDoblePlataforma(SIN_PRS, async (dbl) => {
+      // Contraprueba: con el camino viejo (mr create + GITLAB_HOST con ruta) el doble responde lo que glab real.
+      await conEntorno({ GITLAB_HOST: BASE_SUB }, async () => {
+        const r = spawnSync('glab', ['mr', 'create', '-R', 'grupo/sub/repo', '--target-branch=develop', '--source-branch=x', '--title=t', '--yes'], {
+          cwd: e.repoRoot,
+          encoding: 'utf8',
+          env: process.env,
+        });
+        assert.equal(r.status, 1);
+        assert.match(r.stderr, /None of the git remotes configured for this repository correspond to the GITLAB_HOST/);
+      });
+      dbl.escribir(SIN_PRS);
+      const url = await abrirMr(e);
+      assert.equal(url, 'https://servidor.example/ruta/gitlab/grupo/sub/repo/-/merge_requests/1');
+      assert.equal(dbl.llamadasDe('mr', 'create').length, 0);
+      assert.equal(creaciones(dbl).length, 1);
+    });
+  });
+});
+
+test('la creacion por API pasa un titulo con guion inicial y comillas como un solo argumento, sin interpretarlo como flag', async () => {
+  const raro = '-x --flag "entre comillas" y \'simples\'';
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const origin = await montarOrigin(repoRoot, ORIGEN_SUB_HTTPS);
+    try {
+      const task = sampleTask({ titulo: raro });
+      await setupTaskEnRevision(repoRoot, tareasRoot, task);
+      await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+      await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), CFG_SUB, 'utf8');
+      commitAll(repoRoot, 'chore: config');
+      const e: Escenario = { repoRoot, tareasRoot, origin, task };
+      await conDoblePlataforma(SIN_PRS, async (dbl) => {
+        await abrirMr(e);
+        const [crear] = creaciones(dbl);
+        assert.ok(crear?.includes(`--raw-field=title=${ID}: ${raro}`), JSON.stringify(crear));
+        assert.equal(dbl.leer().prs[0]?.titulo, `${ID}: ${raro}`);
+      });
+    } finally {
+      await origin.limpiar();
+    }
+  });
+});
+
+test('si la creacion por API falla, la rama ya subida se dice y un reintento no duplica', async () => {
+  await escenario(ORIGEN_SUB_HTTPS, CFG_SUB, async (e) => {
+    await conDoblePlataforma({ ...SIN_PRS, crearFalla: true }, async (dbl) => {
+      await assert.rejects(() => finish(e, [ID, '--merge-request']), /ya esta subida a origin, pero "glab" no pudo crear el merge request/);
+      dbl.escribir({ prs: [] });
+      assert.equal((await abrirMr(e)).includes('/merge_requests/1'), true);
+    });
+  });
+});
+
+test('origin http con puerto y solo plataforma gitlab aborta antes de subir pidiendo url_base_remoto', async () => {
+  await escenario('http://servidor.example:8080/grupo/repo.git', 'plataforma_remota: gitlab\n', async (e) => {
+    await conDoblePlataforma(SIN_PRS, async (dbl) => {
+      await assert.rejects(() => finish(e, [ID, '--merge-request']), /origin es http con puerto.*glab solo habla https.*url_base_remoto/s);
+      assert.equal(dbl.leer().llamadas.length, 0);
+    });
+    assert.equal(ramaEnBare(e.origin.bare, e.task.rama), null);
   });
 });
 

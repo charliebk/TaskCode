@@ -150,6 +150,8 @@ export interface PartesOrigin {
   host: string;
   /** Solo con esquema https (443 = null). */
   puerto: string | null;
+  /** Puerto explicito (distinto del 80) de un origin `http://`: glab habla https, asi que no se puede deducir la base. */
+  puertoHttp: string | null;
   /** Ruta sin `.git` final, sin barras y troceada. */
   segmentos: string[];
 }
@@ -187,14 +189,15 @@ export function partesDeOrigin(url: string): PartesOrigin | null {
     else segs[ultimo] = sinGit;
   }
   const puerto = esquema === 'https' && aut.puerto !== '443' ? aut.puerto : null;
-  return { esquema, host: aut.host, puerto, segmentos: segs };
+  const puertoHttp = esquema === 'http' && aut.puerto !== null && aut.puerto !== '80' ? aut.puerto : null;
+  return { esquema, host: aut.host, puerto, puertoHttp, segmentos: segs };
 }
 
 export type ResultadoProyecto =
   | { ok: true; proyecto: string }
   | {
       ok: false;
-      motivo: 'url-sin-red' | 'base-invalida' | 'host' | 'puerto' | 'ruta' | 'proyecto-corto' | 'proyecto-invalido';
+      motivo: 'url-sin-red' | 'base-invalida' | 'host' | 'puerto' | 'ruta' | 'proyecto-corto' | 'proyecto-invalido' | 'http-con-puerto';
     };
 
 /**
@@ -271,6 +274,11 @@ export function resolverRemotoDeclarado(urls: readonly string[], declarado: Remo
   let causa: Extract<ResultadoProyecto, { ok: false }>['motivo'] | null = null;
   for (const { u, p } of red) {
     const parte = p as PartesOrigin;
+    if (declaradaNormal === null && parte.puertoHttp !== null) {
+      // glab solo habla https: el puerto de un origin http no es el de la web https.
+      causa ??= 'http-con-puerto';
+      continue;
+    }
     const base =
       declaradaNormal !== null && declaradaNormal.ok
         ? declaradaNormal.base

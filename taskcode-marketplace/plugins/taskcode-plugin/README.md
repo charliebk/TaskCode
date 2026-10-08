@@ -644,6 +644,11 @@ url_base_remoto: https://git.empresa.com            # opcional
   `GITLAB_TOKEN`. La sesión se comprueba con `glab api user`. El token no se
   imprime ni se escribe. `glab` solo habla https con la instancia; un
   certificado propio se resuelve en el sistema o en la configuración de `glab`.
+- Con la plataforma declarada el merge request se crea con la API
+  (`glab api projects/<proyecto>/merge_requests`), no con `glab mr create`:
+  este último exige que un remoto de Git corresponda a `GITLAB_HOST` y con una
+  instancia bajo una ruta falla siempre. Con origin `http://host:puerto` hay
+  que declarar `url_base_remoto` (glab solo habla https).
 - Con la plataforma declarada, cada llamada a `glab` lleva `GITLAB_HOST` fijado
   a la base y se ignoran los `GITLAB_HOST`, `GL_HOST`, `GITLAB_URI` y
   `GITLAB_API_HOST` del entorno, para que un host heredado no abra el merge

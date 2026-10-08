@@ -21,7 +21,12 @@ Merge request en cualquier GitLab, tambien autoalojado (TASK-061).
   origin y lo pasa con `-R`. Comprueba la sesion con `glab api user` (acepta
   `glab auth login --hostname <host/ruta>` o `GITLAB_TOKEN`; `auth status` no
   vale: ignora el token). Sin sesion, sin CLI o con la instancia inalcanzable
-  aborta antes de subir nada. El token nunca se imprime ni se escribe.
+  aborta antes de subir nada. El token nunca se imprime ni se escribe. El MR
+  se crea por la API (`glab api projects/<proyecto>/merge_requests`, campos
+  `--raw-field`) y no con `glab mr create`, que aborta siempre con una
+  instancia bajo una ruta (comprueba que un remoto de Git corresponda a
+  `GITLAB_HOST` y solo compara el host). Con origin `http://host:puerto` y solo
+  la plataforma declarada, aborta pidiendo `url_base_remoto`.
   Sin declarar nada rige la deteccion por host de la 0.6.0, sin cambios.
 - **Cambio de comportamiento**: una clave desconocida en `.taskcode/config.yml`
   ya no aborta, avisa por stderr (`[AVISO] ... clave desconocida "x"; se

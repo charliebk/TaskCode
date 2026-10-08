@@ -326,6 +326,12 @@ function motivoDeclarado(
     return 'la clave "url_base_remoto" de .taskcode/config.yml no es una URL base valida. Corrigela o borrala.';
   }
   const origen = d.origen ?? '(sin host)';
+  if (urlBase === null && d.causa === 'http-con-puerto') {
+    return (
+      `origin es http con puerto (${origen}) y glab solo habla https: no se puede deducir la instancia. ` +
+      'Declara "url_base_remoto" en .taskcode/config.yml con la URL https real (con su puerto si lo tiene).'
+    );
+  }
   if (urlBase === null) {
     return (
       `de la URL de origin (${origen}) no se deduce un proyecto grupo/repo (${d.causa ?? 'sin causa'}). ` +

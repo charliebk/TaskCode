@@ -58,12 +58,20 @@ interface ContextoGlab {
   repo: readonly string[];
   /** Valor fijado de `GITLAB_HOST` (undefined sin declaracion: no se toca el entorno). */
   gitlabHost: string | undefined;
+  /** Endpoint REST de los MR del proyecto (`projects/<ruta%2Fcodificada>/merge_requests`); undefined sin declaracion. */
+  endpointMr: string | undefined;
 }
 
 /** El unico productor de `-R` y `GITLAB_HOST` (ver cabecera). */
 function contextoGlab(remoto: RemotoPlataforma): ContextoGlab {
   const d = remoto.declarado;
-  return d === undefined ? { repo: [], gitlabHost: undefined } : { repo: ['-R', d.proyecto], gitlabHost: d.base };
+  return d === undefined
+    ? { repo: [], gitlabHost: undefined, endpointMr: undefined }
+    : {
+        repo: ['-R', d.proyecto],
+        gitlabHost: d.base,
+        endpointMr: `projects/${encodeURIComponent(d.proyecto)}/merge_requests`,
+      };
 }
 
 function entornoDe(gitlabHost: string | undefined): NodeJS.ProcessEnv {
@@ -179,6 +187,38 @@ export interface PeticionMergeRequest {
   cuerpo: string;
 }
 
+/**
+ * Con GitLab declarado el MR se crea por la API REST (`glab api ... --method=POST`) y no
+ * con `glab mr create`: este ultimo exige que algun remoto de Git "corresponda" a
+ * `GITLAB_HOST` y compara solo el host, asi que con una instancia bajo una ruta
+ * (`GITLAB_HOST=https://host/ruta/gitlab`) aborta siempre, aunque se pase `-R`
+ * (glab 1.102.0 real). `glab api` no mira los remotos y respeta la ruta. Un solo camino
+ * para instancia con o sin ruta. Cada campo va como `--raw-field=clave=valor` (un solo
+ * argv, sin shell): un titulo que empiece por "-" o lleve comillas no se lee como flag.
+ */
+function argsCrearPorApi(endpoint: string, p: PeticionMergeRequest): string[] {
+  return [
+    'api',
+    endpoint,
+    '--method=POST',
+    `--raw-field=source_branch=${p.rama}`,
+    `--raw-field=target_branch=${p.base}`,
+    `--raw-field=title=${p.titulo}`,
+    `--raw-field=description=${p.cuerpo}`,
+  ];
+}
+
+/** `web_url` del JSON que devuelve la creacion por API, o null si no es una URL publicable. */
+function webUrlDeRespuesta(stdout: string): string | null {
+  try {
+    const o = JSON.parse(stdout) as unknown;
+    const url = typeof o === 'object' && o !== null ? (o as Record<string, unknown>)['web_url'] : null;
+    return esUrlPublicable(url) ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Abre el PR/MR y devuelve su URL. Lanza MergeRequestError si el CLI falla. */
 export function abrirMergeRequest(
   remoto: RemotoPlataforma,
@@ -200,19 +240,18 @@ export function abrirMergeRequest(
       : [
           'mr',
           'create',
-          ...ctx.repo,
           `--target-branch=${peticion.base}`,
           `--source-branch=${peticion.rama}`,
           `--title=${peticion.titulo}`,
           `--description=${peticion.cuerpo}`,
           '--yes',
         ];
-  const r = lanzar(cli, args, cwd, ctx.gitlabHost);
+  const r = lanzar(cli, ctx.endpointMr === undefined ? args : argsCrearPorApi(ctx.endpointMr, peticion), cwd, ctx.gitlabHost);
   if (r.error) throw new MergeRequestError(`no se pudo ejecutar "${cli}": ${r.error.message}`);
   if (r.status !== 0) {
     throw new MergeRequestError(`"${cli}" no pudo crear el merge request (${detalle(r)})`);
   }
-  const url = urlDeSalidaDeCreacion(r.stdout ?? '');
+  const url = ctx.endpointMr === undefined ? urlDeSalidaDeCreacion(r.stdout ?? '') : webUrlDeRespuesta(r.stdout ?? '');
   if (url === null || !esUrlPublicable(url)) {
     throw new MergeRequestError(
       `"${cli}" termino bien pero no devolvio la URL del merge request (salida: ${detalle(r)})`
