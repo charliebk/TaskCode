@@ -2,7 +2,7 @@
 
 Metodología de tareas por sprints, revisión por pares de agentes y Git-Flow
 determinista, empaquetada como plugin de Claude Code. Este repo es a la vez el
-marketplace privado que distribuye el plugin y el proyecto que lo construye
+marketplace público que distribuye el plugin y el proyecto que lo construye
 usándose a sí mismo (dogfooding).
 
 **Antes de tocar nada, lee [`docs/contexto/`](docs/contexto/)** — sobre todo

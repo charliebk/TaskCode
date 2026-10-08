@@ -2,7 +2,7 @@
 
 Metodología de tareas por sprints, revisión por pares de agentes y Git-Flow
 determinista, empaquetada como plugin de Claude Code. Este repo es a la vez
-**el marketplace privado** que distribuye el plugin y **el proyecto que lo
+**el marketplace público** que distribuye el plugin y **el proyecto que lo
 construye usándose a sí mismo** (dogfooding desde el Sprint 0).
 
 ## Instalar el plugin
@@ -19,8 +19,11 @@ claude plugin marketplace add charliebk/TaskCode
 claude plugin install taskcode-plugin@taskcode-marketplace
 ```
 
-El repo es privado: hace falta acceso de lectura como colaborador, y las
-credenciales Git/GitHub que ya tengas configuradas (SSH o `gh`).
+El repo es público: se instala en cualquier máquina con Claude Code, Git y
+Node, sin credenciales. Los scripts de Git-Flow y `taskctl` trabajan con
+cualquier remoto Git (GitHub, GitLab u otro), porque solo hablan con `origin`
+por Git. Lo único que depende de la plataforma es `taskctl finish
+--merge-request`, que usa `gh` (GitHub) o `glab` (GitLab).
 
 Para desarrollo sobre el propio plugin, sin instalarlo:
 

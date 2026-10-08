@@ -115,7 +115,7 @@ sync del marketplace y la subida directa lo rechazan con
 es mover los ejecutables a `scripts/` e invocarlos por
 `${CLAUDE_PLUGIN_ROOT}/scripts/<nombre>`.
 
-Hoy no bloquea nada: la distribución es un marketplace privado por Git. Queda
+Hoy no bloquea nada: la distribución es un marketplace público por Git. Queda
 anotado porque condiciona **E1** (invitar colaboradores) y cualquier intento
 futuro de distribuir por esa vía, que obligaría a renunciar a `taskctl` como
 comando suelto o a reestructurar el plugin.
