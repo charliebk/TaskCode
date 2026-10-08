@@ -6,10 +6,10 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-062-taskctl-doctor-comprobar-que-un-proyecto
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -37,3 +37,9 @@ Con el plugin publico, cualquiera lo instala en su proyecto y necesita saber, an
 - [ ] No escribe, no hace commits, no cambia de rama ni llama a la red salvo la comprobacion de sesion de la plataforma, y no imprime URLs con credenciales.
 - [ ] La skill `task-workflow` dice que se ejecute `taskctl doctor` al empezar en un proyecto, y se elimina `status` de la lista de comandos que no existen solo si hace falta para no confundir; README y CHANGELOG lo documentan.
 - [ ] Tests contra repos Git temporales reales: proyecto completo (todo ok), sin `tareas/`, sin `develop`, config invalida, tarea en carpeta equivocada, workspace sucio, y la salida `--json`; con el doble de `gh`/`glab` para la comprobacion de sesion.
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-08T11:09:31Z | plan | manual | persona |
