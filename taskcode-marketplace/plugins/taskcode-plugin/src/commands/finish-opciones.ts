@@ -29,8 +29,11 @@ import { comprobarCli } from '../fs/merge-request.js';
 import {
   detectarPlataforma,
   ocultarCredenciales,
+  resolverRemotoDeclarado,
+  type ResolucionDeclarada,
   type RemotoPlataforma,
 } from '../core/plataforma-remota.js';
+import { resolverConfig } from '../core/config.js';
 
 export class FinishCommandError extends Error {}
 
@@ -253,7 +256,13 @@ export function subirTag(tag: TagResultado, push: boolean, cwd: string): TagResu
  * Preflight de `--merge-request`, ANTES de subir nada: hay origin, su host es
  * de una plataforma conocida y el CLI de esa plataforma esta instalado y con
  * sesion. Cada fallo dice que instalar o configurar. Ningun mensaje lleva la
- * URL de origin, solo (como mucho) su host.
+ * URL de origin, solo (como mucho) su host y su ruta, ya sin credenciales.
+ *
+ * TASK-061: con `plataforma_remota` declarada en `.taskcode/config.yml` no se
+ * adivina por el host: manda la config (y la base, si la hay, tiene que ser
+ * prefijo exacto de origin). Sin declarar rige la deteccion por host de la
+ * 0.6.0, tal cual. La config se lee aqui, de la rama en la que se esta: por
+ * eso tiene que estar commiteada en la rama de la tarea y en la base.
  */
 export function preflightMergeRequest(id: string, cwd: string): RemotoPlataforma {
   if (!hasOrigin(cwd)) {
@@ -261,6 +270,20 @@ export function preflightMergeRequest(id: string, cwd: string): RemotoPlataforma
       `[ERROR] ${id}: --merge-request necesita un remoto "origin" y este repo no tiene ninguno. ` +
         'Configuralo (git remote add origin <url>) o cierra con merge normal; no se ha subido nada.'
     );
+  }
+  const { plataforma_remota: plataforma, url_base_remoto: urlBase } = resolverConfig(cwd);
+  if (plataforma !== null) {
+    const d = resolverRemotoDeclarado(urlsDeOrigin(cwd), { plataforma, urlBase });
+    if (!d.ok) {
+      throw new FinishCommandError(
+        `[ERROR] ${id}: --merge-request: ${motivoDeclarado(d, plataforma, urlBase)} No se ha subido nada.`
+      );
+    }
+    const cli = comprobarCli(d.remoto, cwd);
+    if (!cli.ok) {
+      throw new FinishCommandError(`[ERROR] ${id}: --merge-request: ${cli.mensaje} No se ha subido nada.`);
+    }
+    return d.remoto;
   }
   let hostDesconocido: string | null = null;
   for (const url of urlsDeOrigin(cwd)) {
@@ -281,7 +304,44 @@ export function preflightMergeRequest(id: string, cwd: string): RemotoPlataforma
           'GitLab (glab), o cierra con merge normal; no se ha subido nada.'
       : `[ERROR] ${id}: --merge-request: el host de origin ("${hostDesconocido}") no es github.com ni un host ` +
           'de GitLab (su nombre debe contener "gitlab"), asi que no se sabe que CLI usar. No se supone ' +
-          'GitLab. Usa un origin de github.com (gh) o de un host de GitLab (glab), o cierra con merge ' +
-          'normal; no se ha subido nada.'
+          'GitLab. Si lo es, declaralo en .taskcode/config.yml con "plataforma_remota: gitlab" (y ' +
+          '"url_base_remoto" si cuelga de una ruta). Usa un origin de github.com (gh) o de un host de GitLab ' +
+          '(glab), o cierra con merge normal; no se ha subido nada.'
+  );
+}
+
+/** Por que no se pudo resolver el remoto declarado, en palabras de persona y sin credenciales. */
+function motivoDeclarado(
+  d: Extract<ResolucionDeclarada, { ok: false }>,
+  plataforma: 'github' | 'gitlab',
+  urlBase: string | null
+): string {
+  if (d.motivo === 'sin-host') {
+    return (
+      '"origin" no apunta a una URL de red (https o ssh), asi que no se puede resolver el remoto de ' +
+      `"plataforma_remota: ${plataforma}". Apunta origin a la instancia o cierra con merge normal.`
+    );
+  }
+  if (d.motivo === 'base-invalida') {
+    return 'la clave "url_base_remoto" de .taskcode/config.yml no es una URL base valida. Corrigela o borrala.';
+  }
+  const origen = d.origen ?? '(sin host)';
+  if (urlBase === null && d.causa === 'http-con-puerto') {
+    return (
+      `origin es http con puerto (${origen}) y glab solo habla https: no se puede deducir la instancia. ` +
+      'Declara "url_base_remoto" en .taskcode/config.yml con la URL https real (con su puerto si lo tiene).'
+    );
+  }
+  if (urlBase === null) {
+    return (
+      `de la URL de origin (${origen}) no se deduce un proyecto grupo/repo (${d.causa ?? 'sin causa'}). ` +
+      'Si la instancia cuelga de una ruta, declara "url_base_remoto" en .taskcode/config.yml.'
+    );
+  }
+  return (
+    `la clave "url_base_remoto" (${urlBase}) de .taskcode/config.yml no es prefijo de la URL de origin ` +
+    `(${origen}): ${d.causa ?? 'no encaja'}. Tiene que ser exactamente el comienzo de esa URL (https, host, ` +
+    'puerto y ruta de la instancia, sin barra final) y detras debe quedar el proyecto grupo/repo; ' +
+    'corrigela, o cierra con merge normal.'
   );
 }

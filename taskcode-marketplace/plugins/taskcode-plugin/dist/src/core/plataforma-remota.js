@@ -55,6 +55,183 @@ export function detectarPlataforma(url) {
         return { ok: true, remoto: { plataforma: 'gitlab', host } };
     return { ok: false, motivo: 'host-desconocido', host };
 }
+// ---------------------------------------------------------------------
+// TASK-061: instancia declarada en `.taskcode/config.yml`.
+//
+// Todo puro. Regla que atraviesa el bloque: NINGUNA funcion devuelve ni
+// imprime la URL de origin entera ni su usuario/contrasena; lo mas que sale
+// es `host/ruta` ya sin credenciales, y el proyecto relativo a la base.
+// ---------------------------------------------------------------------
+const HOST_VALIDO = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/;
+const SEGMENTO_BASE = /^[A-Za-z0-9._~-]+$/;
+const SEGMENTO_PROYECTO = /^[A-Za-z0-9_.][A-Za-z0-9_.-]*$/;
+/** `host[:puerto]` (con o sin `usuario@` delante: manda el ULTIMO "@"). Puerto sin ceros a la izquierda. */
+function partirAutoridad(autoridad) {
+    const m = /^([^:]+)(?::(\d*))?$/.exec(autoridad.slice(autoridad.lastIndexOf('@') + 1));
+    if (m === null)
+        return null;
+    const host = m[1].toLowerCase();
+    if (!HOST_VALIDO.test(host))
+        return null;
+    const crudo = m[2] ?? '';
+    if (crudo === '')
+        return { host, puerto: null };
+    const n = Number(crudo);
+    if (n < 1 || n > 65535)
+        return null;
+    return { host, puerto: String(n) };
+}
+/** Segmentos no vacios de una ruta; null si trae `.` o `..`. */
+function segmentosDeRuta(ruta) {
+    const segs = ruta.split('/').filter((s) => s !== '');
+    return segs.some((s) => s === '.' || s === '..') ? null : segs;
+}
+/**
+ * Valida y normaliza una URL base de instancia GitLab. Rechaza lo que pueda
+ * llevar credenciales (cualquier `@`), lo que no sea https, y lo que no sea
+ * una URL limpia (sin consulta, fragmento, espacios ni segmentos raros).
+ * Normaliza esquema y host a minusculas, quita el puerto 443 y las barras
+ * finales o repetidas; la ruta conserva sus mayusculas.
+ */
+export function normalizarBase(texto) {
+    const t = texto.trim();
+    if (t.includes('@'))
+        return { ok: false, motivo: 'credenciales' };
+    const m = /^([A-Za-z][A-Za-z0-9+.-]*):\/\/([^/?#\s]*)([^?#\s]*)$/.exec(t);
+    if (m === null)
+        return { ok: false, motivo: /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(t) ? 'malformada' : 'no-https' };
+    if (m[1].toLowerCase() !== 'https')
+        return { ok: false, motivo: 'no-https' };
+    const aut = partirAutoridad(m[2]);
+    const segs = segmentosDeRuta(m[3]);
+    if (aut === null || segs === null || !segs.every((s) => SEGMENTO_BASE.test(s))) {
+        return { ok: false, motivo: 'malformada' };
+    }
+    const puerto = aut.puerto === '443' ? null : aut.puerto;
+    const base = `https://${aut.host}${puerto === null ? '' : `:${puerto}`}${segs.length === 0 ? '' : `/${segs.join('/')}`}`;
+    return { ok: true, base, host: aut.host, puerto, segmentos: segs };
+}
+/**
+ * Host y ruta de una URL de origin: https/http/ssh/git con usuario, contrasena
+ * y puerto, y la forma scp (`git@host:grupo/repo.git`). null si no es una URL
+ * de red. Las credenciales se descartan aqui y no salen de la funcion.
+ */
+export function partesDeOrigin(url) {
+    const texto = url.trim();
+    const conEsquema = /^([A-Za-z][A-Za-z0-9+.-]*):\/\/([^/?#]*)([^?#]*)/.exec(texto);
+    let aut;
+    let ruta;
+    let esquema;
+    if (conEsquema !== null) {
+        aut = partirAutoridad(conEsquema[2]);
+        ruta = conEsquema[3];
+        const e = conEsquema[1].toLowerCase();
+        esquema = e === 'https' ? 'https' : e === 'http' ? 'http' : 'ssh';
+    }
+    else {
+        const scp = /^(?:[^@/\\:\s]+@)?([^@/\\:\s]+):(?!\/\/)(.*)$/s.exec(texto);
+        if (scp === null || scp[1].length === 1)
+            return null;
+        aut = partirAutoridad(scp[1]);
+        ruta = scp[2];
+        esquema = 'ssh';
+    }
+    if (aut === null)
+        return null;
+    const segs = segmentosDeRuta(ruta);
+    if (segs === null)
+        return null;
+    const ultimo = segs.length - 1;
+    if (ultimo >= 0) {
+        const sinGit = segs[ultimo].replace(/\.git$/i, '');
+        if (sinGit === '')
+            segs.pop();
+        else
+            segs[ultimo] = sinGit;
+    }
+    const puerto = esquema === 'https' && aut.puerto !== '443' ? aut.puerto : null;
+    const puertoHttp = esquema === 'http' && aut.puerto !== null && aut.puerto !== '80' ? aut.puerto : null;
+    return { esquema, host: aut.host, puerto, puertoHttp, segmentos: segs };
+}
+/**
+ * El proyecto (`grupo/subgrupo/repo`, sin `.git`) de una URL de origin
+ * relativo a la base de la instancia: la base tiene que ser PREFIJO EXACTO de
+ * host + ruta (esquema, mayusculas del host, puerto y barra final ya
+ * normalizados; los segmentos de la ruta se comparan tal cual).
+ *
+ * EXCEPCION ssh/scp: GitLab con `relative_url_root` sirve la web y la API bajo
+ * `/ruta/gitlab` pero el clonado ssh va SIN esa ruta (`git@host:grupo/repo.git`).
+ * Con ssh solo se exige el mismo host (el puerto no se compara); si la ruta de
+ * origin empieza por la de la base se quita (`git@host:ruta/gitlab/grupo/repo`
+ * -> `grupo/repo`) y si no, la ruta entera es el proyecto. Ambiguedad asumida:
+ * un grupo de primer nivel llamado igual que la ruta de la base (`ruta/gitlab/...`
+ * en un ssh sin ruta) se interpreta como ruta de la instancia y se quita.
+ *
+ * Lo que queda detras de la base tiene que ser un proyecto de verdad (>= 2 segmentos, con
+ * caracteres de ruta de GitLab y sin "-" inicial: va en argv de glab). Nunca
+ * devuelve ni imprime credenciales.
+ */
+export function proyectoDeRemoto(urlOrigen, urlBase) {
+    const base = normalizarBase(urlBase);
+    if (!base.ok)
+        return { ok: false, motivo: 'base-invalida' };
+    const o = partesDeOrigin(urlOrigen);
+    if (o === null)
+        return { ok: false, motivo: 'url-sin-red' };
+    if (o.host !== base.host)
+        return { ok: false, motivo: 'host' };
+    if (o.esquema === 'https' && o.puerto !== base.puerto)
+        return { ok: false, motivo: 'puerto' };
+    const empiezaPorBase = base.segmentos.every((s, i) => o.segmentos[i] === s);
+    if (!empiezaPorBase && o.esquema !== 'ssh')
+        return { ok: false, motivo: 'ruta' };
+    const resto = empiezaPorBase ? o.segmentos.slice(base.segmentos.length) : o.segmentos;
+    if (resto.length < 2)
+        return { ok: false, motivo: 'proyecto-corto' };
+    if (!resto.every((s) => SEGMENTO_PROYECTO.test(s) && s !== '.' && s !== '..')) {
+        return { ok: false, motivo: 'proyecto-invalido' };
+    }
+    return { ok: true, proyecto: resto.join('/') };
+}
+/**
+ * Remoto de una plataforma DECLARADA en config, sobre las URLs de origin
+ * (la efectiva y la escrita, que pueden diferir por `insteadOf`). Con github
+ * basta el host. Con gitlab, la base es la declarada o `https://<host de
+ * origin>` (con su puerto si origin es https con puerto); se toma la primera
+ * URL que encaja, y si ninguna encaja no se supone nada.
+ */
+export function resolverRemotoDeclarado(urls, declarado) {
+    const red = urls.map((u) => ({ u, p: partesDeOrigin(u) })).filter((x) => x.p !== null);
+    const primera = red[0]?.p ?? null;
+    const origen = primera === null ? null : `${primera.host}${primera.segmentos.length === 0 ? '' : `/${primera.segmentos.join('/')}`}`;
+    if (primera === null)
+        return { ok: false, motivo: 'sin-host', origen: null, causa: null };
+    if (declarado.plataforma === 'github') {
+        return { ok: true, remoto: { plataforma: 'github', host: primera.host } };
+    }
+    const declaradaNormal = declarado.urlBase === null ? null : normalizarBase(declarado.urlBase);
+    if (declaradaNormal !== null && !declaradaNormal.ok) {
+        return { ok: false, motivo: 'base-invalida', origen, causa: null };
+    }
+    let causa = null;
+    for (const { u, p } of red) {
+        const parte = p;
+        if (declaradaNormal === null && parte.puertoHttp !== null) {
+            // glab solo habla https: el puerto de un origin http no es el de la web https.
+            causa ??= 'http-con-puerto';
+            continue;
+        }
+        const base = declaradaNormal !== null && declaradaNormal.ok
+            ? declaradaNormal.base
+            : `https://${parte.host}${parte.puerto === null ? '' : `:${parte.puerto}`}`;
+        const r = proyectoDeRemoto(u, base);
+        if (r.ok) {
+            return { ok: true, remoto: { plataforma: 'gitlab', host: parte.host, declarado: { base, proyecto: r.proyecto } } };
+        }
+        causa ??= r.motivo;
+    }
+    return { ok: false, motivo: 'no-encaja', origen, causa };
+}
 /**
  * Sustituye `usuario:contrasena@` (o `token@`) de cualquier URL que aparezca
  * en un texto. Se aplica a TODO lo que viene de git, gh y glab antes de

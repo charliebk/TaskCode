@@ -6,7 +6,21 @@
 // que lee y escribe un fichero de estado JSON (el que cada test prepara) y
 // apunta en el cada llamada que recibe:
 //
-//   { auth, listarFalla, crearFalla, prs: [...], llamadas: [[cli, ...args]] }
+//   { auth, listarFalla, crearFalla, inalcanzable, prs: [...], llamadas: [[cli, ...args]],
+//     entornos: [{ GITLAB_HOST, GL_HOST, ... }] }
+//
+// TASK-061: junto a cada llamada se apunta el entorno que la instancia de glab
+// vera (`GITLAB_HOST`, `GL_HOST`, `GITLAB_URI`, `GITLAB_API_HOST`; y de
+// `GITLAB_TOKEN` solo SI estaba definido, nunca su valor), y el `-R` va en los
+// propios argumentos. Responde a `api user` (la comprobacion de sesion de una
+// instancia declarada) con el mismo `auth` que `auth status`. Con
+// `GITLAB_HOST` y `-R` el MR creado cuelga de esa base, como lo compondria glab.
+//
+// Lo que el doble NO hace: el `glab mr create` real deja un fichero de
+// recuperacion en el directorio de configuracion de glab
+// (`<config de glab>/recover/<proyecto>/mr.json`); el doble no escribe nada
+// ahi, asi que ninguna prueba toca el de quien las corre. Una prueba contra
+// el glab real tendria que aislar ese directorio (GLAB_CONFIG_DIR).
 //
 // Como se lanza, por plataforma:
 //
@@ -34,6 +48,8 @@ export interface PrDoble {
   url: string;
   base: string;
   head: string;
+  /** Titulo con el que se creo (lo apunta el doble al crear por API). */
+  titulo?: string | null;
   /** Commit resultante del merge (merge, squash o rebase); null = la plataforma no lo informa. */
   commit?: string | null;
   /** Punta de la rama que la plataforma integro (headRefOid / sha). */
@@ -47,9 +63,13 @@ export interface EstadoDoble {
   listarFalla?: boolean;
   /** true: `pr create` / `mr create` salen con 1. */
   crearFalla?: boolean;
+  /** true: toda llamada que no sea `auth` sale con 1 (instancia caida), con una URL con credenciales en stderr. */
+  inalcanzable?: boolean;
   prs: PrDoble[];
   /** Lo apunta el doble: una entrada por llamada, `[cli, ...args]`. */
   llamadas?: string[][];
+  /** Lo apunta el doble: el entorno de cada llamada, alineado con `llamadas`. */
+  entornos?: Array<Record<string, string | null>>;
 }
 
 const ENV_ESTADO = 'TASKCODE_DOBLE_ESTADO';
@@ -75,14 +95,25 @@ const CODIGO_DOBLE = [
   "  const st = JSON.parse(fs.readFileSync(f, 'utf8'));",
   '  st.llamadas = st.llamadas || [];',
   '  st.llamadas.push([cli].concat(args));',
+  '  st.entornos = st.entornos || [];',
+  "  const e = {};",
+  "  for (const k of ['GITLAB_HOST', 'GL_HOST', 'GITLAB_URI', 'GITLAB_API_HOST']) e[k] = process.env[k] === undefined ? null : process.env[k];",
+  "  e.GITLAB_TOKEN = process.env.GITLAB_TOKEN ? '<definido>' : null;",
+  '  st.entornos.push(e);',
   '  const guardar = () => fs.writeFileSync(f, JSON.stringify(st));',
   '  guardar();',
+  "  if (st.inalcanzable && args[0] !== 'auth') salir(1, '', 'Get \"https://usuario:secreto@' + (e.GITLAB_HOST || 'servidor') + '/api/v4/user\": dial tcp: no such host\\n');",
+  "  if (args[0] === 'api' && args[1] === 'user') {",
+  "    if (st.auth === false) salir(1, '', 'Unauthenticated\\n');",
+  "    salir(0, '{\"username\":\"doble\"}\\n', '');",
+  '  }',
   "  if (args[0] === 'auth' && args[1] === 'status') {",
   "    if (st.auth === false) salir(1, '', 'You are not logged in\\n');",
   '    salir(0, \'\', \'Logged in\\n\');',
   '  }',
   "  const listar = (cli === 'gh' && args[0] === 'pr' && args[1] === 'list') || (cli === 'glab' && args[0] === 'mr' && args[1] === 'list');",
   "  const crear = (cli === 'gh' && args[0] === 'pr' && args[1] === 'create') || (cli === 'glab' && args[0] === 'mr' && args[1] === 'create');",
+  "  const crearApi = cli === 'glab' && args[0] === 'api' && /^projects\\//.test(args[1] || '') && args.includes('--method=POST');",
   '  if (listar) {',
   "    if (st.listarFalla) salir(1, '', 'error: Post \"https://usuario:secreto@github.com/graphql\": dial tcp: no network\\n');",
   "    const head = cli === 'gh' ? valor(args, 'head') : valor(args, 'source-branch');",
@@ -96,12 +127,23 @@ const CODIGO_DOBLE = [
   '    });',
   '    salir(0, JSON.stringify(lista) + "\\n", "");',
   '  }',
-  '  if (crear) {',
+  '  if (crear || crearApi) {',
   "    if (st.crearFalla) salir(1, '', 'GraphQL: could not create the pull request\\n');",
-  "    const head = cli === 'gh' ? valor(args, 'head') : valor(args, 'source-branch');",
-  "    const base = cli === 'gh' ? valor(args, 'base') : valor(args, 'target-branch');",
+  "    // glab real: mr create exige que un remoto de Git corresponda a GITLAB_HOST y compara solo el host,",
+  "    // asi que con una instancia bajo una ruta aborta siempre (glab 1.102.0, TASK-061). glab api no mira los remotos.",
+  "    if (cli === 'glab' && crear && e.GITLAB_HOST && /^https?:\\/\\/[^/]+\\/./.test(e.GITLAB_HOST)) salir(1, '', 'ERROR None of the git remotes configured for this repository correspond to the GITLAB_HOST environment variable. Try setting a remote\\n');",
+  "    const head = cli === 'gh' ? valor(args, 'head') : crearApi ? valor(args, 'raw-field=source_branch') : valor(args, 'source-branch');",
+  "    const base = cli === 'gh' ? valor(args, 'base') : crearApi ? valor(args, 'raw-field=target_branch') : valor(args, 'target-branch');",
+  "    const titulo = crearApi ? valor(args, 'raw-field=title') : (valor(args, 'title') || null);",
   '    const n = st.prs.length + 1;',
-  "    const url = cli === 'gh' ? 'https://github.com/acme/repo/pull/' + n : 'https://gitlab.example.com/acme/repo/-/merge_requests/' + n;",
+  "    if (crearApi) {",
+  "      const urlApi = (e.GITLAB_HOST || 'https://gitlab.example.com') + '/' + decodeURIComponent(args[1].split('/')[1]) + '/-/merge_requests/' + n;",
+  "      st.prs.push({ estado: 'abierto', url: urlApi, base: base, head: head, commit: null, titulo: titulo });",
+  '      guardar();',
+  "      salir(0, JSON.stringify({ iid: n, web_url: urlApi, state: 'opened', source_branch: head, target_branch: base }) + '\\n', '');",
+  '    }',
+  "    const r = args.indexOf('-R');",
+  "    const url = cli === 'gh' ? 'https://github.com/acme/repo/pull/' + n : (e.GITLAB_HOST && r >= 0 ? e.GITLAB_HOST + '/' + args[r + 1] : 'https://gitlab.example.com/acme/repo') + '/-/merge_requests/' + n;",
   "    st.prs.push({ estado: 'abierto', url: url, base: base, head: head, commit: null });",
   '    guardar();',
   "    salir(0, 'Creating pull request for ' + head + ' into ' + base + '\\n\\n' + url + '\\n', '');",
@@ -165,6 +207,8 @@ export interface ControlDoble {
   escribir(estado: EstadoDoble): void;
   /** Llamadas recibidas de un subcomando, p. ej. `llamadasDe('pr', 'create')`. */
   llamadasDe(sub1: string, sub2: string): string[][];
+  /** Cada llamada con su `-R` (null si no lo llevaba) y el entorno que glab vio: lo que TASK-061 asevera. */
+  registro(): Array<{ llamada: string[]; repo: string | null; entorno: Record<string, string | null> }>;
 }
 
 /**
@@ -180,10 +224,25 @@ export async function conDoblePlataforma(
   const control: ControlDoble = {
     leer: () => {
       const e = JSON.parse(readFileSync(fichero, 'utf8')) as EstadoDoble;
-      return { auth: e.auth ?? true, listarFalla: e.listarFalla ?? false, crearFalla: e.crearFalla ?? false, prs: e.prs, llamadas: e.llamadas ?? [] };
+      return {
+        auth: e.auth ?? true,
+        listarFalla: e.listarFalla ?? false,
+        crearFalla: e.crearFalla ?? false,
+        inalcanzable: e.inalcanzable ?? false,
+        prs: e.prs,
+        llamadas: e.llamadas ?? [],
+        entornos: e.entornos ?? [],
+      };
     },
-    escribir: (e) => writeFileSync(fichero, JSON.stringify({ llamadas: [], ...e }), 'utf8'),
+    escribir: (e) => writeFileSync(fichero, JSON.stringify({ llamadas: [], entornos: [], ...e }), 'utf8'),
     llamadasDe: (a, b) => (control.leer().llamadas).filter((l) => l[1] === a && l[2] === b),
+    registro: () => {
+      const e = control.leer();
+      return e.llamadas.map((llamada, i) => {
+        const r = llamada.indexOf('-R');
+        return { llamada, repo: r >= 0 ? (llamada[r + 1] ?? null) : null, entorno: e.entornos[i] ?? {} };
+      });
+    },
   };
   control.escribir(inicial);
   const guardado = { PATH: process.env['PATH'], NODE_OPTIONS: process.env['NODE_OPTIONS'], ESTADO: process.env[ENV_ESTADO] };

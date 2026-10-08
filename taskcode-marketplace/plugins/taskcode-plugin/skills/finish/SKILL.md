@@ -83,3 +83,37 @@ la tarea y `cierre` la clave `cierre_por_defecto` de la configuracion
 
 Un nombre de tag que ya existe o no vale para Git aborta antes de mergear sin
 tocar nada: muestra el error y pregunta otro nombre.
+
+## GitLab propio (autoalojado)
+
+`--merge-request` reconoce `github.com` y los hosts que contienen «gitlab». Si
+el CLI aborta porque el host de `origin` es desconocido, o el proyecto usa un
+GitLab propio (dominio propio o bajo una ruta), la persona lo declara en
+`.taskcode/config.yml`; no lo escribas tu por tu cuenta:
+
+```yaml
+plataforma_remota: gitlab
+url_base_remoto: https://git.empresa.com
+```
+
+- `url_base_remoto` es opcional. Sin ella, la base es `https://<host de origin>`.
+  Si la instancia cuelga de una ruta, es obligatoria y lleva esa ruta
+  (`https://servidor.example/ruta/gitlab`). Tiene que ser https, sin usuario
+  ni contrasena. Con `origin` por https tiene que ser prefijo exacto de su URL;
+  con ssh o scp basta el mismo host (el ssh de GitLab suele ir sin la ruta de la
+  instancia: si la lleva se quita, y si no, la ruta entera es el proyecto). Lo
+  que queda es el proyecto (`grupo/subgrupo/repo`).
+- Sesion: `glab auth login --hostname git.empresa.com` (con ruta:
+  `--hostname servidor.example/ruta/gitlab`), o la variable de entorno
+  `GITLAB_TOKEN`. No pegues el token en ninguna respuesta, fichero ni commit.
+- **El config tiene que estar commiteado en la rama de la tarea y en la rama
+  base**: el primer `finish` lo lee de la rama de la tarea y el segundo,
+  que puede lanzarse desde la base, de la base. Si falta en una de las dos,
+  el CLI aborta o resuelve otra plataforma. Antes del primer `finish`, comprueba
+  (Read) que `.taskcode/config.yml` esta en la rama de la tarea y recuerdale
+  a la persona que tambien tiene que llegar a la base; si falta en la rama de la
+  tarea, que lo commitee antes de cerrar (no lo hagas tu entre los dos
+  `finish`: ese commit no estaria en el merge request).
+- Una clave desconocida del config solo avisa (`[AVISO]`) y se ignora; un valor
+  invalido de una clave conocida aborta. Muestra el mensaje tal cual: dice que
+  corregir.

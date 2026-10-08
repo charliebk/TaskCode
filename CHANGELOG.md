@@ -2,6 +2,42 @@
 
 ## Sin publicar
 
+Merge request en cualquier GitLab, tambien autoalojado (TASK-061).
+
+- Dos claves nuevas en `.taskcode/config.yml`, que se leen desde la 0.7.0
+  (una version anterior las trata como desconocidas):
+  `plataforma_remota` (`github` | `gitlab`) y `url_base_remoto` (opcional,
+  solo con `gitlab`: la URL https de la instancia, con su ruta si cuelga de
+  una). Se validan juntas: la URL sin plataforma, con `github`, con usuario o
+  contrasena (`@`) o sin https aborta, igual que una base que no sea prefijo
+  exacto de la URL de `origin` si es https (host, puerto y ruta); con ssh o scp
+  basta el mismo host y la ruta de la instancia se quita si esta (GitLab sirve
+  ssh sin ella). Con
+  solo `plataforma_remota: gitlab`, la base es `https://<host de origin>`.
+- `taskctl finish --merge-request` con la plataforma declarada ya no adivina
+  por el host: fija `GITLAB_HOST=<base>` en cada llamada a `glab` (sin heredar
+  `GITLAB_HOST`, `GL_HOST`, `GITLAB_URI` ni `GITLAB_API_HOST` del entorno),
+  deduce el proyecto (`grupo/subgrupo/repo`) quitando la base a la URL de
+  origin y lo pasa con `-R`. Comprueba la sesion con `glab api user` (acepta
+  `glab auth login --hostname <host/ruta>` o `GITLAB_TOKEN`; `auth status` no
+  vale: ignora el token). Sin sesion, sin CLI o con la instancia inalcanzable
+  aborta antes de subir nada. El token nunca se imprime ni se escribe. El MR
+  se crea por la API (`glab api projects/<proyecto>/merge_requests`, campos
+  `--raw-field`) y no con `glab mr create`, que aborta siempre con una
+  instancia bajo una ruta (comprueba que un remoto de Git corresponda a
+  `GITLAB_HOST` y solo compara el host). Con origin `http://host:puerto` y solo
+  la plataforma declarada, aborta pidiendo `url_base_remoto`.
+  Sin declarar nada rige la deteccion por host de la 0.6.0, sin cambios.
+- **Cambio de comportamiento**: una clave desconocida en `.taskcode/config.yml`
+  ya no aborta, avisa por stderr (`[AVISO] ... clave desconocida "x"; se
+  ignora`, con la clave parecida si la hay) y se ignora. Un valor invalido en
+  una clave conocida sigue abortando. Asi, una clave que anade una version
+  nueva no deja sin `taskctl` a quien tenga una anterior desde esta version en
+  adelante; las versiones anteriores a esta siguen abortando ante las claves
+  nuevas.
+- El segundo `finish` lee la config del arbol en el que se ejecuta: la config
+  tiene que estar commiteada en la rama de la tarea y en la rama base.
+
 ## 0.6.0 — 2026-10-06
 
 Coste en tokens por fase y opciones de cierre en `finish`. Actualizar con

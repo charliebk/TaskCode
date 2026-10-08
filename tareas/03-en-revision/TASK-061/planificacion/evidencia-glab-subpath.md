@@ -56,3 +56,24 @@ Mismo montaje, con `GITLAB_HOST=https://127.0.0.1:P/sub/gitlab`:
 Por tanto, `glab api user` sirve como preflight de sesion con token por
 entorno o con `glab auth login --hostname <host/subpath>`. `auth status` no
 sirve, porque ignora el token.
+
+## Cuarta prueba: la creacion del MR por API (2026-10-08, correccion de IMP-1)
+
+La revision (ronda 1) probo con glab 1.102.0 real que `glab mr create` con
+`GITLAB_HOST` bajo una ruta aborta siempre: glab exige que algun remoto de Git
+corresponda a `GITLAB_HOST`. Por eso, con una instancia declarada, el MR se
+crea con `glab api projects/<proyecto>/merge_requests --method=POST
+--raw-field=...`.
+
+El montaje fue un servidor HTTPS local con certificado autofirmado,
+`GLAB_CONFIG_DIR` temporal con `skip_tls_verify`, `GITLAB_TOKEN` ficticio y
+origin `git@127.0.0.1:grupo/sub/repo.git`:
+
+- **Sesion:** `GET /ruta/gitlab/api/v4/user`, con el token en `private-token`.
+- **Creacion:** `POST /ruta/gitlab/api/v4/projects/grupo%2Fsub%2Frepo/merge_requests`
+  con un cuerpo JSON. Un titulo `-x --flag "comillas" y 'simples'` llego
+  integro como valor. Se leyo `web_url` del JSON.
+- **Telemetria:** glab hace ademas un `POST .../usage_data/track_event`, que
+  es telemetria propia suya contra la misma instancia.
+- **Recuperacion:** sin `mr create` no queda fichero de recuperacion.
+- **Sin probar:** TLS con un certificado de una CA real.

@@ -39,7 +39,7 @@ procesan).
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test             # compila y corre la suite completa (~1090 tests, ~8 min) con cobertura
+npm test             # compila y corre la suite completa (~1290 tests, ~10 min) con cobertura
 npm run test:rapido  # core y cli sin procesos (~360 tests, ~10 s): para iterar, no para cerrar
 ```
 
@@ -68,7 +68,15 @@ que lo comprueban.
   escribe un fichero de estado; es el único doble de la suite. En Windows es un
   `.exe` (enlace a `node.exe` + `--require` en `NODE_OPTIONS`) porque
   `spawnSync` sin shell no ejecuta un `.cmd`. Una máquina con `gh`/`glab`
-  reales instalados no los usa: el doble va delante en el PATH.
+  reales instalados no los usa: el doble va delante en el PATH. Desde
+  TASK-061 también registra el `GITLAB_HOST` y el `-R` de cada llamada y
+  responde a `api user`; lo que el `glab mr create` real hace y el doble no
+  (dejar un fichero de recuperación en el directorio de config de glab) es
+  la razón de que ningún test lo toque.
+- Una clave desconocida en `.taskcode/config.yml` **avisa y se ignora** (antes
+  abortaba); solo un valor inválido de una clave conocida aborta. Las claves
+  `plataforma_remota` y `url_base_remoto` declaran un GitLab propio para
+  `finish --merge-request` (ver el README del plugin).
 - El glob de `npm test` va entrecomillado a propósito: lo expande Node, no el
   shell. Sin comillas, la suite entera falla en `cmd.exe`.
 - En Windows nativo **fallan 3 tests y no son regresiones**: uno por el truco
