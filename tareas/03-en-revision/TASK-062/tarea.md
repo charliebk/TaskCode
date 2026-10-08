@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 456645
 tokens_implementacion: 11106140
-tokens_revision: null
+tokens_revision: 6153459
 creado: 2026-10-08
 actualizado: 2026-10-08
 dependencias: []
