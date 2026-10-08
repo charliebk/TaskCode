@@ -6,10 +6,10 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-061-merge-request-en-gitlab-autoalojado-tamb
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -36,3 +36,9 @@ El repo es publico y el plugin lo usaran mas personas, muchas con GitLab (Carlos
 - [ ] Ninguna URL con credenciales ni ningun token aparece en la salida, en `tarea.md` ni en los commits.
 - [ ] La skill `finish` y el README del plugin explican como configurar un GitLab autoalojado, sin mencionar el proyecto ni rutas internas.
 - [ ] Tests contra repos Git temporales reales y un remoto bare: con el doble de `gh`/`glab` de la suite y, si se usa la API REST, un servidor HTTP local de prueba que imita los endpoints de merge requests (el unico doble nuevo admitido).
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-08T10:47:36Z | plan | manual | persona |
