@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 70 / 70 items terminados (100%)** · última actualización: 2026-10-06
+**Progreso global: 71 / 72 items terminados (99%)** · última actualización: 2026-10-08
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -32,8 +32,8 @@ tomada y documentada, no aplazada.
 | ✅ E — Cierre | 6 | **6** | ~9h |
 | ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
-| ✅ H — Peticiones tras el plan | 1 | **1** | — |
-| **Total pendiente** | **0** | — | — |
+| H — Peticiones tras el plan | 3 | **2** | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -766,7 +766,7 @@ Plan de referencia: `tareas/.../TASK-055/planificacion/plan-final.md`.
 - [x] TASK-058 — Flujo D: modo semiautomático
 - [x] TASK-059 — Flujo E: modo automático
 
-## H — Peticiones tras el plan (1/1)
+## H — Peticiones tras el plan (2/3)
 
 Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
 
@@ -780,3 +780,15 @@ Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
       la skill `finish` pregunta salvo en automático. Hubo 2 rondas: 1
       IMPORTANTE (la rama se daba por integrada con commits que no estaban en
       el MR) y 5 MENOR, todos corregidos.*
+- [x] TASK-061 — Merge request en cualquier GitLab, también autoalojado —
+      cerrada el 2026-10-08
+      *Claves `plataforma_remota` y `url_base_remoto`; `glab` recibe
+      `GITLAB_HOST` (la base) y `-R` (el proyecto relativo a la base) desde
+      un único punto. La sesión se comprueba con `glab api user` y el MR se
+      crea con `glab api`, porque `glab mr create` no funciona con una
+      instancia bajo una ruta. Una clave desconocida en la config avisa en
+      lugar de abortar. Hubo 2 rondas: 1 IMPORTANTE, reproducido con glab
+      real (`mr create` fallaba en subpath después de subir la rama), y 3
+      MENOR. Verificado con glab real contra HTTPS local.*
+- [ ] TASK-062 — `taskctl doctor`: comprobar que un proyecto está listo —
+      plan aprobado el 2026-10-08
