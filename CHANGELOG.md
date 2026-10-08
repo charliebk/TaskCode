@@ -1,6 +1,39 @@
 # Changelog
 
 ## Sin publicar
+- TASK-062 (feature) — taskctl doctor: comprobar que un proyecto esta listo antes de trabajar (2026-10-08)
+
+Nuevo `taskctl doctor [--json]` (TASK-062). Solo lee: no escribe, no commitea, no
+cambia de rama; lo unico que sale a la red es la comprobacion de sesion de
+`gh`/`glab`, con un timeout propio de 10 s.
+
+- Una linea por comprobacion con su nivel (`ok`, `aviso`, `error` u `omitida`) y,
+  en cada aviso o error, el comando o paso que lo arregla. Sale con 1 si hay
+  algun error (los avisos no cuentan). `--json` da una sola linea de JSON
+  (`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`) y
+  nada mas en stdout, para que una skill la lea.
+- Entorno: Node 20 o superior, `git` y un `bash` que ejecuta de verdad un script
+  minimo con el mismo lanzamiento que los de Git-Flow (`mktemp`, `dirname`,
+  `grep`...): en Windows detecta el bash de WSL (System32) y el de Git sin su
+  `usr\bin` en el PATH, y dice como arreglarlo.
+- Repo: repo Git (tambien un worktree), repo sin commits (mensaje propio), las
+  cinco carpetas de `tareas/`, la rama base (`develop` o `rama_base`) y la principal
+  (`main` o `master`), `origin` (aviso; error solo con `cierre_por_defecto:
+  merge-request`) y workspace limpio (aviso; `git status` con
+  `GIT_OPTIONAL_LOCKS=0`, que no toma `index.lock`).
+- Config con el mismo validador de siempre (un valor invalido es error, una
+  clave desconocida es aviso). Tareas con recorrido propio: un ID en dos
+  carpetas, un `tarea.md` ilegible (con la ruta y la causa), una carpeta de tarea
+  sin `tarea.md` o un `estado` distinto de su carpeta son errores con el ID.
+- Plataforma: con `cierre_por_defecto: merge-request` o `plataforma_remota`
+  declarada, `gh`/`glab` instalado y con sesion. CLI no instalado o sesion
+  rechazada es error; no poder verificarlo (timeout, sin red) es aviso. Si no
+  aplica, `omitida`. Nunca imprime la URL de origin con credenciales.
+- La skill `task-workflow` manda ejecutarlo al empezar en un proyecto. Nuevo
+  script `scripts/gitflow/_sonda-bash.sh` (la sonda). Sin cambios de comportamiento
+  en `finish`: la comprobacion de sesion y la resolucion de la plataforma de
+  origin se separaron en funciones que devuelven resultado, para reutilizarlas.
+
 - TASK-061 (feature) — Merge request en cualquier GitLab, tambien autoalojado (2026-10-08)
 
 Merge request en cualquier GitLab, tambien autoalojado (TASK-061).

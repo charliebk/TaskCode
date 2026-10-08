@@ -521,6 +521,40 @@ Ver `taskctl --help` (arriba) para la lista completa y actualizada. Guía
 extendida de la metodología: `docs/PROPUESTA_METODOLOGIA.md` y
 `docs/PLAN_SPRINTS.md` en la raíz del repo `TaskCode`.
 
+`taskctl doctor [--json]` (solo lectura) comprueba de una vez que el proyecto
+está listo para trabajar y es lo primero que conviene ejecutar al instalar el
+plugin en un proyecto. Una línea por comprobación (`ok`, `aviso`, `error` u
+`omitida`) y, en cada aviso o error, el comando que lo arregla; sale con 1 si hay
+algún error (los avisos no cuentan). Comprueba:
+
+- **Entorno**: Node 20 o superior, `git` y un `bash` capaz de ejecutar los
+  scripts de Git-Flow. Lo último se prueba ejecutando de verdad un script mínimo
+  (`scripts/gitflow/_sonda-bash.sh`: `mktemp`, `dirname`, `grep`, `sed`, `tr`, `wc`,
+  `git`) con el mismo lanzamiento que usan los scripts, no mirando una ruta ni
+  `bash --version`: en Windows detecta el bash de WSL (System32) y el de Git sin
+  `usr\bin` en el PATH, y el arreglo dice qué poner al principio del PATH.
+- **Repositorio**: que es un repo Git (un worktree también), que tiene commits,
+  las cinco carpetas de `tareas/`, la rama base (`develop`, o `rama_base`) y la
+  principal (`main` o `master`), `origin` y el workspace. Sin `origin` es un aviso
+  (un proyecto solo local es legítimo) y pasa a error con `cierre_por_defecto:
+  merge-request`; un workspace sucio es un aviso. El workspace se mira con
+  `GIT_OPTIONAL_LOCKS=0`, así que no toma `index.lock`; un fallo por bloqueo es aviso.
+- **Config**: `.taskcode/config.yml` con el mismo validador que el resto de comandos
+  (un valor inválido es error con su mensaje; una clave desconocida, aviso).
+- **Tareas**: cada `tarea.md` se lee y valida, y su `estado` tiene que ser el de
+  su carpeta. Son errores, con el ID: un ID en dos carpetas, un `tarea.md` ilegible
+  (con la ruta y la causa), una carpeta de tarea sin `tarea.md`, un estado distinto
+  de la carpeta.
+- **Plataforma**: solo si la config pide merge request por defecto o declara
+  `plataforma_remota`: `gh`/`glab` instalado y con sesión (sin subir nada; espera
+  como máximo 10 s). CLI no instalado o sesión rechazada es error; no poder
+  verificarlo (timeout, sin red) es aviso; si no aplica, `omitida`. Nunca imprime
+  la URL de `origin` con credenciales.
+
+`--json` escribe en stdout **solo** una línea de JSON
+(`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`), para que
+una skill la lea. `taskctl doctor` no escribe, no commitea ni cambia de rama.
+
 `taskctl metricas [--heuristica]` (solo lectura) saca una fila por tarea
 con la duración de calendario de cada fase (diseño = plan→start, curso =
 start→primer review, revisión = primer review→finish), las rondas de

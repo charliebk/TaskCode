@@ -66,9 +66,18 @@ export class GitflowScriptLaunchError extends Error {
         this.name = 'GitflowScriptLaunchError';
     }
 }
+/**
+ * EL unico sitio que lanza bash: `bash "<ruta>" args`, sin shell y con el
+ * PATH heredado. `runGitflowScript` y la sonda de `taskctl doctor` pasan por
+ * aqui: si la sonda lanzara de otra forma, podria dar OK y que los scripts
+ * fallaran (o al reves).
+ */
+function lanzarBash(scriptPath, args, extra) {
+    return spawnSync('bash', [scriptPath, ...args], extra);
+}
 export function runGitflowScript(scriptName, args, opts) {
     const scriptPath = path.join(opts.scriptsDir, scriptName);
-    const result = spawnSync('bash', [scriptPath, ...args], {
+    const result = lanzarBash(scriptPath, args, {
         cwd: opts.cwd,
         stdio: [opts.stdin ?? 'ignore', 'inherit', 'inherit'],
     });
@@ -76,4 +85,38 @@ export function runGitflowScript(scriptName, args, opts) {
         throw new GitflowScriptLaunchError(scriptName, result.error);
     }
     return { code: result.status ?? 1, signal: result.signal ?? null };
+}
+/** Script de la sonda, junto a los de Git-Flow. */
+export const SONDA_BASH = '_sonda-bash.sh';
+const MARCA_SONDA = 'taskctl-sonda-ok';
+/**
+ * TASK-062 (`taskctl doctor`): ejecuta de verdad el script minimo de la
+ * sonda con el mismo lanzamiento que los scripts de Git-Flow y exige codigo 0
+ * Y la marca en stdout. Ni `--version` ni buscar `bash` por el PATH: en
+ * Windows el bash de WSL (System32) responde a `--version` y a `where` y
+ * luego no puede abrir el script, y el de Git sin usr/bin en el PATH arranca
+ * pero sin mktemp ni grep. Nunca lanza; la salida se captura (no se hereda,
+ * para que `doctor --json` siga limpio).
+ */
+export function sondearBash(opts) {
+    const r = lanzarBash(path.join(opts.scriptsDir, SONDA_BASH), [], {
+        cwd: opts.cwd,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: opts.timeoutMs ?? 20_000,
+    });
+    // wsl.exe escribe en UTF-16: sin los NUL el texto es legible.
+    const limpio = (t) => String(t ?? '').replace(/\u0000/g, '').trim();
+    if (r.error) {
+        const agotado = r.error.code === 'ETIMEDOUT';
+        return { ok: false, causa: agotado ? 'timeout' : 'no-lanzable', detalle: limpio(r.error.message) };
+    }
+    const lineas = limpio(r.stdout).split(/\r?\n/);
+    const marca = lineas.find((l) => l.startsWith(MARCA_SONDA));
+    if (r.status === 0 && marca !== undefined) {
+        return { ok: true, version: marca.slice(MARCA_SONDA.length).trim() };
+    }
+    const err = limpio(r.stderr).split(/\r?\n/).filter((x) => x !== '').slice(0, 3).join(' | ');
+    const codigo = r.status === null ? `senal ${r.signal ?? 'desconocida'}` : `codigo ${r.status}`;
+    return { ok: false, causa: 'fallo', detalle: `el script de prueba termino con ${codigo}${err === '' ? '' : `: ${err}`}` };
 }

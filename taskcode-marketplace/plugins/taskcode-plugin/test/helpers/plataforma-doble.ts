@@ -65,6 +65,8 @@ export interface EstadoDoble {
   crearFalla?: boolean;
   /** true: toda llamada que no sea `auth` sale con 1 (instancia caida), con una URL con credenciales en stderr. */
   inalcanzable?: boolean;
+  /** true: toda llamada se queda esperando 30 s sin responder (para probar el timeout de `taskctl doctor`, TASK-062). */
+  colgar?: boolean;
   prs: PrDoble[];
   /** Lo apunta el doble: una entrada por llamada, `[cli, ...args]`. */
   llamadas?: string[][];
@@ -102,6 +104,7 @@ const CODIGO_DOBLE = [
   '  st.entornos.push(e);',
   '  const guardar = () => fs.writeFileSync(f, JSON.stringify(st));',
   '  guardar();',
+  "  if (st.colgar) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30000);",
   "  if (st.inalcanzable && args[0] !== 'auth') salir(1, '', 'Get \"https://usuario:secreto@' + (e.GITLAB_HOST || 'servidor') + '/api/v4/user\": dial tcp: no such host\\n');",
   "  if (args[0] === 'api' && args[1] === 'user') {",
   "    if (st.auth === false) salir(1, '', 'Unauthenticated\\n');",
@@ -229,6 +232,7 @@ export async function conDoblePlataforma(
         listarFalla: e.listarFalla ?? false,
         crearFalla: e.crearFalla ?? false,
         inalcanzable: e.inalcanzable ?? false,
+        colgar: e.colgar ?? false,
         prs: e.prs,
         llamadas: e.llamadas ?? [],
         entornos: e.entornos ?? [],

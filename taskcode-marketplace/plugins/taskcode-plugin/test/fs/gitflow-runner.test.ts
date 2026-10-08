@@ -6,6 +6,7 @@ import {
   resolveGitflowScriptsDir,
   runGitflowScript,
   GitflowScriptLaunchError,
+  sondearBash,
 } from '../../src/fs/gitflow-runner.js';
 
 test('resolveGitflowScriptsDir: respeta CLAUDE_PLUGIN_ROOT cuando esta definida', () => {
@@ -109,4 +110,17 @@ test('GitflowScriptLaunchError: mensaje incluye el nombre del script y el error 
   assert.match(err.message, /No se pudo ejecutar "bash"/);
   assert.equal(err.originalError, original);
   assert.equal(err.name, 'GitflowScriptLaunchError');
+});
+
+test('sondearBash: el script de la sonda corre de verdad con este bash (TASK-062)', () => {
+  const scriptsDir = path.join(import.meta.dirname, '..', '..', '..', 'scripts', 'gitflow');
+  const r = sondearBash({ scriptsDir, cwd: process.cwd() });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  if (r.ok) assert.match(r.version, /^\d+\./);
+});
+
+test('sondearBash: un script que no existe no lanza y no es OK', () => {
+  const r = sondearBash({ scriptsDir: path.join(import.meta.dirname, 'no-existe'), cwd: process.cwd() });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.causa, 'fallo');
 });

@@ -262,6 +262,21 @@ export function rutaConfig(cwd: string): string {
  * tests.
  */
 export function resolverConfig(cwd: string): TaskcodeConfig {
+  return resolverConfigInterno(cwd, emitirAvisos);
+}
+
+/**
+ * Lo mismo que resolverConfig pero sin tocar stderr: los avisos (claves
+ * desconocidas) se devuelven. Lo usa `taskctl doctor`, que los muestra en su
+ * propia salida. Un solo validador: es el mismo codigo, no una copia.
+ */
+export function resolverConfigConAvisos(cwd: string): { config: TaskcodeConfig; avisos: string[] } {
+  const avisos: string[] = [];
+  const config = resolverConfigInterno(cwd, (a) => avisos.push(...a));
+  return { config, avisos };
+}
+
+function resolverConfigInterno(cwd: string, avisar: (avisos: readonly string[]) => void): TaskcodeConfig {
   const ruta = rutaConfig(cwd);
   let contenido: string;
   try {
@@ -303,7 +318,7 @@ export function resolverConfig(cwd: string): TaskcodeConfig {
     );
   }
   const { config, avisos } = parsearConfigConAvisos(contenido, ruta);
-  emitirAvisos(avisos);
+  avisar(avisos);
   // Lo unico de las rutas de sincronizacion que necesita disco: que
   // ninguna sea una carpeta existente. Con una carpeta, el
   // `git add -A -- <ruta>` acotado se convierte en un barrido de todo
