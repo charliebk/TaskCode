@@ -189,40 +189,51 @@ export function preflightMergeRequest(id, cwd) {
         throw new FinishCommandError(`[ERROR] ${id}: --merge-request necesita un remoto "origin" y este repo no tiene ninguno. ` +
             'Configuralo (git remote add origin <url>) o cierra con merge normal; no se ha subido nada.');
     }
-    const { plataforma_remota: plataforma, url_base_remoto: urlBase } = resolverConfig(cwd);
+    const d = resolverRemotoDeOrigin(cwd);
+    if (!d.ok) {
+        throw new FinishCommandError(`[ERROR] ${id}: --merge-request: ${d.mensaje}${d.cierre}`);
+    }
+    const cli = comprobarCli(d.remoto, cwd);
+    if (!cli.ok) {
+        throw new FinishCommandError(`[ERROR] ${id}: --merge-request: ${cli.mensaje} No se ha subido nada.`);
+    }
+    return d.remoto;
+}
+/**
+ * La plataforma de origin (declarada en config, o deducida por el host), SIN
+ * comprobar el CLI y sin lanzar: lo que `preflightMergeRequest` decidia en
+ * linea, sacado para que `taskctl doctor` lo reuse (TASK-062). Supone que
+ * hay origin (quien llama lo comprueba antes); `config` evita releerla. Los textos son los de siempre.
+ */
+export function resolverRemotoDeOrigin(cwd, config = resolverConfig(cwd)) {
+    const { plataforma_remota: plataforma, url_base_remoto: urlBase } = config;
     if (plataforma !== null) {
         const d = resolverRemotoDeclarado(urlsDeOrigin(cwd), { plataforma, urlBase });
-        if (!d.ok) {
-            throw new FinishCommandError(`[ERROR] ${id}: --merge-request: ${motivoDeclarado(d, plataforma, urlBase)} No se ha subido nada.`);
-        }
-        const cli = comprobarCli(d.remoto, cwd);
-        if (!cli.ok) {
-            throw new FinishCommandError(`[ERROR] ${id}: --merge-request: ${cli.mensaje} No se ha subido nada.`);
-        }
-        return d.remoto;
+        if (!d.ok)
+            return { ok: false, mensaje: motivoDeclarado(d, plataforma, urlBase), cierre: ' No se ha subido nada.' };
+        return { ok: true, remoto: d.remoto };
     }
     let hostDesconocido = null;
     for (const url of urlsDeOrigin(cwd)) {
         const d = detectarPlataforma(url);
-        if (d.ok) {
-            const cli = comprobarCli(d.remoto, cwd);
-            if (!cli.ok) {
-                throw new FinishCommandError(`[ERROR] ${id}: --merge-request: ${cli.mensaje} No se ha subido nada.`);
-            }
-            return d.remoto;
-        }
+        if (d.ok)
+            return { ok: true, remoto: d.remoto };
         if (d.host !== null && hostDesconocido === null)
             hostDesconocido = d.host;
     }
-    throw new FinishCommandError(hostDesconocido === null
-        ? `[ERROR] ${id}: --merge-request: "origin" no apunta a una URL de red (https o ssh) de GitHub ` +
-            'ni de GitLab, asi que no se sabe que CLI usar. Apunta origin a github.com (gh) o a un host de ' +
-            'GitLab (glab), o cierra con merge normal; no se ha subido nada.'
-        : `[ERROR] ${id}: --merge-request: el host de origin ("${hostDesconocido}") no es github.com ni un host ` +
-            'de GitLab (su nombre debe contener "gitlab"), asi que no se sabe que CLI usar. No se supone ' +
-            'GitLab. Si lo es, declaralo en .taskcode/config.yml con "plataforma_remota: gitlab" (y ' +
-            '"url_base_remoto" si cuelga de una ruta). Usa un origin de github.com (gh) o de un host de GitLab ' +
-            '(glab), o cierra con merge normal; no se ha subido nada.');
+    return {
+        ok: false,
+        cierre: '; no se ha subido nada.',
+        mensaje: hostDesconocido === null
+            ? '"origin" no apunta a una URL de red (https o ssh) de GitHub ' +
+                'ni de GitLab, asi que no se sabe que CLI usar. Apunta origin a github.com (gh) o a un host de ' +
+                'GitLab (glab), o cierra con merge normal'
+            : `el host de origin ("${hostDesconocido}") no es github.com ni un host ` +
+                'de GitLab (su nombre debe contener "gitlab"), asi que no se sabe que CLI usar. No se supone ' +
+                'GitLab. Si lo es, declaralo en .taskcode/config.yml con "plataforma_remota: gitlab" (y ' +
+                '"url_base_remoto" si cuelga de una ruta). Usa un origin de github.com (gh) o de un host de GitLab ' +
+                '(glab), o cierra con merge normal',
+    };
 }
 /** Por que no se pudo resolver el remoto declarado, en palabras de persona y sin credenciales. */
 function motivoDeclarado(d, plataforma, urlBase) {

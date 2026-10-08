@@ -85,12 +85,18 @@ function entornoDe(gitlabHost: string | undefined): NodeJS.ProcessEnv {
   return env;
 }
 
-function lanzar(cli: string, args: readonly string[], cwd: string, gitlabHost?: string): SpawnSyncReturns<string> {
+function lanzar(
+  cli: string,
+  args: readonly string[],
+  cwd: string,
+  gitlabHost?: string,
+  timeoutMs: number = TIMEOUT_MS
+): SpawnSyncReturns<string> {
   return spawnSync(cli, args, {
     cwd,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: TIMEOUT_MS,
+    timeout: timeoutMs,
     maxBuffer: MAX_BUFFER,
     env: entornoDe(gitlabHost),
   });
@@ -118,11 +124,36 @@ export type ResultadoPreflightCli =
   | { ok: false; motivo: 'no-instalado' | 'sin-autenticar'; mensaje: string };
 
 /**
+ * Lo que sabe la comprobacion de sesion, sin componer el mensaje (TASK-062:
+ * `taskctl doctor` necesita el problema y la ayuda por separado, y saber si
+ * el fallo es de red y no de sesion). `noVerificable`: el CLI no contesto a
+ * tiempo o el fallo habla de red (DNS, conexion, TLS), asi que no se sabe si
+ * la sesion es buena. `comprobarCli` no lo usa: para `finish` sigue siendo
+ * un fallo, como en la 0.6.0.
+ */
+export type ResultadoSondaCli =
+  | { ok: true }
+  | {
+      ok: false;
+      motivo: 'no-instalado' | 'sin-autenticar';
+      /** Que paso, sin la ayuda ni el punto final. */
+      problema: string;
+      /** Que instalar o ejecutar. */
+      ayuda: string;
+      noVerificable: boolean;
+    };
+
+/** Un texto de error de gh/glab que habla de red y no de credenciales. */
+const FALLO_DE_RED_RE =
+  /dial tcp|no such host|timed? ?out|timeout|connection (refused|reset)|network is unreachable|unreachable|ECONN|ENOTFOUND|EAI_AGAIN|could not resolve|temporary failure in name resolution|tls handshake|x509|proxyconnect/i;
+
+/**
  * El CLI de la plataforma, instalado y autenticado en el host de origin. No
  * hay `--version`: lanzar el CLI para `auth status` ya distingue "no existe"
  * (error de lanzamiento) de "no hay sesion" (sale con codigo != 0).
+ * `timeoutMs` acorta la espera (doctor usa unos 10 s; finish, los 120 s).
  */
-export function comprobarCli(remoto: RemotoPlataforma, cwd: string): ResultadoPreflightCli {
+export function sondearCli(remoto: RemotoPlataforma, cwd: string, timeoutMs: number = TIMEOUT_MS): ResultadoSondaCli {
   const cli = CLI_PLATAFORMA[remoto.plataforma];
   // Con la instancia declarada la sesion se comprueba con una llamada real,
   // `glab api user`: `auth status` ignora GITLAB_TOKEN y daria por rota una
@@ -130,27 +161,39 @@ export function comprobarCli(remoto: RemotoPlataforma, cwd: string): ResultadoPr
   // salida (el usuario) no se lee ni se muestra.
   const r =
     remoto.declarado === undefined
-      ? lanzar(cli, ['auth', 'status', '--hostname', remoto.host], cwd)
-      : lanzar(cli, ['api', 'user'], cwd, contextoGlab(remoto).gitlabHost);
+      ? lanzar(cli, ['auth', 'status', '--hostname', remoto.host], cwd, undefined, timeoutMs)
+      : lanzar(cli, ['api', 'user'], cwd, contextoGlab(remoto).gitlabHost, timeoutMs);
+  const ayuda = ayudaInstalacion(remoto);
   if (r.error) {
+    const agotado = (r.error as NodeJS.ErrnoException).code === 'ETIMEDOUT';
     return {
       ok: false,
       motivo: 'no-instalado',
-      mensaje: `no se pudo ejecutar "${cli}" (${r.error.message}). ${ayudaInstalacion(remoto)}.`,
+      problema: `no se pudo ejecutar "${cli}" (${r.error.message})`,
+      ayuda,
+      noVerificable: agotado,
     };
   }
   if (r.status !== 0) {
+    const texto = detalle(r);
     return {
       ok: false,
       motivo: 'sin-autenticar',
-      mensaje:
+      problema:
         remoto.declarado === undefined
-          ? `"${cli}" no esta autenticado en ${remoto.host} (${detalle(r)}). ${ayudaInstalacion(remoto)}.`
-          : `"${cli}" no tiene sesion valida en ${hostnameGlab(remoto)} o la instancia no responde ` +
-            `(${detalle(r)}). ${ayudaInstalacion(remoto)}.`,
+          ? `"${cli}" no esta autenticado en ${remoto.host} (${texto})`
+          : `"${cli}" no tiene sesion valida en ${hostnameGlab(remoto)} o la instancia no responde (${texto})`,
+      ayuda,
+      noVerificable: FALLO_DE_RED_RE.test(texto),
     };
   }
   return { ok: true };
+}
+
+export function comprobarCli(remoto: RemotoPlataforma, cwd: string): ResultadoPreflightCli {
+  const r = sondearCli(remoto, cwd);
+  if (r.ok) return { ok: true };
+  return { ok: false, motivo: r.motivo, mensaje: `${r.problema}. ${r.ayuda}.` };
 }
 
 /**

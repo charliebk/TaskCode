@@ -1,7 +1,10 @@
 # Prerrequisitos del flujo de tareas
 
 Se lee cuando `taskctl` no responde o el repo no tiene rama `develop`. Si los
-dos estan en su sitio, no hace falta nada de lo que sigue.
+dos estan en su sitio, no hace falta nada de lo que sigue. Con `taskctl`
+respondiendo, `taskctl doctor` comprueba de una vez estos y el resto de
+prerrequisitos (Node, git, bash para los scripts de Git-Flow, `tareas/`, ramas,
+config, tareas, y `gh`/`glab` si hay merge request) y da el arreglo de cada uno.
 
 **Prerrequisito 1 — `taskctl` disponible**: lo aporta este mismo plugin. Su
 ejecutable vive en `bin/`, que Claude Code anade al PATH del Bash tool

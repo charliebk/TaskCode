@@ -11,6 +11,10 @@ repo tras confirmar que la migración estaba completa y que nada
 dependía de él en tiempo de ejecución; sigue recuperable del
 historial con `git show 4435d68d:runConfigurations.zip`.
 
+`_sonda-bash.sh` no es un script de Git-Flow: lo ejecuta `taskctl doctor` para
+comprobar que el `bash` del entorno puede correr estos scripts de verdad
+(TASK-062). No toca el repo.
+
 ## Qué cambió respecto al original
 
 Los 22 scripts de acción y `_gitflow-common.sh` son una copia literal del

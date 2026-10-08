@@ -18,6 +18,7 @@ import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex
 import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
+import { runDoctorCommand, DoctorCommandError } from './commands/doctor.js';
 import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
 import { runRegistrarCosteCommand, RegistrarCosteCommandError } from './commands/registrar-coste.js';
 import {
@@ -79,6 +80,7 @@ Uso:
                     [--informe <nombre>] [--push]
   taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--push]
   taskctl siguiente TASK-NNN [--json]
+  taskctl doctor [--json]
   taskctl pausa TASK-NNN [--push]
   taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
                           (--agente <id>... | --tokens N) [--push]
@@ -90,7 +92,7 @@ Uso:
   taskctl abort-merge
 
 Comandos: new, import, board, metricas, start, plan, approve, review, codex-review, veredicto,
-finish, siguiente, pausa, registrar-coste, cadena.
+finish, siguiente, doctor, pausa, registrar-coste, cadena.
 metricas saca, por tarea, cuanto duro cada fase (diseno, curso, revision) y
 cuantas rondas de revision hubo; --heuristica compara la complejidad declarada
 con la que da la heuristica en las tareas terminadas. --tokens anade el coste en
@@ -107,6 +109,11 @@ de mergear: la tarea sigue en en-revision y, cuando la plataforma lo da por merg
 taskctl finish TASK-NNN [--tag <nombre>] la cierra (el estado lo da la plataforma). Con
 --merge-request el tag va en ese segundo finish. En hotfix/release --tag da el nombre al
 tag que ya ponia el script.
+doctor comprueba que el proyecto esta listo (Node, git, bash para los scripts de Git-Flow, tareas/,
+ramas develop y main/master, origin, workspace, .taskcode/config.yml, coherencia de las tareas y, si la
+config pide merge request o declara plataforma, gh/glab y su sesion). Una linea por comprobacion
+(ok, aviso, error u omitida) y, en cada aviso o error, el comando que lo arregla; sale con 1 si hay
+algun error. Solo lee. --json da lo mismo en una linea de JSON.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
@@ -665,6 +672,20 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         e instanceof GitCommandError ||
         e instanceof GitflowScriptLaunchError
       ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'doctor') {
+    try {
+      const r = runDoctorCommand(argv.slice(1), { repoCwd: process.cwd() });
+      process.stdout.write(r.salida);
+      return r.codigo;
+    } catch (e) {
+      if (e instanceof DoctorCommandError) {
         printCliError(e);
         return 1;
       }

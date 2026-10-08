@@ -64,12 +64,12 @@ function entornoDe(gitlabHost) {
     env['GITLAB_HOST'] = gitlabHost;
     return env;
 }
-function lanzar(cli, args, cwd, gitlabHost) {
+function lanzar(cli, args, cwd, gitlabHost, timeoutMs = TIMEOUT_MS) {
     return spawnSync(cli, args, {
         cwd,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: TIMEOUT_MS,
+        timeout: timeoutMs,
         maxBuffer: MAX_BUFFER,
         env: entornoDe(gitlabHost),
     });
@@ -89,38 +89,53 @@ function ayudaInstalacion(r) {
     const login = `Instala GitLab CLI (https://gitlab.com/gitlab-org/cli) y ejecuta "glab auth login --hostname ${hostnameGlab(r)}"`;
     return r.declarado === undefined ? login : `${login} (o define la variable de entorno GITLAB_TOKEN)`;
 }
+/** Un texto de error de gh/glab que habla de red y no de credenciales. */
+const FALLO_DE_RED_RE = /dial tcp|no such host|timed? ?out|timeout|connection (refused|reset)|network is unreachable|unreachable|ECONN|ENOTFOUND|EAI_AGAIN|could not resolve|temporary failure in name resolution|tls handshake|x509|proxyconnect/i;
 /**
  * El CLI de la plataforma, instalado y autenticado en el host de origin. No
  * hay `--version`: lanzar el CLI para `auth status` ya distingue "no existe"
  * (error de lanzamiento) de "no hay sesion" (sale con codigo != 0).
+ * `timeoutMs` acorta la espera (doctor usa unos 10 s; finish, los 120 s).
  */
-export function comprobarCli(remoto, cwd) {
+export function sondearCli(remoto, cwd, timeoutMs = TIMEOUT_MS) {
     const cli = CLI_PLATAFORMA[remoto.plataforma];
     // Con la instancia declarada la sesion se comprueba con una llamada real,
     // `glab api user`: `auth status` ignora GITLAB_TOKEN y daria por rota una
     // sesion por token que funciona (evidencia-glab-subpath, pruebas 2 y 3). Su
     // salida (el usuario) no se lee ni se muestra.
     const r = remoto.declarado === undefined
-        ? lanzar(cli, ['auth', 'status', '--hostname', remoto.host], cwd)
-        : lanzar(cli, ['api', 'user'], cwd, contextoGlab(remoto).gitlabHost);
+        ? lanzar(cli, ['auth', 'status', '--hostname', remoto.host], cwd, undefined, timeoutMs)
+        : lanzar(cli, ['api', 'user'], cwd, contextoGlab(remoto).gitlabHost, timeoutMs);
+    const ayuda = ayudaInstalacion(remoto);
     if (r.error) {
+        const agotado = r.error.code === 'ETIMEDOUT';
         return {
             ok: false,
             motivo: 'no-instalado',
-            mensaje: `no se pudo ejecutar "${cli}" (${r.error.message}). ${ayudaInstalacion(remoto)}.`,
+            problema: `no se pudo ejecutar "${cli}" (${r.error.message})`,
+            ayuda,
+            noVerificable: agotado,
         };
     }
     if (r.status !== 0) {
+        const texto = detalle(r);
         return {
             ok: false,
             motivo: 'sin-autenticar',
-            mensaje: remoto.declarado === undefined
-                ? `"${cli}" no esta autenticado en ${remoto.host} (${detalle(r)}). ${ayudaInstalacion(remoto)}.`
-                : `"${cli}" no tiene sesion valida en ${hostnameGlab(remoto)} o la instancia no responde ` +
-                    `(${detalle(r)}). ${ayudaInstalacion(remoto)}.`,
+            problema: remoto.declarado === undefined
+                ? `"${cli}" no esta autenticado en ${remoto.host} (${texto})`
+                : `"${cli}" no tiene sesion valida en ${hostnameGlab(remoto)} o la instancia no responde (${texto})`,
+            ayuda,
+            noVerificable: FALLO_DE_RED_RE.test(texto),
         };
     }
     return { ok: true };
+}
+export function comprobarCli(remoto, cwd) {
+    const r = sondearCli(remoto, cwd);
+    if (r.ok)
+        return { ok: true };
+    return { ok: false, motivo: r.motivo, mensaje: `${r.problema}. ${r.ayuda}.` };
 }
 /**
  * Estado del PR/MR de una rama, preguntado a la plataforma por NOMBRE de rama

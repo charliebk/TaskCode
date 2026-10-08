@@ -3,6 +3,9 @@
   "version": "0.6.0",
   "description": "TaskCode: metodologia de tareas/sprints + Git-Flow + revision por pares de agentes, como plugin de Claude Code.",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "license": "MIT",
   "type": "module",
   "bin": {
