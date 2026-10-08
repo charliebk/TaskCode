@@ -25,3 +25,23 @@ Conclusion: no hace falta la API REST. Con glab basta con:
 2. `-R` igual a la ruta del proyecto relativa a esa base, que se deduce
    quitando la base a la URL de origin (https o ssh).
 
+
+## Segunda prueba: autenticacion y creacion (2026-10-08)
+
+Mismo montaje, con `GITLAB_HOST=https://127.0.0.1:P/sub/gitlab`:
+
+- **`glab auth status`**, con `GITLAB_HOST` o con `--hostname
+  127.0.0.1:P/sub/gitlab`:
+  - glab trata `host/subpath` como el nombre de la instancia y propone
+    `glab auth login --hostname 127.0.0.1:P/sub/gitlab`;
+  - **ignora `GITLAB_TOKEN`**: dice «not authenticated» aunque la variable
+    exista;
+  - consecuencia: el preflight no puede basarse solo en `auth status` si se
+    admite el token por entorno. Las opciones son exigir
+    `glab auth login --hostname <host/subpath>` o comprobar la sesion con una
+    llamada real, `glab api user`, que si usa el token.
+- **`glab mr create -R grupo/sub/repo ...`** fuera de un repo Git falla con
+  `not a git repository`, porque glab necesita un repo en el cwd, que en uso
+  real lo es. Ademas deja un fichero de recuperacion en
+  `%LOCALAPPDATA%/glab-cli/recover/<proyecto>/mr.json`: los tests deben
+  aislarlo, porque el doble no lo crea, pero glab real si.
