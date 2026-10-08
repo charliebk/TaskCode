@@ -36,7 +36,7 @@ import { CODIGO_SINCRONIZACION_NO_APLICADA, sincronizacionNoAplicada, } from './
 // del repo.
 import { ConfigError } from './core/config.js';
 import { formatearInstante } from './core/transiciones.js';
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 const HELP = `taskctl ${VERSION} — TaskCode
 
 Uso:

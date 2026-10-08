@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 71 / 72 items terminados (99%)** · última actualización: 2026-10-08
+**Progreso global: 72 / 72 items terminados (100%)** · última actualización: 2026-10-08
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -32,8 +32,8 @@ tomada y documentada, no aplazada.
 | ✅ E — Cierre | 6 | **6** | ~9h |
 | ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
-| H — Peticiones tras el plan | 3 | **2** | — |
-| **Total pendiente** | **1** | — | — |
+| ✅ H — Peticiones tras el plan | 3 | **3** | — |
+| **Total pendiente** | **0** | — | — |
 
 ---
 
@@ -766,7 +766,7 @@ Plan de referencia: `tareas/.../TASK-055/planificacion/plan-final.md`.
 - [x] TASK-058 — Flujo D: modo semiautomático
 - [x] TASK-059 — Flujo E: modo automático
 
-## H — Peticiones tras el plan (2/3)
+## H — Peticiones tras el plan (3/3)
 
 Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
 
@@ -790,5 +790,10 @@ Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
       lugar de abortar. Hubo 2 rondas: 1 IMPORTANTE, reproducido con glab
       real (`mr create` fallaba en subpath después de subir la rama), y 3
       MENOR. Verificado con glab real contra HTTPS local.*
-- [ ] TASK-062 — `taskctl doctor`: comprobar que un proyecto está listo —
-      plan aprobado el 2026-10-08
+- [x] TASK-062 — `taskctl doctor`: comprobar que un proyecto está listo —
+      cerrada el 2026-10-08, publicada en la 0.7.0
+      *Solo lee. Comprueba el entorno (Node 22, git, y bash ejecutando un
+      script real, sin OK falso con WSL), el repo, la config, la coherencia
+      de las tareas con un recorrido propio y, si aplica, la sesión de
+      gh/glab. Cada fallo trae su arreglo; con `--json` y código 1 solo si
+      hay errores. Hubo 1 ronda, con 5 MENOR corregidos.*

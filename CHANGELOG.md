@@ -1,6 +1,15 @@
 # Changelog
 
 ## Sin publicar
+
+## 0.7.0 — 2026-10-08
+
+Merge request en cualquier GitLab y `taskctl doctor`. Requiere Node 22 o
+superior. Actualizar con `claude plugin marketplace update
+taskcode-marketplace`, `claude plugin update
+taskcode-plugin@taskcode-marketplace` y reiniciar Claude Code (o
+`/reload-plugins`). Despues, `taskctl doctor` en cada proyecto.
+
 - TASK-062 (feature) — taskctl doctor: comprobar que un proyecto esta listo antes de trabajar (2026-10-08)
 - TASK-062 (feature) — taskctl doctor: comprobar que un proyecto esta listo antes de trabajar (2026-10-08)
 
