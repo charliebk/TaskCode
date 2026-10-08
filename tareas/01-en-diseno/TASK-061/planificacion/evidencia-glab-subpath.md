@@ -45,3 +45,14 @@ Mismo montaje, con `GITLAB_HOST=https://127.0.0.1:P/sub/gitlab`:
   real lo es. Ademas deja un fichero de recuperacion en
   `%LOCALAPPDATA%/glab-cli/recover/<proyecto>/mr.json`: los tests deben
   aislarlo, porque el doble no lo crea, pero glab real si.
+
+## Tercera prueba: `glab api user` como comprobacion de sesion (2026-10-08)
+
+- **Con `GITLAB_TOKEN`:** `glab api user` llama a
+  `https://127.0.0.1:P/sub/gitlab/api/v4/user`. Usa el token del entorno y
+  respeta el subpath.
+- **Sin token:** falla al momento con `Unauthenticated`, sin llamar a la red.
+
+Por tanto, `glab api user` sirve como preflight de sesion con token por
+entorno o con `glab auth login --hostname <host/subpath>`. `auth status` no
+sirve, porque ignora el token.
