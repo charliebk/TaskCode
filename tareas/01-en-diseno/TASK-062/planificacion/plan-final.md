@@ -79,3 +79,25 @@ Aprobar el plan entero con `taskctl approve` (obligatorio; este plan no autoriza
 5. Si 061 no ofrece API de avisos reutilizable.
    - Opciones: A) pedir a 061 que la exponga; B) leer claves con `parseBloqueClaveValor`/`CLAVES_CONFIG` en doctor.
    - Recomendacion: ninguna fundamentada en las salidas; ambos roles solo anotan la duda. Decidir tras leer la rama de 061.
+
+## Decisiones tomadas por Carlos (2026-10-08)
+
+1. **Sesion de plataforma no verificable por red: aviso.**
+   - Timeout propio de unos 10 s.
+   - Solo es error lo confirmado: CLI no instalado o sesion rechazada.
+2. **Sin `origin`: aviso.** Pasa a error solo si la config pide merge request
+   por defecto (`cierre_por_defecto: merge-request`).
+3. **Recorrido propio de `tareas/`.** Error ante:
+   - un ID duplicado en dos carpetas;
+   - un `tarea.md` ilegible, con la ruta y la causa;
+   - una carpeta de tarea sin `tarea.md`;
+   - un `estado` distinto de la carpeta.
+   El workspace se comprueba con `git status` bajo `GIT_OPTIONAL_LOCKS=0`, y
+   un fallo por lock es aviso.
+4. **Sonda de bash: un script real minimo** (`mktemp`, `dirname`, `grep`)
+   lanzado igual que `runGitflowScript`. No basta con mirar la ruta ni con
+   `--version`.
+5. *(Tecnica, la resuelve el orquestador)* **Avisos de claves desconocidas.**
+   Se usa la API que deje TASK-061 en `config.ts`. Si solo los emite por
+   stderr, se pide en la implementacion de esta tarea una funcion que los
+   devuelva, sin duplicar el validador.
