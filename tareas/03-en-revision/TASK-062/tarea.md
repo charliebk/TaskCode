@@ -6,7 +6,7 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-062-taskctl-doctor-comprobar-que-un-proyecto
 asignado_a: charlie.bk@gmail.com
@@ -45,3 +45,4 @@ Con el plugin publico, cualquiera lo instala en su proyecto y necesita saber, an
 | 2026-10-08T11:09:31Z | plan | manual | persona |
 | 2026-10-08T11:19:52Z | approve | manual | persona |
 | 2026-10-08T14:56:15Z | start | manual | persona |
+| 2026-10-08T16:06:01Z | review | manual | persona |
