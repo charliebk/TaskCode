@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 456645
-tokens_implementacion: 11106140
+tokens_implementacion: 19428626
 tokens_revision: 6153459
 creado: 2026-10-08
 actualizado: 2026-10-08
