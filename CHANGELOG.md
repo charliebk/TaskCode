@@ -12,7 +12,7 @@ cambia de rama; lo unico que sale a la red es la comprobacion de sesion de
   algun error (los avisos no cuentan). `--json` da una sola linea de JSON
   (`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`) y
   nada mas en stdout, para que una skill la lea.
-- Entorno: Node 20 o superior, `git` y un `bash` que ejecuta de verdad un script
+- Entorno: Node 22 o superior (tambien declarado en `engines` de package.json), `git` y un `bash` que ejecuta de verdad un script
   minimo con el mismo lanzamiento que los de Git-Flow (`mktemp`, `dirname`,
   `grep`...): en Windows detecta el bash de WSL (System32) y el de Git sin su
   `usr\bin` en el PATH, y dice como arreglarlo.

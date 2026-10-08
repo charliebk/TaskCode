@@ -527,7 +527,7 @@ plugin en un proyecto. Una línea por comprobación (`ok`, `aviso`, `error` u
 `omitida`) y, en cada aviso o error, el comando que lo arregla; sale con 1 si hay
 algún error (los avisos no cuentan). Comprueba:
 
-- **Entorno**: Node 20 o superior, `git` y un `bash` capaz de ejecutar los
+- **Entorno**: Node 22 o superior, `git` y un `bash` capaz de ejecutar los
   scripts de Git-Flow. Lo último se prueba ejecutando de verdad un script mínimo
   (`scripts/gitflow/_sonda-bash.sh`: `mktemp`, `dirname`, `grep`, `sed`, `tr`, `wc`,
   `git`) con el mismo lanzamiento que usan los scripts, no mirando una ruta ni

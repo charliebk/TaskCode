@@ -20,10 +20,6 @@ Comprobar el estado real antes de nada: `taskctl board`. Al empezar en un
 proyecto, ejecuta tambien `taskctl doctor` (`--json` si lo vas a leer): dice
 si el entorno, el repo, la config y las tareas estan en orden y, en cada fallo,
 el comando que lo arregla. Sale con 1 si hay algun error; los avisos no
-impiden trabajar. Al empezar en un
-proyecto, ejecuta tambien `taskctl doctor` (`--json` si lo vas a leer): dice
-si el entorno, el repo, la config y las tareas estan en orden y, en cada fallo,
-el comando que lo arregla. Sale con 1 si hay algun error; los avisos no
 impiden trabajar.
 
 **Prerrequisitos**: `taskctl` en el PATH (lo aporta este plugin;
@@ -122,9 +118,11 @@ Detalles que muerden:
 
 ### Lo que NO existe
 
-No inventar estos comandos (`status` no existe: para saber si el proyecto esta
-listo, `taskctl doctor`; para el estado de las tareas, `board`): `status`, `list`, `show`, `reject`, `reopen`,
+No inventar estos comandos: `status`, `list`, `show`, `reject`, `reopen`,
 `assign`, `delete`, `edit`, `init`, `commit`, `push`.
+
+Para saber si el proyecto esta listo no hay `status`: es `taskctl doctor`; para
+el estado de las tareas, `taskctl board`.
 
 `taskctl codex-review TASK-NNN` **si existe**: pide una segunda opinion al CLI
 de Codex y escribe `informe-codex-N.md`, que es lo que `finish` exige cuando la

@@ -23,8 +23,8 @@ export interface Comprobacion {
   arreglo: string | null;
 }
 
-/** Version minima de Node que soporta el plugin (el CI corre en 22; los tests usan `import.meta.dirname`, de 20.11). */
-export const NODE_MINIMO = 20;
+/** Version minima de Node que soporta el plugin: la que prueba el CI y la que declara `engines` en package.json. */
+export const NODE_MINIMO = 22;
 
 export const ok = (id: string, mensaje: string): Comprobacion => ({ id, nivel: 'ok', mensaje, arreglo: null });
 export const aviso = (id: string, mensaje: string, arreglo: string): Comprobacion => ({

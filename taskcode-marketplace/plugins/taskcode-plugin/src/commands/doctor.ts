@@ -68,6 +68,8 @@ export interface DoctorCommandDeps {
   scriptsDir?: string;
   /** Timeout de la sesion de plataforma (por defecto 10 s). Para los tests. */
   timeoutPlataformaMs?: number;
+  /** Timeout de `git status` (por defecto 15 s). Para los tests. */
+  timeoutGitMs?: number;
 }
 
 export interface DoctorCommandResult {
@@ -110,18 +112,21 @@ interface GitSalida {
 }
 
 /** `git` sin lanzar nunca: el resultado lleva el error de lanzamiento. */
-function git(args: readonly string[], cwd: string, env: NodeJS.ProcessEnv = {}): GitSalida {
+function git(args: readonly string[], cwd: string, env: NodeJS.ProcessEnv = {}, timeoutMs: number = TIMEOUT_GIT_MS): GitSalida {
   const r: SpawnSyncReturns<string> = spawnSync('git', args, {
     cwd,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: TIMEOUT_GIT_MS,
+    timeout: timeoutMs,
     env: { ...process.env, ...env },
   });
   return { status: r.status, stdout: (r.stdout ?? '').trim(), stderr: (r.stderr ?? '').trim(), error: r.error };
 }
 
 const una = (t: string): string => ocultarCredenciales(t).replace(/\s+/g, ' ').trim();
+
+/** Como `una`, sin el `[ERROR]`/`[AVISO]` con que empiezan los mensajes de la config: doctor pone el suyo. */
+const sinPrefijo = (t: string): string => una(t).replace(/^\[(?:ERROR|AVISO)\]\s*/, '');
 
 function ramaLocal(nombre: string, cwd: string): boolean {
   return git(['show-ref', '--verify', '--quiet', `refs/heads/${nombre}`], cwd).status === 0;
@@ -258,9 +263,14 @@ function ramaPrincipal(cwd: string): { nombre: string; soloOrigin: boolean } | n
   return null;
 }
 
-function comprobarRamas(cwd: string, base: string, repo: EstadoRepo): Comprobacion[] {
-  if (!repo.esRepo || !repo.conCommits) {
+function comprobarRamas(cwd: string, baseConfig: string | null, repo: EstadoRepo): Comprobacion[] {
+  const base = baseConfig ?? CONFIG_DEFAULTS.rama_base;
+  if (!repo.esRepo || !repo.conCommits || baseConfig === null) {
     const motivo = repo.esRepo ? 'el repo no tiene commits (ver repo-commits)' : 'no hay repositorio (ver repo-git)';
+    if (repo.esRepo && repo.conCommits) {
+      // Solo la rama base depende de la config; la principal se comprueba igual.
+      return [omitida('rama-base', 'config invalida: no se sabe cual es la rama base (ver config)'), ...comprobarRamas(cwd, base, repo).slice(1)];
+    }
     return [omitida('rama-base', `no se puede comprobar la rama "${base}": ${motivo}`), omitida('rama-principal', `no se puede comprobar: ${motivo}`)];
   }
   const principal = ramaPrincipal(cwd);
@@ -296,7 +306,7 @@ function comprobarRamas(cwd: string, base: string, repo: EstadoRepo): Comprobaci
   return cs;
 }
 
-function comprobarOrigin(cwd: string, repo: EstadoRepo, cfg: TaskcodeConfig): { c: Comprobacion; hay: boolean } {
+function comprobarOrigin(cwd: string, repo: EstadoRepo, cfg: TaskcodeConfig | null): { c: Comprobacion; hay: boolean } {
   if (!repo.esRepo) return { c: omitida('origin', 'no hay repositorio (ver repo-git)'), hay: false };
   const r = git(['remote', 'get-url', 'origin'], cwd);
   if (r.status === 0 && r.stdout !== '') {
@@ -306,6 +316,9 @@ function comprobarOrigin(cwd: string, repo: EstadoRepo, cfg: TaskcodeConfig): { 
     return { c: ok('origin', host === undefined ? 'hay un remoto "origin"' : `hay un remoto "origin" (host ${host})`), hay: true };
   }
   const arreglo = 'git remote add origin <url-del-repositorio>';
+  if (cfg === null) {
+    return { c: omitida('origin', 'no hay remoto "origin" y, con la config invalida, no se sabe si hace falta (ver config)'), hay: false };
+  }
   if (cfg.cierre_por_defecto === 'merge-request') {
     return {
       c: fallo('origin', 'no hay remoto "origin" y la config pide merge request por defecto (cierre_por_defecto: merge-request)', arreglo),
@@ -318,9 +331,16 @@ function comprobarOrigin(cwd: string, repo: EstadoRepo, cfg: TaskcodeConfig): { 
   };
 }
 
-function comprobarWorkspace(cwd: string, repo: EstadoRepo): Comprobacion {
+function comprobarWorkspace(cwd: string, repo: EstadoRepo, timeoutMs: number): Comprobacion {
   if (!repo.esRepo) return omitida('workspace', 'no hay repositorio (ver repo-git)');
-  const r = git(['status', '--porcelain'], cwd, { GIT_OPTIONAL_LOCKS: '0' });
+  const r = git(['status', '--porcelain'], cwd, { GIT_OPTIONAL_LOCKS: '0' }, timeoutMs);
+  if ((r.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT') {
+    return aviso(
+      'workspace',
+      `git status no termino en ${Math.round(timeoutMs / 1000)} s, asi que no se pudo comprobar el workspace (repo muy grande, disco lento o Git bloqueado)`,
+      'Ejecuta git status a mano y repite taskctl doctor cuando responda.'
+    );
+  }
   if (r.error !== undefined || r.status !== 0) {
     const causa = una(r.error?.message ?? r.stderr);
     if (/lock/i.test(causa)) {
@@ -345,24 +365,24 @@ function comprobarWorkspace(cwd: string, repo: EstadoRepo): Comprobacion {
 // Configuracion
 // ---------------------------------------------------------------------
 
-function comprobarConfig(cwd: string): { cs: Comprobacion[]; cfg: TaskcodeConfig } {
+function comprobarConfig(cwd: string): { cs: Comprobacion[]; cfg: TaskcodeConfig | null } {
   try {
     const { config, avisos } = resolverConfigConAvisos(cwd);
     const cs: Comprobacion[] = [ok('config', '.taskcode/config.yml es valida (o no existe: valores por defecto)')];
     if (avisos.length === 0) cs.push(ok('config-claves', 'sin claves desconocidas'));
     else
       for (const a of avisos) {
-        cs.push(aviso('config-claves', una(a), 'Corrige o borra esa clave en .taskcode/config.yml: se ignora y puede ser una errata.'));
+        cs.push(aviso('config-claves', sinPrefijo(a), 'Corrige o borra esa clave en .taskcode/config.yml: se ignora y puede ser una errata.'));
       }
     return { cs, cfg: config };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     return {
       cs: [
-        fallo('config', una(msg), 'Corrige .taskcode/config.yml segun el mensaje (o borralo para usar los valores por defecto).'),
+        fallo('config', sinPrefijo(msg), 'Corrige .taskcode/config.yml segun el mensaje (o borralo para usar los valores por defecto).'),
         omitida('config-claves', 'la config no se pudo leer (ver config)'),
       ],
-      cfg: { ...CONFIG_DEFAULTS },
+      cfg: null,
     };
   }
 }
@@ -471,7 +491,8 @@ function comprobarTareas(tareasRoot: string): Comprobacion[] {
 // Plataforma (gh / glab)
 // ---------------------------------------------------------------------
 
-function comprobarPlataforma(cwd: string, cfg: TaskcodeConfig, hayOrigin: boolean, timeoutMs: number): Comprobacion {
+function comprobarPlataforma(cwd: string, cfg: TaskcodeConfig | null, hayOrigin: boolean, timeoutMs: number): Comprobacion {
+  if (cfg === null) return omitida('plataforma', 'config invalida: no se sabe si hace falta gh o glab (ver config)');
   const aplica = cfg.cierre_por_defecto === 'merge-request' || cfg.plataforma_remota !== null;
   if (!aplica) {
     return omitida('plataforma', 'no hay merge request por defecto ni plataforma declarada en la config: no hace falta gh ni glab');
@@ -521,7 +542,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   cs.push(...envolver('bash', () => comprobarBash(deps)));
 
   // La config se lee primero (las ramas y origin dependen de ella) y se muestra despues.
-  let cfg: TaskcodeConfig = { ...CONFIG_DEFAULTS };
+  let cfg: TaskcodeConfig | null = { ...CONFIG_DEFAULTS };
   let csConfig: Comprobacion[] = [];
   csConfig = envolver('config', () => {
     const r = comprobarConfig(cwd);
@@ -539,7 +560,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
     })
   );
   cs.push(...envolver('tareas-carpetas', () => comprobarCarpetas(tareasRoot)));
-  cs.push(...envolver('rama-base', () => comprobarRamas(cwd, cfg.rama_base, repo)));
+  cs.push(...envolver('rama-base', () => comprobarRamas(cwd, cfg === null ? null : cfg.rama_base, repo)));
   let hayOrigin = false;
   cs.push(
     ...envolver('origin', () => {
@@ -548,7 +569,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
       return r.c;
     })
   );
-  cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo)));
+  cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo, deps.timeoutGitMs ?? TIMEOUT_GIT_MS)));
 
   cs.push(...csConfig);
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));

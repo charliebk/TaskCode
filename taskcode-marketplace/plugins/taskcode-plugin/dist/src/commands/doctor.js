@@ -66,17 +66,19 @@ export function envolver(id, f) {
     }
 }
 /** `git` sin lanzar nunca: el resultado lleva el error de lanzamiento. */
-function git(args, cwd, env = {}) {
+function git(args, cwd, env = {}, timeoutMs = TIMEOUT_GIT_MS) {
     const r = spawnSync('git', args, {
         cwd,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: TIMEOUT_GIT_MS,
+        timeout: timeoutMs,
         env: { ...process.env, ...env },
     });
     return { status: r.status, stdout: (r.stdout ?? '').trim(), stderr: (r.stderr ?? '').trim(), error: r.error };
 }
 const una = (t) => ocultarCredenciales(t).replace(/\s+/g, ' ').trim();
+/** Como `una`, sin el `[ERROR]`/`[AVISO]` con que empiezan los mensajes de la config: doctor pone el suyo. */
+const sinPrefijo = (t) => una(t).replace(/^\[(?:ERROR|AVISO)\]\s*/, '');
 function ramaLocal(nombre, cwd) {
     return git(['show-ref', '--verify', '--quiet', `refs/heads/${nombre}`], cwd).status === 0;
 }
@@ -180,9 +182,14 @@ function ramaPrincipal(cwd) {
             return { nombre: n, soloOrigin: true };
     return null;
 }
-function comprobarRamas(cwd, base, repo) {
-    if (!repo.esRepo || !repo.conCommits) {
+function comprobarRamas(cwd, baseConfig, repo) {
+    const base = baseConfig ?? CONFIG_DEFAULTS.rama_base;
+    if (!repo.esRepo || !repo.conCommits || baseConfig === null) {
         const motivo = repo.esRepo ? 'el repo no tiene commits (ver repo-commits)' : 'no hay repositorio (ver repo-git)';
+        if (repo.esRepo && repo.conCommits) {
+            // Solo la rama base depende de la config; la principal se comprueba igual.
+            return [omitida('rama-base', 'config invalida: no se sabe cual es la rama base (ver config)'), ...comprobarRamas(cwd, base, repo).slice(1)];
+        }
         return [omitida('rama-base', `no se puede comprobar la rama "${base}": ${motivo}`), omitida('rama-principal', `no se puede comprobar: ${motivo}`)];
     }
     const principal = ramaPrincipal(cwd);
@@ -218,6 +225,9 @@ function comprobarOrigin(cwd, repo, cfg) {
         return { c: ok('origin', host === undefined ? 'hay un remoto "origin"' : `hay un remoto "origin" (host ${host})`), hay: true };
     }
     const arreglo = 'git remote add origin <url-del-repositorio>';
+    if (cfg === null) {
+        return { c: omitida('origin', 'no hay remoto "origin" y, con la config invalida, no se sabe si hace falta (ver config)'), hay: false };
+    }
     if (cfg.cierre_por_defecto === 'merge-request') {
         return {
             c: fallo('origin', 'no hay remoto "origin" y la config pide merge request por defecto (cierre_por_defecto: merge-request)', arreglo),
@@ -229,10 +239,13 @@ function comprobarOrigin(cwd, repo, cfg) {
         hay: false,
     };
 }
-function comprobarWorkspace(cwd, repo) {
+function comprobarWorkspace(cwd, repo, timeoutMs) {
     if (!repo.esRepo)
         return omitida('workspace', 'no hay repositorio (ver repo-git)');
-    const r = git(['status', '--porcelain'], cwd, { GIT_OPTIONAL_LOCKS: '0' });
+    const r = git(['status', '--porcelain'], cwd, { GIT_OPTIONAL_LOCKS: '0' }, timeoutMs);
+    if (r.error?.code === 'ETIMEDOUT') {
+        return aviso('workspace', `git status no termino en ${Math.round(timeoutMs / 1000)} s, asi que no se pudo comprobar el workspace (repo muy grande, disco lento o Git bloqueado)`, 'Ejecuta git status a mano y repite taskctl doctor cuando responda.');
+    }
     if (r.error !== undefined || r.status !== 0) {
         const causa = una(r.error?.message ?? r.stderr);
         if (/lock/i.test(causa)) {
@@ -256,7 +269,7 @@ function comprobarConfig(cwd) {
             cs.push(ok('config-claves', 'sin claves desconocidas'));
         else
             for (const a of avisos) {
-                cs.push(aviso('config-claves', una(a), 'Corrige o borra esa clave en .taskcode/config.yml: se ignora y puede ser una errata.'));
+                cs.push(aviso('config-claves', sinPrefijo(a), 'Corrige o borra esa clave en .taskcode/config.yml: se ignora y puede ser una errata.'));
             }
         return { cs, cfg: config };
     }
@@ -264,10 +277,10 @@ function comprobarConfig(cwd) {
         const msg = e instanceof Error ? e.message : String(e);
         return {
             cs: [
-                fallo('config', una(msg), 'Corrige .taskcode/config.yml segun el mensaje (o borralo para usar los valores por defecto).'),
+                fallo('config', sinPrefijo(msg), 'Corrige .taskcode/config.yml segun el mensaje (o borralo para usar los valores por defecto).'),
                 omitida('config-claves', 'la config no se pudo leer (ver config)'),
             ],
-            cfg: { ...CONFIG_DEFAULTS },
+            cfg: null,
         };
     }
 }
@@ -347,6 +360,8 @@ function comprobarTareas(tareasRoot) {
 // Plataforma (gh / glab)
 // ---------------------------------------------------------------------
 function comprobarPlataforma(cwd, cfg, hayOrigin, timeoutMs) {
+    if (cfg === null)
+        return omitida('plataforma', 'config invalida: no se sabe si hace falta gh o glab (ver config)');
     const aplica = cfg.cierre_por_defecto === 'merge-request' || cfg.plataforma_remota !== null;
     if (!aplica) {
         return omitida('plataforma', 'no hay merge request por defecto ni plataforma declarada en la config: no hace falta gh ni glab');
@@ -401,14 +416,14 @@ export function runDoctorCommand(argv, deps) {
         return r.cs;
     }));
     cs.push(...envolver('tareas-carpetas', () => comprobarCarpetas(tareasRoot)));
-    cs.push(...envolver('rama-base', () => comprobarRamas(cwd, cfg.rama_base, repo)));
+    cs.push(...envolver('rama-base', () => comprobarRamas(cwd, cfg === null ? null : cfg.rama_base, repo)));
     let hayOrigin = false;
     cs.push(...envolver('origin', () => {
         const r = comprobarOrigin(cwd, repo, cfg);
         hayOrigin = r.hay;
         return r.c;
     }));
-    cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo)));
+    cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo, deps.timeoutGitMs ?? TIMEOUT_GIT_MS)));
     cs.push(...csConfig);
     cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
     cs.push(...envolver('plataforma', () => comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)));

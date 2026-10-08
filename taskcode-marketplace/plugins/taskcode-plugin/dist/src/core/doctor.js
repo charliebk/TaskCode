@@ -11,8 +11,8 @@
  * JSON: lo que dicen git, gh y glab a veces repite la URL del remoto.
  */
 import { ocultarCredenciales } from './plataforma-remota.js';
-/** Version minima de Node que soporta el plugin (el CI corre en 22; los tests usan `import.meta.dirname`, de 20.11). */
-export const NODE_MINIMO = 20;
+/** Version minima de Node que soporta el plugin: la que prueba el CI y la que declara `engines` en package.json. */
+export const NODE_MINIMO = 22;
 export const ok = (id, mensaje) => ({ id, nivel: 'ok', mensaje, arreglo: null });
 export const aviso = (id, mensaje, arreglo) => ({
     id,

@@ -24,11 +24,11 @@ test('codigoSalida: 0 sin errores (los avisos y las omitidas no cuentan), 1 con 
 
 test('nodeSoportado: compara el mayor con el minimo, con o sin "v"', () => {
   assert.equal(nodeSoportado('22.23.3'), true);
-  assert.equal(nodeSoportado('v20.0.0'), true);
-  assert.equal(nodeSoportado('19.9.0'), false);
-  assert.equal(nodeSoportado('18.20.4'), false);
+  assert.equal(nodeSoportado('v22.0.0'), true);
+  assert.equal(nodeSoportado('21.9.0'), false);
+  assert.equal(nodeSoportado('20.19.0'), false);
   assert.equal(nodeSoportado('basura'), false);
-  assert.equal(nodeSoportado('21.0.0', 22), false);
+  assert.equal(nodeSoportado('22.0.0', 23), false);
 });
 
 test('formatearTexto: una linea por comprobacion, el arreglo bajo cada aviso o error y un resumen', () => {
