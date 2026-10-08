@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-061 (feature) — Merge request en cualquier GitLab, tambien autoalojado (2026-10-08)
 
 Merge request en cualquier GitLab, tambien autoalojado (TASK-061).
 

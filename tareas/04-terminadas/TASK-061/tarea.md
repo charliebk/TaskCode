@@ -6,7 +6,7 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-061-merge-request-en-gitlab-autoalojado-tamb
 asignado_a: charlie.bk@gmail.com
@@ -109,3 +109,4 @@ compone bien la URL. Sin probar: TLS con una CA real, y Linux y macOS.
 | 2026-10-08T11:08:06Z | start | manual | persona |
 | 2026-10-08T13:05:46Z | review | manual | persona |
 | 2026-10-08T14:28:12Z | review | manual | persona |
+| 2026-10-08T14:55:30Z | finish | manual | persona |
