@@ -6,7 +6,7 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-061-merge-request-en-gitlab-autoalojado-tamb
 asignado_a: charlie.bk@gmail.com
@@ -44,3 +44,4 @@ El plugin tiene que funcionar en cualquier proyecto con el repo en GitHub o en G
 |---|---|---|---|
 | 2026-10-08T10:47:36Z | plan | manual | persona |
 | 2026-10-08T11:08:05Z | approve | manual | persona |
+| 2026-10-08T11:08:06Z | start | manual | persona |
