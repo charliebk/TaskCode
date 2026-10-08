@@ -2,6 +2,7 @@
 
 ## Sin publicar
 - TASK-062 (feature) — taskctl doctor: comprobar que un proyecto esta listo antes de trabajar (2026-10-08)
+- TASK-062 (feature) — taskctl doctor: comprobar que un proyecto esta listo antes de trabajar (2026-10-08)
 
 Nuevo `taskctl doctor [--json]` (TASK-062). Solo lee: no escribe, no commitea, no
 cambia de rama; lo unico que sale a la red es la comprobacion de sesion de

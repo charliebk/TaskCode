@@ -23,15 +23,7 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 1
-
-```text
-ID        Titulo                                                                  Asignado
---------  ----------------------------------------------------------------------  --------------------
-TASK-062  taskctl doctor: comprobar que un proyecto esta listo antes de trabajar  charlie.bk@gmail.com
-```
-
-## Terminadas (04-terminadas) — 47
+## Terminadas (04-terminadas) — 48
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -83,4 +75,5 @@ TASK-058  Flujo D: modo semiautomatico                                          
 TASK-059  Flujo E: modo automatico                                                                 charlie.bk@gmail.com
 TASK-060  Opciones de cierre en finish: merge normal, merge request y tag                          charlie.bk@gmail.com
 TASK-061  Merge request en cualquier GitLab, tambien autoalojado                                   charlie.bk@gmail.com
+TASK-062  taskctl doctor: comprobar que un proyecto esta listo antes de trabajar                   charlie.bk@gmail.com
 ```

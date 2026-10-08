@@ -6,7 +6,7 @@ sprint: 8
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-062-taskctl-doctor-comprobar-que-un-proyecto
 asignado_a: charlie.bk@gmail.com
@@ -107,3 +107,4 @@ con MEN-5) y 5 de las correcciones, todos muertos. Suite completa: 1346 de
 | 2026-10-08T11:19:52Z | approve | manual | persona |
 | 2026-10-08T14:56:15Z | start | manual | persona |
 | 2026-10-08T16:06:01Z | review | manual | persona |
+| 2026-10-08T18:17:13Z | finish | manual | persona |
