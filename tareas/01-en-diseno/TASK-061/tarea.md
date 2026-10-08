@@ -1,6 +1,6 @@
 ---
 id: TASK-061
-titulo: "Merge request en GitLab autoalojado, tambien en subpath"
+titulo: "Merge request en cualquier GitLab, tambien autoalojado"
 tipo: feature
 sprint: 8
 etiquetas: []
@@ -24,7 +24,7 @@ dependencias: []
 ---
 ## Objetivo
 
-El repo es publico y el plugin lo usaran mas personas, muchas con GitLab (Carlos, 2026-10-08). Los scripts de Git-Flow y `taskctl` ya son independientes de la plataforma (solo hablan con `origin` por Git), pero `taskctl finish --merge-request` (0.6.0) solo reconoce GitLab si el host de origin contiene "gitlab": un GitLab autoalojado con otro host, o instalado en un subpath como el del IECA (https://www.ieca.junta-andalucia.es/institutodeestadisticaycartografia/gitlab/<grupo>/<repo>.git), aborta con "host desconocido". Hay que poder declarar la plataforma y la URL base de la instancia en `.taskcode/config.yml`, que el merge request funcione contra esa instancia (con `glab` si soporta la instancia en subpath; si no, por la API REST de GitLab con un token del entorno, decision de Carlos en el plan) y que todo lo demas siga igual cuando no se declara nada.
+El plugin tiene que funcionar en cualquier proyecto con el repo en GitHub o en GitLab (decision de Carlos, 2026-10-08: el repo es publico y lo usara mas gente). Los scripts de Git-Flow y `taskctl` ya son independientes de la plataforma (solo hablan con `origin` por Git). Lo unico atado a la plataforma es `taskctl finish --merge-request` (0.6.0), que reconoce github.com y los hosts que contienen "gitlab" (como gitlab.com), y aborta con "host desconocido" ante cualquier GitLab autoalojado con otro dominio (`git.empresa.com`) o instalado bajo una ruta (`https://servidor/ruta/gitlab`). Hay que poder declarar la plataforma y la URL base de la instancia en `.taskcode/config.yml` para que el merge request funcione contra cualquier GitLab, y que todo siga igual cuando no se declara nada.
 
 ## Criterios de aceptacion
 - [ ] Sin configuracion nueva, `finish --merge-request` se comporta exactamente como en la 0.6.0 (deteccion por host; la suite existente de finish-merge-request sigue en verde sin cambiar expectativas).

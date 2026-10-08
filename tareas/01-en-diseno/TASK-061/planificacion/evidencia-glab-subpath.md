@@ -25,6 +25,3 @@ Conclusion: no hace falta la API REST. Con glab basta con:
 2. `-R` igual a la ruta del proyecto relativa a esa base, que se deduce
    quitando la base a la URL de origin (https o ssh).
 
-Pendiente: probarlo contra el GitLab real del IECA. Desde la maquina de
-desarrollo no se llega (UND_ERR_CONNECT_TIMEOUT: hace falta red corporativa
-o VPN).
