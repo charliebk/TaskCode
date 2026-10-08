@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-061-merge-request-en-gitlab-autoalojado-tamb
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -43,3 +43,4 @@ El plugin tiene que funcionar en cualquier proyecto con el repo en GitHub o en G
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-08T10:47:36Z | plan | manual | persona |
+| 2026-10-08T11:08:05Z | approve | manual | persona |
