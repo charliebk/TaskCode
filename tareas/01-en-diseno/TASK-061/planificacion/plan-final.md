@@ -67,3 +67,30 @@ Este plan NO vale hasta que una persona lo apruebe con `taskctl approve`.)
 3. Criterio 9 (servidor HTTP local de prueba). Retirarlo (arquitectura) o mantenerlo.
    - Recomendacion que se desprende: retirarlo, porque sin API REST no hay endpoints que imitar; el doble de `gh`/`glab` basta.
 4. Aprobacion del plan entero con `taskctl approve`: ningun rol ni el unificador la da; incluye aceptar la ruptura hacia adelante de la clave nueva.
+
+## Decisiones tomadas por Carlos (2026-10-08)
+
+1. **Dos claves validadas juntas.**
+   - Las claves son `plataforma_remota` (`github` | `gitlab`) y
+     `url_base_remoto`, esta ultima opcional y solo con `gitlab`.
+   - Abortan con un mensaje claro: la URL sin plataforma, la URL con
+     `github`, una URL con userinfo (`@`) y una base que no sea prefijo
+     exacto (normalizado) de la URL de origin.
+   - Con solo `plataforma_remota: gitlab`, la base es
+     `https://<host de origin>`.
+2. **El preflight de sesion es `glab api user`** bajo `GITLAB_HOST`. Esta
+   comprobado: usa `GITLAB_TOKEN` o la sesion de `glab auth login`, y
+   respeta el subpath (tercera prueba de `evidencia-glab-subpath.md`).
+   `auth status` no sirve con token por entorno.
+3. **Se retira el servidor HTTP local de prueba.** Los tests usan el doble de
+   `gh`/`glab`, ampliado para registrar `GITLAB_HOST` y `-R`; el
+   criterio 9 de `tarea.md` queda reescrito asi.
+4. **Una clave desconocida en `.taskcode/config.yml` avisa y se ignora**,
+   en lugar de abortar. Las claves conocidas con un valor invalido siguen
+   abortando. Con el repo publico, una clave nueva no puede dejar sin
+   `taskctl` a quien tenga una version anterior. Es un criterio nuevo en
+   `tarea.md`, y deja de hacer falta el aviso de ruptura en el CHANGELOG
+   (basta con decir desde que version se lee cada clave).
+5. **`GITLAB_HOST` se fija explicitamente en cada llamada a glab** cuando hay
+   plataforma gitlab declarada, sin heredar el del entorno (riesgo 2). Sin
+   declaracion rige la 0.6.0.

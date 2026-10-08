@@ -35,7 +35,8 @@ El plugin tiene que funcionar en cualquier proyecto con el repo en GitHub o en G
 - [ ] Sin token, sin CLI o con la instancia inalcanzable, aborta antes de subir nada con un mensaje que dice que configurar.
 - [ ] Ninguna URL con credenciales ni ningun token aparece en la salida, en `tarea.md` ni en los commits.
 - [ ] La skill `finish` y el README del plugin explican como configurar un GitLab autoalojado, sin mencionar el proyecto ni rutas internas.
-- [ ] Tests contra repos Git temporales reales y un remoto bare: con el doble de `gh`/`glab` de la suite y, si se usa la API REST, un servidor HTTP local de prueba que imita los endpoints de merge requests (el unico doble nuevo admitido).
+- [ ] Tests contra repos Git temporales reales y un remoto bare, con el doble de `gh`/`glab` de la suite (`test/helpers/plataforma-doble.ts`) ampliado para registrar `GITLAB_HOST` y `-R`: cubren gitlab.com sin config, GitLab en dominio propio, GitLab bajo una ruta (https y ssh), base que no encaja con origin, URL con credenciales y `GITLAB_HOST` heredado del entorno.
+- [ ] Una clave desconocida en `.taskcode/config.yml` da un aviso y se ignora en lugar de abortar (las conocidas con valor invalido siguen abortando), con test.
 
 ## Transiciones
 
