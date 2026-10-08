@@ -19,6 +19,7 @@ import {
   CLAVES_CONFIG,
   ConfigError,
   parsearConfig,
+  parsearConfigConAvisos,
   resolverConfig,
   rutaConfig,
 } from '../../src/core/config.js';
@@ -382,31 +383,31 @@ test('invalido: agente_revisor_por_defecto vacio aborta igual que rama_base', ()
   );
 });
 
-test('invalido: clave desconocida aborta, sugiere la parecida y enumera las validas', () => {
-  assert.throws(
-    () => parsearConfig('limite_wp: 2\n', RUTA_FICTICIA),
-    (e: unknown) => {
-      assert.ok(e instanceof ConfigError, String(e));
-      assert.match(e.message, /clave desconocida "limite_wp"/);
-      assert.match(e.message, /Quiza quisiste decir "limite_wip"/);
-      for (const clave of CLAVES_CONFIG) {
-        assert.ok(e.message.includes(clave), `falta "${clave}" en: ${e.message}`);
-      }
-      return true;
-    }
-  );
+// TASK-061: antes ABORTABA. Ahora avisa, sugiere la parecida, enumera las
+// validas y la ignora (el resto del fichero se lee igual).
+test('clave desconocida: avisa (no aborta), sugiere la parecida, enumera las validas y se ignora', () => {
+  const { config, avisos } = parsearConfigConAvisos('limite_wp: 2\nrama_base: integration\n', RUTA_FICTICIA);
+  assert.equal(avisos.length, 1);
+  const aviso = avisos[0] as string;
+  assert.match(aviso, /^\[AVISO\] .*:1: clave desconocida "limite_wp"; se ignora/);
+  assert.match(aviso, /Quiza quisiste decir "limite_wip"/);
+  for (const clave of CLAVES_CONFIG) {
+    assert.ok(aviso.includes(clave), `falta "${clave}" en: ${aviso}`);
+  }
+  assert.equal(config.limite_wip, CONFIG_DEFAULTS.limite_wip, 'la clave desconocida no se aplica ni a la parecida');
+  assert.equal(config.rama_base, 'integration', 'las conocidas del mismo fichero si');
+  assert.equal(parsearConfig('limite_wp: 2\n', RUTA_FICTICIA).limite_wip, CONFIG_DEFAULTS.limite_wip);
 });
 
-test('invalido: una clave descartada por la decision #9 tambien es desconocida', () => {
+test('una clave descartada por la decision #9 sigue siendo desconocida: avisa (TASK-061, antes abortaba)', () => {
   // `remoto`, `rama_principal` y `politica_no_borrar_ramas` NO se
-  // declaran. Escribirlas tiene que fallar, no ignorarse: una clave
-  // que el usuario escribe y el plugin no lee es peor que no tenerla.
+  // declaran. Escribirlas no puede pasar en silencio: tiene que avisar
+  // de que no se leen (una clave que el usuario escribe y el plugin no
+  // lee es peor que no tenerla), aunque ya no pare a nadie.
   for (const clave of ['remoto', 'rama_principal', 'politica_no_borrar_ramas']) {
-    assert.throws(
-      () => parsearConfig(`${clave}: x\n`, RUTA_FICTICIA),
-      ConfigError,
-      `"${clave}" deberia ser rechazada`
-    );
+    const { avisos } = parsearConfigConAvisos(`${clave}: x\n`, RUTA_FICTICIA);
+    assert.equal(avisos.length, 1, `"${clave}" deberia avisar`);
+    assert.match(avisos[0] as string, new RegExp(`clave desconocida "${clave}"`));
   }
 });
 
@@ -457,7 +458,8 @@ test('fallo cerrado real: resolveBaseBranchForTipo NO cae a "develop" con un con
 
 test('fallo cerrado real: taskctl new aborta con un config roto y NO crea la tarea', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
-    await escribirConfig(repoRoot, 'limite_wp: 2\n');
+    // TASK-061: con `limite_wp` (clave desconocida) ya no aborta; lo roto es un valor invalido.
+    await escribirConfig(repoRoot, 'limite_wip: 0\n');
     await assert.rejects(
       runNewCommand(tareasRoot, ['--titulo', 'x', '--tipo', 'feature'], '2026-09-07', {
         repoCwd: repoRoot,

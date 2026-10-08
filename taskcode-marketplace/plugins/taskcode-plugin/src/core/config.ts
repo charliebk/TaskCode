@@ -14,12 +14,23 @@
  * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
  * | modo_flujo                   | manual            | core/flujo.ts, plan.ts, approve.ts |
  * | cierre_por_defecto           | merge             | siguiente.ts -> skill finish (modo automatico) |
+ * | plataforma_remota            | null (por host)   | commands/finish-opciones.ts (--merge-request) |
+ * | url_base_remoto              | null              | commands/finish-opciones.ts (--merge-request) |
  *
  * `excluir_de_revision` la anadio TASK-034: la peticion de revision
  * embebia el diff entero, y el JS compilado, los lockfiles y la propia
  * carpeta de tareas eran el 27 % de sus bytes. Sus patrones siguen la
  * semantica de `git :(glob)` (los interpreta Git, no `path.matchesGlob`
  * como `patrones_archivo` de los revisores).
+ *
+ * `plataforma_remota` y `url_base_remoto` las anadio TASK-061: declaran la
+ * plataforma del remoto (`github` | `gitlab`) y, solo con gitlab, la URL base
+ * de la instancia, para que `finish --merge-request` funcione con cualquier
+ * GitLab (dominio propio o bajo una ruta). Se validan JUNTAS aqui (la url sin
+ * plataforma, con github, con usuario o sin https aborta); que la base sea
+ * prefijo de la URL de origin necesita Git y lo comprueba quien la usa
+ * (core/plataforma-remota.ts). Sin ninguna de las dos rige la deteccion por
+ * host de la 0.6.0.
  *
  * Las tres de sincronizacion las anadio TASK-033 (version 0.1.1): un
  * proyecto que genera ficheros a partir del estado de las tareas (un
@@ -36,11 +47,15 @@
  *    es literalmente lo que el codigo hacia antes de C4, asi que el
  *    cambio es no-breaking y los tests que ya existian siguen valiendo
  *    de red de regresion sin tocar ninguno.
- * 2. FALLO CERRADO. Un valor invalido o una clave desconocida ABORTAN.
- *    Nunca caida al default en silencio: con default silencioso el
- *    repo dice 2, el plugin usa 1 y no se entera nadie. Misma doctrina
- *    que el flag 'wx' de plan.ts y que el parser de veredictos de
- *    finish.ts.
+ * 2. FALLO CERRADO en los VALORES. Un valor invalido ABORTA. Nunca caida
+ *    al default en silencio: con default silencioso el repo dice 2, el
+ *    plugin usa 1 y no se entera nadie. Misma doctrina que el flag 'wx'
+ *    de plan.ts y que el parser de veredictos de finish.ts. Una clave
+ *    DESCONOCIDA, en cambio, AVISA y se ignora (TASK-061): con el repo
+ *    publico, una clave que anade una version nueva no puede dejar sin
+ *    `taskctl` a quien tenga una anterior. El aviso se emite una vez por
+ *    proceso (resolverConfig se llama muchas veces por comando) y nombra
+ *    la clave parecida, que es lo que cubre la errata (`limite_wp`).
  * 3. UN SOLO PARSER. El bucle `clave: valor` es el de frontmatter.ts,
  *    extraido a parseBloqueClaveValor(). Aqui no hay ni una linea de
  *    parseo de YAML.
@@ -54,15 +69,16 @@
  *    tenerla: este proyecto ya se quemo con `codex-review`,
  *    documentado en la maquina de estados e inexistente.
  *
- * La estrictez con las claves desconocidas es segura porque la §7.3 de
- * la metodologia garantiza que todo el equipo corre la misma version
- * del plugin: no hay un escenario de "clave nueva leida por un plugin
- * viejo" que justifique tragarsela.
+ * Antes de TASK-061 las claves desconocidas abortaban, apoyandose en que la
+ * §7.3 de la metodologia garantiza la misma version del plugin en todo el
+ * equipo. Con el plugin distribuido a proyectos ajenos esa garantia no
+ * existe, y se pasa a avisar (decision de Carlos, 2026-10-08).
  */
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
 import { distanciaEdicion, masParecida } from './sugerencia.js';
+import { normalizarBase, type Plataforma } from './plataforma-remota.js';
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -117,7 +133,20 @@ export interface TaskcodeConfig {
    * traves de `taskctl siguiente --json`.
    */
   cierre_por_defecto: CierrePorDefecto;
+  /**
+   * TASK-061: plataforma del remoto declarada. null = sin declarar (rige la
+   * deteccion por host de la 0.6.0). Solo la lee `finish --merge-request`.
+   */
+  plataforma_remota: Plataforma | null;
+  /**
+   * TASK-061: URL base de la instancia GitLab, ya normalizada
+   * (`https://host[:puerto][/ruta]`). Solo con `plataforma_remota: gitlab`.
+   * null = la base es `https://<host de origin>`.
+   */
+  url_base_remoto: string | null;
 }
+
+export const PLATAFORMAS_REMOTAS: readonly Plataforma[] = ['github', 'gitlab'];
 
 export type ModoFlujo = 'manual' | 'semiautomatico' | 'automatico';
 export const MODOS_FLUJO: readonly ModoFlujo[] = ['manual', 'semiautomatico', 'automatico'];
@@ -146,9 +175,11 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   ]) as readonly string[],
   modo_flujo: 'manual',
   cierre_por_defecto: 'merge',
+  plataforma_remota: null,
+  url_base_remoto: null,
 });
 
-/** Las unicas claves admitidas. Cualquier otra aborta (regla 2). */
+/** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
 export const CLAVES_CONFIG = [
   'rama_base',
   'agente_revisor_por_defecto',
@@ -159,6 +190,8 @@ export const CLAVES_CONFIG = [
   'excluir_de_revision',
   'modo_flujo',
   'cierre_por_defecto',
+  'plataforma_remota',
+  'url_base_remoto',
 ] as const;
 
 /**
@@ -269,7 +302,8 @@ export function resolverConfig(cwd: string): TaskcodeConfig {
         '        Borrala o arregla sus permisos: taskctl no sigue sin saber que dice.'
     );
   }
-  const config = parsearConfig(contenido, ruta);
+  const { config, avisos } = parsearConfigConAvisos(contenido, ruta);
+  emitirAvisos(avisos);
   // Lo unico de las rutas de sincronizacion que necesita disco: que
   // ninguna sea una carpeta existente. Con una carpeta, el
   // `git add -A -- <ruta>` acotado se convierte en un barrido de todo
@@ -294,11 +328,40 @@ export function resolverConfig(cwd: string): TaskcodeConfig {
 }
 
 /**
+ * Avisos ya emitidos en este proceso. resolverConfig corre varias veces por
+ * comando (git-commit, wip, flujo...) y el mismo aviso diez veces es ruido;
+ * se deduplica por texto, que ya incluye ruta y linea.
+ */
+const avisosEmitidos = new Set<string>();
+
+function emitirAvisos(avisos: readonly string[]): void {
+  for (const aviso of avisos) {
+    if (avisosEmitidos.has(aviso)) continue;
+    avisosEmitidos.add(aviso);
+    process.stderr.write(`${aviso}\n`);
+  }
+}
+
+/** Para los tests: olvida lo ya avisado y vuelve a emitirlo. */
+export function reiniciarAvisosDeConfig(): void {
+  avisosEmitidos.clear();
+}
+
+/**
  * Separada de resolverConfig para poder probar el parseo y la
  * validacion sin disco, y para que el mensaje de error siempre pueda
- * nombrar el fichero de donde salio el problema.
+ * nombrar el fichero de donde salio el problema. Los avisos (claves
+ * desconocidas) los descarta: quien los quiera usa parsearConfigConAvisos.
  */
 export function parsearConfig(contenido: string, ruta: string): TaskcodeConfig {
+  return parsearConfigConAvisos(contenido, ruta).config;
+}
+
+/** La configuracion y los avisos no fatales (una clave desconocida por aviso). */
+export function parsearConfigConAvisos(
+  contenido: string,
+  ruta: string
+): { config: TaskcodeConfig; avisos: string[] } {
   const { pares } = parseBloqueClaveValor(contenido.split(/\r?\n/), 0, {
     etiqueta: 'config',
     crearError: (mensaje) => new ConfigError(`[ERROR] ${ruta}: ${mensaje}`),
@@ -307,12 +370,15 @@ export function parsearConfig(contenido: string, ruta: string): TaskcodeConfig {
 
   const config: TaskcodeConfig = { ...CONFIG_DEFAULTS };
   const vistas = new Set<string>();
+  const avisos: string[] = [];
+  let dondeUrlBase = '';
 
   for (const par of pares) {
     const donde = `${ruta}:${par.numeroLinea}`;
 
     if (!(CLAVES_CONFIG as readonly string[]).includes(par.clave)) {
-      throw new ConfigError(mensajeClaveDesconocida(donde, par.clave));
+      avisos.push(mensajeClaveDesconocida(donde, par.clave));
+      continue;
     }
     // Una clave repetida se pisaria en silencio (el ultimo gana) y el
     // fichero diria una cosa mientras el plugin usa otra: mismo dano
@@ -353,11 +419,85 @@ export function parsearConfig(contenido: string, ruta: string): TaskcodeConfig {
       case 'cierre_por_defecto':
         config.cierre_por_defecto = validarCierrePorDefecto(donde, par.valor);
         break;
+      case 'plataforma_remota':
+        config.plataforma_remota = validarPlataformaRemota(donde, par.valor);
+        break;
+      case 'url_base_remoto':
+        config.url_base_remoto = validarUrlBaseRemoto(donde, par.valor);
+        dondeUrlBase = donde;
+        break;
     }
   }
 
   validarSincronizacionCompleta(ruta, vistas);
-  return config;
+  validarRemotoCompleto(dondeUrlBase, config);
+  return { config, avisos };
+}
+
+/**
+ * Las dos claves del remoto se validan JUNTAS: una URL sin plataforma, o con
+ * `github` (que no tiene instancias que apuntar), son configuraciones que
+ * parecen hacer algo y no lo hacen. Que la base sea prefijo de origin no se
+ * puede saber aqui (hace falta Git): lo comprueba quien resuelve el remoto.
+ */
+function validarRemotoCompleto(dondeUrlBase: string, config: TaskcodeConfig): void {
+  if (config.url_base_remoto === null) return;
+  if (config.plataforma_remota === null) {
+    throw new ConfigError(
+      `[ERROR] ${dondeUrlBase}: "url_base_remoto" necesita tambien "plataforma_remota: gitlab".\n` +
+        '        Una URL base sin plataforma no dice contra que CLI usarla. Anade ' +
+        '"plataforma_remota: gitlab" o borra la URL.'
+    );
+  }
+  if (config.plataforma_remota === 'github') {
+    throw new ConfigError(
+      `[ERROR] ${dondeUrlBase}: "url_base_remoto" solo vale con "plataforma_remota: gitlab".\n` +
+        '        Con github el CLI (gh) la ignoraria. Borra la URL, o cambia la plataforma a gitlab.'
+    );
+  }
+}
+
+/** `github` | `gitlab`, con sugerencia ante una errata (misma doctrina que modo_flujo). */
+function validarPlataformaRemota(donde: string, valor: unknown): Plataforma {
+  const plataforma = validarTextoNoVacio(donde, 'plataforma_remota', valor);
+  if ((PLATAFORMAS_REMOTAS as readonly string[]).includes(plataforma)) return plataforma as Plataforma;
+  const parecido = PLATAFORMAS_REMOTAS.map((p) => ({ p, d: distanciaEdicion(plataforma.toLowerCase(), p) }))
+    .sort((a, b) => a.d - b.d)[0];
+  const sugerencia =
+    parecido !== undefined && parecido.d <= 3 ? ` ¿Querias decir "${parecido.p}"?` : '';
+  throw new ConfigError(
+    `[ERROR] ${donde}: plataforma_remota "${plataforma}" no es valida.${sugerencia}\n` +
+      `        Valores validos: ${PLATAFORMAS_REMOTAS.join(', ')} (sin la clave, se decide por el host de origin).`
+  );
+}
+
+/**
+ * URL base de la instancia GitLab: https, sin usuario ni contrasena (nada de
+ * ello se repite en el mensaje: podria ser un token) y normalizada.
+ */
+function validarUrlBaseRemoto(donde: string, valor: unknown): string {
+  const texto = validarTextoNoVacio(donde, 'url_base_remoto', valor);
+  const r = normalizarBase(texto);
+  if (r.ok) return r.base;
+  const ejemplo = 'Ejemplo: url_base_remoto: https://git.empresa.com (o https://servidor.example/ruta/gitlab).';
+  switch (r.motivo) {
+    case 'credenciales':
+      throw new ConfigError(
+        `[ERROR] ${donde}: "url_base_remoto" lleva un "@", es decir usuario o contrasena en la URL.\n` +
+          '        No se admiten credenciales en la configuracion (se commitea): usa la sesion de ' +
+          '"glab auth login" o la variable de entorno GITLAB_TOKEN.'
+      );
+    case 'no-https':
+      throw new ConfigError(
+        `[ERROR] ${donde}: "url_base_remoto" debe empezar por https:// (y es ${describirValor(texto)}).\n` +
+          `        glab solo habla https con la instancia. ${ejemplo}`
+      );
+    case 'malformada':
+      throw new ConfigError(
+        `[ERROR] ${donde}: "url_base_remoto" no es una URL base valida (${describirValor(texto)}).\n` +
+          `        Lleva solo host, puerto y ruta, sin parametros ni espacios. ${ejemplo}`
+      );
+  }
 }
 
 /**
@@ -497,17 +637,26 @@ function motivoRutaInvalida(original: string): string | null {
 }
 
 /**
- * Enumera SIEMPRE las claves validas (criterio de la decision #9: el
- * mensaje dice que esta mal y cuales son las validas) y, si la escrita
- * se parece mucho a una de ellas, la propone. El caso motivador es
- * literal: `limite_wp`.
+ * Aviso (TASK-061; antes error) de clave desconocida. Enumera SIEMPRE las
+ * claves validas (criterio de la decision #9: el mensaje dice que esta mal y
+ * cuales son las validas) y, si la escrita se parece mucho a una de ellas, la
+ * propone. El caso motivador es literal: `limite_wp`.
  */
 function mensajeClaveDesconocida(donde: string, clave: string): string {
   const sugerida = masParecida(clave, CLAVES_CONFIG);
-  const lineas = [`[ERROR] ${donde}: clave desconocida "${clave}".`];
+  const lineas = [`[AVISO] ${donde}: clave desconocida "${clave}"; se ignora.`];
   if (sugerida !== null) lineas.push(`        Quiza quisiste decir "${sugerida}".`);
-  lineas.push(`        Claves validas: ${CLAVES_CONFIG.join(', ')}.`);
+  lineas.push(
+    `        Claves validas: ${CLAVES_CONFIG.join(', ')}. Si es de una version mas nueva del plugin, ` +
+      'actualizalo para que se lea.'
+  );
   return lineas.join('\n');
+}
+
+/** ` (por defecto: "x")`, o ` (sin la clave, no se declara)` si el defecto es null. */
+function textoDefecto(clave: string): string {
+  const d = (CONFIG_DEFAULTS as unknown as Record<string, unknown>)[clave];
+  return typeof d === 'string' ? ` (por defecto: "${d}")` : ' (sin la clave, no se declara)';
 }
 
 /**
@@ -525,8 +674,7 @@ function validarTextoNoVacio(donde: string, clave: string, valor: unknown): stri
   if (valor === null) {
     throw new ConfigError(
       `[ERROR] ${donde}: "${clave}" no puede estar vacia.\n` +
-        `        O le das un valor, o borras la linea (por defecto: ` +
-        `"${CONFIG_DEFAULTS[clave as 'rama_base' | 'agente_revisor_por_defecto']}").`
+        `        O le das un valor, o borras la linea${textoDefecto(clave)}.`
     );
   }
   if (typeof valor !== 'string') {
@@ -538,8 +686,7 @@ function validarTextoNoVacio(donde: string, clave: string, valor: unknown): stri
   if (recortado === '') {
     throw new ConfigError(
       `[ERROR] ${donde}: "${clave}" no puede estar vacia.\n` +
-        `        O le das un valor, o borras la linea (por defecto: ` +
-        `"${CONFIG_DEFAULTS[clave as 'rama_base' | 'agente_revisor_por_defecto']}").`
+        `        O le das un valor, o borras la linea${textoDefecto(clave)}.`
     );
   }
   return recortado;

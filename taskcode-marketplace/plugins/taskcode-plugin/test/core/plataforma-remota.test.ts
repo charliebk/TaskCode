@@ -13,7 +13,7 @@ import {
   urlDeSalidaDeCreacion,
   urlMergeRequestAnotada,
 } from '../../src/core/plataforma-remota.js';
-import { CIERRES_POR_DEFECTO, CONFIG_DEFAULTS, CLAVES_CONFIG, ConfigError, parsearConfig } from '../../src/core/config.js';
+import { CIERRES_POR_DEFECTO, CONFIG_DEFAULTS, CLAVES_CONFIG, ConfigError, parsearConfig, parsearConfigConAvisos } from '../../src/core/config.js';
 import { extraerFlagsCierre } from '../../src/commands/finish-opciones.js';
 
 test('hostDeRemoto: https, http, ssh://, scp, con usuario, contrasena y puerto; rutas locales y letras de unidad no son host', () => {
@@ -145,6 +145,6 @@ test('config: cierre_por_defecto mal escrito, vacio o repetido aborta como el re
   assert.throws(() => parsearConfig('cierre_por_defecto: pr\n', RUTA), ConfigError);
   assert.throws(() => parsearConfig('cierre_por_defecto:\n', RUTA), ConfigError);
   assert.throws(() => parsearConfig('cierre_por_defecto: merge\ncierre_por_defecto: merge-request\n', RUTA), /repetida/);
-  // La clave vecina mal escrita sugiere la nueva.
-  assert.throws(() => parsearConfig('cierre_por_defect: merge\n', RUTA), /Quiza quisiste decir "cierre_por_defecto"/);
+  // La clave vecina mal escrita sugiere la nueva (TASK-061: avisa, antes abortaba).
+  assert.match(parsearConfigConAvisos('cierre_por_defect: merge\n', RUTA).avisos.join('\n'), /Quiza quisiste decir "cierre_por_defecto"/);
 });

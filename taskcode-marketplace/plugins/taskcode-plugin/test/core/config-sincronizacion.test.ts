@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { ConfigError, CONFIG_DEFAULTS, parsearConfig, resolverConfig } from '../../src/core/config.js';
+import { ConfigError, CONFIG_DEFAULTS, parsearConfig, parsearConfigConAvisos, resolverConfig } from '../../src/core/config.js';
 
 const RUTA = '/repo/.taskcode/config.yml';
 const BASE = 'comando_sincronizacion: "node scripts/sync.mjs"\n';
@@ -76,8 +76,12 @@ test('config sincronizacion: comando vacio y timeout no positivo abortan', () =>
   rechaza(BASE + 'rutas_sincronizacion: [a.md]\ntimeout_sincronizacion: 0\n', /Por defecto es 60/);
 });
 
-test('config sincronizacion: una errata en la clave aborta y sugiere la buena', () => {
-  rechaza('comando_sincronizacon: x\n', /Quiza quisiste decir "comando_sincronizacion"/);
+// TASK-061: antes ABORTABA. Una errata en la clave avisa y sugiere la buena; la
+// sincronizacion queda desactivada porque la clave mal escrita no se lee.
+test('config sincronizacion: una errata en la clave avisa y sugiere la buena (antes abortaba)', () => {
+  const { config, avisos } = parsearConfigConAvisos('comando_sincronizacon: x\n', RUTA);
+  assert.match(avisos.join('\n'), /Quiza quisiste decir "comando_sincronizacion"/);
+  assert.equal(config.comando_sincronizacion, null);
 });
 
 test('config sincronizacion: el limite_wip invalido conserva su mensaje (no hereda el del timeout)', () => {

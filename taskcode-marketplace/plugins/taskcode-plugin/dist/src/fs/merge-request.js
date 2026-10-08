@@ -20,6 +20,14 @@
  * - stdin ignorado y `GH_PROMPT_DISABLED`: nada de preguntas interactivas.
  * - Todo lo que sale de estos programas se pasa por `ocultarCredenciales`
  *   antes de llegar a un mensaje: a veces repiten la URL del remoto.
+ * - TASK-061, GitLab declarado en config: `contextoGlab` es el UNICO sitio
+ *   que produce `-R <proyecto>` y `GITLAB_HOST=<base>`, y lo usan por igual
+ *   la comprobacion de sesion, el estado y la creacion: si cada una lo
+ *   compusiera por su cuenta, un proyecto mal deducido abriria un MR y
+ *   consultaria otro. `GITLAB_HOST` se fija en CADA llamada y el que traiga
+ *   el entorno (y sus alias) se descarta, porque un host heredado abriria el
+ *   MR en otro servidor; `GITLAB_TOKEN` si se hereda y nunca se imprime.
+ *   Sin declaracion no se anade nada: lo de la 0.6.0.
  */
 import { spawnSync } from 'node:child_process';
 import { CLI_PLATAFORMA, esUrlPublicable, interpretarListado, ocultarCredenciales, urlDeSalidaDeCreacion, } from '../core/plataforma-remota.js';
@@ -31,14 +39,33 @@ export class MergeRequestError extends Error {
 }
 const TIMEOUT_MS = 120_000;
 const MAX_BUFFER = 16 * 1024 * 1024;
-function lanzar(cli, args, cwd) {
+/** Variables con las que glab elige instancia: ninguna se hereda cuando la base esta declarada. */
+const VARIABLES_HOST_GLAB = ['GITLAB_HOST', 'GL_HOST', 'GITLAB_URI', 'GITLAB_API_HOST'];
+/** El unico productor de `-R` y `GITLAB_HOST` (ver cabecera). */
+function contextoGlab(remoto) {
+    const d = remoto.declarado;
+    return d === undefined ? { repo: [], gitlabHost: undefined } : { repo: ['-R', d.proyecto], gitlabHost: d.base };
+}
+function entornoDe(gitlabHost) {
+    const env = { ...process.env, GH_PROMPT_DISABLED: '1', NO_COLOR: '1' };
+    if (gitlabHost === undefined)
+        return env;
+    // Windows ignora las mayusculas en el entorno pero el objeto copiado no.
+    for (const k of Object.keys(env)) {
+        if (VARIABLES_HOST_GLAB.includes(k.toUpperCase()))
+            delete env[k];
+    }
+    env['GITLAB_HOST'] = gitlabHost;
+    return env;
+}
+function lanzar(cli, args, cwd, gitlabHost) {
     return spawnSync(cli, args, {
         cwd,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
         timeout: TIMEOUT_MS,
         maxBuffer: MAX_BUFFER,
-        env: { ...process.env, GH_PROMPT_DISABLED: '1', NO_COLOR: '1' },
+        env: entornoDe(gitlabHost),
     });
 }
 /** Lo que dijo el CLI por stderr (o stdout), limpio y de una linea para un mensaje. */
@@ -46,10 +73,15 @@ function detalle(r) {
     const t = ocultarCredenciales(`${r.stderr ?? ''}${r.stdout ?? ''}`).trim();
     return t === '' ? '(sin salida)' : t.split(/\r?\n/).slice(0, 4).join(' | ');
 }
+/** Nombre de la instancia como lo entiende `glab auth login --hostname`: host y, si la hay, su ruta. */
+function hostnameGlab(r) {
+    return r.declarado === undefined ? r.host : r.declarado.base.replace(/^https:\/\//, '');
+}
 function ayudaInstalacion(r) {
-    return r.plataforma === 'github'
-        ? 'Instala GitHub CLI (https://cli.github.com) y ejecuta "gh auth login"'
-        : `Instala GitLab CLI (https://gitlab.com/gitlab-org/cli) y ejecuta "glab auth login --hostname ${r.host}"`;
+    if (r.plataforma === 'github')
+        return 'Instala GitHub CLI (https://cli.github.com) y ejecuta "gh auth login"';
+    const login = `Instala GitLab CLI (https://gitlab.com/gitlab-org/cli) y ejecuta "glab auth login --hostname ${hostnameGlab(r)}"`;
+    return r.declarado === undefined ? login : `${login} (o define la variable de entorno GITLAB_TOKEN)`;
 }
 /**
  * El CLI de la plataforma, instalado y autenticado en el host de origin. No
@@ -58,7 +90,13 @@ function ayudaInstalacion(r) {
  */
 export function comprobarCli(remoto, cwd) {
     const cli = CLI_PLATAFORMA[remoto.plataforma];
-    const r = lanzar(cli, ['auth', 'status', '--hostname', remoto.host], cwd);
+    // Con la instancia declarada la sesion se comprueba con una llamada real,
+    // `glab api user`: `auth status` ignora GITLAB_TOKEN y daria por rota una
+    // sesion por token que funciona (evidencia-glab-subpath, pruebas 2 y 3). Su
+    // salida (el usuario) no se lee ni se muestra.
+    const r = remoto.declarado === undefined
+        ? lanzar(cli, ['auth', 'status', '--hostname', remoto.host], cwd)
+        : lanzar(cli, ['api', 'user'], cwd, contextoGlab(remoto).gitlabHost);
     if (r.error) {
         return {
             ok: false,
@@ -70,7 +108,10 @@ export function comprobarCli(remoto, cwd) {
         return {
             ok: false,
             motivo: 'sin-autenticar',
-            mensaje: `"${cli}" no esta autenticado en ${remoto.host} (${detalle(r)}). ${ayudaInstalacion(remoto)}.`,
+            mensaje: remoto.declarado === undefined
+                ? `"${cli}" no esta autenticado en ${remoto.host} (${detalle(r)}). ${ayudaInstalacion(remoto)}.`
+                : `"${cli}" no tiene sesion valida en ${hostnameGlab(remoto)} o la instancia no responde ` +
+                    `(${detalle(r)}). ${ayudaInstalacion(remoto)}.`,
         };
     }
     return { ok: true };
@@ -82,6 +123,7 @@ export function comprobarCli(remoto, cwd) {
  */
 export function estadoMergeRequest(remoto, rama, cwd) {
     const cli = CLI_PLATAFORMA[remoto.plataforma];
+    const ctx = contextoGlab(remoto);
     const args = remoto.plataforma === 'github'
         ? [
             'pr',
@@ -91,8 +133,8 @@ export function estadoMergeRequest(remoto, rama, cwd) {
             '--limit=100',
             '--json=number,state,url,baseRefName,headRefName,headRefOid,mergeCommit',
         ]
-        : ['mr', 'list', `--source-branch=${rama}`, '--all', '--per-page=100', '--output=json'];
-    const r = lanzar(cli, args, cwd);
+        : ['mr', 'list', ...ctx.repo, `--source-branch=${rama}`, '--all', '--per-page=100', '--output=json'];
+    const r = lanzar(cli, args, cwd, ctx.gitlabHost);
     if (r.error)
         return { tipo: 'desconocido', motivo: `no se pudo ejecutar "${cli}": ${r.error.message}` };
     if (r.status !== 0) {
@@ -103,6 +145,7 @@ export function estadoMergeRequest(remoto, rama, cwd) {
 /** Abre el PR/MR y devuelve su URL. Lanza MergeRequestError si el CLI falla. */
 export function abrirMergeRequest(remoto, peticion, cwd) {
     const cli = CLI_PLATAFORMA[remoto.plataforma];
+    const ctx = contextoGlab(remoto);
     const args = remoto.plataforma === 'github'
         ? [
             'pr',
@@ -115,13 +158,14 @@ export function abrirMergeRequest(remoto, peticion, cwd) {
         : [
             'mr',
             'create',
+            ...ctx.repo,
             `--target-branch=${peticion.base}`,
             `--source-branch=${peticion.rama}`,
             `--title=${peticion.titulo}`,
             `--description=${peticion.cuerpo}`,
             '--yes',
         ];
-    const r = lanzar(cli, args, cwd);
+    const r = lanzar(cli, args, cwd, ctx.gitlabHost);
     if (r.error)
         throw new MergeRequestError(`no se pudo ejecutar "${cli}": ${r.error.message}`);
     if (r.status !== 0) {

@@ -585,12 +585,14 @@ Git-Flow del tipo y tarea a `terminada`.
 - `--merge-request` (solo feature y fix) **no mergea**: sube la rama (siempre,
   aunque no pases `--push`: sin ella no hay merge request, y la salida lo dice),
   abre un pull request (`origin` en `github.com`, con `gh`) o un merge request
-  (host que contiene «gitlab», con `glab`, también autoalojado) contra la rama
+  (host que contiene «gitlab», con `glab`) contra la rama
   base, anota su URL en una sección `## Merge request` de `tarea.md`, la
   commitea en la rama de la tarea y la deja en `en-revision`. Un host de origin
-  desconocido **aborta** nombrando qué configurar: no se supone GitLab. Antes
+  desconocido **aborta** nombrando qué configurar: no se supone GitLab (un
+  GitLab propio se declara en el config, ver «GitLab propio» abajo). Antes
   de subir nada se comprueba que hay `origin`, que el CLI está instalado y que
-  tiene sesión (`gh auth status` / `glab auth status`); cada fallo dice qué
+  tiene sesión (`gh auth status` / `glab auth status`; con la plataforma
+  declarada en el config, `glab api user`); cada fallo dice qué
   instalar o configurar. Antes de crear se busca un PR/MR abierto de esa rama
   para no duplicarlo. La URL de `origin` (puede llevar credenciales) no se
   imprime ni se escribe en ningún sitio.
@@ -607,5 +609,45 @@ Git-Flow del tipo y tarea a `terminada`.
   (por defecto `merge`). `taskctl finish` **no** la lee: la usa la skill
   `finish` en modo automático, que no pregunta, a través de `taskctl siguiente
   --json` (campo `cierre`). En manual y semiautomático la skill pregunta.
-  Como cualquier clave del config, un valor mal escrito aborta, y una versión
-  anterior del plugin rechazaría la clave: todo el equipo actualiza a la vez.
+  Un valor mal escrito aborta. Una clave que el plugin no conoce **avisa** por
+  stderr y se ignora (desde la 0.7.0; las versiones anteriores abortaban).
+
+#### GitLab propio (autoalojado, con dominio propio o bajo una ruta)
+
+Sin configuración, `--merge-request` reconoce `github.com` y los hosts que
+contienen «gitlab». Para cualquier otra instancia de GitLab se declara en
+`.taskcode/config.yml` (claves leídas desde la 0.7.0):
+
+```yaml
+plataforma_remota: gitlab
+url_base_remoto: https://git.empresa.com            # opcional
+# url_base_remoto: https://servidor.example/ruta/gitlab   # si la instancia cuelga de una ruta
+```
+
+- `plataforma_remota`: `github` o `gitlab`. Sola con `gitlab`, la base es
+  `https://<host de origin>` (vale para un GitLab con dominio propio en la raíz
+  del host).
+- `url_base_remoto` (solo con `gitlab`): la URL **https** de la instancia, con su
+  ruta si la tiene, sin usuario ni contraseña. Lo que queda de `origin` tras la
+  base es el proyecto (`grupo/subgrupo/repo`), que se pasa a `glab` con `-R`.
+  Con **https**, la base tiene que ser **prefijo exacto** de la URL de `origin`
+  (host, puerto y ruta, sin barra final). Con **ssh o scp** solo se exige el
+  mismo host (el puerto no se compara): GitLab con ruta de instancia sirve ssh
+  sin ella (`git@servidor.example:grupo/repo.git`), así que si la ruta de
+  `origin` empieza por la de la base se quita
+  (`git@servidor.example:ruta/gitlab/grupo/repo.git` -> `grupo/repo`) y si no,
+  la ruta entera es el proyecto. Si no encaja, o si hay `@` (credenciales), no
+  es https o hay una URL sin plataforma, `taskctl` aborta antes de subir nada
+  con un mensaje que nombra la clave.
+- Sesión: `glab auth login --hostname git.empresa.com` (con ruta:
+  `--hostname servidor.example/ruta/gitlab`), o la variable de entorno
+  `GITLAB_TOKEN`. La sesión se comprueba con `glab api user`. El token no se
+  imprime ni se escribe. `glab` solo habla https con la instancia; un
+  certificado propio se resuelve en el sistema o en la configuración de `glab`.
+- Con la plataforma declarada, cada llamada a `glab` lleva `GITLAB_HOST` fijado
+  a la base y se ignoran los `GITLAB_HOST`, `GL_HOST`, `GITLAB_URI` y
+  `GITLAB_API_HOST` del entorno, para que un host heredado no abra el merge
+  request en otro servidor.
+- El config se lee del árbol en el que se ejecuta `finish`: tiene que estar
+  **commiteado en la rama de la tarea y en la rama base** (el segundo `finish`
+  puede ejecutarse desde la base).
