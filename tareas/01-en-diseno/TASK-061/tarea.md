@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 394880
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-10-08
