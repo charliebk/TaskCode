@@ -122,8 +122,19 @@ export interface LecturaHallazgos {
 export const ORIGENES_HALLAZGO = ['implementacion', 'plan', 'especificacion'] as const;
 export type OrigenHallazgo = (typeof ORIGENES_HALLAZGO)[number] | 'sin clasificar';
 
+/**
+ * Vocabulario cerrado de severidades (TASK-064). La celda se reconoce sin
+ * distinguir mayusculas, tildes ni enfasis (`Importante`, `**CRÍTICO**`,
+ * `menor`); cualquier otro valor (`Alta`, `Major`, vacio) no es una
+ * severidad reconocida y quien cuenta debe decirlo, no descartarlo.
+ */
+export const SEVERIDADES_HALLAZGO = ['CRITICO', 'IMPORTANTE', 'MENOR'] as const;
+export type SeveridadHallazgo = (typeof SEVERIDADES_HALLAZGO)[number];
+
 export interface HallazgoLeido extends Hallazgo {
   origen: OrigenHallazgo;
+  /** La severidad dentro del vocabulario; null si la celda no es ninguna de las tres. */
+  severidadReconocida: SeveridadHallazgo | null;
 }
 
 export interface LecturaTodosHallazgos {
@@ -147,6 +158,12 @@ function normalizarCelda(c: string): string {
 function origenDe(celda: string): OrigenHallazgo {
   const valor = celda.toLowerCase();
   return (ORIGENES_HALLAZGO as readonly string[]).includes(valor) ? (valor as OrigenHallazgo) : 'sin clasificar';
+}
+
+/** Severidad sin distinguir mayusculas, tildes ni enfasis; null fuera del vocabulario. */
+export function severidadDe(celda: string): SeveridadHallazgo | null {
+  const valor = normalizarCelda(celda).toUpperCase();
+  return (SEVERIDADES_HALLAZGO as readonly string[]).includes(valor) ? (valor as SeveridadHallazgo) : null;
 }
 
 /**
@@ -198,9 +215,11 @@ export function leerHallazgos(informe: string): LecturaTodosHallazgos {
     const c = celdas(l);
     const id = c[iId] ?? '';
     if (id === '' || id.toLowerCase().startsWith('(ej.')) continue;
+    const severidad = iSev === -1 ? '' : (c[iSev] ?? '');
     hallazgos.push({
       id,
-      severidad: iSev === -1 ? '' : (c[iSev] ?? ''),
+      severidad,
+      severidadReconocida: severidadDe(severidad),
       estado: c[iEstado] ?? '',
       fichero: iFich === -1 ? '' : (c[iFich] ?? ''),
       origen: iOrigen === -1 ? 'sin clasificar' : origenDe(c[iOrigen] ?? ''),
@@ -223,4 +242,82 @@ export function hallazgosNoCerrados(informe: string): LecturaHallazgos {
     })
     .map(({ id, severidad, estado, fichero }) => ({ id, severidad, estado, fichero }));
   return { tabla, abiertos };
+}
+
+// --- Hallazgos de una tarea, para las metricas (TASK-064) --------------------
+
+/** Un informe de revision ya leido, con la ronda y el revisor que da su nombre. */
+export interface InformeLeido {
+  /** Nombre del fichero dentro de `revision/` (para los avisos). */
+  fichero: string;
+  ronda: number;
+  /** Sufijo de `informe-revision-N-<revisor>.md`; '' en un informe sin fragmentar. */
+  revisor: string;
+  texto: string;
+}
+
+export type ConteoSeveridad = Record<SeveridadHallazgo, number> & { desconocida: number };
+export type ConteoOrigen = Record<OrigenHallazgo, number>;
+
+export interface SeveridadDesconocida {
+  fichero: string;
+  id: string;
+  /** La celda tal cual se leyo (sin enfasis ni tildes); '' si estaba vacia o no hay columna. */
+  valor: string;
+}
+
+/**
+ * Hallazgos de una tarea sumando todas sus rondas.
+ *
+ * REGLA (decision de Carlos, 2026-10-25): cada hallazgo cuenta UNA vez por
+ * tarea, con clave revisor + ID (el ID sin distinguir mayusculas). Un
+ * hallazgo que reaparece en la ronda 2 con estado `corregido` no suma otra
+ * vez; su severidad y su origen son los de la ultima ronda en que aparece.
+ *
+ * QUE SIGNIFICA CADA null (para quien agregue despues):
+ *  - `porSeveridad`/`porOrigen` null con `informes === 0`: la tarea no tiene
+ *    informes de revision (no se reviso, o es anterior a `review`): NO MEDIDO.
+ *  - null con `informesSinTabla.length > 0`: algun informe no tiene tabla de
+ *    hallazgos reconocible (anteriores a TASK-036, o escrita en prosa). Es
+ *    SIN DATO, no cero: contar solo los otros informes daria una cifra
+ *    menor que la real con aspecto de buena.
+ */
+export interface ResumenHallazgos {
+  informes: number;
+  /** Ficheros sin tabla de hallazgos. */
+  informesSinTabla: string[];
+  porSeveridad: ConteoSeveridad | null;
+  porOrigen: ConteoOrigen | null;
+  /** Hallazgos con severidad fuera del vocabulario (se listan aunque el total sea sin dato). */
+  severidadesDesconocidas: SeveridadDesconocida[];
+}
+
+export function resumirHallazgos(informes: readonly InformeLeido[]): ResumenHallazgos {
+  const informesSinTabla: string[] = [];
+  const severidadesDesconocidas: SeveridadDesconocida[] = [];
+  const porClave = new Map<string, HallazgoLeido>();
+  const ordenados = [...informes].sort((a, b) => a.ronda - b.ronda || a.fichero.localeCompare(b.fichero));
+  for (const inf of ordenados) {
+    const { tabla, hallazgos } = leerHallazgos(inf.texto);
+    if (!tabla) {
+      informesSinTabla.push(inf.fichero);
+      continue;
+    }
+    for (const h of hallazgos) {
+      if (h.severidadReconocida === null) {
+        severidadesDesconocidas.push({ fichero: inf.fichero, id: h.id, valor: h.severidad });
+      }
+      porClave.set(`${inf.revisor}\u0000${h.id.toUpperCase()}`, h);
+    }
+  }
+  if (informes.length === 0 || informesSinTabla.length > 0) {
+    return { informes: informes.length, informesSinTabla, porSeveridad: null, porOrigen: null, severidadesDesconocidas };
+  }
+  const porSeveridad: ConteoSeveridad = { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 0 };
+  const porOrigen: ConteoOrigen = { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 0 };
+  for (const h of porClave.values()) {
+    porSeveridad[h.severidadReconocida ?? 'desconocida']++;
+    porOrigen[h.origen]++;
+  }
+  return { informes: informes.length, informesSinTabla, porSeveridad, porOrigen, severidadesDesconocidas };
 }

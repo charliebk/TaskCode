@@ -1,6 +1,34 @@
 # Changelog
 
 ## Sin publicar
+
+Metricas v2, parte B (TASK-064): `taskctl metricas` lee lo que capturo
+TASK-063 y enriquece la fila de cada tarea. La evolucion por tramos, los
+grupos, `--repo`, `--json` y la linea base quedan para TASK-065.
+
+- Columnas nuevas `crit`, `imp`, `men` y `hall_origen`
+  (implementacion/plan/especificacion/sin clasificar): los hallazgos de todos
+  los informes de revision, `informe-revision-N.md` e
+  `informe-revision-N-<revisor>.md`, contados una vez por tarea con clave
+  revisor + ID (la severidad y el origen son los de la ultima ronda en que
+  aparece). Un informe sin tabla de hallazgos deja la tarea en «—» (sin dato,
+  no cero); la salida dice cuantos hay y lo avisa.
+- La severidad se reconoce sin distinguir mayusculas, tildes ni enfasis
+  (`Importante`, `Crítico`, `menor`); una fuera de vocabulario (`Alta`,
+  `Major`, vacia) sale como aviso con la tarea y el fichero y no cuenta en
+  `crit/imp/men`. `leerHallazgos` expone `severidadReconocida`.
+- Bajo la tabla: la mediana de lecturas por fase de las tareas cuya tabla
+  `## Coste` las mide, y la lista de tareas terminadas sin coste (vacio o 0)
+  en alguna fase.
+- `--tokens` anade `tok_nuevos` (entrada + escritura de cache + salida),
+  `tok_cache_lect` y `tok_sin_desglose` (`tokens_<fase>` menos lo desglosado).
+  Un negativo no se recorta a 0: sale con aviso. Un agente repetido en la
+  misma fase (MEN-2 de TASK-063) se avisa y no se deduplica; las filas
+  `manual` no cuentan como repetidas. El bloque de `docs/METRICAS.md` no
+  cambia de forma, y los avisos no impiden `--escribir`.
+- Test de una fila valida dentro de un bloque de codigo en una seccion
+  `## Coste` real, que `leerCostes` no cuenta (MEN-1 de TASK-063).
+
 - TASK-063 (feature) — Metricas v2 (A): capturar desglose de coste, lecturas y origen de hallazgos (2026-10-25)
 
 Metricas v2, parte A (TASK-063): se capturan los datos que faltaban para

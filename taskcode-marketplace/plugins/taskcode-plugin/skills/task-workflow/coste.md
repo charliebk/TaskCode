@@ -63,6 +63,11 @@ cuantas lecturas de ficheros hicieron); con `--tokens N`, una fila `manual`
 con solo el total. No la edites a mano: el total de la fase sigue siendo el
 campo `tokens_<fase>`, y la tabla es su desglose.
 
+El mismo `--agente` registrado dos veces en la misma fase suma dos veces y
+deja dos filas: no se deduplica. `taskctl metricas` lo avisa (y avisa tambien
+si lo desglosado supera a `tokens_<fase>`); si fue un error, corrige el total y
+quita la fila sobrante.
+
 `taskctl finish` avisa, sin bloquear, si falta el coste de diseno, de
 implementacion (vacio o a 0) o de revision. `taskctl metricas --tokens` lo tabula por tarea, por sprint y por
 complejidad; con `--escribir` regenera un bloque delimitado del fichero de

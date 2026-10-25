@@ -97,6 +97,13 @@ export function commitRevisadoDe(peticion) {
  * (informes anteriores) es `sin clasificar`.
  */
 export const ORIGENES_HALLAZGO = ['implementacion', 'plan', 'especificacion'];
+/**
+ * Vocabulario cerrado de severidades (TASK-064). La celda se reconoce sin
+ * distinguir mayusculas, tildes ni enfasis (`Importante`, `**CRÍTICO**`,
+ * `menor`); cualquier otro valor (`Alta`, `Major`, vacio) no es una
+ * severidad reconocida y quien cuenta debe decirlo, no descartarlo.
+ */
+export const SEVERIDADES_HALLAZGO = ['CRITICO', 'IMPORTANTE', 'MENOR'];
 function normalizarCelda(c) {
     return c
         .trim()
@@ -110,6 +117,11 @@ function normalizarCelda(c) {
 function origenDe(celda) {
     const valor = celda.toLowerCase();
     return ORIGENES_HALLAZGO.includes(valor) ? valor : 'sin clasificar';
+}
+/** Severidad sin distinguir mayusculas, tildes ni enfasis; null fuera del vocabulario. */
+export function severidadDe(celda) {
+    const valor = normalizarCelda(celda).toUpperCase();
+    return SEVERIDADES_HALLAZGO.includes(valor) ? valor : null;
 }
 /**
  * Todas las filas de la primera tabla bajo `## Hallazgos` cuya cabecera
@@ -166,9 +178,11 @@ export function leerHallazgos(informe) {
         const id = c[iId] ?? '';
         if (id === '' || id.toLowerCase().startsWith('(ej.'))
             continue;
+        const severidad = iSev === -1 ? '' : (c[iSev] ?? '');
         hallazgos.push({
             id,
-            severidad: iSev === -1 ? '' : (c[iSev] ?? ''),
+            severidad,
+            severidadReconocida: severidadDe(severidad),
             estado: c[iEstado] ?? '',
             fichero: iFich === -1 ? '' : (c[iFich] ?? ''),
             origen: iOrigen === -1 ? 'sin clasificar' : origenDe(c[iOrigen] ?? ''),
@@ -190,4 +204,33 @@ export function hallazgosNoCerrados(informe) {
     })
         .map(({ id, severidad, estado, fichero }) => ({ id, severidad, estado, fichero }));
     return { tabla, abiertos };
+}
+export function resumirHallazgos(informes) {
+    const informesSinTabla = [];
+    const severidadesDesconocidas = [];
+    const porClave = new Map();
+    const ordenados = [...informes].sort((a, b) => a.ronda - b.ronda || a.fichero.localeCompare(b.fichero));
+    for (const inf of ordenados) {
+        const { tabla, hallazgos } = leerHallazgos(inf.texto);
+        if (!tabla) {
+            informesSinTabla.push(inf.fichero);
+            continue;
+        }
+        for (const h of hallazgos) {
+            if (h.severidadReconocida === null) {
+                severidadesDesconocidas.push({ fichero: inf.fichero, id: h.id, valor: h.severidad });
+            }
+            porClave.set(`${inf.revisor}\u0000${h.id.toUpperCase()}`, h);
+        }
+    }
+    if (informes.length === 0 || informesSinTabla.length > 0) {
+        return { informes: informes.length, informesSinTabla, porSeveridad: null, porOrigen: null, severidadesDesconocidas };
+    }
+    const porSeveridad = { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 0 };
+    const porOrigen = { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 0 };
+    for (const h of porClave.values()) {
+        porSeveridad[h.severidadReconocida ?? 'desconocida']++;
+        porOrigen[h.origen]++;
+    }
+    return { informes: informes.length, informesSinTabla, porSeveridad, porOrigen, severidadesDesconocidas };
 }

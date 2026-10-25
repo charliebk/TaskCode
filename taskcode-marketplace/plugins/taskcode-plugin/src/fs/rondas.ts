@@ -81,6 +81,17 @@ export async function ultimaRonda(dir: string, patron: RegExp): Promise<number> 
 export const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 
 /**
+ * Ronda y revisor de un nombre de informe de revision (TASK-064): el
+ * revisor es el sufijo de una ronda fragmentada, '' sin sufijo. null si el
+ * nombre no es un informe de revision.
+ */
+export function rondaYRevisorDeInforme(nombre: string): { ronda: number; revisor: string } | null {
+  const m = /^informe-revision-(\d+)(?:-([a-z0-9-]+))?\.md$/.exec(nombre);
+  if (m === null) return null;
+  return { ronda: Number(m[1]), revisor: m[2] ?? '' };
+}
+
+/**
  * Nombres de TODOS los ficheros de la ronda de mayor N segun `patron`
  * (una ronda fragmentada deja varios con el mismo N), y ese N. Sin
  * directorio, o si la ruta es un fichero, `{ ronda: 0, nombres: [] }`,

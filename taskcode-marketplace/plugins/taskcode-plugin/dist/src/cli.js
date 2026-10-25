@@ -74,9 +74,13 @@ Uso:
 Comandos: new, import, board, metricas, start, plan, approve, review, codex-review, veredicto,
 finish, siguiente, doctor, pausa, registrar-coste, cadena.
 metricas saca, por tarea, cuanto duro cada fase (diseno, curso, revision) y
-cuantas rondas de revision hubo; --heuristica compara la complejidad declarada
-con la que da la heuristica en las tareas terminadas. --tokens anade el coste en
-tokens por fase y un resumen por sprint y por complejidad; con --escribir lo
+cuantas rondas de revision hubo, con sus hallazgos CRITICO/IMPORTANTE/MENOR y su
+origen (cada uno una vez por tarea: revisor + ID; un informe sin tabla es sin dato,
+no cero), la mediana de lecturas por fase y las terminadas sin coste en alguna
+fase; --heuristica compara la complejidad declarada con la que da la heuristica
+en las tareas terminadas. --tokens anade el coste en tokens por fase, el desglose
+de "## Coste" (tokens nuevos, lectura de cache y lo que queda sin desglose) y un
+resumen por sprint y por complejidad; con --escribir lo
 regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
 --escribir solo lee.
 registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
