@@ -33,6 +33,9 @@ Parte de agregados de la particion de TASK-064 (decidida en su diseno, Carlos 20
 - [ ] Con --json y --evolucion o --grupos, la salida es un unico objeto que pasa JSON.parse tambien sin tareas y con grupos vacios (sin NaN ni null silenciosos); el texto humano y los avisos van por stderr.
 - [ ] Tests contra repos Git temporales reales (dos repos con el mismo TASK-NNN, grupo vacio, sin tareas, --repo con --escribir); README y CHANGELOG documentan las metricas nuevas.
 - [ ] Linea base: la salida de taskctl metricas --evolucion --grupos con --repo sobre ToolsaWeb, OpenGisViewer y TaskCode queda copiada en el Resultado, y git status en cada uno de los tres sigue igual que antes de ejecutarlo.
+- [ ] Un flag repetido que no admite repeticion aborta con error en cualquier comando de taskctl en vez de pisar el valor anterior; --repo y --agente usan el mismo lector de flags repetibles; --json solo se combina con una lista cerrada de flags y con cualquier otro (p. ej. --escribir) aborta sin escribir nada.
+- [ ] La lista de tareas terminadas sin coste muestra el recuento por fase, las 10 primeras y «y N mas» (completa solo en --json), y el README del plugin documenta las columnas, avisos y flags de metricas.
+- [ ] taskctl registrar-coste --agente <id> con un id ya anotado en la tabla ## Coste de esa fase registra solo la diferencia entre la transcripcion acumulada y lo ya anotado para ese id, la fila lo indica en su fuente, y metricas no la avisa como repetida; un test con una transcripcion que crece entre dos registros fija la cifra.
 
 ## Transiciones
 
