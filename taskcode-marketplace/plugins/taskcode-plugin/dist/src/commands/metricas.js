@@ -44,6 +44,7 @@ import { INFORME_REVISION_RE, PETICION_REVISION_RE, nombresDeUltimaRonda, rondaY
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion } from '../core/evolucion.js';
+import { calcularGrupos, formatearGrupos } from '../core/grupos-metricas.js';
 export class MetricasCommandError extends Error {
 }
 export const FLAGS_METRICAS = [
@@ -53,6 +54,7 @@ export const FLAGS_METRICAS = [
     '--repo',
     '--evolucion',
     '--tramo',
+    '--grupos',
 ];
 /** Ruta de docs/METRICAS.md dentro del repo del usuario. */
 export function metricasFilePath(repoCwd) {
@@ -101,16 +103,19 @@ function parseFlagsMetricas(argv) {
         escribir: flagSuelto(flags, 'escribir'),
         repos,
         evolucion: null,
+        grupos: flagSuelto(flags, 'grupos'),
     };
     const conEvolucion = flagSuelto(flags, 'evolucion');
     const tramo = leerTramo(flags['tramo'], conEvolucion);
-    if (conEvolucion) {
+    if (conEvolucion)
         f.evolucion = tramo;
+    if (conEvolucion || f.grupos) {
         // Los agregados sustituyen a la tabla por tarea: lo que anaden --heuristica
         // y --tokens (columnas y resumenes de esa tabla) no saldria en ningun sitio.
         const choca = ['heuristica', 'tokens', 'escribir'].filter((k) => f[k]);
         if (choca.length > 0) {
-            throw new MetricasCommandError(`[ERROR] --evolucion no se combina con ${choca.map((k) => `--${k}`).join(' ni ')}: saca agregados ` +
+            const agregado = conEvolucion ? '--evolucion' : '--grupos';
+            throw new MetricasCommandError(`[ERROR] ${agregado} no se combina con ${choca.map((k) => `--${k}`).join(' ni ')}: saca agregados ` +
                 'en lugar de la tabla por tarea. Lanzalos por separado.');
         }
     }
@@ -306,7 +311,7 @@ export async function leerRepoMetricas(repo, varios) {
 }
 export async function runMetricasCommand(tareasRoot, argv, deps) {
     rechazarFlagsDesconocidos(argv, FLAGS_METRICAS, 'metricas', (m) => new MetricasCommandError(m));
-    const { heuristica: conHeuristica, tokens: conTokens, escribir, repos: valoresRepo, evolucion: tramoEvolucion, } = parseFlagsMetricas(argv);
+    const { heuristica: conHeuristica, tokens: conTokens, escribir, repos: valoresRepo, evolucion: tramoEvolucion, grupos: conGrupos, } = parseFlagsMetricas(argv);
     // Como board --escribir: sin tareas/ en este directorio no se crea un
     // docs/METRICAS.md fantasma.
     if (escribir) {
@@ -357,9 +362,14 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
         advertencias.push(sinTabla);
     // TASK-065: los agregados sustituyen a la tabla por tarea, y salen tambien
     // sin tareas (con sus ceros y sus n 0 a la vista).
-    if (tramoEvolucion !== null) {
+    if (tramoEvolucion !== null || conGrupos) {
+        const secciones = [];
+        if (tramoEvolucion !== null)
+            secciones.push(formatearEvolucion(calcularEvolucion(filas, tramoEvolucion), varios));
+        if (conGrupos)
+            secciones.push(formatearGrupos(calcularGrupos(filas, repos.map((r) => r.proyecto))));
         return {
-            output: formatearEvolucion(calcularEvolucion(filas, tramoEvolucion), varios),
+            output: secciones.join('\n\n'),
             totalTareas: filas.length,
             advertencias,
             metricasPath: null,

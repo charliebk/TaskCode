@@ -95,3 +95,54 @@ test('--evolucion sin tareas: sale la cabecera con ceros, sin tabla ni NaN', asy
     assert.doesNotMatch(r.stdout, /NaN|No hay tareas/);
   });
 });
+
+/** Celdas de la fila de un grupo en la salida de --grupos. */
+function grupo(salida: string, nombre: string): string[] {
+  const l = salida.split('\n').find((x) => x.startsWith(`| ${nombre} `));
+  assert.ok(l, `sin grupo ${nombre}:\n${salida}`);
+  return l
+    .slice(1, -1)
+    .split('|')
+    .map((c) => c.trim());
+}
+
+test('--grupos con dos repos: tipo, complejidad, criterios, terciles de KB y proyecto, con los grupos vacios a la vista', async () => {
+  await conRepos(async (crear, base) => {
+    const alfa = await crear('alfa');
+    const beta = await crear('beta');
+    await escribirTareas(alfa, ALFA);
+    await escribirTareas(beta, BETA);
+    const r = metricas(base, ['--grupos', '--repo', 'alfa', '--repo', 'beta']);
+    assert.equal(r.status, 0, r.stderr);
+    const s = r.stdout;
+    // 6 terminadas: alfa 099 (1a), 100 (2 rondas, IMP-1 una vez), 101 (1a, con correcciones),
+    // 102 (sin revision), 103 (sin cierre, 1a, informe sin tabla); beta 099 (fix, 8 criterios, CRITICO).
+    assert.match(s, /Grupos de 6 tareas terminadas \(sin revision: 1; revisadas sin tabla de hallazgos: 1\)\./);
+    assert.deepEqual(grupo(s, 'feature').slice(1, 8), ['5', '4', '75% (3)', '1.25', '0.33 (n=3)', '1', '1']);
+    assert.deepEqual(grupo(s, 'fix').slice(1, 8), ['1', '1', '100% (1)', '1', '1 (n=1)', '0', '0']);
+    assert.deepEqual(grupo(s, 'hotfix').slice(1, 8), ['0', '0', '—', '—', '—', '0', '0'], 'grupo vacio');
+    assert.deepEqual(grupo(s, '7+').slice(1, 3), ['1', '1']);
+    assert.deepEqual(grupo(s, '0-4').slice(1, 3), ['5', '4']);
+    assert.deepEqual(grupo(s, 'alfa').slice(1, 3), ['5', '4']);
+    assert.deepEqual(grupo(s, 'beta').slice(1, 3), ['1', '1'], 'la en-curso de beta no cuenta');
+    // KB por tarea: alfa/099 1, alfa/100 3 (4 y 2), beta/099 10 -> una en cada tercil; 3 sin peticion.
+    assert.match(s, /terciles; sin peticion, fuera: 3\):/);
+    assert.equal(grupo(s, 'bajo (<= 1 KB)')[1], '1');
+    assert.equal(grupo(s, 'medio (1-3 KB)')[1], '1');
+    assert.equal(grupo(s, 'alto (> 3 KB)')[1], '1');
+    assert.doesNotMatch(s, /NaN|undefined|null/);
+  });
+});
+
+test('--evolucion --grupos juntos: las dos secciones, en ese orden', async () => {
+  await conRepos(async (crear) => {
+    const alfa = await crear('alfa');
+    await escribirTareas(alfa, ALFA);
+    const r = metricas(alfa, ['--grupos', '--evolucion']);
+    assert.equal(r.status, 0, r.stderr);
+    const i = r.stdout.indexOf('Evolucion por tramos');
+    const j = r.stdout.indexOf('Grupos de 5 tareas terminadas');
+    assert.ok(i === 0 && j > i, r.stdout);
+    assert.match(metricas(alfa, ['--grupos', '--tokens']).stderr, /--grupos no se combina con --tokens/);
+  });
+});
