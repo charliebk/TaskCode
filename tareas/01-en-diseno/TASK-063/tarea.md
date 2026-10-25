@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: null
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-063-metricas-v2-medir-el-comportamiento-del
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -35,3 +35,9 @@ Antes de mejorar el plugin en tiempo, tokens, verificacion o memoria de contexto
 - [ ] taskctl metricas --evolucion [--tramo N] agrupa las tareas terminadas en tramos de N (20 por defecto) con mediana de minutos plan a finish, rondas medias, hallazgos IMPORTANTE por tarea, tokens de revision y KB de peticiones de revision; con --json da lo mismo en JSON.
 - [ ] Tests contra repos Git temporales reales con tareas en formato antiguo y nuevo y transcripciones jsonl de ejemplo; README y CHANGELOG documentan las metricas nuevas.
 - [ ] Linea base: la salida de taskctl metricas --evolucion sobre ToolsaWeb (solo lectura, sin escribir en ese repo) queda copiada en el Resultado de la tarea.
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-25T13:30:44Z | plan | automatico | persona |
