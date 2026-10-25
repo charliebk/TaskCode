@@ -33,7 +33,8 @@ tomada y documentada, no aplazada.
 | ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
-| **Total pendiente** | **0** | — | — |
+| I — Métricas v2 | 2 | **1** | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -797,3 +798,20 @@ Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
       de las tareas con un recorrido propio y, si aplica, la sesión de
       gh/glab. Cada fallo trae su arreglo; con `--json` y código 1 solo si
       hay errores. Hubo 1 ronda, con 5 MENOR corregidos.*
+
+## I — Métricas v2 (1/2)
+
+Pedido por Carlos el 2026-10-25: medir el comportamiento del plugin en los
+proyectos que lo usan (ToolsaWeb, OpenGisViewer, TaskCode) antes de decidir
+mejoras de tokens, tiempo, verificación o memoria de contexto. Se partió en
+el diseño de TASK-063 en captura (A) y lectura (B).
+
+- [x] TASK-063 — Métricas v2 (A): capturar desglose de coste, lecturas y
+      origen de hallazgos — cerrada el 2026-10-25
+      *Tabla `## Coste` en `tarea.md` con entrada, caché escrita y leída,
+      salida, lecturas y total por registro; las lecturas cuentan Read, Grep,
+      Glob, MCP de lectura y Bash de lectura. Columna `Origen` por hallazgo
+      (implementación, plan o especificación) y `leerHallazgos`. `finish`
+      avisa sin coste de implementación. 1 ronda, aprobada, 3 MENOR
+      aceptados (dos pasan a TASK-064).*
+- [ ] TASK-064 — Métricas v2 (B): leer y mostrar la evolución del flujo
