@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-065-metricas-v2-c-evolucion-grupos-y-varios
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -33,3 +33,9 @@ Parte de agregados de la particion de TASK-064 (decidida en su diseno, Carlos 20
 - [ ] Con --json y --evolucion o --grupos, la salida es un unico objeto que pasa JSON.parse tambien sin tareas y con grupos vacios (sin NaN ni null silenciosos); el texto humano y los avisos van por stderr.
 - [ ] Tests contra repos Git temporales reales (dos repos con el mismo TASK-NNN, grupo vacio, sin tareas, --repo con --escribir); README y CHANGELOG documentan las metricas nuevas.
 - [ ] Linea base: la salida de taskctl metricas --evolucion --grupos con --repo sobre ToolsaWeb, OpenGisViewer y TaskCode queda copiada en el Resultado, y git status en cada uno de los tres sigue igual que antes de ejecutarlo.
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-25T19:05:21Z | plan | automatico | persona |
