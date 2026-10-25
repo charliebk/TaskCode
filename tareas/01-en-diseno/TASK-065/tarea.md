@@ -7,7 +7,7 @@ etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-065-metricas-v2-c-evolucion-grupos-y-varios
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -42,3 +42,4 @@ Parte de agregados de la particion de TASK-064 (decidida en su diseno, Carlos 20
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-25T19:05:21Z | plan | automatico | persona |
+| 2026-10-25T19:15:04Z | approve | automatico | automatico |
