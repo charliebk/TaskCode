@@ -49,7 +49,7 @@
 import { leerTransiciones, instanteDe, precisionDeFecha } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, resumirCostes } from './coste-registro.js';
-import { resumirHallazgos } from './informe-revision.js';
+import { resumirHallazgos, veredictoDeRonda, } from './informe-revision.js';
 import { extraerSecciones } from './tarea-body.js';
 /**
  * Clave de una tarea en cualquier Map de metricas: (proyecto, id). Hoy hay
@@ -187,7 +187,13 @@ export function calcularFila(e) {
         }),
         hallazgos: resumirHallazgos(e.informes ?? []),
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
+        total: duracionEntre(marcas.plan, marcas.finish),
+        veredictoRonda1: veredictoRonda1(e.informes ?? []),
     };
+}
+function veredictoRonda1(informes) {
+    const primera = informes.filter((i) => i.ronda === 1);
+    return primera.length === 0 ? null : veredictoDeRonda(primera.map((i) => i.texto));
 }
 /** `—` para lo que no hay; dias como `N d`; segundos como `1d 03h`, `2h 05m`, `7m`, `40s`. */
 export function formatearDuracion(d) {
@@ -542,6 +548,13 @@ export function mediana(valores) {
     const v = [...valores].sort((a, b) => a - b);
     const m = Math.floor(v.length / 2);
     return v.length % 2 === 1 ? v[m] : (v[m - 1] + v[m]) / 2;
+}
+/** Media redondeada a `decimales`; null si la lista esta vacia (nunca NaN). */
+export function media(valores, decimales = 2) {
+    if (valores.length === 0)
+        return null;
+    const f = 10 ** decimales;
+    return Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * f) / f;
 }
 /** Por fase, la mediana de lecturas de las tareas cuya tabla `## Coste` las mide, y cuantas son. */
 export function medianaLecturas(filas) {

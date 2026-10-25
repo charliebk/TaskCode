@@ -49,7 +49,13 @@
 import { leerTransiciones, instanteDe, precisionDeFecha, type PrecisionFecha } from './transiciones.js';
 import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState, type TaskType } from './task.js';
 import { FASES_COSTE, leerCostes, resumirCostes, type FaseCoste, type ResumenCostes } from './coste-registro.js';
-import { resumirHallazgos, type InformeLeido, type ResumenHallazgos } from './informe-revision.js';
+import {
+  resumirHallazgos,
+  veredictoDeRonda,
+  type InformeLeido,
+  type ResumenHallazgos,
+  type VeredictoInforme,
+} from './informe-revision.js';
 import { extraerSecciones } from './tarea-body.js';
 
 export type OrigenMetricas = 'registro' | 'git' | '—';
@@ -138,6 +144,17 @@ export interface FilaMetricas {
   hallazgos: ResumenHallazgos;
   /** Una entrada por ronda con peticion; vacio = sin peticiones de revision (no medido). */
   kbPeticionPorRonda: PeticionRonda[];
+  /**
+   * TASK-065: del primer `plan` al ultimo `finish` (lo que suman diseno, curso
+   * y revision); null si falta una de las dos marcas.
+   */
+  total: Duracion | null;
+  /**
+   * TASK-065: veredicto de la ronda 1 (`veredictoDeRonda` de sus informes:
+   * `aprobada` cubre tambien `aprobada-con-correcciones`); null sin informes
+   * de la ronda 1. «Aprobada a la primera» = `rondas === 1` y esto `aprobada`.
+   */
+  veredictoRonda1: VeredictoInforme | null;
   /** Solo con `--heuristica`. */
   heuristica?: HeuristicaFila;
 }
@@ -282,7 +299,14 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     }),
     hallazgos: resumirHallazgos(e.informes ?? []),
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
+    total: duracionEntre(marcas.plan, marcas.finish),
+    veredictoRonda1: veredictoRonda1(e.informes ?? []),
   };
+}
+
+function veredictoRonda1(informes: readonly InformeLeido[]): VeredictoInforme | null {
+  const primera = informes.filter((i) => i.ronda === 1);
+  return primera.length === 0 ? null : veredictoDeRonda(primera.map((i) => i.texto));
 }
 
 /** `—` para lo que no hay; dias como `N d`; segundos como `1d 03h`, `2h 05m`, `7m`, `40s`. */
@@ -736,6 +760,13 @@ export function mediana(valores: readonly number[]): number | null {
   const v = [...valores].sort((a, b) => a - b);
   const m = Math.floor(v.length / 2);
   return v.length % 2 === 1 ? (v[m] as number) : ((v[m - 1] as number) + (v[m] as number)) / 2;
+}
+
+/** Media redondeada a `decimales`; null si la lista esta vacia (nunca NaN). */
+export function media(valores: readonly number[], decimales = 2): number | null {
+  if (valores.length === 0) return null;
+  const f = 10 ** decimales;
+  return Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * f) / f;
 }
 
 /** Por fase, la mediana de lecturas de las tareas cuya tabla `## Coste` las mide, y cuantas son. */
