@@ -7,7 +7,7 @@ etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-064-metricas-v2-b-leer-y-mostrar-la-evolucio
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -42,3 +42,4 @@ En su diseno se partio otra vez (Carlos, 2026-10-25): esta tarea enriquece la fi
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-25T14:53:47Z | plan | automatico | persona |
+| 2026-10-25T15:06:48Z | approve | automatico | automatico |
