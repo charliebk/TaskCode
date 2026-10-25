@@ -2,6 +2,31 @@
 
 ## Sin publicar
 
+Metricas v2, parte A (TASK-063): se capturan los datos que faltaban para
+decidir mejoras con cifras. Solo captura y cambia formatos; `taskctl metricas`
+los leera en TASK-064.
+
+- `taskctl registrar-coste` deja ademas una fila en una tabla nueva `## Coste`
+  del cuerpo de `tarea.md` (`fecha | fase | fuente | entrada | cache_escritura |
+  cache_lectura | salida | lecturas | total`), en el mismo commit que suma el
+  total a `tokens_<fase>`. Con `--agente`, el desglose sumado de sus
+  transcripciones (`fuente` = `agente:<id>[,<id>...]`); con `--tokens N`, una
+  fila `manual` con solo el total y `-` en el resto. Las tareas sin tabla
+  siguen siendo validas.
+- `lecturas`: cuantos `tool_use` de lectura hizo el agente, sin repetir id. Son
+  lectura Read, Grep, Glob y una lista cerrada de herramientas MCP de lectura o
+  busqueda (`HERRAMIENTAS_LECTURA` en `src/core/coste-transcripcion.ts`), y Bash
+  con un comando que empieza por `cat`, `head`, `tail`, `grep`, `rg`, `find`,
+  `ls` o `sed -n`. Es heuristico a sabiendas.
+- La plantilla del informe de `taskctl review` y las skills de revision llevan
+  una columna `Origen` por hallazgo (`implementacion`, `plan` o
+  `especificacion`) con la instruccion de rellenarla. `leerHallazgos` la lee,
+  normalizada (minusculas, sin tildes); un valor fuera del vocabulario, la
+  celda vacia o un informe antiguo sin la columna cuentan como `sin
+  clasificar`.
+- `taskctl finish` avisa tambien, sin bloquear, si la tarea se cierra con
+  `tokens_implementacion` vacio o a 0.
+
 ## 0.7.0 — 2026-10-08
 
 Merge request en cualquier GitLab y `taskctl doctor`. Requiere Node 22 o

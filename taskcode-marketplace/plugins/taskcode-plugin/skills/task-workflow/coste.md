@@ -56,7 +56,14 @@ Escribe y commitea solo el `tarea.md` de la tarea: con ese fichero a medias
 en el arbol aborta, y desde la rama base aborta si la tarea vive en su rama
 (dice a cual cambiar). Con una cadena abierta exige `--cadena <testigo>`.
 
-`taskctl finish` avisa, sin bloquear, si falta el coste de diseno o de
-revision. `taskctl metricas --tokens` lo tabula por tarea, por sprint y por
+Cada llamada deja ademas una fila en la tabla `## Coste` del cuerpo de
+`tarea.md` (en el mismo commit que el total): con `--agente`, el desglose
+sumado de sus agentes (entrada, escritura y lectura de cache, salida, y
+cuantas lecturas de ficheros hicieron); con `--tokens N`, una fila `manual`
+con solo el total. No la edites a mano: el total de la fase sigue siendo el
+campo `tokens_<fase>`, y la tabla es su desglose.
+
+`taskctl finish` avisa, sin bloquear, si falta el coste de diseno, de
+implementacion (vacio o a 0) o de revision. `taskctl metricas --tokens` lo tabula por tarea, por sprint y por
 complejidad; con `--escribir` regenera un bloque delimitado del fichero de
 metricas del proyecto, sin tocar el resto.

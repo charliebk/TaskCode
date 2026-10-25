@@ -787,3 +787,16 @@ test(
     );
   }
 );
+
+// --- TASK-063: columna Origen en las skills de revision --------------
+
+test('TASK-063: las skills de revision piden la columna Origen por hallazgo, con su vocabulario cerrado', async () => {
+  const revision = await readFile(path.join(SKILL_DIR, 'revision.md'), 'utf8');
+  assert.match(revision, /`ID \| Severidad \| Estado \| Fichero \| Origen`/);
+  assert.match(revision, /La columna `Origen` se rellena \*\*en cada hallazgo\*\*/);
+  for (const valor of ['implementacion', 'plan', 'especificacion']) {
+    assert.match(revision, new RegExp(`^- \`${valor}\`: `, 'm'), valor);
+  }
+  const review = await readFile(path.join(SKILLS_DIR, 'review', SKILL_FILE_NAME), 'utf8');
+  assert.match(review, /columna `Origen` rellena en cada fila\s+\(`implementacion`, `plan` o `especificacion`/);
+});

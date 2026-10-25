@@ -174,7 +174,7 @@ async function setupEnRevision(
   repoRoot: string,
   tareasRoot: string,
   body: string,
-  costes: Partial<Task> = { tokens_diseno: 1, tokens_revision: 1 }
+  costes: Partial<Task> = { tokens_diseno: 1, tokens_implementacion: 1, tokens_revision: 1 }
 ): Promise<Task> {
   const task = sampleTask({ estado: 'en-revision', plan_aprobado: true, ...costes });
   git(['checkout', '-q', '-b', task.rama, 'develop'], repoRoot);
@@ -239,10 +239,10 @@ test('finish (TASK-043): con todos los criterios marcados no hay aviso', async (
 });
 
 /**
- * TASK-023. Mutaciones que lo ponen rojo: bloquear en vez de avisar, avisar
- * tambien de tokens_implementacion, o no mirar tokens_revision.
+ * TASK-023. Mutaciones que lo ponen rojo: bloquear en vez de avisar, o no
+ * mirar alguna de las tres fases. TASK-063: implementacion tambien avisa.
  */
-test('finish (TASK-023): avisa del coste de diseno y revision sin registrar, ANTES del merge, y cierra igualmente', async () => {
+test('finish (TASK-023, TASK-063): avisa del coste de diseno, implementacion y revision sin registrar, ANTES del merge, y cierra igualmente', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     const task = await setupEnRevision(
       repoRoot,
@@ -260,22 +260,22 @@ test('finish (TASK-023): avisa del coste de diseno y revision sin registrar, ANT
         avisos.push({ texto, integrada });
       },
     });
-    assert.equal(avisos.length, 2, 'uno por diseno y otro por revision; implementacion no avisa');
+    assert.equal(avisos.length, 3, 'uno por fase');
     assert.ok(avisos.every((a) => !a.integrada), 'los avisos llegan antes de mergear');
     assert.match(avisos[0]?.texto ?? '', /sin coste de diseno registrado.*taskctl registrar-coste TASK-430 --fase diseno --agente <id>/);
     // IMP-1 de la revision: el aviso no puede proponer la cifra de la notificacion.
     assert.doesNotMatch(avisos[0]?.texto ?? '', /--tokens N/);
-    assert.match(avisos[1]?.texto ?? '', /sin coste de revision registrado.*--fase revision/);
-    assert.ok(avisos.every((a) => !/implementacion/.test(a.texto)));
+    assert.match(avisos[1]?.texto ?? '', /sin coste de implementacion registrado \(tokens_implementacion\).*--fase implementacion/);
+    assert.match(avisos[2]?.texto ?? '', /sin coste de revision registrado.*--fase revision/);
     assert.match(r.filePath, /04-terminadas/, 'no bloquea');
   });
 });
 
-test('finish (TASK-023): solo avisa de la fase que falta, y con diseno y revision registrados no avisa', async () => {
+test('finish (TASK-023): solo avisa de la fase que falta', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await setupEnRevision(repoRoot, tareasRoot, '## Objetivo\nX.\n', {
       tokens_diseno: 5000,
-      tokens_implementacion: null,
+      tokens_implementacion: 3000,
       tokens_revision: null,
     });
     const avisos: string[] = [];
@@ -289,11 +289,11 @@ test('finish (TASK-023): solo avisa de la fase que falta, y con diseno y revisio
   });
 });
 
-test('finish (TASK-023): con diseno y revision registrados (implementacion sin registrar) no hay aviso de coste', async () => {
+test('finish (TASK-023): con las tres fases registradas no hay aviso de coste', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await setupEnRevision(repoRoot, tareasRoot, '## Objetivo\nX.\n', {
       tokens_diseno: 5000,
-      tokens_implementacion: null,
+      tokens_implementacion: 3000,
       tokens_revision: 7000,
     });
     const avisos: string[] = [];
@@ -303,5 +303,29 @@ test('finish (TASK-023): con diseno y revision registrados (implementacion sin r
       onAviso: (a) => avisos.push(a),
     });
     assert.deepEqual(avisos, []);
+  });
+});
+
+/**
+ * TASK-063. Mutaciones que lo ponen rojo: no avisar con tokens_implementacion
+ * a 0 (solo con null), avisar tambien con diseno o revision a 0 (alli 0 no
+ * es «sin registrar»), o bloquear.
+ */
+test('finish (TASK-063): tokens_implementacion a 0 avisa como vacio, y cierra igualmente', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await setupEnRevision(repoRoot, tareasRoot, '## Objetivo\nX.\n', {
+      tokens_diseno: 0,
+      tokens_implementacion: 0,
+      tokens_revision: 0,
+    });
+    const avisos: string[] = [];
+    const r = await runFinishCommand(tareasRoot, ['TASK-430'], '2026-10-04', {
+      repoCwd: repoRoot,
+      scriptsDir: SCRIPTS_DIR,
+      onAviso: (a) => avisos.push(a),
+    });
+    assert.equal(avisos.length, 1, avisos.join('\n'));
+    assert.match(avisos[0] ?? '', /sin coste de implementacion registrado.*La tarea se cierra igualmente/);
+    assert.match(r.filePath, /04-terminadas/, 'no bloquea');
   });
 });

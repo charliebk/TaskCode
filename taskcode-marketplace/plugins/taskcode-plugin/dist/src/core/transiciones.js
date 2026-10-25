@@ -87,7 +87,7 @@ const VALLA_APERTURA = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})/;
  * proteger el registro real. Hace falta un documento roto, ademas de un
  * ejemplo del registro, para llegar ahi.
  */
-function dentroDeBloque(lineas) {
+export function dentroDeBloque(lineas) {
     const enBloque = lineas.map(() => false);
     let i = 0;
     while (i < lineas.length) {
@@ -120,10 +120,18 @@ function dentroDeBloque(lineas) {
  * bloque no es el registro, y la seccion real siempre se crea al final.
  */
 function rangoSeccion(lineas) {
+    return rangoDeSeccion(lineas, SECCION_TRANSICIONES);
+}
+/**
+ * La regla de `rangoSeccion` para cualquier seccion del cuerpo (TASK-063:
+ * la reutiliza `## Coste` de `core/coste-registro.ts`, que es una tabla
+ * hermana de esta).
+ */
+export function rangoDeSeccion(lineas, titulo) {
     const enBloque = dentroDeBloque(lineas);
     let inicio = -1;
     lineas.forEach((l, i) => {
-        if (!enBloque[i] && l.trimEnd() === SECCION_TRANSICIONES)
+        if (!enBloque[i] && l.trimEnd() === titulo)
             inicio = i;
     });
     if (inicio === -1)

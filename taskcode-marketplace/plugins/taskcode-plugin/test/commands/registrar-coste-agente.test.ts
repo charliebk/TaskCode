@@ -10,6 +10,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { readTareaFile } from '../../src/fs/task-store.js';
 import { ID, CONFIG_AUTO, TASKCTL, git, withRepo, hastaCodigo } from '../helpers/automatico-fixtures.js';
+import { leerCostes } from '../../src/core/coste-registro.js';
+import { TRANSCRIPCION_EJEMPLO, USO_EJEMPLO } from '../helpers/transcripcion-ejemplo.js';
 
 const A = 'a1b2c3d4e5f60718';
 const B = 'b1b2c3d4e5f60718';
@@ -135,6 +137,127 @@ test('--agente: un fallo con varios agentes no registra ni la parte buena', asyn
       const r = coste(repo, config, [ID, '--fase', 'diseno', '--agente', A, '--agente', 'c1b2c3d4e5f60718']);
       assert.equal(r.status, 1);
       assert.deepEqual(await valor(tareasRoot), [null, null, null]);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------
+// TASK-063: fila de desglose en la tabla ## Coste
+// ---------------------------------------------------------------------
+
+async function cuerpo(tareasRoot: string): Promise<{ body: string; ruta: string }> {
+  const t = await readTareaFile(tareasRoot, ID);
+  assert.ok(t);
+  return { body: t.body, ruta: t.filePath };
+}
+
+test('TASK-063 --agente: deja la fila con el desglose y las lecturas del .jsonl, junto al total y en el mismo commit', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await conConfig(async (config) => {
+      await hastaCodigo(repo, tareasRoot);
+      const antes = await cuerpo(tareasRoot);
+      assert.deepEqual(leerCostes(antes.body), [], 'la tarea nace sin tabla');
+      await transcripcion(config, 'proy-1', 'sesion-1', A, TRANSCRIPCION_EJEMPLO.split('\n'));
+      const commits = Number(git(['rev-list', '--count', 'HEAD'], repo).trim());
+
+      const r = coste(repo, config, [ID, '--fase', 'implementacion', '--agente', A]);
+      assert.equal(r.status, 0, r.stderr);
+
+      assert.deepEqual(await valor(tareasRoot), [null, USO_EJEMPLO.tokens, null], 'el total sigue en el frontmatter');
+      const despues = await cuerpo(tareasRoot);
+      assert.ok(despues.body.startsWith(antes.body.replace(/\n+$/, '')), 'el cuerpo anterior queda intacto');
+      const filas = leerCostes(despues.body);
+      assert.equal(filas.length, 1);
+      const fila = filas[0];
+      assert.ok(fila);
+      assert.match(fila.fecha, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+      assert.deepEqual(
+        { ...fila, fecha: '' },
+        {
+          fecha: '',
+          fase: 'implementacion',
+          fuente: `agente:${A}`,
+          entrada: USO_EJEMPLO.entrada,
+          cacheEscritura: USO_EJEMPLO.cacheEscritura,
+          cacheLectura: USO_EJEMPLO.cacheLectura,
+          salida: USO_EJEMPLO.salida,
+          lecturas: 9,
+          total: USO_EJEMPLO.tokens,
+        }
+      );
+      // Un solo commit, con solo tarea.md, que lleva a la vez la fila y el total.
+      assert.equal(Number(git(['rev-list', '--count', 'HEAD'], repo).trim()), commits + 1);
+      const rel = path.relative(repo, despues.ruta).split(path.sep).join('/');
+      assert.deepEqual(git(['show', '--name-only', '--format=', 'HEAD'], repo).trim().split('\n'), [rel]);
+      const diff = git(['show', '--format=', 'HEAD'], repo);
+      assert.match(diff, /^\+tokens_implementacion: 602$/m);
+      assert.match(diff, /^\+\| \S+ \| implementacion \| agente:a1b2c3d4e5f60718 \| 33 \| 50 \| 500 \| 19 \| 9 \| 602 \|$/m);
+      assert.equal(git(['status', '--porcelain'], repo).trim(), '');
+    });
+  });
+});
+
+test('TASK-063: varios --agente suman el desglose en UNA fila; --tokens deja otra fila manual con solo el total', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await conConfig(async (config) => {
+      await hastaCodigo(repo, tareasRoot);
+      await transcripcion(config, 'proy-1', 'sesion-1', A, TRANSCRIPCION_EJEMPLO.split('\n'));
+      await transcripcion(config, 'proy-2', 'sesion-2', B, [linea('m1', 40, 10)]);
+      assert.equal(coste(repo, config, [ID, '--fase', 'revision', '--agente', A, '--agente', B]).status, 0);
+      assert.equal(coste(repo, config, [ID, '--fase', 'revision', '--tokens', '1000']).status, 0);
+
+      assert.deepEqual(await valor(tareasRoot), [null, null, USO_EJEMPLO.tokens + 50 + 1000]);
+      const filas = leerCostes((await cuerpo(tareasRoot)).body).map((f) => ({ ...f, fecha: '' }));
+      assert.deepEqual(filas, [
+        {
+          fecha: '',
+          fase: 'revision',
+          fuente: `agente:${A},${B}`,
+          entrada: USO_EJEMPLO.entrada + 40,
+          cacheEscritura: USO_EJEMPLO.cacheEscritura,
+          cacheLectura: USO_EJEMPLO.cacheLectura,
+          salida: USO_EJEMPLO.salida + 10,
+          lecturas: USO_EJEMPLO.lecturas,
+          total: USO_EJEMPLO.tokens + 50,
+        },
+        {
+          fecha: '',
+          fase: 'revision',
+          fuente: 'manual',
+          entrada: null,
+          cacheEscritura: null,
+          cacheLectura: null,
+          salida: null,
+          lecturas: null,
+          total: 1000,
+        },
+      ]);
+      // La suma de las filas cuadra con el total del frontmatter.
+      assert.equal(
+        filas.reduce((s, f) => s + f.total, 0),
+        (await valor(tareasRoot))[2]
+      );
+    });
+  });
+});
+
+test('TASK-063: una tarea con tabla ## Coste sigue siendo valida para doctor, igual que una sin ella', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await conConfig(async (config) => {
+      await hastaCodigo(repo, tareasRoot);
+      const tareasDe = (): { nivel: string; mensaje: string } => {
+        const r = spawnSync(process.execPath, [TASKCTL, 'doctor', '--json'], { cwd: repo, encoding: 'utf8' });
+        const json = JSON.parse(r.stdout) as { comprobaciones: { id: string; nivel: string; mensaje: string }[] };
+        const c = json.comprobaciones.find((x) => x.id === 'tareas');
+        assert.ok(c, r.stdout);
+        return c;
+      };
+      assert.equal(tareasDe().nivel, 'ok', 'sin tabla');
+      await transcripcion(config, 'p', 's', A, [linea('m1', 5, 5)]);
+      assert.equal(coste(repo, config, [ID, '--fase', 'diseno', '--agente', A]).status, 0);
+      assert.equal(leerCostes((await cuerpo(tareasRoot)).body).length, 1);
+      const c = tareasDe();
+      assert.equal(c.nivel, 'ok', c.mensaje);
     });
   });
 });

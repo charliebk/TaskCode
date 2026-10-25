@@ -111,6 +111,28 @@ export interface LecturaHallazgos {
   abiertos: Hallazgo[];
 }
 
+/**
+ * De donde viene un hallazgo (TASK-063), segun la columna `Origen` que
+ * rellena el revisor: el codigo no hace lo que se pedia (`implementacion`),
+ * el plan era ambiguo o equivocado y el codigo lo siguio (`plan`), o el
+ * enunciado o sus criterios fallaban (`especificacion`). Vocabulario
+ * cerrado; cualquier otro valor, la celda vacia o la columna ausente
+ * (informes anteriores) es `sin clasificar`.
+ */
+export const ORIGENES_HALLAZGO = ['implementacion', 'plan', 'especificacion'] as const;
+export type OrigenHallazgo = (typeof ORIGENES_HALLAZGO)[number] | 'sin clasificar';
+
+export interface HallazgoLeido extends Hallazgo {
+  origen: OrigenHallazgo;
+}
+
+export interface LecturaTodosHallazgos {
+  /** false si no hay tabla de hallazgos reconocible (informes anteriores a TASK-036). */
+  tabla: boolean;
+  /** Todas las filas de la tabla, abiertas o cerradas, en orden. */
+  hallazgos: HallazgoLeido[];
+}
+
 function normalizarCelda(c: string): string {
   return c
     .trim()
@@ -121,17 +143,23 @@ function normalizarCelda(c: string): string {
     .replace(/[̀-ͯ]/g, '');
 }
 
+/** Origen normalizado: minusculas, sin tildes ni enfasis; fuera del vocabulario, `sin clasificar`. */
+function origenDe(celda: string): OrigenHallazgo {
+  const valor = celda.toLowerCase();
+  return (ORIGENES_HALLAZGO as readonly string[]).includes(valor) ? (valor as OrigenHallazgo) : 'sin clasificar';
+}
+
 /**
- * Hallazgos no cerrados de la primera tabla bajo `## Hallazgos` cuya
- * cabecera tenga las columnas ID y Estado (por nombre, no por
- * posicion). Cerrado = Estado `corregido` o `aceptado`; cualquier otro
- * valor, tambien el vacio, cuenta como abierto: listar de mas es barato
- * y omitir es caro. Se ignora la fila de ejemplo de la plantilla.
+ * Todas las filas de la primera tabla bajo `## Hallazgos` cuya cabecera
+ * tenga las columnas ID y Estado (por nombre, no por posicion), con su
+ * severidad y su origen (TASK-063). Es el unico parser de la tabla:
+ * `hallazgosNoCerrados` filtra sobre el. Se ignora la fila de ejemplo de la
+ * plantilla y las tablas citadas dentro de bloques de codigo.
  */
-export function hallazgosNoCerrados(informe: string): LecturaHallazgos {
+export function leerHallazgos(informe: string): LecturaTodosHallazgos {
   const lineas = informe.replace(/\r/g, '').split('\n');
   const inicio = lineas.findIndex((l) => /^##\s+hallazgos\b/i.test(l.trim()));
-  if (inicio === -1) return { tabla: false, abiertos: [] };
+  if (inicio === -1) return { tabla: false, hallazgos: [] };
   // Se buscan tablas FUERA de los bloques de codigo: una tabla citada en
   // una reproduccion no es la de hallazgos (MEN-1 de la revision de
   // TASK-040: con una asi delante, se perdian las filas reales).
@@ -144,10 +172,10 @@ export function hallazgosNoCerrados(informe: string): LecturaHallazgos {
       continue;
     }
     if (enBloque) continue;
-    if (/^##\s/.test(l)) return { tabla: false, abiertos: [] };
+    if (/^##\s/.test(l)) return { tabla: false, hallazgos: [] };
     if (l.startsWith('|')) break;
   }
-  if (i >= lineas.length) return { tabla: false, abiertos: [] };
+  if (i >= lineas.length) return { tabla: false, hallazgos: [] };
 
   const celdas = (l: string): string[] =>
     l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(normalizarCelda);
@@ -155,11 +183,14 @@ export function hallazgosNoCerrados(informe: string): LecturaHallazgos {
   const col = (nombre: string): number => cabecera.findIndex((c) => c === nombre);
   const iId = col('id');
   const iEstado = col('estado');
-  if (iId === -1 || iEstado === -1) return { tabla: false, abiertos: [] };
+  if (iId === -1 || iEstado === -1) return { tabla: false, hallazgos: [] };
   const iSev = col('severidad');
   const iFich = col('fichero');
+  // `Origen`, o `Origen (implementacion / plan / especificacion)` si el
+  // revisor copia la aclaracion a la cabecera.
+  const iOrigen = cabecera.findIndex((c) => c === 'origen' || c.startsWith('origen '));
 
-  const abiertos: Hallazgo[] = [];
+  const hallazgos: HallazgoLeido[] = [];
   for (i++; i < lineas.length; i++) {
     const l = (lineas[i] as string).trim();
     if (!l.startsWith('|')) break;
@@ -167,14 +198,29 @@ export function hallazgosNoCerrados(informe: string): LecturaHallazgos {
     const c = celdas(l);
     const id = c[iId] ?? '';
     if (id === '' || id.toLowerCase().startsWith('(ej.')) continue;
-    const estado = (c[iEstado] ?? '').toLowerCase();
-    if (estado === 'corregido' || estado === 'aceptado') continue;
-    abiertos.push({
+    hallazgos.push({
       id,
       severidad: iSev === -1 ? '' : (c[iSev] ?? ''),
       estado: c[iEstado] ?? '',
       fichero: iFich === -1 ? '' : (c[iFich] ?? ''),
+      origen: iOrigen === -1 ? 'sin clasificar' : origenDe(c[iOrigen] ?? ''),
     });
   }
-  return { tabla: true, abiertos };
+  return { tabla: true, hallazgos };
+}
+
+/**
+ * Hallazgos no cerrados de la tabla de `leerHallazgos`. Cerrado = Estado
+ * `corregido` o `aceptado`; cualquier otro valor, tambien el vacio, cuenta
+ * como abierto: listar de mas es barato y omitir es caro.
+ */
+export function hallazgosNoCerrados(informe: string): LecturaHallazgos {
+  const { tabla, hallazgos } = leerHallazgos(informe);
+  const abiertos = hallazgos
+    .filter((h) => {
+      const estado = h.estado.toLowerCase();
+      return estado !== 'corregido' && estado !== 'aceptado';
+    })
+    .map(({ id, severidad, estado, fichero }) => ({ id, severidad, estado, fichero }));
+  return { tabla, abiertos };
 }

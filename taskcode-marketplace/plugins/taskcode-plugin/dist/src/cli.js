@@ -81,7 +81,9 @@ regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
 --escribir solo lee.
 registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
 --agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la
-herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza.
+herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza. Cada
+llamada deja ademas una fila en la tabla "## Coste" de tarea.md: con --agente, el desglose
+(entrada, cache_escritura, cache_lectura, salida, lecturas); con --tokens, solo el total.
 finish cierra con merge normal (lo de siempre). --tag <nombre> pone un tag anotado (titulo de
 la tarea) sobre el commit de merge; solo se sube con --push. --merge-request sube la rama
 y abre un PR (github.com, gh) o un MR (host con "gitlab", glab) contra la rama base en lugar
@@ -695,7 +697,7 @@ async function mainComando(argvEntrada) {
         const repoCwd = process.cwd();
         const tareasRoot = path.join(repoCwd, 'tareas');
         try {
-            const r = await runRegistrarCosteCommand(tareasRoot, argv.slice(1), { repoCwd });
+            const r = await runRegistrarCosteCommand(tareasRoot, argv.slice(1), { repoCwd, ahora: ahora() });
             process.stdout.write(`Tarea ${r.id}: +${String(r.sumado)} tokens de ${r.fase}${r.agentes > 0 ? ` (${String(r.agentes)} subagente(s))` : ''}; total de la fase: ${String(r.total)} ` +
                 `(${r.filePath}).\n`);
             printAutoCommit(r.autoCommit);
