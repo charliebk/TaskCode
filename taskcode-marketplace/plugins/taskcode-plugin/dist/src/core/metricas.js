@@ -488,7 +488,8 @@ export const NOTA_DESGLOSE_TOKENS = 'Desglose de "## Coste" (solo tareas con esa
     'tokens_<fase> menos lo desglosado (filas "manual" o coste anterior a la tabla), sumado por ' +
     'fases. Un negativo en una fase es una incoherencia (el desglose supera al total): no se ' +
     'recorta a 0, sale con aviso y la celda lleva "*" aunque la suma sea positiva. Un agente ' +
-    'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica.';
+    'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica (salvo ' +
+    'las filas "agente:dif:<id>" de un agente reanudado, que solo suman lo que crecio).';
 export const NOTA_HALLAZGOS = 'Hallazgos: cada uno cuenta una vez por tarea (revisor + ID) sumando todas las rondas, con la ' +
     'severidad y el origen de la ultima ronda que los reconoce. hall_origen = implementacion/plan/' +
     'especificacion/sin clasificar. «—» = sin dato: sin informes de revision, o algun informe sin ' +

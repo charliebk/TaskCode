@@ -662,7 +662,12 @@ herramienta Agent) `taskctl` lee la transcripción del subagente en
 `<config>/projects/*/*/subagents/agent-<id>.jsonl` (`<config>` = `CLAUDE_CONFIG_DIR`
 o `~/.claude`) y suma, por `message.id` único (la última aparición), entrada +
 escritura y lectura de caché + salida de cada llamada. Varios `--agente` van en
-un solo registro y un solo commit. `--tokens N` da una cifra a mano (la parte del
+un solo registro y un solo commit. Un `--agente` ya anotado en `## Coste` de esa
+fase es un agente reanudado (su transcripción acumula los dos trabajos): se suma
+solo lo que creció su transcripción desde lo ya anotado para ese id, y la fila lo
+marca en su fuente (`agente:dif:<id>`), que `metricas` no avisa como repetida; si
+no ha crecido, o el id está anotado junto a otros en una misma fila, aborta.
+`--tokens N` da una cifra a mano (la parte del
 orquestador, estimada) y se excluye con `--agente`. Si el id no se encuentra, está
 en más de una sesión o la transcripción no trae `usage`, aborta diciendo qué hacer
 (`--tokens N` como salida). Funciona en cualquier estado, también `terminada`;

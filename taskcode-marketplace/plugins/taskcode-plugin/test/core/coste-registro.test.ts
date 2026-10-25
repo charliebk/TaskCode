@@ -4,7 +4,15 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { anadirCoste, CABECERA_COSTE, leerCostes, SECCION_COSTE, type FilaCoste } from '../../src/core/coste-registro.js';
+import {
+  anadirCoste,
+  CABECERA_COSTE,
+  idsDeFuente,
+  leerCostes,
+  resumirCostes,
+  SECCION_COSTE,
+  type FilaCoste,
+} from '../../src/core/coste-registro.js';
 import { anadirTransicion, leerTransiciones } from '../../src/core/transiciones.js';
 
 const AGENTE: FilaCoste = {
@@ -109,4 +117,19 @@ test('filas editadas a mano con valores raros se ignoran; fecha de dia vale', ()
     '| 2026-10-25 | revision | manual | - | - | - | - | - | - |\n' + // sin total
     '| 2026-10-25 | revision | manual | - | - | - | - | 7 |\n'; // columnas de menos
   assert.deepEqual(leerCostes(body), [{ ...MANUAL, fecha: '2026-10-25', fase: 'revision', total: 7 }]);
+});
+
+// TASK-065: la fila de diferencia de un agente reanudado no es una repeticion.
+test('idsDeFuente reconoce dif:<id>; resumirCostes no avisa de un agente con su fila de diferencia, si de uno registrado dos veces', () => {
+  assert.deepEqual(idsDeFuente('agente:a1,dif:b2'), [
+    { id: 'a1', diferencia: false },
+    { id: 'b2', diferencia: true },
+  ]);
+  assert.deepEqual(idsDeFuente('manual'), [{ id: 'manual', diferencia: false }]);
+  const reg = { diseno: 2 * AGENTE.total, implementacion: null, revision: null };
+  const conDif = resumirCostes([AGENTE, { ...AGENTE, fuente: 'agente:dif:a1b2c3d4e5f60718' }], reg);
+  assert.deepEqual(conDif.repetidas, []);
+  assert.equal(conDif.fases.diseno.sinDesglose, 0, 'la diferencia cuenta en el desglose');
+  const dosVeces = resumirCostes([AGENTE, AGENTE], reg);
+  assert.deepEqual(dosVeces.repetidas, [{ fase: 'diseno', fuente: 'a1b2c3d4e5f60718', filas: 2 }]);
 });

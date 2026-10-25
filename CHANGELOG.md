@@ -31,6 +31,12 @@ mejoras por cifras, sobre uno o varios proyectos.
 - Un flag repetido que no admite repeticion aborta con error en cualquier
   comando (antes se quedaba el ultimo valor); `--repo` y `--agente` usan el
   mismo lector de flags repetibles.
+- `registrar-coste --agente <id>` con un id ya anotado en `## Coste` de esa
+  fase (un agente reanudado, cuya transcripcion acumula los dos trabajos)
+  registra solo la diferencia entre la transcripcion y lo ya anotado para ese
+  id, campo a campo, en una fila con fuente `agente:dif:<id>`; `metricas` no
+  la avisa como repetida. Sin crecimiento, o con el id anotado junto a otros en
+  una misma fila, aborta sin tocar nada. Ajusta la regla de MEN-2 de TASK-063.
 
 - TASK-064 (feature) — Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y lecturas (2026-10-25)
 

@@ -113,6 +113,7 @@ registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo
 herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza. Cada
 llamada deja ademas una fila en la tabla "## Coste" de tarea.md: con --agente, el desglose
 (entrada, cache_escritura, cache_lectura, salida, lecturas); con --tokens, solo el total.
+Un --agente ya anotado en esa fase (agente reanudado) suma solo lo que crecio su transcripcion.
 finish cierra con merge normal (lo de siempre). --tag <nombre> pone un tag anotado (titulo de
 la tarea) sobre el commit de merge; solo se sube con --push. --merge-request sube la rama
 y abre un PR (github.com, gh) o un MR (host con "gitlab", glab) contra la rama base en lugar
@@ -792,6 +793,12 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         `Tarea ${r.id}: +${String(r.sumado)} tokens de ${r.fase}${r.agentes > 0 ? ` (${String(r.agentes)} subagente(s))` : ''}; total de la fase: ${String(r.total)} ` +
           `(${r.filePath}).\n`
       );
+      if (r.reanudados.length > 0) {
+        process.stdout.write(
+          `Ya anotado en ${r.fase}: ${r.reanudados.join(', ')}. Es un agente reanudado: se ha sumado solo lo ` +
+            'que crecio su transcripcion desde lo anotado (fila "agente:dif:<id>").\n'
+        );
+      }
       printAutoCommit(r.autoCommit);
       return 0;
     } catch (e) {

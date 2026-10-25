@@ -261,3 +261,71 @@ test('TASK-063: una tarea con tabla ## Coste sigue siendo valida para doctor, ig
     });
   });
 });
+
+test('TASK-065 --agente reanudado: con el id ya anotado en la fase registra solo lo que crecio la transcripcion, y metricas no lo avisa', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await conConfig(async (config) => {
+      await hastaCodigo(repo, tareasRoot);
+      // Primer trabajo del agente: m1 = 100 de entrada + 20 de salida.
+      await transcripcion(config, 'p', 's', A, [linea('m1', 100, 20)]);
+      assert.equal(coste(repo, config, [ID, '--fase', 'implementacion', '--agente', A]).status, 0);
+      assert.deepEqual(await valor(tareasRoot), [null, 120, null]);
+
+      // Se reanuda el MISMO agente: su transcripcion acumula m1 y el trabajo nuevo, m2 (200 + 30).
+      await transcripcion(config, 'p', 's', A, [linea('m1', 100, 20), linea('m2', 200, 30)]);
+      const r = coste(repo, config, [ID, '--fase', 'implementacion', '--agente', A]);
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stdout, /\+230 tokens de implementacion/);
+      assert.match(r.stdout, /Ya anotado en implementacion: a1b2c3d4e5f60718\. Es un agente reanudado/);
+      assert.deepEqual(await valor(tareasRoot), [null, 350, null], '120 + 230, no 120 + 350');
+      const filas = leerCostes((await cuerpo(tareasRoot)).body);
+      assert.deepEqual(
+        filas.map((f) => [f.fuente, f.entrada, f.salida, f.total]),
+        [
+          [`agente:${A}`, 100, 20, 120],
+          [`agente:dif:${A}`, 200, 30, 230],
+        ]
+      );
+
+      // Una tercera vez sin que crezca: nada que registrar, y no se toca nada.
+      const antes = head(repo);
+      const igual = coste(repo, config, [ID, '--fase', 'implementacion', '--agente', A]);
+      assert.equal(igual.status, 1);
+      assert.match(igual.stderr, /ya esta anotado en esta fase con 350 tokens y su transcripcion no ha crecido/);
+      assert.equal(head(repo), antes);
+
+      // Crece otra vez: la diferencia es contra todo lo anotado (la fila original y la de diferencia).
+      await transcripcion(config, 'p', 's', A, [linea('m1', 100, 20), linea('m2', 200, 30), linea('m3', 5, 5)]);
+      assert.equal(coste(repo, config, [ID, '--fase', 'implementacion', '--agente', A]).status, 0);
+      assert.deepEqual(await valor(tareasRoot), [null, 360, null]);
+
+      // En otra fase el mismo id no esta anotado: cuenta entero.
+      assert.equal(coste(repo, config, [ID, '--fase', 'revision', '--agente', A]).status, 0);
+      assert.deepEqual(await valor(tareasRoot), [null, 360, 360]);
+
+      // metricas: ni repetido ni descuadre (el desglose cuadra con tokens_implementacion).
+      const m = spawnSync(process.execPath, [TASKCTL, 'metricas', '--tokens'], { cwd: repo, encoding: 'utf8' });
+      assert.equal(m.status, 0, m.stderr);
+      assert.doesNotMatch(m.stderr, /aparece en \d+ filas/);
+      assert.doesNotMatch(m.stderr, /supera tokens_/);
+    });
+  });
+});
+
+test('TASK-065 --agente reanudado: un id anotado junto a otro en la misma fila aborta (no se sabe cuanto es suyo)', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await conConfig(async (config) => {
+      await hastaCodigo(repo, tareasRoot);
+      await transcripcion(config, 'p', 's', A, [linea('m1', 10, 10)]);
+      await transcripcion(config, 'p', 's', B, [linea('m1', 5, 5)]);
+      assert.equal(coste(repo, config, [ID, '--fase', 'diseno', '--agente', A, '--agente', B]).status, 0);
+      await transcripcion(config, 'p', 's', A, [linea('m1', 10, 10), linea('m2', 1, 1)]);
+      const antes = head(repo);
+      const r = coste(repo, config, [ID, '--fase', 'diseno', '--agente', A]);
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /ya esta anotado en "## Coste" de diseno en una fila .* junto a otros agentes.*--tokens N/s);
+      assert.equal(head(repo), antes);
+      assert.deepEqual(await valor(tareasRoot), [30, null, null]);
+    });
+  });
+});
