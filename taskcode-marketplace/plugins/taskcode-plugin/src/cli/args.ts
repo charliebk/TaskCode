@@ -49,6 +49,41 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
 }
 
 /**
+ * Lector comun de flags repetibles (TASK-065): saca de argv todos los
+ * `--flag valor` / `--flag=valor` de `flag` (con su prefijo, p. ej.
+ * `--repo`) y devuelve sus valores en orden y el resto de argv intacto. Va
+ * ANTES de `parseArgs`, que se quedaria solo con el ultimo valor. Un `--flag`
+ * sin valor (al final, seguido de otro flag o con `--flag=` vacio) lanza el
+ * error que da `sinValor`.
+ */
+export function extraerRepetible(
+  argv: readonly string[],
+  flag: string,
+  sinValor: () => Error
+): { valores: string[]; resto: string[] } {
+  const valores: string[] = [];
+  const resto: string[] = [];
+  const conIgual = `${flag}=`;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] as string;
+    let valor: string | undefined;
+    if (arg === flag) {
+      valor = argv[i + 1];
+      if (valor === undefined || valor.startsWith('--')) throw sinValor();
+      i++;
+    } else if (arg.startsWith(conIgual)) {
+      valor = arg.slice(conIgual.length);
+    } else {
+      resto.push(arg);
+      continue;
+    }
+    if (valor.trim() === '') throw sinValor();
+    valores.push(valor);
+  }
+  return { valores, resto };
+}
+
+/**
  * Aborta si argv trae un flag que el comando no conoce (TASK-047, auditoria
  * D4). Antes `--complejida trivial` se ignoraba en silencio y la tarea salia
  * con otra complejidad. Mira argv en bruto y no la salida de `parseArgs`,

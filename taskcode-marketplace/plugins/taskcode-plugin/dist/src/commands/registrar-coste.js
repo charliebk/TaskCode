@@ -36,7 +36,7 @@
  *    `--tokens N`, una fila `manual` con solo el total.
  */
 import { writeFile } from 'node:fs/promises';
-import { rechazarFlagsDesconocidos, parseArgs } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible } from '../cli/args.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import { esAgentIdValido, sumarUsoTranscripcion } from '../core/coste-transcripcion.js';
@@ -58,28 +58,10 @@ export const CAMPO_COSTE_POR_FASE = {
 export { FASES_COSTE };
 const USO = 'Uso: taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> ' +
     '(--agente <id> [--agente <id2>...] | --tokens N) [--push]';
-/** Saca todos los `--agente <id>` / `--agente=<id>` de argv. */
+/** Saca todos los `--agente <id>` / `--agente=<id>` de argv (lector comun de flags repetibles). */
 function extraerAgentes(argv) {
-    const agentes = [];
-    const resto = [];
-    for (let i = 0; i < argv.length; i++) {
-        const arg = argv[i];
-        if (arg === '--agente') {
-            const valor = argv[i + 1];
-            if (valor === undefined || valor.startsWith('--')) {
-                throw new RegistrarCosteCommandError(`[ERROR] --agente necesita el id del subagente (el que devuelve la herramienta Agent). ${USO}`);
-            }
-            agentes.push(valor);
-            i++;
-        }
-        else if (arg.startsWith('--agente=')) {
-            agentes.push(arg.slice('--agente='.length));
-        }
-        else {
-            resto.push(arg);
-        }
-    }
-    return { agentes, resto };
+    const { valores, resto } = extraerRepetible(argv, '--agente', () => new RegistrarCosteCommandError(`[ERROR] --agente necesita el id del subagente (el que devuelve la herramienta Agent). ${USO}`));
+    return { agentes: valores, resto };
 }
 /** Devuelve la fase y, si se dio, los tokens (entero > 0), o lanza con lo que hay que hacer. */
 function leerFaseYTokens(flags, hayAgentes) {

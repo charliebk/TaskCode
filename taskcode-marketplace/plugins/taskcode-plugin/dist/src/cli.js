@@ -439,6 +439,9 @@ async function mainComando(argvEntrada) {
         const tareasRoot = path.join(repoCwd, 'tareas');
         try {
             const result = await runMetricasCommand(tareasRoot, argv.slice(1), { repoCwd });
+            if (result.reposLeidos !== null)
+                process.stderr.write(`${result.reposLeidos}
+`);
             for (const aviso of result.advertencias) {
                 process.stderr.write(`[AVISO] ${aviso}\n`);
             }

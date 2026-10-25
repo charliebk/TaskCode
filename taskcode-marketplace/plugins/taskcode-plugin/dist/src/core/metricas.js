@@ -59,6 +59,14 @@ import { extraerSecciones } from './tarea-body.js';
 export function claveTarea(proyecto, id) {
     return `${proyecto}\u0000${id}`;
 }
+/**
+ * Como se nombra una tarea en avisos y listas (TASK-065): con un solo
+ * proyecto, su ID a secas (la salida de siempre); con varios, `proyecto/ID`,
+ * porque TASK-NNN se repite entre repos.
+ */
+export function etiquetaTarea(f, varios) {
+    return varios ? `${f.proyecto}/${f.id}` : f.id;
+}
 function kbPorRonda(peticiones) {
     const bytes = new Map();
     for (const p of peticiones)
@@ -225,6 +233,8 @@ export const COLUMNAS_METRICAS = [
     { cabecera: 'cierre', valor: (f) => f.cierre ?? '—' },
     { cabecera: 'origen', valor: (f) => f.origen },
 ];
+/** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
+export const COLUMNA_PROYECTO = { cabecera: 'proyecto', valor: (f) => f.proyecto };
 /** Las que anade `--heuristica`. */
 export const COLUMNAS_HEURISTICA = [
     { cabecera: 'puntos', valor: (f) => (f.heuristica === undefined ? '—' : String(f.heuristica.puntos)) },
@@ -478,21 +488,22 @@ export const NOTA_HALLAZGOS = 'Hallazgos: cada uno cuenta una vez por tarea (rev
     'especificacion/sin clasificar. «—» = sin dato: sin informes de revision, o algun informe sin ' +
     'tabla de hallazgos (no cuenta como cero).';
 /** Avisos de una fila: incoherencias del desglose y severidades fuera de vocabulario. */
-export function avisosDeFila(f) {
+export function avisosDeFila(f, varios = false) {
     const avisos = [];
+    const et = etiquetaTarea(f, varios);
     for (const fase of FASES_COSTE) {
         const r = f.coste.fases[fase];
         if (r.registrado === null && r.filas > 0) {
-            avisos.push(`${f.id}: tokens_${fase} esta vacio pero "## Coste" tiene ${String(r.filas)} fila(s) de ${fase}; ` +
+            avisos.push(`${et}: tokens_${fase} esta vacio pero "## Coste" tiene ${String(r.filas)} fila(s) de ${fase}; ` +
                 'el total de la fase deberia ser la suma de su desglose. Revisa el frontmatter.');
         }
         else if (r.sinDesglose !== null && r.sinDesglose < 0) {
-            avisos.push(`${f.id}: lo desglosado en "## Coste" para ${fase} (${String(r.desglosado)}) supera tokens_${fase} ` +
+            avisos.push(`${et}: lo desglosado en "## Coste" para ${fase} (${String(r.desglosado)}) supera tokens_${fase} ` +
                 `(${String(r.registrado)}): diferencia ${String(r.sinDesglose)}. Revisa el frontmatter o las filas.`);
         }
     }
     for (const rep of f.coste.repetidas) {
-        avisos.push(`${f.id}: en "## Coste", ${rep.fuente} aparece en ${String(rep.filas)} filas de ${rep.fase}: ` +
+        avisos.push(`${et}: en "## Coste", ${rep.fuente} aparece en ${String(rep.filas)} filas de ${rep.fase}: ` +
             'su coste se suma otras tantas veces (no se deduplica). Si se registro dos veces por error, ' +
             `corrige tokens_${rep.fase} y quita la fila sobrante.`);
     }
@@ -503,25 +514,25 @@ export function avisosDeFila(f) {
         porFichero.set(d.fichero, lista);
     }
     for (const [fichero, lista] of porFichero) {
-        avisos.push(`${f.id} revision/${fichero}: severidad fuera de vocabulario (CRITICO, IMPORTANTE o MENOR) en ` +
+        avisos.push(`${et} revision/${fichero}: severidad fuera de vocabulario (CRITICO, IMPORTANTE o MENOR) en ` +
             `${lista.join(', ')}; no cuenta en crit/imp/men.`);
     }
     return avisos;
 }
 /** Un solo aviso con las tareas que tienen informes sin tabla de hallazgos; null si no hay. */
-export function avisoInformesSinTabla(filas) {
+export function avisoInformesSinTabla(filas, varios = false) {
     const con = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
     if (con.length === 0)
         return null;
     const n = con.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
     return (`${String(n)} informe(s) de revision sin tabla de hallazgos en ${String(con.length)} tarea(s); sus ` +
-        `hallazgos salen como sin dato («—»), no como cero: ${con.map((f) => f.id).join(', ')}.`);
+        `hallazgos salen como sin dato («—»), no como cero: ${con.map((f) => etiquetaTarea(f, varios)).join(', ')}.`);
 }
 /** Tareas terminadas sin coste (null o 0) en alguna fase, con esas fases. */
 export function tareasSinCoste(filas) {
     return filas
         .filter((f) => f.estado === 'terminada')
-        .map((f) => ({ id: f.id, fases: FASES_COSTE.filter((k) => !f.coste.fases[k].registrado) }))
+        .map((f) => ({ proyecto: f.proyecto, id: f.id, fases: FASES_COSTE.filter((k) => !f.coste.fases[k].registrado) }))
         .filter((t) => t.fases.length > 0);
 }
 /** Mediana de una lista (media de los dos centrales si es par); null si esta vacia. */
@@ -542,7 +553,7 @@ export function medianaLecturas(filas) {
     return r;
 }
 /** Lineas de texto bajo la tabla: hallazgos sin dato, lecturas y terminadas sin coste. */
-export function notasFilaEnriquecida(filas) {
+export function notasFilaEnriquecida(filas, varios = false) {
     const sinTabla = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
     const nInformes = sinTabla.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
     const lect = medianaLecturas(filas);
@@ -557,7 +568,7 @@ export function notasFilaEnriquecida(filas) {
         sinCoste.length === 0
             ? `Terminadas sin coste en alguna fase: 0 de ${String(terminadas)}.`
             : `Terminadas sin coste en alguna fase: ${String(sinCoste.length)} de ${String(terminadas)}: ` +
-                sinCoste.map((t) => `${t.id} (${t.fases.join(', ')})`).join(', ') +
+                sinCoste.map((t) => `${etiquetaTarea(t, varios)} (${t.fases.join(', ')})`).join(', ') +
                 '.',
     ];
 }
