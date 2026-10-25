@@ -105,8 +105,19 @@ que comandos, que suite, que mutaciones. Un "sin hallazgos" sin esa lista no
 se distingue de no haber mirado.
 
 El matiz va en el **cuerpo** del informe, con la tabla de hallazgos de la
-plantilla (`ID | Severidad | Estado | Fichero`), no en la linea del
+plantilla (`ID | Severidad | Estado | Fichero | Origen`), no en la linea del
 veredicto.
+
+La columna `Origen` se rellena **en cada hallazgo**, con una de tres
+palabras, para poder medir de donde vienen los fallos:
+
+- `implementacion`: el codigo no hace lo que el plan pedia.
+- `plan`: el plan era ambiguo o equivocado, y el codigo lo siguio.
+- `especificacion`: el fallo esta en el enunciado de la tarea o en sus
+  criterios de aceptacion.
+
+Si dudas entre dos, la que habria evitado el fallo antes. Una celda vacia o
+con otra palabra cuenta como sin clasificar.
 
 ## La linea del veredicto
 

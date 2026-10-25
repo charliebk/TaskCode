@@ -28,7 +28,10 @@ punto, no un formalismo.
    agente revisor independiente, en paralelo y en un solo mensaje, con la
    skill revisora que nombra la peticion. Que reproduzca empiricamente (clon
    temporal, suite una vez, mutantes) y devuelva su informe con la tabla de
-   hallazgos. Vuelca cada respuesta en su `informe-revision-N*.md`
+   hallazgos, con la columna `Origen` rellena en cada fila
+   (`implementacion`, `plan` o `especificacion`: si el fallo es del codigo,
+   de un plan ambiguo que el codigo siguio, o del enunciado de la tarea).
+   Vuelca cada respuesta en su `informe-revision-N*.md`
    **conservando la cabecera de la plantilla** con la linea `- Revisor:`
    rellenada, su linea `- Veredicto:`, y la fila de ejemplo de la tabla
    borrada (tambien sin hallazgos); un informe que conserve la plantilla sin

@@ -343,9 +343,15 @@ export function informeTemplate(task: Task, commitRevisado: string, ronda: numbe
     '## Hallazgos\n\n' +
     // La tabla es para que una maquina la lea (la ronda incremental,
     // TASK-040); la reproduccion de cada hallazgo va debajo, en prosa.
-    '| ID | Severidad | Estado | Fichero |\n' +
-    '|---|---|---|---|\n' +
-    '| (ej. IMP-1) | (CRITICO / IMPORTANTE / MENOR) | (abierto / corregido / aceptado) | (ruta:linea) |\n\n' +
+    // TASK-063: `Origen` por hallazgo, para medir cuantos fallos vienen del
+    // plan o del enunciado y no del codigo (lo lee `leerHallazgos`).
+    '| ID | Severidad | Estado | Fichero | Origen |\n' +
+    '|---|---|---|---|---|\n' +
+    '| (ej. IMP-1) | (CRITICO / IMPORTANTE / MENOR) | (abierto / corregido / aceptado) | (ruta:linea) | ' +
+    '(implementacion / plan / especificacion) |\n\n' +
+    'Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el\n' +
+    'plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el\n' +
+    'enunciado o en los criterios de aceptacion de la tarea.\n\n' +
     'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n'
   );
 }
