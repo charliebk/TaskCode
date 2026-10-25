@@ -24,6 +24,7 @@ import { commitRevisadoDe, veredictoDeRonda, type VeredictoInforme } from '../co
 import {
   INFORME_CODEX_RE,
   INFORME_REVISION_RE,
+  PETICION_REVISION_RE,
   informesDeUltimaRonda,
   nombresDeUltimaRonda,
 } from '../fs/rondas.js';
@@ -36,7 +37,7 @@ import {
   showFileAtRef,
 } from '../fs/git.js';
 import type { Task } from '../core/task.js';
-import { REVISION_DIRNAME, PETICION_REVISION_RE } from './review.js';
+import { REVISION_DIRNAME } from './review.js';
 import { planRedactado } from './approve.js';
 
 export class SiguienteCommandError extends Error {}

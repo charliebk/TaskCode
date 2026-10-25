@@ -35,8 +35,7 @@ import { TaskValidationError, TASK_COMPLEXITIES } from '../core/task.js';
 import { cargarHeuristica, nivelHeuristico, puntuarTarea } from '../core/heuristica.js';
 import { leerTransiciones } from '../core/transiciones.js';
 import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, notasFilaEnriquecida, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, } from '../core/metricas.js';
-import { INFORME_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme } from '../fs/rondas.js';
-import { PETICION_REVISION_RE } from './review.js';
+import { INFORME_REVISION_RE, PETICION_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme, } from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 export class MetricasCommandError extends Error {

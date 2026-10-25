@@ -33,7 +33,7 @@ import { STATE_FOLDER, type Task } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
 import { registrarTransicion } from '../core/transiciones.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
-import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
+import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
 import {
   commitRevisadoDe,
   hallazgosNoCerrados,
@@ -243,9 +243,6 @@ export interface ExtrasPeticion {
   /** TASK-040: seccion con los hallazgos abiertos de la ronda anterior. */
   seccionPrevia?: string;
 }
-
-/** Peticiones de revision, con o sin sufijo de dominio (TASK-018). */
-export const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 
 /** Lo que hace falta saber de la ronda N para generar la N+1 (TASK-040). */
 interface RondaPrevia {

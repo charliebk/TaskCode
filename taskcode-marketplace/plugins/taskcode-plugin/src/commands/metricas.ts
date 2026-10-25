@@ -59,8 +59,12 @@ import {
   type EventoGit,
   type FilaMetricas,
 } from '../core/metricas.js';
-import { INFORME_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme } from '../fs/rondas.js';
-import { PETICION_REVISION_RE } from './review.js';
+import {
+  INFORME_REVISION_RE,
+  PETICION_REVISION_RE,
+  nombresDeUltimaRonda,
+  rondaYRevisorDeInforme,
+} from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 

@@ -616,29 +616,44 @@ export function sustituirBloqueTokens(contenido: string, bloque: string): string
 
 // --- Fila enriquecida: desglose, hallazgos, lecturas (TASK-064) --------------
 
-/** Suma de un campo de las tres fases del desglose; null si la tarea no tiene tabla `## Coste`. */
+/**
+ * Suma de un campo de las tres fases del desglose; null si la tarea no tiene
+ * tabla `## Coste`. `nuevos` y `cacheLectura` tambien son null si ninguna
+ * fila tiene desglose (solo filas `manual`): no se midio nada, no es 0.
+ */
 function sumaDesglose(f: FilaMetricas, campo: 'nuevos' | 'cacheLectura' | 'sinDesglose'): number | null {
   if (!f.coste.conTabla) return null;
+  if (campo !== 'sinDesglose' && FASES_COSTE.every((fase) => f.coste.fases[fase].desglosado === 0)) return null;
   return FASES_COSTE.reduce((a, fase) => a + (f.coste.fases[fase][campo] ?? 0), 0);
+}
+
+/** `tok_sin_desglose`: la suma, con `*` si alguna fase es negativa (la suma podria esconderlo). */
+function celdaSinDesglose(f: FilaMetricas): string {
+  const suma = sumaDesglose(f, 'sinDesglose');
+  if (suma === null) return '—';
+  const negativa = FASES_COSTE.some((fase) => (f.coste.fases[fase].sinDesglose ?? 0) < 0);
+  return negativa ? `${String(suma)}*` : String(suma);
 }
 
 /** Las que anade `--tokens` a la tabla por pantalla (no al bloque de docs/METRICAS.md). */
 export const COLUMNAS_DESGLOSE_TOKENS: readonly ColumnaMetricas[] = [
   { cabecera: 'tok_nuevos', valor: (f) => celdaTokens(sumaDesglose(f, 'nuevos')) },
   { cabecera: 'tok_cache_lect', valor: (f) => celdaTokens(sumaDesglose(f, 'cacheLectura')) },
-  { cabecera: 'tok_sin_desglose', valor: (f) => celdaTokens(sumaDesglose(f, 'sinDesglose')) },
+  { cabecera: 'tok_sin_desglose', valor: celdaSinDesglose },
 ];
 
 export const NOTA_DESGLOSE_TOKENS =
-  'Desglose de "## Coste" (solo tareas con esa tabla; «—» = sin tabla): tok_nuevos = entrada + ' +
+  'Desglose de "## Coste" (solo tareas con esa tabla; «—» = sin tabla, y en tok_nuevos y ' +
+  'tok_cache_lect tambien si ninguna fila tiene desglose): tok_nuevos = entrada + ' +
   'escritura de cache + salida; tok_cache_lect = lectura de cache, aparte; tok_sin_desglose = ' +
-  'tokens_<fase> menos lo desglosado (filas "manual" o coste anterior a la tabla). Un negativo es ' +
-  'una incoherencia (el desglose supera al total): sale con aviso y no se recorta a 0. Un agente ' +
+  'tokens_<fase> menos lo desglosado (filas "manual" o coste anterior a la tabla), sumado por ' +
+  'fases. Un negativo en una fase es una incoherencia (el desglose supera al total): no se ' +
+  'recorta a 0, sale con aviso y la celda lleva "*" aunque la suma sea positiva. Un agente ' +
   'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica.';
 
 export const NOTA_HALLAZGOS =
   'Hallazgos: cada uno cuenta una vez por tarea (revisor + ID) sumando todas las rondas, con la ' +
-  'severidad y el origen de la ultima ronda en que aparece. hall_origen = implementacion/plan/' +
+  'severidad y el origen de la ultima ronda que los reconoce. hall_origen = implementacion/plan/' +
   'especificacion/sin clasificar. «—» = sin dato: sin informes de revision, o algun informe sin ' +
   'tabla de hallazgos (no cuenta como cero).';
 

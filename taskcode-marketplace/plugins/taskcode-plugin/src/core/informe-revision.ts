@@ -160,10 +160,30 @@ function origenDe(celda: string): OrigenHallazgo {
   return (ORIGENES_HALLAZGO as readonly string[]).includes(valor) ? (valor as OrigenHallazgo) : 'sin clasificar';
 }
 
-/** Severidad sin distinguir mayusculas, tildes ni enfasis; null fuera del vocabulario. */
+/**
+ * Severidad por la PRIMERA PALABRA de la celda, sin distinguir mayusculas,
+ * tildes ni enfasis: `IMPORTANTE (no verificado por ejecucion)` o
+ * `**Menor** (ronda 1)` se reconocen (los revisores anotan detras). null si
+ * esa primera palabra no es del vocabulario (`Alta`, `Major`, `—`, vacia).
+ */
 export function severidadDe(celda: string): SeveridadHallazgo | null {
-  const valor = normalizarCelda(celda).toUpperCase();
+  const primera = (normalizarCelda(celda).split(/[\s(),;:]+/)[0] ?? '').replace(/^[*_`]+|[*_`]+$/g, '');
+  const valor = primera.toUpperCase();
   return (SEVERIDADES_HALLAZGO as readonly string[]).includes(valor) ? (valor as SeveridadHallazgo) : null;
+}
+
+const SOLO_GUION_RE = /^[-—–]*$/;
+
+/**
+ * La fila-marcador «sin hallazgos» que la plantilla admite
+ * (`| (ninguno) | — | sin hallazgos | — |` y variantes): ID `(ninguno)`,
+ * Estado `sin hallazgos`, o ID y severidad en blanco o con un guion. No es
+ * un hallazgo (IMP-1 de la revision de TASK-064).
+ */
+function esMarcadorSinHallazgos(id: string, severidad: string, estado: string): boolean {
+  if (/^\(?ninguno\)?$/i.test(id)) return true;
+  if (estado.toLowerCase() === 'sin hallazgos') return true;
+  return SOLO_GUION_RE.test(id) && SOLO_GUION_RE.test(severidad);
 }
 
 /**
@@ -216,6 +236,7 @@ export function leerHallazgos(informe: string): LecturaTodosHallazgos {
     const id = c[iId] ?? '';
     if (id === '' || id.toLowerCase().startsWith('(ej.')) continue;
     const severidad = iSev === -1 ? '' : (c[iSev] ?? '');
+    if (esMarcadorSinHallazgos(id, severidad, c[iEstado] ?? '')) continue;
     hallazgos.push({
       id,
       severidad,
@@ -272,7 +293,16 @@ export interface SeveridadDesconocida {
  * REGLA (decision de Carlos, 2026-10-25): cada hallazgo cuenta UNA vez por
  * tarea, con clave revisor + ID (el ID sin distinguir mayusculas). Un
  * hallazgo que reaparece en la ronda 2 con estado `corregido` no suma otra
- * vez; su severidad y su origen son los de la ultima ronda en que aparece.
+ * vez. Su severidad y su origen se fusionan CAMPO A CAMPO: cada uno es el de
+ * la ultima ronda en que ese campo esta reconocido (una ronda 2 con
+ * `IMPORTANTE (ronda 1)` sin Origen no borra el `plan` de la ronda 1); solo
+ * si ninguna ronda lo reconoce queda `desconocida` / `sin clasificar`.
+ *
+ * El revisor sale del sufijo del fichero ('' sin sufijo), asi que el mismo ID
+ * en `informe-revision-1.md` y en `informe-revision-2-<revisor>.md` (una
+ * ronda sin fragmentar y otra fragmentada) cuenta como DOS hallazgos: no hay
+ * forma de saber que el revisor sin sufijo era el mismo (MEN-3 de la
+ * revision de TASK-064, consecuencia aceptada de la regla).
  *
  * QUE SIGNIFICA CADA null (para quien agregue despues):
  *  - `porSeveridad`/`porOrigen` null con `informes === 0`: la tarea no tiene
@@ -295,7 +325,7 @@ export interface ResumenHallazgos {
 export function resumirHallazgos(informes: readonly InformeLeido[]): ResumenHallazgos {
   const informesSinTabla: string[] = [];
   const severidadesDesconocidas: SeveridadDesconocida[] = [];
-  const porClave = new Map<string, HallazgoLeido>();
+  const porClave = new Map<string, { severidad: SeveridadHallazgo | null; origen: OrigenHallazgo }>();
   const ordenados = [...informes].sort((a, b) => a.ronda - b.ronda || a.fichero.localeCompare(b.fichero));
   for (const inf of ordenados) {
     const { tabla, hallazgos } = leerHallazgos(inf.texto);
@@ -307,7 +337,12 @@ export function resumirHallazgos(informes: readonly InformeLeido[]): ResumenHall
       if (h.severidadReconocida === null) {
         severidadesDesconocidas.push({ fichero: inf.fichero, id: h.id, valor: h.severidad });
       }
-      porClave.set(`${inf.revisor}\u0000${h.id.toUpperCase()}`, h);
+      const clave = `${inf.revisor}\u0000${h.id.toUpperCase()}`;
+      const previo = porClave.get(clave) ?? { severidad: null, origen: 'sin clasificar' as OrigenHallazgo };
+      porClave.set(clave, {
+        severidad: h.severidadReconocida ?? previo.severidad,
+        origen: h.origen === 'sin clasificar' ? previo.origen : h.origen,
+      });
     }
   }
   if (informes.length === 0 || informesSinTabla.length > 0) {
@@ -316,7 +351,7 @@ export function resumirHallazgos(informes: readonly InformeLeido[]): ResumenHall
   const porSeveridad: ConteoSeveridad = { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 0 };
   const porOrigen: ConteoOrigen = { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 0 };
   for (const h of porClave.values()) {
-    porSeveridad[h.severidadReconocida ?? 'desconocida']++;
+    porSeveridad[h.severidad ?? 'desconocida']++;
     porOrigen[h.origen]++;
   }
   return { informes: informes.length, informesSinTabla, porSeveridad, porOrigen, severidadesDesconocidas };

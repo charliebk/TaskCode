@@ -10,11 +10,17 @@ grupos, `--repo`, `--json` y la linea base quedan para TASK-065.
   (implementacion/plan/especificacion/sin clasificar): los hallazgos de todos
   los informes de revision, `informe-revision-N.md` e
   `informe-revision-N-<revisor>.md`, contados una vez por tarea con clave
-  revisor + ID (la severidad y el origen son los de la ultima ronda en que
-  aparece). Un informe sin tabla de hallazgos deja la tarea en «—» (sin dato,
-  no cero); la salida dice cuantos hay y lo avisa.
-- La severidad se reconoce sin distinguir mayusculas, tildes ni enfasis
-  (`Importante`, `Crítico`, `menor`); una fuera de vocabulario (`Alta`,
+  revisor + ID. La severidad y el origen se fusionan campo a campo: cada uno
+  es el de la ultima ronda en que esta reconocido, asi que una ronda que
+  relista un hallazgo sin Origen no borra el de la anterior. El mismo ID en un
+  informe sin sufijo y en otro con sufijo de revisor cuenta como dos (no se
+  sabe que sea el mismo revisor). La fila-marcador «sin hallazgos» (ID
+  `(ninguno)`, Estado `sin hallazgos`, o ID y severidad en blanco o «—») no
+  es un hallazgo. Un informe sin tabla de hallazgos deja la tarea en «—» (sin
+  dato, no cero); la salida dice cuantos hay y lo avisa.
+- La severidad se reconoce por su primera palabra, sin distinguir
+  mayusculas, tildes ni enfasis (`Importante`, `Crítico`, `menor`,
+  `IMPORTANTE (no verificado)`); una fuera de vocabulario (`Alta`,
   `Major`, vacia) sale como aviso con la tarea y el fichero y no cuenta en
   `crit/imp/men`. `leerHallazgos` expone `severidadReconocida`.
 - Bajo la tabla: la mediana de lecturas por fase de las tareas cuya tabla
@@ -22,7 +28,9 @@ grupos, `--repo`, `--json` y la linea base quedan para TASK-065.
   en alguna fase.
 - `--tokens` anade `tok_nuevos` (entrada + escritura de cache + salida),
   `tok_cache_lect` y `tok_sin_desglose` (`tokens_<fase>` menos lo desglosado).
-  Un negativo no se recorta a 0: sale con aviso. Un agente repetido en la
+  Un negativo en una fase no se recorta a 0: sale con aviso y la celda lleva
+  `*` aunque la suma sea positiva. Con solo filas `manual`, `tok_nuevos` y
+  `tok_cache_lect` salen «—» (no medido), no 0. Un agente repetido en la
   misma fase (MEN-2 de TASK-063) se avisa y no se deduplica; las filas
   `manual` no cuentan como repetidas. El bloque de `docs/METRICAS.md` no
   cambia de forma, y los avisos no impiden `--escribir`.
