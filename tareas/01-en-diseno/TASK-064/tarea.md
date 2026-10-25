@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-064-metricas-v2-b-leer-y-mostrar-la-evolucio
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -37,3 +37,9 @@ Ampliada antes de disenarla (Carlos, 2026-10-25). Una medicion a mano sobre 189 
 - [ ] taskctl metricas --repo <ruta> (repetible; por defecto el repo actual) junta varios proyectos en solo lectura: cada fila y cada grupo dicen de que proyecto vienen, y --json (con --evolucion o --grupos) da una salida que pasa JSON.parse.
 - [ ] Tests contra repos Git temporales reales con tareas en formato antiguo y nuevo, incluido un test de una fila dentro de un bloque de codigo en una seccion ## Coste real que leerCostes no cuenta (MEN-1 de TASK-063); README y CHANGELOG documentan las metricas nuevas.
 - [ ] Linea base: la salida de taskctl metricas --evolucion --grupos con --repo sobre ToolsaWeb, OpenGisViewer y TaskCode queda copiada en el Resultado, y git status en cada uno de los tres sigue igual que antes de ejecutarlo.
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-10-25T14:53:47Z | plan | automatico | persona |
