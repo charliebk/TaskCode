@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-064-metricas-v2-b-leer-y-mostrar-la-evolucio
 asignado_a: charlie.bk@gmail.com
@@ -70,3 +70,4 @@ Cerrada el 2026-10-25 en 2 rondas de revision por pares (ronda 1: cambios-solici
 | 2026-10-25T15:06:49Z | start | automatico | persona |
 | 2026-10-25T16:47:04Z | review | automatico | persona |
 | 2026-10-25T18:21:23Z | review | automatico | persona |
+| 2026-10-25T19:04:20Z | finish | automatico | persona |

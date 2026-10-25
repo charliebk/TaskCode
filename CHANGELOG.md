@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-064 (feature) — Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y lecturas (2026-10-25)
 
 Metricas v2, parte B (TASK-064): `taskctl metricas` lee lo que capturo
 TASK-063 y enriquece la fila de cada tarea. La evolucion por tramos, los
