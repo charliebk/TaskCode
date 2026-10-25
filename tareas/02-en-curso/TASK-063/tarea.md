@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-063-metricas-v2-medir-el-comportamiento-del
 asignado_a: charlie.bk@gmail.com
@@ -42,3 +42,4 @@ En el diseno se partio en dos (Carlos, 2026-10-25): esta tarea es la parte A, qu
 |---|---|---|---|
 | 2026-10-25T13:30:44Z | plan | automatico | persona |
 | 2026-10-25T13:43:05Z | approve | automatico | automatico |
+| 2026-10-25T13:43:19Z | start | automatico | persona |
