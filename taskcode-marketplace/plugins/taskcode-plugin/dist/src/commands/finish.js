@@ -204,12 +204,15 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             'la tarea se cierra igualmente (el veredicto del revisor es la puerta).');
     }
     // TASK-023: avisar, sin bloquear (misma doctrina que el aviso de arriba),
-    // de las fases con LLM sin coste registrado. tokens_implementacion no avisa:
-    // puede no haber habido subagentes en el curso.
+    // de las fases con LLM sin coste registrado. TASK-063: tambien
+    // implementacion, vacia o a 0 (sin ella no se puede comparar el coste
+    // entre tareas); si de verdad no hubo subagentes, la parte del
+    // orquestador se registra con --tokens N.
     const sinCoste = [
         ['diseno', initial.task.tokens_diseno],
+        ['implementacion', initial.task.tokens_implementacion],
         ['revision', initial.task.tokens_revision],
-    ].filter(([, v]) => v === null);
+    ].filter(([fase, v]) => v === null || (fase === 'implementacion' && v === 0));
     for (const [fase] of sinCoste) {
         deps.onAviso?.(`${id}: sin coste de ${fase} registrado (tokens_${fase}). Registralo con ` +
             `taskctl registrar-coste ${id} --fase ${fase} --agente <id> [--agente <id2>...], con el id ` +

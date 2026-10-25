@@ -106,10 +106,10 @@ test('registrar-coste: funciona con la tarea terminada, que vive en develop tras
     await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot), 'informe-revision-1.md'));
     cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
     const cierre = cliOk(repoRoot, ['finish', ID]);
-    // Sin coste registrado, finish avisa de diseno y revision (no de implementacion) y cierra.
+    // Sin coste registrado, finish avisa de las tres fases (TASK-063: tambien implementacion) y cierra.
     assert.match(cierre.stderr, /sin coste de diseno registrado/);
+    assert.match(cierre.stderr, /sin coste de implementacion registrado/);
     assert.match(cierre.stderr, /sin coste de revision registrado/);
-    assert.doesNotMatch(cierre.stderr, /sin coste de implementacion/);
     assert.equal(git(['branch', '--show-current'], repoRoot).trim(), 'develop');
     const t = await readTareaFile(tareasRoot, ID);
     assert.equal(t?.task.estado, 'terminada');
