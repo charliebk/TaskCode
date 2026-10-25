@@ -1,6 +1,6 @@
 ---
 id: TASK-064
-titulo: "Metricas v2 (B): leer y mostrar la evolucion del flujo"
+titulo: "Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y lecturas"
 tipo: feature
 sprint: 0
 etiquetas: [metricas]
@@ -28,15 +28,14 @@ Segunda mitad de la particion de TASK-063 (decidida en su diseno, Carlos 2026-10
 
 Ampliada antes de disenarla (Carlos, 2026-10-25). Una medicion a mano sobre 189 tareas de los tres proyectos mostro que el resultado de la revision depende sobre todo del tamano de la tarea: con 0-4 criterios se aprueba a la primera el 52 %, con 7 o mas el 12 %; `simple` 72 %, `media` 18 %, `alta` 5 %; `fix` 72 %, `feature` 23 %. ToolsaWeb es la excepcion: sus tareas pequenas tambien rebotan (14 % a la primera), asi que alli pesa otra cosa (dominio o contexto). Por eso el desglose por grupos y la comparacion entre proyectos valen mas que la evolucion sola. Incluye ademas dos MENOR que TASK-063 dejo para esta tarea (MEN-1 y MEN-2 de su informe).
 
+En su diseno se partio otra vez (Carlos, 2026-10-25): esta tarea enriquece la fila de `taskctl metricas` de cada tarea; la evolucion por tramos, los grupos, `--repo` y la linea base de los tres proyectos pasan a TASK-065, que depende de esta. Reglas decididas: cada hallazgo (revisor + ID) cuenta una vez por tarea aunque reaparezca en rondas siguientes; un informe sin tabla de hallazgos es «sin dato», no cero.
+
 ## Criterios de aceptacion
-- [ ] taskctl metricas muestra por tarea los tokens nuevos (entrada + escritura de cache + salida) y la lectura de cache por separado cuando hay tabla ## Coste, como sin desglose la diferencia entre tokens_<fase> y lo desglosado, y avisa de las filas repetidas (misma fase y misma fuente) en vez de esconderlas.
+- [ ] taskctl metricas muestra por tarea los tokens nuevos (entrada + escritura de cache + salida) y la lectura de cache por separado cuando hay tabla ## Coste, como sin desglose la diferencia entre tokens_<fase> y lo desglosado (negativa con aviso, nunca recortada a 0), y avisa de las filas repetidas (misma fase y misma fuente) en vez de esconderlas.
 - [ ] taskctl metricas lista las tareas terminadas a las que les falta coste en alguna fase (diseno, implementacion, revision).
-- [ ] taskctl metricas da por tarea las rondas, los hallazgos CRITICO, IMPORTANTE y MENOR de informe-revision-N.md e informe-revision-N-<revisor>.md con su reparto por origen (sin clasificar si no hay columna Origen), y la mediana de lecturas por fase de las tareas con tabla ## Coste.
-- [ ] taskctl metricas --evolucion [--tramo N] agrupa las tareas terminadas por fecha de cierre en tramos de N (20 por defecto) con mediana de minutos plan a finish, rondas medias, hallazgos IMPORTANTE por tarea, tokens de revision y KB de peticiones de revision.
-- [ ] taskctl metricas --grupos agrupa las tareas terminadas por tipo, por complejidad, por numero de criterios (0-4, 5-6, 7 o mas) y por KB de peticion de revision por ronda (terciles), con porcentaje aprobado en la primera ronda, rondas medias y hallazgos CRITICO+IMPORTANTE por tarea.
-- [ ] taskctl metricas --repo <ruta> (repetible; por defecto el repo actual) junta varios proyectos en solo lectura: cada fila y cada grupo dicen de que proyecto vienen, y --json (con --evolucion o --grupos) da una salida que pasa JSON.parse.
-- [ ] Tests contra repos Git temporales reales con tareas en formato antiguo y nuevo, incluido un test de una fila dentro de un bloque de codigo en una seccion ## Coste real que leerCostes no cuenta (MEN-1 de TASK-063); README y CHANGELOG documentan las metricas nuevas.
-- [ ] Linea base: la salida de taskctl metricas --evolucion --grupos con --repo sobre ToolsaWeb, OpenGisViewer y TaskCode queda copiada en el Resultado, y git status en cada uno de los tres sigue igual que antes de ejecutarlo.
+- [ ] taskctl metricas da por tarea las rondas, los hallazgos CRITICO, IMPORTANTE y MENOR de informe-revision-N.md e informe-revision-N-<revisor>.md contados una vez por tarea (revisor + ID), con su reparto por origen (sin clasificar si no hay columna Origen), y la mediana de lecturas por fase de las tareas con tabla ## Coste; un informe sin tabla de hallazgos cuenta como sin dato y la salida dice cuantos hay.
+- [ ] La severidad de un hallazgo se reconoce sin distinguir mayusculas ni tildes (Importante, IMPORTANTE, Critico) y una severidad fuera del vocabulario sale como aviso con la tarea y el fichero, en vez de descartarse en silencio.
+- [ ] Tests contra repos Git temporales reales con tareas en formato antiguo y nuevo: hallazgo repetido entre rondas cuenta una vez, informe sin tabla, severidad en minusculas, fila repetida en ## Coste, y una fila dentro de un bloque de codigo en una seccion ## Coste real que leerCostes no cuenta (MEN-1 de TASK-063); el CHANGELOG lo documenta.
 
 ## Transiciones
 

@@ -51,3 +51,12 @@ lanzados en paralelo: arquitectura, riesgos. 2 roles = el mayor entre la complej
 - Que es «aprobada a la primera»: `rondas === 1` con veredicto aprobado (arquitectura) o ultima ronda == 1 (riesgos lo marca como suposicion), y que hacer con `revision/` vacia o rechazo en ronda 1 cerrado sin ronda 2 — cambia la cifra central de `--grupos`; ninguno lo verifico contra el script ad hoc de las 189 tareas.
 - Terciles de KB sobre el conjunto mezclado de todos los `--repo` (arquitectura, para comparar grupos) o por proyecto — riesgos no opina; el enunciado pide comparar proyectos y los dos sirven a fines distintos.
 - Partir en 064-A «fila enriquecida» (criterios 1-3 + MEN-1/2) y 064-B «agregados y multi-repo» (4-6, 8; 7 repartido), como propone arquitectura — reparto de trabajo y alcance; riesgos no lo trata. Este plan no vale hasta que una persona lo apruebe con `taskctl approve`.
+
+### Decisiones de la persona (Carlos, 2026-10-25)
+
+1. **Hallazgos entre rondas: cada ID una vez por tarea.** La clave es revisor + ID (un `informe-revision-N-<revisor>.md` aporta su revisor; sin sufijo, revisor vacio). La salida lo dice.
+2. **«Aprobada a la primera» = una sola ronda con veredicto `aprobada` o `aprobada-con-correcciones`.** Las tareas sin revision se cuentan aparte (es de TASK-065, que es quien agrega).
+3. **Terciles de KB con todos los proyectos juntos** (TASK-065).
+4. **Particion: si.** Esta tarea queda como la fila enriquecida: pasos 1 y 2 del enfoque (`resumirCostes`, `FilaMetricas` con coste, hallazgos por severidad y origen, lecturas, `kbPeticionPorRonda`, `tareasSinCoste`, aviso de repetidas), mas el arreglo de severidades sin distinguir mayusculas (gana riesgos) y la regla «sin tabla = sin dato». Los pasos 3 a 5 (`leerRepoMetricas` + `--repo` con clave `(proyecto, id)`, `evolucion.ts`, `grupos-metricas.ts`, `--json`, README y linea base de los tres repos) pasan a **TASK-065**, que depende de esta.
+
+Para que TASK-065 no tenga que rehacer la fila: `FilaMetricas` distingue «no medido» de «no leido» desde ya (campos siempre presentes; `null` con significado documentado), que es la preocupacion principal de arquitectura. La linea base no se copia en ningun Resultado hasta TASK-065.
