@@ -65,4 +65,15 @@ Persistir lo nuevo en una tabla `## Coste` en el cuerpo de `tarea.md` (como `## 
 
 ## Lo que necesita decision de una persona
 
-Pendiente: se pregunta a la persona en esta fase (modo automatico).
+Resuelto en la fase de diseno (Carlos, 2026-10-25):
+
+1. **Particion: si.** Esta tarea queda como **063-A «captura»** (pasos 1 y 2 del orden, mas el aviso de `finish`): sus criterios se reescribieron en `tarea.md`. Los pasos 3 a 5 (lectura en `metricas`, `tareasSinCoste`, `core/evolucion.ts`, `--evolucion/--tramo/--json`, README y linea base de ToolsaWeb) pasan a **TASK-064**, que depende de esta.
+2. **Desglose en tabla `## Coste`** en el cuerpo de `tarea.md`, como propone el plan. El frontmatter conserva el total.
+3. **Lecturas**: Read, Grep, Glob, los MCP de lectura o busqueda (lista cerrada en la constante `HERRAMIENTAS_LECTURA`) **y Bash de lectura**: un `tool_use` de Bash cuenta si su comando, tras quitar espacios iniciales, empieza por `cat`, `head`, `tail`, `grep`, `rg`, `find`, `ls` o `sed -n`. Es heuristico a sabiendas; la lista vive en una constante y se documenta.
+4. **Origen por hallazgo** (columna `Origen` en cada fila). Vocabulario cerrado: `implementacion`, `plan`, `especificacion`; se normaliza a minusculas y sin tildes; cualquier otro valor o celda vacia cuenta como `sin clasificar`. Los **tramos de `--evolucion` se ordenan por fecha de cierre** (eso es de TASK-064).
+5. **«Tokens nuevos»** = entrada + escritura de cache + salida; la lectura de cache va aparte. Si la tabla suma mas que `tokens_<fase>` (edicion a mano), no se corrige nada en esta tarea: TASK-064 lo mostrara como diferencia negativa.
+6. **`docs/METRICAS.md`** no gana columnas en esta tarea.
+
+## Alcance de esta tarea tras la particion
+
+Pasos 1 y 2 del orden de construccion y la parte de `finish` del paso 3. No toca `core/metricas.ts` ni `commands/metricas.ts` salvo lo minimo para que compilen con las firmas nuevas.
