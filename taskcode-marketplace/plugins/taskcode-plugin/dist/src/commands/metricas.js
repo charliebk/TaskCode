@@ -43,9 +43,17 @@ import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, COLUMNAS_TOKENS, COLUMNAS_DESGL
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme, } from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
+import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion } from '../core/evolucion.js';
 export class MetricasCommandError extends Error {
 }
-export const FLAGS_METRICAS = ['--heuristica', '--tokens', '--escribir', '--repo'];
+export const FLAGS_METRICAS = [
+    '--heuristica',
+    '--tokens',
+    '--escribir',
+    '--repo',
+    '--evolucion',
+    '--tramo',
+];
 /** Ruta de docs/METRICAS.md dentro del repo del usuario. */
 export function metricasFilePath(repoCwd) {
     return path.join(repoCwd, 'docs', 'METRICAS.md');
@@ -56,6 +64,20 @@ export const MUESTRA_HEURISTICA_VACIA = 'n=0: ninguna tarea terminada con inform
 const NOTA_CALENDARIO = 'Duraciones de calendario: diseno = plan->start, curso = start->primer review, ' +
     'revision = primer review->finish. Las pausas no se descuentan. Con origen "registro" ' +
     'de filas antiguas (solo el dia) o mezcladas, la duracion va en dias ("N d").';
+/** `--tramo N`: entero >= 1 (por defecto 20); cualquier otra cosa aborta. */
+function leerTramo(raw, conEvolucion) {
+    if (raw === undefined)
+        return TRAMO_POR_DEFECTO;
+    if (!conEvolucion) {
+        throw new MetricasCommandError('[ERROR] --tramo solo se admite con --evolucion: es el numero de tareas de cada tramo ' +
+            '(taskctl metricas --evolucion --tramo 10).');
+    }
+    if (typeof raw !== 'string' || !/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) < 1) {
+        throw new MetricasCommandError(`[ERROR] --tramo ${typeof raw === 'string' ? `"${raw}" no es` : 'necesita'} un entero de 1 o mas: ` +
+            `las tareas de cada tramo (por defecto ${String(TRAMO_POR_DEFECTO)}). No se ha leido nada.`);
+    }
+    return Number(raw);
+}
 function flagSuelto(flags, nombre) {
     const raw = flags[nombre];
     if (raw === undefined)
@@ -78,7 +100,20 @@ function parseFlagsMetricas(argv) {
         tokens: flagSuelto(flags, 'tokens'),
         escribir: flagSuelto(flags, 'escribir'),
         repos,
+        evolucion: null,
     };
+    const conEvolucion = flagSuelto(flags, 'evolucion');
+    const tramo = leerTramo(flags['tramo'], conEvolucion);
+    if (conEvolucion) {
+        f.evolucion = tramo;
+        // Los agregados sustituyen a la tabla por tarea: lo que anaden --heuristica
+        // y --tokens (columnas y resumenes de esa tabla) no saldria en ningun sitio.
+        const choca = ['heuristica', 'tokens', 'escribir'].filter((k) => f[k]);
+        if (choca.length > 0) {
+            throw new MetricasCommandError(`[ERROR] --evolucion no se combina con ${choca.map((k) => `--${k}`).join(' ni ')}: saca agregados ` +
+                'en lugar de la tabla por tarea. Lanzalos por separado.');
+        }
+    }
     if (f.escribir && !f.tokens) {
         throw new MetricasCommandError('[ERROR] --escribir solo se admite con --tokens: lo que regenera es el bloque de coste en ' +
             'tokens de docs/METRICAS.md (taskctl metricas --tokens --escribir).');
@@ -271,7 +306,7 @@ export async function leerRepoMetricas(repo, varios) {
 }
 export async function runMetricasCommand(tareasRoot, argv, deps) {
     rechazarFlagsDesconocidos(argv, FLAGS_METRICAS, 'metricas', (m) => new MetricasCommandError(m));
-    const { heuristica: conHeuristica, tokens: conTokens, escribir, repos: valoresRepo } = parseFlagsMetricas(argv);
+    const { heuristica: conHeuristica, tokens: conTokens, escribir, repos: valoresRepo, evolucion: tramoEvolucion, } = parseFlagsMetricas(argv);
     // Como board --escribir: sin tareas/ en este directorio no se crea un
     // docs/METRICAS.md fantasma.
     if (escribir) {
@@ -320,6 +355,18 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
     const sinTabla = avisoInformesSinTabla(filas, varios);
     if (sinTabla !== null)
         advertencias.push(sinTabla);
+    // TASK-065: los agregados sustituyen a la tabla por tarea, y salen tambien
+    // sin tareas (con sus ceros y sus n 0 a la vista).
+    if (tramoEvolucion !== null) {
+        return {
+            output: formatearEvolucion(calcularEvolucion(filas, tramoEvolucion), varios),
+            totalTareas: filas.length,
+            advertencias,
+            metricasPath: null,
+            escritura: null,
+            reposLeidos,
+        };
+    }
     if (filas.length === 0) {
         return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos };
     }

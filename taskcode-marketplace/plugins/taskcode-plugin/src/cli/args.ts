@@ -107,7 +107,16 @@ export function extraerRepetible(
 export const FLAGS_REPETIBLES: readonly string[] = ['--agente', '--repo', '--criterio'];
 
 /** Flags booleanos del CLI: los comandos solo reconocen el token suelto. */
-const FLAGS_SIN_VALOR: readonly string[] = ['--push', '--json', '--forzar', '--escribir', '--heuristica', '--merge-request'];
+const FLAGS_SIN_VALOR: readonly string[] = [
+  '--push',
+  '--json',
+  '--forzar',
+  '--escribir',
+  '--heuristica',
+  '--merge-request',
+  '--evolucion',
+  '--grupos',
+];
 
 export function rechazarFlagsDesconocidos(
   argv: readonly string[],

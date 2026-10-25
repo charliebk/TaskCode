@@ -5,35 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { calcularFila, type EntradaMetricas } from '../../src/core/metricas.js';
-import type { Task } from '../../src/core/task.js';
-
-export function tarea(o: Partial<Task> = {}): Task {
-  return {
-    id: 'TASK-007',
-    titulo: 'Medir',
-    tipo: 'fix',
-    sprint: 1,
-    etiquetas: [],
-    complejidad: 'simple',
-    modelo_sugerido: 'sonnet',
-    estado: 'terminada',
-    plan_aprobado: true,
-    rama: 'fix/x',
-    asignado_a: null,
-    agente_revisor: 'general-purpose',
-    skills_recomendados: [],
-    regla_seleccion_skill: null,
-    ultimo_commit_revisado: null,
-    revision_codex: false,
-    tokens_diseno: null,
-    tokens_implementacion: null,
-    tokens_revision: null,
-    creado: '2026-10-01',
-    actualizado: '2026-10-05',
-    dependencias: [],
-    ...o,
-  } as Task;
-}
+import { tarea } from '../helpers/tarea-ejemplo.js';
 
 function transiciones(...filas: [string, string][]): string {
   return [
