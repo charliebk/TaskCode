@@ -86,6 +86,19 @@ async function escenario(repoRoot: string, tareasRoot: string): Promise<void> {
     `# Informe\n\n- Veredicto: aprobada\n\n## Hallazgos\n\n${CABECERA_HALLAZGOS}| MEN-1 | Alta | abierto | app.txt | |\n`,
     'utf8'
   );
+  // Ronda 3 (revision de TASK-064): IMP-1 relistado con la severidad anotada y
+  // sin Origen (no borra el "Plan" de la ronda 2), y el revisor java-spring
+  // sin hallazgos (la fila-marcador no es un hallazgo).
+  await writeFile(
+    path.join(revision, 'informe-revision-3.md'),
+    `# Informe\n\n- Veredicto: aprobada\n\n## Hallazgos\n\n${CABECERA_HALLAZGOS}| IMP-1 | IMPORTANTE (ronda 1) | corregido | app.txt | |\n`,
+    'utf8'
+  );
+  await writeFile(
+    path.join(revision, 'informe-revision-3-java-spring-reviewer.md'),
+    `# Informe\n\n- Veredicto: aprobada\n\n## Hallazgos\n\n${CABECERA_HALLAZGOS}| (ninguno) | — | sin hallazgos | — | — |\n`,
+    'utf8'
+  );
 
   // ## Coste: el agente a1 dos veces en implementacion (repetida), r1 en
   // revision con un total del frontmatter menor que su desglose, y una fila
@@ -127,7 +140,8 @@ test('metricas: hallazgos una vez por revisor + ID, severidad en minusculas, inf
     assert.deepEqual([t1.crit, t1.imp, t1.men], ['0', '1', '1']);
     // MEN-1 implementacion (ronda 2 manda), IMP-1 plan, java MEN-1 sin clasificar.
     assert.equal(t1.hall_origen, '1/1/0/1');
-    assert.equal(t1.rondas, '2');
+    assert.equal(t1.rondas, '3');
+    assert.doesNotMatch(r.stderr, /ninguno|ronda 1\)/, 'ni la fila-marcador ni la severidad anotada avisan');
 
     const t2 = porColumna(r.stdout, ID2);
     assert.deepEqual([t2.crit, t2.imp, t2.men, t2.hall_origen], ['—', '—', '—', '—'], 'sin tabla no es cero');
@@ -159,7 +173,9 @@ test('metricas --tokens: nuevos, lectura de cache y sin desglose (negativo sin r
     assert.equal(t1.tok_nuevos, '210');
     assert.equal(t1.tok_cache_lect, '900');
     // diseno 1000 - 0 + implementacion 740 - 740 + revision 100 - 370.
-    assert.equal(t1.tok_sin_desglose, '730');
+    // El "*" marca que la fase de revision es negativa aunque la suma no lo sea.
+    assert.equal(t1.tok_sin_desglose, '730*');
+    assert.match(r.stdout, /la celda lleva "\*" aunque la suma sea positiva/);
     const t2 = porColumna(r.stdout, ID2);
     assert.deepEqual([t2.tok_nuevos, t2.tok_cache_lect, t2.tok_sin_desglose], ['—', '—', '—']);
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');

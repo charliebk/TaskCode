@@ -70,8 +70,9 @@ test('metricas --tokens: columnas por fase y total, la tarea sin datos en la tab
       cab,
       /\| tok_diseno +\| tok_curso +\| tok_revision +\| tok_total +\| tok_nuevos +\| tok_cache_lect +\| tok_sin_desglose +\|$/
     );
-    // TASK-064: las tres filas son "manual" (--tokens N): nada desglosado, todo sin desglose.
-    assert.deepEqual(celdas(r.stdout, ID).slice(-7), ['1000', '3000', '1000', '5000', '0', '0', '5000']);
+    // TASK-064: las tres filas son "manual" (--tokens N): nuevos y cache sin medir («—», no 0)
+    // y todo sin desglose.
+    assert.deepEqual(celdas(r.stdout, ID).slice(-7), ['1000', '3000', '1000', '5000', '—', '—', '5000']);
     // Sin tabla "## Coste": sin dato, no 0.
     assert.deepEqual(celdas(r.stdout, ID2).slice(-7), ['—', '—', '—', '—', '—', '—', '—']);
     assert.match(r.stdout, /tok_sin_desglose = tokens_<fase> menos lo desglosado/);
