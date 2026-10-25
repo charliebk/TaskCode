@@ -2,7 +2,7 @@
 
 - Commit revisado: 4e6baf67120ec9df036510e707d2df5f05b9da84
 - Revisor: code-quality-reviewer (agente general-purpose, modelo sonnet, independiente de la implementacion)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-064 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
