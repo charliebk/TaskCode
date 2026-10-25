@@ -580,6 +580,77 @@ y `<!-- taskctl metricas --tokens: fin -->` (si no están, los añade al final;
 el resto del fichero, CRLF incluido, no cambia ni un byte) y no lo commitea,
 como `board --escribir`. No se combina con `--heuristica`.
 
+**Columnas de la tabla por tarea.** `id`, `complejidad`, `diseno`, `curso`,
+`revision` (duraciones), `rondas` (número de la última ronda con informe; «—»
+sin revisión), `crit`, `imp`, `men` (hallazgos CRÍTICO, IMPORTANTE y MENOR de
+todos los informes `informe-revision-N[-<revisor>].md`, cada uno **una vez por
+tarea** con clave revisor + ID), `hall_origen` (implementación/plan/
+especificación/sin clasificar, de la columna `Origen`), `cierre` (día del último
+`finish`) y `origen` (`registro`, `git` o «—»). Un informe sin tabla de hallazgos
+deja `crit`/`imp`/`men`/`hall_origen` en «—»: sin dato, no cero. Con `--tokens`,
+además `tok_diseno`, `tok_curso`, `tok_revision`, `tok_total` y el desglose de
+`## Coste`: `tok_nuevos` (entrada + escritura de caché + salida),
+`tok_cache_lect` (lectura de caché, aparte) y `tok_sin_desglose`
+(`tokens_<fase>` menos lo desglosado; un negativo no se recorta a 0 y la celda
+lleva `*`). Con varios `--repo`, la tabla abre con la columna `proyecto`.
+
+Bajo la tabla: cuántos informes no tienen tabla de hallazgos, la mediana de
+lecturas por fase y las **terminadas sin coste** en alguna fase, con el recuento
+por fase y las 10 primeras («y N más»; la lista completa sale en `--json`).
+
+**Avisos** (por stderr, con `[AVISO]`; ninguno cambia el código de salida ni
+impide `--escribir`, salvo un `tarea.md` inválido): `tarea.md` inválido (la
+tarea no aparece), `git log` que no se pudo consultar, `tokens_<fase>` vacío con
+filas en `## Coste`, desglose mayor que el total, un agente repetido en una
+fase de `## Coste` (salvo las filas de diferencia de un agente reanudado, ver
+`registrar-coste`), una severidad fuera de vocabulario (con la tarea y el
+fichero) e informes sin tabla de hallazgos. Con varios repos, cada tarea se
+nombra `proyecto/TASK-NNN`.
+
+**Varios proyectos: `--repo <ruta>`** (repetible; relativa al directorio actual;
+por defecto, el repo actual). Junta varios repos con la clave (proyecto, id): un
+mismo `TASK-NNN` en dos repos no mezcla datos. El proyecto es el nombre de la
+carpeta. Antes de leer nada aborta si una ruta no existe, no tiene `tareas/`,
+`--repo` va sin valor o dos carpetas distintas se llaman igual; la misma carpeta
+escrita dos veces (otra grafía, otras mayúsculas en Windows) se lee una vez, con
+aviso. Por stderr sale `Repos leidos: <proyecto> (N tareas, <ruta>); ...`. Con un
+solo repo, stdout es el de siempre. `--repo` con `--escribir` aborta sin tocar
+nada.
+
+**`--evolucion [--tramo N]`** sustituye la tabla por la evolución de las tareas
+terminadas: ordenadas por día de cierre (solo el día; desempate por proyecto y
+por número de ID, `TASK-99` antes que `TASK-100`) y en tramos de N (20 por
+defecto; `--tramo` exige un entero de 1 o más). Por tramo: tareas, días de
+cierre, mediana de minutos de plan a finish (de las que tienen hora en las dos
+marcas; las de solo día se cuentan en «solo dia»), rondas medias, hallazgos
+IMPORTANTE por tarea, tokens de revisión medios y KB medios de la petición de
+revisión por ronda. Cada cifra lleva su `n` (las tareas que tienen ese dato);
+«— (n=0)» es que ninguna lo tiene. Dice cuántas terminadas quedan fuera por no
+tener fecha de cierre (por proyecto con varios repos).
+
+**`--grupos`** sustituye la tabla por grupos de tareas terminadas: por tipo, por
+complejidad declarada, por número de criterios (0-4, 5-6, 7 o más), por KB de
+petición de revisión por ronda (terciles calculados con todos los proyectos
+juntos, cortados por valor; las tareas sin petición quedan fuera y se cuentan) y
+por proyecto. Por grupo: tareas, con revisión, % aprobado a la primera (una sola
+ronda con veredicto `aprobada` o `aprobada-con-correcciones`, sobre las que
+tienen revisión), rondas medias, CRÍTICO+IMPORTANTE por tarea (de las que tienen
+tabla de hallazgos) y, aparte, las tareas sin revisión y las revisadas sin tabla
+de hallazgos. Los grupos son fijos: uno sin tareas sale con 0 y «—».
+`--evolucion` y `--grupos` se combinan entre sí y con `--repo`, no con
+`--heuristica`, `--tokens` ni `--escribir`.
+
+**`--json`** escribe en stdout un único objeto JSON
+(`{proyectos: [{proyecto, ruta, tareas}], sinCoste: {terminadas, total, porFase,
+tareas}, evolucion?, grupos?}`), también sin tareas; los avisos y la lista de
+repos van por stderr. Cada `null` va junto a un `n: 0` en el mismo objeto; nunca
+`NaN`. Solo se combina con `--repo`, `--evolucion`, `--tramo` y `--grupos`: con
+cualquier otro flag aborta sin leer ni escribir nada.
+
+En cualquier comando de `taskctl`, un flag repetido que no admite repetición
+(todos salvo `--repo`, `--agente` y `--criterio`) aborta con error en vez de
+quedarse con el último valor.
+
 `taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision
 (--agente <id>... | --tokens N) [--push]` **suma** al coste de esa fase
 (`tokens_diseno`, `tokens_implementacion`, `tokens_revision` del `tarea.md`;

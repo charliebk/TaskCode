@@ -134,6 +134,91 @@ test('--grupos con dos repos: tipo, complejidad, criterios, terciles de KB y pro
   });
 });
 
+test('--json con --evolucion y --grupos: un unico objeto que pasa JSON.parse, sin texto en stdout; avisos por stderr', async () => {
+  await conRepos(async (crear, base) => {
+    const alfa = await crear('alfa');
+    const beta = await crear('beta');
+    await escribirTareas(alfa, ALFA);
+    await escribirTareas(beta, BETA);
+    const r = metricas(base, ['--json', '--evolucion', '--tramo', '2', '--grupos', '--repo', 'alfa', '--repo', 'beta']);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout.trim().split('\n').length, 1, 'una sola linea');
+    const o = JSON.parse(r.stdout) as Record<string, any>;
+    assert.deepEqual(Object.keys(o), ['proyectos', 'sinCoste', 'evolucion', 'grupos']);
+    assert.deepEqual(
+      o.proyectos.map((p: Record<string, unknown>) => [p.proyecto, p.tareas]),
+      [['alfa', 5], ['beta', 2]]
+    );
+    assert.deepEqual(o.evolucion.sinCierre, { total: 1, porProyecto: { alfa: 1 } });
+    assert.deepEqual(o.evolucion.tramos.map((t: { n: number }) => t.n), [2, 2, 1]);
+    assert.deepEqual(o.evolucion.tramos[2].rondas, { valor: null, n: 0 }, 'null solo junto a n 0');
+    const hotfix = o.grupos.porTipo.find((g: { grupo: string }) => g.grupo === 'hotfix');
+    assert.deepEqual([hotfix.n, hotfix.pctAprobadaPrimera, hotfix.critImpPorTarea], [0, null, null]);
+    assert.equal(o.sinCoste.total, 6);
+    assert.doesNotMatch(r.stdout, /NaN|Infinity/);
+    assert.match(r.stderr, /^Repos leidos: alfa/m);
+    assert.match(r.stderr, /\[AVISO\] 1 informe\(s\) de revision sin tabla/);
+  });
+});
+
+test('--json sin tareas y con grupos vacios: objeto valido, sin "No hay tareas" ni NaN', async () => {
+  await conRepos(async (crear) => {
+    const vacio = await crear('vacio');
+    for (const extra of [[], ['--evolucion'], ['--grupos'], ['--evolucion', '--grupos']]) {
+      const r = metricas(vacio, ['--json', ...extra]);
+      assert.equal(r.status, 0, r.stderr);
+      const o = JSON.parse(r.stdout) as Record<string, any>;
+      assert.deepEqual(
+        o.proyectos.map((p: Record<string, unknown>) => [p.proyecto, p.tareas]),
+        [['vacio', 0]]
+      );
+      assert.deepEqual(o.sinCoste, { terminadas: 0, total: 0, porFase: { diseno: 0, implementacion: 0, revision: 0 }, tareas: [] });
+      if (extra.includes('--evolucion')) assert.deepEqual(o.evolucion.tramos, []);
+      if (extra.includes('--grupos')) {
+        assert.equal(o.grupos.porKb.cortes, null);
+        assert.ok(o.grupos.porTipo.every((g: { n: number; rondasMedia: unknown }) => g.n === 0 && g.rondasMedia === null));
+      }
+      assert.doesNotMatch(r.stdout, /NaN|No hay tareas/);
+      assert.equal(r.stderr, '');
+    }
+  });
+});
+
+test('--json con un flag fuera de la lista (--escribir, --tokens, --heuristica) aborta sin escribir nada', async () => {
+  await conRepos(async (crear) => {
+    const alfa = await crear('alfa');
+    await escribirTareas(alfa, ALFA);
+    const antes = estado(alfa);
+    for (const otro of [['--tokens', '--escribir'], ['--tokens'], ['--heuristica'], ['--escribir']]) {
+      const r = metricas(alfa, ['--json', ...otro]);
+      assert.equal(r.status, 1, otro.join(' '));
+      assert.match(r.stderr, /--json no se combina con .*: solo con --repo, --evolucion, --tramo, --grupos/);
+      assert.equal(r.stdout, '');
+      assert.equal(estado(alfa), antes, `${otro.join(' ')}: no se crea docs/METRICAS.md`);
+    }
+  });
+});
+
+test('terminadas sin coste: recuento por fase, las 10 primeras y «y N mas» por pantalla; completa en --json', async () => {
+  await conRepos(async (crear) => {
+    const alfa = await crear('alfa');
+    await escribirTareas(
+      alfa,
+      Array.from({ length: 12 }, (_, i) => ({ id: `TASK-${String(i + 1).padStart(3, '0')}`, tokensRevision: i < 3 ? 50 : null }))
+    );
+    const r = metricas(alfa, []);
+    assert.equal(r.status, 0, r.stderr);
+    const linea = r.stdout.split('\n').find((l) => l.startsWith('Terminadas sin coste'));
+    assert.ok(linea, r.stdout);
+    assert.match(linea, /^Terminadas sin coste en alguna fase: 12 de 12 \(diseno 12, implementacion 12, revision 9\): TASK-001 \(diseno, implementacion\), /);
+    assert.match(linea, /TASK-010 \(diseno, implementacion, revision\) y 2 mas \(lista completa con --json\)\.$/);
+    assert.doesNotMatch(linea, /TASK-011/);
+    const o = JSON.parse(metricas(alfa, ['--json']).stdout) as { sinCoste: { tareas: { id: string }[] } };
+    assert.equal(o.sinCoste.tareas.length, 12);
+    assert.equal(o.sinCoste.tareas[11]?.id, 'TASK-012');
+  });
+});
+
 test('--evolucion --grupos juntos: las dos secciones, en ese orden', async () => {
   await conRepos(async (crear) => {
     const alfa = await crear('alfa');

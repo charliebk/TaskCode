@@ -570,18 +570,44 @@ export function notasFilaEnriquecida(filas, varios = false) {
     const sinTabla = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
     const nInformes = sinTabla.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
     const lect = medianaLecturas(filas);
-    const sinCoste = tareasSinCoste(filas);
-    const terminadas = filas.filter((f) => f.estado === 'terminada').length;
     return [
         NOTA_HALLAZGOS +
             ` Informes sin tabla de hallazgos: ${String(nInformes)} (en ${String(sinTabla.length)} tareas).`,
         'Lecturas por fase (mediana de las tareas cuya tabla "## Coste" las mide): ' +
             FASES_COSTE.map((k) => `${k} ${lect[k].mediana === null ? '—' : String(lect[k].mediana)} (n=${String(lect[k].n)})`).join(', ') +
             '.',
-        sinCoste.length === 0
-            ? `Terminadas sin coste en alguna fase: 0 de ${String(terminadas)}.`
-            : `Terminadas sin coste en alguna fase: ${String(sinCoste.length)} de ${String(terminadas)}: ` +
-                sinCoste.map((t) => `${etiquetaTarea(t, varios)} (${t.fases.join(', ')})`).join(', ') +
-                '.',
+        lineaSinCoste(resumenSinCoste(filas), varios),
     ];
+}
+// --- Terminadas sin coste, acotadas (MEN-4 de TASK-064, en TASK-065) ---------
+/** Cuantas tareas de la lista de terminadas sin coste salen por pantalla; el resto, en --json. */
+export const MAX_SIN_COSTE_EN_TEXTO = 10;
+export function resumenSinCoste(filas) {
+    const tareas = tareasSinCoste(filas);
+    const porFase = {};
+    for (const fase of FASES_COSTE)
+        porFase[fase] = tareas.filter((t) => t.fases.includes(fase)).length;
+    return {
+        terminadas: filas.filter((f) => f.estado === 'terminada').length,
+        total: tareas.length,
+        porFase,
+        tareas,
+    };
+}
+/**
+ * La linea de texto: el recuento por fase y las 10 primeras, con «y N mas»
+ * (en un proyecto con 76 de 76 la lista entera tapaba la tabla). La lista
+ * completa sale en `--json`.
+ */
+export function lineaSinCoste(r, varios = false) {
+    if (r.total === 0)
+        return `Terminadas sin coste en alguna fase: 0 de ${String(r.terminadas)}.`;
+    const primeras = r.tareas
+        .slice(0, MAX_SIN_COSTE_EN_TEXTO)
+        .map((t) => `${etiquetaTarea(t, varios)} (${t.fases.join(', ')})`)
+        .join(', ');
+    const resto = r.total - Math.min(r.total, MAX_SIN_COSTE_EN_TEXTO);
+    return (`Terminadas sin coste en alguna fase: ${String(r.total)} de ${String(r.terminadas)} ` +
+        `(${FASES_COSTE.map((k) => `${k} ${String(r.porFase[k])}`).join(', ')}): ${primeras}` +
+        (resto > 0 ? ` y ${String(resto)} mas (lista completa con --json).` : '.'));
 }

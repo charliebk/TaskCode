@@ -50,7 +50,8 @@ Uso:
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
-  taskctl metricas [--heuristica] [--tokens [--escribir]]
+  taskctl metricas [--heuristica] [--tokens [--escribir]] [--repo <ruta>]...
+  taskctl metricas [--evolucion [--tramo N]] [--grupos] [--json] [--repo <ruta>]...
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
@@ -82,7 +83,11 @@ en las tareas terminadas. --tokens anade el coste en tokens por fase, el desglos
 de "## Coste" (tokens nuevos, lectura de cache y lo que queda sin desglose) y un
 resumen por sprint y por complejidad; con --escribir lo
 regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
---escribir solo lee.
+--escribir solo lee. --repo <ruta> (repetible) junta varios proyectos; --evolucion
+[--tramo N] da las terminadas por tramos de cierre y --grupos las agrupa por tipo,
+complejidad, criterios, KB de peticion de revision y proyecto; --json da un unico
+objeto JSON (solo con --repo, --evolucion, --tramo y --grupos).
+Un flag repetido que no admite repeticion aborta en cualquier comando.
 registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
 --agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la
 herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza. Cada
@@ -447,7 +452,10 @@ async function mainComando(argvEntrada) {
             for (const aviso of result.advertencias) {
                 process.stderr.write(`[AVISO] ${aviso}\n`);
             }
-            if (result.output === '') {
+            if (result.json) {
+                process.stdout.write(`${result.output}\n`);
+            }
+            else if (result.output === '') {
                 process.stdout.write('No hay tareas que medir (o no hay ninguna tarea todavia).\n');
             }
             else {

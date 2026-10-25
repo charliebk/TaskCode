@@ -63,6 +63,8 @@ import {
   formatearTabla,
   parsearLogGit,
   resumirPorNivel,
+  resumenSinCoste,
+  type ResumenSinCoste,
   type EventoGit,
   type FilaMetricas,
 } from '../core/metricas.js';
@@ -74,8 +76,8 @@ import {
 } from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
-import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion } from '../core/evolucion.js';
-import { calcularGrupos, formatearGrupos } from '../core/grupos-metricas.js';
+import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion, type Evolucion } from '../core/evolucion.js';
+import { calcularGrupos, formatearGrupos, type Grupos } from '../core/grupos-metricas.js';
 
 export class MetricasCommandError extends Error {}
 
@@ -87,7 +89,16 @@ export const FLAGS_METRICAS: readonly string[] = [
   '--evolucion',
   '--tramo',
   '--grupos',
+  '--json',
 ];
+
+/**
+ * TASK-065: los unicos flags que se combinan con `--json`. Con cualquier otro
+ * (`--escribir`, `--tokens`, `--heuristica`) aborta antes de leer ni escribir
+ * nada: su salida es texto o un fichero, y mezclarla con el JSON romperia a
+ * quien lo lea.
+ */
+export const FLAGS_CON_JSON: readonly string[] = ['--repo', '--evolucion', '--tramo', '--grupos'];
 
 /** Ruta de docs/METRICAS.md dentro del repo del usuario. */
 export function metricasFilePath(repoCwd: string): string {
@@ -103,12 +114,26 @@ export interface MetricasCommandResult {
   metricasPath: string | null;
   /** Que paso con el bloque: 'sin-cambios' si regenerarlo no cambio ni un byte. */
   escritura: 'creado' | 'actualizado' | 'sin-cambios' | null;
+  /** TASK-065: true con `--json`: `output` es UN objeto JSON y va entero por stdout. */
+  json: boolean;
   /**
    * TASK-065: con `--repo`, una linea para stderr con los repos leidos y las
    * tareas de cada uno (para ver que no se ha quedado ninguno fuera); null
    * sin `--repo` (la salida de siempre).
    */
   reposLeidos: string | null;
+}
+
+/**
+ * TASK-065: la forma de `--json`. Contrato publico: cambiarla rompe a quien
+ * lo lea. Cada null va junto a un n 0 en el mismo objeto (ver `Cifra` y
+ * `GrupoMetricas`); nunca NaN.
+ */
+export interface SalidaJsonMetricas {
+  proyectos: { proyecto: string; ruta: string; tareas: number }[];
+  sinCoste: ResumenSinCoste;
+  evolucion?: Evolucion;
+  grupos?: Grupos;
 }
 
 /** Un repo que se mide: su nombre de proyecto, su raiz y su carpeta de tareas. */
@@ -145,6 +170,8 @@ interface FlagsMetricas {
   evolucion: number | null;
   /** TASK-065: `--grupos`. */
   grupos: boolean;
+  /** TASK-065: `--json`. */
+  json: boolean;
 }
 
 /** `--tramo N`: entero >= 1 (por defecto 20); cualquier otra cosa aborta. */
@@ -193,6 +220,18 @@ function parseFlagsMetricas(argv: readonly string[]): FlagsMetricas {
         'Saca la tabla de todas las tareas; para una sola, filtra la salida.'
     );
   }
+  const json = flagSuelto(flags, 'json');
+  if (json) {
+    const otros = Object.keys(flags)
+      .map((k) => `--${k}`)
+      .filter((k) => k !== '--json' && !FLAGS_CON_JSON.includes(k));
+    if (otros.length > 0) {
+      throw new MetricasCommandError(
+        `[ERROR] --json no se combina con ${otros.join(', ')}: solo con ${FLAGS_CON_JSON.join(', ')}. ` +
+          'Quita uno de los dos; no se ha leido ni escrito nada.'
+      );
+    }
+  }
   const f = {
     heuristica: flagSuelto(flags, 'heuristica'),
     tokens: flagSuelto(flags, 'tokens'),
@@ -200,6 +239,7 @@ function parseFlagsMetricas(argv: readonly string[]): FlagsMetricas {
     repos,
     evolucion: null as number | null,
     grupos: flagSuelto(flags, 'grupos'),
+    json,
   };
   const conEvolucion = flagSuelto(flags, 'evolucion');
   const tramo = leerTramo(flags['tramo'], conEvolucion);
@@ -457,6 +497,7 @@ export async function runMetricasCommand(
     repos: valoresRepo,
     evolucion: tramoEvolucion,
     grupos: conGrupos,
+    json,
   } = parseFlagsMetricas(argv);
   // Como board --escribir: sin tareas/ en este directorio no se crea un
   // docs/METRICAS.md fantasma.
@@ -506,12 +547,38 @@ export async function runMetricasCommand(
   const sinTabla = avisoInformesSinTabla(filas, varios);
   if (sinTabla !== null) advertencias.push(sinTabla);
 
+  const proyectos = repos.map((r) => r.proyecto);
+  // TASK-065: --json da UN objeto, tambien sin tareas: los repos leidos, las
+  // terminadas sin coste (la lista completa) y, si se piden, la evolucion y
+  // los grupos. Los avisos siguen por stderr.
+  if (json) {
+    const objeto: SalidaJsonMetricas = {
+      proyectos: repos.map((r) => ({
+        proyecto: r.proyecto,
+        ruta: r.ruta,
+        tareas: filas.filter((f) => f.proyecto === r.proyecto).length,
+      })),
+      sinCoste: resumenSinCoste(filas),
+      ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
+      ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
+    };
+    return {
+      output: JSON.stringify(objeto),
+      totalTareas: filas.length,
+      advertencias,
+      metricasPath: null,
+      escritura: null,
+      reposLeidos,
+      json: true,
+    };
+  }
+
   // TASK-065: los agregados sustituyen a la tabla por tarea, y salen tambien
   // sin tareas (con sus ceros y sus n 0 a la vista).
   if (tramoEvolucion !== null || conGrupos) {
     const secciones: string[] = [];
     if (tramoEvolucion !== null) secciones.push(formatearEvolucion(calcularEvolucion(filas, tramoEvolucion), varios));
-    if (conGrupos) secciones.push(formatearGrupos(calcularGrupos(filas, repos.map((r) => r.proyecto))));
+    if (conGrupos) secciones.push(formatearGrupos(calcularGrupos(filas, proyectos)));
     return {
       output: secciones.join('\n\n'),
       totalTareas: filas.length,
@@ -519,11 +586,12 @@ export async function runMetricasCommand(
       metricasPath: null,
       escritura: null,
       reposLeidos,
+      json: false,
     };
   }
 
   if (filas.length === 0) {
-    return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos };
+    return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos, json: false };
   }
 
   const columnas = [
@@ -597,6 +665,7 @@ export async function runMetricasCommand(
       metricasPath,
       escritura,
       reposLeidos,
+      json: false,
     };
   }
 
@@ -606,7 +675,7 @@ export async function runMetricasCommand(
     return { ...f, heuristica: { puntos, nivel: nivelHeuristico(puntos, h) } };
   });
   if (filas.length === 0) {
-    return { output: MUESTRA_HEURISTICA_VACIA, totalTareas: 0, advertencias, metricasPath, escritura, reposLeidos };
+    return { output: MUESTRA_HEURISTICA_VACIA, totalTareas: 0, advertencias, metricasPath, escritura, reposLeidos, json: false };
   }
   const coinciden = filas.filter((f) => f.heuristica?.nivel === f.complejidad).length;
   const salida = [
@@ -628,5 +697,5 @@ export async function runMetricasCommand(
     ...seccionTokens(filas),
     NOTA_CALENDARIO,
   ].join('\n');
-  return { output: salida, totalTareas: filas.length, advertencias, metricasPath, escritura, reposLeidos };
+  return { output: salida, totalTareas: filas.length, advertencias, metricasPath, escritura, reposLeidos, json: false };
 }
