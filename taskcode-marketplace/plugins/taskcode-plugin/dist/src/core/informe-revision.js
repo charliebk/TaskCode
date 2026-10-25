@@ -97,6 +97,13 @@ export function commitRevisadoDe(peticion) {
  * (informes anteriores) es `sin clasificar`.
  */
 export const ORIGENES_HALLAZGO = ['implementacion', 'plan', 'especificacion'];
+/**
+ * Vocabulario cerrado de severidades (TASK-064). La celda se reconoce sin
+ * distinguir mayusculas, tildes ni enfasis (`Importante`, `**CRÍTICO**`,
+ * `menor`); cualquier otro valor (`Alta`, `Major`, vacio) no es una
+ * severidad reconocida y quien cuenta debe decirlo, no descartarlo.
+ */
+export const SEVERIDADES_HALLAZGO = ['CRITICO', 'IMPORTANTE', 'MENOR'];
 function normalizarCelda(c) {
     return c
         .trim()
@@ -110,6 +117,31 @@ function normalizarCelda(c) {
 function origenDe(celda) {
     const valor = celda.toLowerCase();
     return ORIGENES_HALLAZGO.includes(valor) ? valor : 'sin clasificar';
+}
+/**
+ * Severidad por la PRIMERA PALABRA de la celda, sin distinguir mayusculas,
+ * tildes ni enfasis: `IMPORTANTE (no verificado por ejecucion)` o
+ * `**Menor** (ronda 1)` se reconocen (los revisores anotan detras). null si
+ * esa primera palabra no es del vocabulario (`Alta`, `Major`, `—`, vacia).
+ */
+export function severidadDe(celda) {
+    const primera = (normalizarCelda(celda).split(/[\s(),;:]+/)[0] ?? '').replace(/^[*_`]+|[*_`]+$/g, '');
+    const valor = primera.toUpperCase();
+    return SEVERIDADES_HALLAZGO.includes(valor) ? valor : null;
+}
+const SOLO_GUION_RE = /^[-—–]*$/;
+/**
+ * La fila-marcador «sin hallazgos» que la plantilla admite
+ * (`| (ninguno) | — | sin hallazgos | — |` y variantes): ID `(ninguno)`,
+ * Estado `sin hallazgos`, o ID y severidad en blanco o con un guion. No es
+ * un hallazgo (IMP-1 de la revision de TASK-064).
+ */
+function esMarcadorSinHallazgos(id, severidad, estado) {
+    if (/^\(?ninguno\)?$/i.test(id))
+        return true;
+    if (estado.toLowerCase() === 'sin hallazgos')
+        return true;
+    return SOLO_GUION_RE.test(id) && SOLO_GUION_RE.test(severidad);
 }
 /**
  * Todas las filas de la primera tabla bajo `## Hallazgos` cuya cabecera
@@ -166,9 +198,13 @@ export function leerHallazgos(informe) {
         const id = c[iId] ?? '';
         if (id === '' || id.toLowerCase().startsWith('(ej.'))
             continue;
+        const severidad = iSev === -1 ? '' : (c[iSev] ?? '');
+        if (esMarcadorSinHallazgos(id, severidad, c[iEstado] ?? ''))
+            continue;
         hallazgos.push({
             id,
-            severidad: iSev === -1 ? '' : (c[iSev] ?? ''),
+            severidad,
+            severidadReconocida: severidadDe(severidad),
             estado: c[iEstado] ?? '',
             fichero: iFich === -1 ? '' : (c[iFich] ?? ''),
             origen: iOrigen === -1 ? 'sin clasificar' : origenDe(c[iOrigen] ?? ''),
@@ -190,4 +226,38 @@ export function hallazgosNoCerrados(informe) {
     })
         .map(({ id, severidad, estado, fichero }) => ({ id, severidad, estado, fichero }));
     return { tabla, abiertos };
+}
+export function resumirHallazgos(informes) {
+    const informesSinTabla = [];
+    const severidadesDesconocidas = [];
+    const porClave = new Map();
+    const ordenados = [...informes].sort((a, b) => a.ronda - b.ronda || a.fichero.localeCompare(b.fichero));
+    for (const inf of ordenados) {
+        const { tabla, hallazgos } = leerHallazgos(inf.texto);
+        if (!tabla) {
+            informesSinTabla.push(inf.fichero);
+            continue;
+        }
+        for (const h of hallazgos) {
+            if (h.severidadReconocida === null) {
+                severidadesDesconocidas.push({ fichero: inf.fichero, id: h.id, valor: h.severidad });
+            }
+            const clave = `${inf.revisor}\u0000${h.id.toUpperCase()}`;
+            const previo = porClave.get(clave) ?? { severidad: null, origen: 'sin clasificar' };
+            porClave.set(clave, {
+                severidad: h.severidadReconocida ?? previo.severidad,
+                origen: h.origen === 'sin clasificar' ? previo.origen : h.origen,
+            });
+        }
+    }
+    if (informes.length === 0 || informesSinTabla.length > 0) {
+        return { informes: informes.length, informesSinTabla, porSeveridad: null, porOrigen: null, severidadesDesconocidas };
+    }
+    const porSeveridad = { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 0 };
+    const porOrigen = { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 0 };
+    for (const h of porClave.values()) {
+        porSeveridad[h.severidad ?? 'desconocida']++;
+        porOrigen[h.origen]++;
+    }
+    return { informes: informes.length, informesSinTabla, porSeveridad, porOrigen, severidadesDesconocidas };
 }

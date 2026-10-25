@@ -68,12 +68,18 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     assert.equal(t.task.actualizado, (filas[4] as { fecha: string }).fecha.slice(0, 10));
 
     const r = cliOk(repoRoot, ['metricas']);
-    assert.deepEqual(cabecera(r.stdout), ['id', 'complejidad', 'diseno', 'curso', 'revision', 'rondas', 'cierre', 'origen']);
-    const [id, complejidad, diseno, curso, revision, rondas, cierre, origen] = filaDe(r.stdout);
+    assert.deepEqual(cabecera(r.stdout), [
+      'id', 'complejidad', 'diseno', 'curso', 'revision', 'rondas', 'crit', 'imp', 'men', 'hall_origen', 'cierre', 'origen',
+    ]);
+    const [id, complejidad, diseno, curso, revision, rondas, crit, imp, men, hallOrigen, cierre, origen] = filaDe(r.stdout);
     assert.equal(id, ID);
     assert.equal(complejidad, 'simple');
     for (const d of [diseno, curso, revision]) assert.match(d as string, DURACION_SEGUNDOS);
     assert.equal(rondas, '1');
+    // El informe de prueba trae un MEN-1 sin celda de Origen.
+    assert.deepEqual([crit, imp, men, hallOrigen], ['0', '0', '1', '0/0/0/1']);
+    assert.match(r.stdout, /Informes sin tabla de hallazgos: 0 \(en 0 tareas\)/);
+    assert.match(r.stdout, /Terminadas sin coste en alguna fase: 1 de 1: TASK-001 \(diseno, implementacion, revision\)/);
     assert.equal(cierre, (filas[4] as { fecha: string }).fecha.slice(0, 10));
     assert.equal(origen, 'registro');
     assert.match(r.stdout, /Las pausas no se descuentan/);
@@ -84,8 +90,8 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     const h = cliOk(repoRoot, ['metricas', '--heuristica']);
     assert.deepEqual(cabecera(h.stdout).slice(-2), ['puntos', 'nivel_heuristico']);
     const fila = filaDe(h.stdout);
-    assert.match(fila[8] as string, /^\d+$/);
-    assert.match(fila[9] as string, /^(trivial|simple|media|alta|critica)$/);
+    assert.match(fila[12] as string, /^\d+$/);
+    assert.match(fila[13] as string, /^(trivial|simple|media|alta|critica)$/);
     assert.match(h.stdout, /Muestra: 1 tareas terminadas/);
     assert.match(h.stdout, /Por complejidad declarada:\n {2}simple +n= {2}1 +rondas medias=1\.00/);
 
@@ -96,9 +102,9 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     await writeFile(t.filePath, sinRegistro, 'utf8');
     const g = cliOk(repoRoot, ['metricas']);
     const filaGit = filaDe(g.stdout);
-    assert.equal(filaGit[7], 'git');
+    assert.equal(filaGit[11], 'git');
     for (const d of filaGit.slice(2, 5)) assert.match(d, DURACION_SEGUNDOS);
-    assert.equal(filaGit[6], cierre);
+    assert.equal(filaGit[10], cierre);
   });
 });
 
@@ -152,7 +158,7 @@ test('metricas fuera de un repo Git: las tareas sin registro salen con "—" y u
       await writeFile(copia, sinRegistro, 'utf8');
       const r = cliOk(fuera, ['metricas']);
       assert.match(r.stderr, /\[AVISO\] No se pudo consultar git log/);
-      assert.deepEqual(filaDe(r.stdout).slice(2), ['—', '—', '—', '1', '—', '—']);
+      assert.deepEqual(filaDe(r.stdout).slice(2), ['—', '—', '—', '1', '0', '0', '1', '0/0/0/1', '—', '—']);
     } finally {
       await rm(fuera, { recursive: true, force: true });
     }

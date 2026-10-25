@@ -19,9 +19,17 @@
  * sus dos marcadores HTML (sin commitear, como `board --escribir`: lo
  * commitea quien lo pide, o el siguiente comando que commitee ese fichero).
  * Es lo unico que este comando escribe, y solo con `--escribir`.
+ *
+ * TASK-064: lee SIEMPRE los informes de revision de cada tarea (una pasada,
+ * sin git) para contar sus hallazgos, y el tamano de sus peticiones de
+ * revision. Las incoherencias del desglose de coste, las severidades fuera
+ * de vocabulario y los informes sin tabla salen como avisos; ninguno impide
+ * `--escribir` (solo lo impide un tarea.md invalido, que dejaria el bloque
+ * incompleto).
  */
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat } from 'node:fs/promises';
+import type { InformeLeido } from '../core/informe-revision.js';
 import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, TASK_COMPLEXITIES } from '../core/task.js';
@@ -31,6 +39,12 @@ import {
   COLUMNAS_HEURISTICA,
   COLUMNAS_METRICAS,
   COLUMNAS_TOKENS,
+  COLUMNAS_DESGLOSE_TOKENS,
+  NOTA_DESGLOSE_TOKENS,
+  avisosDeFila,
+  avisoInformesSinTabla,
+  claveTarea,
+  notasFilaEnriquecida,
   BloqueTokensError,
   NOTA_TOKENS,
   renderBloqueTokens,
@@ -45,7 +59,12 @@ import {
   type EventoGit,
   type FilaMetricas,
 } from '../core/metricas.js';
-import { INFORME_REVISION_RE, nombresDeUltimaRonda } from '../fs/rondas.js';
+import {
+  INFORME_REVISION_RE,
+  PETICION_REVISION_RE,
+  nombresDeUltimaRonda,
+  rondaYRevisorDeInforme,
+} from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 
@@ -144,6 +163,26 @@ async function nombresDeRevision(dirTarea: string): Promise<string[]> {
   }
 }
 
+/** Informes de revision (todas las rondas) y bytes de cada peticion, de una pasada. */
+async function leerRevision(
+  dirTarea: string,
+  nombres: readonly string[]
+): Promise<{ informes: InformeLeido[]; peticiones: { ronda: number; bytes: number }[] }> {
+  const dir = path.join(dirTarea, 'revision');
+  const informes: InformeLeido[] = [];
+  const peticiones: { ronda: number; bytes: number }[] = [];
+  for (const nombre of nombres) {
+    const inf = rondaYRevisorDeInforme(nombre);
+    if (inf !== null) {
+      informes.push({ fichero: nombre, ...inf, texto: await readFile(path.join(dir, nombre), 'utf8') });
+      continue;
+    }
+    const m = PETICION_REVISION_RE.exec(nombre);
+    if (m !== null) peticiones.push({ ronda: Number(m[1]), bytes: (await stat(path.join(dir, nombre))).size });
+  }
+  return { informes, peticiones };
+}
+
 /** Un solo git log para todo el repo; null si git no se pudo consultar. */
 function eventosGit(repoCwd: string): EventoGit[] | null {
   try {
@@ -180,20 +219,35 @@ export async function runMetricasCommand(
   const h = conHeuristica ? cargarHeuristica(deps.rutaHeuristica) : null;
 
   const advertencias: string[] = [];
+  /** Solo los tarea.md invalidos: son lo unico que impide --escribir. */
+  const invalidas: string[] = [];
+  const proyecto = path.basename(path.resolve(deps.repoCwd));
   const ids = [...new Set(await listExistingTaskIds(tareasRoot))].sort(
     (a, b) => Number(a.slice(5)) - Number(b.slice(5))
   );
 
-  const leidas: { task: NonNullable<Awaited<ReturnType<typeof readTareaFile>>>; ronda: number }[] = [];
+  const leidas: {
+    task: NonNullable<Awaited<ReturnType<typeof readTareaFile>>>;
+    ronda: number;
+    informes: InformeLeido[];
+    peticiones: { ronda: number; bytes: number }[];
+  }[] = [];
   for (const id of ids) {
     try {
       const read = await readTareaFile(tareasRoot, id);
       if (read === null) continue;
-      const nombres = await nombresDeRevision(path.dirname(read.filePath));
-      leidas.push({ task: read, ronda: nombresDeUltimaRonda(nombres, INFORME_REVISION_RE).ronda });
+      const dirTarea = path.dirname(read.filePath);
+      const nombres = await nombresDeRevision(dirTarea);
+      leidas.push({
+        task: read,
+        ronda: nombresDeUltimaRonda(nombres, INFORME_REVISION_RE).ronda,
+        ...(await leerRevision(dirTarea, nombres)),
+      });
     } catch (e: unknown) {
       if (e instanceof FrontmatterParseError || e instanceof TaskValidationError) {
-        advertencias.push(`${id} tiene un tarea.md invalido y no aparece en las metricas: ${e.message}`);
+        const aviso = `${id} tiene un tarea.md invalido y no aparece en las metricas: ${e.message}`;
+        advertencias.push(aviso);
+        invalidas.push(aviso);
         continue;
       }
       throw e;
@@ -226,26 +280,45 @@ export async function runMetricasCommand(
       body: l.task.body,
       ronda: l.ronda,
       eventosGit: porId.get(l.task.task.id) ?? [],
+      proyecto,
+      informes: l.informes,
+      peticiones: l.peticiones,
     })
   );
+  // Los avisos de las filas, sobre TODAS las tareas (tambien con --heuristica).
+  for (const f of filas) advertencias.push(...avisosDeFila(f));
+  const sinTabla = avisoInformesSinTabla(filas);
+  if (sinTabla !== null) advertencias.push(sinTabla);
 
   if (filas.length === 0) return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null };
 
-  const columnas = conTokens ? [...COLUMNAS_METRICAS, ...COLUMNAS_TOKENS] : COLUMNAS_METRICAS;
+  const columnas = conTokens
+    ? [...COLUMNAS_METRICAS, ...COLUMNAS_TOKENS, ...COLUMNAS_DESGLOSE_TOKENS]
+    : COLUMNAS_METRICAS;
   /** Los resumenes de tokens sobre las filas que salgan (con --heuristica, la muestra). */
   const seccionTokens = (f: readonly FilaMetricas[]): string[] => {
     if (!conTokens) return [];
     const r = resumenesTokens(f);
-    return ['Coste en tokens por sprint:', r.porSprint, '', 'Coste en tokens por complejidad declarada:', r.porComplejidad, '', NOTA_TOKENS, ''];
+    return [
+      'Coste en tokens por sprint:',
+      r.porSprint,
+      '',
+      'Coste en tokens por complejidad declarada:',
+      r.porComplejidad,
+      '',
+      NOTA_TOKENS,
+      NOTA_DESGLOSE_TOKENS,
+      '',
+    ];
   };
 
   let metricasPath: string | null = null;
   let escritura: MetricasCommandResult['escritura'] = null;
   if (escribir) {
-    if (advertencias.length > 0) {
+    if (invalidas.length > 0) {
       throw new MetricasCommandError(
         '[ERROR] No se regenera docs/METRICAS.md con tarea.md invalidos: saldrian del bloque ' +
-          `sin que nadie lo vea. Arregla esto y reintenta:\n  ${advertencias.join('\n  ')}`
+          `sin que nadie lo vea. Arregla esto y reintenta:\n  ${invalidas.join('\n  ')}`
       );
     }
     metricasPath = metricasFilePath(deps.repoCwd);
@@ -275,7 +348,14 @@ export async function runMetricasCommand(
 
   if (h === null) {
     return {
-      output: [formatearTabla(filas, columnas), '', ...seccionTokens(filas), NOTA_CALENDARIO].join('\n'),
+      output: [
+        formatearTabla(filas, columnas),
+        '',
+        ...notasFilaEnriquecida(filas),
+        '',
+        ...seccionTokens(filas),
+        NOTA_CALENDARIO,
+      ].join('\n'),
       totalTareas: filas.length,
       advertencias,
       metricasPath,
@@ -283,9 +363,9 @@ export async function runMetricasCommand(
     };
   }
 
-  const cuerpoPorId = new Map(leidas.map((l) => [l.task.task.id, l.task]));
+  const cuerpoPorId = new Map(leidas.map((l) => [claveTarea(proyecto, l.task.task.id), l.task]));
   filas = filas.filter(enMuestraHeuristica).map((f) => {
-    const leida = cuerpoPorId.get(f.id) as NonNullable<Awaited<ReturnType<typeof readTareaFile>>>;
+    const leida = cuerpoPorId.get(claveTarea(f.proyecto, f.id)) as NonNullable<Awaited<ReturnType<typeof readTareaFile>>>;
     const { puntos } = puntuarTarea(leida.task, leida.body, h);
     return { ...f, heuristica: { puntos, nivel: nivelHeuristico(puntos, h) } };
   });
@@ -306,6 +386,8 @@ export async function runMetricasCommand(
       'Por nivel heuristico:',
       resumirPorNivel(filas, (f) => f.heuristica?.nivel ?? null, TASK_COMPLEXITIES)
     ),
+    '',
+    ...notasFilaEnriquecida(filas),
     '',
     ...seccionTokens(filas),
     NOTA_CALENDARIO,

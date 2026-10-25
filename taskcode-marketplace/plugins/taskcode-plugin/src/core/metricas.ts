@@ -36,9 +36,21 @@
  * tarea sin ningun dato no entra en el resumen (que dice cuantas quedaron
  * fuera). Una tarea con dato solo en alguna fase si entra, y cada fase se
  * promedia sobre las tareas que la tienen.
+ *
+ * FILA ENRIQUECIDA (TASK-064): cada fila lleva ademas el desglose de
+ * `## Coste` frente a `tokens_<fase>` (`coste`), los hallazgos de todos sus
+ * informes de revision contados una vez por tarea (`hallazgos`), el tamano
+ * de cada peticion de revision (`kbPeticionPorRonda`), el tipo y el numero
+ * de criterios. Todos esos campos estan SIEMPRE presentes; lo que no se pudo
+ * medir va como null o vacio con el significado documentado en cada tipo
+ * (`ResumenCostes`, `ResumenHallazgos`), para que quien agregue no tenga que
+ * adivinar si un 0 es un cero o una ausencia.
  */
 import { leerTransiciones, instanteDe, precisionDeFecha, type PrecisionFecha } from './transiciones.js';
-import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState } from './task.js';
+import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState, type TaskType } from './task.js';
+import { FASES_COSTE, leerCostes, resumirCostes, type FaseCoste, type ResumenCostes } from './coste-registro.js';
+import { resumirHallazgos, type InformeLeido, type ResumenHallazgos } from './informe-revision.js';
+import { extraerSecciones } from './tarea-body.js';
 
 export type OrigenMetricas = 'registro' | 'git' | '—';
 
@@ -75,8 +87,29 @@ export interface TokensFila {
   revision: number | null;
 }
 
+/** Tamano de la peticion de revision de una ronda (todas sus partes si se fragmento). */
+export interface PeticionRonda {
+  ronda: number;
+  /** KiB con un decimal. */
+  kb: number;
+}
+
+/**
+ * Clave de una tarea en cualquier Map de metricas: (proyecto, id). Hoy hay
+ * un solo proyecto por ejecucion, pero TASK-NNN se repite entre proyectos y
+ * la fila ya lleva el suyo, para que juntar varios no cruce tareas.
+ */
+export function claveTarea(proyecto: string, id: string): string {
+  return `${proyecto}\u0000${id}`;
+}
+
 export interface FilaMetricas {
+  /** Nombre del proyecto (la carpeta del repo); '' si quien llama no lo da. */
+  proyecto: string;
   id: string;
+  tipo: TaskType;
+  /** Criterios de aceptacion de la tarea (lineas de la seccion). */
+  criterios: number;
   sprint: number;
   tokens: TokensFila;
   estado: TaskState;
@@ -90,6 +123,12 @@ export interface FilaMetricas {
   cierre: string | null;
   pausas: number;
   origen: OrigenMetricas;
+  /** Desglose de `## Coste` frente a `tokens_<fase>`; `conTabla: false` = sin desglose. */
+  coste: ResumenCostes;
+  /** Hallazgos de todas las rondas, una vez por revisor + ID; ver los null en `ResumenHallazgos`. */
+  hallazgos: ResumenHallazgos;
+  /** Una entrada por ronda con peticion; vacio = sin peticiones de revision (no medido). */
+  kbPeticionPorRonda: PeticionRonda[];
   /** Solo con `--heuristica`. */
   heuristica?: HeuristicaFila;
 }
@@ -101,6 +140,20 @@ export interface EntradaMetricas {
   ronda: number;
   /** Eventos de git de ESTA tarea (vacio si no se consulto o no hay). */
   eventosGit: readonly EventoGit[];
+  /** Proyecto de la tarea; '' por defecto. */
+  proyecto?: string;
+  /** Informes de revision leidos de `revision/`; sin ellos, hallazgos no medidos. */
+  informes?: readonly InformeLeido[];
+  /** Bytes de cada `peticion-revision-N[-revisor].md`. */
+  peticiones?: readonly { ronda: number; bytes: number }[];
+}
+
+function kbPorRonda(peticiones: readonly { ronda: number; bytes: number }[]): PeticionRonda[] {
+  const bytes = new Map<number, number>();
+  for (const p of peticiones) bytes.set(p.ronda, (bytes.get(p.ronda) ?? 0) + p.bytes);
+  return [...bytes.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([ronda, b]) => ({ ronda, kb: Math.round(b / 102.4) / 10 }));
 }
 
 /**
@@ -194,7 +247,10 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     marcas = { plan: null, start: null, review: null, finish: null, pausas: 0 };
   }
   return {
+    proyecto: e.proyecto ?? '',
     id: e.task.id,
+    tipo: e.task.tipo,
+    criterios: extraerSecciones(e.body).criterios.length,
     sprint: e.task.sprint,
     tokens: {
       diseno: e.task.tokens_diseno,
@@ -210,6 +266,13 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     cierre: marcas.finish === null ? null : new Date(marcas.finish.ms).toISOString().slice(0, 10),
     pausas: marcas.pausas,
     origen,
+    coste: resumirCostes(leerCostes(e.body), {
+      diseno: e.task.tokens_diseno,
+      implementacion: e.task.tokens_implementacion,
+      revision: e.task.tokens_revision,
+    }),
+    hallazgos: resumirHallazgos(e.informes ?? []),
+    kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
   };
 }
 
@@ -237,6 +300,10 @@ export interface ColumnaMetricas {
   valor: (f: FilaMetricas) => string;
 }
 
+function celdaConteo(n: number | undefined): string {
+  return n === undefined ? '—' : String(n);
+}
+
 export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   { cabecera: 'id', valor: (f) => f.id },
   { cabecera: 'complejidad', valor: (f) => f.complejidad ?? '—' },
@@ -244,6 +311,17 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   { cabecera: 'curso', valor: (f) => formatearDuracion(f.curso) },
   { cabecera: 'revision', valor: (f) => formatearDuracion(f.revision) },
   { cabecera: 'rondas', valor: (f) => (f.rondas === null ? '—' : String(f.rondas)) },
+  { cabecera: 'crit', valor: (f) => celdaConteo(f.hallazgos.porSeveridad?.CRITICO) },
+  { cabecera: 'imp', valor: (f) => celdaConteo(f.hallazgos.porSeveridad?.IMPORTANTE) },
+  { cabecera: 'men', valor: (f) => celdaConteo(f.hallazgos.porSeveridad?.MENOR) },
+  {
+    cabecera: 'hall_origen',
+    valor: (f) => {
+      const o = f.hallazgos.porOrigen;
+      if (o === null) return '—';
+      return [o.implementacion, o.plan, o.especificacion, o['sin clasificar']].map(String).join('/');
+    },
+  },
   { cabecera: 'cierre', valor: (f) => f.cierre ?? '—' },
   { cabecera: 'origen', valor: (f) => f.origen },
 ];
@@ -534,4 +612,148 @@ export function sustituirBloqueTokens(contenido: string, bloque: string): string
     );
   }
   return contenido.slice(0, i) + nuevo + contenido.slice(f + MARCADOR_FIN_TOKENS.length);
+}
+
+// --- Fila enriquecida: desglose, hallazgos, lecturas (TASK-064) --------------
+
+/**
+ * Suma de un campo de las tres fases del desglose; null si la tarea no tiene
+ * tabla `## Coste`. `nuevos` y `cacheLectura` tambien son null si ninguna
+ * fila tiene desglose (solo filas `manual`): no se midio nada, no es 0.
+ */
+function sumaDesglose(f: FilaMetricas, campo: 'nuevos' | 'cacheLectura' | 'sinDesglose'): number | null {
+  if (!f.coste.conTabla) return null;
+  if (campo !== 'sinDesglose' && FASES_COSTE.every((fase) => f.coste.fases[fase].desglosado === 0)) return null;
+  return FASES_COSTE.reduce((a, fase) => a + (f.coste.fases[fase][campo] ?? 0), 0);
+}
+
+/** `tok_sin_desglose`: la suma, con `*` si alguna fase es negativa (la suma podria esconderlo). */
+function celdaSinDesglose(f: FilaMetricas): string {
+  const suma = sumaDesglose(f, 'sinDesglose');
+  if (suma === null) return '—';
+  const negativa = FASES_COSTE.some((fase) => (f.coste.fases[fase].sinDesglose ?? 0) < 0);
+  return negativa ? `${String(suma)}*` : String(suma);
+}
+
+/** Las que anade `--tokens` a la tabla por pantalla (no al bloque de docs/METRICAS.md). */
+export const COLUMNAS_DESGLOSE_TOKENS: readonly ColumnaMetricas[] = [
+  { cabecera: 'tok_nuevos', valor: (f) => celdaTokens(sumaDesglose(f, 'nuevos')) },
+  { cabecera: 'tok_cache_lect', valor: (f) => celdaTokens(sumaDesglose(f, 'cacheLectura')) },
+  { cabecera: 'tok_sin_desglose', valor: celdaSinDesglose },
+];
+
+export const NOTA_DESGLOSE_TOKENS =
+  'Desglose de "## Coste" (solo tareas con esa tabla; «—» = sin tabla, y en tok_nuevos y ' +
+  'tok_cache_lect tambien si ninguna fila tiene desglose): tok_nuevos = entrada + ' +
+  'escritura de cache + salida; tok_cache_lect = lectura de cache, aparte; tok_sin_desglose = ' +
+  'tokens_<fase> menos lo desglosado (filas "manual" o coste anterior a la tabla), sumado por ' +
+  'fases. Un negativo en una fase es una incoherencia (el desglose supera al total): no se ' +
+  'recorta a 0, sale con aviso y la celda lleva "*" aunque la suma sea positiva. Un agente ' +
+  'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica.';
+
+export const NOTA_HALLAZGOS =
+  'Hallazgos: cada uno cuenta una vez por tarea (revisor + ID) sumando todas las rondas, con la ' +
+  'severidad y el origen de la ultima ronda que los reconoce. hall_origen = implementacion/plan/' +
+  'especificacion/sin clasificar. «—» = sin dato: sin informes de revision, o algun informe sin ' +
+  'tabla de hallazgos (no cuenta como cero).';
+
+/** Avisos de una fila: incoherencias del desglose y severidades fuera de vocabulario. */
+export function avisosDeFila(f: FilaMetricas): string[] {
+  const avisos: string[] = [];
+  for (const fase of FASES_COSTE) {
+    const r = f.coste.fases[fase];
+    if (r.registrado === null && r.filas > 0) {
+      avisos.push(
+        `${f.id}: tokens_${fase} esta vacio pero "## Coste" tiene ${String(r.filas)} fila(s) de ${fase}; ` +
+          'el total de la fase deberia ser la suma de su desglose. Revisa el frontmatter.'
+      );
+    } else if (r.sinDesglose !== null && r.sinDesglose < 0) {
+      avisos.push(
+        `${f.id}: lo desglosado en "## Coste" para ${fase} (${String(r.desglosado)}) supera tokens_${fase} ` +
+          `(${String(r.registrado)}): diferencia ${String(r.sinDesglose)}. Revisa el frontmatter o las filas.`
+      );
+    }
+  }
+  for (const rep of f.coste.repetidas) {
+    avisos.push(
+      `${f.id}: en "## Coste", ${rep.fuente} aparece en ${String(rep.filas)} filas de ${rep.fase}: ` +
+        'su coste se suma otras tantas veces (no se deduplica). Si se registro dos veces por error, ' +
+        `corrige tokens_${rep.fase} y quita la fila sobrante.`
+    );
+  }
+  const porFichero = new Map<string, string[]>();
+  for (const d of f.hallazgos.severidadesDesconocidas) {
+    const lista = porFichero.get(d.fichero) ?? [];
+    lista.push(d.valor === '' ? `${d.id} (vacia)` : `${d.id} ("${d.valor}")`);
+    porFichero.set(d.fichero, lista);
+  }
+  for (const [fichero, lista] of porFichero) {
+    avisos.push(
+      `${f.id} revision/${fichero}: severidad fuera de vocabulario (CRITICO, IMPORTANTE o MENOR) en ` +
+        `${lista.join(', ')}; no cuenta en crit/imp/men.`
+    );
+  }
+  return avisos;
+}
+
+/** Un solo aviso con las tareas que tienen informes sin tabla de hallazgos; null si no hay. */
+export function avisoInformesSinTabla(filas: readonly FilaMetricas[]): string | null {
+  const con = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
+  if (con.length === 0) return null;
+  const n = con.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
+  return (
+    `${String(n)} informe(s) de revision sin tabla de hallazgos en ${String(con.length)} tarea(s); sus ` +
+    `hallazgos salen como sin dato («—»), no como cero: ${con.map((f) => f.id).join(', ')}.`
+  );
+}
+
+/** Tareas terminadas sin coste (null o 0) en alguna fase, con esas fases. */
+export function tareasSinCoste(filas: readonly FilaMetricas[]): { id: string; fases: FaseCoste[] }[] {
+  return filas
+    .filter((f) => f.estado === 'terminada')
+    .map((f) => ({ id: f.id, fases: FASES_COSTE.filter((k) => !f.coste.fases[k].registrado) }))
+    .filter((t) => t.fases.length > 0);
+}
+
+/** Mediana de una lista (media de los dos centrales si es par); null si esta vacia. */
+export function mediana(valores: readonly number[]): number | null {
+  if (valores.length === 0) return null;
+  const v = [...valores].sort((a, b) => a - b);
+  const m = Math.floor(v.length / 2);
+  return v.length % 2 === 1 ? (v[m] as number) : ((v[m - 1] as number) + (v[m] as number)) / 2;
+}
+
+/** Por fase, la mediana de lecturas de las tareas cuya tabla `## Coste` las mide, y cuantas son. */
+export function medianaLecturas(
+  filas: readonly FilaMetricas[]
+): Record<FaseCoste, { mediana: number | null; n: number }> {
+  const r = {} as Record<FaseCoste, { mediana: number | null; n: number }>;
+  for (const fase of FASES_COSTE) {
+    const valores = filas.map((f) => f.coste.fases[fase].lecturas).filter((v): v is number => v !== null);
+    r[fase] = { mediana: mediana(valores), n: valores.length };
+  }
+  return r;
+}
+
+/** Lineas de texto bajo la tabla: hallazgos sin dato, lecturas y terminadas sin coste. */
+export function notasFilaEnriquecida(filas: readonly FilaMetricas[]): string[] {
+  const sinTabla = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
+  const nInformes = sinTabla.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
+  const lect = medianaLecturas(filas);
+  const sinCoste = tareasSinCoste(filas);
+  const terminadas = filas.filter((f) => f.estado === 'terminada').length;
+  return [
+    NOTA_HALLAZGOS +
+      ` Informes sin tabla de hallazgos: ${String(nInformes)} (en ${String(sinTabla.length)} tareas).`,
+    'Lecturas por fase (mediana de las tareas cuya tabla "## Coste" las mide): ' +
+      FASES_COSTE.map((k) => `${k} ${lect[k].mediana === null ? '—' : String(lect[k].mediana)} (n=${String(lect[k].n)})`).join(
+        ', '
+      ) +
+      '.',
+    sinCoste.length === 0
+      ? `Terminadas sin coste en alguna fase: 0 de ${String(terminadas)}.`
+      : `Terminadas sin coste en alguna fase: ${String(sinCoste.length)} de ${String(terminadas)}: ` +
+        sinCoste.map((t) => `${t.id} (${t.fases.join(', ')})`).join(', ') +
+        '.',
+  ];
 }

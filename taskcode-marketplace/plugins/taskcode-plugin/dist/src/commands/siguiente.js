@@ -21,9 +21,9 @@ import { resolverConfig } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
 import { commitRevisadoDe, veredictoDeRonda } from '../core/informe-revision.js';
-import { INFORME_CODEX_RE, INFORME_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
+import { INFORME_CODEX_RE, INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
 import { currentBranch, isAncestor, localBranchExists, lsTreeNames, runGit, showFileAtRef, } from '../fs/git.js';
-import { REVISION_DIRNAME, PETICION_REVISION_RE } from './review.js';
+import { REVISION_DIRNAME } from './review.js';
 import { planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
 }

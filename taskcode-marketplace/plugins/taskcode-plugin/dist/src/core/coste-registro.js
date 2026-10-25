@@ -130,3 +130,56 @@ export function leerCostes(body) {
     }
     return filas;
 }
+function conDesglose(f) {
+    return f.entrada !== null && f.cacheEscritura !== null && f.cacheLectura !== null && f.salida !== null;
+}
+/** Ids de una fuente `agente:a,b`; cualquier otra fuente cuenta entera. */
+function idsDeFuente(fuente) {
+    if (!fuente.startsWith('agente:'))
+        return [fuente];
+    return fuente
+        .slice('agente:'.length)
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s !== '');
+}
+/**
+ * Cruza las filas de `## Coste` con los `tokens_<fase>` de la tarea. No
+ * deduplica nada (MEN-2 de TASK-063): un agente registrado dos veces en la
+ * misma fase ya sumo dos veces a `tokens_<fase>`, asi que quitar una fila
+ * aqui descuadraria el total; se devuelve en `repetidas` para avisar. Las
+ * filas `manual` no cuentan como repetidas: dos cifras a mano son dos
+ * aportaciones legitimas y no hay id con el que compararlas.
+ */
+export function resumirCostes(filas, registrado) {
+    const fases = {};
+    const repetidas = [];
+    for (const fase of FASES_COSTE) {
+        const deFase = filas.filter((f) => f.fase === fase);
+        const desglose = deFase.filter(conDesglose);
+        const suma = (v) => desglose.reduce((a, f) => a + v(f), 0);
+        const desglosado = suma((f) => f.total);
+        const conLecturas = deFase.filter((f) => f.lecturas !== null);
+        const reg = registrado[fase];
+        fases[fase] = {
+            registrado: reg,
+            filas: deFase.length,
+            desglosado,
+            nuevos: suma((f) => f.entrada + f.cacheEscritura + f.salida),
+            cacheLectura: suma((f) => f.cacheLectura),
+            sinDesglose: reg === null && deFase.length === 0 ? null : (reg ?? 0) - desglosado,
+            lecturas: conLecturas.length === 0 ? null : conLecturas.reduce((a, f) => a + f.lecturas, 0),
+        };
+        const vistas = new Map();
+        for (const f of deFase) {
+            if (f.fuente === 'manual')
+                continue;
+            for (const id of new Set(idsDeFuente(f.fuente)))
+                vistas.set(id, (vistas.get(id) ?? 0) + 1);
+        }
+        for (const [fuente, n] of vistas)
+            if (n > 1)
+                repetidas.push({ fase, fuente, filas: n });
+    }
+    return { conTabla: filas.length > 0, fases, repetidas };
+}

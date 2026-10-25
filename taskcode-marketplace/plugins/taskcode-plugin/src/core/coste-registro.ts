@@ -149,3 +149,97 @@ export function leerCostes(body: string): FilaCoste[] {
   }
   return filas;
 }
+
+// --- Lectura para las metricas (TASK-064) ------------------------------------
+
+/** Lo que dice el desglose de UNA fase, frente a su `tokens_<fase>`. */
+export interface ResumenFaseCoste {
+  /** `tokens_<fase>` del frontmatter; null = nadie lo registro. */
+  registrado: number | null;
+  /** Filas de esta fase en `## Coste`. */
+  filas: number;
+  /** Suma de `total` de las filas con desglose (entrada, cache y salida con dato). */
+  desglosado: number;
+  /** Tokens nuevos de esas filas: entrada + escritura de cache + salida. */
+  nuevos: number;
+  /** Lectura de cache de esas filas, aparte: es lo barato y lo que mas abulta. */
+  cacheLectura: number;
+  /**
+   * `registrado` - `desglosado`: lo que la tabla no explica (filas `manual`,
+   * coste registrado antes de TASK-063). NEGATIVO si el desglose supera al
+   * total: nunca se recorta a 0, es una incoherencia que se avisa. null solo
+   * si no hay ni total ni filas (fase sin medir).
+   */
+  sinDesglose: number | null;
+  /** Suma de `lecturas`; null si ninguna fila de la fase la trae (no medido, no 0). */
+  lecturas: number | null;
+}
+
+/** Un agente que aparece en mas de una fila de la misma fase: su coste se suma varias veces. */
+export interface CosteRepetido {
+  fase: FaseCoste;
+  /** Id del agente (o la fuente entera si no es `agente:`). */
+  fuente: string;
+  filas: number;
+}
+
+export interface ResumenCostes {
+  /** false = la tarea no tiene filas en `## Coste` (anterior a TASK-063 o sin registrar). */
+  conTabla: boolean;
+  fases: Record<FaseCoste, ResumenFaseCoste>;
+  repetidas: CosteRepetido[];
+}
+
+function conDesglose(f: FilaCoste): boolean {
+  return f.entrada !== null && f.cacheEscritura !== null && f.cacheLectura !== null && f.salida !== null;
+}
+
+/** Ids de una fuente `agente:a,b`; cualquier otra fuente cuenta entera. */
+function idsDeFuente(fuente: string): string[] {
+  if (!fuente.startsWith('agente:')) return [fuente];
+  return fuente
+    .slice('agente:'.length)
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '');
+}
+
+/**
+ * Cruza las filas de `## Coste` con los `tokens_<fase>` de la tarea. No
+ * deduplica nada (MEN-2 de TASK-063): un agente registrado dos veces en la
+ * misma fase ya sumo dos veces a `tokens_<fase>`, asi que quitar una fila
+ * aqui descuadraria el total; se devuelve en `repetidas` para avisar. Las
+ * filas `manual` no cuentan como repetidas: dos cifras a mano son dos
+ * aportaciones legitimas y no hay id con el que compararlas.
+ */
+export function resumirCostes(
+  filas: readonly FilaCoste[],
+  registrado: Readonly<Record<FaseCoste, number | null>>
+): ResumenCostes {
+  const fases = {} as Record<FaseCoste, ResumenFaseCoste>;
+  const repetidas: CosteRepetido[] = [];
+  for (const fase of FASES_COSTE) {
+    const deFase = filas.filter((f) => f.fase === fase);
+    const desglose = deFase.filter(conDesglose);
+    const suma = (v: (f: FilaCoste) => number): number => desglose.reduce((a, f) => a + v(f), 0);
+    const desglosado = suma((f) => f.total);
+    const conLecturas = deFase.filter((f) => f.lecturas !== null);
+    const reg = registrado[fase];
+    fases[fase] = {
+      registrado: reg,
+      filas: deFase.length,
+      desglosado,
+      nuevos: suma((f) => (f.entrada as number) + (f.cacheEscritura as number) + (f.salida as number)),
+      cacheLectura: suma((f) => f.cacheLectura as number),
+      sinDesglose: reg === null && deFase.length === 0 ? null : (reg ?? 0) - desglosado,
+      lecturas: conLecturas.length === 0 ? null : conLecturas.reduce((a, f) => a + (f.lecturas as number), 0),
+    };
+    const vistas = new Map<string, number>();
+    for (const f of deFase) {
+      if (f.fuente === 'manual') continue;
+      for (const id of new Set(idsDeFuente(f.fuente))) vistas.set(id, (vistas.get(id) ?? 0) + 1);
+    }
+    for (const [fuente, n] of vistas) if (n > 1) repetidas.push({ fase, fuente, filas: n });
+  }
+  return { conTabla: filas.length > 0, fases, repetidas };
+}

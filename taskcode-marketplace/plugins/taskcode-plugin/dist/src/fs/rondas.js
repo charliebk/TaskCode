@@ -79,7 +79,24 @@ export async function ultimaRonda(dir, patron) {
  * Vive aqui desde TASK-036: antes estaba copiada en finish.ts y en
  * codex-review.ts.
  */
-export const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+export const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-([a-z0-9-]+))?\.md$/;
+/**
+ * Peticiones de revision, con el mismo sufijo opcional por revisor. Vive
+ * aqui desde TASK-064 (antes en commands/review.ts, que la reexporta).
+ */
+export const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+/**
+ * Ronda y revisor de un nombre de informe de revision (TASK-064): el
+ * revisor es el sufijo de una ronda fragmentada, '' sin sufijo. null si el
+ * nombre no es un informe de revision. Usa `INFORME_REVISION_RE` (su segundo
+ * grupo es el revisor): una sola regex, para que no diverjan.
+ */
+export function rondaYRevisorDeInforme(nombre) {
+    const m = INFORME_REVISION_RE.exec(nombre);
+    if (m === null)
+        return null;
+    return { ronda: Number(m[1]), revisor: m[2] ?? '' };
+}
 /**
  * Nombres de TODOS los ficheros de la ronda de mayor N segun `patron`
  * (una ronda fragmentada deja varios con el mismo N), y ese N. Sin

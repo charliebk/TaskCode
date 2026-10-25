@@ -66,9 +66,16 @@ test('metricas --tokens: columnas por fase y total, la tarea sin datos en la tab
 
     const r = cliOk(repoRoot, ['metricas', '--tokens']);
     const cab = r.stdout.split('\n').find((l) => l.startsWith('| id ')) as string;
-    assert.match(cab, /\| tok_diseno +\| tok_curso +\| tok_revision +\| tok_total +\|$/);
-    assert.deepEqual(celdas(r.stdout, ID).slice(-4), ['1000', '3000', '1000', '5000']);
-    assert.deepEqual(celdas(r.stdout, ID2).slice(-4), ['—', '—', '—', '—']);
+    assert.match(
+      cab,
+      /\| tok_diseno +\| tok_curso +\| tok_revision +\| tok_total +\| tok_nuevos +\| tok_cache_lect +\| tok_sin_desglose +\|$/
+    );
+    // TASK-064: las tres filas son "manual" (--tokens N): nuevos y cache sin medir («—», no 0)
+    // y todo sin desglose.
+    assert.deepEqual(celdas(r.stdout, ID).slice(-7), ['1000', '3000', '1000', '5000', '—', '—', '5000']);
+    // Sin tabla "## Coste": sin dato, no 0.
+    assert.deepEqual(celdas(r.stdout, ID2).slice(-7), ['—', '—', '—', '—', '—', '—', '—']);
+    assert.match(r.stdout, /tok_sin_desglose = tokens_<fase> menos lo desglosado/);
 
     // El resumen cuenta 1 tarea con dato de 2 y reparte el % sobre el total.
     assert.match(r.stdout, /Coste en tokens por sprint:\n\| sprint +\| con dato\/total/);
@@ -87,8 +94,8 @@ test('metricas --tokens --heuristica: ambas familias de columnas, y el resumen d
     await escenario(repoRoot, tareasRoot);
     const r = cliOk(repoRoot, ['metricas', '--tokens', '--heuristica']);
     const cab = r.stdout.split('\n').find((l) => l.startsWith('| id ')) as string;
-    assert.match(cab, /\| tok_total +\| puntos +\| nivel_heuristico +\|$/);
-    assert.deepEqual(celdas(r.stdout, ID).slice(7 + 1, 7 + 5), ['1000', '3000', '1000', '5000']);
+    assert.match(cab, /\| tok_sin_desglose +\| puntos +\| nivel_heuristico +\|$/);
+    assert.deepEqual(celdas(r.stdout, ID).slice(12, 12 + 4), ['1000', '3000', '1000', '5000']);
     assert.ok(!r.stdout.includes(`| ${ID2} `), 'la muestra heuristica solo trae terminadas con informes');
     assert.match(r.stdout, /Muestra: 1 tareas terminadas/);
     assert.match(r.stdout, /\| 0 +\| 1\/1 /);

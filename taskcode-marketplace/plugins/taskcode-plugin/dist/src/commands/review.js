@@ -33,7 +33,7 @@ import { STATE_FOLDER } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
 import { registrarTransicion } from '../core/transiciones.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
-import { INFORME_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
+import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
 import { commitRevisadoDe, hallazgosNoCerrados, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
@@ -130,8 +130,6 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `${fence}\n` +
         seccionExcluidos(desde, extras));
 }
-/** Peticiones de revision, con o sin sufijo de dominio (TASK-018). */
-export const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 async function leerRondaPrevia(revisionDir) {
     const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
     const textos = await Promise.all(informes.nombres.map(async (n) => ({ nombre: n, texto: await readFile(path.join(revisionDir, n), 'utf8') })));

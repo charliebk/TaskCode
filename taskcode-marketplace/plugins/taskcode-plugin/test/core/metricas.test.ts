@@ -89,7 +89,7 @@ test('registro con hora: diseno plan->start, curso start->review, revision revie
   assert.equal(f.rondas, 2);
   assert.equal(f.cierre, '2026-10-06');
   const fila = COLUMNAS_METRICAS.map((c) => c.valor(f));
-  assert.deepEqual(fila, ['TASK-007', 'simple', '45m', '2h 05m', '1d 00h', '2', '2026-10-06', 'registro']);
+  assert.deepEqual(fila, ['TASK-007', 'simple', '45m', '2h 05m', '1d 00h', '2', '—', '—', '—', '—', '2026-10-06', 'registro']);
 });
 
 test('precision de dia: filas viejas dan dias enteros, y una sola marca de dia basta para pasar a dias', () => {
@@ -239,7 +239,7 @@ test('sin registro ni git: origen "—" y todo "—"', () => {
   assert.equal(f.origen, '—');
   assert.deepEqual(
     COLUMNAS_METRICAS.map((c) => c.valor(f)),
-    ['TASK-007', 'simple', '—', '—', '—', '3', '—', '—']
+    ['TASK-007', 'simple', '—', '—', '—', '3', '—', '—', '—', '—', '—', '—']
   );
   assert.equal(COLUMNAS_METRICAS.find((c) => c.cabecera === 'complejidad')?.valor(calcularFila(entrada({ task: tarea({ complejidad: null }) }))), '—');
 });
@@ -279,7 +279,7 @@ test('formatearTabla: cabecera, separador y columnas alineadas', () => {
   const f = calcularFila(entrada({ body: cuerpoCon(CICLO_CON_HORA), ronda: 1 }));
   const lineas = formatearTabla([f], COLUMNAS_METRICAS).split('\n');
   assert.equal(lineas.length, 3);
-  assert.match(lineas[0] as string, /^\| id +\| complejidad \| diseno \| curso +\| revision \| rondas \| cierre +\| origen +\|$/);
+  assert.match(lineas[0] as string, /^\| id +\| complejidad \| diseno \| curso +\| revision \| rondas \| crit \| imp \| men \| hall_origen \| cierre +\| origen +\|$/);
   assert.match(lineas[1] as string, /^\|-+\|-+\|/);
   assert.equal(new Set(lineas.map((l) => l.length)).size, 1, 'todas las lineas miden lo mismo');
 });
