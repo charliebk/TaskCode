@@ -33,7 +33,7 @@ tomada y documentada, no aplazada.
 | ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
-| I — Métricas v2 | 2 | **1** | — |
+| I — Métricas v2 | 3 | **2** | — |
 | **Total pendiente** | **1** | — | — |
 
 ---
@@ -799,7 +799,7 @@ Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
       gh/glab. Cada fallo trae su arreglo; con `--json` y código 1 solo si
       hay errores. Hubo 1 ronda, con 5 MENOR corregidos.*
 
-## I — Métricas v2 (1/2)
+## I — Métricas v2 (2/3)
 
 Pedido por Carlos el 2026-10-25: medir el comportamiento del plugin en los
 proyectos que lo usan (ToolsaWeb, OpenGisViewer, TaskCode) antes de decidir
@@ -814,4 +814,13 @@ el diseño de TASK-063 en captura (A) y lectura (B).
       (implementación, plan o especificación) y `leerHallazgos`. `finish`
       avisa sin coste de implementación. 1 ronda, aprobada, 3 MENOR
       aceptados (dos pasan a TASK-064).*
-- [ ] TASK-064 — Métricas v2 (B): leer y mostrar la evolución del flujo
+- [x] TASK-064 — Métricas v2 (B): fila de métricas con coste desglosado,
+      hallazgos y lecturas — cerrada el 2026-10-25
+      *`metricas` da por tarea crit/imp/men y su origen, contados una vez
+      por tarea (revisor + ID, severidad por primera palabra, fusión campo a
+      campo entre rondas); con `--tokens`, tokens nuevos, lectura de caché y
+      sin desglose; terminadas sin coste y mediana de lecturas. Se partió en
+      su diseño: los agregados pasan a TASK-065. 2 rondas: 2 IMPORTANTE
+      reproducidos con OpenGisViewer (fila «sin hallazgos» contada; la última
+      ronda borraba un dato reconocido), corregidos.*
+- [ ] TASK-065 — Métricas v2 (C): evolución, grupos y varios proyectos
