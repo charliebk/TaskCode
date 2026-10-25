@@ -17,6 +17,18 @@
  *  - Las lineas que no son JSON, o no son de asistente con usage, se ignoran.
  *    Una linea con usage pero sin id se cuenta tal cual (no se puede
  *    deduplicar).
+ *
+ * TASK-063: ademas del total, el desglose (entrada, escritura y lectura de
+ * cache, salida) con la misma deduplicacion, y `lecturas`: cuantas veces
+ * leyo el agente para orientarse. Una lectura es un bloque `tool_use` del
+ * `message.content` de una linea de asistente, contado UNA vez por su `id`
+ * (el streaming tambien lo repite; uno sin id se cuenta tal cual), que:
+ *  - tiene un `name` de `HERRAMIENTAS_LECTURA`, o
+ *  - es `Bash` y su `input.command`, sin espacios iniciales, empieza por un
+ *    comando de `COMANDOS_BASH_LECTURA` o por `sed -n`.
+ * Es heuristico a sabiendas: `cd x && cat y` no cuenta y `cat > f` si. Lo
+ * que importa es la tendencia entre tareas, no la cifra exacta. Sin ningun
+ * `tool_use`, `lecturas` es 0.
  */
 
 /** agentId que devuelve la herramienta Agent: hexadecimal. Se valida antes de componer rutas. */
@@ -26,35 +38,102 @@ export function esAgentIdValido(id: string): boolean {
   return AGENT_ID_RE.test(id);
 }
 
+/**
+ * Herramientas que cuentan como lectura del proyecto (TASK-063). Lista
+ * CERRADA a proposito: una herramienta nueva se anade aqui, no se adivina
+ * por su nombre. Son las de Claude Code (Read, Grep, Glob; LS y
+ * NotebookRead de versiones anteriores) y las de lectura o busqueda de dos
+ * servidores MCP comunes: el `filesystem` de referencia y el grafo de codigo
+ * `tokensave`. Un MCP instalado como plugin lleva otro prefijo en el nombre
+ * y no casa: se anade con su nombre completo.
+ */
+export const HERRAMIENTAS_LECTURA: readonly string[] = [
+  'Read',
+  'Grep',
+  'Glob',
+  'LS',
+  'NotebookRead',
+  'mcp__filesystem__read_file',
+  'mcp__filesystem__read_text_file',
+  'mcp__filesystem__read_media_file',
+  'mcp__filesystem__read_multiple_files',
+  'mcp__filesystem__list_directory',
+  'mcp__filesystem__list_directory_with_sizes',
+  'mcp__filesystem__directory_tree',
+  'mcp__filesystem__search_files',
+  'mcp__filesystem__get_file_info',
+  'mcp__tokensave__tokensave_context',
+  'mcp__tokensave__tokensave_search',
+  'mcp__tokensave__tokensave_read',
+];
+
+/** Comandos de Bash que cuentan como lectura si el comando EMPIEZA por ellos. `sed` cuenta solo con `-n`. */
+export const COMANDOS_BASH_LECTURA: readonly string[] = ['cat', 'head', 'tail', 'grep', 'rg', 'find', 'ls'];
+
+const BASH_LECTURA_RE = new RegExp(`^(?:${COMANDOS_BASH_LECTURA.join('|')}|sed\\s+-n)(?:\\s|$)`);
+
+/** true si un comando de Bash es de lectura segun la regla de la cabecera. */
+export function esComandoBashDeLectura(comando: string): boolean {
+  return BASH_LECTURA_RE.test(comando.trimStart());
+}
+
 export interface UsoTranscripcion {
   /** Tokens procesados: entrada + escritura y lectura de cache + salida. */
   tokens: number;
   /** Llamadas distintas (message.id unicos) que se han sumado. */
   llamadas: number;
+  /** `input_tokens` sumados (TASK-063). */
+  entrada: number;
+  /** `cache_creation_input_tokens` sumados. */
+  cacheEscritura: number;
+  /** `cache_read_input_tokens` sumados. */
+  cacheLectura: number;
+  /** `output_tokens` sumados. */
+  salida: number;
+  /** `tool_use` de lectura distintos (ver la cabecera). */
+  lecturas: number;
+}
+
+interface Desglose {
+  entrada: number;
+  cacheEscritura: number;
+  cacheLectura: number;
+  salida: number;
 }
 
 function numero(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0;
 }
 
-function tokensDeUsage(u: Record<string, unknown>): number {
-  return (
-    numero(u['input_tokens']) +
-    numero(u['cache_creation_input_tokens']) +
-    numero(u['cache_read_input_tokens']) +
-    numero(u['output_tokens'])
-  );
+function desgloseDeUsage(u: Record<string, unknown>): Desglose {
+  return {
+    entrada: numero(u['input_tokens']),
+    cacheEscritura: numero(u['cache_creation_input_tokens']),
+    cacheLectura: numero(u['cache_read_input_tokens']),
+    salida: numero(u['output_tokens']),
+  };
 }
 
 function esObjeto(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+/** true si un bloque `tool_use` es una lectura (ver la cabecera). */
+function esLectura(bloque: Record<string, unknown>): boolean {
+  const nombre = bloque['name'];
+  if (typeof nombre !== 'string') return false;
+  if (HERRAMIENTAS_LECTURA.includes(nombre)) return true;
+  if (nombre !== 'Bash') return false;
+  const input = bloque['input'];
+  return esObjeto(input) && typeof input['command'] === 'string' && esComandoBashDeLectura(input['command']);
+}
+
 /** null si la transcripcion no tiene ninguna linea de asistente con usage (formato desconocido). */
 export function sumarUsoTranscripcion(texto: string): UsoTranscripcion | null {
-  const porId = new Map<string, number>();
-  let sinId = 0;
-  let sumaSinId = 0;
+  const porId = new Map<string, Desglose>();
+  const sinId: Desglose[] = [];
+  const lecturasPorId = new Set<string>();
+  let lecturasSinId = 0;
   for (const linea of texto.split(/\r?\n/)) {
     if (linea.trim() === '') continue;
     let obj: unknown;
@@ -65,19 +144,34 @@ export function sumarUsoTranscripcion(texto: string): UsoTranscripcion | null {
     }
     if (!esObjeto(obj) || obj['type'] !== 'assistant') continue;
     const mensaje = obj['message'];
-    if (!esObjeto(mensaje) || !esObjeto(mensaje['usage'])) continue;
-    const tokens = tokensDeUsage(mensaje['usage']);
+    if (!esObjeto(mensaje)) continue;
+    const contenido = mensaje['content'];
+    if (Array.isArray(contenido)) {
+      for (const bloque of contenido) {
+        if (!esObjeto(bloque) || bloque['type'] !== 'tool_use' || !esLectura(bloque)) continue;
+        const idBloque = bloque['id'];
+        if (typeof idBloque === 'string' && idBloque !== '') lecturasPorId.add(idBloque);
+        else lecturasSinId++;
+      }
+    }
+    if (!esObjeto(mensaje['usage'])) continue;
+    const desglose = desgloseDeUsage(mensaje['usage']);
     const id = mensaje['id'];
     if (typeof id === 'string' && id !== '') {
-      porId.set(id, tokens); // la ultima aparicion gana
+      porId.set(id, desglose); // la ultima aparicion gana
     } else {
-      sinId++;
-      sumaSinId += tokens;
+      sinId.push(desglose);
     }
   }
-  const llamadas = porId.size + sinId;
+  const llamadas = porId.size + sinId.length;
   if (llamadas === 0) return null;
-  let tokens = sumaSinId;
-  for (const t of porId.values()) tokens += t;
-  return { tokens, llamadas };
+  const suma: Desglose = { entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0 };
+  for (const d of [...porId.values(), ...sinId]) {
+    suma.entrada += d.entrada;
+    suma.cacheEscritura += d.cacheEscritura;
+    suma.cacheLectura += d.cacheLectura;
+    suma.salida += d.salida;
+  }
+  const tokens = suma.entrada + suma.cacheEscritura + suma.cacheLectura + suma.salida;
+  return { tokens, llamadas, ...suma, lecturas: lecturasPorId.size + lecturasSinId };
 }

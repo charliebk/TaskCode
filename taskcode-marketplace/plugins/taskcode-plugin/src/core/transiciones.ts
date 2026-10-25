@@ -109,7 +109,7 @@ const VALLA_APERTURA = /^ {0,3}(`{3,}(?=[^`]*$)|~{3,})/;
  * proteger el registro real. Hace falta un documento roto, ademas de un
  * ejemplo del registro, para llegar ahi.
  */
-function dentroDeBloque(lineas: readonly string[]): boolean[] {
+export function dentroDeBloque(lineas: readonly string[]): boolean[] {
   const enBloque = lineas.map(() => false);
   let i = 0;
   while (i < lineas.length) {
@@ -141,10 +141,19 @@ function dentroDeBloque(lineas: readonly string[]): boolean[] {
  * bloque no es el registro, y la seccion real siempre se crea al final.
  */
 function rangoSeccion(lineas: readonly string[]): [number, number] | null {
+  return rangoDeSeccion(lineas, SECCION_TRANSICIONES);
+}
+
+/**
+ * La regla de `rangoSeccion` para cualquier seccion del cuerpo (TASK-063:
+ * la reutiliza `## Coste` de `core/coste-registro.ts`, que es una tabla
+ * hermana de esta).
+ */
+export function rangoDeSeccion(lineas: readonly string[], titulo: string): [number, number] | null {
   const enBloque = dentroDeBloque(lineas);
   let inicio = -1;
   lineas.forEach((l, i) => {
-    if (!enBloque[i] && l.trimEnd() === SECCION_TRANSICIONES) inicio = i;
+    if (!enBloque[i] && l.trimEnd() === titulo) inicio = i;
   });
   if (inicio === -1) return null;
   let fin = inicio + 1;

@@ -29,6 +29,11 @@
  *    el commit es pathspec-limitado.
  * 4. Una cifra de 0 se rechaza: registrar nada no tiene sentido y dejaria un
  *    commit que parece un registro.
+ * 5. TASK-063: cada llamada deja ademas una fila en la tabla `## Coste` del
+ *    cuerpo (`core/coste-registro.ts`), en el mismo fichero y el mismo
+ *    commit que el total. Con `--agente`, el desglose sumado de sus agentes
+ *    (entrada, escritura y lectura de cache, salida, lecturas); con
+ *    `--tokens N`, una fila `manual` con solo el total.
  */
 import { writeFile } from 'node:fs/promises';
 import { rechazarFlagsDesconocidos, parseArgs } from '../cli/args.js';
@@ -36,6 +41,8 @@ import { readTareaFile } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import type { Task } from '../core/task.js';
 import { esAgentIdValido, sumarUsoTranscripcion } from '../core/coste-transcripcion.js';
+import { anadirCoste, FASES_COSTE, type FaseCoste, type FilaCoste } from '../core/coste-registro.js';
+import { formatearInstante } from '../core/transiciones.js';
 import { buscarTranscripciones, directorioConfigClaude, leerTranscripcion } from '../fs/transcripciones.js';
 import { currentBranch, isAncestor, localBranchExists, runGit } from '../fs/git.js';
 import {
@@ -55,15 +62,16 @@ export const CAMPO_COSTE_POR_FASE = {
   diseno: 'tokens_diseno',
   implementacion: 'tokens_implementacion',
   revision: 'tokens_revision',
-} as const;
+} as const satisfies Record<FaseCoste, string>;
 
-export type FaseCoste = keyof typeof CAMPO_COSTE_POR_FASE;
-export const FASES_COSTE = Object.keys(CAMPO_COSTE_POR_FASE) as FaseCoste[];
+export { FASES_COSTE, type FaseCoste };
 
 export interface RegistrarCosteCommandDeps {
   repoCwd: string;
   /** Directorio de configuracion de Claude Code (tests); por defecto CLAUDE_CONFIG_DIR o ~/.claude. */
   configDir?: string;
+  /** TASK-063: instante UTC de la fila de `## Coste` (`formatearInstante`); por defecto, ahora. */
+  ahora?: string;
 }
 
 export interface RegistrarCosteCommandResult {
@@ -75,6 +83,8 @@ export interface RegistrarCosteCommandResult {
   total: number;
   /** Cuantos subagentes se han leido de su transcripcion (0 con --tokens). */
   agentes: number;
+  /** TASK-063: la fila anadida a la tabla `## Coste`. */
+  fila: FilaCoste;
   filePath: string;
   autoCommit: AutoCommitResult;
 }
@@ -153,8 +163,18 @@ function leerFaseYTokens(
   return { fase: fase as FaseCoste, tokens };
 }
 
+/** Lo sumado de las transcripciones: el total y su desglose (TASK-063). */
+interface CosteDeAgentes {
+  tokens: number;
+  entrada: number;
+  cacheEscritura: number;
+  cacheLectura: number;
+  salida: number;
+  lecturas: number;
+}
+
 /** Suma lo que gasto cada subagente segun su transcripcion; falla diciendo que hacer. */
-async function tokensDeAgentes(agentes: readonly string[], configDir: string): Promise<number> {
+async function costeDeAgentes(agentes: readonly string[], configDir: string): Promise<CosteDeAgentes> {
   const unicos = [...new Set(agentes)];
   for (const id of unicos) {
     if (!esAgentIdValido(id)) {
@@ -164,7 +184,7 @@ async function tokensDeAgentes(agentes: readonly string[], configDir: string): P
       );
     }
   }
-  let total = 0;
+  const suma: CosteDeAgentes = { tokens: 0, entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0, lecturas: 0 };
   for (const id of unicos) {
     const rutas = await buscarTranscripciones(configDir, id);
     const donde = `${configDir}/projects/*/*/subagents/agent-${id}.jsonl`;
@@ -190,14 +210,19 @@ async function tokensDeAgentes(agentes: readonly string[], configDir: string): P
           'No se ha tocado nada.'
       );
     }
-    total += uso.tokens;
+    suma.tokens += uso.tokens;
+    suma.entrada += uso.entrada;
+    suma.cacheEscritura += uso.cacheEscritura;
+    suma.cacheLectura += uso.cacheLectura;
+    suma.salida += uso.salida;
+    suma.lecturas += uso.lecturas;
   }
-  if (total === 0) {
+  if (suma.tokens === 0) {
     throw new RegistrarCosteCommandError(
       '[ERROR] Las transcripciones suman 0 tokens: registrar nada no tiene sentido. No se ha tocado nada.'
     );
   }
-  return total;
+  return suma;
 }
 
 export async function runRegistrarCosteCommand(
@@ -247,9 +272,11 @@ export async function runRegistrarCosteCommand(
     );
   }
 
-  const nAgentes = new Set(agentes).size;
-  const tokens =
-    tokensManuales ?? (await tokensDeAgentes(agentes, deps.configDir ?? directorioConfigClaude()));
+  const unicos = [...new Set(agentes)];
+  const nAgentes = unicos.length;
+  const desglose =
+    tokensManuales === null ? await costeDeAgentes(unicos, deps.configDir ?? directorioConfigClaude()) : null;
+  const tokens = desglose?.tokens ?? (tokensManuales as number);
   const campo = CAMPO_COSTE_POR_FASE[fase];
   const total = (task[campo] ?? 0) + tokens;
   if (!Number.isSafeInteger(total)) {
@@ -259,7 +286,19 @@ export async function runRegistrarCosteCommand(
     );
   }
   const nueva: Task = { ...task, [campo]: total };
-  await writeFile(filePath, serializeTareaFile(nueva, body), 'utf8');
+  // TASK-063: la fila del desglose viaja en el mismo fichero y commit que el total.
+  const fila: FilaCoste = {
+    fecha: deps.ahora ?? formatearInstante(new Date()),
+    fase,
+    fuente: desglose === null ? 'manual' : `agente:${unicos.join(',')}`,
+    entrada: desglose?.entrada ?? null,
+    cacheEscritura: desglose?.cacheEscritura ?? null,
+    cacheLectura: desglose?.cacheLectura ?? null,
+    salida: desglose?.salida ?? null,
+    lecturas: desglose?.lecturas ?? null,
+    total: tokens,
+  };
+  await writeFile(filePath, serializeTareaFile(nueva, anadirCoste(body, fila)), 'utf8');
 
   const detalle = nAgentes > 0 ? ` (${String(nAgentes)} agente${nAgentes === 1 ? '' : 's'})` : '';
   const commit = autoCommit({
@@ -268,5 +307,5 @@ export async function runRegistrarCosteCommand(
     mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),
     push,
   });
-  return { id, fase, sumado: tokens, total, agentes: nAgentes, filePath, autoCommit: commit };
+  return { id, fase, sumado: tokens, total, agentes: nAgentes, fila, filePath, autoCommit: commit };
 }
