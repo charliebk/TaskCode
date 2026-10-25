@@ -322,9 +322,11 @@ async function mainComando(argvEntrada) {
         return 0;
     }
     if (GUARDADOS_POR_CADENA.has(cmd)) {
-        const { testigo, resto } = extraerCadena(argv.slice(1));
+        let resto;
         try {
-            await verificarCadena(process.cwd(), testigo);
+            const extraida = extraerCadena(argv.slice(1));
+            resto = extraida.resto;
+            await verificarCadena(process.cwd(), extraida.testigo);
         }
         catch (e) {
             if (e instanceof CadenaCommandError || e instanceof GitLaunchError || e instanceof GitCommandError) {

@@ -366,9 +366,11 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
   }
 
   if (GUARDADOS_POR_CADENA.has(cmd)) {
-    const { testigo, resto } = extraerCadena(argv.slice(1));
+    let resto: string[];
     try {
-      await verificarCadena(process.cwd(), testigo);
+      const extraida = extraerCadena(argv.slice(1));
+      resto = extraida.resto;
+      await verificarCadena(process.cwd(), extraida.testigo);
     } catch (e) {
       if (e instanceof CadenaCommandError || e instanceof GitLaunchError || e instanceof GitCommandError) {
         printCliError(e);

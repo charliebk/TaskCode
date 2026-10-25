@@ -71,8 +71,12 @@ function parseWrapperArgs(nombre, spec, argv) {
                     : `solo admite ${spec.opciones.join(' y ')}`;
                 throw new WrapperCommandError(`[ERROR] taskctl ${nombre} ${admite}, y recibio "${arg}".`);
             }
-            if (!opciones.includes(arg))
-                opciones.push(arg);
+            // TASK-065: como en el resto de comandos, una opcion repetida aborta.
+            if (opciones.includes(arg)) {
+                throw new WrapperCommandError(`[ERROR] taskctl ${nombre}: "${arg}" esta repetido y no admite repeticion. ` +
+                    'Pasalo una sola vez.');
+            }
+            opciones.push(arg);
             continue;
         }
         if (!spec.aceptaRama) {
