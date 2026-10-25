@@ -29,12 +29,60 @@ Antes de mejorar el plugin en tiempo, tokens, verificacion o memoria de contexto
 En el diseno se partio en dos (Carlos, 2026-10-25): esta tarea es la parte A, que **captura** los datos nuevos y cambia formatos; TASK-064 (parte B) los **lee** y los muestra en `taskctl metricas`, con la vista de evolucion y la linea base de ToolsaWeb.
 
 ## Criterios de aceptacion
-- [ ] `taskctl registrar-coste TASK-NNN --fase <f> --agente <id>` anade una fila a la tabla `## Coste` de `tarea.md` (fecha, fase, fuente, entrada, cache_escritura, cache_lectura, salida, lecturas) con el desglose sumado de los agentes, y sigue sumando el total a `tokens_<fase>` en el mismo commit; `--tokens N` deja una fila con solo el total.
-- [ ] Una tarea sin tabla `## Coste` sigue siendo valida: `taskctl doctor` no da error y los tests de tareas en formato antiguo pasan sin cambios.
-- [ ] `lecturas` cuenta los `tool_use` de la transcripcion, sin repetir el mismo id, cuyo nombre esta en la lista de herramientas de lectura (Read, Grep, Glob y los MCP de lectura o busqueda) o que son Bash con un comando que empieza por cat, head, tail, grep, rg, find, ls o sed -n; un test con un `.jsonl` de ejemplo fija el numero esperado.
-- [ ] La plantilla del informe que escribe `taskctl review` y las skills de revision llevan una columna `Origen` por hallazgo (implementacion, plan o especificacion) con la instruccion de rellenarla, y `leerHallazgos(informe)` en `core/informe-revision.ts` devuelve severidad y origen de cada fila, con `sin clasificar` si falta la columna.
-- [ ] `taskctl finish` avisa, sin bloquear, si la tarea se cierra con `tokens_implementacion` vacio o a 0.
-- [ ] Tests contra repos Git temporales reales y transcripciones `.jsonl` de ejemplo en un `CLAUDE_CONFIG_DIR` temporal; el test de que los instalables no mencionan el proyecto sigue en verde; el CHANGELOG lo documenta.
+- [x] `taskctl registrar-coste TASK-NNN --fase <f> --agente <id>` anade una fila a la tabla `## Coste` de `tarea.md` (fecha, fase, fuente, entrada, cache_escritura, cache_lectura, salida, lecturas) con el desglose sumado de los agentes, y sigue sumando el total a `tokens_<fase>` en el mismo commit; `--tokens N` deja una fila con solo el total.
+- [x] Una tarea sin tabla `## Coste` sigue siendo valida: `taskctl doctor` no da error y los tests de tareas en formato antiguo pasan sin cambios.
+- [x] `lecturas` cuenta los `tool_use` de la transcripcion, sin repetir el mismo id, cuyo nombre esta en la lista de herramientas de lectura (Read, Grep, Glob y los MCP de lectura o busqueda) o que son Bash con un comando que empieza por cat, head, tail, grep, rg, find, ls o sed -n; un test con un `.jsonl` de ejemplo fija el numero esperado.
+- [x] La plantilla del informe que escribe `taskctl review` y las skills de revision llevan una columna `Origen` por hallazgo (implementacion, plan o especificacion) con la instruccion de rellenarla, y `leerHallazgos(informe)` en `core/informe-revision.ts` devuelve severidad y origen de cada fila, con `sin clasificar` si falta la columna.
+- [x] `taskctl finish` avisa, sin bloquear, si la tarea se cierra con `tokens_implementacion` vacio o a 0.
+- [x] Tests contra repos Git temporales reales y transcripciones `.jsonl` de ejemplo en un `CLAUDE_CONFIG_DIR` temporal; el test de que los instalables no mencionan el proyecto sigue en verde; el CHANGELOG lo documenta.
+
+## Resultado
+
+Cerrada el 2026-10-25 en 1 ronda de revision por pares (aprobada, sin
+CRITICO ni IMPORTANTE; 3 MENOR aceptados). Es la parte A de la particion
+decidida en el diseno; la parte B (lectura en `metricas`, `--evolucion`,
+linea base) es TASK-064.
+
+**Lo entregado.**
+
+- **Desglose de coste.** `registrar-coste --agente` escribe una fila en la
+  tabla `## Coste` del cuerpo de `tarea.md` con `entrada`, `cache_escritura`,
+  `cache_lectura`, `salida`, `lecturas` y `total`, y sigue sumando el total a
+  `tokens_<fase>` en el mismo commit. `--tokens N` deja una fila `manual` con
+  `-` en el desglose. `fuente` es `agente:<id>[,<id>...]` o `manual`.
+- **Lecturas.** Se cuentan los `tool_use` deduplicados por id cuyo nombre esta
+  en `HERRAMIENTAS_LECTURA` (Read, Grep, Glob, LS, NotebookRead y MCP de
+  lectura conocidos) o Bash cuyo comando empieza por una palabra de
+  `COMANDOS_BASH_LECTURA` (`sed` solo con `-n`). Un MCP con otro prefijo hay
+  que anadirlo por nombre.
+- **Origen de los hallazgos.** La plantilla de `taskctl review` y las skills de
+  revision llevan la columna `Origen` (implementacion / plan / especificacion);
+  `leerHallazgos` la normaliza y da `sin clasificar` si falta o no casa.
+  `hallazgosNoCerrados` filtra sobre ella con su salida de siempre.
+- **Aviso de `finish`** si `tokens_implementacion` esta vacio o a 0.
+- Una tarea sin `## Coste` sigue valida (`doctor --json` da `tareas=ok`).
+
+**Desviacion del plan.** La tabla tiene una columna `total` (9 en vez de 8):
+sin ella la fila de `--tokens N` no tenia donde poner la cifra.
+
+**Suite.** 1370 tests; fallan los 3 conocidos de Windows y 2 de
+"contraprueba de descubrimiento" que fallan igual en develop (`claude plugin
+validate` exige README en la copia temporal; propuesto como tarea aparte).
+El revisor vio ademas un rojo intermitente en `doctor.test` que pasa al
+repetirlo, en la rama y en develop.
+
+**Revision (ronda 1).** Reproduccion en clon temporal, prueba manual del CLI
+y 16 mutantes detectados de 17. Hallazgos aceptados sin corregir:
+
+- MEN-1 (implementacion): falta un test de una fila dentro de un bloque de
+  codigo en una seccion `## Coste` real (mutante superviviente; el codigo es
+  correcto). Se cubre en TASK-064, que es quien lee esa tabla.
+- MEN-2 (especificacion): registrar dos veces el mismo `--agente` suma dos
+  veces y deja dos filas, como antes de la tarea. Se decide en TASK-064 si
+  `metricas` deduplica por fuente.
+- MEN-3 (implementacion): con una tabla ajena editada a mano en `## Coste`,
+  la fila queda bajo una cabecera incorrecta. La seccion ya dice que no se
+  edite a mano.
 
 ## Transiciones
 
