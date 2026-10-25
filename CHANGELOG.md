@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-063 (feature) — Metricas v2 (A): capturar desglose de coste, lecturas y origen de hallazgos (2026-10-25)
 
 Metricas v2, parte A (TASK-063): se capturan los datos que faltaban para
 decidir mejoras con cifras. Solo captura y cambia formatos; `taskctl metricas`

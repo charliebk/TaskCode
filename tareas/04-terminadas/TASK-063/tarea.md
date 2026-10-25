@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-063-metricas-v2-medir-el-comportamiento-del
 asignado_a: charlie.bk@gmail.com
@@ -92,3 +92,4 @@ y 16 mutantes detectados de 17. Hallazgos aceptados sin corregir:
 | 2026-10-25T13:43:05Z | approve | automatico | automatico |
 | 2026-10-25T13:43:19Z | start | automatico | persona |
 | 2026-10-25T14:15:02Z | review | automatico | persona |
+| 2026-10-25T14:43:50Z | finish | automatico | persona |
