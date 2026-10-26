@@ -33,8 +33,8 @@ tomada y documentada, no aplazada.
 | ✅ F — Auditoría 2026-10-03 | 22 | **22** | — |
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
-| I — Métricas v2 | 3 | **2** | — |
-| **Total pendiente** | **1** | — | — |
+| ✅ I — Métricas v2 | 3 | **3** | — |
+| **Total pendiente** | **0** | — | — |
 
 ---
 
@@ -799,7 +799,7 @@ Funcionalidad pedida por Carlos después de cerrar el plan de terminación.
       gh/glab. Cada fallo trae su arreglo; con `--json` y código 1 solo si
       hay errores. Hubo 1 ronda, con 5 MENOR corregidos.*
 
-## I — Métricas v2 (2/3)
+## I — Métricas v2 (3/3)
 
 Pedido por Carlos el 2026-10-25: medir el comportamiento del plugin en los
 proyectos que lo usan (ToolsaWeb, OpenGisViewer, TaskCode) antes de decidir
@@ -823,4 +823,11 @@ el diseño de TASK-063 en captura (A) y lectura (B).
       su diseño: los agregados pasan a TASK-065. 2 rondas: 2 IMPORTANTE
       reproducidos con OpenGisViewer (fila «sin hallazgos» contada; la última
       ronda borraba un dato reconocido), corregidos.*
-- [ ] TASK-065 — Métricas v2 (C): evolución, grupos y varios proyectos
+- [x] TASK-065 — Métricas v2 (C): evolución, grupos y varios proyectos —
+      cerrada el 2026-10-25
+      *`--evolucion`, `--grupos` y `--repo` repetible (clave proyecto + id,
+      `realpath`, abortos ante rutas dudosas), `--json` con lista cerrada de
+      flags, flags repetidos que abortan en todos los comandos, lista sin
+      coste acotada y coste de agentes reanudados por diferencia. Línea base
+      de ToolsaWeb, OpenGisViewer y TaskCode (194 tareas) en su Resultado.
+      1 ronda, aprobada con 3 MENOR aceptados.*
