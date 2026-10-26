@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-065 (feature) — Metricas v2 (C): evolucion, grupos y varios proyectos (2026-10-26)
 
 Metricas v2, parte C (TASK-065): agregados de la fila de metricas para elegir
 mejoras por cifras, sobre uno o varios proyectos.

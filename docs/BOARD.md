@@ -1,8 +1,8 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-10-25. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-10-26. No editar a mano.
 
-## Planificadas (00-planificadas) — 15
+## Planificadas (00-planificadas) — 14
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,10 +21,9 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-065  Metricas v2 (C): evolucion, grupos y varios proyectos                                       (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 50
+## Terminadas (04-terminadas) — 51
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -79,4 +78,5 @@ TASK-061  Merge request en cualquier GitLab, tambien autoalojado                
 TASK-062  taskctl doctor: comprobar que un proyecto esta listo antes de trabajar                   charlie.bk@gmail.com
 TASK-063  Metricas v2 (A): capturar desglose de coste, lecturas y origen de hallazgos              charlie.bk@gmail.com
 TASK-064  Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y lecturas             charlie.bk@gmail.com
+TASK-065  Metricas v2 (C): evolucion, grupos y varios proyectos                                    charlie.bk@gmail.com
 ```

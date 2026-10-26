@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-065-metricas-v2-c-evolucion-grupos-y-varios
 asignado_a: charlie.bk@gmail.com
@@ -19,7 +19,7 @@ tokens_diseno: 683666
 tokens_implementacion: 34183483
 tokens_revision: 7908320
 creado: 2026-10-25
-actualizado: 2026-10-25
+actualizado: 2026-10-26
 dependencias: [TASK-064]
 ---
 ## Objetivo
@@ -105,3 +105,4 @@ Lectura: el tamano de la tarea (criterios, complejidad, KB de la peticion de rev
 | 2026-10-25T19:15:04Z | approve | automatico | automatico |
 | 2026-10-25T19:15:05Z | start | automatico | persona |
 | 2026-10-25T22:16:24Z | review | automatico | persona |
+| 2026-10-26T00:02:21Z | finish | automatico | persona |
