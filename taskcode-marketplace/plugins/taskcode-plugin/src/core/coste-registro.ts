@@ -194,14 +194,33 @@ function conDesglose(f: FilaCoste): boolean {
   return f.entrada !== null && f.cacheEscritura !== null && f.cacheLectura !== null && f.salida !== null;
 }
 
-/** Ids de una fuente `agente:a,b`; cualquier otra fuente cuenta entera. */
-function idsDeFuente(fuente: string): string[] {
-  if (!fuente.startsWith('agente:')) return [fuente];
+/**
+ * Prefijo de un id en `fuente` cuya fila es la DIFERENCIA de un agente
+ * reanudado (TASK-065): `agente:dif:<id>`. Su transcripcion acumula los dos
+ * trabajos, asi que `registrar-coste` solo suma lo que crecio desde lo ya
+ * anotado para ese id, y esa fila no es una repeticion.
+ */
+export const PREFIJO_DIFERENCIA = 'dif:';
+
+/** Un id de agente de una fuente, y si su fila es la diferencia de un reanudado. */
+export interface IdDeFuente {
+  id: string;
+  diferencia: boolean;
+}
+
+/** Ids de una fuente `agente:a,dif:b`; cualquier otra fuente cuenta entera. */
+export function idsDeFuente(fuente: string): IdDeFuente[] {
+  if (!fuente.startsWith('agente:')) return [{ id: fuente, diferencia: false }];
   return fuente
     .slice('agente:'.length)
     .split(',')
     .map((s) => s.trim())
-    .filter((s) => s !== '');
+    .filter((s) => s !== '')
+    .map((s) =>
+      s.startsWith(PREFIJO_DIFERENCIA)
+        ? { id: s.slice(PREFIJO_DIFERENCIA.length), diferencia: true }
+        : { id: s, diferencia: false }
+    );
 }
 
 /**
@@ -210,7 +229,9 @@ function idsDeFuente(fuente: string): string[] {
  * misma fase ya sumo dos veces a `tokens_<fase>`, asi que quitar una fila
  * aqui descuadraria el total; se devuelve en `repetidas` para avisar. Las
  * filas `manual` no cuentan como repetidas: dos cifras a mano son dos
- * aportaciones legitimas y no hay id con el que compararlas.
+ * aportaciones legitimas y no hay id con el que compararlas. Tampoco las
+ * filas de diferencia de un agente reanudado (`agente:dif:<id>`, TASK-065):
+ * suman solo lo que su transcripcion crecio, no lo repiten.
  */
 export function resumirCostes(
   filas: readonly FilaCoste[],
@@ -237,7 +258,8 @@ export function resumirCostes(
     const vistas = new Map<string, number>();
     for (const f of deFase) {
       if (f.fuente === 'manual') continue;
-      for (const id of new Set(idsDeFuente(f.fuente))) vistas.set(id, (vistas.get(id) ?? 0) + 1);
+      const nuevos = idsDeFuente(f.fuente).filter((x) => !x.diferencia).map((x) => x.id);
+      for (const id of new Set(nuevos)) vistas.set(id, (vistas.get(id) ?? 0) + 1);
     }
     for (const [fuente, n] of vistas) if (n > 1) repetidas.push({ fase, fuente, filas: n });
   }

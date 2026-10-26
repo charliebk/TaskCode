@@ -336,12 +336,12 @@ test('notas: informes sin tabla, mediana de lecturas por fase y terminadas sin c
   assert.deepEqual(medianaLecturas(filas).revision, { mediana: null, n: 0 });
 
   // tokens_implementacion a 0 cuenta como falta (registrar-coste no deja registrar 0).
-  assert.deepEqual(tareasSinCoste(filas), [{ id: 'TASK-009', fases: ['implementacion', 'revision'] }]);
+  assert.deepEqual(tareasSinCoste(filas), [{ proyecto: '', id: 'TASK-009', fases: ['implementacion', 'revision'] }]);
 
   const notas = notasFilaEnriquecida(filas).join('\n');
   assert.match(notas, /Informes sin tabla de hallazgos: 1 \(en 1 tareas\)/);
   assert.match(notas, /diseno 5\.5 \(n=4\), implementacion — \(n=0\), revision — \(n=0\)/);
-  assert.match(notas, /Terminadas sin coste en alguna fase: 1 de 5: TASK-009 \(implementacion, revision\)\./);
+  assert.match(notas, /Terminadas sin coste en alguna fase: 1 de 5 \(diseno 0, implementacion 1, revision 1\): TASK-009 \(implementacion, revision\)\./);
   assert.match(avisoInformesSinTabla(filas) ?? '', /^1 informe\(s\) de revision sin tabla .* TASK-009\.$/);
   assert.equal(avisoInformesSinTabla([enCurso]), null);
 });

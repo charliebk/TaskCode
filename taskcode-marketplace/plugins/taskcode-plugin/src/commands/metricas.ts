@@ -26,11 +26,16 @@
  * de vocabulario y los informes sin tabla salen como avisos; ninguno impide
  * `--escribir` (solo lo impide un tarea.md invalido, que dejaria el bloque
  * incompleto).
+ *
+ * TASK-065: `--repo <ruta>` (repetible) junta varios proyectos; cada fila
+ * lleva su proyecto y toda la lectura va con la clave (proyecto, id), asi que
+ * un mismo TASK-NNN en dos repos no mezcla datos. Sin `--repo` se lee el repo
+ * actual y la salida es la de siempre.
  */
 import path from 'node:path';
-import { readdir, readFile, writeFile, mkdir, stat } from 'node:fs/promises';
+import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
 import type { InformeLeido } from '../core/informe-revision.js';
-import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos, extraerRepetible } from '../cli/args.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, TASK_COMPLEXITIES } from '../core/task.js';
 import { cargarHeuristica, nivelHeuristico, puntuarTarea } from '../core/heuristica.js';
@@ -40,10 +45,12 @@ import {
   COLUMNAS_METRICAS,
   COLUMNAS_TOKENS,
   COLUMNAS_DESGLOSE_TOKENS,
+  COLUMNA_PROYECTO,
   NOTA_DESGLOSE_TOKENS,
   avisosDeFila,
   avisoInformesSinTabla,
   claveTarea,
+  etiquetaTarea,
   notasFilaEnriquecida,
   BloqueTokensError,
   NOTA_TOKENS,
@@ -56,6 +63,8 @@ import {
   formatearTabla,
   parsearLogGit,
   resumirPorNivel,
+  resumenSinCoste,
+  type ResumenSinCoste,
   type EventoGit,
   type FilaMetricas,
 } from '../core/metricas.js';
@@ -67,10 +76,29 @@ import {
 } from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
+import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion, type Evolucion } from '../core/evolucion.js';
+import { calcularGrupos, formatearGrupos, type Grupos } from '../core/grupos-metricas.js';
 
 export class MetricasCommandError extends Error {}
 
-export const FLAGS_METRICAS: readonly string[] = ['--heuristica', '--tokens', '--escribir'];
+export const FLAGS_METRICAS: readonly string[] = [
+  '--heuristica',
+  '--tokens',
+  '--escribir',
+  '--repo',
+  '--evolucion',
+  '--tramo',
+  '--grupos',
+  '--json',
+];
+
+/**
+ * TASK-065: los unicos flags que se combinan con `--json`. Con cualquier otro
+ * (`--escribir`, `--tokens`, `--heuristica`) aborta antes de leer ni escribir
+ * nada: su salida es texto o un fichero, y mezclarla con el JSON romperia a
+ * quien lo lea.
+ */
+export const FLAGS_CON_JSON: readonly string[] = ['--repo', '--evolucion', '--tramo', '--grupos'];
 
 /** Ruta de docs/METRICAS.md dentro del repo del usuario. */
 export function metricasFilePath(repoCwd: string): string {
@@ -86,6 +114,33 @@ export interface MetricasCommandResult {
   metricasPath: string | null;
   /** Que paso con el bloque: 'sin-cambios' si regenerarlo no cambio ni un byte. */
   escritura: 'creado' | 'actualizado' | 'sin-cambios' | null;
+  /** TASK-065: true con `--json`: `output` es UN objeto JSON y va entero por stdout. */
+  json: boolean;
+  /**
+   * TASK-065: con `--repo`, una linea para stderr con los repos leidos y las
+   * tareas de cada uno (para ver que no se ha quedado ninguno fuera); null
+   * sin `--repo` (la salida de siempre).
+   */
+  reposLeidos: string | null;
+}
+
+/**
+ * TASK-065: la forma de `--json`. Contrato publico: cambiarla rompe a quien
+ * lo lea. Cada null va junto a un n 0 en el mismo objeto (ver `Cifra` y
+ * `GrupoMetricas`); nunca NaN.
+ */
+export interface SalidaJsonMetricas {
+  proyectos: { proyecto: string; ruta: string; tareas: number }[];
+  sinCoste: ResumenSinCoste;
+  evolucion?: Evolucion;
+  grupos?: Grupos;
+}
+
+/** Un repo que se mide: su nombre de proyecto, su raiz y su carpeta de tareas. */
+export interface RepoMetricas {
+  proyecto: string;
+  ruta: string;
+  tareasRoot: string;
 }
 
 /** MENOR-2 de la revision: hay tareas, pero ninguna entra en la muestra. */
@@ -94,7 +149,7 @@ export const MUESTRA_HEURISTICA_VACIA =
   'comparar la heuristica. Sin --heuristica salen todas las tareas.';
 
 export interface MetricasCommandDeps {
-  /** Raiz del repo donde se consulta git log. */
+  /** Raiz del repo donde se consulta git log (y contra la que se resuelve un --repo relativo). */
   repoCwd: string;
   /** Ruta del YML de la heuristica (tests); por defecto la del plugin. */
   rutaHeuristica?: string;
@@ -109,6 +164,32 @@ interface FlagsMetricas {
   heuristica: boolean;
   tokens: boolean;
   escribir: boolean;
+  /** Valores de `--repo` tal cual (vacio = el repo actual). */
+  repos: string[];
+  /** TASK-065: tamano de tramo de `--evolucion`; null sin `--evolucion`. */
+  evolucion: number | null;
+  /** TASK-065: `--grupos`. */
+  grupos: boolean;
+  /** TASK-065: `--json`. */
+  json: boolean;
+}
+
+/** `--tramo N`: entero >= 1 (por defecto 20); cualquier otra cosa aborta. */
+function leerTramo(raw: string | boolean | undefined, conEvolucion: boolean): number {
+  if (raw === undefined) return TRAMO_POR_DEFECTO;
+  if (!conEvolucion) {
+    throw new MetricasCommandError(
+      '[ERROR] --tramo solo se admite con --evolucion: es el numero de tareas de cada tramo ' +
+        '(taskctl metricas --evolucion --tramo 10).'
+    );
+  }
+  if (typeof raw !== 'string' || !/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) < 1) {
+    throw new MetricasCommandError(
+      `[ERROR] --tramo ${typeof raw === 'string' ? `"${raw}" no es` : 'necesita'} un entero de 1 o mas: ` +
+        `las tareas de cada tramo (por defecto ${String(TRAMO_POR_DEFECTO)}). No se ha leido nada.`
+    );
+  }
+  return Number(raw);
 }
 
 function flagSuelto(flags: Record<string, string | boolean>, nombre: string): boolean {
@@ -123,18 +204,58 @@ function flagSuelto(flags: Record<string, string | boolean>, nombre: string): bo
 }
 
 function parseFlagsMetricas(argv: readonly string[]): FlagsMetricas {
-  const { flags, positional } = parseArgs(argv);
+  const { valores: repos, resto } = extraerRepetible(
+    argv,
+    '--repo',
+    () =>
+      new MetricasCommandError(
+        '[ERROR] --repo necesita la ruta de un repo con carpeta "tareas" (taskctl metricas --repo <ruta>); ' +
+          'repitelo para juntar varios proyectos.'
+      )
+  );
+  const { flags, positional } = parseArgs(resto);
   if (positional.length > 0) {
     throw new MetricasCommandError(
       `[ERROR] taskctl metricas no admite argumentos sueltos ("${positional.join(' ')}"). ` +
         'Saca la tabla de todas las tareas; para una sola, filtra la salida.'
     );
   }
+  const json = flagSuelto(flags, 'json');
+  if (json) {
+    const otros = Object.keys(flags)
+      .map((k) => `--${k}`)
+      .filter((k) => k !== '--json' && !FLAGS_CON_JSON.includes(k));
+    if (otros.length > 0) {
+      throw new MetricasCommandError(
+        `[ERROR] --json no se combina con ${otros.join(', ')}: solo con ${FLAGS_CON_JSON.join(', ')}. ` +
+          'Quita uno de los dos; no se ha leido ni escrito nada.'
+      );
+    }
+  }
   const f = {
     heuristica: flagSuelto(flags, 'heuristica'),
     tokens: flagSuelto(flags, 'tokens'),
     escribir: flagSuelto(flags, 'escribir'),
+    repos,
+    evolucion: null as number | null,
+    grupos: flagSuelto(flags, 'grupos'),
+    json,
   };
+  const conEvolucion = flagSuelto(flags, 'evolucion');
+  const tramo = leerTramo(flags['tramo'], conEvolucion);
+  if (conEvolucion) f.evolucion = tramo;
+  if (conEvolucion || f.grupos) {
+    // Los agregados sustituyen a la tabla por tarea: lo que anaden --heuristica
+    // y --tokens (columnas y resumenes de esa tabla) no saldria en ningun sitio.
+    const choca = (['heuristica', 'tokens', 'escribir'] as const).filter((k) => f[k]);
+    if (choca.length > 0) {
+      const agregado = conEvolucion ? '--evolucion' : '--grupos';
+      throw new MetricasCommandError(
+        `[ERROR] ${agregado} no se combina con ${choca.map((k) => `--${k}`).join(' ni ')}: saca agregados ` +
+          'en lugar de la tabla por tarea. Lanzalos por separado.'
+      );
+    }
+  }
   if (f.escribir && !f.tokens) {
     throw new MetricasCommandError(
       '[ERROR] --escribir solo se admite con --tokens: lo que regenera es el bloque de coste en ' +
@@ -149,6 +270,15 @@ function parseFlagsMetricas(argv: readonly string[]): FlagsMetricas {
       '[ERROR] --escribir no se puede combinar con --heuristica: el bloque de docs/METRICAS.md ' +
         'lleva todas las tareas, y --heuristica las reduce a las terminadas con informes. ' +
         'Quita --heuristica, o quita --escribir para verlo por pantalla.'
+    );
+  }
+  // TASK-065: --escribir regenera docs/METRICAS.md del repo actual; con --repo
+  // no esta claro de cual, asi que no se escribe nada.
+  if (f.escribir && repos.length > 0) {
+    throw new MetricasCommandError(
+      '[ERROR] --repo no se combina con --escribir: el bloque de docs/METRICAS.md es del repo donde ' +
+        'ejecutas el comando. Quita --repo y ejecutalo desde ese repo, o quita --escribir para ' +
+        'verlo por pantalla. No se ha tocado nada.'
     );
   }
   return f;
@@ -193,41 +323,100 @@ function eventosGit(repoCwd: string): EventoGit[] | null {
   }
 }
 
-export async function runMetricasCommand(
-  tareasRoot: string,
-  argv: readonly string[],
-  deps: MetricasCommandDeps
-): Promise<MetricasCommandResult> {
-  rechazarFlagsDesconocidos(argv, FLAGS_METRICAS, 'metricas', (m) => new MetricasCommandError(m));
-  const { heuristica: conHeuristica, tokens: conTokens, escribir } = parseFlagsMetricas(argv);
-  // Como board --escribir: sin tareas/ en este directorio no se crea un
-  // docs/METRICAS.md fantasma.
-  if (escribir) {
+/** Clave con la que se comparan dos rutas reales: en Windows, sin distinguir mayusculas. */
+function claveRuta(ruta: string): string {
+  return process.platform === 'win32' ? ruta.toLowerCase() : ruta;
+}
+
+/**
+ * Los repos de `--repo` (TASK-065), validados ANTES de leer nada: cada ruta
+ * (relativa a `base`) debe existir y tener carpeta `tareas`. Se normalizan con
+ * la ruta real, asi que la misma carpeta escrita dos veces (otra grafia, otras
+ * mayusculas en Windows, un enlace) se lee una vez y lo dice un aviso; dos
+ * carpetas distintas con el mismo nombre abortan, porque el proyecto se llama
+ * como su carpeta y sus tareas se confundirian.
+ */
+export async function resolverRepos(
+  valores: readonly string[],
+  base: string
+): Promise<{ repos: RepoMetricas[]; avisos: string[] }> {
+  const repos: RepoMetricas[] = [];
+  const avisos: string[] = [];
+  const porRuta = new Map<string, string>();
+  const porNombre = new Map<string, string>();
+  for (const valor of valores) {
+    const ruta = path.resolve(base, valor);
+    let real: string;
     try {
-      await stat(tareasRoot);
+      real = await realpath(ruta);
     } catch (e: unknown) {
-      if (!isEnoent(e)) throw e;
+      if (!isEnoent(e) && !isEnotdir(e)) throw e;
       throw new MetricasCommandError(
-        `[ERROR] No existe "${tareasRoot}", asi que esto no parece la raiz de un repo con tareas. ` +
-          'Ejecuta "taskctl metricas --tokens --escribir" desde la raiz del repo (donde esta la ' +
-          'carpeta "tareas"), no desde una subcarpeta.'
+        `[ERROR] --repo "${valor}": no existe ${ruta}. Revisa la ruta; no se ha leido nada.`
       );
     }
+    const tareasRoot = path.join(real, 'tareas');
+    let esCarpeta = false;
+    try {
+      esCarpeta = (await stat(tareasRoot)).isDirectory();
+    } catch (e: unknown) {
+      if (!isEnoent(e) && !isEnotdir(e)) throw e;
+    }
+    if (!esCarpeta) {
+      throw new MetricasCommandError(
+        `[ERROR] --repo "${valor}": ${real} no tiene carpeta "tareas", asi que no es la raiz de un repo ` +
+          'con tareas. Pasa la raiz del repo; no se ha leido nada.'
+      );
+    }
+    const previo = porRuta.get(claveRuta(real));
+    if (previo !== undefined) {
+      avisos.push(`--repo "${valor}" es la misma carpeta que --repo "${previo}" (${real}): se lee una sola vez.`);
+      continue;
+    }
+    const proyecto = path.basename(real);
+    const otro = porNombre.get(claveRuta(proyecto));
+    if (otro !== undefined) {
+      throw new MetricasCommandError(
+        `[ERROR] --repo: ${otro} y ${real} se llaman igual ("${proyecto}"), y el proyecto de cada tarea ` +
+          'es el nombre de su carpeta: sus tareas se confundirian. Mide uno de los dos, o renombra ' +
+          'o clona uno con otro nombre. No se ha leido nada.'
+      );
+    }
+    porRuta.set(claveRuta(real), valor);
+    porNombre.set(claveRuta(proyecto), real);
+    repos.push({ proyecto, ruta: real, tareasRoot });
   }
-  // La heuristica se carga ANTES de leer nada: un YML roto aborta sin
-  // haber sacado media tabla.
-  const h = conHeuristica ? cargarHeuristica(deps.rutaHeuristica) : null;
+  return { repos, avisos };
+}
 
-  const advertencias: string[] = [];
+type TareaLeida = NonNullable<Awaited<ReturnType<typeof readTareaFile>>>;
+
+export interface LecturaRepo {
+  /** Las tareas leidas, en el mismo orden que `filas` (--heuristica las puntua con su cuerpo). */
+  leidas: TareaLeida[];
+  filas: FilaMetricas[];
+  advertencias: string[];
   /** Solo los tarea.md invalidos: son lo unico que impide --escribir. */
+  invalidas: string[];
+}
+
+/**
+ * Lee UN repo (TASK-065): sus tareas, sus informes y peticiones de revision
+ * y, solo si alguna tarea no tiene registro de Transiciones, un `git log`.
+ * Cada fila lleva su proyecto, asi que juntar varios repos no cruza tareas
+ * con el mismo ID. `varios` solo cambia como se nombran las tareas en los
+ * avisos (`proyecto/ID`).
+ */
+export async function leerRepoMetricas(repo: RepoMetricas, varios: boolean): Promise<LecturaRepo> {
+  const advertencias: string[] = [];
   const invalidas: string[] = [];
-  const proyecto = path.basename(path.resolve(deps.repoCwd));
+  const { proyecto, tareasRoot } = repo;
   const ids = [...new Set(await listExistingTaskIds(tareasRoot))].sort(
     (a, b) => Number(a.slice(5)) - Number(b.slice(5))
   );
 
   const leidas: {
-    task: NonNullable<Awaited<ReturnType<typeof readTareaFile>>>;
+    task: TareaLeida;
     ronda: number;
     informes: InformeLeido[];
     peticiones: { ronda: number; bytes: number }[];
@@ -245,7 +434,9 @@ export async function runMetricasCommand(
       });
     } catch (e: unknown) {
       if (e instanceof FrontmatterParseError || e instanceof TaskValidationError) {
-        const aviso = `${id} tiene un tarea.md invalido y no aparece en las metricas: ${e.message}`;
+        const aviso =
+          `${etiquetaTarea({ proyecto, id }, varios)} tiene un tarea.md invalido y no aparece en las ` +
+          `metricas: ${e.message}`;
         advertencias.push(aviso);
         invalidas.push(aviso);
         continue;
@@ -254,15 +445,18 @@ export async function runMetricasCommand(
     }
   }
 
-  // git solo si hace falta, y una sola vez.
+  // git solo si hace falta, y una sola vez por repo.
   const sinRegistro = leidas.some((l) => leerTransiciones(l.task.body).length === 0);
   let porId = new Map<string, EventoGit[]>();
   if (sinRegistro) {
-    const eventos = eventosGit(deps.repoCwd);
+    const eventos = eventosGit(repo.ruta);
     if (eventos === null) {
       advertencias.push(
-        'No se pudo consultar git log: las tareas sin registro de Transiciones salen con "—". ' +
-          'Ejecuta taskctl metricas desde la raiz del repo.'
+        varios
+          ? `${proyecto}: no se pudo consultar git log en ${repo.ruta}: sus tareas sin registro de ` +
+              'Transiciones salen con "—" (y sin fecha de cierre). Comprueba que es un repo git.'
+          : 'No se pudo consultar git log: las tareas sin registro de Transiciones salen con "—". ' +
+              'Ejecuta taskctl metricas desde la raiz del repo.'
       );
     } else {
       porId = new Map();
@@ -274,7 +468,7 @@ export async function runMetricasCommand(
     }
   }
 
-  let filas: FilaMetricas[] = leidas.map((l) =>
+  const filas: FilaMetricas[] = leidas.map((l) =>
     calcularFila({
       task: l.task.task,
       body: l.task.body,
@@ -286,15 +480,125 @@ export async function runMetricasCommand(
     })
   );
   // Los avisos de las filas, sobre TODAS las tareas (tambien con --heuristica).
-  for (const f of filas) advertencias.push(...avisosDeFila(f));
-  const sinTabla = avisoInformesSinTabla(filas);
+  for (const f of filas) advertencias.push(...avisosDeFila(f, varios));
+  return { leidas: leidas.map((l) => l.task), filas, advertencias, invalidas };
+}
+
+export async function runMetricasCommand(
+  tareasRoot: string,
+  argv: readonly string[],
+  deps: MetricasCommandDeps
+): Promise<MetricasCommandResult> {
+  rechazarFlagsDesconocidos(argv, FLAGS_METRICAS, 'metricas', (m) => new MetricasCommandError(m));
+  const {
+    heuristica: conHeuristica,
+    tokens: conTokens,
+    escribir,
+    repos: valoresRepo,
+    evolucion: tramoEvolucion,
+    grupos: conGrupos,
+    json,
+  } = parseFlagsMetricas(argv);
+  // Como board --escribir: sin tareas/ en este directorio no se crea un
+  // docs/METRICAS.md fantasma.
+  if (escribir) {
+    try {
+      await stat(tareasRoot);
+    } catch (e: unknown) {
+      if (!isEnoent(e)) throw e;
+      throw new MetricasCommandError(
+        `[ERROR] No existe "${tareasRoot}", asi que esto no parece la raiz de un repo con tareas. ` +
+          'Ejecuta "taskctl metricas --tokens --escribir" desde la raiz del repo (donde esta la ' +
+          'carpeta "tareas"), no desde una subcarpeta.'
+      );
+    }
+  }
+  // TASK-065: los --repo se validan antes de leer nada. Sin --repo, el repo
+  // actual tal cual (la salida de siempre).
+  const advertencias: string[] = [];
+  let repos: RepoMetricas[];
+  if (valoresRepo.length === 0) {
+    repos = [{ proyecto: path.basename(path.resolve(deps.repoCwd)), ruta: deps.repoCwd, tareasRoot }];
+  } else {
+    const r = await resolverRepos(valoresRepo, deps.repoCwd);
+    repos = r.repos;
+    advertencias.push(...r.avisos);
+  }
+  const varios = repos.length > 1;
+  // La heuristica se carga ANTES de leer nada: un YML roto aborta sin
+  // haber sacado media tabla.
+  const h = conHeuristica ? cargarHeuristica(deps.rutaHeuristica) : null;
+
+  /** Solo los tarea.md invalidos: son lo unico que impide --escribir. */
+  const invalidas: string[] = [];
+  let filas: FilaMetricas[] = [];
+  /** Tarea leida de cada fila, por clave (proyecto, id). */
+  const leidaPorClave = new Map<string, TareaLeida>();
+  const porRepo: string[] = [];
+  for (const repo of repos) {
+    const r = await leerRepoMetricas(repo, varios);
+    advertencias.push(...r.advertencias);
+    invalidas.push(...r.invalidas);
+    r.filas.forEach((f, i) => leidaPorClave.set(claveTarea(f.proyecto, f.id), r.leidas[i] as TareaLeida));
+    filas.push(...r.filas);
+    porRepo.push(`${repo.proyecto} (${String(r.filas.length)} tareas, ${repo.ruta})`);
+  }
+  const reposLeidos = valoresRepo.length === 0 ? null : `Repos leidos: ${porRepo.join('; ')}.`;
+  const sinTabla = avisoInformesSinTabla(filas, varios);
   if (sinTabla !== null) advertencias.push(sinTabla);
 
-  if (filas.length === 0) return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null };
+  const proyectos = repos.map((r) => r.proyecto);
+  // TASK-065: --json da UN objeto, tambien sin tareas: los repos leidos, las
+  // terminadas sin coste (la lista completa) y, si se piden, la evolucion y
+  // los grupos. Los avisos siguen por stderr.
+  if (json) {
+    const objeto: SalidaJsonMetricas = {
+      proyectos: repos.map((r) => ({
+        proyecto: r.proyecto,
+        ruta: r.ruta,
+        tareas: filas.filter((f) => f.proyecto === r.proyecto).length,
+      })),
+      sinCoste: resumenSinCoste(filas),
+      ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
+      ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
+    };
+    return {
+      output: JSON.stringify(objeto),
+      totalTareas: filas.length,
+      advertencias,
+      metricasPath: null,
+      escritura: null,
+      reposLeidos,
+      json: true,
+    };
+  }
 
-  const columnas = conTokens
-    ? [...COLUMNAS_METRICAS, ...COLUMNAS_TOKENS, ...COLUMNAS_DESGLOSE_TOKENS]
-    : COLUMNAS_METRICAS;
+  // TASK-065: los agregados sustituyen a la tabla por tarea, y salen tambien
+  // sin tareas (con sus ceros y sus n 0 a la vista).
+  if (tramoEvolucion !== null || conGrupos) {
+    const secciones: string[] = [];
+    if (tramoEvolucion !== null) secciones.push(formatearEvolucion(calcularEvolucion(filas, tramoEvolucion), varios));
+    if (conGrupos) secciones.push(formatearGrupos(calcularGrupos(filas, proyectos)));
+    return {
+      output: secciones.join('\n\n'),
+      totalTareas: filas.length,
+      advertencias,
+      metricasPath: null,
+      escritura: null,
+      reposLeidos,
+      json: false,
+    };
+  }
+
+  if (filas.length === 0) {
+    return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos, json: false };
+  }
+
+  const columnas = [
+    ...(varios ? [COLUMNA_PROYECTO] : []),
+    ...COLUMNAS_METRICAS,
+    ...(conTokens ? [...COLUMNAS_TOKENS, ...COLUMNAS_DESGLOSE_TOKENS] : []),
+  ];
   /** Los resumenes de tokens sobre las filas que salgan (con --heuristica, la muestra). */
   const seccionTokens = (f: readonly FilaMetricas[]): string[] => {
     if (!conTokens) return [];
@@ -351,7 +655,7 @@ export async function runMetricasCommand(
       output: [
         formatearTabla(filas, columnas),
         '',
-        ...notasFilaEnriquecida(filas),
+        ...notasFilaEnriquecida(filas, varios),
         '',
         ...seccionTokens(filas),
         NOTA_CALENDARIO,
@@ -360,17 +664,18 @@ export async function runMetricasCommand(
       advertencias,
       metricasPath,
       escritura,
+      reposLeidos,
+      json: false,
     };
   }
 
-  const cuerpoPorId = new Map(leidas.map((l) => [claveTarea(proyecto, l.task.task.id), l.task]));
   filas = filas.filter(enMuestraHeuristica).map((f) => {
-    const leida = cuerpoPorId.get(claveTarea(f.proyecto, f.id)) as NonNullable<Awaited<ReturnType<typeof readTareaFile>>>;
+    const leida = leidaPorClave.get(claveTarea(f.proyecto, f.id)) as TareaLeida;
     const { puntos } = puntuarTarea(leida.task, leida.body, h);
     return { ...f, heuristica: { puntos, nivel: nivelHeuristico(puntos, h) } };
   });
   if (filas.length === 0) {
-    return { output: MUESTRA_HEURISTICA_VACIA, totalTareas: 0, advertencias, metricasPath, escritura };
+    return { output: MUESTRA_HEURISTICA_VACIA, totalTareas: 0, advertencias, metricasPath, escritura, reposLeidos, json: false };
   }
   const coinciden = filas.filter((f) => f.heuristica?.nivel === f.complejidad).length;
   const salida = [
@@ -387,10 +692,10 @@ export async function runMetricasCommand(
       resumirPorNivel(filas, (f) => f.heuristica?.nivel ?? null, TASK_COMPLEXITIES)
     ),
     '',
-    ...notasFilaEnriquecida(filas),
+    ...notasFilaEnriquecida(filas, varios),
     '',
     ...seccionTokens(filas),
     NOTA_CALENDARIO,
   ].join('\n');
-  return { output: salida, totalTareas: filas.length, advertencias, metricasPath, escritura };
+  return { output: salida, totalTareas: filas.length, advertencias, metricasPath, escritura, reposLeidos, json: false };
 }

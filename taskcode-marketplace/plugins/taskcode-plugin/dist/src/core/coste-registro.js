@@ -133,15 +133,25 @@ export function leerCostes(body) {
 function conDesglose(f) {
     return f.entrada !== null && f.cacheEscritura !== null && f.cacheLectura !== null && f.salida !== null;
 }
-/** Ids de una fuente `agente:a,b`; cualquier otra fuente cuenta entera. */
-function idsDeFuente(fuente) {
+/**
+ * Prefijo de un id en `fuente` cuya fila es la DIFERENCIA de un agente
+ * reanudado (TASK-065): `agente:dif:<id>`. Su transcripcion acumula los dos
+ * trabajos, asi que `registrar-coste` solo suma lo que crecio desde lo ya
+ * anotado para ese id, y esa fila no es una repeticion.
+ */
+export const PREFIJO_DIFERENCIA = 'dif:';
+/** Ids de una fuente `agente:a,dif:b`; cualquier otra fuente cuenta entera. */
+export function idsDeFuente(fuente) {
     if (!fuente.startsWith('agente:'))
-        return [fuente];
+        return [{ id: fuente, diferencia: false }];
     return fuente
         .slice('agente:'.length)
         .split(',')
         .map((s) => s.trim())
-        .filter((s) => s !== '');
+        .filter((s) => s !== '')
+        .map((s) => s.startsWith(PREFIJO_DIFERENCIA)
+        ? { id: s.slice(PREFIJO_DIFERENCIA.length), diferencia: true }
+        : { id: s, diferencia: false });
 }
 /**
  * Cruza las filas de `## Coste` con los `tokens_<fase>` de la tarea. No
@@ -149,7 +159,9 @@ function idsDeFuente(fuente) {
  * misma fase ya sumo dos veces a `tokens_<fase>`, asi que quitar una fila
  * aqui descuadraria el total; se devuelve en `repetidas` para avisar. Las
  * filas `manual` no cuentan como repetidas: dos cifras a mano son dos
- * aportaciones legitimas y no hay id con el que compararlas.
+ * aportaciones legitimas y no hay id con el que compararlas. Tampoco las
+ * filas de diferencia de un agente reanudado (`agente:dif:<id>`, TASK-065):
+ * suman solo lo que su transcripcion crecio, no lo repiten.
  */
 export function resumirCostes(filas, registrado) {
     const fases = {};
@@ -174,7 +186,8 @@ export function resumirCostes(filas, registrado) {
         for (const f of deFase) {
             if (f.fuente === 'manual')
                 continue;
-            for (const id of new Set(idsDeFuente(f.fuente)))
+            const nuevos = idsDeFuente(f.fuente).filter((x) => !x.diferencia).map((x) => x.id);
+            for (const id of new Set(nuevos))
                 vistas.set(id, (vistas.get(id) ?? 0) + 1);
         }
         for (const [fuente, n] of vistas)

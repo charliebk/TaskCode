@@ -79,7 +79,7 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     // El informe de prueba trae un MEN-1 sin celda de Origen.
     assert.deepEqual([crit, imp, men, hallOrigen], ['0', '0', '1', '0/0/0/1']);
     assert.match(r.stdout, /Informes sin tabla de hallazgos: 0 \(en 0 tareas\)/);
-    assert.match(r.stdout, /Terminadas sin coste en alguna fase: 1 de 1: TASK-001 \(diseno, implementacion, revision\)/);
+    assert.match(r.stdout, /Terminadas sin coste en alguna fase: 1 de 1 \(diseno 1, implementacion 1, revision 1\): TASK-001 \(diseno, implementacion, revision\)/);
     assert.equal(cierre, (filas[4] as { fecha: string }).fecha.slice(0, 10));
     assert.equal(origen, 'registro');
     assert.match(r.stdout, /Las pausas no se descuentan/);

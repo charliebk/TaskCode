@@ -1,6 +1,43 @@
 # Changelog
 
 ## Sin publicar
+
+Metricas v2, parte C (TASK-065): agregados de la fila de metricas para elegir
+mejoras por cifras, sobre uno o varios proyectos.
+
+- `taskctl metricas --repo <ruta>` (repetible; por defecto el repo actual)
+  junta varios repos con la clave (proyecto, id): un mismo TASK-NNN en dos
+  repos no mezcla datos, y avisos y listas los nombran `proyecto/TASK-NNN`. Las
+  rutas se validan antes de leer (inexistente, sin `tareas/`, sin valor, dos
+  carpetas con el mismo nombre abortan; la misma carpeta repetida se lee una
+  vez). Con un solo repo stdout no cambia. `--repo` con `--escribir` aborta.
+- `--evolucion [--tramo N]`: las terminadas por dia de cierre (desempate por
+  proyecto y numero de ID) en tramos de N (20 por defecto), con la mediana de
+  minutos de plan a finish, rondas medias, IMPORTANTE por tarea, tokens de
+  revision y KB de peticion de revision por ronda, cada cifra con su n. Dice
+  cuantas quedan fuera sin fecha de cierre.
+- `--grupos`: por tipo, complejidad, criterios (0-4, 5-6, 7+), terciles de KB
+  de peticion por ronda (con todos los proyectos juntos) y proyecto, con %
+  aprobado a la primera (una ronda, `aprobada` o `aprobada-con-correcciones`),
+  rondas medias y CRITICO+IMPORTANTE por tarea; las tareas sin revision o sin
+  tabla de hallazgos se cuentan aparte. Un grupo vacio sale con 0.
+- `--json`: un unico objeto `{proyectos, sinCoste, evolucion?, grupos?}`, tambien
+  sin tareas, sin NaN y con cada null junto a un n 0; solo se combina con
+  `--repo`, `--evolucion`, `--tramo` y `--grupos` (con otro flag aborta sin
+  leer ni escribir nada).
+- La lista de terminadas sin coste da el recuento por fase y las 10 primeras
+  («y N mas»; completa en `--json`) (MEN-4 de TASK-064). El README del plugin
+  documenta columnas, avisos y flags de `metricas`.
+- Un flag repetido que no admite repeticion aborta con error en cualquier
+  comando (antes se quedaba el ultimo valor); `--repo` y `--agente` usan el
+  mismo lector de flags repetibles.
+- `registrar-coste --agente <id>` con un id ya anotado en `## Coste` de esa
+  fase (un agente reanudado, cuya transcripcion acumula los dos trabajos)
+  registra solo la diferencia entre la transcripcion y lo ya anotado para ese
+  id, campo a campo, en una fila con fuente `agente:dif:<id>`; `metricas` no
+  la avisa como repetida. Sin crecimiento, o con el id anotado junto a otros en
+  una misma fila, aborta sin tocar nada. Ajusta la regla de MEN-2 de TASK-063.
+
 - TASK-064 (feature) — Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y lecturas (2026-10-25)
 
 Metricas v2, parte B (TASK-064): `taskctl metricas` lee lo que capturo

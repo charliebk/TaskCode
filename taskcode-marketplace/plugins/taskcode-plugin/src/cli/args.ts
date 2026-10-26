@@ -49,6 +49,41 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
 }
 
 /**
+ * Lector comun de flags repetibles (TASK-065): saca de argv todos los
+ * `--flag valor` / `--flag=valor` de `flag` (con su prefijo, p. ej.
+ * `--repo`) y devuelve sus valores en orden y el resto de argv intacto. Va
+ * ANTES de `parseArgs`, que se quedaria solo con el ultimo valor. Un `--flag`
+ * sin valor (al final, seguido de otro flag o con `--flag=` vacio) lanza el
+ * error que da `sinValor`.
+ */
+export function extraerRepetible(
+  argv: readonly string[],
+  flag: string,
+  sinValor: () => Error
+): { valores: string[]; resto: string[] } {
+  const valores: string[] = [];
+  const resto: string[] = [];
+  const conIgual = `${flag}=`;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] as string;
+    let valor: string | undefined;
+    if (arg === flag) {
+      valor = argv[i + 1];
+      if (valor === undefined || valor.startsWith('--')) throw sinValor();
+      i++;
+    } else if (arg.startsWith(conIgual)) {
+      valor = arg.slice(conIgual.length);
+    } else {
+      resto.push(arg);
+      continue;
+    }
+    if (valor.trim() === '') throw sinValor();
+    valores.push(valor);
+  }
+  return { valores, resto };
+}
+
+/**
  * Aborta si argv trae un flag que el comando no conoce (TASK-047, auditoria
  * D4). Antes `--complejida trivial` se ignoraba en silencio y la tarea salia
  * con otra complejidad. Mira argv en bruto y no la salida de `parseArgs`,
@@ -59,9 +94,29 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
  * `--x` justo despues de un flag con valor tambien se comprueba — es lo que
  * `parseArgs` haria con el; para pasar un valor que empieza por `--` esta
  * `--flag=valor`. `validos` va con su prefijo (`--titulo`, `-p`).
+ *
+ * TASK-065: tambien aborta si un flag valido aparece dos veces y no esta en
+ * `FLAGS_REPETIBLES`.
  */
+/**
+ * Flags que SI admiten repeticion (TASK-065): se leen con `extraerRepetible`
+ * (o con su propio lector, `--criterio` de `new`) y cada aparicion suma. Los
+ * demas, repetidos, abortan en `rechazarFlagsDesconocidos`: `parseArgs` se
+ * queda con el ultimo y pisaria el anterior sin decir nada.
+ */
+export const FLAGS_REPETIBLES: readonly string[] = ['--agente', '--repo', '--criterio'];
+
 /** Flags booleanos del CLI: los comandos solo reconocen el token suelto. */
-const FLAGS_SIN_VALOR: readonly string[] = ['--push', '--json', '--forzar', '--escribir', '--heuristica', '--merge-request'];
+const FLAGS_SIN_VALOR: readonly string[] = [
+  '--push',
+  '--json',
+  '--forzar',
+  '--escribir',
+  '--heuristica',
+  '--merge-request',
+  '--evolucion',
+  '--grupos',
+];
 
 export function rechazarFlagsDesconocidos(
   argv: readonly string[],
@@ -69,6 +124,7 @@ export function rechazarFlagsDesconocidos(
   comando: string,
   fail: (mensaje: string) => Error
 ): void {
+  const vistos = new Set<string>();
   for (const arg of argv) {
     let flag: string;
     if (arg.startsWith('--')) {
@@ -80,6 +136,15 @@ export function rechazarFlagsDesconocidos(
       continue;
     }
     if (validos.includes(flag)) {
+      // TASK-065: un flag repetido que no admite repeticion aborta, en vez de
+      // quedarse con el ultimo valor sin avisar.
+      if (vistos.has(flag) && !FLAGS_REPETIBLES.includes(flag)) {
+        throw fail(
+          `[ERROR] taskctl ${comando}: "${flag}" esta repetido y no admite repeticion ` +
+            '(el ultimo valor pisaria al anterior). Pasalo una sola vez.'
+        );
+      }
+      vistos.add(flag);
       // MENOR-1 de la revision de TASK-047: `--push=1` o `--json=1` pasaban
       // la guarda y el comando, que mira el token suelto, los ignoraba.
       if (flag !== arg && FLAGS_SIN_VALOR.includes(flag)) {

@@ -173,9 +173,10 @@ test('pause solo admite --push y -p, y se los pasa al script', async () => {
     assert.ok(error instanceof WrapperCommandError);
     assert.match((error as Error).message, /solo admite --push y -p/);
 
-    // Las dos grafias validas llegan al script, tal cual y sin
-    // duplicar: se comprueba con un doble del script que escribe sus
-    // argumentos, no con el pause-work.sh real (que haria un push).
+    // Las dos grafias validas llegan al script, tal cual: se comprueba con
+    // un doble del script que escribe sus argumentos, no con el
+    // pause-work.sh real (que haria un push). TASK-065: repetida, como en
+    // el resto de comandos, aborta antes de llamar al script.
     const scriptsDir = await mkdtemp(path.join(tmpdir(), 'taskctl-scripts-'));
     try {
       await writeFile(
@@ -184,7 +185,10 @@ test('pause solo admite --push y -p, y se los pasa al script', async () => {
         'utf8'
       );
       for (const opcion of ['--push', '-p']) {
-        assert.equal(run('pause', [opcion, opcion], repoRoot, { scriptsDir }).code, 0);
+        const repetida = capturaError(() => run('pause', [opcion, opcion], repoRoot, { scriptsDir }));
+        assert.ok(repetida instanceof WrapperCommandError);
+        assert.match((repetida as Error).message, /esta repetido y no admite repeticion/);
+        assert.equal(run('pause', [opcion], repoRoot, { scriptsDir }).code, 0);
         const argsPath = path.join(repoRoot, 'args.txt');
         assert.equal(
           await readFile(argsPath, 'utf8'),

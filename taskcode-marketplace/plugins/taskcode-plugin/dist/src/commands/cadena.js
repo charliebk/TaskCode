@@ -205,6 +205,10 @@ export function extraerCadena(argv) {
     let testigo;
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
+        // TASK-065: un --cadena repetido no se pisa en silencio.
+        if (testigo !== undefined && (a === '--cadena' || a.startsWith('--cadena='))) {
+            throw new CadenaCommandError('[ERROR] --cadena esta repetido y no admite repeticion: pasa el testigo una sola vez.');
+        }
         if (a === '--cadena') {
             testigo = argv[i + 1] ?? '';
             i++;

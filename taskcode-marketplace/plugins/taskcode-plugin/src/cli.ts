@@ -70,7 +70,8 @@ Uso:
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
-  taskctl metricas [--heuristica] [--tokens [--escribir]]
+  taskctl metricas [--heuristica] [--tokens [--escribir]] [--repo <ruta>]...
+  taskctl metricas [--evolucion [--tramo N]] [--grupos] [--json] [--repo <ruta>]...
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
@@ -102,12 +103,17 @@ en las tareas terminadas. --tokens anade el coste en tokens por fase, el desglos
 de "## Coste" (tokens nuevos, lectura de cache y lo que queda sin desglose) y un
 resumen por sprint y por complejidad; con --escribir lo
 regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
---escribir solo lee.
+--escribir solo lee. --repo <ruta> (repetible) junta varios proyectos; --evolucion
+[--tramo N] da las terminadas por tramos de cierre y --grupos las agrupa por tipo,
+complejidad, criterios, KB de peticion de revision y proyecto; --json da un unico
+objeto JSON (solo con --repo, --evolucion, --tramo y --grupos).
+Un flag repetido que no admite repeticion aborta en cualquier comando.
 registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
 --agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la
 herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza. Cada
 llamada deja ademas una fila en la tabla "## Coste" de tarea.md: con --agente, el desglose
 (entrada, cache_escritura, cache_lectura, salida, lecturas); con --tokens, solo el total.
+Un --agente ya anotado en esa fase (agente reanudado) suma solo lo que crecio su transcripcion.
 finish cierra con merge normal (lo de siempre). --tag <nombre> pone un tag anotado (titulo de
 la tarea) sobre el commit de merge; solo se sube con --push. --merge-request sube la rama
 y abre un PR (github.com, gh) o un MR (host con "gitlab", glab) contra la rama base en lugar
@@ -366,9 +372,11 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
   }
 
   if (GUARDADOS_POR_CADENA.has(cmd)) {
-    const { testigo, resto } = extraerCadena(argv.slice(1));
+    let resto: string[];
     try {
-      await verificarCadena(process.cwd(), testigo);
+      const extraida = extraerCadena(argv.slice(1));
+      resto = extraida.resto;
+      await verificarCadena(process.cwd(), extraida.testigo);
     } catch (e) {
       if (e instanceof CadenaCommandError || e instanceof GitLaunchError || e instanceof GitCommandError) {
         printCliError(e);
@@ -492,10 +500,14 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
     const tareasRoot = path.join(repoCwd, 'tareas');
     try {
       const result = await runMetricasCommand(tareasRoot, argv.slice(1), { repoCwd });
+      if (result.reposLeidos !== null) process.stderr.write(`${result.reposLeidos}
+`);
       for (const aviso of result.advertencias) {
         process.stderr.write(`[AVISO] ${aviso}\n`);
       }
-      if (result.output === '') {
+      if (result.json) {
+        process.stdout.write(`${result.output}\n`);
+      } else if (result.output === '') {
         process.stdout.write('No hay tareas que medir (o no hay ninguna tarea todavia).\n');
       } else {
         process.stdout.write(`${result.output}\n`);
@@ -781,6 +793,12 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         `Tarea ${r.id}: +${String(r.sumado)} tokens de ${r.fase}${r.agentes > 0 ? ` (${String(r.agentes)} subagente(s))` : ''}; total de la fase: ${String(r.total)} ` +
           `(${r.filePath}).\n`
       );
+      if (r.reanudados.length > 0) {
+        process.stdout.write(
+          `Ya anotado en ${r.fase}: ${r.reanudados.join(', ')}. Es un agente reanudado: se ha sumado solo lo ` +
+            'que crecio su transcripcion desde lo anotado (fila "agente:dif:<id>").\n'
+        );
+      }
       printAutoCommit(r.autoCommit);
       return 0;
     } catch (e) {

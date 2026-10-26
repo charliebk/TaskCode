@@ -49,7 +49,7 @@
 import { leerTransiciones, instanteDe, precisionDeFecha } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, resumirCostes } from './coste-registro.js';
-import { resumirHallazgos } from './informe-revision.js';
+import { resumirHallazgos, veredictoDeRonda, } from './informe-revision.js';
 import { extraerSecciones } from './tarea-body.js';
 /**
  * Clave de una tarea en cualquier Map de metricas: (proyecto, id). Hoy hay
@@ -58,6 +58,14 @@ import { extraerSecciones } from './tarea-body.js';
  */
 export function claveTarea(proyecto, id) {
     return `${proyecto}\u0000${id}`;
+}
+/**
+ * Como se nombra una tarea en avisos y listas (TASK-065): con un solo
+ * proyecto, su ID a secas (la salida de siempre); con varios, `proyecto/ID`,
+ * porque TASK-NNN se repite entre repos.
+ */
+export function etiquetaTarea(f, varios) {
+    return varios ? `${f.proyecto}/${f.id}` : f.id;
 }
 function kbPorRonda(peticiones) {
     const bytes = new Map();
@@ -179,7 +187,13 @@ export function calcularFila(e) {
         }),
         hallazgos: resumirHallazgos(e.informes ?? []),
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
+        total: duracionEntre(marcas.plan, marcas.finish),
+        veredictoRonda1: veredictoRonda1(e.informes ?? []),
     };
+}
+function veredictoRonda1(informes) {
+    const primera = informes.filter((i) => i.ronda === 1);
+    return primera.length === 0 ? null : veredictoDeRonda(primera.map((i) => i.texto));
 }
 /** `—` para lo que no hay; dias como `N d`; segundos como `1d 03h`, `2h 05m`, `7m`, `40s`. */
 export function formatearDuracion(d) {
@@ -225,6 +239,8 @@ export const COLUMNAS_METRICAS = [
     { cabecera: 'cierre', valor: (f) => f.cierre ?? '—' },
     { cabecera: 'origen', valor: (f) => f.origen },
 ];
+/** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
+export const COLUMNA_PROYECTO = { cabecera: 'proyecto', valor: (f) => f.proyecto };
 /** Las que anade `--heuristica`. */
 export const COLUMNAS_HEURISTICA = [
     { cabecera: 'puntos', valor: (f) => (f.heuristica === undefined ? '—' : String(f.heuristica.puntos)) },
@@ -472,27 +488,29 @@ export const NOTA_DESGLOSE_TOKENS = 'Desglose de "## Coste" (solo tareas con esa
     'tokens_<fase> menos lo desglosado (filas "manual" o coste anterior a la tabla), sumado por ' +
     'fases. Un negativo en una fase es una incoherencia (el desglose supera al total): no se ' +
     'recorta a 0, sale con aviso y la celda lleva "*" aunque la suma sea positiva. Un agente ' +
-    'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica.';
+    'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica (salvo ' +
+    'las filas "agente:dif:<id>" de un agente reanudado, que solo suman lo que crecio).';
 export const NOTA_HALLAZGOS = 'Hallazgos: cada uno cuenta una vez por tarea (revisor + ID) sumando todas las rondas, con la ' +
     'severidad y el origen de la ultima ronda que los reconoce. hall_origen = implementacion/plan/' +
     'especificacion/sin clasificar. «—» = sin dato: sin informes de revision, o algun informe sin ' +
     'tabla de hallazgos (no cuenta como cero).';
 /** Avisos de una fila: incoherencias del desglose y severidades fuera de vocabulario. */
-export function avisosDeFila(f) {
+export function avisosDeFila(f, varios = false) {
     const avisos = [];
+    const et = etiquetaTarea(f, varios);
     for (const fase of FASES_COSTE) {
         const r = f.coste.fases[fase];
         if (r.registrado === null && r.filas > 0) {
-            avisos.push(`${f.id}: tokens_${fase} esta vacio pero "## Coste" tiene ${String(r.filas)} fila(s) de ${fase}; ` +
+            avisos.push(`${et}: tokens_${fase} esta vacio pero "## Coste" tiene ${String(r.filas)} fila(s) de ${fase}; ` +
                 'el total de la fase deberia ser la suma de su desglose. Revisa el frontmatter.');
         }
         else if (r.sinDesglose !== null && r.sinDesglose < 0) {
-            avisos.push(`${f.id}: lo desglosado en "## Coste" para ${fase} (${String(r.desglosado)}) supera tokens_${fase} ` +
+            avisos.push(`${et}: lo desglosado en "## Coste" para ${fase} (${String(r.desglosado)}) supera tokens_${fase} ` +
                 `(${String(r.registrado)}): diferencia ${String(r.sinDesglose)}. Revisa el frontmatter o las filas.`);
         }
     }
     for (const rep of f.coste.repetidas) {
-        avisos.push(`${f.id}: en "## Coste", ${rep.fuente} aparece en ${String(rep.filas)} filas de ${rep.fase}: ` +
+        avisos.push(`${et}: en "## Coste", ${rep.fuente} aparece en ${String(rep.filas)} filas de ${rep.fase}: ` +
             'su coste se suma otras tantas veces (no se deduplica). Si se registro dos veces por error, ' +
             `corrige tokens_${rep.fase} y quita la fila sobrante.`);
     }
@@ -503,25 +521,25 @@ export function avisosDeFila(f) {
         porFichero.set(d.fichero, lista);
     }
     for (const [fichero, lista] of porFichero) {
-        avisos.push(`${f.id} revision/${fichero}: severidad fuera de vocabulario (CRITICO, IMPORTANTE o MENOR) en ` +
+        avisos.push(`${et} revision/${fichero}: severidad fuera de vocabulario (CRITICO, IMPORTANTE o MENOR) en ` +
             `${lista.join(', ')}; no cuenta en crit/imp/men.`);
     }
     return avisos;
 }
 /** Un solo aviso con las tareas que tienen informes sin tabla de hallazgos; null si no hay. */
-export function avisoInformesSinTabla(filas) {
+export function avisoInformesSinTabla(filas, varios = false) {
     const con = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
     if (con.length === 0)
         return null;
     const n = con.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
     return (`${String(n)} informe(s) de revision sin tabla de hallazgos en ${String(con.length)} tarea(s); sus ` +
-        `hallazgos salen como sin dato («—»), no como cero: ${con.map((f) => f.id).join(', ')}.`);
+        `hallazgos salen como sin dato («—»), no como cero: ${con.map((f) => etiquetaTarea(f, varios)).join(', ')}.`);
 }
 /** Tareas terminadas sin coste (null o 0) en alguna fase, con esas fases. */
 export function tareasSinCoste(filas) {
     return filas
         .filter((f) => f.estado === 'terminada')
-        .map((f) => ({ id: f.id, fases: FASES_COSTE.filter((k) => !f.coste.fases[k].registrado) }))
+        .map((f) => ({ proyecto: f.proyecto, id: f.id, fases: FASES_COSTE.filter((k) => !f.coste.fases[k].registrado) }))
         .filter((t) => t.fases.length > 0);
 }
 /** Mediana de una lista (media de los dos centrales si es par); null si esta vacia. */
@@ -531,6 +549,13 @@ export function mediana(valores) {
     const v = [...valores].sort((a, b) => a - b);
     const m = Math.floor(v.length / 2);
     return v.length % 2 === 1 ? v[m] : (v[m - 1] + v[m]) / 2;
+}
+/** Media redondeada a `decimales`; null si la lista esta vacia (nunca NaN). */
+export function media(valores, decimales = 2) {
+    if (valores.length === 0)
+        return null;
+    const f = 10 ** decimales;
+    return Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * f) / f;
 }
 /** Por fase, la mediana de lecturas de las tareas cuya tabla `## Coste` las mide, y cuantas son. */
 export function medianaLecturas(filas) {
@@ -542,22 +567,48 @@ export function medianaLecturas(filas) {
     return r;
 }
 /** Lineas de texto bajo la tabla: hallazgos sin dato, lecturas y terminadas sin coste. */
-export function notasFilaEnriquecida(filas) {
+export function notasFilaEnriquecida(filas, varios = false) {
     const sinTabla = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
     const nInformes = sinTabla.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
     const lect = medianaLecturas(filas);
-    const sinCoste = tareasSinCoste(filas);
-    const terminadas = filas.filter((f) => f.estado === 'terminada').length;
     return [
         NOTA_HALLAZGOS +
             ` Informes sin tabla de hallazgos: ${String(nInformes)} (en ${String(sinTabla.length)} tareas).`,
         'Lecturas por fase (mediana de las tareas cuya tabla "## Coste" las mide): ' +
             FASES_COSTE.map((k) => `${k} ${lect[k].mediana === null ? '—' : String(lect[k].mediana)} (n=${String(lect[k].n)})`).join(', ') +
             '.',
-        sinCoste.length === 0
-            ? `Terminadas sin coste en alguna fase: 0 de ${String(terminadas)}.`
-            : `Terminadas sin coste en alguna fase: ${String(sinCoste.length)} de ${String(terminadas)}: ` +
-                sinCoste.map((t) => `${t.id} (${t.fases.join(', ')})`).join(', ') +
-                '.',
+        lineaSinCoste(resumenSinCoste(filas), varios),
     ];
+}
+// --- Terminadas sin coste, acotadas (MEN-4 de TASK-064, en TASK-065) ---------
+/** Cuantas tareas de la lista de terminadas sin coste salen por pantalla; el resto, en --json. */
+export const MAX_SIN_COSTE_EN_TEXTO = 10;
+export function resumenSinCoste(filas) {
+    const tareas = tareasSinCoste(filas);
+    const porFase = {};
+    for (const fase of FASES_COSTE)
+        porFase[fase] = tareas.filter((t) => t.fases.includes(fase)).length;
+    return {
+        terminadas: filas.filter((f) => f.estado === 'terminada').length,
+        total: tareas.length,
+        porFase,
+        tareas,
+    };
+}
+/**
+ * La linea de texto: el recuento por fase y las 10 primeras, con «y N mas»
+ * (en un proyecto con 76 de 76 la lista entera tapaba la tabla). La lista
+ * completa sale en `--json`.
+ */
+export function lineaSinCoste(r, varios = false) {
+    if (r.total === 0)
+        return `Terminadas sin coste en alguna fase: 0 de ${String(r.terminadas)}.`;
+    const primeras = r.tareas
+        .slice(0, MAX_SIN_COSTE_EN_TEXTO)
+        .map((t) => `${etiquetaTarea(t, varios)} (${t.fases.join(', ')})`)
+        .join(', ');
+    const resto = r.total - Math.min(r.total, MAX_SIN_COSTE_EN_TEXTO);
+    return (`Terminadas sin coste en alguna fase: ${String(r.total)} de ${String(r.terminadas)} ` +
+        `(${FASES_COSTE.map((k) => `${k} ${String(r.porFase[k])}`).join(', ')}): ${primeras}` +
+        (resto > 0 ? ` y ${String(resto)} mas (lista completa con --json).` : '.'));
 }

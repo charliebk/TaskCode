@@ -63,10 +63,17 @@ cuantas lecturas de ficheros hicieron); con `--tokens N`, una fila `manual`
 con solo el total. No la edites a mano: el total de la fase sigue siendo el
 campo `tokens_<fase>`, y la tabla es su desglose.
 
-El mismo `--agente` registrado dos veces en la misma fase suma dos veces y
-deja dos filas: no se deduplica. `taskctl metricas` lo avisa (y avisa tambien
-si lo desglosado supera a `tokens_<fase>`); si fue un error, corrige el total y
-quita la fila sobrante.
+Un agente que se **reanuda** (el mismo id, otra vez con la herramienta Agent)
+acumula en su transcripcion los dos trabajos. Por eso, si el `--agente` ya esta
+anotado en `## Coste` de esa fase, `registrar-coste` suma solo lo que crecio la
+transcripcion desde lo ya anotado para ese id, y la fila lo marca en su fuente
+(`agente:dif:<id>`): registra cada tramo de trabajo al terminarlo, sin miedo a
+contarlo doble. Si la transcripcion no ha crecido, aborta (no hay nada nuevo);
+si el id esta anotado junto a otros en una misma fila, aborta y pide la cifra
+con `--tokens N`. Una fila repetida de verdad (dos filas sin `dif:` del mismo
+agente en una fase, de antes o editadas a mano) la avisa `taskctl metricas`
+(igual que si lo desglosado supera a `tokens_<fase>`); si fue un error, corrige
+el total y quita la fila sobrante.
 
 `taskctl finish` avisa, sin bloquear, si falta el coste de diseno, de
 implementacion (vacio o a 0) o de revision. `taskctl metricas --tokens` lo tabula por tarea, por sprint y por

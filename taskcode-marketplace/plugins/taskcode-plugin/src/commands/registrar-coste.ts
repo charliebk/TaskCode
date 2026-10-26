@@ -36,12 +36,20 @@
  *    `--tokens N`, una fila `manual` con solo el total.
  */
 import { writeFile } from 'node:fs/promises';
-import { rechazarFlagsDesconocidos, parseArgs } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible } from '../cli/args.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import type { Task } from '../core/task.js';
 import { esAgentIdValido, sumarUsoTranscripcion } from '../core/coste-transcripcion.js';
-import { anadirCoste, FASES_COSTE, type FaseCoste, type FilaCoste } from '../core/coste-registro.js';
+import {
+  anadirCoste,
+  FASES_COSTE,
+  PREFIJO_DIFERENCIA,
+  idsDeFuente,
+  leerCostes,
+  type FaseCoste,
+  type FilaCoste,
+} from '../core/coste-registro.js';
 import { formatearInstante } from '../core/transiciones.js';
 import { buscarTranscripciones, directorioConfigClaude, leerTranscripcion } from '../fs/transcripciones.js';
 import { currentBranch, isAncestor, localBranchExists, runGit } from '../fs/git.js';
@@ -83,6 +91,8 @@ export interface RegistrarCosteCommandResult {
   total: number;
   /** Cuantos subagentes se han leido de su transcripcion (0 con --tokens). */
   agentes: number;
+  /** TASK-065: agentes ya anotados en la fase: de ellos solo se sumo lo que crecio su transcripcion. */
+  reanudados: string[];
   /** TASK-063: la fila anadida a la tabla `## Coste`. */
   fila: FilaCoste;
   filePath: string;
@@ -93,28 +103,17 @@ const USO =
   'Uso: taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> ' +
   '(--agente <id> [--agente <id2>...] | --tokens N) [--push]';
 
-/** Saca todos los `--agente <id>` / `--agente=<id>` de argv. */
+/** Saca todos los `--agente <id>` / `--agente=<id>` de argv (lector comun de flags repetibles). */
 function extraerAgentes(argv: readonly string[]): { agentes: string[]; resto: string[] } {
-  const agentes: string[] = [];
-  const resto: string[] = [];
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i] as string;
-    if (arg === '--agente') {
-      const valor = argv[i + 1];
-      if (valor === undefined || valor.startsWith('--')) {
-        throw new RegistrarCosteCommandError(
-          `[ERROR] --agente necesita el id del subagente (el que devuelve la herramienta Agent). ${USO}`
-        );
-      }
-      agentes.push(valor);
-      i++;
-    } else if (arg.startsWith('--agente=')) {
-      agentes.push(arg.slice('--agente='.length));
-    } else {
-      resto.push(arg);
-    }
-  }
-  return { agentes, resto };
+  const { valores, resto } = extraerRepetible(
+    argv,
+    '--agente',
+    () =>
+      new RegistrarCosteCommandError(
+        `[ERROR] --agente necesita el id del subagente (el que devuelve la herramienta Agent). ${USO}`
+      )
+  );
+  return { agentes: valores, resto };
 }
 
 /** Devuelve la fase y, si se dio, los tokens (entero > 0), o lanza con lo que hay que hacer. */
@@ -173,8 +172,58 @@ interface CosteDeAgentes {
   lecturas: number;
 }
 
-/** Suma lo que gasto cada subagente segun su transcripcion; falla diciendo que hacer. */
-async function costeDeAgentes(agentes: readonly string[], configDir: string): Promise<CosteDeAgentes> {
+const CAMPOS_COSTE = ['tokens', 'entrada', 'cacheEscritura', 'cacheLectura', 'salida', 'lecturas'] as const;
+
+/**
+ * Lo ya anotado en `## Coste` de la fase para cada id de `agentes` que
+ * aparezca alli (TASK-065): la suma de sus filas, la original y las de
+ * diferencia de reanudaciones anteriores. Un id anotado junto a otros en una
+ * misma fila aborta: no se sabe cuanto de esa fila es suyo.
+ */
+function yaAnotado(
+  filas: readonly FilaCoste[],
+  fase: FaseCoste,
+  agentes: readonly string[],
+  id: string
+): Map<string, CosteDeAgentes> {
+  const anotado = new Map<string, CosteDeAgentes>();
+  for (const f of filas) {
+    if (f.fase !== fase) continue;
+    const ids = idsDeFuente(f.fuente);
+    for (const agente of agentes) {
+      if (!ids.some((x) => x.id === agente)) continue;
+      if (ids.length > 1 || f.entrada === null || f.cacheEscritura === null || f.cacheLectura === null || f.salida === null) {
+        throw new RegistrarCosteCommandError(
+          `[ERROR] ${id}: el subagente ${agente} ya esta anotado en "## Coste" de ${fase} en una fila ` +
+            `("${f.fuente}", ${f.fecha}) ${ids.length > 1 ? 'junto a otros agentes' : 'sin desglose'}, asi que no se ` +
+            'sabe cuanto de esa fila es suyo para registrar solo lo que ha crecido su transcripcion. ' +
+            'Registra la diferencia a mano con --tokens N. No se ha tocado nada.'
+        );
+      }
+      const previo = anotado.get(agente) ?? { tokens: 0, entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0, lecturas: 0 };
+      previo.tokens += f.total;
+      previo.entrada += f.entrada;
+      previo.cacheEscritura += f.cacheEscritura;
+      previo.cacheLectura += f.cacheLectura;
+      previo.salida += f.salida;
+      previo.lecturas += f.lecturas ?? 0;
+      anotado.set(agente, previo);
+    }
+  }
+  return anotado;
+}
+
+/**
+ * Suma lo que gasto cada subagente segun su transcripcion; falla diciendo que
+ * hacer. TASK-065: si un id ya esta anotado en la fase (`anotado`), su
+ * transcripcion es la acumulada de un agente reanudado y solo suma la
+ * DIFERENCIA con lo ya anotado, campo a campo.
+ */
+async function costeDeAgentes(
+  agentes: readonly string[],
+  configDir: string,
+  anotado: ReadonlyMap<string, CosteDeAgentes> = new Map()
+): Promise<CosteDeAgentes> {
   const unicos = [...new Set(agentes)];
   for (const id of unicos) {
     if (!esAgentIdValido(id)) {
@@ -210,12 +259,22 @@ async function costeDeAgentes(agentes: readonly string[], configDir: string): Pr
           'No se ha tocado nada.'
       );
     }
-    suma.tokens += uso.tokens;
-    suma.entrada += uso.entrada;
-    suma.cacheEscritura += uso.cacheEscritura;
-    suma.cacheLectura += uso.cacheLectura;
-    suma.salida += uso.salida;
-    suma.lecturas += uso.lecturas;
+    const previo = anotado.get(id);
+    if (previo !== undefined) {
+      const crecio = uso.tokens - previo.tokens;
+      const encoge = CAMPOS_COSTE.filter((k) => uso[k] < previo[k]);
+      if (crecio <= 0 || encoge.length > 0) {
+        throw new RegistrarCosteCommandError(
+          crecio === 0 && encoge.length === 0
+            ? `[ERROR] El subagente ${id} ya esta anotado en esta fase con ${String(previo.tokens)} tokens y su ` +
+                'transcripcion no ha crecido desde entonces: no hay nada nuevo que registrar. No se ha tocado nada.'
+            : `[ERROR] La transcripcion del subagente ${id} tiene menos (${encoge.join(', ') || 'tokens'}) que lo ya ` +
+                `anotado para el en esta fase (${String(previo.tokens)} tokens): no es la misma transcripcion o se ` +
+                'recorto. Revisa "## Coste" o registra la cifra a mano con --tokens N. No se ha tocado nada.'
+        );
+      }
+    }
+    for (const k of CAMPOS_COSTE) suma[k] += uso[k] - (previo?.[k] ?? 0);
   }
   if (suma.tokens === 0) {
     throw new RegistrarCosteCommandError(
@@ -274,8 +333,14 @@ export async function runRegistrarCosteCommand(
 
   const unicos = [...new Set(agentes)];
   const nAgentes = unicos.length;
+  // TASK-065: un agente ya anotado en esta fase es un agente reanudado: su
+  // transcripcion acumula lo ya registrado, asi que solo se suma lo que crecio.
+  const anotado = tokensManuales === null ? yaAnotado(leerCostes(body), fase, unicos, id) : new Map();
   const desglose =
-    tokensManuales === null ? await costeDeAgentes(unicos, deps.configDir ?? directorioConfigClaude()) : null;
+    tokensManuales === null
+      ? await costeDeAgentes(unicos, deps.configDir ?? directorioConfigClaude(), anotado)
+      : null;
+  const reanudados = unicos.filter((a) => anotado.has(a));
   const tokens = desglose?.tokens ?? (tokensManuales as number);
   const campo = CAMPO_COSTE_POR_FASE[fase];
   const total = (task[campo] ?? 0) + tokens;
@@ -290,7 +355,10 @@ export async function runRegistrarCosteCommand(
   const fila: FilaCoste = {
     fecha: deps.ahora ?? formatearInstante(new Date()),
     fase,
-    fuente: desglose === null ? 'manual' : `agente:${unicos.join(',')}`,
+    fuente:
+      desglose === null
+        ? 'manual'
+        : `agente:${unicos.map((a) => (anotado.has(a) ? `${PREFIJO_DIFERENCIA}${a}` : a)).join(',')}`,
     entrada: desglose?.entrada ?? null,
     cacheEscritura: desglose?.cacheEscritura ?? null,
     cacheLectura: desglose?.cacheLectura ?? null,
@@ -307,5 +375,5 @@ export async function runRegistrarCosteCommand(
     mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),
     push,
   });
-  return { id, fase, sumado: tokens, total, agentes: nAgentes, fila, filePath, autoCommit: commit };
+  return { id, fase, sumado: tokens, total, agentes: nAgentes, reanudados, fila, filePath, autoCommit: commit };
 }

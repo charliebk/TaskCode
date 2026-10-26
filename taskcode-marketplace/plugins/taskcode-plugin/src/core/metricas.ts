@@ -49,7 +49,13 @@
 import { leerTransiciones, instanteDe, precisionDeFecha, type PrecisionFecha } from './transiciones.js';
 import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState, type TaskType } from './task.js';
 import { FASES_COSTE, leerCostes, resumirCostes, type FaseCoste, type ResumenCostes } from './coste-registro.js';
-import { resumirHallazgos, type InformeLeido, type ResumenHallazgos } from './informe-revision.js';
+import {
+  resumirHallazgos,
+  veredictoDeRonda,
+  type InformeLeido,
+  type ResumenHallazgos,
+  type VeredictoInforme,
+} from './informe-revision.js';
 import { extraerSecciones } from './tarea-body.js';
 
 export type OrigenMetricas = 'registro' | 'git' | '—';
@@ -103,6 +109,15 @@ export function claveTarea(proyecto: string, id: string): string {
   return `${proyecto}\u0000${id}`;
 }
 
+/**
+ * Como se nombra una tarea en avisos y listas (TASK-065): con un solo
+ * proyecto, su ID a secas (la salida de siempre); con varios, `proyecto/ID`,
+ * porque TASK-NNN se repite entre repos.
+ */
+export function etiquetaTarea(f: { proyecto: string; id: string }, varios: boolean): string {
+  return varios ? `${f.proyecto}/${f.id}` : f.id;
+}
+
 export interface FilaMetricas {
   /** Nombre del proyecto (la carpeta del repo); '' si quien llama no lo da. */
   proyecto: string;
@@ -129,6 +144,17 @@ export interface FilaMetricas {
   hallazgos: ResumenHallazgos;
   /** Una entrada por ronda con peticion; vacio = sin peticiones de revision (no medido). */
   kbPeticionPorRonda: PeticionRonda[];
+  /**
+   * TASK-065: del primer `plan` al ultimo `finish` (lo que suman diseno, curso
+   * y revision); null si falta una de las dos marcas.
+   */
+  total: Duracion | null;
+  /**
+   * TASK-065: veredicto de la ronda 1 (`veredictoDeRonda` de sus informes:
+   * `aprobada` cubre tambien `aprobada-con-correcciones`); null sin informes
+   * de la ronda 1. «Aprobada a la primera» = `rondas === 1` y esto `aprobada`.
+   */
+  veredictoRonda1: VeredictoInforme | null;
   /** Solo con `--heuristica`. */
   heuristica?: HeuristicaFila;
 }
@@ -273,7 +299,14 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     }),
     hallazgos: resumirHallazgos(e.informes ?? []),
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
+    total: duracionEntre(marcas.plan, marcas.finish),
+    veredictoRonda1: veredictoRonda1(e.informes ?? []),
   };
+}
+
+function veredictoRonda1(informes: readonly InformeLeido[]): VeredictoInforme | null {
+  const primera = informes.filter((i) => i.ronda === 1);
+  return primera.length === 0 ? null : veredictoDeRonda(primera.map((i) => i.texto));
 }
 
 /** `—` para lo que no hay; dias como `N d`; segundos como `1d 03h`, `2h 05m`, `7m`, `40s`. */
@@ -325,6 +358,9 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   { cabecera: 'cierre', valor: (f) => f.cierre ?? '—' },
   { cabecera: 'origen', valor: (f) => f.origen },
 ];
+
+/** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
+export const COLUMNA_PROYECTO: ColumnaMetricas = { cabecera: 'proyecto', valor: (f) => f.proyecto };
 
 /** Las que anade `--heuristica`. */
 export const COLUMNAS_HEURISTICA: readonly ColumnaMetricas[] = [
@@ -649,7 +685,8 @@ export const NOTA_DESGLOSE_TOKENS =
   'tokens_<fase> menos lo desglosado (filas "manual" o coste anterior a la tabla), sumado por ' +
   'fases. Un negativo en una fase es una incoherencia (el desglose supera al total): no se ' +
   'recorta a 0, sale con aviso y la celda lleva "*" aunque la suma sea positiva. Un agente ' +
-  'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica.';
+  'repetido en una fase suma tantas veces como filas tenga: se avisa, no se deduplica (salvo ' +
+  'las filas "agente:dif:<id>" de un agente reanudado, que solo suman lo que crecio).';
 
 export const NOTA_HALLAZGOS =
   'Hallazgos: cada uno cuenta una vez por tarea (revisor + ID) sumando todas las rondas, con la ' +
@@ -658,25 +695,26 @@ export const NOTA_HALLAZGOS =
   'tabla de hallazgos (no cuenta como cero).';
 
 /** Avisos de una fila: incoherencias del desglose y severidades fuera de vocabulario. */
-export function avisosDeFila(f: FilaMetricas): string[] {
+export function avisosDeFila(f: FilaMetricas, varios = false): string[] {
   const avisos: string[] = [];
+  const et = etiquetaTarea(f, varios);
   for (const fase of FASES_COSTE) {
     const r = f.coste.fases[fase];
     if (r.registrado === null && r.filas > 0) {
       avisos.push(
-        `${f.id}: tokens_${fase} esta vacio pero "## Coste" tiene ${String(r.filas)} fila(s) de ${fase}; ` +
+        `${et}: tokens_${fase} esta vacio pero "## Coste" tiene ${String(r.filas)} fila(s) de ${fase}; ` +
           'el total de la fase deberia ser la suma de su desglose. Revisa el frontmatter.'
       );
     } else if (r.sinDesglose !== null && r.sinDesglose < 0) {
       avisos.push(
-        `${f.id}: lo desglosado en "## Coste" para ${fase} (${String(r.desglosado)}) supera tokens_${fase} ` +
+        `${et}: lo desglosado en "## Coste" para ${fase} (${String(r.desglosado)}) supera tokens_${fase} ` +
           `(${String(r.registrado)}): diferencia ${String(r.sinDesglose)}. Revisa el frontmatter o las filas.`
       );
     }
   }
   for (const rep of f.coste.repetidas) {
     avisos.push(
-      `${f.id}: en "## Coste", ${rep.fuente} aparece en ${String(rep.filas)} filas de ${rep.fase}: ` +
+      `${et}: en "## Coste", ${rep.fuente} aparece en ${String(rep.filas)} filas de ${rep.fase}: ` +
         'su coste se suma otras tantas veces (no se deduplica). Si se registro dos veces por error, ' +
         `corrige tokens_${rep.fase} y quita la fila sobrante.`
     );
@@ -689,7 +727,7 @@ export function avisosDeFila(f: FilaMetricas): string[] {
   }
   for (const [fichero, lista] of porFichero) {
     avisos.push(
-      `${f.id} revision/${fichero}: severidad fuera de vocabulario (CRITICO, IMPORTANTE o MENOR) en ` +
+      `${et} revision/${fichero}: severidad fuera de vocabulario (CRITICO, IMPORTANTE o MENOR) en ` +
         `${lista.join(', ')}; no cuenta en crit/imp/men.`
     );
   }
@@ -697,21 +735,23 @@ export function avisosDeFila(f: FilaMetricas): string[] {
 }
 
 /** Un solo aviso con las tareas que tienen informes sin tabla de hallazgos; null si no hay. */
-export function avisoInformesSinTabla(filas: readonly FilaMetricas[]): string | null {
+export function avisoInformesSinTabla(filas: readonly FilaMetricas[], varios = false): string | null {
   const con = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
   if (con.length === 0) return null;
   const n = con.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
   return (
     `${String(n)} informe(s) de revision sin tabla de hallazgos en ${String(con.length)} tarea(s); sus ` +
-    `hallazgos salen como sin dato («—»), no como cero: ${con.map((f) => f.id).join(', ')}.`
+    `hallazgos salen como sin dato («—»), no como cero: ${con.map((f) => etiquetaTarea(f, varios)).join(', ')}.`
   );
 }
 
 /** Tareas terminadas sin coste (null o 0) en alguna fase, con esas fases. */
-export function tareasSinCoste(filas: readonly FilaMetricas[]): { id: string; fases: FaseCoste[] }[] {
+export function tareasSinCoste(
+  filas: readonly FilaMetricas[]
+): { proyecto: string; id: string; fases: FaseCoste[] }[] {
   return filas
     .filter((f) => f.estado === 'terminada')
-    .map((f) => ({ id: f.id, fases: FASES_COSTE.filter((k) => !f.coste.fases[k].registrado) }))
+    .map((f) => ({ proyecto: f.proyecto, id: f.id, fases: FASES_COSTE.filter((k) => !f.coste.fases[k].registrado) }))
     .filter((t) => t.fases.length > 0);
 }
 
@@ -721,6 +761,13 @@ export function mediana(valores: readonly number[]): number | null {
   const v = [...valores].sort((a, b) => a - b);
   const m = Math.floor(v.length / 2);
   return v.length % 2 === 1 ? (v[m] as number) : ((v[m - 1] as number) + (v[m] as number)) / 2;
+}
+
+/** Media redondeada a `decimales`; null si la lista esta vacia (nunca NaN). */
+export function media(valores: readonly number[], decimales = 2): number | null {
+  if (valores.length === 0) return null;
+  const f = 10 ** decimales;
+  return Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * f) / f;
 }
 
 /** Por fase, la mediana de lecturas de las tareas cuya tabla `## Coste` las mide, y cuantas son. */
@@ -736,12 +783,10 @@ export function medianaLecturas(
 }
 
 /** Lineas de texto bajo la tabla: hallazgos sin dato, lecturas y terminadas sin coste. */
-export function notasFilaEnriquecida(filas: readonly FilaMetricas[]): string[] {
+export function notasFilaEnriquecida(filas: readonly FilaMetricas[], varios = false): string[] {
   const sinTabla = filas.filter((f) => f.hallazgos.informesSinTabla.length > 0);
   const nInformes = sinTabla.reduce((a, f) => a + f.hallazgos.informesSinTabla.length, 0);
   const lect = medianaLecturas(filas);
-  const sinCoste = tareasSinCoste(filas);
-  const terminadas = filas.filter((f) => f.estado === 'terminada').length;
   return [
     NOTA_HALLAZGOS +
       ` Informes sin tabla de hallazgos: ${String(nInformes)} (en ${String(sinTabla.length)} tareas).`,
@@ -750,10 +795,52 @@ export function notasFilaEnriquecida(filas: readonly FilaMetricas[]): string[] {
         ', '
       ) +
       '.',
-    sinCoste.length === 0
-      ? `Terminadas sin coste en alguna fase: 0 de ${String(terminadas)}.`
-      : `Terminadas sin coste en alguna fase: ${String(sinCoste.length)} de ${String(terminadas)}: ` +
-        sinCoste.map((t) => `${t.id} (${t.fases.join(', ')})`).join(', ') +
-        '.',
+    lineaSinCoste(resumenSinCoste(filas), varios),
   ];
+}
+
+// --- Terminadas sin coste, acotadas (MEN-4 de TASK-064, en TASK-065) ---------
+
+/** Cuantas tareas de la lista de terminadas sin coste salen por pantalla; el resto, en --json. */
+export const MAX_SIN_COSTE_EN_TEXTO = 10;
+
+export interface ResumenSinCoste {
+  terminadas: number;
+  /** Terminadas sin coste (null o 0) en alguna fase. */
+  total: number;
+  /** Cuantas de ellas no tienen cada fase. */
+  porFase: Record<FaseCoste, number>;
+  /** Todas, en el orden de la tabla. */
+  tareas: { proyecto: string; id: string; fases: FaseCoste[] }[];
+}
+
+export function resumenSinCoste(filas: readonly FilaMetricas[]): ResumenSinCoste {
+  const tareas = tareasSinCoste(filas);
+  const porFase = {} as Record<FaseCoste, number>;
+  for (const fase of FASES_COSTE) porFase[fase] = tareas.filter((t) => t.fases.includes(fase)).length;
+  return {
+    terminadas: filas.filter((f) => f.estado === 'terminada').length,
+    total: tareas.length,
+    porFase,
+    tareas,
+  };
+}
+
+/**
+ * La linea de texto: el recuento por fase y las 10 primeras, con «y N mas»
+ * (en un proyecto con 76 de 76 la lista entera tapaba la tabla). La lista
+ * completa sale en `--json`.
+ */
+export function lineaSinCoste(r: ResumenSinCoste, varios = false): string {
+  if (r.total === 0) return `Terminadas sin coste en alguna fase: 0 de ${String(r.terminadas)}.`;
+  const primeras = r.tareas
+    .slice(0, MAX_SIN_COSTE_EN_TEXTO)
+    .map((t) => `${etiquetaTarea(t, varios)} (${t.fases.join(', ')})`)
+    .join(', ');
+  const resto = r.total - Math.min(r.total, MAX_SIN_COSTE_EN_TEXTO);
+  return (
+    `Terminadas sin coste en alguna fase: ${String(r.total)} de ${String(r.terminadas)} ` +
+    `(${FASES_COSTE.map((k) => `${k} ${String(r.porFase[k])}`).join(', ')}): ${primeras}` +
+    (resto > 0 ? ` y ${String(resto)} mas (lista completa con --json).` : '.')
+  );
 }
