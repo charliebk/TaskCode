@@ -1,6 +1,17 @@
 # Changelog
 
 ## Sin publicar
+
+## 0.8.0 — 2026-10-25
+
+Metricas v2 (TASK-063, 064 y 065): coste desglosado por agente, origen de
+cada hallazgo de revision, lecturas por fase, y `taskctl metricas` con
+`--evolucion`, `--grupos`, `--repo` (varios proyectos a la vez) y `--json`.
+Un flag repetido que no admite repeticion aborta ahora en cualquier comando.
+Actualizar con `claude plugin marketplace update taskcode-marketplace`,
+`claude plugin update taskcode-plugin@taskcode-marketplace` y reiniciar
+Claude Code (o `/reload-plugins`). Despues, `taskctl doctor` en cada
+proyecto.
 - TASK-065 (feature) — Metricas v2 (C): evolucion, grupos y varios proyectos (2026-10-26)
 
 Metricas v2, parte C (TASK-065): agregados de la fila de metricas para elegir
