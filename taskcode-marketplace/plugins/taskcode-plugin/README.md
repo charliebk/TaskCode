@@ -555,6 +555,119 @@ algún error (los avisos no cuentan). Comprueba:
 (`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`), para que
 una skill la lea. `taskctl doctor` no escribe, no commitea ni cambia de rama.
 
+`taskctl doctor-deploy [--json] [--escribir]` es otro comando, distinto de
+`doctor`: aquel comprueba que el proyecto está listo para trabajar con el flujo
+de tareas; este, que **la aplicación está lista para publicarse** sin agujeros
+conocidos (claves expuestas, secretos en git, RLS, cookies, HTTPS, dependencias
+vulnerables...). Solo lee.
+
+- **Tipo de aplicación**: lo detecta por ficheros marcadores (Node con npm,
+  pnpm o yarn, Rust, Python, Java con Maven o Gradle, .NET, Go, PHP, Ruby, Docker
+  y frontend web), hasta tres carpetas de profundidad y sin mirar `node_modules`,
+  `vendor`, `target`, `dist` ni `build`, y lo muestra. Los tipos y sus marcadores
+  son datos del catálogo (`tipo_N_*`): añadir uno no toca código. Si no detecta
+  ninguno, lo dice (los puntos que dependen de un tipo salen NO APLICA).
+- **Catálogo**: `scripts/doctor-deploy.yml` (formato plano `punto_N_*`, con
+  `total_puntos`). 43 puntos: los 20 pedidos, los medibles que faltaban y los de
+  dominio. Cada uno tiene `id`, `severidad`, `tipos`, `metodo` (`determinista` o
+  `juicio`), `sonda` (solo los deterministas), `arreglo`, `descripcion` y
+  `referencia` opcional (categoría OWASP Top 10 2021).
+- **Cuatro estados**: `OK` (con evidencia: nunca OK sin ella), `FALLA` (con
+  evidencia —fichero y línea, o commit— y el arreglo del catálogo), `NO VERIFICADO`
+  (diciendo qué falta: una herramienta, o la revisión con juicio) y `NO APLICA`
+  (con el motivo). Sale con **0 sin FALLA y 1 con alguna**. Un NO VERIFICADO no
+  cambia el código de salida, pero el resumen dice «N de M sin verificar»: salir
+  con 0 no significa «listo para publicar».
+- **Qué comprueba de forma determinista** (las únicas seis sondas; todo lo demás
+  es de juicio y sale NO VERIFICADO hasta que se revise con criterio):
+  secretos en el árbol; secretos en **todo el historial** de git (todas las
+  ramas, etiquetas y refs; un clon superficial, un desbordamiento de límites o un
+  corte dan NO VERIFICADO, nunca OK); ficheros de secretos versionados (`.env`,
+  claves privadas, credenciales; `.env.example` y `.env.sample` no cuentan); que
+  el `.gitignore` cubre `.env`; lockfile versionado; y la auditoría de
+  dependencias con la herramienta del ecosistema **si está instalada**
+  (`npm`/`pnpm`/`yarn audit`, `cargo audit`, `pip-audit`, `dotnet list package
+  --vulnerable`, `govulncheck`; `gitleaks` opcional para el historial). Solo
+  dependencias de runtime donde la herramienta lo permite; FALLA desde severidad
+  alta o crítica y el resto se lista sin fallar; una herramienta que no publica
+  severidad se trata como alta. Sin la herramienta, con timeout, con un código de
+  salida inesperado o con una salida que no se entiende: NO VERIFICADO.
+- **Claves de ejemplo y públicas**: `AKIAIOSFODNN7EXAMPLE` y `sk_test_` no cuentan,
+  ni la clave `anon`/`publishable` de Supabase ni la `apiKey` `AIza...` de la
+  config web de Firebase; `service_role`, `sk_live_` y una clave privada sí. El
+  arreglo de un secreto que llegó a git es **rotar la clave primero** y reescribir
+  el historial después.
+- **El valor de un secreto nunca se muestra**: la evidencia lleva solo los 4
+  primeros caracteres y la longitud (`sk_l**** (32 caracteres)`), y todo lo que
+  sale (texto, JSON, informe) pasa además por una segunda red que enmascara
+  cualquier clave que se cuele.
+- **`--json`**: una sola línea de JSON (`version`, `commit`, `rama`, `arbolSucio`,
+  `tipos`, `avisos`, `puntos`, `resumen`, `codigo`); es el contrato que
+  extienden las tareas siguientes.
+- **`--escribir`**: guarda el informe en `docs/doctor-deploy/<fecha>.md` (si ya
+  hay uno de ese día, `<fecha>-2.md`...; escritura atómica) con el commit, la
+  rama, si el árbol estaba sucio, los tipos detectados y la tabla de puntos. No
+  commitea. Es un informe de uso interno sobre un commit concreto, no una
+  certificación.
+
+`.taskcode/doctor-deploy.yml` (opcional) ajusta el catálogo del proyecto, con el
+mismo formato plano:
+
+```yaml
+# Desactivar un punto exige motivo (es una aceptación de riesgo). Sale NO APLICA.
+desactivar_1_id: lockfile-versionado
+desactivar_1_motivo: Es una librería: el lockfile no se versiona por convención
+
+# Añadir un punto propio: solo de juicio, o con una sonda ya registrada.
+punto_1_id: revisar-datos-personales
+punto_1_severidad: alta
+punto_1_tipos: [todos]
+punto_1_metodo: juicio
+punto_1_arreglo: Quita los datos personales de los logs
+punto_1_descripcion: Los logs no llevan datos personales de clientes
+
+# Silenciar UN hallazgo concreto (un secreto ya rotado, un falso positivo).
+# patron: el que informa el punto (stripe-live, aws-access-key, fichero-secreto...).
+# Un silencio es POR HALLAZGO: un hallazgo del historial se silencia con su commit
+# (silenciar_N_commit); uno del árbol, con la huella de su valor (silenciar_N_huella),
+# que sale en la evidencia ("huella ab12cd34ef56"). La huella es un SHA-256 sin sal: solo
+# es segura para claves de alta entropia (no permite recuperarlas). Para
+# url-con-credenciales no se muestra (usuario y host son conocidos y la contrasena puede ser
+# debil): esa se silencia solo en el historial, con commit; en el arbol hay que quitar la
+# credencial. Sin commit ni
+# huella aborta (taparía también claves nuevas del mismo fichero); la huella es opcional
+# con commit. Si commit o huella son solo dígitos, ponlos entre comillas.
+silenciar_1_patron: stripe-live
+silenciar_1_fichero: config/prod.env
+silenciar_1_commit: "ab12cd34"
+silenciar_1_huella: "ab12cd34ef56"
+silenciar_1_motivo: Clave rotada el 2026-10-01
+silenciar_1_quien: carlos
+silenciar_1_fecha: 2026-10-27
+```
+
+Un `id` desconocido en `desactivar_N_id` avisa y se ignora; un `id` repetido (con
+el catálogo del plugin o consigo mismo) aborta, igual que desactivar sin motivo.
+Un silencio que no coincide con ningún hallazgo avisa, y el hallazgo silenciado
+sigue apareciendo en la evidencia con su motivo, quién y cuándo, y cada punto de
+secretos dice «N hallazgos silenciados».
+
+Cobertura de los escaneos de claves: se leen todos los ficheros versionados (también
+los que están en `build`, `dist`, `vendor`, `target` o `node_modules`) y los sin
+versionar que no están ignorados fuera de esas carpetas; en el historial, todos los
+blobs, sea cual sea su ruta. Un fichero UTF-16 con BOM se decodifica; los binarios
+saltados se cuentan siempre. Un fichero de texto mayor de 1 MiB no se lee y deja el
+punto en NO VERIFICADO (un binario grande, no). Un `requirements.txt` solo cuenta
+como lockfile si fija todo con `==`, y una regla negada (`!.env`) en el `.gitignore`
+es FALLA. `.env` tiene que quedar ignorado en la raíz de cada proyecto detectado (en un
+monorepo, un `.gitignore` en el subdirectorio vale para su propio `.env`), y un módulo
+Go sin bloque `require` no necesita `go.sum`.
+
+Límites conocidos: si `git cat-file --batch` devolviera una salida truncada, el historial
+sale NO VERIFICADO (no se pudo provocar con Git real, así que esa rama no tiene test); un
+silencio solo con huella no tapa nunca un hallazgo del historial, y si el patrón y el
+fichero tienen uno el comando avisa de que exige `silenciar_N_commit`.
+
 `taskctl metricas [--heuristica]` (solo lectura) saca una fila por tarea
 con la duración de calendario de cada fase (diseño = plan→start, curso =
 start→primer review, revisión = primer review→finish), las rondas de

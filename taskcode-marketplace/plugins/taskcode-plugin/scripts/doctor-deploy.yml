@@ -1,0 +1,436 @@
+# Catalogo de puntos del comando doctor-deploy: lo que hay que comprobar antes
+# de publicar una aplicacion para no dejar agujeros conocidos.
+#
+# FORMATO. Mismo parser minimo que el resto de metadatos del plugin: SOLO pares
+# "clave: valor" de primer nivel, listas en linea [a, b, c] y comentarios de
+# linea que empiezan por "#". Sin anidamiento: cada entrada se aplana con el
+# prefijo "tipo_N_" o "punto_N_", donde N es su posicion (empieza en 1).
+# "total_tipos" y "total_puntos" dicen cuantas entradas hay.
+#
+# TIPOS DE APLICACION (tipo_N_*). Se detectan por ficheros marcadores y son
+# datos: anadir uno no toca el codigo.
+#   - id: identificador estable (el que se usa en "tipos" de cada punto).
+#   - nombre: como se muestra.
+#   - marcadores: nombres de fichero (package.json), extensiones (*.csproj) o
+#     sufijos de ruta con "/" (public/index.html). Se buscan en los ficheros del
+#     proyecto hasta 3 carpetas de profundidad, sin node_modules, vendor, target,
+#     dist ni build.
+#
+# PUNTOS (punto_N_*).
+#   - id: identificador estable, en minusculas y con guiones.
+#   - severidad: critica | alta | media | baja.
+#   - tipos: tipos a los que aplica, o "todos". Si ninguno de esos tipos se
+#     detecta, el punto sale NO APLICA con el motivo.
+#   - metodo: "determinista" (lo comprueba el comando, con evidencia) o "juicio"
+#     (hace falta leer el codigo con criterio: sale NO VERIFICADO hasta entonces).
+#   - sonda: solo en los deterministas; nombre de la comprobacion registrada.
+#   - arreglo: como se arregla.
+#   - descripcion: que se comprueba.
+#   - referencia: opcional; categoria OWASP Top 10 2021 que lo cubre.
+#
+# Un proyecto puede desactivar o anadir puntos, y silenciar hallazgos concretos,
+# con su propio fichero de ajustes (ver la documentacion del comando).
+#
+total_tipos: 15
+total_puntos: 43
+
+tipo_1_id: node
+tipo_1_nombre: Node.js
+tipo_1_marcadores: [package.json]
+tipo_2_id: npm
+tipo_2_nombre: npm
+tipo_2_marcadores: [package-lock.json, npm-shrinkwrap.json]
+tipo_3_id: pnpm
+tipo_3_nombre: pnpm
+tipo_3_marcadores: [pnpm-lock.yaml]
+tipo_4_id: yarn
+tipo_4_nombre: yarn
+tipo_4_marcadores: [yarn.lock]
+tipo_5_id: rust
+tipo_5_nombre: Rust
+tipo_5_marcadores: [Cargo.toml]
+tipo_6_id: python
+tipo_6_nombre: Python
+tipo_6_marcadores: [pyproject.toml, requirements.txt, setup.py, setup.cfg, Pipfile, poetry.lock]
+tipo_7_id: java
+tipo_7_nombre: Java
+tipo_7_marcadores: [pom.xml, build.gradle, build.gradle.kts]
+tipo_8_id: maven
+tipo_8_nombre: Maven
+tipo_8_marcadores: [pom.xml]
+tipo_9_id: gradle
+tipo_9_nombre: Gradle
+tipo_9_marcadores: [build.gradle, build.gradle.kts]
+tipo_10_id: dotnet
+tipo_10_nombre: .NET
+tipo_10_marcadores: [*.csproj, *.fsproj, *.vbproj, *.sln]
+tipo_11_id: go
+tipo_11_nombre: Go
+tipo_11_marcadores: [go.mod]
+tipo_12_id: php
+tipo_12_nombre: PHP
+tipo_12_marcadores: [composer.json]
+tipo_13_id: ruby
+tipo_13_nombre: Ruby
+tipo_13_marcadores: [Gemfile]
+tipo_14_id: docker
+tipo_14_nombre: Docker
+tipo_14_marcadores: [Dockerfile, docker-compose.yml, docker-compose.yaml, compose.yml, compose.yaml]
+tipo_15_id: frontend
+tipo_15_nombre: Frontend web
+tipo_15_marcadores: [vite.config.js, vite.config.ts, next.config.js, next.config.mjs, next.config.ts, angular.json, svelte.config.js, nuxt.config.ts, astro.config.mjs, public/index.html]
+
+# --- Los 20 puntos de base ---------------------------------------------------
+
+punto_1_id: secretos-en-arbol
+punto_1_severidad: critica
+punto_1_tipos: [todos]
+punto_1_metodo: determinista
+punto_1_sonda: secretos-arbol
+punto_1_arreglo: Saca la clave del codigo y leela de una variable de entorno o de un gestor de secretos. Si ya estuvo en un commit o en un remoto, da la clave por comprometida: rotala primero y reescribe el historial despues.
+punto_1_descripcion: Ninguna API key, token ni clave privada escrita en los ficheros del proyecto (se distinguen las claves de ejemplo o de prueba y las que son publicas a proposito).
+punto_1_referencia: OWASP Top 10 2021 A02
+
+punto_2_id: secretos-en-historial
+punto_2_severidad: critica
+punto_2_tipos: [todos]
+punto_2_metodo: determinista
+punto_2_sonda: secretos-historial
+punto_2_arreglo: Rota la clave primero (revocala en el proveedor y emite otra): un secreto que llego a un remoto se da por comprometido. Despues, si quieres, reescribe el historial con git filter-repo o BFG y fuerza el push. Si ya la rotaste y no quieres reescribir, silencia ese hallazgo en los ajustes del proyecto, con su motivo.
+punto_2_descripcion: Ningun secreto en ningun commit de ninguna rama o etiqueta, aunque ya se haya borrado del arbol actual.
+punto_2_referencia: OWASP Top 10 2021 A02
+
+punto_3_id: ficheros-secretos-versionados
+punto_3_severidad: critica
+punto_3_tipos: [todos]
+punto_3_metodo: determinista
+punto_3_sonda: ficheros-secretos
+punto_3_arreglo: Quita el fichero del indice con git rm --cached, anadelo al .gitignore y, si llego a un remoto, rota lo que contenia. Deja un .env.example con los nombres de las variables y sin valores.
+punto_3_descripcion: Ningun fichero .env, clave privada ni de credenciales versionado (un .env.example o .env.sample sin valores reales no cuenta).
+punto_3_referencia: OWASP Top 10 2021 A05
+
+punto_4_id: gitignore-cubre-env
+punto_4_severidad: alta
+punto_4_tipos: [todos]
+punto_4_metodo: determinista
+punto_4_sonda: gitignore-env
+punto_4_arreglo: Anade .env y .env.* al .gitignore (y deja pasar .env.example con una excepcion !.env.example).
+punto_4_descripcion: El .gitignore cubre los ficheros .env, para que un secreto local no llegue a un commit por descuido.
+punto_4_referencia: OWASP Top 10 2021 A05
+
+punto_5_id: clave-publica-en-cliente-db
+punto_5_severidad: critica
+punto_5_tipos: [frontend, node]
+punto_5_metodo: juicio
+punto_5_arreglo: En el cliente usa solo la clave publica o anon de la base de datos (nunca service_role, claves de administrador ni cuentas de servicio) y protege los datos con reglas de acceso por fila.
+punto_5_descripcion: El cliente de la base de datos que va al navegador o a la app usa solo la clave publica o anon.
+punto_5_referencia: OWASP Top 10 2021 A01
+
+punto_6_id: rls-activo
+punto_6_severidad: critica
+punto_6_tipos: [todos]
+punto_6_metodo: juicio
+punto_6_arreglo: Activa la seguridad a nivel de fila en cada tabla expuesta (por ejemplo ALTER TABLE ... ENABLE ROW LEVEL SECURITY) y escribe una politica por operacion; sin politica, nadie accede.
+punto_6_descripcion: Toda tabla accesible desde el cliente tiene seguridad a nivel de fila (RLS) con politicas que limitan cada fila a quien le corresponde.
+punto_6_referencia: OWASP Top 10 2021 A01
+
+punto_7_id: cifrado-en-reposo
+punto_7_severidad: alta
+punto_7_tipos: [todos]
+punto_7_metodo: juicio
+punto_7_arreglo: Activa el cifrado en reposo de la base de datos, los discos y las copias de seguridad, y cifra a nivel de aplicacion los campos especialmente sensibles.
+punto_7_descripcion: Los datos personales o sensibles estan cifrados en reposo (base de datos, discos, copias).
+punto_7_referencia: OWASP Top 10 2021 A02
+
+punto_8_id: auth-en-servidor
+punto_8_severidad: critica
+punto_8_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_8_metodo: juicio
+punto_8_arreglo: Comprueba la identidad y el permiso en el servidor en cada peticion; ocultar un boton o una ruta en el cliente no protege nada.
+punto_8_descripcion: La autenticacion y la autorizacion se comprueban en el servidor, no solo en el cliente.
+punto_8_referencia: OWASP Top 10 2021 A01
+
+punto_9_id: restringir-accesos
+punto_9_severidad: alta
+punto_9_tipos: [todos]
+punto_9_metodo: juicio
+punto_9_arreglo: Aplica minimo privilegio: cada usuario, servicio y credencial con solo los permisos que necesita, y cierra al exterior los puertos y paneles de administracion.
+punto_9_descripcion: Los accesos (usuarios, servicios, credenciales, puertos, paneles) estan restringidos al minimo necesario.
+punto_9_referencia: OWASP Top 10 2021 A01
+
+punto_10_id: mass-assignment
+punto_10_severidad: alta
+punto_10_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_10_metodo: juicio
+punto_10_arreglo: No vuelques el cuerpo de la peticion directamente en el modelo: acepta una lista explicita de campos (DTO o lista blanca) y deja fuera los que el usuario no debe tocar (rol, saldo, propietario).
+punto_10_descripcion: Los endpoints no permiten asignar en masa campos que el usuario no debe poder modificar.
+punto_10_referencia: OWASP Top 10 2021 A04
+
+punto_11_id: cookies-seguras
+punto_11_severidad: alta
+punto_11_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_11_metodo: juicio
+punto_11_arreglo: Marca las cookies de sesion con HttpOnly, Secure y SameSite (Lax o Strict) y limita su dominio y ruta.
+punto_11_descripcion: Las cookies de sesion llevan HttpOnly, Secure y SameSite.
+punto_11_referencia: OWASP Top 10 2021 A05
+
+punto_12_id: hash-de-contrasenas
+punto_12_severidad: critica
+punto_12_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_12_metodo: juicio
+punto_12_arreglo: Guarda las contrasenas con argon2id, scrypt o bcrypt (con sal propia y coste adecuado); nunca en claro ni con MD5, SHA-1 o SHA-256 sin mas.
+punto_12_descripcion: Las contrasenas se guardan con un hash lento y con sal, no en claro ni con un hash rapido.
+punto_12_referencia: OWASP Top 10 2021 A02
+
+punto_13_id: rate-limits
+punto_13_severidad: alta
+punto_13_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_13_metodo: juicio
+punto_13_arreglo: Pon un limite de peticiones por IP y por cuenta, mas estricto en login, registro, recuperacion de contrasena y envio de correos.
+punto_13_descripcion: Los endpoints sensibles (login, registro, recuperacion, envios) tienen limite de peticiones.
+punto_13_referencia: OWASP Top 10 2021 A04
+
+punto_14_id: proteccion-de-bots
+punto_14_severidad: media
+punto_14_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_14_metodo: juicio
+punto_14_arreglo: Anade un desafio (captcha o equivalente) en registro, login y formularios publicos, y limita la creacion automatica de cuentas.
+punto_14_descripcion: Los formularios publicos y el registro tienen proteccion contra bots.
+punto_14_referencia: OWASP Top 10 2021 A04
+
+punto_15_id: queries-parametrizadas
+punto_15_severidad: critica
+punto_15_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_15_metodo: juicio
+punto_15_arreglo: Usa consultas parametrizadas o un ORM; nunca concatenes entrada de la persona en una sentencia SQL, un comando o una consulta.
+punto_15_descripcion: Todas las consultas a la base de datos son parametrizadas, sin concatenar entrada externa.
+punto_15_referencia: OWASP Top 10 2021 A03
+
+punto_16_id: validacion-de-inputs
+punto_16_severidad: alta
+punto_16_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_16_metodo: juicio
+punto_16_arreglo: Valida en el servidor tipo, longitud, rango y formato de toda entrada con un esquema (lista blanca) y escapa la salida segun donde se pinte.
+punto_16_descripcion: Toda entrada externa se valida en el servidor con un esquema, y la salida se escapa.
+punto_16_referencia: OWASP Top 10 2021 A03
+
+punto_17_id: fuga-de-contenido
+punto_17_severidad: alta
+punto_17_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_17_metodo: juicio
+punto_17_arreglo: Comprueba en cada recurso que pertenece a quien lo pide (no basta con adivinar un id), no listes directorios y no sirvas ficheros privados desde una carpeta publica.
+punto_17_descripcion: Un usuario no puede leer contenido ajeno ni privado cambiando un id, una ruta o una URL.
+punto_17_referencia: OWASP Top 10 2021 A01
+
+punto_18_id: uploads-seguros
+punto_18_severidad: alta
+punto_18_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_18_metodo: juicio
+punto_18_arreglo: Limita tamano y tipo (por contenido, no por extension), renombra el fichero, guardalo fuera de la raiz web y nunca lo ejecutes ni lo sirvas con el tipo que declara quien lo sube.
+punto_18_descripcion: La subida de ficheros limita tamano y tipo, no usa el nombre original y no permite ejecutarlos.
+punto_18_referencia: OWASP Top 10 2021 A04
+
+punto_19_id: limitar-respuestas-api
+punto_19_severidad: media
+punto_19_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_19_metodo: juicio
+punto_19_arreglo: Pagina las listas con un maximo, devuelve solo los campos necesarios (nunca el registro entero con hashes o campos internos) y limita el tamano de las respuestas.
+punto_19_descripcion: Las respuestas de la API estan paginadas y limitadas, y no exponen campos internos.
+punto_19_referencia: OWASP Top 10 2021 A01
+
+punto_20_id: security-headers
+punto_20_severidad: alta
+punto_20_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_20_metodo: juicio
+punto_20_arreglo: Envia Content-Security-Policy, Strict-Transport-Security, X-Content-Type-Options, Referrer-Policy y una politica de frame-ancestors (o X-Frame-Options).
+punto_20_descripcion: Las respuestas web llevan las cabeceras de seguridad habituales.
+punto_20_referencia: OWASP Top 10 2021 A05
+
+punto_21_id: https-obligatorio
+punto_21_severidad: alta
+punto_21_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend, docker]
+punto_21_metodo: juicio
+punto_21_arreglo: Sirve todo por HTTPS con un certificado valido, redirige HTTP a HTTPS y activa HSTS.
+punto_21_descripcion: Todo el trafico va cifrado en transito con HTTPS y HTTP redirige a HTTPS.
+punto_21_referencia: OWASP Top 10 2021 A02
+
+punto_22_id: dependencias-vulnerables
+punto_22_severidad: alta
+punto_22_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_22_metodo: determinista
+punto_22_sonda: dependencias
+punto_22_arreglo: Actualiza la dependencia afectada a la version corregida (npm audit fix, cargo update -p, pip install -U, dotnet add package) o sustituyela. Las que no tienen arreglo se documentan con su motivo.
+punto_22_descripcion: Las dependencias de runtime no tienen vulnerabilidades conocidas de severidad alta o critica, segun la herramienta de auditoria del ecosistema (si esta instalada).
+punto_22_referencia: OWASP Top 10 2021 A06
+
+# --- Medibles que completan el catalogo -------------------------------------
+
+punto_23_id: cors-restringido
+punto_23_severidad: alta
+punto_23_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_23_metodo: juicio
+punto_23_arreglo: Lista los origenes permitidos de forma explicita; nunca "*" con credenciales ni reflejar el origen recibido.
+punto_23_descripcion: La configuracion de CORS solo admite los origenes que deben llamar a la API.
+punto_23_referencia: OWASP Top 10 2021 A05
+
+punto_24_id: proteccion-csrf
+punto_24_severidad: alta
+punto_24_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_24_metodo: juicio
+punto_24_arreglo: Usa tokens anti-CSRF o cookies SameSite en toda peticion que cambie estado y no cambies estado con GET.
+punto_24_descripcion: Las peticiones que cambian estado y usan cookies estan protegidas contra CSRF.
+punto_24_referencia: OWASP Top 10 2021 A01
+
+punto_25_id: debug-y-source-maps
+punto_25_severidad: media
+punto_25_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_25_metodo: juicio
+punto_25_arreglo: Desactiva el modo debug en produccion y no publiques los source maps (o subelos solo al servicio de errores).
+punto_25_descripcion: Produccion no corre en modo debug ni publica source maps.
+punto_25_referencia: OWASP Top 10 2021 A05
+
+punto_26_id: variables-entorno-documentadas
+punto_26_severidad: baja
+punto_26_tipos: [todos]
+punto_26_metodo: juicio
+punto_26_arreglo: Documenta cada variable de entorno en un .env.example (o en el README) con su nombre y para que sirve, sin valores reales.
+punto_26_descripcion: Las variables de entorno que necesita la aplicacion estan documentadas, sin valores.
+punto_26_referencia: OWASP Top 10 2021 A05
+
+punto_27_id: lockfile-versionado
+punto_27_severidad: media
+punto_27_tipos: [node, rust, python, php, ruby, go]
+punto_27_metodo: determinista
+punto_27_sonda: lockfile
+punto_27_arreglo: Genera el lockfile de tu gestor (npm install, cargo generate-lockfile, pip freeze, composer install, bundle install) y versionalo. Una libreria que no lo versiona por convencion puede desactivar el punto con su motivo.
+punto_27_descripcion: El fichero de versiones exactas de las dependencias esta versionado, para que lo que se despliega sea lo que se probo.
+punto_27_referencia: OWASP Top 10 2021 A08
+
+punto_28_id: contenedor-sin-root-ni-secretos
+punto_28_severidad: alta
+punto_28_tipos: [docker]
+punto_28_metodo: juicio
+punto_28_arreglo: Ejecuta el proceso con un usuario sin privilegios y pasa los secretos en tiempo de ejecucion (variables o secretos del orquestador), nunca con COPY, ARG o ENV dentro de la imagen.
+punto_28_descripcion: El contenedor no corre como root y la imagen no lleva secretos dentro.
+punto_28_referencia: OWASP Top 10 2021 A05
+
+punto_29_id: logs-sin-datos-sensibles
+punto_29_severidad: media
+punto_29_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_29_metodo: juicio
+punto_29_arreglo: No registres contrasenas, tokens, cabeceras de autorizacion ni datos personales; enmascaralos antes de escribirlos.
+punto_29_descripcion: Los logs no contienen contrasenas, tokens ni datos personales.
+punto_29_referencia: OWASP Top 10 2021 A09
+
+punto_30_id: errores-sin-traza
+punto_30_severidad: media
+punto_30_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_30_metodo: juicio
+punto_30_arreglo: Devuelve a la persona un mensaje generico con un identificador y guarda la traza solo en el log del servidor.
+punto_30_descripcion: Las paginas y respuestas de error no muestran trazas, rutas internas ni consultas.
+punto_30_referencia: OWASP Top 10 2021 A05
+
+punto_31_id: redirecciones-y-ssrf
+punto_31_severidad: alta
+punto_31_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_31_metodo: juicio
+punto_31_arreglo: Redirige solo a destinos de una lista blanca y, al pedir una URL que da la persona, valida el destino y bloquea direcciones internas y de metadatos de la nube.
+punto_31_descripcion: No hay redirecciones abiertas ni peticiones del servidor a URLs arbitrarias (SSRF).
+punto_31_referencia: OWASP Top 10 2021 A10
+
+punto_32_id: caducidad-de-sesion
+punto_32_severidad: media
+punto_32_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_32_metodo: juicio
+punto_32_arreglo: Da caducidad a sesiones y tokens (corta para el acceso, renovable), invalidalos al cerrar sesion y al cambiar la contrasena.
+punto_32_descripcion: Las sesiones y los tokens caducan y se invalidan al cerrar sesion.
+punto_32_referencia: OWASP Top 10 2021 A07
+
+punto_33_id: backups-y-migraciones
+punto_33_severidad: alta
+punto_33_tipos: [todos]
+punto_33_metodo: juicio
+punto_33_arreglo: Programa copias automaticas de la base de datos, prueba restaurarlas y versiona las migraciones para poder reproducir y deshacer los cambios de esquema.
+punto_33_descripcion: Hay copias de seguridad probadas y migraciones de esquema versionadas.
+punto_33_referencia: OWASP Top 10 2021 A04
+
+punto_34_id: health-check
+punto_34_severidad: baja
+punto_34_tipos: [node, python, java, dotnet, go, php, ruby, rust, docker]
+punto_34_metodo: juicio
+punto_34_arreglo: Expon un endpoint de salud que no revele detalles internos y usalo en el orquestador y en la monitorizacion.
+punto_34_descripcion: El servicio tiene un health check que no revela informacion interna.
+punto_34_referencia: OWASP Top 10 2021 A09
+
+punto_35_id: licencias-de-dependencias
+punto_35_severidad: baja
+punto_35_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_35_metodo: juicio
+punto_35_arreglo: Lista las licencias de las dependencias con la herramienta del ecosistema y sustituye las incompatibles con la licencia de tu producto.
+punto_35_descripcion: Las licencias de las dependencias son compatibles con el uso previsto.
+
+punto_36_id: tests-en-verde
+punto_36_severidad: media
+punto_36_tipos: [todos]
+punto_36_metodo: juicio
+punto_36_arreglo: Ejecuta la suite completa antes de publicar y publica solo un commit con los tests en verde.
+punto_36_descripcion: La suite de tests pasa en el commit que se publica.
+punto_36_referencia: OWASP Top 10 2021 A08
+
+# --- Puntos de dominio (su sonda determinista llega en una tarea posterior) -
+
+punto_37_id: reglas-firebase-abiertas
+punto_37_severidad: critica
+punto_37_tipos: [todos]
+punto_37_metodo: juicio
+punto_37_arreglo: Sustituye reglas como "allow read, write: if true" por reglas que exijan sesion y comprueben el propietario; prueba las reglas con el emulador.
+punto_37_descripcion: Las reglas de Firebase (Firestore, Realtime Database y Storage) no estan abiertas a cualquiera.
+punto_37_referencia: OWASP Top 10 2021 A01
+
+punto_38_id: migraciones-sin-rls
+punto_38_severidad: alta
+punto_38_tipos: [todos]
+punto_38_metodo: juicio
+punto_38_arreglo: Cada migracion que crea una tabla debe activar RLS y crear sus politicas en la misma migracion.
+punto_38_descripcion: Ninguna migracion crea una tabla sin activar la seguridad a nivel de fila.
+punto_38_referencia: OWASP Top 10 2021 A01
+
+punto_39_id: tokens-en-ficheros-de-gestor
+punto_39_severidad: critica
+punto_39_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_39_metodo: juicio
+punto_39_arreglo: Quita el token de .npmrc, .pypirc, settings.xml o equivalentes, usa una variable de entorno (por ejemplo ${NPM_TOKEN}) y rota el token expuesto.
+punto_39_descripcion: Los ficheros de configuracion de los gestores de paquetes (.npmrc, .pypirc, settings.xml) no llevan tokens ni contrasenas.
+punto_39_referencia: OWASP Top 10 2021 A02
+
+punto_40_id: compose-con-contrasenas
+punto_40_severidad: alta
+punto_40_tipos: [docker]
+punto_40_metodo: juicio
+punto_40_arreglo: Saca las contrasenas del docker-compose y leelas de un fichero .env ignorado por git o de secretos de Docker.
+punto_40_descripcion: Los ficheros docker-compose no llevan contrasenas ni tokens escritos.
+punto_40_referencia: OWASP Top 10 2021 A05
+
+punto_41_id: ci-pull-request-target
+punto_41_severidad: alta
+punto_41_tipos: [todos]
+punto_41_metodo: juicio
+punto_41_arreglo: No uses el evento pull_request_target para ejecutar codigo de la rama de un fork; usa pull_request, o separa en dos flujos y no pases secretos al que ejecuta codigo ajeno.
+punto_41_descripcion: Los flujos de CI no ejecutan codigo de forks con permisos de escritura ni secretos (pull_request_target).
+punto_41_referencia: OWASP Top 10 2021 A08
+
+punto_42_id: acciones-ci-sin-sha
+punto_42_severidad: media
+punto_42_tipos: [todos]
+punto_42_metodo: juicio
+punto_42_arreglo: Fija cada accion de terceros a un SHA de commit completo (con la version en un comentario) en lugar de a una etiqueta movil.
+punto_42_descripcion: Las acciones de CI de terceros estan fijadas a un SHA de commit.
+punto_42_referencia: OWASP Top 10 2021 A08
+
+punto_43_id: dockerfile-sin-user
+punto_43_severidad: alta
+punto_43_tipos: [docker]
+punto_43_metodo: juicio
+punto_43_arreglo: Anade una instruccion USER con un usuario sin privilegios al final del Dockerfile y evita ADD de URLs remotas.
+punto_43_descripcion: El Dockerfile declara un USER distinto de root.
+punto_43_referencia: OWASP Top 10 2021 A05

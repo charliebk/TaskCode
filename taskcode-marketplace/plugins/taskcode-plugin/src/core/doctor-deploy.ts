@@ -1,0 +1,245 @@
+/**
+ * Nucleo puro de `taskctl doctor-deploy` (TASK-066): el modelo de un punto, los
+ * cuatro estados, el codigo de salida y los formatos de salida (texto, JSON e
+ * informe en Markdown). No toca disco ni lanza procesos; la orquestacion esta
+ * en commands/doctor-deploy.ts y las comprobaciones en fs/sondas-deploy.ts.
+ *
+ * Estados:
+ * - `ok`: se comprobo y esta bien. Exige evidencia (al menos una): nunca OK
+ *   porque no se encontro nada sin decir donde se busco.
+ * - `falla`: se comprobo y esta mal. Lleva su evidencia y el arreglo.
+ * - `no-verificado`: no se pudo comprobar (falta una herramienta, o el punto
+ *   pide juicio). Dice que falta. NO cambia el codigo de salida, pero el
+ *   resumen cuenta cuantos puntos quedaron sin verificar.
+ * - `no-aplica`: el punto no corresponde a los tipos detectados (o el
+ *   proyecto lo desactivo). Dice por que.
+ *
+ * `Evidencia` NO tiene campo para el valor crudo de un secreto: lo enmascara
+ * quien la crea. El enmascarado de la salida final (segunda red) lo aplica el
+ * comando con `ocultarSecretos`.
+ */
+import type { Metodo, Severidad } from './doctor-deploy-catalogo.js';
+
+export type EstadoPunto = 'ok' | 'falla' | 'no-verificado' | 'no-aplica';
+
+export interface Evidencia {
+  /** Que se vio, en una frase. Nunca el valor de un secreto. */
+  descripcion: string;
+  fichero?: string;
+  linea?: number;
+  commit?: string;
+  /** Valor ya enmascarado (`AKIA**** (20 caracteres)`). */
+  muestra?: string;
+}
+
+/** Lo que devuelve una sonda; el comando le pone el id y el resto. */
+export interface ResultadoSonda {
+  estado: EstadoPunto;
+  /** Una frase: por que sale en ese estado, o que falta. */
+  motivo: string;
+  evidencias: Evidencia[];
+}
+
+export interface ResultadoPunto extends ResultadoSonda {
+  id: string;
+  severidad: Severidad;
+  metodo: Metodo;
+  arreglo: string;
+  descripcion: string;
+  referencia: string | null;
+  /** true si el proyecto desactivo el punto (sale NO APLICA con su motivo). */
+  desactivado: boolean;
+}
+
+export interface TipoDetectado {
+  id: string;
+  nombre: string;
+  /** Carpetas (relativas a la raiz, `.` = la raiz) donde se encontro algun marcador. */
+  rutas: string[];
+}
+
+export interface InformeDeploy {
+  /** Version del formato del JSON: la que extienda TASK-067 sube este numero. */
+  version: 1;
+  comando: 'doctor-deploy';
+  /** Fecha y hora de la ejecucion (ISO 8601 UTC). */
+  fecha: string;
+  commit: string | null;
+  rama: string | null;
+  /** true si habia cambios sin commitear al ejecutar. */
+  arbolSucio: boolean;
+  tipos: TipoDetectado[];
+  avisos: string[];
+  puntos: ResultadoPunto[];
+}
+
+export interface ResumenDeploy {
+  ok: number;
+  falla: number;
+  noVerificado: number;
+  noAplica: number;
+  total: number;
+}
+
+export function resumir(puntos: readonly ResultadoPunto[]): ResumenDeploy {
+  const cuenta = (e: EstadoPunto): number => puntos.filter((p) => p.estado === e).length;
+  return {
+    ok: cuenta('ok'),
+    falla: cuenta('falla'),
+    noVerificado: cuenta('no-verificado'),
+    noAplica: cuenta('no-aplica'),
+    total: puntos.length,
+  };
+}
+
+/** 1 si algun punto FALLA; NO VERIFICADO y NO APLICA no cuentan. */
+export function codigoSalida(puntos: readonly ResultadoPunto[]): 0 | 1 {
+  return puntos.some((p) => p.estado === 'falla') ? 1 : 0;
+}
+
+/**
+ * Invariante «ningun OK sin evidencia»: un OK sin evidencias se degrada a NO
+ * VERIFICADO, para que ni un fallo de una sonda lo deje pasar.
+ */
+export function sanearPunto(p: ResultadoPunto): ResultadoPunto {
+  if (p.estado === 'ok' && p.evidencias.length === 0) {
+    return {
+      ...p,
+      estado: 'no-verificado',
+      motivo: `la comprobacion no aporto evidencia de que este bien (${p.motivo})`,
+    };
+  }
+  return p;
+}
+
+const ETIQUETA_ESTADO: Record<EstadoPunto, string> = {
+  ok: 'OK',
+  falla: 'FALLA',
+  'no-verificado': 'NO VERIFICADO',
+  'no-aplica': 'NO APLICA',
+};
+
+export function etiquetaEstado(e: EstadoPunto): string {
+  return ETIQUETA_ESTADO[e];
+}
+
+/** Una evidencia en una linea: `fichero:linea (commit abc1234) descripcion [muestra]`. */
+export function textoEvidencia(e: Evidencia): string {
+  const donde =
+    e.fichero === undefined ? '' : e.linea === undefined ? `${e.fichero}: ` : `${e.fichero}:${e.linea}: `;
+  const commit = e.commit === undefined ? '' : ` (commit ${e.commit})`;
+  const muestra = e.muestra === undefined ? '' : ` [${e.muestra}]`;
+  return `${donde}${e.descripcion}${commit}${muestra}`;
+}
+
+export function textoResumen(r: ResumenDeploy): string {
+  const sinVerificar = `${r.noVerificado} de ${r.total} sin verificar`;
+  return (
+    `Resumen: ${r.ok} OK, ${r.falla} FALLA, ${r.noVerificado} NO VERIFICADO, ${r.noAplica} NO APLICA. ` +
+    `${sinVerificar}.`
+  );
+}
+
+function textoTipos(tipos: readonly TipoDetectado[]): string {
+  if (tipos.length === 0) return 'ninguno (sin ficheros marcadores: los puntos que dependen de un tipo salen NO APLICA)';
+  return tipos.map((t) => `${t.nombre} (${t.rutas.join(', ')})`).join('; ');
+}
+
+/** Maximo de evidencias que se listan por punto en la salida de texto. */
+const MAX_EVIDENCIAS_TEXTO = 12;
+
+export function formatearTexto(informe: InformeDeploy): string {
+  const r = resumir(informe.puntos);
+  const l: string[] = [];
+  l.push('taskctl doctor-deploy');
+  l.push(`Commit: ${informe.commit ?? '(sin commits)'}   Rama: ${informe.rama ?? '(desconocida)'}${informe.arbolSucio ? '   ARBOL SUCIO: lo comprobado puede no ser lo publicado' : ''}`);
+  l.push(`Tipos detectados: ${textoTipos(informe.tipos)}`);
+  for (const a of informe.avisos) l.push(`[AVISO] ${a}`);
+  l.push('');
+  for (const p of informe.puntos) {
+    const marca = `[${etiquetaEstado(p.estado)}]`;
+    l.push(`${marca} ${p.id} (${p.severidad}, ${p.metodo})${p.desactivado ? ' DESACTIVADO' : ''}: ${p.motivo}`);
+    if (p.estado === 'falla' || p.estado === 'ok') {
+      for (const e of p.evidencias.slice(0, MAX_EVIDENCIAS_TEXTO)) l.push(`    - ${textoEvidencia(e)}`);
+      if (p.evidencias.length > MAX_EVIDENCIAS_TEXTO) {
+        l.push(`    - ... y ${p.evidencias.length - MAX_EVIDENCIAS_TEXTO} mas (todas en --json)`);
+      }
+    }
+    if (p.estado === 'falla') l.push(`    Arreglo: ${p.arreglo}`);
+  }
+  l.push('');
+  l.push(textoResumen(r));
+  if (r.falla === 0 && r.noVerificado > 0) {
+    l.push(
+      `Sin FALLA no es «listo para publicar»: ${r.noVerificado} puntos no se han podido comprobar y siguen ` +
+        'pendientes (los de juicio, hasta que se revisen con criterio; los de herramienta, hasta instalarla).'
+    );
+  }
+  l.push(r.falla === 0 ? 'Salida 0.' : `Salida 1: ${r.falla} punto(s) FALLA.`);
+  return `${l.join('\n')}\n`;
+}
+
+/** Una sola linea de JSON; el contrato que extendera TASK-067. */
+export function formatearJson(informe: InformeDeploy): string {
+  const resumen = resumir(informe.puntos);
+  return `${JSON.stringify({ ...informe, resumen, codigo: codigoSalida(informe.puntos) })}\n`;
+}
+
+function celda(t: string): string {
+  return t.replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim();
+}
+
+/** Informe en Markdown para `--escribir`. */
+export function formatearInforme(informe: InformeDeploy): string {
+  const r = resumir(informe.puntos);
+  const l: string[] = [];
+  l.push('# Informe de doctor-deploy');
+  l.push('');
+  l.push(
+    'Informe de uso interno de las comprobaciones previas a publicar. Describe el commit indicado y ' +
+      'nada mas: no es una certificacion ni una auditoria de terceros.'
+  );
+  l.push('');
+  l.push(`- Fecha: ${informe.fecha}`);
+  l.push(`- Commit: ${informe.commit ?? '(sin commits)'}`);
+  l.push(`- Rama: ${informe.rama ?? '(desconocida)'}`);
+  l.push(
+    `- Arbol de trabajo: ${informe.arbolSucio ? 'SUCIO (habia cambios sin commitear: este informe puede no describir lo que se publica)' : 'limpio'}`
+  );
+  l.push(`- Tipos detectados: ${textoTipos(informe.tipos)}`);
+  l.push(`- ${textoResumen(r)}`);
+  l.push(`- Codigo de salida: ${codigoSalida(informe.puntos)}`);
+  l.push('');
+  if (informe.avisos.length > 0) {
+    l.push('## Avisos');
+    l.push('');
+    for (const a of informe.avisos) l.push(`- ${a}`);
+    l.push('');
+  }
+  l.push('## Puntos');
+  l.push('');
+  l.push('| Punto | Severidad | Metodo | Estado | Detalle |');
+  l.push('|---|---|---|---|---|');
+  for (const p of informe.puntos) {
+    l.push(
+      `| ${celda(p.id)} | ${p.severidad} | ${p.metodo} | ${etiquetaEstado(p.estado)} | ${celda(p.motivo)}${p.desactivado ? ' (desactivado)' : ''} |`
+    );
+  }
+  l.push('');
+  const conEvidencia = informe.puntos.filter((p) => p.estado === 'falla' || p.estado === 'ok');
+  if (conEvidencia.length > 0) {
+    l.push('## Evidencias');
+    l.push('');
+    for (const p of conEvidencia) {
+      l.push(`### ${p.id} - ${etiquetaEstado(p.estado)}`);
+      l.push('');
+      for (const e of p.evidencias) l.push(`- ${textoEvidencia(e)}`);
+      if (p.estado === 'falla') {
+        l.push('');
+        l.push(`Arreglo: ${p.arreglo}`);
+      }
+      l.push('');
+    }
+  }
+  return `${l.join('\n')}\n`;
+}
