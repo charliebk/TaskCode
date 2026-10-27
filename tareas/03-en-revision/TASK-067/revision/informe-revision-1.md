@@ -2,7 +2,7 @@
 
 - Commit revisado: 8291dcd415eac5a86d7159c78bb31c9a20f6198c
 - Revisor: code-quality-reviewer (agente revisor independiente a60963f95cb118fbe, general-purpose sonnet; clon propio en %LOCALAPPDATA%\pruebas-claude\taskcode\task-067-r1, ya borrado)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-067 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 El revisor propuso aprobada-con-correcciones (solo MENOR). La persona decidio corregir MEN-1
 (ampliar la regla del aviso a `tareas/`, que cambia su decision del plan) y, de paso, MEN-2..4;
