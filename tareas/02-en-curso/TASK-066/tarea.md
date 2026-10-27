@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-066-doctor-deploy-a-catalogo-generico-y-comp
 asignado_a: charlie.bk@gmail.com
@@ -42,6 +42,7 @@ Antes de lanzar o publicar una aplicacion hace falta comprobar punto por punto q
 |---|---|---|---|
 | 2026-10-27T14:54:55Z | plan | automatico | persona |
 | 2026-10-27T15:04:26Z | approve | automatico | persona |
+| 2026-10-27T15:04:26Z | start | automatico | persona |
 
 ## Coste
 
