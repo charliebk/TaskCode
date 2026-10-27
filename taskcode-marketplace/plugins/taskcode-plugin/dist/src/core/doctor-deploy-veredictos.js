@@ -35,7 +35,7 @@ export const MAX_MOTIVO = 300;
 /** Veredictos como mucho por fichero (hay unos 20 puntos de juicio). */
 export const MAX_VEREDICTOS = 200;
 export const ESTADOS_VEREDICTO = ['ok', 'falla', 'no-verificado'];
-const CAMPOS_VEREDICTO = ['punto', 'estado', 'commit', 'fichero', 'linea', 'motivo'];
+export const CAMPOS_VEREDICTO = ['punto', 'estado', 'commit', 'fichero', 'linea', 'motivo'];
 /**
  * Lee el JSON del agente: `{ "commit": "<sha>", "veredictos": [ {...} ] }`. El `commit` de la
  * raiz vale para los veredictos que no traen el suyo. Lanza `VeredictoFormatoError` si no es JSON

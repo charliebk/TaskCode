@@ -41,7 +41,7 @@ export const MAX_VEREDICTOS = 200;
 export const ESTADOS_VEREDICTO = ['ok', 'falla', 'no-verificado'] as const;
 export type EstadoVeredicto = (typeof ESTADOS_VEREDICTO)[number];
 
-const CAMPOS_VEREDICTO: readonly string[] = ['punto', 'estado', 'commit', 'fichero', 'linea', 'motivo'];
+export const CAMPOS_VEREDICTO: readonly string[] = ['punto', 'estado', 'commit', 'fichero', 'linea', 'motivo'];
 
 export interface Veredicto {
   punto: string;
