@@ -34,3 +34,4 @@ Completa doctor-deploy (TASK-066). Los puntos que no se pueden medir con certeza
 - [ ] Repetir --crear-tareas no duplica: un punto con tarea ya abierta reutiliza la existente y lo dice
 - [ ] finish de una tarea release avisa sin bloquear si no hay certificado de doctor-deploy del commit que se cierra o si tiene alguna FALLA critica
 - [ ] Ni la skill, ni el agente, ni el catalogo mencionan TaskCode ni sus rutas internas (lo comprueba el test de contenido expuesto); README y CHANGELOG al dia
+- [ ] Pendientes de TASK-066 (MEN-12 y MEN-13): gitignore-cubre-env revisa todas las carpetas de proyecto (o sale NO VERIFICADO diciendo cuantas faltan) con test de mas de 10 carpetas; y tests que maten los mutantes N8, N9, N12, N14 y N17 de informe-revision-3.md de TASK-066

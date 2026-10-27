@@ -844,7 +844,7 @@ aviso en release (B).
 
 - [x] TASK-066 — Doctor-deploy A: catalogo generico y comprobaciones
       deterministas — cerrada el 2026-10-27
-      *: catalogo de 43 puntos y
+      *`taskctl doctor-deploy [--json] [--escribir]`: catalogo de 43 puntos y
       15 tipos como datos, capa del proyecto con desactivar y silenciar por
       hallazgo, cuatro estados sin OK sin evidencia, seis sondas
       deterministas (secretos en arbol e historial, ficheros de secretos,
