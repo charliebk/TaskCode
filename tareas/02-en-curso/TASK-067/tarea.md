@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-067-doctor-deploy-b-puntos-de-juicio-tareas
 asignado_a: charlie.bk@gmail.com
@@ -42,6 +42,7 @@ Completa doctor-deploy (TASK-066). Los puntos que no se pueden medir con certeza
 |---|---|---|---|
 | 2026-10-27T19:36:38Z | plan | automatico | persona |
 | 2026-10-27T20:20:26Z | approve | automatico | persona |
+| 2026-10-27T20:20:46Z | start | automatico | persona |
 
 ## Coste
 
