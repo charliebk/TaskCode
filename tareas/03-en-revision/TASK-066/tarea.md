@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 592099
 tokens_implementacion: 30041734
-tokens_revision: 16976166
+tokens_revision: 20519454
 creado: 2026-10-27
 actualizado: 2026-10-27
 dependencias: []
@@ -57,3 +57,4 @@ Antes de lanzar o publicar una aplicacion hace falta comprobar punto por punto q
 | 2026-10-27T16:51:05Z | implementacion | agente:dif:ad57ecf0ea89d13e7 | 84 | 694326 | 12463021 | 50759 | 6 | 13208190 |
 | 2026-10-27T17:42:38Z | revision | agente:a9f73ad99de3bbdaa | 98 | 163288 | 6469404 | 38762 | 5 | 6671552 |
 | 2026-10-27T18:00:23Z | implementacion | agente:dif:ad57ecf0ea89d13e7 | 22 | 747671 | 2919085 | 16093 | 1 | 3682871 |
+| 2026-10-27T19:31:52Z | revision | agente:ac5a86ab0df1396eb | 60 | 515682 | 3009284 | 18262 | 2 | 3543288 |
