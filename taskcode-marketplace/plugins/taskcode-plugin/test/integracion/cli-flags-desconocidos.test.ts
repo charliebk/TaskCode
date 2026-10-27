@@ -1,7 +1,7 @@
 /**
  * TASK-047 (auditoria D4): un flag que el comando no conoce aborta en vez de
  * ignorarse en silencio. Unitarios de rechazarFlagsDesconocidos y, contra
- * repos Git temporales reales, los 13 comandos por main().
+ * repos Git temporales reales, los 14 comandos por main().
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -154,6 +154,7 @@ const COMANDOS: ReadonlyArray<{ cmd: string; args: string[] }> = [
   { cmd: 'pausa', args: ['TASK-001'] },
   { cmd: 'siguiente', args: ['TASK-001'] },
   { cmd: 'cadena', args: ['abrir', 'TASK-001'] },
+  { cmd: 'doctor-deploy', args: [] },
 ];
 
 for (const { cmd, args } of COMANDOS) {

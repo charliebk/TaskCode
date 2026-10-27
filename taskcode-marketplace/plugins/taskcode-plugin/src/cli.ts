@@ -19,6 +19,8 @@ import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
 import { runDoctorCommand, DoctorCommandError } from './commands/doctor.js';
+import { runDoctorDeployCommand, DoctorDeployCommandError } from './commands/doctor-deploy.js';
+import { DoctorDeployCatalogoError } from './core/doctor-deploy-catalogo.js';
 import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
 import { runRegistrarCosteCommand, RegistrarCosteCommandError } from './commands/registrar-coste.js';
 import {
@@ -82,6 +84,7 @@ Uso:
   taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl doctor [--json]
+  taskctl doctor-deploy [--json] [--escribir]
   taskctl pausa TASK-NNN [--push]
   taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
                           (--agente <id>... | --tokens N) [--push]
@@ -93,7 +96,7 @@ Uso:
   taskctl abort-merge
 
 Comandos: new, import, board, metricas, start, plan, approve, review, codex-review, veredicto,
-finish, siguiente, doctor, pausa, registrar-coste, cadena.
+finish, siguiente, doctor, doctor-deploy, pausa, registrar-coste, cadena.
 metricas saca, por tarea, cuanto duro cada fase (diseno, curso, revision) y
 cuantas rondas de revision hubo, con sus hallazgos CRITICO/IMPORTANTE/MENOR y su
 origen (cada uno una vez por tarea: revisor + ID; un informe sin tabla es sin dato,
@@ -126,6 +129,14 @@ ramas develop y main/master, origin, workspace, .taskcode/config.yml, coherencia
 config pide merge request o declara plataforma, gh/glab y su sesion). Una linea por comprobacion
 (ok, aviso, error u omitida) y, en cada aviso o error, el comando que lo arregla; sale con 1 si hay
 algun error. Solo lee. --json da lo mismo en una linea de JSON.
+doctor-deploy comprueba, antes de publicar, que la aplicacion no deja agujeros conocidos: detecta el tipo (Node,
+Rust, Python, Java, .NET, Go, PHP, Ruby, Docker, frontend) y recorre un catalogo de puntos. Cada punto sale OK
+(con evidencia), FALLA (con evidencia y arreglo), NO VERIFICADO (con lo que falta) o NO APLICA (con el motivo).
+Los puntos de juicio salen NO VERIFICADO; las comprobaciones deterministas son secretos en el arbol y en el
+historial, ficheros de secretos versionados, .gitignore, lockfile y la auditoria de dependencias si la
+herramienta esta instalada. Sale con 1 si algun punto FALLA (NO VERIFICADO no cambia el codigo, pero el resumen
+lo cuenta). El valor de un secreto nunca se muestra. --json da una linea de JSON; --escribir guarda el informe
+en docs/doctor-deploy/<fecha>.md (sin commitear). Un proyecto ajusta el catalogo en .taskcode/doctor-deploy.yml.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
@@ -704,6 +715,24 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
       return r.codigo;
     } catch (e) {
       if (e instanceof DoctorCommandError) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'doctor-deploy') {
+    try {
+      const r = runDoctorDeployCommand(argv.slice(1), { repoCwd: process.cwd() });
+      process.stdout.write(r.salida);
+      if (r.mensajeEscritura !== '') {
+        // Con --json, stdout es SOLO el JSON: el aviso va a stderr.
+        (r.json ? process.stderr : process.stdout).write(r.mensajeEscritura);
+      }
+      return r.codigo;
+    } catch (e) {
+      if (e instanceof DoctorDeployCommandError || e instanceof DoctorDeployCatalogoError) {
         printCliError(e);
         return 1;
       }
