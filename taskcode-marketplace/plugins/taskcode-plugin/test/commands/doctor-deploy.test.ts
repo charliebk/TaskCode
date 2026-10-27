@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -24,7 +24,7 @@ import {
 } from '../../src/commands/doctor-deploy.js';
 import { DoctorDeployCatalogoError, cargarCatalogoDeploy } from '../../src/core/doctor-deploy-catalogo.js';
 import type { InformeDeploy, ResultadoPunto } from '../../src/core/doctor-deploy.js';
-import { motivoFicheroSecreto } from '../../src/fs/sondas-deploy.js';
+import { motivoFicheroSecreto, requirementsFijado } from '../../src/fs/sondas-deploy.js';
 
 const TOTAL_PUNTOS = cargarCatalogoDeploy().puntos.length;
 
@@ -244,21 +244,23 @@ test('tipos: Java, .NET, Go, PHP, Ruby, Docker y frontend se detectan por sus ma
   );
 });
 
-test('node_modules, vendor, target, dist y build no se escanean ni detectan', async () => {
+test('node_modules, vendor, target, dist y build no se detectan como tipos (ni se escanean si no estan versionados)', async () => {
   await conRepo(
     {
       ...NODE,
-      'node_modules/dep/package.json': '{}\n',
-      'node_modules/dep/leak.js': `const k = "${STRIPE}";\n`,
+      '.gitignore': 'node_modules/\ndist/\ntarget/\n.env\n',
       'vendor/x/Gemfile': '\n',
-      'dist/app.js': `const k = "${AWS}";\n`,
-      'target/debug/x.env': `K=${STRIPE}\n`,
     },
     async (raiz, opciones) => {
+      await escribir(raiz, {
+        'node_modules/dep/package.json': '{}\n',
+        'node_modules/dep/leak.js': `const k = "${STRIPE}";\n`,
+        'dist/app.js': `const k = "${AWS}";\n`,
+        'target/debug/x.env': `K=${STRIPE}\n`,
+      });
       const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
       assert.equal(punto(informe, 'secretos-en-arbol').estado, 'ok');
       assert.ok(!informe.tipos.some((t) => t.id === 'ruby'));
-      // Tampoco en el historial.
       assert.equal(punto(informe, 'secretos-en-historial').estado, 'ok');
     }
   );
@@ -585,7 +587,7 @@ test('capa: silenciar un hallazgo concreto lo saca de la cuenta, con su motivo e
       '.taskcode/doctor-deploy.yml':
         `silenciar_1_patron: stripe-live\nsilenciar_1_fichero: viejo/prod.env\nsilenciar_1_commit: "${hash.slice(0, 10)}"\n` +
         'silenciar_1_motivo: Clave rotada el 2026-10-01\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n' +
-        'silenciar_2_patron: stripe-live\nsilenciar_2_fichero: no/existe.env\nsilenciar_2_motivo: Por si acaso\nsilenciar_2_quien: carlos\nsilenciar_2_fecha: 2026-10-27\n',
+        'silenciar_2_patron: stripe-live\nsilenciar_2_fichero: no/existe.env\nsilenciar_2_commit: "0000000"\nsilenciar_2_motivo: Por si acaso\nsilenciar_2_quien: carlos\nsilenciar_2_fecha: 2026-10-27\n',
     });
     const r = ejecutar(raiz, opciones);
     const con = JSON.parse(r.salida) as InformeDeploy;
@@ -603,8 +605,8 @@ test('capa: silenciar un hallazgo concreto lo saca de la cuenta, con su motivo e
     // Silenciando tambien el segundo, el punto queda en OK y la salida es 0.
     await writeFile(
       path.join(raiz, '.taskcode/doctor-deploy.yml'),
-      'silenciar_1_patron: stripe-live\nsilenciar_1_fichero: viejo/prod.env\nsilenciar_1_motivo: Rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n' +
-        'silenciar_2_patron: stripe-live\nsilenciar_2_fichero: nuevo/prod.env\nsilenciar_2_motivo: Rotada\nsilenciar_2_quien: carlos\nsilenciar_2_fecha: 2026-10-27\n',
+      'silenciar_1_patron: stripe-live\nsilenciar_1_fichero: viejo/prod.env\nsilenciar_1_commit: "' + hash + '"\nsilenciar_1_motivo: Rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n' +
+        'silenciar_2_patron: stripe-live\nsilenciar_2_fichero: nuevo/prod.env\nsilenciar_2_commit: "' + hash + '"\nsilenciar_2_motivo: Rotada\nsilenciar_2_quien: carlos\nsilenciar_2_fecha: 2026-10-27\n',
       'utf8'
     );
     const todo = ejecutar(raiz, opciones);
@@ -723,13 +725,12 @@ test('--escribir: informe con commit, rama, tipos y una fila por punto; sin comm
     assert.equal(git(['rev-list', '--count', 'HEAD'], raiz), commitsAntes);
     assert.equal(git(['status', '--porcelain'], raiz), '?? docs/');
 
-    // Segunda ejecucion el mismo dia: otro fichero, el primero intacto; ahora el arbol esta sucio y lo dice.
+    // Segunda ejecucion el mismo dia: otro fichero y el primero intacto.
     const r2 = ejecutar(raiz, opciones, ['--escribir'], dia);
     assert.equal(path.basename(r2.rutaInforme as string), '2026-10-27-2.md');
     assert.equal(await readFile(r1.rutaInforme as string, 'utf8'), md);
     const md2 = await readFile(r2.rutaInforme as string, 'utf8');
-    assert.match(md2, /- Arbol de trabajo: SUCIO/);
-    assert.ok(r2.informe.arbolSucio);
+    assert.match(md2, /- Arbol de trabajo: limpio/, 'el informe anterior no ensucia el siguiente (MEN-3)');
 
     // Sin restos temporales.
     const restos = (await readdir(path.join(raiz, 'docs', 'doctor-deploy'))).filter((f) => !f.endsWith('.md'));
@@ -767,4 +768,290 @@ test('herramientas ausentes con PATH controlado: NO VERIFICADO diciendo cual fal
       assert.match(punto(informe, 'secretos-en-historial').evidencias.map((e) => e.descripcion).join('\n'), /gitleaks no esta instalado/);
     }
   );
+});
+
+// ---------------------------------------------------------------------
+// Revision por pares, ronda 1 (IMP-1 a IMP-6 y MENOR)
+// ---------------------------------------------------------------------
+
+function utf16le(texto: string): Buffer {
+  return Buffer.from(`﻿${texto}`, 'utf16le');
+}
+
+function utf16be(texto: string): Buffer {
+  const sinBom = Buffer.from(texto, 'utf16le').swap16();
+  return Buffer.concat([Buffer.from([0xfe, 0xff]), sinBom]);
+}
+
+/** Escribe ficheros binarios (Buffer) y los versiona a la fuerza. */
+async function escribirBin(raiz: string, rel: string, datos: Buffer): Promise<void> {
+  const abs = path.join(raiz, rel);
+  await mkdir(path.dirname(abs), { recursive: true });
+  await writeFile(abs, datos);
+}
+
+const huellaDeEvidencia = (p: ResultadoPunto): string => {
+  const m = /huella ([0-9a-f]{12})/.exec(p.evidencias.map((e) => e.descripcion).join('\n'));
+  assert.ok(m !== null, 'la evidencia no lleva la huella');
+  return m[1] as string;
+};
+
+test('IMP-1: .env y claves versionados bajo build/, dist/, vendor/, target/ y node_modules/ son FALLA', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    for (const rel of ['build/.env', 'vendor/.env', 'dist/id_rsa', 'target/app.p12', 'node_modules/x/.env']) {
+      await escribir(raiz, { [rel]: 'x\n' });
+    }
+    git(['add', '-f', '.'], raiz);
+    await commit(raiz, 'ficheros de secretos en carpetas de build');
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'ficheros-secretos-versionados');
+    assert.equal(p.estado, 'falla');
+    assert.deepEqual(p.evidencias.map((e) => e.fichero).sort(), ['build/.env', 'dist/id_rsa', 'node_modules/x/.env', 'target/app.p12', 'vendor/.env']);
+  });
+});
+
+test('IMP-2: una clave en un fichero VERSIONADO de build/, dist/, vendor/ o target/ falla en el arbol y en el historial', async () => {
+  await conRepo({ ...NODE, 'src/c.js': `const k = "${STRIPE}";\n` }, async (raiz, opciones) => {
+    git(['mv', 'src/c.js', 'src/d.js'], raiz);
+    await commit(raiz, 'renombra');
+    await mkdir(path.join(raiz, 'build'), { recursive: true });
+    git(['mv', 'src/d.js', 'build/c.js'], raiz); // el blob ahora vive en build/ (su ruta mas reciente)
+    await commit(raiz, 'a build');
+    await escribir(raiz, { 'dist/bundle.js': `x="${AWS}";\n`, 'vendor/v.env': `K=${STRIPE}x\n`, 'target/t.txt': `K=${STRIPE}y\n` });
+    git(['add', '-f', '.'], raiz);
+    await commit(raiz, 'bundles versionados');
+    const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+    const ficheros = (id: string): string[] => punto(informe, id).evidencias.filter((e) => e.muestra !== undefined).map((e) => e.fichero as string);
+    assert.equal(punto(informe, 'secretos-en-arbol').estado, 'falla');
+    assert.ok(ficheros('secretos-en-arbol').includes('build/c.js'));
+    assert.ok(ficheros('secretos-en-arbol').includes('dist/bundle.js'));
+    assert.equal(punto(informe, 'secretos-en-historial').estado, 'falla');
+    assert.ok(ficheros('secretos-en-historial').includes('src/c.js'), 'el historial cita la ruta por la que entro');
+    assert.ok(ficheros('secretos-en-historial').includes('dist/bundle.js'));
+    // Y dice cuantos versionados en carpetas excluidas se incluyeron.
+    assert.match(punto(informe, 'secretos-en-arbol').evidencias.map((e) => e.descripcion).join('\n'), /[1-9]\d* versionados dentro de node_modules, vendor, target, dist o build incluidos/);
+  });
+});
+
+test('IMP-2: lo que NO esta versionado en node_modules/dist se sigue sin escanear', async () => {
+  await conRepo({ ...NODE, '.gitignore': 'node_modules/\ndist/\n.env\n' }, async (raiz, opciones) => {
+    await escribir(raiz, { 'node_modules/dep/leak.js': `k="${STRIPE}"\n`, 'dist/app.js': `k="${AWS}"\n` });
+    const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+    assert.equal(punto(informe, 'secretos-en-arbol').estado, 'ok');
+  });
+});
+
+for (const [nombre, codificar] of [['UTF-16LE con BOM', utf16le], ['UTF-16BE con BOM', utf16be]] as const) {
+  test(`IMP-3: un fichero ${nombre} se decodifica y se escanea (arbol e historial)`, async () => {
+    await conRepo(NODE, async (raiz, opciones) => {
+      await escribirBin(raiz, 'cfg.txt', codificar(`# config\nSTRIPE=${STRIPE}\n`));
+      await commit(raiz, 'config en utf-16');
+      const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+      for (const id of ['secretos-en-arbol', 'secretos-en-historial']) {
+        const p = punto(informe, id);
+        assert.equal(p.estado, 'falla', `${id}: ${p.motivo}`);
+        assert.equal(p.evidencias[0]?.fichero, 'cfg.txt');
+        assert.equal(p.evidencias[0]?.linea, 2);
+      }
+    });
+  });
+}
+
+test('IMP-3: los binarios saltados se cuentan siempre, en el arbol y en el historial', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    await escribirBin(raiz, 'logo.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 1, 2, 3]));
+    await commit(raiz, 'imagen');
+    const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+    for (const id of ['secretos-en-arbol', 'secretos-en-historial']) {
+      const p = punto(informe, id);
+      assert.equal(p.estado, 'ok', id);
+      assert.match(p.evidencias.map((e) => e.descripcion).join('\n'), /1 binarios saltados/, id);
+    }
+  });
+});
+
+test('IMP-4: un silencio de arbol va atado a la huella del valor: otra clave nueva en el mismo fichero sigue fallando', async () => {
+  await conRepo({ ...NODE, 'config/prod.env.js': `module.exports = { k: "${STRIPE}" };\n` }, async (raiz, opciones) => {
+    const huella = huellaDeEvidencia(punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-arbol'));
+    await escribir(raiz, {
+      '.taskcode/doctor-deploy.yml': `silenciar_1_patron: stripe-live\nsilenciar_1_fichero: config/prod.env.js\nsilenciar_1_huella: "${huella}"\nsilenciar_1_motivo: Clave de prueba\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n`,
+    });
+    const silenciado = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-arbol');
+    assert.equal(silenciado.estado, 'ok');
+    assert.match(silenciado.evidencias.map((e) => e.descripcion).join('\n'), /1 hallazgos silenciados/);
+    assert.ok(silenciado.evidencias.some((e) => e.descripcion.startsWith('SILENCIADO')));
+
+    // Una clave NUEVA del mismo patron en el MISMO fichero no queda tapada.
+    await escribir(raiz, { 'config/prod.env.js': `module.exports = { k: "${STRIPE}", otra: "sk_live_Nueva0Clave1Dist" };\n` });
+    const nueva = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-arbol');
+    assert.equal(nueva.estado, 'falla');
+    assert.equal(nueva.evidencias.filter((e) => e.muestra !== undefined).length, 1);
+    assert.notEqual(huellaDeEvidencia(nueva), huella);
+  });
+});
+
+test('IMP-4: sin commit, un silencio de arbol no tapa un hallazgo del historial; con commit y huella, si', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    await escribir(raiz, { 'viejo.env': `K=${STRIPE}\n` });
+    git(['add', '-f', '.'], raiz);
+    const hash = await commit(raiz, 'env');
+    git(['rm', '-q', 'viejo.env'], raiz);
+    await commit(raiz, 'quita');
+    const h = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial');
+    assert.equal(h.estado, 'falla');
+    const huella = huellaDeEvidencia(h);
+    const base = `silenciar_1_patron: stripe-live\nsilenciar_1_fichero: viejo.env\nsilenciar_1_huella: "${huella}"\nsilenciar_1_motivo: Rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n`;
+    await escribir(raiz, { '.taskcode/doctor-deploy.yml': base });
+    assert.equal(punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial').estado, 'falla');
+    await escribir(raiz, { '.taskcode/doctor-deploy.yml': `${base}silenciar_1_commit: "${hash}"\n` });
+    const ok = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial');
+    assert.equal(ok.estado, 'ok');
+    assert.match(ok.evidencias.map((e) => e.descripcion).join('\n'), /1 hallazgos silenciados/);
+    // Con la huella de otro valor, no tapa.
+    await escribir(raiz, { '.taskcode/doctor-deploy.yml': `${base.replace(huella, '000000000000')}silenciar_1_commit: "${hash}"\n` });
+    assert.equal(punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial').estado, 'falla');
+  });
+});
+
+test('IMP-5: una regla negada (!.env) que gana deja .env sin ignorar: FALLA', async () => {
+  await conRepo({ ...NODE, '.gitignore': 'node_modules/\n.env\n!.env\n' }, async (raiz, opciones) => {
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'gitignore-cubre-env');
+    assert.equal(p.estado, 'falla');
+    assert.match(p.evidencias[0]?.descripcion ?? '', /REINCLUYE/);
+    assert.equal(p.evidencias[0]?.linea, 3);
+  });
+});
+
+test('IMP-6 (M8): una regla que solo esta en .git/info/exclude no cuenta como cubierta', async () => {
+  await conRepo({ ...NODE, '.gitignore': 'node_modules/\n' }, async (raiz, opciones) => {
+    await appendFile(path.join(raiz, '.git', 'info', 'exclude'), '.env\n');
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'gitignore-cubre-env');
+    assert.equal(p.estado, 'falla');
+    assert.match(p.motivo, /regla local que no se versiona/);
+  });
+});
+
+test('IMP-6 (M8): una regla que solo esta en el excludesFile global no cuenta como cubierta', async () => {
+  await conRepo({ ...NODE, '.gitignore': 'node_modules/\n' }, async (raiz, opciones) => {
+    const global = path.join(path.dirname(raiz), `${path.basename(raiz)}-global-ignore`);
+    await writeFile(global, '.env\n', 'utf8');
+    try {
+      git(['config', 'core.excludesFile', global], raiz);
+      const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'gitignore-cubre-env');
+      assert.equal(p.estado, 'falla');
+      assert.match(p.motivo, /regla local que no se versiona/);
+    } finally {
+      await rm(global, { force: true });
+    }
+  });
+});
+
+test('IMP-6 (M12): si git rev-list falla, el historial es NO VERIFICADO (nunca OK ni excepcion)', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    const arbol = git(['rev-parse', 'HEAD^{tree}'], raiz);
+    const objeto = path.join(raiz, '.git', 'objects', arbol.slice(0, 2), arbol.slice(2));
+    await chmod(objeto, 0o666);
+    await rm(objeto, { force: true });
+    const r = ejecutar(raiz, opciones);
+    const p = punto(JSON.parse(r.salida) as InformeDeploy, 'secretos-en-historial');
+    assert.equal(p.estado, 'no-verificado');
+    assert.match(p.motivo, /rev-list --all --objects no termino/);
+  });
+});
+
+test('IMP-6 (M16): un secreto solo en una rama distinta de HEAD, o solo en una etiqueta, se detecta', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    git(['checkout', '-q', '-b', 'otra'], raiz);
+    await escribir(raiz, { 'rama.env': `K=${STRIPE}\n` });
+    git(['add', '-f', '.'], raiz);
+    const enRama = await commit(raiz, 'en la rama');
+    git(['checkout', '-q', 'main'], raiz);
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial');
+    assert.equal(p.estado, 'falla');
+    assert.equal(p.evidencias.find((e) => e.muestra !== undefined)?.commit, enRama);
+    assert.equal(punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-arbol').estado, 'ok');
+  });
+  await conRepo(NODE, async (raiz, opciones) => {
+    git(['checkout', '-q', '-b', 'temporal'], raiz);
+    await escribir(raiz, { 'etiqueta.env': `K=${STRIPE}\n` });
+    git(['add', '-f', '.'], raiz);
+    const enTag = await commit(raiz, 'solo en la etiqueta');
+    git(['tag', 'v1'], raiz);
+    git(['checkout', '-q', 'main'], raiz);
+    git(['branch', '-D', 'temporal'], raiz);
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial');
+    assert.equal(p.estado, 'falla');
+    assert.equal(p.evidencias.find((e) => e.muestra !== undefined)?.commit, enTag);
+  });
+});
+
+test('MEN-1: un fichero de texto mayor que el limite deja el punto NO VERIFICADO (arbol e historial); un binario grande no', async () => {
+  await conRepo({ ...NODE, 'bundle.js': `${'a'.repeat(400)}\n` }, async (raiz, opciones) => {
+    const informe = JSON.parse(ejecutar(raiz, { ...opciones, maxBytesFichero: 100 }).salida) as InformeDeploy;
+    for (const id of ['secretos-en-arbol', 'secretos-en-historial']) {
+      const p = punto(informe, id);
+      assert.equal(p.estado, 'no-verificado', id);
+      assert.match(p.motivo, /mayores de/, id);
+    }
+    // Con el limite por defecto, OK.
+    assert.equal(punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-arbol').estado, 'ok');
+  });
+  await conRepo({ ...NODE }, async (raiz, opciones) => {
+    await escribirBin(raiz, 'big.bin', Buffer.concat([Buffer.from([0, 1, 2]), Buffer.alloc(400, 7)]));
+    await commit(raiz, 'binario grande');
+    const arbol = punto(JSON.parse(ejecutar(raiz, { ...opciones, maxBytesFichero: 100 }).salida) as InformeDeploy, 'secretos-en-arbol');
+    assert.equal(arbol.estado, 'ok');
+    assert.match(arbol.evidencias.map((e) => e.descripcion).join('\n'), /1 binarios saltados/);
+  });
+});
+
+test('MEN-2: una ruta no ASCII en el historial sale tal cual y se puede silenciar por su nombre', async () => {
+  const nombre = 'contraseña.js';
+  await conRepo(NODE, async (raiz, opciones) => {
+    await escribir(raiz, { [nombre]: `k="${STRIPE}"\n` });
+    const hash = await commit(raiz, 'con enie');
+    git(['rm', '-q', nombre], raiz);
+    await commit(raiz, 'quita');
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial');
+    assert.equal(p.estado, 'falla');
+    assert.equal(p.evidencias.find((e) => e.muestra !== undefined)?.fichero, nombre);
+    await escribir(raiz, {
+      '.taskcode/doctor-deploy.yml': `silenciar_1_patron: stripe-live\nsilenciar_1_fichero: ${nombre}\nsilenciar_1_commit: "${hash}"\nsilenciar_1_motivo: Rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n`,
+    });
+    assert.equal(punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-historial').estado, 'ok');
+  });
+});
+
+test('MEN-3: los informes de --escribir no ensucian el arbol del siguiente informe; otro fichero sin commitear si', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    const dia = new Date(2026, 9, 27, 12, 0, 0);
+    ejecutar(raiz, opciones, ['--escribir'], dia);
+    const r2 = ejecutar(raiz, opciones, ['--escribir'], dia);
+    assert.equal(r2.informe.arbolSucio, false);
+    assert.match(await readFile(r2.rutaInforme as string, 'utf8'), /- Arbol de trabajo: limpio/);
+    await escribir(raiz, { 'otro.txt': 'x\n' });
+    assert.equal(ejecutar(raiz, opciones).informe.arbolSucio, true);
+  });
+});
+
+test('MEN-4: un requirements.txt sin versiones fijadas con == no cuenta como lockfile', async () => {
+  await conRepo({ ...PYTHON, 'requirements.txt': 'flask>=3.0\nrequests\n' }, async (raiz, opciones) => {
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'lockfile-versionado');
+    assert.equal(p.estado, 'falla');
+    assert.match(p.evidencias[0]?.descripcion ?? '', /todo fijado con ==/);
+  });
+  assert.equal(requirementsFijado('# deps\nflask==3.0.0\n-r otro.txt\nrequests==2.31.0 \\\n'), true);
+  assert.equal(requirementsFijado('flask==3.0.0\nrequests\n'), false);
+  assert.equal(requirementsFijado('# solo comentarios\n'), false);
+});
+
+test('MEN-5: si no se puede escribir el informe, el analisis se imprime igualmente y se avisa', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    await mkdir(path.join(raiz, 'docs'), { recursive: true });
+    await writeFile(path.join(raiz, 'docs', 'doctor-deploy'), 'soy un fichero\n', 'utf8');
+    const r = ejecutar(raiz, opciones, ['--json', '--escribir']);
+    assert.equal(r.rutaInforme, null);
+    assert.match(r.mensajeEscritura, /\[AVISO\] No se pudo escribir el informe/);
+    assert.equal(JSON.parse(r.salida).puntos.length, TOTAL_PUNTOS);
+    assert.equal(r.codigo, 0);
+  });
 });

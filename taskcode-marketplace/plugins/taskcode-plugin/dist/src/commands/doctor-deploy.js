@@ -172,6 +172,8 @@ export function runDoctorDeployCommand(argv, deps) {
         cwd: raiz,
         presentes: archivos.presentes,
         versionados: archivos.versionados,
+        versionadosTodos: archivos.versionadosTodos,
+        paraEscanear: archivos.paraEscanear,
         tipos,
         silencios: catalogo.silencios,
         silenciosUsados: new Set(),
@@ -193,7 +195,9 @@ export function runDoctorDeployCommand(argv, deps) {
                 'ya no hace falta, o el patron o la ruta no son los que informa el punto.');
         }
     }
-    const estado = gitTexto(['status', '--porcelain'], raiz, { timeoutMs: 30_000 });
+    // Los informes de --escribir no cuentan como «sucio»: dejan el arbol sin trackear a proposito
+    // y una segunda ejecucion se marcaria sucia solo por el informe anterior.
+    const estado = gitTexto(['status', '--porcelain', '--', '.', ':(exclude)docs/doctor-deploy'], raiz, { timeoutMs: 30_000 });
     const commit = gitTexto(['rev-parse', '--verify', '--quiet', 'HEAD'], raiz, { timeoutMs: 15_000 });
     const rama = gitTexto(['symbolic-ref', '--short', '-q', 'HEAD'], raiz, { timeoutMs: 15_000 });
     if (estado === null)
@@ -215,12 +219,21 @@ export function runDoctorDeployCommand(argv, deps) {
     let rutaInforme = null;
     let mensajeEscritura = '';
     if (escribir) {
-        const destino = escribirInforme(raiz, fechaLocal(ahora), salidaSegura(formatearInforme(informe)));
-        rutaInforme = destino;
-        const rel = path.relative(raiz, destino).replace(/\\/g, '/');
-        mensajeEscritura =
-            `Informe escrito en ${rel}${informe.arbolSucio ? ' (el arbol estaba sucio: no describe un commit limpio)' : ''}. ` +
-                'No se ha commiteado: revisalo y commitealo tu.\n';
+        try {
+            const destino = escribirInforme(raiz, fechaLocal(ahora), salidaSegura(formatearInforme(informe)));
+            rutaInforme = destino;
+            const rel = path.relative(raiz, destino).replace(/\\/g, '/');
+            mensajeEscritura =
+                `Informe escrito en ${rel}${informe.arbolSucio ? ' (el arbol estaba sucio: no describe un commit limpio)' : ''}. ` +
+                    'No se ha commiteado: revisalo y commitealo tu.\n';
+        }
+        catch (e) {
+            // El analisis ya esta hecho: se imprime igualmente y se avisa de que el informe no se guardo.
+            const msg = e instanceof Error ? e.message : String(e);
+            mensajeEscritura =
+                salidaSegura(`[AVISO] No se pudo escribir el informe en ${CARPETA_INFORMES}: ${msg.replace(/\s+/g, ' ')}. `) +
+                    'El analisis de arriba es completo; arregla la ruta y repite con --escribir.\n';
+        }
     }
     return { informe, codigo, salida, json, rutaInforme, mensajeEscritura };
 }

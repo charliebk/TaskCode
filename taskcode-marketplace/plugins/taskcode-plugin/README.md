@@ -628,10 +628,15 @@ punto_1_descripcion: Los logs no llevan datos personales de clientes
 
 # Silenciar UN hallazgo concreto (un secreto ya rotado, un falso positivo).
 # patron: el que informa el punto (stripe-live, aws-access-key, fichero-secreto...).
-# commit es opcional; si es solo dígitos, ponlo entre comillas.
+# Un silencio es POR HALLAZGO: un hallazgo del historial se silencia con su commit
+# (silenciar_N_commit); uno del árbol, con la huella de su valor (silenciar_N_huella),
+# que sale en la evidencia ("huella ab12cd34ef56") y no revela la clave. Sin commit ni
+# huella aborta (taparía también claves nuevas del mismo fichero); la huella es opcional
+# con commit. Si commit o huella son solo dígitos, ponlos entre comillas.
 silenciar_1_patron: stripe-live
 silenciar_1_fichero: config/prod.env
 silenciar_1_commit: "ab12cd34"
+silenciar_1_huella: "ab12cd34ef56"
 silenciar_1_motivo: Clave rotada el 2026-10-01
 silenciar_1_quien: carlos
 silenciar_1_fecha: 2026-10-27
@@ -640,7 +645,17 @@ silenciar_1_fecha: 2026-10-27
 Un `id` desconocido en `desactivar_N_id` avisa y se ignora; un `id` repetido (con
 el catálogo del plugin o consigo mismo) aborta, igual que desactivar sin motivo.
 Un silencio que no coincide con ningún hallazgo avisa, y el hallazgo silenciado
-sigue apareciendo en la evidencia con su motivo, quién y cuándo.
+sigue apareciendo en la evidencia con su motivo, quién y cuándo, y cada punto de
+secretos dice «N hallazgos silenciados».
+
+Cobertura de los escaneos de claves: se leen todos los ficheros versionados (también
+los que están en `build`, `dist`, `vendor`, `target` o `node_modules`) y los sin
+versionar que no están ignorados fuera de esas carpetas; en el historial, todos los
+blobs, sea cual sea su ruta. Un fichero UTF-16 con BOM se decodifica; los binarios
+saltados se cuentan siempre. Un fichero de texto mayor de 1 MiB no se lee y deja el
+punto en NO VERIFICADO (un binario grande, no). Un `requirements.txt` solo cuenta
+como lockfile si fija todo con `==`, y una regla negada (`!.env`) en el `.gitignore`
+es FALLA.
 
 `taskctl metricas [--heuristica]` (solo lectura) saca una fila por tarea
 con la duración de calendario de cada fase (diseño = plan→start, curso =

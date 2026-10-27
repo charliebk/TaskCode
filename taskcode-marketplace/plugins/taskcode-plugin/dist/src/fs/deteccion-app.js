@@ -21,7 +21,8 @@ export function listarArchivos(cwd) {
     const sinExcluidos = (xs) => xs.filter((r) => !estaExcluido(r));
     const v = sinExcluidos(versionados);
     const presentes = [...new Set([...v, ...sinExcluidos(otros)])];
-    return { presentes, versionados: v };
+    const paraEscanear = [...new Set([...versionados, ...sinExcluidos(otros)])];
+    return { presentes, versionados: v, versionadosTodos: versionados, paraEscanear };
 }
 function coincideMarcador(ruta, marcador) {
     const base = ruta.slice(ruta.lastIndexOf('/') + 1);

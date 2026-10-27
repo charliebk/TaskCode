@@ -12,7 +12,7 @@
  *   enmascarada (`buscarSecretos` ya no devuelve el valor crudo).
  * - Se excluyen node_modules, vendor, target, dist y build.
  */
-import { readFileSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { closeSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buscarSecretos, IDS_PATRON } from '../core/secretos.js';
@@ -55,6 +55,10 @@ export interface ContextoDeploy {
   /** Versionados mas sin versionar no ignorados (sin carpetas excluidas). */
   presentes: string[];
   versionados: string[];
+  /** git ls-files completo, sin excluir carpetas. */
+  versionadosTodos: string[];
+  /** Lo que se escanea en busca de claves (ver ArchivosProyecto). */
+  paraEscanear: string[];
   tipos: TipoDetectado[];
   silencios: Silencio[];
   /** `numero` de los silencios que taparon algun hallazgo. */
@@ -77,10 +81,54 @@ function esBinario(b: Buffer): boolean {
   return false;
 }
 
-function buscarSilencio(ctx: ContextoDeploy, patron: string, fichero: string, commit: string | null): Silencio | null {
+/**
+ * Texto del contenido, o null si es binario. Un UTF-16 con BOM (el `>` de
+ * PowerShell 5.1 lo escribe asi) lleva NUL pero es texto: se decodifica.
+ */
+function decodificar(b: Buffer): string | null {
+  if (b.length >= 2 && b[0] === 0xff && b[1] === 0xfe) return b.subarray(2).toString('utf16le');
+  if (b.length >= 2 && b[0] === 0xfe && b[1] === 0xff) {
+    const par = b.subarray(2, 2 + ((b.length - 2) & ~1));
+    return Buffer.from(par).swap16().toString('utf16le');
+  }
+  if (esBinario(b)) return null;
+  return b.toString('utf8');
+}
+
+/** Los primeros bytes de un fichero (para decidir si es texto sin leerlo entero). */
+function cabeceraDe(abs: string): Buffer {
+  const fd = openSync(abs, 'r');
+  try {
+    const buf = Buffer.alloc(MAX_BYTES_BINARIO);
+    const n = readSync(fd, buf, 0, buf.length, 0);
+    return buf.subarray(0, n);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+interface ClaveHallazgo {
+  /** Hash del commit (historial). Ausente = hallazgo del arbol de trabajo. */
+  commit?: string;
+  /** Huella del valor, si se conoce. */
+  huella?: string;
+}
+
+/**
+ * Un silencio es POR HALLAZGO: un hallazgo del historial exige un silencio con
+ * `commit`; uno del arbol, un silencio sin commit y atado a la huella del valor
+ * (el parser lo obliga). Asi no se tapa una clave nueva del mismo patron en el
+ * mismo fichero.
+ */
+function buscarSilencio(ctx: ContextoDeploy, patron: string, fichero: string, clave: ClaveHallazgo): Silencio | null {
   for (const s of ctx.silencios) {
     if (s.patron !== patron || s.fichero !== fichero) continue;
-    if (s.commit !== null && (commit === null || !commit.startsWith(s.commit))) continue;
+    if (clave.commit !== undefined) {
+      if (s.commit === null || !clave.commit.startsWith(s.commit)) continue;
+    } else if (s.commit !== null) {
+      continue;
+    }
+    if (s.huella !== null && (clave.huella === undefined || !clave.huella.startsWith(s.huella))) continue;
     ctx.silenciosUsados.add(s.numero);
     return s;
   }
@@ -122,11 +170,12 @@ export const sondaSecretosArbol: Sonda = (ctx) => {
   const silenciadas: Evidencia[] = [];
   let revisados = 0;
   let omitidosGrandes = 0;
+  let binarios = 0;
   let publicas = 0;
   let ejemplos = 0;
   let cortado = false;
 
-  for (const rel of ctx.presentes) {
+  for (const rel of ctx.paraEscanear) {
     if (ARCHIVOS_DE_BLOQUEO.has(nombreBase(rel))) continue;
     const abs = path.join(ctx.cwd, rel);
     let datos: Buffer;
@@ -134,24 +183,35 @@ export const sondaSecretosArbol: Sonda = (ctx) => {
       const st = statSync(abs);
       if (!st.isFile()) continue;
       if (st.size > ctx.opciones.maxBytesFichero) {
-        omitidosGrandes++;
+        // Grande: si es binario no hay nada que leer; si es texto, queda sin mirar y se dice.
+        if (decodificar(cabeceraDe(abs)) === null) binarios++;
+        else omitidosGrandes++;
         continue;
       }
       datos = readFileSync(abs);
     } catch {
       continue; // borrado o ilegible: no hay nada que escanear
     }
-    if (esBinario(datos)) continue;
+    const contenido = decodificar(datos);
+    if (contenido === null) {
+      binarios++;
+      continue;
+    }
     revisados++;
-    for (const h of buscarSecretos(datos.toString('utf8'))) {
+    for (const h of buscarSecretos(contenido)) {
       if (h.clase === 'publica') publicas++;
       else if (h.clase === 'ejemplo') ejemplos++;
       else {
-        const s = buscarSilencio(ctx, h.patron, rel, null);
+        const s = buscarSilencio(ctx, h.patron, rel, { huella: h.huella });
         if (s !== null) {
           silenciadas.push(evidenciaSilenciada(s, h.patron, rel, h.linea, undefined));
         } else if (fallos.length < MAX_HALLAZGOS) {
-          fallos.push({ descripcion: `clave secreta (patron ${h.patron})`, fichero: rel, linea: h.linea, muestra: h.muestra });
+          fallos.push({
+            descripcion: `clave secreta (patron ${h.patron}, huella ${h.huella})`,
+            fichero: rel,
+            linea: h.linea,
+            muestra: h.muestra,
+          });
         } else {
           cortado = true;
         }
@@ -159,10 +219,13 @@ export const sondaSecretosArbol: Sonda = (ctx) => {
     }
   }
 
+  const versionadosEnCarpetasExcluidas = ctx.paraEscanear.filter((r) => estaExcluido(r)).length;
   const alcance =
-    `${revisados} ficheros de texto revisados con ${IDS_PATRON.length} patrones de claves` +
-    (omitidosGrandes > 0 ? `; ${omitidosGrandes} omitidos por tamano` : '') +
-    '; excluidos node_modules, vendor, target, dist y build';
+    `${revisados} ficheros de texto revisados con ${IDS_PATRON.length} patrones de claves; ` +
+    `${binarios} binarios saltados; ${omitidosGrandes} de texto mayores de ${Math.round(ctx.opciones.maxBytesFichero / 1024)} KiB sin leer; ` +
+    `${versionadosEnCarpetasExcluidas} versionados dentro de node_modules, vendor, target, dist o build incluidos ` +
+    '(los que no estan versionados se excluyen); ' +
+    `${silenciadas.length} hallazgos silenciados`;
   const notas: Evidencia[] = [];
   if (publicas + ejemplos > 0) {
     notas.push({
@@ -182,6 +245,15 @@ export const sondaSecretosArbol: Sonda = (ctx) => {
       estado: 'no-verificado',
       motivo: 'no se encontro ningun fichero de texto que revisar (el proyecto esta vacio o todo esta excluido)',
       evidencias: [],
+    };
+  }
+  if (omitidosGrandes > 0) {
+    return {
+      estado: 'no-verificado',
+      motivo:
+        `${omitidosGrandes} fichero(s) de texto mayores de ${Math.round(ctx.opciones.maxBytesFichero / 1024)} KiB no se leyeron: ` +
+        'no se puede afirmar que no tengan claves (un bundle puede llevarlas). Revisalos a mano o con gitleaks',
+      evidencias: [{ descripcion: alcance }, ...silenciadas, ...notas],
     };
   }
   return {
@@ -211,10 +283,11 @@ export function motivoFicheroSecreto(ruta: string): string | null {
 export const sondaFicherosSecretos: Sonda = (ctx) => {
   const fallos: Evidencia[] = [];
   const silenciadas: Evidencia[] = [];
-  for (const rel of ctx.versionados) {
+  // git ls-files COMPLETO: comprobar un nombre no da falsos positivos, asi que no se excluye nada.
+  for (const rel of ctx.versionadosTodos) {
     const motivo = motivoFicheroSecreto(rel);
     if (motivo === null) continue;
-    const s = buscarSilencio(ctx, 'fichero-secreto', rel, null);
+    const s = buscarSilencio(ctx, 'fichero-secreto', rel, {});
     if (s !== null) silenciadas.push(evidenciaSilenciada(s, 'fichero-secreto', rel, undefined, undefined));
     else fallos.push({ descripcion: `${motivo} versionado`, fichero: rel });
   }
@@ -225,7 +298,7 @@ export const sondaFicherosSecretos: Sonda = (ctx) => {
       evidencias: [...fallos, ...silenciadas],
     };
   }
-  if (ctx.versionados.length === 0) {
+  if (ctx.versionadosTodos.length === 0) {
     return { estado: 'no-verificado', motivo: 'no hay ficheros versionados que revisar (git ls-files vacio)', evidencias: [] };
   }
   return {
@@ -234,8 +307,8 @@ export const sondaFicherosSecretos: Sonda = (ctx) => {
     evidencias: [
       {
         descripcion:
-          `${ctx.versionados.length} ficheros versionados revisados (git ls-files): ninguno es un .env, una clave privada ` +
-          'ni un fichero de credenciales (.env.example y .env.sample no cuentan)',
+          `${ctx.versionadosTodos.length} ficheros versionados revisados (git ls-files completo): ninguno es un .env, una clave privada ` +
+          `ni un fichero de credenciales (.env.example y .env.sample no cuentan); ${silenciadas.length} hallazgos silenciados`,
       },
       ...silenciadas,
     ],
@@ -264,8 +337,27 @@ export const sondaGitignoreEnv: Sonda = (ctx) => {
   }
   // Salida: `<fuente>:<linea>:<patron>\t<ruta>`. Solo vale una regla que viaja con el repo.
   const m = /^(.*?):(\d+):(.*?)\t/.exec(r.stdout.toString('utf8').trim());
-  const fuente = m?.[1] ?? '';
-  const versionada = fuente !== '' && !path.isAbsolute(fuente) && !/[\\/]\.git[\\/]/.test(fuente) && !fuente.startsWith('.git/');
+  // Git entrecomilla la ruta si lleva barras invertidas (un excludesFile global en Windows).
+  const fuente = (m?.[1] ?? '').replace(/^"(.*)"$/, '$1').replace(/\\\\/g, '\\');
+  if ((m?.[3] ?? '').startsWith('!')) {
+    return {
+      estado: 'falla',
+      motivo: 'una regla negada deja .env sin ignorar',
+      evidencias: [
+        {
+          descripcion: `la regla "${m?.[3] ?? ''}" REINCLUYE .env: git check-ignore la devuelve aunque no lo ignora. Quitala, o .env se podra versionar`,
+          fichero: fuente,
+          linea: Number(m?.[2]),
+        },
+      ],
+    };
+  }
+  const versionada =
+    fuente !== '' &&
+    !path.isAbsolute(fuente) &&
+    !/^[A-Za-z]:/.test(fuente) &&
+    !/(?:^|[\\/])\.git[\\/]/.test(fuente) &&
+    /(?:^|[\\/])\.gitignore$/.test(fuente);
   if (!versionada) {
     return {
       estado: 'falla',
@@ -311,6 +403,15 @@ function carpetaYAncestros(dir: string): string[] {
 
 const unir = (dir: string, nombre: string): string => (dir === '.' ? nombre : `${dir}/${nombre}`);
 
+/** Un requirements.txt solo hace de lockfile si fija TODAS sus dependencias con `==` (o `@` a una URL). */
+export function requirementsFijado(contenido: string): boolean {
+  const lineas = contenido
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l !== '' && !l.startsWith('#') && !l.startsWith('-'));
+  return lineas.length > 0 && lineas.every((l) => /==|\s@\s/.test(l));
+}
+
 export const sondaLockfile: Sonda = (ctx) => {
   const versionados = new Set(ctx.versionados);
   const presentes = new Set(ctx.presentes);
@@ -323,7 +424,17 @@ export const sondaLockfile: Sonda = (ctx) => {
     for (const dir of tipo.rutas) {
       revisados++;
       const donde = carpetaYAncestros(dir);
-      const hallado = donde.flatMap((d) => candidatos.map((c) => unir(d, c))).find((r) => versionados.has(r));
+      const hallado = donde
+        .flatMap((d) => candidatos.map((c) => unir(d, c)))
+        .find((r) => {
+          if (!versionados.has(r)) return false;
+          if (nombreBase(r) !== 'requirements.txt') return true;
+          try {
+            return requirementsFijado(readFileSync(path.join(ctx.cwd, r), 'utf8'));
+          } catch {
+            return false;
+          }
+        });
       if (hallado !== undefined) {
         ok.push({ descripcion: `${tipo.nombre} en ${dir}: lockfile versionado`, fichero: hallado });
         continue;
@@ -331,7 +442,7 @@ export const sondaLockfile: Sonda = (ctx) => {
       const sinVersionar = donde.flatMap((d) => candidatos.map((c) => unir(d, c))).find((r) => presentes.has(r));
       fallos.push({
         descripcion:
-          `${tipo.nombre} en ${dir}: no hay lockfile versionado (${candidatos.join(', ')})` +
+          `${tipo.nombre} en ${dir}: no hay lockfile versionado (${candidatos.join(', ')}; un requirements.txt solo cuenta con todo fijado con ==)` +
           (sinVersionar !== undefined ? `; existe ${sinVersionar} pero no esta versionado` : ''),
         fichero: unir(dir, candidatos[0] as string),
       });
@@ -356,6 +467,7 @@ interface HallazgoHistorial {
   patron: string;
   linea: number;
   muestra: string;
+  huella: string;
 }
 
 const BYTES_POR_LOTE = 32 * 1024 * 1024;
@@ -438,7 +550,7 @@ const MAX_APARICIONES_POR_BLOB = 10;
  * hallazgo. null = no se pudo preguntar.
  */
 function aparicionesDeBlob(ctx: ContextoDeploy, sha: string): Aparicion[] | null {
-  const t = gitTexto(['log', '--all', '--no-renames', '--no-abbrev', '--raw', '--format=%H', `--find-object=${sha}`], ctx.cwd, {
+  const t = gitTexto(['-c', 'core.quotepath=false', 'log', '--all', '--no-renames', '--no-abbrev', '--raw', '--format=%H', `--find-object=${sha}`], ctx.cwd, {
     timeoutMs: 60_000,
   });
   if (t === null) return null;
@@ -512,7 +624,6 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
   }
   const candidatos: Array<{ sha: string; ruta: string; tam: number }> = [];
   let grandes = 0;
-  let enExcluidas = 0;
   let totalBlobs = 0;
   for (const linea of tipos.stdout.toString('utf8').split(/\r?\n/)) {
     const m = /^([0-9a-f]{40}) blob (\d+)$/.exec(linea);
@@ -520,11 +631,9 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
     totalBlobs++;
     const sha = m[1] as string;
     const tam = Number(m[2]);
+    // `rev-list --objects` da UNA ruta por blob (la primera que vio): no sirve para descartarlo,
+    // porque el mismo contenido puede estar tambien en otra ruta. Se mira todo.
     const ruta = rutaDe.get(sha) ?? '';
-    if (ruta !== '' && estaExcluido(ruta)) {
-      enExcluidas++;
-      continue;
-    }
     if (tam === 0) continue;
     if (tam > ctx.opciones.maxBytesFichero) {
       grandes++;
@@ -579,15 +688,21 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
       const datos = buf.subarray(finLinea + 1, finLinea + 1 + tam);
       pos = finLinea + 1 + tam + 1;
       escaneados++;
-      if (esBinario(datos)) {
+      const contenido = decodificar(datos);
+      if (contenido === null) {
         binarios++;
         continue;
       }
-      for (const h of buscarSecretos(datos.toString('utf8'))) {
+      for (const h of buscarSecretos(contenido)) {
         if (h.clase !== 'secreto') continue;
-        if (hallazgos.length < MAX_HALLAZGOS) hallazgos.push({ sha: c.sha, ruta: c.ruta, patron: h.patron, linea: h.linea, muestra: h.muestra });
+        if (hallazgos.length < MAX_HALLAZGOS) {
+          hallazgos.push({ sha: c.sha, ruta: c.ruta, patron: h.patron, linea: h.linea, muestra: h.muestra, huella: h.huella });
+        }
       }
     }
+  }
+  if (cortado === null && escaneados < aEscanear.length) {
+    cortado = `la salida de git cat-file --batch no se pudo leer entera: se miraron ${escaneados} de ${aEscanear.length} ficheros`;
   }
 
   // 4. En que commits y rutas aparecio cada blob con hallazgo (solo para esos).
@@ -603,12 +718,17 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
         : todas.slice(0, MAX_APARICIONES_POR_BLOB);
     const sinCitar = todas === null ? 0 : Math.max(0, todas.length - citadas.length);
     for (const ap of citadas) {
-      const s = buscarSilencio(ctx, h.patron, ap.ruta, ap.commit ?? null);
+      const s = ap.commit === undefined ? null : buscarSilencio(ctx, h.patron, ap.ruta, { commit: ap.commit, huella: h.huella });
       if (s !== null) {
         silenciadas.push(evidenciaSilenciada(s, h.patron, ap.ruta, h.linea, ap.commit));
         continue;
       }
-      const e: Evidencia = { descripcion: `clave secreta en el historial (patron ${h.patron})`, fichero: ap.ruta, linea: h.linea, muestra: h.muestra };
+      const e: Evidencia = {
+        descripcion: `clave secreta en el historial (patron ${h.patron}, huella ${h.huella})`,
+        fichero: ap.ruta,
+        linea: h.linea,
+        muestra: h.muestra,
+      };
       if (ap.commit !== undefined) e.commit = ap.commit;
       else e.descripcion += '; no se pudo localizar el commit con git log --find-object';
       if (sinCitar > 0) e.descripcion += `; el mismo contenido aparece en ${sinCitar} commit(s) mas`;
@@ -619,7 +739,7 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
   // 5. Opcional: gitleaks.
   const gl = complementoGitleaks(ctx);
   for (const g of gl.hallazgos) {
-    const s = buscarSilencio(ctx, `gitleaks:${g.regla}`, g.ruta, g.commit === '' ? null : g.commit);
+    const s = g.commit === '' ? null : buscarSilencio(ctx, `gitleaks:${g.regla}`, g.ruta, { commit: g.commit });
     if (s !== null) silenciadas.push(evidenciaSilenciada(s, `gitleaks:${g.regla}`, g.ruta, g.linea, g.commit));
     else {
       const e: Evidencia = { descripcion: `hallazgo de gitleaks (regla ${g.regla})`, fichero: g.ruta, linea: g.linea };
@@ -632,9 +752,9 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
     { descripcion: `refs recorridos: ${refs}` },
     {
       descripcion:
-        `${escaneados} ficheros distintos de texto o binarios leidos (de ${totalBlobs} en el historial); ` +
-        `${binarios} binarios y ${grandes} mayores de ${Math.round(ctx.opciones.maxBytesFichero / 1024)} KiB saltados, ` +
-        `${enExcluidas} en node_modules, vendor, target, dist o build excluidos; ${IDS_PATRON.length} patrones`,
+        `${escaneados} ficheros distintos leidos (de ${totalBlobs} en el historial, todas las rutas, sin excluir carpetas); ` +
+        `${binarios} binarios saltados y ${grandes} mayores de ${Math.round(ctx.opciones.maxBytesFichero / 1024)} KiB sin leer; ` +
+        `${IDS_PATRON.length} patrones; ${silenciadas.length} hallazgos silenciados`,
     },
     gl.nota,
   ];
@@ -652,6 +772,15 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
     return {
       estado: 'no-verificado',
       motivo: `recorrido del historial incompleto: ${cortado}`,
+      evidencias: [...silenciadas, ...alcance],
+    };
+  }
+  if (grandes > 0) {
+    return {
+      estado: 'no-verificado',
+      motivo:
+        `${grandes} fichero(s) del historial mayores de ${Math.round(ctx.opciones.maxBytesFichero / 1024)} KiB no se leyeron: ` +
+        'no se puede afirmar que no tengan claves. Revisalos a mano o con gitleaks',
       evidencias: [...silenciadas, ...alcance],
     };
   }

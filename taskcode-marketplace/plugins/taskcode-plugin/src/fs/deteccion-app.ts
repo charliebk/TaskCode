@@ -32,6 +32,14 @@ export interface ArchivosProyecto {
   presentes: string[];
   /** Solo los versionados; sin carpetas excluidas. */
   versionados: string[];
+  /** TODOS los versionados (git ls-files completo), tambien los de build, dist, vendor, target y node_modules. */
+  versionadosTodos: string[];
+  /**
+   * Lo que se escanea en busca de claves: todo lo versionado (aunque este en una
+   * carpeta de dependencias o build: si esta en el repo, se publica) mas lo sin
+   * versionar que no esta ignorado fuera de esas carpetas.
+   */
+  paraEscanear: string[];
 }
 
 /** null si no se pudo listar (no es un repo Git, o git no esta). */
@@ -42,7 +50,8 @@ export function listarArchivos(cwd: string): ArchivosProyecto | null {
   const sinExcluidos = (xs: string[]): string[] => xs.filter((r) => !estaExcluido(r));
   const v = sinExcluidos(versionados);
   const presentes = [...new Set([...v, ...sinExcluidos(otros)])];
-  return { presentes, versionados: v };
+  const paraEscanear = [...new Set([...versionados, ...sinExcluidos(otros)])];
+  return { presentes, versionados: v, versionadosTodos: versionados, paraEscanear };
 }
 
 function coincideMarcador(ruta: string, marcador: string): boolean {
