@@ -34,7 +34,8 @@ tomada y documentada, no aplazada.
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
-| **Total pendiente** | **0** | — | — |
+| J — Doctor-deploy | 2 | **1** | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -831,3 +832,24 @@ el diseño de TASK-063 en captura (A) y lectura (B).
       coste acotada y coste de agentes reanudados por diferencia. Línea base
       de ToolsaWeb, OpenGisViewer y TaskCode (194 tareas) en su Resultado.
       1 ronda, aprobada con 3 MENOR aceptados.*
+
+## J — Doctor-deploy (1/2)
+
+Pedido por Carlos el 2026-10-27: un doctor para antes de lanzar o publicar una
+aplicacion que compruebe punto por punto una lista de seguridad generica
+(20 puntos pedidos mas los medibles que falten), adaptada al tipo de
+aplicacion, que diga que falla y como arreglarlo, y cree tareas desde
+TASK-9999 hacia abajo. Partido en dos: deterministas (A) y juicio, tareas y
+aviso en release (B).
+
+- [x] TASK-066 — Doctor-deploy A: catalogo generico y comprobaciones
+      deterministas — cerrada el 2026-10-27
+      *: catalogo de 43 puntos y
+      15 tipos como datos, capa del proyecto con desactivar y silenciar por
+      hallazgo, cuatro estados sin OK sin evidencia, seis sondas
+      deterministas (secretos en arbol e historial, ficheros de secretos,
+      .gitignore, lockfile, dependencias) y enmascarado en origen. 3 rondas:
+      7 IMPORTANTE (falsos OK por cobertura y tests que faltaban), corregidos;
+      MEN-12 y MEN-13 pasan a TASK-067.*
+- [ ] TASK-067 — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso
+      en release
