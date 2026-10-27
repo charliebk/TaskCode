@@ -1055,3 +1055,116 @@ test('MEN-5: si no se puede escribir el informe, el analisis se imprime igualmen
     assert.equal(r.codigo, 0);
   });
 });
+
+// ---------------------------------------------------------------------
+// Revision por pares, ronda 2 (IMP-7, MEN-4, MEN-9, MEN-10, MEN-11)
+// ---------------------------------------------------------------------
+
+test('IMP-7: un silencio con commit (sin huella) no tapa una clave NUEVA del mismo patron en el arbol, en el mismo fichero', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    await escribir(raiz, { 'config/prod.env.js': `k="${STRIPE}"\n` });
+    const hash = await commit(raiz, 'k1');
+    git(['rm', '-q', 'config/prod.env.js'], raiz);
+    await commit(raiz, 'quita k1');
+    await escribir(raiz, {
+      'config/prod.env.js': 'k="sk_live_Nueva0Clave1Dist"\n',
+      '.taskcode/doctor-deploy.yml': `silenciar_1_patron: stripe-live\nsilenciar_1_fichero: config/prod.env.js\nsilenciar_1_commit: "${hash}"\nsilenciar_1_motivo: K1 rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n`,
+    });
+    const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+    // El historial queda silenciado por su commit...
+    assert.equal(punto(informe, 'secretos-en-historial').estado, 'ok');
+    // ...pero la clave nueva, del arbol, no.
+    const arbol = punto(informe, 'secretos-en-arbol');
+    assert.equal(arbol.estado, 'falla');
+    assert.equal(arbol.evidencias[0]?.fichero, 'config/prod.env.js');
+  });
+});
+
+test('MEN-4: monorepo con el .gitignore solo en el subdirectorio que tiene su .env: OK; sin el, FALLA nombrando esa carpeta', async () => {
+  const web = {
+    'apps/web/package.json': '{}\n',
+    'apps/web/package-lock.json': '{}\n',
+    'README.md': '# monorepo\n',
+  };
+  await conRepo({ ...web, 'apps/web/.gitignore': '.env\n' }, async (raiz, opciones) => {
+    const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+    const p = punto(informe, 'gitignore-cubre-env');
+    assert.equal(p.estado, 'ok', p.motivo);
+    assert.equal(p.evidencias[0]?.fichero, 'apps/web/.gitignore');
+  });
+  await conRepo(web, async (raiz, opciones) => {
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'gitignore-cubre-env');
+    assert.equal(p.estado, 'falla');
+    assert.match(p.motivo, /apps\/web\/\.env/);
+  });
+});
+
+test('MEN-4: un modulo Go sin bloque require no necesita go.sum; con dependencias y sin go.sum, FALLA', async () => {
+  await conRepo({ 'go.mod': 'module ejemplo.com/x\n\ngo 1.22\n', '.gitignore': '.env\n' }, async (raiz, opciones) => {
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'lockfile-versionado');
+    assert.equal(p.estado, 'ok');
+    assert.match(p.evidencias[0]?.descripcion ?? '', /sin bloque require/);
+  });
+  await conRepo({ 'go.mod': 'module ejemplo.com/x\n\ngo 1.22\n\nrequire github.com/a/b v1.0.0\n', '.gitignore': '.env\n' }, async (raiz, opciones) => {
+    const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'lockfile-versionado');
+    assert.equal(p.estado, 'falla');
+    assert.match(p.evidencias[0]?.descripcion ?? '', /go\.sum/);
+  });
+});
+
+test('MEN-9: una URL con credenciales se detecta pero no muestra huella (no se puede confirmar la contrasena con un diccionario)', async () => {
+  const url = 'postgres://admin:Hunter2pass@db.prod.acme.io/app';
+  await conRepo({ ...NODE, 'src/db.js': `const u = "${url}";\n` }, async (raiz, opciones) => {
+    const r = ejecutar(raiz, opciones);
+    const informe = JSON.parse(r.salida) as InformeDeploy;
+    for (const id of ['secretos-en-arbol', 'secretos-en-historial']) {
+      const p = punto(informe, id);
+      assert.equal(p.estado, 'falla', id);
+      assert.match(p.evidencias[0]?.descripcion ?? '', /url-con-credenciales/);
+      assert.doesNotMatch(p.evidencias[0]?.descripcion ?? '', /huella/, id);
+    }
+    assert.ok(!r.salida.includes('Hunter2pass'));
+    // En el historial si se puede silenciar: por fichero + patron + commit.
+    const hash = git(['rev-parse', 'HEAD'], raiz);
+    await escribir(raiz, {
+      '.taskcode/doctor-deploy.yml': `silenciar_1_patron: url-con-credenciales\nsilenciar_1_fichero: src/db.js\nsilenciar_1_commit: "${hash}"\nsilenciar_1_motivo: Rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n`,
+    });
+    const con = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+    assert.equal(punto(con, 'secretos-en-historial').estado, 'ok');
+    assert.equal(punto(con, 'secretos-en-arbol').estado, 'falla', 'en el arbol no hay forma segura de silenciarla: hay que quitar la credencial');
+  });
+});
+
+test('MEN-10: un silencio solo con huella para un patron y fichero con hallazgo en el historial avisa de que exige commit', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    await escribir(raiz, { 'viejo.env': `K=${STRIPE}\n` });
+    git(['add', '-f', '.'], raiz);
+    await commit(raiz, 'env');
+    git(['rm', '-q', 'viejo.env'], raiz);
+    await commit(raiz, 'quita');
+    await escribir(raiz, {
+      '.taskcode/doctor-deploy.yml': 'silenciar_1_patron: stripe-live\nsilenciar_1_fichero: viejo.env\nsilenciar_1_huella: "abcdef012345"\nsilenciar_1_motivo: Rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n',
+    });
+    const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+    assert.equal(punto(informe, 'secretos-en-historial').estado, 'falla');
+    assert.ok(informe.avisos.some((a) => /exige silenciar_1_commit/.test(a)), informe.avisos.join(' | '));
+  });
+});
+
+test('MEN-11: la ruta de un excludesFile global con barras invertidas se muestra limpia (sin comillas ni barras dobles)', async () => {
+  await conRepo({ ...NODE, '.gitignore': 'node_modules/\n' }, async (raiz, opciones) => {
+    const global = path.join(path.dirname(raiz), `${path.basename(raiz)}-global-ignore2`);
+    await writeFile(global, '.env\n', 'utf8');
+    try {
+      git(['config', 'core.excludesFile', global], raiz);
+      const p = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'gitignore-cubre-env');
+      assert.equal(p.estado, 'falla');
+      const d = p.evidencias[0]?.descripcion ?? '';
+      assert.ok(!d.includes('\\\\'), `barras dobles en la ruta mostrada: ${d}`);
+      assert.ok(!d.includes('""'), `comillas dobles en la ruta mostrada: ${d}`);
+      assert.ok(d.includes('-global-ignore2'));
+    } finally {
+      await rm(global, { force: true });
+    }
+  });
+});

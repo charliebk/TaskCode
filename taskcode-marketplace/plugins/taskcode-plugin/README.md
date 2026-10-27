@@ -630,7 +630,11 @@ punto_1_descripcion: Los logs no llevan datos personales de clientes
 # patron: el que informa el punto (stripe-live, aws-access-key, fichero-secreto...).
 # Un silencio es POR HALLAZGO: un hallazgo del historial se silencia con su commit
 # (silenciar_N_commit); uno del árbol, con la huella de su valor (silenciar_N_huella),
-# que sale en la evidencia ("huella ab12cd34ef56") y no revela la clave. Sin commit ni
+# que sale en la evidencia ("huella ab12cd34ef56"). La huella es un SHA-256 sin sal: solo
+# es segura para claves de alta entropia (no permite recuperarlas). Para
+# url-con-credenciales no se muestra (usuario y host son conocidos y la contrasena puede ser
+# debil): esa se silencia solo en el historial, con commit; en el arbol hay que quitar la
+# credencial. Sin commit ni
 # huella aborta (taparía también claves nuevas del mismo fichero); la huella es opcional
 # con commit. Si commit o huella son solo dígitos, ponlos entre comillas.
 silenciar_1_patron: stripe-live
@@ -655,7 +659,14 @@ blobs, sea cual sea su ruta. Un fichero UTF-16 con BOM se decodifica; los binari
 saltados se cuentan siempre. Un fichero de texto mayor de 1 MiB no se lee y deja el
 punto en NO VERIFICADO (un binario grande, no). Un `requirements.txt` solo cuenta
 como lockfile si fija todo con `==`, y una regla negada (`!.env`) en el `.gitignore`
-es FALLA.
+es FALLA. `.env` tiene que quedar ignorado en la raíz de cada proyecto detectado (en un
+monorepo, un `.gitignore` en el subdirectorio vale para su propio `.env`), y un módulo
+Go sin bloque `require` no necesita `go.sum`.
+
+Límites conocidos: si `git cat-file --batch` devolviera una salida truncada, el historial
+sale NO VERIFICADO (no se pudo provocar con Git real, así que esa rama no tiene test); un
+silencio solo con huella no tapa nunca un hallazgo del historial, y si el patrón y el
+fichero tienen uno el comando avisa de que exige `silenciar_N_commit`.
 
 `taskctl metricas [--heuristica]` (solo lectura) saca una fila por tarea
 con la duración de calendario de cada fase (diseño = plan→start, curso =

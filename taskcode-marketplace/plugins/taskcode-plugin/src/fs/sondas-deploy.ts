@@ -59,6 +59,8 @@ export interface ContextoDeploy {
   versionadosTodos: string[];
   /** Lo que se escanea en busca de claves (ver ArchivosProyecto). */
   paraEscanear: string[];
+  /** Hallazgos del historial (patron + fichero), silenciados o no: lo rellena la sonda del historial. */
+  hallazgosHistorial: Array<{ patron: string; fichero: string }>;
   tipos: TipoDetectado[];
   silencios: Silencio[];
   /** `numero` de los silencios que taparon algun hallazgo. */
@@ -112,6 +114,13 @@ interface ClaveHallazgo {
   commit?: string;
   /** Huella del valor, si se conoce. */
   huella?: string;
+}
+
+function claveDe(commit: string | undefined, huella: string | null): ClaveHallazgo {
+  const c: ClaveHallazgo = {};
+  if (commit !== undefined) c.commit = commit;
+  if (huella !== null) c.huella = huella;
+  return c;
 }
 
 /**
@@ -202,12 +211,12 @@ export const sondaSecretosArbol: Sonda = (ctx) => {
       if (h.clase === 'publica') publicas++;
       else if (h.clase === 'ejemplo') ejemplos++;
       else {
-        const s = buscarSilencio(ctx, h.patron, rel, { huella: h.huella });
+        const s = buscarSilencio(ctx, h.patron, rel, claveDe(undefined, h.huella));
         if (s !== null) {
           silenciadas.push(evidenciaSilenciada(s, h.patron, rel, h.linea, undefined));
         } else if (fallos.length < MAX_HALLAZGOS) {
           fallos.push({
-            descripcion: `clave secreta (patron ${h.patron}, huella ${h.huella})`,
+            descripcion: `clave secreta (patron ${h.patron}${h.huella === null ? '' : `, huella ${h.huella}`})`,
             fichero: rel,
             linea: h.linea,
             muestra: h.muestra,
@@ -319,8 +328,9 @@ export const sondaFicherosSecretos: Sonda = (ctx) => {
 // gitignore-env
 // ---------------------------------------------------------------------
 
-export const sondaGitignoreEnv: Sonda = (ctx) => {
-  const r = gitCrudo(['check-ignore', '-v', '--no-index', '.env'], ctx.cwd, { timeoutMs: 15_000 });
+function gitignoreDeDir(ctx: ContextoDeploy, dir: string): ResultadoSonda {
+  const envRel = unir(dir, '.env');
+  const r = gitCrudo(['check-ignore', '-v', '--no-index', envRel], ctx.cwd, { timeoutMs: 15_000 });
   if (r.error !== undefined || (r.status !== 0 && r.status !== 1)) {
     return {
       estado: 'no-verificado',
@@ -331,8 +341,8 @@ export const sondaGitignoreEnv: Sonda = (ctx) => {
   if (r.status === 1) {
     return {
       estado: 'falla',
-      motivo: 'el .gitignore no cubre .env',
-      evidencias: [{ descripcion: 'git check-ignore --no-index .env: ninguna regla lo ignora', fichero: '.gitignore' }],
+      motivo: `el .gitignore no cubre ${envRel}`,
+      evidencias: [{ descripcion: `git check-ignore --no-index ${envRel}: ninguna regla lo ignora`, fichero: '.gitignore' }],
     };
   }
   // Salida: `<fuente>:<linea>:<patron>\t<ruta>`. Solo vale una regla que viaja con el repo.
@@ -373,8 +383,32 @@ export const sondaGitignoreEnv: Sonda = (ctx) => {
     estado: 'ok',
     motivo: '.env esta cubierto por el .gitignore',
     evidencias: [
-      { descripcion: `la regla "${m?.[3] ?? ''}" ignora .env (git check-ignore -v --no-index .env)`, fichero: fuente, linea: Number(m?.[2]) },
+      { descripcion: `la regla "${m?.[3] ?? ''}" ignora ${envRel} (git check-ignore -v --no-index ${envRel})`, fichero: fuente, linea: Number(m?.[2]) },
     ],
+  };
+}
+
+/**
+ * `.env` tiene que quedar ignorado en la raiz de cada proyecto detectado (en un monorepo, en cada
+ * carpeta con su marcador; un .gitignore anidado vale para su propio .env). Sin tipos, en la raiz.
+ */
+export const sondaGitignoreEnv: Sonda = (ctx) => {
+  const dirs = [...new Set(ctx.tipos.flatMap((t) => t.rutas))].sort().slice(0, 10);
+  const rs = (dirs.length > 0 ? dirs : ['.']).map((d) => gitignoreDeDir(ctx, d));
+  const malos = rs.filter((r) => r.estado === 'falla');
+  if (malos.length > 0) {
+    return {
+      estado: 'falla',
+      motivo: (malos[0] as ResultadoSonda).motivo + (malos.length > 1 ? ` (y en ${malos.length - 1} carpeta(s) mas)` : ''),
+      evidencias: malos.flatMap((r) => r.evidencias),
+    };
+  }
+  const sinVerificar = rs.find((r) => r.estado !== 'ok');
+  if (sinVerificar !== undefined) return sinVerificar;
+  return {
+    estado: 'ok',
+    motivo: rs.length === 1 ? (rs[0] as ResultadoSonda).motivo : `.env esta cubierto por un .gitignore en las ${rs.length} carpetas de proyecto`,
+    evidencias: rs.flatMap((r) => r.evidencias),
   };
 };
 
@@ -403,6 +437,15 @@ function carpetaYAncestros(dir: string): string[] {
 
 const unir = (dir: string, nombre: string): string => (dir === '.' ? nombre : `${dir}/${nombre}`);
 
+/** true si el go.mod declara dependencias (`require`); false si no hay ninguna o no se puede leer el modulo sin ellas. */
+function moduloGoConDependencias(rutaGoMod: string): boolean {
+  try {
+    return /^\s*require\b/m.test(readFileSync(rutaGoMod, 'utf8'));
+  } catch {
+    return true; // no se puede leer: se exige el lockfile, que es lo seguro
+  }
+}
+
 /** Un requirements.txt solo hace de lockfile si fija TODAS sus dependencias con `==` (o `@` a una URL). */
 export function requirementsFijado(contenido: string): boolean {
   const lineas = contenido
@@ -423,6 +466,10 @@ export const sondaLockfile: Sonda = (ctx) => {
     if (candidatos === undefined) continue;
     for (const dir of tipo.rutas) {
       revisados++;
+      if (tipo.id === 'go' && !moduloGoConDependencias(path.join(ctx.cwd, dir, 'go.mod'))) {
+        ok.push({ descripcion: `${tipo.nombre} en ${dir}: go.mod sin bloque require (sin dependencias): no hay go.sum que versionar`, fichero: unir(dir, 'go.mod') });
+        continue;
+      }
       const donde = carpetaYAncestros(dir);
       const hallado = donde
         .flatMap((d) => candidatos.map((c) => unir(d, c)))
@@ -467,7 +514,7 @@ interface HallazgoHistorial {
   patron: string;
   linea: number;
   muestra: string;
-  huella: string;
+  huella: string | null;
 }
 
 const BYTES_POR_LOTE = 32 * 1024 * 1024;
@@ -718,13 +765,14 @@ export const sondaSecretosHistorial: Sonda = (ctx) => {
         : todas.slice(0, MAX_APARICIONES_POR_BLOB);
     const sinCitar = todas === null ? 0 : Math.max(0, todas.length - citadas.length);
     for (const ap of citadas) {
-      const s = ap.commit === undefined ? null : buscarSilencio(ctx, h.patron, ap.ruta, { commit: ap.commit, huella: h.huella });
+      const s = ap.commit === undefined ? null : buscarSilencio(ctx, h.patron, ap.ruta, claveDe(ap.commit, h.huella));
+      ctx.hallazgosHistorial.push({ patron: h.patron, fichero: ap.ruta });
       if (s !== null) {
         silenciadas.push(evidenciaSilenciada(s, h.patron, ap.ruta, h.linea, ap.commit));
         continue;
       }
       const e: Evidencia = {
-        descripcion: `clave secreta en el historial (patron ${h.patron}, huella ${h.huella})`,
+        descripcion: `clave secreta en el historial (patron ${h.patron}${h.huella === null ? '' : `, huella ${h.huella}`})`,
         fichero: ap.ruta,
         linea: h.linea,
         muestra: h.muestra,

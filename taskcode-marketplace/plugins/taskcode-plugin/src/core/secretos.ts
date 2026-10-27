@@ -29,9 +29,11 @@ export interface HallazgoSecreto {
   muestra: string;
   /**
    * Huella estable del valor (12 hex de su SHA-256): identifica el hallazgo para
-   * silenciarlo sin revelar el valor. No se puede invertir en una clave real.
+   * silenciarlo sin revelar el valor. Solo es segura para claves de alta entropia; para
+   * `url-con-credenciales` (usuario y host conocidos, contrasena a menudo debil) un
+   * diccionario la confirmaria, asi que ahi es null y no se muestra.
    */
-  huella: string;
+  huella: string | null;
 }
 
 interface Clasificacion {
@@ -159,7 +161,7 @@ export function buscarSecretos(texto: string): HallazgoSecreto[] {
       if (c === null) continue;
       encontrados.push({
         indice: m.index,
-        h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]), huella: huellaDe(m[0]) },
+        h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]), huella: (c.patron ?? p.id) === 'url-con-credenciales' ? null : huellaDe(m[0]) },
       });
     }
   }

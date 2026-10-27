@@ -234,6 +234,7 @@ export function runDoctorDeployCommand(argv: readonly string[], deps: DoctorDepl
     versionados: archivos.versionados,
     versionadosTodos: archivos.versionadosTodos,
     paraEscanear: archivos.paraEscanear,
+    hallazgosHistorial: [],
     tipos,
     silencios: catalogo.silencios,
     silenciosUsados: new Set<number>(),
@@ -255,6 +256,13 @@ export function runDoctorDeployCommand(argv: readonly string[], deps: DoctorDepl
   }
   for (const s of catalogo.silencios) {
     if (!ctx.silenciosUsados.has(s.numero)) {
+      if (s.commit === null && ctx.hallazgosHistorial.some((h) => h.patron === s.patron && h.fichero === s.fichero)) {
+        avisos.push(
+          `silenciar_${s.numero} (patron ${s.patron}, fichero ${s.fichero}) es un silencio de arbol (sin commit), pero ese patron y fichero ` +
+            `tienen un hallazgo en el historial: un hallazgo del historial exige silenciar_${s.numero}_commit.`
+        );
+        continue;
+      }
       avisos.push(
         `silenciar_${s.numero} (patron ${s.patron}, fichero ${s.fichero}) no coincide con ningun hallazgo: ` +
           'ya no hace falta, o el patron o la ruta no son los que informa el punto.'

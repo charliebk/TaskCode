@@ -128,7 +128,7 @@ export function buscarSecretos(texto) {
                 continue;
             encontrados.push({
                 indice: m.index,
-                h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]), huella: huellaDe(m[0]) },
+                h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]), huella: (c.patron ?? p.id) === 'url-con-credenciales' ? null : huellaDe(m[0]) },
             });
         }
     }
