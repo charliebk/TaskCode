@@ -104,6 +104,7 @@ const FLAGS_SIN_VALOR = [
     '--json',
     '--forzar',
     '--escribir',
+    '--crear-tareas',
     '--heuristica',
     '--merge-request',
     '--evolucion',

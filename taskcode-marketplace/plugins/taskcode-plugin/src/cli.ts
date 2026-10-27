@@ -20,7 +20,8 @@ import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
 import { runDoctorCommand, DoctorCommandError } from './commands/doctor.js';
-import { runDoctorDeployCommand, DoctorDeployCommandError } from './commands/doctor-deploy.js';
+import { runDoctorDeployCompleto, DoctorDeployCommandError } from './commands/doctor-deploy.js';
+import { DoctorDeployTareasError } from './commands/doctor-deploy-tareas.js';
 import { DoctorDeployCatalogoError } from './core/doctor-deploy-catalogo.js';
 import { runPausaCommand, PausaCommandError } from './commands/pausa.js';
 import { runRegistrarCosteCommand, RegistrarCosteCommandError } from './commands/registrar-coste.js';
@@ -85,7 +86,7 @@ Uso:
   taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl doctor [--json]
-  taskctl doctor-deploy [--json] [--escribir]
+  taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]
   taskctl pausa TASK-NNN [--push]
   taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
                           (--agente <id>... | --tokens N) [--push]
@@ -727,15 +728,37 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
 
   if (cmd === 'doctor-deploy') {
     try {
-      const r = runDoctorDeployCommand(argv.slice(1), { repoCwd: process.cwd() });
+      const r = await runDoctorDeployCompleto(argv.slice(1), { repoCwd: process.cwd() });
       process.stdout.write(r.salida);
-      if (r.mensajeEscritura !== '') {
-        // Con --json, stdout es SOLO el JSON: el aviso va a stderr.
-        (r.json ? process.stderr : process.stdout).write(r.mensajeEscritura);
+      // Con --json, stdout es SOLO el JSON: los avisos van a stderr.
+      const aviso = (t: string): void => void (r.json ? process.stderr : process.stdout).write(t);
+      if (r.tareas !== undefined) {
+        if (r.tareas.baseBranchGuard?.switched === true) {
+          aviso(`Workspace limpio -> cambiado automaticamente de "${r.tareas.baseBranchGuard.branchAntes}" a "${r.tareas.baseBranchGuard.baseBranch}" para crear las tareas.\n`);
+        }
+        const ac = r.tareas.autoCommit;
+        if (ac !== null) {
+          printAvisos(...ac.avisos);
+          if (sincronizacionNoAplicada(ac.sincronizacion)) sincronizacionPendiente = true;
+          aviso(
+            ac.commiteado
+              ? `Commiteado ${ac.commit} en "${ac.rama}" (${ac.ficheros.length} fichero(s)).\n`
+              : 'Sin cambios que commitear (nada nuevo en disco).\n'
+          );
+        }
       }
+      if (r.mensajeEscritura !== '') aviso(r.mensajeEscritura);
       return r.codigo;
     } catch (e) {
-      if (e instanceof DoctorDeployCommandError || e instanceof DoctorDeployCatalogoError) {
+      if (
+        e instanceof DoctorDeployCommandError ||
+        e instanceof DoctorDeployCatalogoError ||
+        e instanceof DoctorDeployTareasError ||
+        e instanceof TaskIdError ||
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof BaseBranchGuardError
+      ) {
         printCliError(e);
         return 1;
       }

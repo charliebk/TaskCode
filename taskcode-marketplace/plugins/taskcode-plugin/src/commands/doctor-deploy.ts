@@ -21,7 +21,7 @@
  * - Todo texto que sale (stdout, JSON, informe en disco) pasa por
  *   `ocultarSecretos`: es la segunda red tras el enmascarado en origen.
  */
-import { existsSync, linkSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, linkSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
@@ -41,9 +41,18 @@ import {
   type InformeDeploy,
   type ResultadoPunto,
 } from '../core/doctor-deploy.js';
+import {
+  mezclarVeredictos,
+  parsearResultado,
+  VeredictoFormatoError,
+  type ResumenVeredictos,
+} from '../core/doctor-deploy-veredictos.js';
 import { ocultarSecretos } from '../core/secretos.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
+import { BaseBranchGuardError } from '../fs/git.js';
+import { crearTareasDeFallas, type ResultadoCrearTareas } from './doctor-deploy-tareas.js';
 import { detectarTipos, listarArchivos } from '../fs/deteccion-app.js';
+import { comprobadorEnCommit } from '../fs/evidencia-veredicto.js';
 import { gitTexto } from '../fs/git-crudo.js';
 import { pathDelProceso } from '../fs/herramientas-deploy.js';
 import {
@@ -61,7 +70,10 @@ export class DoctorDeployCommandError extends Error {
 }
 
 /** Flags de `taskctl doctor-deploy`. */
-export const FLAGS_DOCTOR_DEPLOY: readonly string[] = ['--json', '--escribir'];
+export const FLAGS_DOCTOR_DEPLOY: readonly string[] = ['--json', '--escribir', '--resultado', '--crear-tareas'];
+
+/** Mas que esto no es el resultado de una revision (los veredictos pesan unos KB). */
+const MAX_BYTES_RESULTADO = 1024 * 1024;
 
 /** Carpeta (relativa a la raiz del repo) donde `--escribir` deja el informe. */
 export const CARPETA_INFORMES = path.join('docs', 'doctor-deploy');
@@ -85,8 +97,12 @@ export interface DoctorDeployResult {
   json: boolean;
   /** Ruta del informe escrito con --escribir; null si no se pidio. */
   rutaInforme: string | null;
+  /** Ruta del mismo informe en JSON, junto al .md; null si no se escribio. */
+  rutaJson: string | null;
   /** Aviso de que se escribio el informe (a stdout en texto, a stderr con --json); '' si no. */
   mensajeEscritura: string;
+  /** Lo que hizo `--crear-tareas` (rama, commit); undefined si no se pidio. */
+  tareas?: ResultadoCrearTareas;
 }
 
 const salidaSegura = (t: string): string => ocultarSecretos(ocultarCredenciales(t));
@@ -102,6 +118,7 @@ function evaluarPunto(punto: PuntoCatalogo, ctx: ContextoDeploy, cat: CatalogoEf
     descripcion: punto.descripcion,
     referencia: punto.referencia,
     desactivado: false,
+    origen: 'sonda' as const,
   };
 
   const desactivacion = cat.desactivados.get(punto.id);
@@ -160,54 +177,155 @@ function fechaLocal(d: Date): string {
   return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
 }
 
+/** Pone `tmp` en `destino` sin pisar nada: `link` (falla si existe) o, sin enlaces duros, `rename` tras comprobar. */
+function colocar(tmp: string, destino: string): boolean {
+  try {
+    linkSync(tmp, destino);
+    return true;
+  } catch (e: unknown) {
+    if ((e as NodeJS.ErrnoException).code === 'EEXIST') return false;
+    if (existsSync(destino)) return false;
+    renameSync(tmp, destino);
+    return true;
+  }
+}
+
 /**
- * Escribe el informe en docs/doctor-deploy/<fecha>.md; si ya existe uno de ese
- * dia, <fecha>-2.md, <fecha>-3.md... Escritura atomica: fichero temporal en la
- * misma carpeta y `link` (falla si el destino existe, no pisa nada) o, donde
- * el sistema de ficheros no lo admite, `rename`.
+ * Escribe el informe en docs/doctor-deploy/<fecha>.md y, junto a el, el mismo informe en JSON
+ * (<fecha>.json: es lo que lee `finish` de una release); si ya hay uno de ese dia, <fecha>-2,
+ * <fecha>-3... Escritura atomica: ficheros temporales en la misma carpeta y `link` (no pisa nada).
+ * Un `.json` suelto con ese nombre cuenta como ocupado.
  */
-export function escribirInforme(raiz: string, fecha: string, contenido: string): string {
+export function escribirInforme(raiz: string, fecha: string, md: string, json: string): { md: string; json: string } {
   const dir = path.join(raiz, CARPETA_INFORMES);
   mkdirSync(dir, { recursive: true });
-  const tmp = path.join(dir, `.informe-${process.pid}-${Date.now()}.tmp`);
-  writeFileSync(tmp, contenido, { encoding: 'utf8', flag: 'wx' });
+  const sufijo = `${process.pid}-${Date.now()}`;
+  const tmpMd = path.join(dir, `.informe-${sufijo}.md.tmp`);
+  const tmpJson = path.join(dir, `.informe-${sufijo}.json.tmp`);
+  writeFileSync(tmpMd, md, { encoding: 'utf8', flag: 'wx' });
+  writeFileSync(tmpJson, json, { encoding: 'utf8', flag: 'wx' });
   try {
     for (let n = 1; n < 1000; n++) {
-      const destino = path.join(dir, n === 1 ? `${fecha}.md` : `${fecha}-${n}.md`);
-      try {
-        linkSync(tmp, destino);
-        return destino;
-      } catch (e: unknown) {
-        const code = (e as NodeJS.ErrnoException).code;
-        if (code === 'EEXIST') continue;
-        // Sin soporte de enlaces duros: rename, tras comprobar a mano que no existe.
-        if (existsSync(destino)) continue;
-        renameSync(tmp, destino);
-        return destino;
+      const base = n === 1 ? fecha : `${fecha}-${n}`;
+      const destinoMd = path.join(dir, `${base}.md`);
+      const destinoJson = path.join(dir, `${base}.json`);
+      if (existsSync(destinoJson)) continue;
+      if (!colocar(tmpMd, destinoMd)) continue;
+      if (!colocar(tmpJson, destinoJson)) {
+        unlinkSync(destinoMd);
+        continue;
       }
+      return { md: destinoMd, json: destinoJson };
     }
     throw new DoctorDeployCommandError(`[ERROR] taskctl doctor-deploy: ya hay mil informes de ${fecha} en ${CARPETA_INFORMES}. Muevelos o borralos.`);
   } finally {
-    try {
-      unlinkSync(tmp);
-    } catch {
-      // ya renombrado, o no existe
+    for (const tmp of [tmpMd, tmpJson]) {
+      try {
+        unlinkSync(tmp);
+      } catch {
+        // ya colocado con rename, o no existe
+      }
     }
   }
 }
 
 // ---------------------------------------------------------------------
 
-export function runDoctorDeployCommand(argv: readonly string[], deps: DoctorDeployDeps): DoctorDeployResult {
+/** Lo que se pidio en la linea de comandos. */
+interface OpcionesComando {
+  json: boolean;
+  escribir: boolean;
+  /** Ruta del JSON con los veredictos del agente, o null. */
+  resultado: string | null;
+  /** Crear una tarea por cada punto que FALLA. */
+  crearTareas: boolean;
+}
+
+const USO = 'Uso: taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas].';
+
+function leerOpciones(argv: readonly string[]): OpcionesComando {
   rechazarFlagsDesconocidos(argv, FLAGS_DOCTOR_DEPLOY, 'doctor-deploy', (m) => new DoctorDeployCommandError(m));
-  const sobra = argv.find((a) => !a.startsWith('-'));
+  // `--resultado` lleva valor: se saca antes de buscar argumentos sueltos.
+  const resto: string[] = [];
+  let resultado: string | null = null;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i] as string;
+    if (a === '--resultado' || a.startsWith('--resultado=')) {
+      const valor = a === '--resultado' ? argv[++i] : a.slice('--resultado='.length);
+      if (valor === undefined || valor.trim() === '' || valor.startsWith('--')) {
+        throw new DoctorDeployCommandError(`[ERROR] taskctl doctor-deploy: --resultado necesita la ruta del JSON del agente. ${USO}`);
+      }
+      resultado = valor;
+    } else {
+      resto.push(a);
+    }
+  }
+  const sobra = resto.find((a) => !a.startsWith('-'));
   if (sobra !== undefined) {
+    throw new DoctorDeployCommandError(`[ERROR] taskctl doctor-deploy: no admite argumentos ("${sobra}"). ${USO}`);
+  }
+  return { json: argv.includes('--json'), escribir: argv.includes('--escribir'), resultado, crearTareas: argv.includes('--crear-tareas') };
+}
+
+/** Lee el JSON del agente y lo mezcla con los puntos (ver core/doctor-deploy-veredictos.ts). */
+function incorporarVeredictos(
+  fichero: string,
+  raiz: string,
+  repoCwd: string,
+  puntos: ResultadoPunto[],
+  commit: string | null,
+  avisos: string[]
+): { puntos: ResultadoPunto[]; resumen: ResumenVeredictos } {
+  const ruta = path.resolve(repoCwd, fichero);
+  let texto: string;
+  try {
+    if (statSync(ruta).size > MAX_BYTES_RESULTADO) {
+      throw new DoctorDeployCommandError(
+        `[ERROR] taskctl doctor-deploy: ${fichero} pesa mas de ${MAX_BYTES_RESULTADO / 1024} KB: no es el resultado de una revision.`
+      );
+    }
+    texto = readFileSync(ruta, 'utf8');
+  } catch (e: unknown) {
+    if (e instanceof DoctorDeployCommandError) throw e;
     throw new DoctorDeployCommandError(
-      `[ERROR] taskctl doctor-deploy: no admite argumentos ("${sobra}"). Uso: taskctl doctor-deploy [--json] [--escribir].`
+      `[ERROR] taskctl doctor-deploy: no se pudo leer --resultado "${fichero}": ${e instanceof Error ? e.message : String(e)}`
     );
   }
-  const json = argv.includes('--json');
-  const escribir = argv.includes('--escribir');
+  let entrada;
+  try {
+    entrada = parsearResultado(texto);
+  } catch (e: unknown) {
+    if (e instanceof VeredictoFormatoError) {
+      throw new DoctorDeployCommandError(`[ERROR] taskctl doctor-deploy: ${e.message}. La skill doctor-deploy describe el formato.`);
+    }
+    throw e;
+  }
+  // Dentro del repo ensucia el arbol (y con --crear-tareas aborta el guard de rama): se avisa.
+  // Con las rutas reales: en Windows la carpeta temporal puede venir en formato corto (8.3).
+  const rel = path.relative(realpathSync.native(raiz), realpathSync.native(ruta));
+  if (rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)) {
+    avisos.push(
+      `el fichero de --resultado esta dentro del repositorio (${rel.replace(/\\/g, '/')}): ensucia el arbol de trabajo. ` +
+        'Guardalo fuera (la carpeta temporal del sistema).'
+    );
+  }
+  const mezcla = mezclarVeredictos(puntos, entrada, commit, commit === null ? () => 'sin commit' : comprobadorEnCommit(raiz, commit));
+  for (const x of mezcla.resumen.rechazados) avisos.push(`veredicto rechazado (${x.punto}): ${x.motivo}`);
+  return mezcla;
+}
+
+// ---------------------------------------------------------------------
+
+/** El analisis hecho: lo que hace falta para dar la salida. */
+interface Analisis {
+  informe: InformeDeploy;
+  opciones: OpcionesComando;
+  raiz: string;
+  ahora: Date;
+}
+
+function analizar(argv: readonly string[], deps: DoctorDeployDeps): Analisis {
+  const opciones = leerOpciones(argv);
 
   const raizGit = gitTexto(['rev-parse', '--show-toplevel'], deps.repoCwd, { timeoutMs: 15_000 });
   if (raizGit === null || raizGit.trim() === '') {
@@ -273,35 +391,55 @@ export function runDoctorDeployCommand(argv: readonly string[], deps: DoctorDepl
   // Los informes de --escribir no cuentan como «sucio»: dejan el arbol sin trackear a proposito
   // y una segunda ejecucion se marcaria sucia solo por el informe anterior.
   const estado = gitTexto(['status', '--porcelain', '--', '.', ':(exclude)docs/doctor-deploy'], raiz, { timeoutMs: 30_000 });
-  const commit = gitTexto(['rev-parse', '--verify', '--quiet', 'HEAD'], raiz, { timeoutMs: 15_000 });
+  const commitCrudo = gitTexto(['rev-parse', '--verify', '--quiet', 'HEAD'], raiz, { timeoutMs: 15_000 });
   const rama = gitTexto(['symbolic-ref', '--short', '-q', 'HEAD'], raiz, { timeoutMs: 15_000 });
   if (estado === null) avisos.push('no se pudo saber si el arbol esta limpio (git status fallo): se marca como sucio.');
+  const commit = commitCrudo === null || commitCrudo.trim() === '' ? null : commitCrudo.trim();
+
+  // Veredictos del agente: se mezclan sobre el analisis recien repetido en este HEAD.
+  let puntosFinales = puntos;
+  let veredictos: ResumenVeredictos | null = null;
+  if (opciones.resultado !== null) {
+    const m = incorporarVeredictos(opciones.resultado, raiz, deps.repoCwd, puntos, commit, avisos);
+    puntosFinales = m.puntos;
+    veredictos = m.resumen;
+  }
 
   const ahora = (deps.ahora ?? ((): Date => new Date()))();
   const informe: InformeDeploy = {
-    version: 1,
+    version: 2,
     comando: 'doctor-deploy',
     fecha: ahora.toISOString(),
-    commit: commit === null || commit.trim() === '' ? null : commit.trim(),
+    commit,
     rama: rama === null || rama.trim() === '' ? null : rama.trim(),
     arbolSucio: estado === null ? true : estado.trim() !== '',
     tipos,
     avisos,
-    puntos,
+    puntos: puntosFinales,
+    veredictos,
+    tareas: null,
   };
+  return { informe, opciones, raiz, ahora };
+}
 
+/** La salida del comando y, con --escribir, el informe en disco. */
+function emitir(a: Analisis): DoctorDeployResult {
+  const { informe, opciones, raiz, ahora } = a;
+  const { json, escribir } = opciones;
   const salida = salidaSegura(json ? formatearJson(informe) : formatearTexto(informe));
-  const codigo = codigoSalida(puntos);
+  const codigo = codigoSalida(informe.puntos);
 
   let rutaInforme: string | null = null;
+  let rutaJson: string | null = null;
   let mensajeEscritura = '';
   if (escribir) {
     try {
-      const destino = escribirInforme(raiz, fechaLocal(ahora), salidaSegura(formatearInforme(informe)));
-      rutaInforme = destino;
-      const rel = path.relative(raiz, destino).replace(/\\/g, '/');
+      const destino = escribirInforme(raiz, fechaLocal(ahora), salidaSegura(formatearInforme(informe)), salidaSegura(formatearJson(informe)));
+      rutaInforme = destino.md;
+      rutaJson = destino.json;
+      const rel = path.relative(raiz, destino.md).replace(/\\/g, '/');
       mensajeEscritura =
-        `Informe escrito en ${rel}${informe.arbolSucio ? ' (el arbol estaba sucio: no describe un commit limpio)' : ''}. ` +
+        `Informe escrito en ${rel} (y ${path.basename(destino.json)} al lado)${informe.arbolSucio ? ' (el arbol estaba sucio: no describe un commit limpio)' : ''}. ` +
         'No se ha commiteado: revisalo y commitealo tu.\n';
     } catch (e: unknown) {
       // El analisis ya esta hecho: se imprime igualmente y se avisa de que el informe no se guardo.
@@ -312,5 +450,40 @@ export function runDoctorDeployCommand(argv: readonly string[], deps: DoctorDepl
     }
   }
 
-  return { informe, codigo, salida, json, rutaInforme, mensajeEscritura };
+  return { informe, codigo, salida, json, rutaInforme, rutaJson, mensajeEscritura };
+}
+
+/**
+ * La variante sin `--crear-tareas`, sincrona (la que usan casi todos los tests). Con `--crear-tareas`
+ * hay que usar `runDoctorDeployCompleto`: crear tareas escribe en disco y toca Git, y es asincrono.
+ */
+export function runDoctorDeployCommand(argv: readonly string[], deps: DoctorDeployDeps): DoctorDeployResult {
+  const a = analizar(argv, deps);
+  if (a.opciones.crearTareas) {
+    throw new DoctorDeployCommandError('[ERROR] taskctl doctor-deploy: --crear-tareas necesita la variante asincrona (runDoctorDeployCompleto).');
+  }
+  return emitir(a);
+}
+
+/**
+ * El comando entero, con `--crear-tareas`. Orden: analisis -> tareas -> informe. Las tareas se crean
+ * ANTES de escribir el informe de `--escribir`: el guard de rama base aborta con ficheros sin
+ * trackear, incluido el informe recien escrito.
+ */
+export async function runDoctorDeployCompleto(argv: readonly string[], deps: DoctorDeployDeps): Promise<DoctorDeployResult> {
+  const a = analizar(argv, deps);
+  if (!a.opciones.crearTareas) return emitir(a);
+  let tareas: ResultadoCrearTareas;
+  try {
+    tareas = await crearTareasDeFallas(a.informe, a.raiz, fechaLocal(a.ahora));
+  } catch (e: unknown) {
+    if (e instanceof BaseBranchGuardError && a.informe.avisos.some((x) => x.includes('--resultado esta dentro del repositorio'))) {
+      throw new BaseBranchGuardError(
+        `${e.message}\n        Si el cambio es el fichero de --resultado, guardalo fuera del repositorio (la carpeta temporal del sistema).`
+      );
+    }
+    throw e;
+  }
+  const informe: InformeDeploy = { ...a.informe, tareas: tareas.resumen };
+  return { ...emitir({ ...a, informe }), tareas };
 }

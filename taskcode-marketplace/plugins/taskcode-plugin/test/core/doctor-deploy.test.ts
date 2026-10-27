@@ -16,6 +16,7 @@ function punto(parcial: Partial<ResultadoPunto>): ResultadoPunto {
     descripcion: 'descripcion',
     referencia: null,
     desactivado: false,
+    origen: 'sonda',
     estado: 'ok',
     motivo: 'todo bien',
     evidencias: [],

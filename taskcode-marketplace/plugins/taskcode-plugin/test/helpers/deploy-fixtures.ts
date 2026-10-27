@@ -8,7 +8,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runDoctorDeployCommand, type DoctorDeployResult } from '../../src/commands/doctor-deploy.js';
+import { runDoctorDeployCommand, runDoctorDeployCompleto, type DoctorDeployResult } from '../../src/commands/doctor-deploy.js';
 import type { InformeDeploy, ResultadoPunto } from '../../src/core/doctor-deploy.js';
 
 export const AWS = 'AKIA' + 'ABCDEFGHIJKLMNOP';
@@ -66,8 +66,28 @@ export async function conRepo(
   }
 }
 
+/** Como `conRepo`, pero en la rama `develop` (la base de las tareas creadas con --crear-tareas). */
+export async function conRepoDevelop(
+  archivos: Record<string, string>,
+  fn: (raiz: string, opciones: OpcionesTest) => Promise<void>
+): Promise<void> {
+  await conRepo(archivos, async (raiz, opciones) => {
+    git(['checkout', '-q', '-b', 'develop'], raiz);
+    await fn(raiz, opciones);
+  });
+}
+
 export function ejecutar(raiz: string, opciones: OpcionesTest, args: string[] = ['--json'], ahora?: Date): DoctorDeployResult {
   return runDoctorDeployCommand(args, {
+    repoCwd: raiz,
+    opciones,
+    ...(ahora === undefined ? {} : { ahora: () => ahora }),
+  });
+}
+
+/** El comando entero (con --crear-tareas). */
+export function ejecutarCompleto(raiz: string, opciones: OpcionesTest, args: string[], ahora?: Date): Promise<DoctorDeployResult> {
+  return runDoctorDeployCompleto(args, {
     repoCwd: raiz,
     opciones,
     ...(ahora === undefined ? {} : { ahora: () => ahora }),

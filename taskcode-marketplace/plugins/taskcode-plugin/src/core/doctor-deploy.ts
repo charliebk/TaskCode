@@ -19,6 +19,8 @@
  * comando con `ocultarSecretos`.
  */
 import type { Metodo, Severidad } from './doctor-deploy-catalogo.js';
+import type { ResumenTareas } from './doctor-deploy-tareas.js';
+import type { ResumenVeredictos } from './doctor-deploy-veredictos.js';
 
 export type EstadoPunto = 'ok' | 'falla' | 'no-verificado' | 'no-aplica';
 
@@ -49,7 +51,14 @@ export interface ResultadoPunto extends ResultadoSonda {
   referencia: string | null;
   /** true si el proyecto desactivo el punto (sale NO APLICA con su motivo). */
   desactivado: boolean;
+  /**
+   * Quien decidio el estado: `sonda` (el comando, de forma determinista) o `agente` (un veredicto
+   * de revision con juicio incorporado con `--resultado`, TASK-067).
+   */
+  origen: OrigenPunto;
 }
+
+export type OrigenPunto = 'sonda' | 'agente';
 
 export interface TipoDetectado {
   id: string;
@@ -59,8 +68,8 @@ export interface TipoDetectado {
 }
 
 export interface InformeDeploy {
-  /** Version del formato del JSON: la que extienda TASK-067 sube este numero. */
-  version: 1;
+  /** Version del formato del JSON. v2 (TASK-067): `origen` por punto y `veredictos`. */
+  version: 2;
   comando: 'doctor-deploy';
   /** Fecha y hora de la ejecucion (ISO 8601 UTC). */
   fecha: string;
@@ -71,6 +80,10 @@ export interface InformeDeploy {
   tipos: TipoDetectado[];
   avisos: string[];
   puntos: ResultadoPunto[];
+  /** Resumen de los veredictos del agente; null si no se paso `--resultado`. */
+  veredictos: ResumenVeredictos | null;
+  /** Tareas creadas, reutilizadas y huerfanas con `--crear-tareas`; null si no se pidio. */
+  tareas: ResumenTareas | null;
 }
 
 export interface ResumenDeploy {
@@ -145,6 +158,19 @@ function textoTipos(tipos: readonly TipoDetectado[]): string {
   return tipos.map((t) => `${t.nombre} (${t.rutas.join(', ')})`).join('; ');
 }
 
+/** Las tareas de `--crear-tareas` en texto: lo creado, lo reutilizado (y se dice) y las huerfanas. */
+export function lineasTareas(t: ResumenTareas): string[] {
+  const l: string[] = [];
+  if (t.creadas.length === 0 && t.reutilizadas.length === 0) l.push('Tareas: ningun punto FALLA, no se ha creado nada.');
+  else l.push(`Tareas: ${t.creadas.length} creada(s), ${t.reutilizadas.length} reutilizada(s).`);
+  for (const c of t.creadas) l.push(`    ${c.id} creada para ${c.punto}`);
+  for (const c of t.reutilizadas) l.push(`    ${c.id} ya estaba abierta para ${c.punto}: se reutiliza, no se crea otra`);
+  for (const h of t.huerfanas) {
+    l.push(`    [AVISO] ${h.id} (punto ${h.punto}): ${h.motivo}. Comprueba si se puede cerrar; doctor-deploy no cierra tareas.`);
+  }
+  return l;
+}
+
 /** Maximo de evidencias que se listan por punto en la salida de texto. */
 const MAX_EVIDENCIAS_TEXTO = 12;
 
@@ -158,7 +184,7 @@ export function formatearTexto(informe: InformeDeploy): string {
   l.push('');
   for (const p of informe.puntos) {
     const marca = `[${etiquetaEstado(p.estado)}]`;
-    l.push(`${marca} ${p.id} (${p.severidad}, ${p.metodo})${p.desactivado ? ' DESACTIVADO' : ''}: ${p.motivo}`);
+    l.push(`${marca} ${p.id} (${p.severidad}, ${p.metodo})${p.desactivado ? ' DESACTIVADO' : ''}${p.origen === 'agente' ? ' [agente]' : ''}: ${p.motivo}`);
     if (p.estado === 'falla' || p.estado === 'ok') {
       for (const e of p.evidencias.slice(0, MAX_EVIDENCIAS_TEXTO)) l.push(`    - ${textoEvidencia(e)}`);
       if (p.evidencias.length > MAX_EVIDENCIAS_TEXTO) {
@@ -168,6 +194,12 @@ export function formatearTexto(informe: InformeDeploy): string {
     if (p.estado === 'falla') l.push(`    Arreglo: ${p.arreglo}`);
   }
   l.push('');
+  if (informe.veredictos !== null) {
+    l.push(`Veredictos del agente: ${informe.veredictos.aceptados} aceptado(s), ${informe.veredictos.rechazados.length} rechazado(s).`);
+    for (const x of informe.veredictos.rechazados) l.push(`    [RECHAZADO] ${x.punto}: ${x.motivo}`);
+    l.push('');
+  }
+  if (informe.tareas !== null) l.push(...lineasTareas(informe.tareas), '');
   l.push(textoResumen(r));
   if (r.falla === 0 && r.noVerificado > 0) {
     l.push(
@@ -179,7 +211,7 @@ export function formatearTexto(informe: InformeDeploy): string {
   return `${l.join('\n')}\n`;
 }
 
-/** Una sola linea de JSON; el contrato que extendera TASK-067. */
+/** Una sola linea de JSON (v2, TASK-067). */
 export function formatearJson(informe: InformeDeploy): string {
   const resumen = resumir(informe.puntos);
   return `${JSON.stringify({ ...informe, resumen, codigo: codigoSalida(informe.puntos) })}\n`;
@@ -209,6 +241,14 @@ export function formatearInforme(informe: InformeDeploy): string {
   l.push(`- Tipos detectados: ${textoTipos(informe.tipos)}`);
   l.push(`- ${textoResumen(r)}`);
   l.push(`- Codigo de salida: ${codigoSalida(informe.puntos)}`);
+  if (informe.tareas !== null) {
+    l.push(`- Tareas: ${informe.tareas.creadas.length} creada(s) (${informe.tareas.creadas.map((c) => c.id).join(', ') || 'ninguna'}), ${informe.tareas.reutilizadas.length} reutilizada(s)`);
+    for (const h of informe.tareas.huerfanas) l.push(`  - ${h.id} (${celda(h.punto)}): ${celda(h.motivo)}`);
+  }
+  if (informe.veredictos !== null) {
+    l.push(`- Veredictos del agente: ${informe.veredictos.aceptados} aceptado(s), ${informe.veredictos.rechazados.length} rechazado(s)`);
+    for (const x of informe.veredictos.rechazados) l.push(`  - Rechazado (${celda(x.punto)}): ${celda(x.motivo)}`);
+  }
   l.push('');
   if (informe.avisos.length > 0) {
     l.push('## Avisos');
@@ -218,11 +258,11 @@ export function formatearInforme(informe: InformeDeploy): string {
   }
   l.push('## Puntos');
   l.push('');
-  l.push('| Punto | Severidad | Metodo | Estado | Detalle |');
-  l.push('|---|---|---|---|---|');
+  l.push('| Punto | Severidad | Metodo | Origen | Estado | Detalle |');
+  l.push('|---|---|---|---|---|---|');
   for (const p of informe.puntos) {
     l.push(
-      `| ${celda(p.id)} | ${p.severidad} | ${p.metodo} | ${etiquetaEstado(p.estado)} | ${celda(p.motivo)}${p.desactivado ? ' (desactivado)' : ''} |`
+      `| ${celda(p.id)} | ${p.severidad} | ${p.metodo} | ${p.origen} | ${etiquetaEstado(p.estado)} | ${celda(p.motivo)}${p.desactivado ? ' (desactivado)' : ''} |`
     );
   }
   l.push('');
