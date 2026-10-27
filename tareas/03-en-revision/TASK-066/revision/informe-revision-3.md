@@ -2,7 +2,7 @@
 
 - Commit revisado: 630e9eb188ba82b3d9ed6548122a33dcef0b47c4
 - Revisor: code-quality-reviewer (agente revisor independiente ac5a86ab0df1396eb; clon propio en %LOCALAPPDATA%\pruebas-claude\taskcode\task-066-r3, ya borrado)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-066 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
