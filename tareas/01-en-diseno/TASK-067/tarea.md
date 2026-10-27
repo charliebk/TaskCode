@@ -7,7 +7,7 @@ etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-067-doctor-deploy-b-puntos-de-juicio-tareas
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -41,6 +41,7 @@ Completa doctor-deploy (TASK-066). Los puntos que no se pueden medir con certeza
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-10-27T19:36:38Z | plan | automatico | persona |
+| 2026-10-27T20:20:26Z | approve | automatico | persona |
 
 ## Coste
 
