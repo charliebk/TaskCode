@@ -15,6 +15,7 @@
  * `ocultarSecretos` es la segunda red: reescribe cualquier texto que vaya a
  * salir (stdout, JSON, informe en disco, stderr) por si algo se coló.
  */
+import { createHash } from 'node:crypto';
 
 export type ClaseSecreto = 'secreto' | 'publica' | 'ejemplo';
 
@@ -26,6 +27,11 @@ export interface HallazgoSecreto {
   linea: number;
   /** Valor enmascarado: nunca el crudo. */
   muestra: string;
+  /**
+   * Huella estable del valor (12 hex de su SHA-256): identifica el hallazgo para
+   * silenciarlo sin revelar el valor. No se puede invertir en una clave real.
+   */
+  huella: string;
 }
 
 interface Clasificacion {
@@ -113,6 +119,11 @@ export const IDS_PATRON: readonly string[] = [
   'supabase-anon',
 ];
 
+/** Huella del valor: 12 caracteres hex de su SHA-256. */
+export function huellaDe(valor: string): string {
+  return createHash('sha256').update(valor).digest('hex').slice(0, 12);
+}
+
 /** Valor enmascarado: 4 caracteres como mucho + la longitud. Nunca el crudo. */
 export function enmascarar(valor: string): string {
   const visibles = Math.min(4, Math.floor(valor.length / 4));
@@ -148,7 +159,7 @@ export function buscarSecretos(texto: string): HallazgoSecreto[] {
       if (c === null) continue;
       encontrados.push({
         indice: m.index,
-        h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]) },
+        h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]), huella: huellaDe(m[0]) },
       });
     }
   }

@@ -15,6 +15,7 @@
  * `ocultarSecretos` es la segunda red: reescribe cualquier texto que vaya a
  * salir (stdout, JSON, informe en disco, stderr) por si algo se coló.
  */
+import { createHash } from 'node:crypto';
 /** Texto que, como contrasena de una URL, es un marcador y no un secreto. */
 const CONTRASENA_MARCADOR = /^(?:password|passwd|pass|contrasena|changeme|secret|example|your[-_]?password|\*+|x+|\.{3,}|<[^>]*>|\$\{[^}]*\}|\{\{[^}]*\}\}|%[^%]+%)$/i;
 const HOST_LOCAL = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|.*\.?example(?:\.[a-z]+)?|.*\.local|.*\.test|.*\.invalid)$/i;
@@ -88,6 +89,10 @@ export const IDS_PATRON = [
     'supabase-service-role',
     'supabase-anon',
 ];
+/** Huella del valor: 12 caracteres hex de su SHA-256. */
+export function huellaDe(valor) {
+    return createHash('sha256').update(valor).digest('hex').slice(0, 12);
+}
 /** Valor enmascarado: 4 caracteres como mucho + la longitud. Nunca el crudo. */
 export function enmascarar(valor) {
     const visibles = Math.min(4, Math.floor(valor.length / 4));
@@ -123,7 +128,7 @@ export function buscarSecretos(texto) {
                 continue;
             encontrados.push({
                 indice: m.index,
-                h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]) },
+                h: { patron: c.patron ?? p.id, clase: c.clase, muestra: enmascarar(m[0]), huella: huellaDe(m[0]) },
             });
         }
     }

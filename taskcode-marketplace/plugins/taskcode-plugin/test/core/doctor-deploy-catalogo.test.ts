@@ -254,12 +254,25 @@ test('capa: un silencio lleva patron, fichero, motivo, quien y fecha; commit es 
     patron: 'stripe-live',
     fichero: 'config/prod.env',
     commit: 'abcdef1',
+    huella: null,
     motivo: 'Rotada el 2026-10-01',
     quien: 'carlos',
     fecha: '2026-10-27',
   });
-  const sinCommit = parsearCapaProyecto(SILENCIO.replace(/silenciar_1_commit.*\n/, ''), 'p.yml', baseConDos);
+  // Sin commit solo vale para el arbol, y entonces exige la huella del valor.
+  const sinCommit = parsearCapaProyecto(SILENCIO.replace(/silenciar_1_commit.*\n/, 'silenciar_1_huella: AB12cd34ef56\n'), 'p.yml', baseConDos);
   assert.equal(sinCommit.silencios[0]?.commit, null);
+  assert.equal(sinCommit.silencios[0]?.huella, 'ab12cd34ef56');
+  assert.match(
+    errorDe(() => parsearCapaProyecto(SILENCIO.replace(/silenciar_1_commit.*\n/, ''), 'p.yml', baseConDos)),
+    /exige "silenciar_1_commit" .* o "silenciar_1_huella"/
+  );
+  // Un fichero-secreto (sin valor) no tiene huella: vale sin commit.
+  assert.equal(
+    parsearCapaProyecto(SILENCIO.replace(/silenciar_1_commit.*\n/, '').replace('stripe-live', 'fichero-secreto'), 'p.yml', baseConDos).silencios.length,
+    1
+  );
+  assert.match(errorDe(() => parsearCapaProyecto(SILENCIO + 'silenciar_1_huella: zz\n', 'p.yml', baseConDos)), /silenciar_1_huella/);
 });
 
 test('capa: un silencio sin motivo, sin quien, con fecha mala o con commit mal formado aborta', () => {

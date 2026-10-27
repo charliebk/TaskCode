@@ -82,6 +82,8 @@ export interface Silencio {
   fichero: string;
   /** Prefijo (7+ caracteres) o hash del commit; null = cualquiera. */
   commit: string | null;
+  /** Prefijo (8+ hex) de la huella del valor; null = no se exige. */
+  huella: string | null;
   motivo: string;
   quien: string;
   fecha: string;
@@ -112,7 +114,7 @@ const MAX_ENTRADAS = 500;
 const CAMPOS_TIPO = ['id', 'nombre', 'marcadores'] as const;
 const CAMPOS_PUNTO = ['id', 'severidad', 'tipos', 'metodo', 'sonda', 'arreglo', 'descripcion', 'referencia'] as const;
 const CAMPOS_DESACTIVAR = ['id', 'motivo'] as const;
-const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'motivo', 'quien', 'fecha'] as const;
+const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'huella', 'motivo', 'quien', 'fecha'] as const;
 
 type Valor = { valor: unknown; numeroLinea: number };
 type Bloque = Map<string, Valor>;
@@ -499,7 +501,26 @@ export function parsearCapaProyecto(contenido: string, ruta: string, base: Catal
         throw fallar(`[ERROR] ${ruta}:${cCommit.numeroLinea}: "silenciar_${n}_commit" debe ser un hash de commit de 7 a 40 caracteres hexadecimales.`);
       }
     }
-    silencios.push({ numero: n, patron, fichero, commit, motivo, quien, fecha });
+    const cHuella = b.get('huella');
+    let huella: string | null = null;
+    if (cHuella !== undefined) {
+      if (typeof cHuella.valor === 'number') {
+        throw fallar(`[ERROR] ${ruta}:${cHuella.numeroLinea}: "silenciar_${n}_huella" son solo digitos y se leeria como un numero: ponla entre comillas.`);
+      }
+      huella = texto(cHuella, `silenciar_${n}_huella`, ruta, fallar).toLowerCase();
+      if (!/^[0-9a-f]{8,64}$/.test(huella)) {
+        throw fallar(`[ERROR] ${ruta}:${cHuella.numeroLinea}: "silenciar_${n}_huella" debe tener de 8 a 64 caracteres hexadecimales (la que imprime el hallazgo).`);
+      }
+    }
+    // D3: un silencio es POR HALLAZGO. Sin commit solo vale para el arbol, y ahi se ata a la huella
+    // del valor: asi no tapa otra clave nueva del mismo patron en el mismo fichero.
+    if (commit === null && huella === null && patron !== 'fichero-secreto') {
+      throw fallar(
+        `[ERROR] ${ruta}: silenciar_${n} exige "silenciar_${n}_commit" (hallazgo del historial) o "silenciar_${n}_huella" ` +
+          '(hallazgo del arbol: la huella sale en la evidencia). Sin ninguno taparia tambien las claves nuevas del mismo fichero.'
+      );
+    }
+    silencios.push({ numero: n, patron, fichero, commit, huella, motivo, quien, fecha });
   }
 
   // id desconocido en desactivar: aviso (se comprueba contra base + anadidos)

@@ -50,7 +50,7 @@ const MAX_ENTRADAS = 500;
 const CAMPOS_TIPO = ['id', 'nombre', 'marcadores'];
 const CAMPOS_PUNTO = ['id', 'severidad', 'tipos', 'metodo', 'sonda', 'arreglo', 'descripcion', 'referencia'];
 const CAMPOS_DESACTIVAR = ['id', 'motivo'];
-const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'motivo', 'quien', 'fecha'];
+const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'huella', 'motivo', 'quien', 'fecha'];
 function packageRoot() {
     // dist/src/core/doctor-deploy-catalogo.js -> core -> src -> dist -> raiz del plugin
     return path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -343,7 +343,24 @@ export function parsearCapaProyecto(contenido, ruta, base) {
                 throw fallar(`[ERROR] ${ruta}:${cCommit.numeroLinea}: "silenciar_${n}_commit" debe ser un hash de commit de 7 a 40 caracteres hexadecimales.`);
             }
         }
-        silencios.push({ numero: n, patron, fichero, commit, motivo, quien, fecha });
+        const cHuella = b.get('huella');
+        let huella = null;
+        if (cHuella !== undefined) {
+            if (typeof cHuella.valor === 'number') {
+                throw fallar(`[ERROR] ${ruta}:${cHuella.numeroLinea}: "silenciar_${n}_huella" son solo digitos y se leeria como un numero: ponla entre comillas.`);
+            }
+            huella = texto(cHuella, `silenciar_${n}_huella`, ruta, fallar).toLowerCase();
+            if (!/^[0-9a-f]{8,64}$/.test(huella)) {
+                throw fallar(`[ERROR] ${ruta}:${cHuella.numeroLinea}: "silenciar_${n}_huella" debe tener de 8 a 64 caracteres hexadecimales (la que imprime el hallazgo).`);
+            }
+        }
+        // D3: un silencio es POR HALLAZGO. Sin commit solo vale para el arbol, y ahi se ata a la huella
+        // del valor: asi no tapa otra clave nueva del mismo patron en el mismo fichero.
+        if (commit === null && huella === null && patron !== 'fichero-secreto') {
+            throw fallar(`[ERROR] ${ruta}: silenciar_${n} exige "silenciar_${n}_commit" (hallazgo del historial) o "silenciar_${n}_huella" ` +
+                '(hallazgo del arbol: la huella sale en la evidencia). Sin ninguno taparia tambien las claves nuevas del mismo fichero.');
+        }
+        silencios.push({ numero: n, patron, fichero, commit, huella, motivo, quien, fecha });
     }
     // id desconocido en desactivar: aviso (se comprueba contra base + anadidos)
     for (const d of desactivados) {
