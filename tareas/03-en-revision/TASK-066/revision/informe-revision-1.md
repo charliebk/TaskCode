@@ -2,7 +2,7 @@
 
 - Commit revisado: 92422185bf17c7de4d5985648e803f3f44e34442
 - Revisor: code-quality-reviewer (agente revisor independiente a76f6d0cfd7e65566; clon propio en %LOCALAPPDATA%\pruebas-claude\taskcode\task-066-r1, ya borrado)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-066 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 El revisor propuso aprobada-con-correcciones; con 6 IMPORTANTE abiertos la regla del flujo es cambios-solicitados.
 
