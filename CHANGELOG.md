@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)
 ## 0.8.0 — 2026-10-25
 
 Metricas v2 (TASK-063, 064 y 065): coste desglosado por agente, origen de

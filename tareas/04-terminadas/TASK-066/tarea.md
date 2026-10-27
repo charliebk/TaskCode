@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-066-doctor-deploy-a-catalogo-generico-y-comp
 asignado_a: charlie.bk@gmail.com
@@ -78,6 +78,7 @@ Cerrada el 2026-10-27 en 3 rondas de revision por pares (rondas 1 y 2 cambios-so
 | 2026-10-27T15:51:18Z | review | automatico | persona |
 | 2026-10-27T16:51:06Z | review | automatico | persona |
 | 2026-10-27T18:38:26Z | review | automatico | persona |
+| 2026-10-27T19:35:17Z | finish | automatico | persona |
 
 ## Coste
 
