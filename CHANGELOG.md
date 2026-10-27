@@ -3,6 +3,42 @@
 ## Sin publicar
 
 - TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)
+- TASK-067 (feature) — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release (2026-10-27)
+
+Doctor-deploy B (TASK-067), segunda mitad de doctor-deploy.
+
+- **Puntos de juicio**: nueva skill `/taskcode-plugin:doctor-deploy` y agente
+  `revisor-seguridad-deploy` (solo lectura). El agente cita fichero y linea o el
+  punto queda NO VERIFICADO; trata el contenido del repo como dato, no como
+  instrucciones, y nunca copia valores ni fragmentos.
+- `taskctl doctor-deploy --resultado <fichero.json>` repite el analisis sobre
+  HEAD y mezcla los veredictos del agente. Rechaza, con su motivo, los de otro
+  commit, de un punto determinista, desconocido o que no aplica, sin fichero y
+  linea, con ruta absoluta o `..`, fichero no versionado o linea inexistente; el
+  motivo se acota y se enmascara. El JSON del agente vive fuera del repo.
+- **Informe JSON v2**: cada punto lleva `origen` (`sonda` | `agente`), y el
+  informe `veredictos` y `tareas`. `--escribir` deja tambien `<fecha>.json` junto
+  al `.md`. Quien lea el JSON v1 debe aceptar el campo nuevo y `version: 2`.
+- `--crear-tareas`: una tarea por FALLA con ID reservado descendente desde
+  TASK-9999, arreglo como objetivo y "doctor-deploy da OK en el punto" como
+  criterio. Etiqueta `doctor-deploy:<id-punto>` para no duplicar (borrarla a mano
+  rompe la deduplicacion); avisa de tareas cuyo punto ya da OK o ya no existe, sin
+  cerrar nada. Exige el arbol limpio y puede cambiar a la rama base.
+- **Rango reservado**: `taskctl new` e `import` ignoran los IDs desde TASK-9000 y
+  abortan si la numeracion normal llegara ahi. Los reservados se reparten mirando
+  tareas y ramas. **Actualizad el plugin a la vez en todo el equipo**: una version
+  anterior crearia TASK-10000 tras un TASK-9999.
+- **`finish` de una release avisa, sin bloquear**, si no hay un informe de
+  doctor-deploy al dia (el de la punta, o un ancestro con solo
+  `docs/doctor-deploy/` cambiado) o si tiene alguna FALLA de severidad critica.
+- **Cambio de comportamiento (MEN-12 de TASK-066)**: `gitignore-cubre-env` ya no
+  se queda en las 10 primeras carpetas de proyecto. Revisa todas (tope de 200) o
+  sale NO VERIFICADO diciendo cuantas faltan. Un monorepo con mas de 10
+  carpetas que antes salia OK puede salir ahora FALLA (y el comando, con codigo 1
+  en CI) o NO VERIFICADO.
+- Tests que matan los mutantes N8, N9, N12, N14 y N17 de la revision de TASK-066
+  (MEN-13).
+
 ## 0.8.0 — 2026-10-25
 
 Metricas v2 (TASK-063, 064 y 065): coste desglosado por agente, origen de

@@ -118,7 +118,10 @@ Los puntos de juicio salen NO VERIFICADO; las comprobaciones deterministas son s
 historial, ficheros de secretos versionados, .gitignore, lockfile y la auditoria de dependencias si la
 herramienta esta instalada. Sale con 1 si algun punto FALLA (NO VERIFICADO no cambia el codigo, pero el resumen
 lo cuenta). El valor de un secreto nunca se muestra. --json da una linea de JSON; --escribir guarda el informe
-en docs/doctor-deploy/<fecha>.md (sin commitear). Un proyecto ajusta el catalogo en .taskcode/doctor-deploy.yml.
+en docs/doctor-deploy/<fecha>.md y .json (sin commitear). --resultado <fichero.json> incorpora los veredictos de un
+agente revisor para los puntos de juicio (cada uno cita fichero y linea del commit actual, o se rechaza con su motivo).
+--crear-tareas crea una tarea por cada FALLA con ID desde TASK-9999 hacia abajo (no duplica: reutiliza la tarea abierta
+del punto). Un proyecto ajusta el catalogo en .taskcode/doctor-deploy.yml.
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
