@@ -4,6 +4,7 @@
  */
 import path from 'node:path';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
+import { TaskIdError } from './core/task-id.js';
 import { runImportCommand, ImportCommandError } from './commands/import.js';
 import { runBoardCommand, BoardCommandError } from './commands/board.js';
 import { runMetricasCommand, MetricasCommandError } from './commands/metricas.js';
@@ -378,6 +379,7 @@ async function mainComando(argvEntrada) {
             if (e instanceof AutoCommitError ||
                 e instanceof ConfigError ||
                 e instanceof NewTaskArgError ||
+                e instanceof TaskIdError ||
                 e instanceof BaseBranchGuardError) {
                 printCliError(e);
                 return 1;
@@ -416,6 +418,7 @@ async function mainComando(argvEntrada) {
             if (e instanceof AutoCommitError ||
                 e instanceof ConfigError ||
                 e instanceof ImportCommandError ||
+                e instanceof TaskIdError ||
                 e instanceof BaseBranchGuardError) {
                 printCliError(e);
                 return 1;
