@@ -2,7 +2,7 @@
 
 - Commit revisado: feea4ef2ddba7e21057c94766a074b992360ac4b
 - Revisor: code-quality-reviewer (agente revisor independiente a9f73ad99de3bbdaa; clon propio en %LOCALAPPDATA%\pruebas-claude\taskcode\task-066-r2, ya borrado)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-066 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 Incidencia: por un heredoc sin cerrar, el revisor ejecuto lineas en el repo original y dejo un commit `34ba054 "k"` (solo `config/prod.env.js` con una clave de prueba falsa) y un `.taskcode/doctor-deploy.yml` sin trackear en la rama de la tarea. No se subio. Con autorizacion de la persona se deshizo con `git reset --mixed 0178d59` y borrando ambos ficheros; el agente se detuvo.
 
