@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 592099
-tokens_implementacion: 13150673
+tokens_implementacion: 26358863
 tokens_revision: 10304614
 creado: 2026-10-27
 actualizado: 2026-10-27
@@ -52,3 +52,4 @@ Antes de lanzar o publicar una aplicacion hace falta comprobar punto por punto q
 | 2026-10-27T15:04:12Z | diseno | agente:a85e0b79f3f823466,a553e222406f83752,a9c25c2a34e058983,a095e5f4175dff7f9,a40ec52d0bc2abb1f | 48 | 146771 | 413734 | 31546 | 33 | 592099 |
 | 2026-10-27T15:51:18Z | implementacion | agente:ad57ecf0ea89d13e7 | 140 | 520448 | 12467694 | 162391 | 5 | 13150673 |
 | 2026-10-27T16:22:52Z | revision | agente:a76f6d0cfd7e65566 | 108 | 231341 | 10026579 | 46586 | 7 | 10304614 |
+| 2026-10-27T16:51:05Z | implementacion | agente:dif:ad57ecf0ea89d13e7 | 84 | 694326 | 12463021 | 50759 | 6 | 13208190 |
