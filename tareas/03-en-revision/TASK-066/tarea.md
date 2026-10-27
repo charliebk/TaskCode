@@ -45,6 +45,7 @@ Antes de lanzar o publicar una aplicacion hace falta comprobar punto por punto q
 | 2026-10-27T15:04:26Z | start | automatico | persona |
 | 2026-10-27T15:51:18Z | review | automatico | persona |
 | 2026-10-27T16:51:06Z | review | automatico | persona |
+| 2026-10-27T18:38:26Z | review | automatico | persona |
 
 ## Coste
 
