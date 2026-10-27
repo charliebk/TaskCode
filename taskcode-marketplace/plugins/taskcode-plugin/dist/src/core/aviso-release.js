@@ -1,0 +1,78 @@
+/**
+ * Aviso de `taskctl finish` de una tarea `release` (TASK-067): avisa, sin
+ * bloquear, si no hay un informe de doctor-deploy que describa lo que se
+ * publica, o si ese informe trae alguna FALLA de severidad critica. Modulo
+ * puro: las consultas a Git se inyectan, y nunca se ejecutan las sondas
+ * (finish solo LEE informes que alguien dejo en docs/doctor-deploy/).
+ *
+ * Que informe vale: el criterio original pedia el del commit que se cierra,
+ * pero el informe se commitea DESPUES de generarse, asi que su commit nunca es
+ * la punta. Vale el informe cuyo commit es la punta, o un ancestro con solo
+ * `docs/doctor-deploy/` cambiado entre ambos (decision de la persona). Si hay
+ * varios validos, el mas reciente.
+ *
+ * Es un aviso, no un control de seguridad: un informe editado a mano lo
+ * engana, y no se pretende evitarlo.
+ */
+/** Carpeta de los informes de `--escribir`, con `/` de Git. */
+export const CARPETA_INFORMES_REL = 'docs/doctor-deploy';
+const CIERRA = 'La tarea se cierra igualmente.';
+function cuantos(n, singular, plural) {
+    return `${n} ${n === 1 ? singular : plural}`;
+}
+/** Avisos (0 o mas) para el cierre de una release. Vacio si hay un informe valido sin FALLA critica. */
+export function avisosRelease(e) {
+    const hacer = 'Ejecuta "taskctl doctor-deploy --escribir" (o la skill doctor-deploy), commitea el informe de ' +
+        `${CARPETA_INFORMES_REL}/ y vuelve a cerrar.`;
+    if (e.punta === null) {
+        return [`${e.idTarea}: no se pudo leer el commit que se cierra, asi que no se comprobo si hay un informe de doctor-deploy al dia. ${CIERRA}`];
+    }
+    const punta = e.punta;
+    const validos = [];
+    for (const informe of e.informes) {
+        if (informe.commit === null) {
+            validos.push({ informe, motivoDescartado: 'se hizo en un repositorio sin commits' });
+        }
+        else if (informe.commit === punta) {
+            validos.push({ informe, motivoDescartado: null });
+        }
+        else if (!e.git.esAncestro(informe.commit, punta)) {
+            validos.push({ informe, motivoDescartado: `es del commit ${informe.commit.slice(0, 12)}, que no esta en la historia de la release` });
+        }
+        else {
+            const cambiadas = e.git.rutasCambiadas(informe.commit, punta);
+            if (cambiadas === null) {
+                validos.push({ informe, motivoDescartado: 'no se pudo comparar su commit con el que se cierra' });
+            }
+            else {
+                const codigo = cambiadas.filter((r) => !r.startsWith(`${CARPETA_INFORMES_REL}/`));
+                validos.push(codigo.length === 0
+                    ? { informe, motivoDescartado: null }
+                    : {
+                        informe,
+                        motivoDescartado: `es del commit ${informe.commit.slice(0, 12)} y desde entonces ha cambiado ${cuantos(codigo.length, 'fichero', 'ficheros')} fuera de ${CARPETA_INFORMES_REL}/`,
+                    });
+            }
+        }
+    }
+    const buenos = validos.filter((v) => v.motivoDescartado === null).map((v) => v.informe);
+    if (buenos.length === 0) {
+        const masNuevo = [...e.informes].sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+        const detalle = masNuevo === undefined
+            ? e.soloMarkdown > 0
+                ? `solo hay informes en Markdown (${cuantos(e.soloMarkdown, 'fichero', 'ficheros')}): el aviso lee los .json que deja --escribir`
+                : `no hay ningun informe en ${CARPETA_INFORMES_REL}/`
+            : `el mas reciente (${masNuevo.archivo}) ${validos.find((v) => v.informe === masNuevo)?.motivoDescartado ?? 'no vale'}`;
+        const ilegibles = e.ilegibles.length > 0 ? ` (ademas, ${cuantos(e.ilegibles.length, 'fichero .json no se pudo leer', 'ficheros .json no se pudieron leer')}: ${e.ilegibles.join(', ')})` : '';
+        return [`${e.idTarea}: no hay un informe de doctor-deploy al dia para este commit: ${detalle}${ilegibles}. ${hacer} ${CIERRA}`];
+    }
+    const informe = [...buenos].sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+    const criticas = informe.puntos.filter((p) => p.estado === 'falla' && p.severidad === 'critica').map((p) => p.id);
+    if (criticas.length > 0) {
+        return [
+            `${e.idTarea}: el informe de doctor-deploy ${informe.archivo} tiene ${cuantos(criticas.length, 'FALLA critica', 'FALLAS criticas')}: ` +
+                `${criticas.join(', ')}. Arreglalas (o documenta por que se publica asi) antes de publicar. ${CIERRA}`,
+        ];
+    }
+    return [];
+}
