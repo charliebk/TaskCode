@@ -34,7 +34,7 @@ tomada y documentada, no aplazada.
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
-| J — Doctor-deploy | 2 | **1** | — |
+| J — Doctor-deploy | 3 | **2** | — |
 | **Total pendiente** | **1** | — | — |
 
 ---
@@ -833,7 +833,7 @@ el diseño de TASK-063 en captura (A) y lectura (B).
       de ToolsaWeb, OpenGisViewer y TaskCode (194 tareas) en su Resultado.
       1 ronda, aprobada con 3 MENOR aceptados.*
 
-## J — Doctor-deploy (1/2)
+## J — Doctor-deploy (2/3)
 
 Pedido por Carlos el 2026-10-27: un doctor para antes de lanzar o publicar una
 aplicacion que compruebe punto por punto una lista de seguridad generica
@@ -851,5 +851,15 @@ aviso en release (B).
       .gitignore, lockfile, dependencias) y enmascarado en origen. 3 rondas:
       7 IMPORTANTE (falsos OK por cobertura y tests que faltaban), corregidos;
       MEN-12 y MEN-13 pasan a TASK-067.*
-- [ ] TASK-067 — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso
-      en release
+- [x] TASK-067 — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso
+      en release — cerrada el 2026-10-27
+      *Skill doctor-deploy y agente revisor-seguridad-deploy; `--resultado`
+      con veredictos citados por fichero:linea y rechazos con motivo; JSON v2
+      y `<fecha>.json`; `--crear-tareas` desde TASK-9999 hacia abajo con
+      etiqueta `doctor-deploy:<punto>` y sin duplicar; rango reservado
+      TASK-9000..9999 fuera de la numeracion normal; aviso sin bloquear en
+      `finish` de una release. 2 rondas: solo MENOR, corregidos (el aviso
+      ignora tambien `tareas/` por decision de Carlos).*
+- [ ] TASK-068 — Doctor-deploy C: tipo de aplicacion y sondas deterministas
+      extra (Firebase/RLS, .npmrc, docker-compose, CI, Dockerfile; version
+      vigente de OWASP/ASVS)
