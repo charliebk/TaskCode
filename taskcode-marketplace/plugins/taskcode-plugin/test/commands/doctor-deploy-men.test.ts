@@ -86,6 +86,26 @@ test('MEN-13 (N12): si git check-ignore no se puede ejecutar, el punto es NO VER
   const r = sondaGitignoreEnv(ctx);
   assert.equal(r.estado, 'no-verificado');
   assert.match(r.motivo, /no se pudo ejecutar git check-ignore/);
+  assert.doesNotMatch(r.motivo, /sin comprobar/);
+});
+
+test('ronda 2 (MEN-4): un NO VERIFICADO con carpetas por encima del tope dice tambien cuantas faltan', () => {
+  const ctx: ContextoDeploy = {
+    cwd: path.join(tmpdir(), 'taskctl-dd-no-existe-nunca'),
+    presentes: [],
+    versionados: [],
+    versionadosTodos: [],
+    paraEscanear: [],
+    hallazgosHistorial: [],
+    tipos: [{ id: 'node', nombre: 'Node', rutas: ['apps/a', 'apps/b', 'apps/c', 'apps/d', 'apps/e'] }],
+    silencios: [],
+    silenciosUsados: new Set<number>(),
+    opciones: { ...OPCIONES_SONDAS_POR_DEFECTO, pathHerramientas: '', maxCarpetasGitignore: 2 },
+  };
+  const r = sondaGitignoreEnv(ctx);
+  assert.equal(r.estado, 'no-verificado');
+  assert.match(r.motivo, /no se pudo ejecutar git check-ignore/);
+  assert.match(r.motivo, /ademas 3 carpeta\(s\) de proyecto sin comprobar/);
 });
 
 test('MEN-13 (N14): un `// require` en un comentario de go.mod no cuenta como dependencia (sin go.sum sigue OK)', async () => {

@@ -44,7 +44,13 @@ test('ancestro: solo docs/doctor-deploy/ cambiado vale; cualquier otra ruta, no;
   const base = { punta: B, informes: [informe({ commit: A })] };
   assert.deepEqual(avisosRelease(entrada({ ...base, git: git(true, ['docs/doctor-deploy/2026-10-27.md', 'docs/doctor-deploy/2026-10-27.json']) })), []);
   const mal = avisosRelease(entrada({ ...base, git: git(true, ['docs/doctor-deploy/x.md', 'src/a.ts']) }));
-  assert.match(mal[0] as string, /ha cambiado 1 fichero fuera de docs\/doctor-deploy\//);
+  assert.match(mal[0] as string, /ha cambiado 1 fichero fuera de docs\/doctor-deploy\/ y tareas\//);
+  // Ronda 2 (MEN-1): los commits de tareas/ (review, veredictos, costes) no invalidan el informe...
+  assert.deepEqual(avisosRelease(entrada({ ...base, git: git(true, ['tareas/03-en-revision/TASK-9/tarea.md', 'docs/doctor-deploy/x.json']) })), []);
+  // ...pero no cuentan como codigo solo ellos: con tareas/ y codigo, el codigo sigue avisando.
+  assert.match(avisosRelease(entrada({ ...base, git: git(true, ['tareas/x.md', 'src/a.ts', 'src/b.ts']) }))[0] as string, /ha cambiado 2 ficheros fuera/);
+  // Una carpeta de nombre parecido a tareas/ si es codigo.
+  assert.equal(avisosRelease(entrada({ ...base, git: git(true, ['tareas-viejas/x.md']) })).length, 1);
   // Una carpeta de nombre parecido no es la de los informes.
   assert.equal(avisosRelease(entrada({ ...base, git: git(true, ['docs/doctor-deploy-viejo/x.md']) })).length, 1);
   assert.match(avisosRelease(entrada({ ...base, git: git(true, null) }))[0] as string, /no se pudo comparar/);

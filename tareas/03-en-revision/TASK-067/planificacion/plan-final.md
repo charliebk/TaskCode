@@ -59,3 +59,7 @@
 - Deduplicacion por la etiqueta `doctor-deploy:<id-punto>` (sin campo nuevo en el frontmatter); el README documenta que borrarla a mano rompe la deduplicacion.
 - «Certificado» en los criterios se lee como «informe» (D2 de TASK-066).
 - Plan aprobado entero, con «FALLA critica» = punto con `severidad: critica` en el catalogo.
+
+## Decisiones de la persona tras la ronda 1 de revision (2026-10-27)
+
+- MEN-1: el aviso de release tambien acepta un informe de un ancestro si entre ambos solo cambiaron `docs/doctor-deploy/` o `tareas/` (review, veredictos y costes commitean en `tareas/` despues del informe sin tocar el codigo). Se corrigen tambien MEN-2, MEN-3 y MEN-4 en la ronda 2.

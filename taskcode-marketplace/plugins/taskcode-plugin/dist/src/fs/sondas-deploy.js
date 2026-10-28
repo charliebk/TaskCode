@@ -365,8 +365,12 @@ export const sondaGitignoreEnv = (ctx) => {
         };
     }
     const sinVerificar = rs.find((r) => r.estado !== 'ok');
-    if (sinVerificar !== undefined)
-        return sinVerificar;
+    if (sinVerificar !== undefined) {
+        // MEN-4 de la ronda 1: el motivo dice tambien cuantas carpetas quedaron sin mirar.
+        return sinMirar > 0
+            ? { ...sinVerificar, motivo: `${sinVerificar.motivo}; ademas ${sinMirar} carpeta(s) de proyecto sin comprobar` }
+            : sinVerificar;
+    }
     if (sinMirar > 0) {
         return {
             estado: 'no-verificado',

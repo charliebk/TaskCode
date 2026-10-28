@@ -692,9 +692,10 @@ actualizad el plugin a la vez.
 las sondas; solo lee `docs/doctor-deploy/*.json`), si:
 
 - no hay un informe que valga: el informe más reciente cuyo `commit` es la punta
-  que se cierra, o un **ancestro** con solo `docs/doctor-deploy/` cambiado entre
-  ambos (el informe se commitea después de generarse, así que su commit nunca es
-  la punta); o
+  que se cierra, o un **ancestro** con solo `docs/doctor-deploy/` o `tareas/`
+  cambiados entre ambos (el informe se commitea después de generarse, así que su
+  commit nunca es la punta, y la revisión, los veredictos y los costes commitean en
+  `tareas/` sin tocar el código); o
 - ese informe tiene alguna FALLA de un punto de severidad `critica`.
 
 Cualquier fallo al leer (un informe ilegible, Git que no responde) se convierte en

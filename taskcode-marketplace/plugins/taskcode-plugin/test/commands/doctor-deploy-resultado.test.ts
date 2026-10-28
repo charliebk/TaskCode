@@ -233,6 +233,23 @@ test('fichero no versionado (existe en disco pero no en el commit), carpeta o in
   });
 });
 
+test('ronda 2 (MEN-2): un enlace simbolico o un submodulo versionados no valen como evidencia', async () => {
+  await conRepo(NODE, async (raiz, opciones) => {
+    // Entradas de indice con modo de enlace (120000) y de submodulo (160000), sin crear nada en
+    // disco: asi funciona tambien en Windows sin permiso de symlinks. El blob del enlace es el de
+    // index.js, de modo que la linea 1 "existe": solo el modo puede rechazarlo.
+    const blob = git(['rev-parse', 'HEAD:index.js'], raiz);
+    git(['update-index', '--add', '--cacheinfo', `120000,${blob},enlace.js`], raiz);
+    git(['update-index', '--add', '--cacheinfo', `160000,${git(['rev-parse', 'HEAD'], raiz)},sub`], raiz);
+    git(['commit', '-q', '-m', 'enlace y submodulo'], raiz);
+    const head = git(['rev-parse', 'HEAD'], raiz);
+    assertRechazado(await conResultado(raiz, opciones, { veredictos: [veredicto(head, { fichero: 'enlace.js' })] }), /enlace simbolico/);
+    assertRechazado(await conResultado(raiz, opciones, { veredictos: [veredicto(head, { fichero: 'sub' })] }), /submodulo/);
+    // El fichero normal del mismo commit sigue valiendo.
+    assert.equal(punto(await conResultado(raiz, opciones, { veredictos: [veredicto(head)] }), PUNTO).estado, 'ok');
+  });
+});
+
 test('fichero binario versionado: rechazado', async () => {
   await conRepo({ ...NODE }, async (raiz, opciones) => {
     await writeFile(path.join(raiz, 'logo.bin'), Buffer.from([1, 2, 0, 3, 10, 4]));

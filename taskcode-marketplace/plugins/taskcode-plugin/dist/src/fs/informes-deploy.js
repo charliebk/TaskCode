@@ -5,7 +5,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { avisosRelease } from '../core/aviso-release.js';
+import { avisosRelease, CARPETA_INFORMES_REL } from '../core/aviso-release.js';
 import { diffNameOnly, headCommit, isAncestor } from './git.js';
 const MAX_BYTES_INFORME = 5 * 1024 * 1024;
 function puntosDe(valor) {
@@ -43,7 +43,7 @@ export function interpretarInforme(archivo, texto) {
     return { archivo, fecha: o['fecha'], commit, puntos };
 }
 export function leerInformesDeploy(raiz) {
-    const dir = path.join(raiz, 'docs', 'doctor-deploy');
+    const dir = path.join(raiz, ...CARPETA_INFORMES_REL.split('/'));
     let nombres;
     try {
         nombres = readdirSync(dir);

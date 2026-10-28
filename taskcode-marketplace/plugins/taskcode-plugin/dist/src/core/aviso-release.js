@@ -8,14 +8,21 @@
  * Que informe vale: el criterio original pedia el del commit que se cierra,
  * pero el informe se commitea DESPUES de generarse, asi que su commit nunca es
  * la punta. Vale el informe cuyo commit es la punta, o un ancestro con solo
- * `docs/doctor-deploy/` cambiado entre ambos (decision de la persona). Si hay
- * varios validos, el mas reciente.
+ * `docs/doctor-deploy/` o `tareas/` cambiados entre ambos (decision de la persona;
+ * `tareas/` desde la ronda 2 de revision: review, veredictos y costes commitean ahi
+ * despues del informe sin tocar el codigo). Si hay varios validos, el mas reciente.
  *
  * Es un aviso, no un control de seguridad: un informe editado a mano lo
  * engana, y no se pretende evitarlo.
  */
 /** Carpeta de los informes de `--escribir`, con `/` de Git. */
 export const CARPETA_INFORMES_REL = 'docs/doctor-deploy';
+/** Carpetas cuyos cambios no invalidan un informe: el propio informe y el registro de tareas. */
+export const CARPETAS_SIN_CODIGO = [CARPETA_INFORMES_REL, 'tareas'];
+/** true si la ruta (con `/` de Git) esta dentro de una carpeta que no es codigo publicado. */
+export function esRutaSinCodigo(ruta) {
+    return CARPETAS_SIN_CODIGO.some((c) => ruta.startsWith(`${c}/`));
+}
 const CIERRA = 'La tarea se cierra igualmente.';
 function cuantos(n, singular, plural) {
     return `${n} ${n === 1 ? singular : plural}`;
@@ -45,12 +52,12 @@ export function avisosRelease(e) {
                 validos.push({ informe, motivoDescartado: 'no se pudo comparar su commit con el que se cierra' });
             }
             else {
-                const codigo = cambiadas.filter((r) => !r.startsWith(`${CARPETA_INFORMES_REL}/`));
+                const codigo = cambiadas.filter((r) => !esRutaSinCodigo(r));
                 validos.push(codigo.length === 0
                     ? { informe, motivoDescartado: null }
                     : {
                         informe,
-                        motivoDescartado: `es del commit ${informe.commit.slice(0, 12)} y desde entonces ha cambiado ${cuantos(codigo.length, 'fichero', 'ficheros')} fuera de ${CARPETA_INFORMES_REL}/`,
+                        motivoDescartado: `es del commit ${informe.commit.slice(0, 12)} y desde entonces ha cambiado ${cuantos(codigo.length, 'fichero', 'ficheros')} fuera de ${CARPETAS_SIN_CODIGO.map((c) => `${c}/`).join(' y ')}`,
                     });
             }
         }

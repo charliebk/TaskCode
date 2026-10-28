@@ -27,6 +27,7 @@ import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { cargarCapaProyecto, cargarCatalogoDeploy, combinarCatalogo, TIPO_TODOS, } from '../core/doctor-deploy-catalogo.js';
 import { codigoSalida, formatearInforme, formatearJson, formatearTexto, sanearPunto, } from '../core/doctor-deploy.js';
 import { mezclarVeredictos, parsearResultado, VeredictoFormatoError, } from '../core/doctor-deploy-veredictos.js';
+import { CARPETA_INFORMES_REL } from '../core/aviso-release.js';
 import { ocultarSecretos } from '../core/secretos.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
 import { BaseBranchGuardError } from '../fs/git.js';
@@ -47,7 +48,7 @@ export const FLAGS_DOCTOR_DEPLOY = ['--json', '--escribir', '--resultado', '--cr
 /** Mas que esto no es el resultado de una revision (los veredictos pesan unos KB). */
 const MAX_BYTES_RESULTADO = 1024 * 1024;
 /** Carpeta (relativa a la raiz del repo) donde `--escribir` deja el informe. */
-export const CARPETA_INFORMES = path.join('docs', 'doctor-deploy');
+export const CARPETA_INFORMES = path.join(...CARPETA_INFORMES_REL.split('/'));
 const salidaSegura = (t) => ocultarSecretos(ocultarCredenciales(t));
 // ---------------------------------------------------------------------
 function evaluarPunto(punto, ctx, cat) {
@@ -282,7 +283,7 @@ function analizar(argv, deps) {
     }
     // Los informes de --escribir no cuentan como «sucio»: dejan el arbol sin trackear a proposito
     // y una segunda ejecucion se marcaria sucia solo por el informe anterior.
-    const estado = gitTexto(['status', '--porcelain', '--', '.', ':(exclude)docs/doctor-deploy'], raiz, { timeoutMs: 30_000 });
+    const estado = gitTexto(['status', '--porcelain', '--', '.', `:(exclude)${CARPETA_INFORMES_REL}`], raiz, { timeoutMs: 30_000 });
     const commitCrudo = gitTexto(['rev-parse', '--verify', '--quiet', 'HEAD'], raiz, { timeoutMs: 15_000 });
     const rama = gitTexto(['symbolic-ref', '--short', '-q', 'HEAD'], raiz, { timeoutMs: 15_000 });
     if (estado === null)

@@ -5,7 +5,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { avisosRelease, type ConsultasGit, type InformeLeido, type PuntoInformeLeido } from '../core/aviso-release.js';
+import { avisosRelease, CARPETA_INFORMES_REL, type ConsultasGit, type InformeLeido, type PuntoInformeLeido } from '../core/aviso-release.js';
 import { diffNameOnly, headCommit, isAncestor } from './git.js';
 
 const MAX_BYTES_INFORME = 5 * 1024 * 1024;
@@ -48,7 +48,7 @@ export function interpretarInforme(archivo: string, texto: string): InformeLeido
 }
 
 export function leerInformesDeploy(raiz: string): InformesLeidos {
-  const dir = path.join(raiz, 'docs', 'doctor-deploy');
+  const dir = path.join(raiz, ...CARPETA_INFORMES_REL.split('/'));
   let nombres: string[];
   try {
     nombres = readdirSync(dir);

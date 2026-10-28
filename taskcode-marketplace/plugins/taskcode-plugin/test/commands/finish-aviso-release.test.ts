@@ -102,7 +102,19 @@ test('informe de un ancestro con codigo cambiado despues: avisa diciendo cuantos
     commitAll(repoRoot, 'feat: codigo nuevo');
     const avisos = await cerrar(repoRoot, tareasRoot);
     assert.equal(avisos.length, 1, avisos.join('\n'));
-    assert.match(avisos[0] as string, /el mas reciente \(2026-10-27\.json\) es del commit [0-9a-f]{12} y desde entonces ha cambiado 2 ficheros fuera de docs\/doctor-deploy\//);
+    assert.match(avisos[0] as string, /el mas reciente \(2026-10-27\.json\) es del commit [0-9a-f]{12} y desde entonces ha cambiado 2 ficheros fuera de docs\/doctor-deploy\/ y tareas\//);
+  });
+});
+
+test('ronda 2 (MEN-1): commits solo en tareas/ despues del informe (review, veredictos, costes) no avisan', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await prepararRelease(repoRoot, tareasRoot);
+    await generarInforme(repoRoot);
+    commitAll(repoRoot, 'docs: informe');
+    await mkdir(path.join(repoRoot, 'tareas', 'extra'), { recursive: true });
+    await writeFile(path.join(repoRoot, 'tareas', 'extra', 'x.md'), 'registro de la revision\n', 'utf8');
+    commitAll(repoRoot, 'chore(TASK-001): coste revision');
+    assert.deepEqual(await cerrar(repoRoot, tareasRoot), []);
   });
 });
 

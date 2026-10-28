@@ -30,7 +30,8 @@ Doctor-deploy B (TASK-067), segunda mitad de doctor-deploy.
   anterior crearia TASK-10000 tras un TASK-9999.
 - **`finish` de una release avisa, sin bloquear**, si no hay un informe de
   doctor-deploy al dia (el de la punta, o un ancestro con solo
-  `docs/doctor-deploy/` cambiado) o si tiene alguna FALLA de severidad critica.
+  `docs/doctor-deploy/` o `tareas/` cambiados) o si tiene alguna FALLA de
+  severidad critica.
 - **Cambio de comportamiento (MEN-12 de TASK-066)**: `gitignore-cubre-env` ya no
   se queda en las 10 primeras carpetas de proyecto. Revisa todas (tope de 200) o
   sale NO VERIFICADO diciendo cuantas faltan. Un monorepo con mas de 10
