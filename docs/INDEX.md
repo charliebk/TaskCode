@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-067 — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release · etiquetas: doctor-deploy, seguridad · rama feature/task-067-doctor-deploy-b-puntos-de-juicio-tareas · terminada 2026-10-28 · tareas/04-terminadas/TASK-067/
 - TASK-066 — Doctor-deploy A: catalogo generico y comprobaciones deterministas · etiquetas: doctor-deploy, seguridad · rama feature/task-066-doctor-deploy-a-catalogo-generico-y-comp · terminada 2026-10-27 · tareas/04-terminadas/TASK-066/
 - TASK-065 — Metricas v2 (C): evolucion, grupos y varios proyectos · etiquetas: metricas · rama feature/task-065-metricas-v2-c-evolucion-grupos-y-varios · terminada 2026-10-26 · tareas/04-terminadas/TASK-065/
 - TASK-064 — Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y lecturas · etiquetas: metricas · rama feature/task-064-metricas-v2-b-leer-y-mostrar-la-evolucio · terminada 2026-10-25 · tareas/04-terminadas/TASK-064/

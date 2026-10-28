@@ -1,6 +1,6 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-10-27. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-10-28. No editar a mano.
 
 ## Planificadas (00-planificadas) — 15
 
@@ -21,10 +21,10 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-067  Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release                      (sin asignar)
+TASK-068  Doctor-deploy C: tipo de aplicacion y sondas deterministas extra                            (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 52
+## Terminadas (04-terminadas) — 53
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -81,4 +81,5 @@ TASK-063  Metricas v2 (A): capturar desglose de coste, lecturas y origen de hall
 TASK-064  Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y lecturas             charlie.bk@gmail.com
 TASK-065  Metricas v2 (C): evolucion, grupos y varios proyectos                                    charlie.bk@gmail.com
 TASK-066  Doctor-deploy A: catalogo generico y comprobaciones deterministas                        charlie.bk@gmail.com
+TASK-067  Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release                   charlie.bk@gmail.com
 ```

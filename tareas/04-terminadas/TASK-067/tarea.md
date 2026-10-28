@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-067-doctor-deploy-b-puntos-de-juicio-tareas
 asignado_a: charlie.bk@gmail.com
@@ -70,6 +70,7 @@ Cerrada el 2026-10-27 en 2 rondas de revision por pares (ronda 1 aprobada-con-co
 | 2026-10-27T20:20:46Z | start | automatico | persona |
 | 2026-10-27T21:35:18Z | review | automatico | persona |
 | 2026-10-28T00:19:17Z | review | automatico | persona |
+| 2026-10-28T00:43:45Z | finish | automatico | persona |
 
 ## Coste
 
