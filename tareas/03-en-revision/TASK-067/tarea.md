@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 903323
 tokens_implementacion: 34644951
-tokens_revision: 11965309
+tokens_revision: 15221115
 creado: 2026-10-27
 actualizado: 2026-10-28
 dependencias: []
@@ -53,3 +53,4 @@ Completa doctor-deploy (TASK-066). Los puntos que no se pueden medir con certeza
 | 2026-10-27T20:20:25Z | diseno | agente:ab8d43123e2b6f315,a0773b84d455dbe77,ac926974f24df1bdf | 54 | 130326 | 745298 | 27645 | 43 | 903323 |
 | 2026-10-27T21:35:17Z | implementacion | agente:a86227d7a20abab61 | 322 | 362240 | 34107600 | 174789 | 6 | 34644951 |
 | 2026-10-27T23:59:48Z | revision | agente:a60963f95cb118fbe | 144 | 422875 | 11497960 | 44330 | 1 | 11965309 |
+| 2026-10-28T00:43:02Z | revision | agente:a3dd1dff8f867ff6a | 62 | 335151 | 2909610 | 10983 | 6 | 3255806 |
