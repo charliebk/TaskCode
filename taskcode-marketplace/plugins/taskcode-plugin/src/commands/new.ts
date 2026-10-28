@@ -280,6 +280,23 @@ export function buildNewTask(id: string, opts: NewTaskOptions, today: string): T
   };
 }
 
+/**
+ * Escribe la carpeta de una tarea nueva con el ID dado (TASK-067: la comparten
+ * `new` y `doctor-deploy --crear-tareas`, que reparte IDs del rango reservado).
+ * Falla con TaskAlreadyExistsError si el ID ya existe: nunca pisa una tarea.
+ */
+export async function crearTareaEn(
+  tareasRoot: string,
+  id: string,
+  opts: NewTaskOptions,
+  cuerpo: string,
+  today: string
+): Promise<{ task: Task; filePath: string }> {
+  const task = buildNewTask(id, opts, today);
+  const filePath = await writeTareaFile(tareasRoot, task, cuerpo, { failIfExists: true });
+  return { task, filePath };
+}
+
 export interface NewCommandResult {
   /** TASK-041: true si la tarea nacio con objetivo o criterios. */
   conContenido: boolean;
@@ -350,8 +367,7 @@ export async function runNewCommand(
   const baseBranchGuard = ensureBaseBranchReady(opts.tipo, deps.repoCwd);
   const existingIds = await listExistingTaskIds(tareasRoot);
   const id = nextTaskId(existingIds);
-  const task = buildNewTask(id, opts, today);
-  const filePath = await writeTareaFile(tareasRoot, task, cuerpo, { failIfExists: true });
+  const { filePath } = await crearTareaEn(tareasRoot, id, opts, cuerpo, today);
   // Auto-commit (TASK-030, item C2): se commitea la CARPETA de la tarea
   // recien creada, no el arbol. La decision #14 fijo commitear si y
   // subir solo con --push.

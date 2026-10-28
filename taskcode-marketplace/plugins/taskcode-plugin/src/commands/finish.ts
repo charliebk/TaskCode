@@ -22,6 +22,7 @@
  * finish-opciones.ts; sin esos flags el comando es el de siempre.
  */
 import path from 'node:path';
+import { avisosDeployDeRelease } from '../fs/informes-deploy.js';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
   FinishCommandError,
@@ -352,6 +353,11 @@ export async function runFinishCommand(
         'de cada subagente de la fase (suma el uso de su transcripcion; la cifra que se ve al terminar ' +
         'un agente es su contexto final, no su coste). La tarea se cierra igualmente.'
     );
+  }
+  // TASK-067: una release avisa, sin bloquear, si no hay un informe de doctor-deploy al dia o
+  // si trae alguna FALLA critica. Solo LEE informes (nunca ejecuta sondas) y no puede romper el cierre.
+  if (initial.task.tipo === 'release') {
+    for (const aviso of avisosDeployDeRelease(id, deps.repoCwd)) deps.onAviso?.(aviso);
   }
   const tipo = initial.task.tipo;
   const rama = initial.task.rama;

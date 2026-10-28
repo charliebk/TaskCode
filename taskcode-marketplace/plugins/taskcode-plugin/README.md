@@ -555,11 +555,13 @@ algún error (los avisos no cuentan). Comprueba:
 (`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`), para que
 una skill la lea. `taskctl doctor` no escribe, no commitea ni cambia de rama.
 
-`taskctl doctor-deploy [--json] [--escribir]` es otro comando, distinto de
-`doctor`: aquel comprueba que el proyecto está listo para trabajar con el flujo
-de tareas; este, que **la aplicación está lista para publicarse** sin agujeros
-conocidos (claves expuestas, secretos en git, RLS, cookies, HTTPS, dependencias
-vulnerables...). Solo lee.
+`taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]`
+es otro comando, distinto de `doctor`: aquel comprueba que el proyecto está listo
+para trabajar con el flujo de tareas; este, que **la aplicación está lista para
+publicarse** sin agujeros conocidos (claves expuestas, secretos en git, RLS,
+cookies, HTTPS, dependencias vulnerables...). Sin `--crear-tareas` solo lee. La
+skill `/taskcode-plugin:doctor-deploy` lo encadena con un agente revisor para los
+puntos de juicio (ver «Puntos de juicio» más abajo).
 
 - **Tipo de aplicación**: lo detecta por ficheros marcadores (Node con npm,
   pnpm o yarn, Rust, Python, Java con Maven o Gradle, .NET, Go, PHP, Ruby, Docker
@@ -584,7 +586,9 @@ vulnerables...). Solo lee.
   ramas, etiquetas y refs; un clon superficial, un desbordamiento de límites o un
   corte dan NO VERIFICADO, nunca OK); ficheros de secretos versionados (`.env`,
   claves privadas, credenciales; `.env.example` y `.env.sample` no cuentan); que
-  el `.gitignore` cubre `.env`; lockfile versionado; y la auditoría de
+  el `.gitignore` cubre `.env` (en **cada** carpeta de proyecto: en un monorepo
+  con más de 10 se comprueban todas, hasta un tope de 200; pasado el tope el
+  punto sale NO VERIFICADO diciendo cuántas faltan, nunca OK); lockfile versionado; y la auditoría de
   dependencias con la herramienta del ecosistema **si está instalada**
   (`npm`/`pnpm`/`yarn audit`, `cargo audit`, `pip-audit`, `dotnet list package
   --vulnerable`, `govulncheck`; `gitleaks` opcional para el historial). Solo
@@ -601,14 +605,102 @@ vulnerables...). Solo lee.
   primeros caracteres y la longitud (`sk_l**** (32 caracteres)`), y todo lo que
   sale (texto, JSON, informe) pasa además por una segunda red que enmascara
   cualquier clave que se cuele.
-- **`--json`**: una sola línea de JSON (`version`, `commit`, `rama`, `arbolSucio`,
-  `tipos`, `avisos`, `puntos`, `resumen`, `codigo`); es el contrato que
-  extienden las tareas siguientes.
-- **`--escribir`**: guarda el informe en `docs/doctor-deploy/<fecha>.md` (si ya
-  hay uno de ese día, `<fecha>-2.md`...; escritura atómica) con el commit, la
-  rama, si el árbol estaba sucio, los tipos detectados y la tabla de puntos. No
-  commitea. Es un informe de uso interno sobre un commit concreto, no una
-  certificación.
+- **`--json`**: una sola línea de JSON, **versión 2** (`version`, `commit`,
+  `rama`, `arbolSucio`, `tipos`, `avisos`, `puntos`, `veredictos`, `tareas`,
+  `resumen`, `codigo`). Cada punto lleva `origen`: `sonda` (lo decidió el
+  comando) o `agente` (un veredicto con juicio incorporado con `--resultado`).
+  `veredictos` y `tareas` son `null` si no se pidieron `--resultado` ni
+  `--crear-tareas`.
+- **`--escribir`**: guarda el informe en `docs/doctor-deploy/<fecha>.md` y, al
+  lado, el mismo informe en `<fecha>.json` (si ya hay uno de ese día,
+  `<fecha>-2`...; escritura atómica) con el commit, la rama, si el árbol estaba
+  sucio, los tipos detectados y la tabla de puntos. No commitea: lo commitea la
+  persona. Es un informe de uso interno sobre un commit concreto, no una
+  certificación. El `.json` es lo que lee `finish` de una release.
+
+### Puntos de juicio: `--resultado`
+
+Los puntos de juicio (RLS, autenticación en servidor, restringir accesos, mass
+assignment, consultas parametrizadas, validación de entradas, subidas de
+ficheros, cookies...) no se pueden medir con certeza. Los revisa un agente
+(`agents/revisor-seguridad-deploy.md`, solo lectura) lanzado por la skill
+`/taskcode-plugin:doctor-deploy`, que **cita fichero y línea o deja el punto
+NO VERIFICADO**. Los tipos de aplicación sin sondas propias (API, móvil, CLI,
+librería) los cubre el agente como juicio.
+
+`taskctl doctor-deploy --resultado <fichero.json>` **repite el análisis sobre
+HEAD** y mezcla los veredictos con una función pura. Formato del fichero, que
+vive **fuera del repositorio** (la carpeta temporal del sistema; dentro ensucia el
+árbol y el comando lo avisa):
+
+```json
+{ "commit": "<sha completo>",
+  "veredictos": [ { "punto": "auth-en-servidor", "estado": "ok", "fichero": "src/auth.ts", "linea": 42, "motivo": "Una frase." } ] }
+```
+
+Cada veredicto se **rechaza con su motivo** (sale en el informe y en los avisos) y
+el punto se queda como estaba, NO VERIFICADO, si:
+
+- su `commit` no es HEAD (cada veredicto lleva el commit sobre el que se juzgó;
+  vale el de la raíz si el veredicto no trae el suyo, y un prefijo de 7 o más
+  caracteres);
+- el punto es desconocido, no aplica o está desactivado, o es **determinista**:
+  el agente nunca pisa a una sonda;
+- `ok` o `falla` no traen `fichero` y `linea`: la evidencia es solo eso, sin
+  fragmentos de código (cualquier campo que no sea `punto`, `estado`, `commit`,
+  `fichero`, `linea` o `motivo` rechaza el veredicto);
+- el `fichero` es absoluto, lleva `..`, no está versionado en ese commit, es
+  binario, o la `linea` no existe (se comprueba contra el commit, no contra el
+  árbol de trabajo);
+- hay dos veredictos para el mismo punto (los dos se rechazan).
+
+El `motivo` se acota a 300 caracteres, sin saltos de línea y pasado por el
+enmascarado de secretos antes de guardarse (lo que se escribe en
+`docs/doctor-deploy/` no se puede des-subir). Un `no-verificado` del agente se
+acepta sin evidencia. El código de salida cuenta las FALLA que aporta el agente.
+
+### Una tarea por FALLA: `--crear-tareas`
+
+Crea una tarea por cada punto en FALLA (de una sonda o del agente), con ID del
+**rango reservado**: `TASK-9999`, `TASK-9998`... hacia abajo, para no chocar con
+las tareas normales. El objetivo es el arreglo del catálogo (más dónde falla,
+solo `fichero:linea`; el texto libre de un agente nunca se copia a una tarea) y
+el criterio, que `doctor-deploy` dé OK en ese punto. Usa las piezas de `new`: un
+solo `ensureBaseBranchReady` (exige el árbol limpio y **puede cambiar a la rama
+base**, como `new`; lo dice) y un solo commit para todas las tareas.
+
+- **Repetir no duplica**: cada tarea lleva la etiqueta `doctor-deploy:<id-punto>`;
+  un punto con una tarea **abierta** con esa etiqueta reutiliza la existente y lo
+  dice. Si ya estaba terminada y el punto vuelve a fallar, se crea otra. **Borrar
+  la etiqueta a mano rompe la deduplicación** de ese punto.
+- **Avisa, sin cerrar nada**, de las tareas abiertas cuyo punto ya da OK, ya no
+  aplica o ya no existe.
+- Con `--escribir`, las tareas se crean **antes** de escribir el informe (el
+  guard de rama base aborta con ficheros sin trackear).
+- Si no hay FALLA no toca la rama ni exige el árbol limpio.
+
+El siguiente ID reservado es el menor ocupado menos uno, mirando **tareas y
+ramas** (`feature/task-9999-*`): las ramas no se borran, así que un ID cuya
+carpeta se borró sigue ocupado. La numeración normal (`taskctl new`/`import`)
+ignora todo ID desde `TASK-9000` y aborta si llegara hasta ahí. Un compañero con
+una versión anterior del plugin crearía `TASK-10000` tras un `TASK-9999`:
+actualizad el plugin a la vez.
+
+### Aviso al cerrar una release
+
+`taskctl finish` de una tarea `release` **avisa, sin bloquear** (y nunca ejecuta
+las sondas; solo lee `docs/doctor-deploy/*.json`), si:
+
+- no hay un informe que valga: el informe más reciente cuyo `commit` es la punta
+  que se cierra, o un **ancestro** con solo `docs/doctor-deploy/` o `tareas/`
+  cambiados entre ambos (el informe se commitea después de generarse, así que su
+  commit nunca es la punta, y la revisión, los veredictos y los costes commitean en
+  `tareas/` sin tocar el código); o
+- ese informe tiene alguna FALLA de un punto de severidad `critica`.
+
+Cualquier fallo al leer (un informe ilegible, Git que no responde) se convierte en
+aviso. Como `finish` exige el árbol limpio, hay que commitear el informe antes de
+cerrar.
 
 `.taskcode/doctor-deploy.yml` (opcional) ajusta el catálogo del proyecto, con el
 mismo formato plano:

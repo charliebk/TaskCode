@@ -25,6 +25,7 @@ export const OPCIONES_SONDAS_POR_DEFECTO = {
     timeoutHistorialMs: 180_000,
     maxBlobsHistorial: 200_000,
     maxBytesFichero: 1024 * 1024,
+    maxCarpetasGitignore: 200,
 };
 const MAX_HALLAZGOS = 200;
 const MAX_BYTES_BINARIO = 8000;
@@ -347,19 +348,37 @@ function gitignoreDeDir(ctx, dir) {
  * carpeta con su marcador; un .gitignore anidado vale para su propio .env). Sin tipos, en la raiz.
  */
 export const sondaGitignoreEnv = (ctx) => {
-    const dirs = [...new Set(ctx.tipos.flatMap((t) => t.rutas))].sort().slice(0, 10);
+    const todas = [...new Set(ctx.tipos.flatMap((t) => t.rutas))].sort();
+    const dirs = todas.slice(0, ctx.opciones.maxCarpetasGitignore);
+    // Sin mirar (MEN-12 de TASK-066): ya no se recorta en silencio. Con mas carpetas que el tope,
+    // lo que no se mira se dice y el punto no puede salir OK.
+    const sinMirar = todas.length - dirs.length;
     const rs = (dirs.length > 0 ? dirs : ['.']).map((d) => gitignoreDeDir(ctx, d));
     const malos = rs.filter((r) => r.estado === 'falla');
     if (malos.length > 0) {
         return {
             estado: 'falla',
-            motivo: malos[0].motivo + (malos.length > 1 ? ` (y en ${malos.length - 1} carpeta(s) mas)` : ''),
+            motivo: malos[0].motivo +
+                (malos.length > 1 ? ` (y en ${malos.length - 1} carpeta(s) mas)` : '') +
+                (sinMirar > 0 ? `; ademas ${sinMirar} carpeta(s) de proyecto sin comprobar` : ''),
             evidencias: malos.flatMap((r) => r.evidencias),
         };
     }
     const sinVerificar = rs.find((r) => r.estado !== 'ok');
-    if (sinVerificar !== undefined)
-        return sinVerificar;
+    if (sinVerificar !== undefined) {
+        // MEN-4 de la ronda 1: el motivo dice tambien cuantas carpetas quedaron sin mirar.
+        return sinMirar > 0
+            ? { ...sinVerificar, motivo: `${sinVerificar.motivo}; ademas ${sinMirar} carpeta(s) de proyecto sin comprobar` }
+            : sinVerificar;
+    }
+    if (sinMirar > 0) {
+        return {
+            estado: 'no-verificado',
+            motivo: `solo se comprobaron ${dirs.length} de ${todas.length} carpetas de proyecto (faltan ${sinMirar}): ` +
+                'el .env de las demas puede no estar ignorado',
+            evidencias: [],
+        };
+    }
     return {
         estado: 'ok',
         motivo: rs.length === 1 ? rs[0].motivo : `.env esta cubierto por un .gitignore en las ${rs.length} carpetas de proyecto`,
