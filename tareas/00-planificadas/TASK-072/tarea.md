@@ -4,7 +4,7 @@ titulo: "Puerta de verificacion en finish y merge guard"
 tipo: feature
 sprint: 0
 etiquetas: []
-complejidad: null
+complejidad: media
 modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
@@ -20,7 +20,7 @@ tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
 actualizado: 2026-11-03
-dependencias: []
+dependencias: [TASK-071]
 ---
 ## Objetivo
 

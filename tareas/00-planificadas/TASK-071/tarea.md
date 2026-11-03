@@ -4,7 +4,7 @@ titulo: "Hook Stop: una tarea no se da por hecha con la verificacion en rojo"
 tipo: feature
 sprint: 0
 etiquetas: []
-complejidad: null
+complejidad: media
 modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
@@ -20,7 +20,7 @@ tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
 actualizado: 2026-11-03
-dependencias: []
+dependencias: [TASK-069, TASK-070]
 ---
 ## Objetivo
 

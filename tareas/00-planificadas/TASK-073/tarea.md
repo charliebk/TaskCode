@@ -4,8 +4,8 @@ titulo: "Tests held-out por tarea"
 tipo: feature
 sprint: 0
 etiquetas: []
-complejidad: null
-modelo_sugerido: sonnet
+complejidad: alta
+modelo_sugerido: opus
 estado: planificada
 plan_aprobado: false
 rama: feature/task-073-tests-held-out-por-tarea
@@ -20,7 +20,7 @@ tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
 actualizado: 2026-11-03
-dependencias: []
+dependencias: [TASK-070, TASK-072]
 ---
 ## Objetivo
 

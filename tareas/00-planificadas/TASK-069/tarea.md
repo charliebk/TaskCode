@@ -4,7 +4,7 @@ titulo: "Spike: hooks Stop y PreToolUse de Claude Code en Windows/IntelliJ"
 tipo: feature
 sprint: 0
 etiquetas: []
-complejidad: null
+complejidad: baja
 modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
