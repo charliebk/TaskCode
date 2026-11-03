@@ -7,7 +7,7 @@ etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-068-doctor-deploy-c-tipo-de-aplicacion-y-son
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -40,6 +40,7 @@ Diferido de TASK-066 y TASK-067 por decision de la persona. Que un punto aplique
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-03T11:39:42Z | plan | automatico | persona |
+| 2026-11-03T12:11:18Z | approve | automatico | automatico |
 
 ## Coste
 
