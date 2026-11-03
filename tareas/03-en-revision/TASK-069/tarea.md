@@ -41,6 +41,7 @@ Antes de construir frenos sobre hooks hay que saber como se comportan de verdad 
 | 2026-11-03T10:54:57Z | approve | automatico | persona |
 | 2026-11-03T11:14:07Z | start | automatico | persona |
 | 2026-11-03T12:48:47Z | review | automatico | persona |
+| 2026-11-03T13:11:04Z | review | automatico | persona |
 
 ## Coste
 
