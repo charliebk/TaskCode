@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 2076406
 creado: 2026-11-03
 actualizado: 2026-11-03
 dependencias: []
@@ -41,3 +41,9 @@ Antes de construir frenos sobre hooks hay que saber como se comportan de verdad 
 | 2026-11-03T10:54:57Z | approve | automatico | persona |
 | 2026-11-03T11:14:07Z | start | automatico | persona |
 | 2026-11-03T12:48:47Z | review | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-03T13:05:10Z | revision | agente:afd2b476e340883e0 | 42 | 112542 | 1952147 | 11675 | 3 | 2076406 |
