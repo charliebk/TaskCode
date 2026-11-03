@@ -37,11 +37,11 @@ Inspirado en gemba-app/brakes (Apache-2.0): se toman ideas, no codigo.
 |---|---|---|---|
 | H1 | `hooks/hooks.json` del plugin es aceptado | **CONFIRMADA en local (Windows)**, pendiente CI Linux | `claude plugin validate` da «Validation passed» en Windows nativo (revision ronda 1, 2026-11-03); step "H1 (TASK-069)" del job `claude plugin validate` |
 | H2 | La sonda corre por forma exec en Linux | **CONFIRMADA** | `sonda-hooks.test.sh` 12/12 en la VM Linux del bridge (node v22.23.4), 2026-11-03, antes de la ronda 2 (ahora son 16 casos); step "H2" Linux en CI |
-| H2 | La sonda corre por forma exec en Windows nativo | PENDIENTE CI | steps "H2" y "H2b" (cmd.exe, sin Git Bash) del job Windows |
-| H3 | Exit 2 en Stop hace que el agente siga trabajando | PENDIENTE manual | guion, paso 2 |
-| H4 | PreToolUse bloquea `git merge` y Claude recibe el motivo (Bash y PowerShell) | PENDIENTE manual | guion, paso 3 |
-| H5 | `stop_hook_active` llega `true` en el reintento y corta el bucle | PENDIENTE manual | guion, paso 2 (registro) |
-| H6 | El PreToolUse se dispara dentro de un subagente | PENDIENTE manual | guion, paso 4 |
+| H2 | La sonda corre por forma exec en Windows nativo | **CONFIRMADA en uso real**, pendiente CI | Claude Code 2.1.317 la lanzo en Windows nativo desde las herramientas Bash y PowerShell (ver «Resultado de la prueba»); steps "H2" y "H2b" (cmd.exe) del job Windows sin ejecutar aun |
+| H3 | Exit 2 en Stop hace que el agente siga trabajando | **CONFIRMADA** | «Resultado de la prueba», paso 2 |
+| H4 | PreToolUse bloquea `git merge` y Claude recibe el motivo (Bash y PowerShell) | **CONFIRMADA** | «Resultado de la prueba», paso 3 |
+| H5 | `stop_hook_active` llega `true` en el reintento y corta el bucle | **CONFIRMADA** | «Resultado de la prueba», paso 2 (registro) |
+| H6 | El PreToolUse se dispara dentro de un subagente | **CONFIRMADA** | «Resultado de la prueba», paso 4 |
 
 ## Guion de prueba manual (IntelliJ, ~5 min)
 
@@ -71,13 +71,28 @@ $env:TASKCODE_SONDA_LOG = "$env:TEMP\sonda.jsonl"
 5. Pega aqui las lineas de `sonda.jsonl` y una frase por paso; borra las variables
    (`Remove-Item Env:TASKCODE_SONDA_*`).
 
-### Resultado manual
+### Resultado de la prueba (2026-11-03, `claude -p`, Windows 11 nativo)
 
-- Version de Claude Code: _(pendiente)_
-- Paso 1: _(pendiente)_
-- Paso 2: _(pendiente)_
-- Paso 3: _(pendiente)_
-- Paso 4: _(pendiente)_
+Se ejecuto el guion sin interfaz (`claude -p ... --plugin-dir <plugin de la rama>`) en un repo
+temporal fuera de TaskCode (`master`, ramas `otra` y `rama2`), no en el terminal de IntelliJ. Los
+hooks son del CLI, no del IDE, asi que la evidencia vale para cualquier terminal que lance
+`claude`; queda sin probar solo la integracion propia del plugin de IntelliJ, si la hubiera.
+
+- Version de Claude Code: 2.1.317. Node v22.23.4.
+- Paso 1 (carga): implicito; los pasos 2-4 solo registran porque Claude Code cargo
+  `hooks/hooks.json` del plugin (los mensajes citan «taskcode-plugin@inline»).
+- Paso 2 (H3 + H5), `stop2`, prompt `di hola`: la salida final fue «sonda recibida». Registro:
+  1.ª linea Stop con `"stop_hook_active":false` y `"salida":2`; 2.ª con `true` y `0`; la sesion
+  termino (rc 0, sin bucle). La entrada de Stop trae ademas `last_assistant_message`,
+  `background_tasks`, `session_crons`, `permission_mode` y `effort`.
+- Paso 3 (H4), `pre2`, `git merge otra` con la herramienta Bash y luego con PowerShell: en las dos
+  la llamada se bloqueo (`"salida":2`) y Claude cito el motivo literal («sonda TASK-069: git
+  merge bloqueado a proposito (pre2). Comando: git merge otra»), atribuido al plugin. `master` no
+  cambio (`git branch --merged master` = solo `master`). `git status` paso el hook (`"salida":0`)
+  en las dos herramientas; en Bash lo freno despues el sistema de permisos de la sesion
+  («This command requires approval»), no el hook.
+- Paso 4 (H6), subagente general-purpose que ejecuta `git merge otra`: bloqueado igual, y la
+  entrada de PreToolUse lleva `agent_id` y `agent_type` (ausentes en la sesion principal).
 
 ## Hallazgos colaterales
 
@@ -97,7 +112,7 @@ $env:TASKCODE_SONDA_LOG = "$env:TEMP\sonda.jsonl"
 
 - Forma exec siempre; matcher `Bash|PowerShell` con dos handlers `if`.
 - El Stop real debe salir 0 sin trabajo si no hay tarea en `02-en-curso/`, y respetar
-  `stop_hook_active` (si H5 se confirma).
+  `stop_hook_active` (H5 confirmada).
 - El merge guard debe declarar `onFailure: "block"` y comprobar la version minima de Claude Code.
 - La sonda se sustituye; `hooks/test/` se reutiliza como patron de prueba.
 - **Deteccion del merge en el comando** (revision ronda 1, IMP-1): `\bgit\s+merge\b` casaba con
@@ -105,7 +120,9 @@ $env:TASKCODE_SONDA_LOG = "$env:TEMP\sonda.jsonl"
   `\bgit(?:\s+-C\s+\S+)*\s+merge(?![\w-])`, con test para `merge-base` y para `git -C dir merge`.
   Limitaciones que el freno real debe resolver o aceptar por escrito: el filtro `if: "Bash(git *)"`
   no ve comandos compuestos (`cd x && git merge`), y la regex no cubre otras opciones globales
-  antes del subcomando (`git -c k=v merge`, `git --git-dir=... merge`) ni alias de git.
+  antes del subcomando (`git -c k=v merge`, `git --git-dir=... merge`, `git --no-pager merge`),
+  `git -C "ruta con espacios" merge`, `git.exe merge`, mayusculas ni alias de git; y da falsos
+  positivos con `git merge.ff` o `echo git merge` (revision ronda 2, MEN-6).
 - **Entrada por pipe en PowerShell 5.1** (revision ronda 1, MEN-3): `Get-Content x | node sonda`
   antepone un BOM y la entrada deja de ser JSON; con redireccion `<` funciona. Claude Code usa su
   propio pipe, pero las pruebas manuales en PowerShell deben usar `<` o `-Encoding`.
