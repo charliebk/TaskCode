@@ -4,7 +4,7 @@ titulo: "Clave comando_verificacion en .taskcode/config.yml"
 tipo: feature
 sprint: 0
 etiquetas: []
-complejidad: baja
+complejidad: simple
 modelo_sugerido: sonnet
 estado: planificada
 plan_aprobado: false
