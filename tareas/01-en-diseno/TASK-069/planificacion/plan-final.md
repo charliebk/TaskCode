@@ -119,3 +119,9 @@ toca ningun comando de `taskctl` ni `src/`.
    variable) o en una carpeta de fixtures fuera del plugin. Recomendacion:
    dentro, porque TASK-071 lo sustituye por el hook real en la siguiente
    version y asi la mecanica de carga ya queda probada.
+
+## Decisiones tomadas (Carlos, 2026-11-03)
+
+1. H3-H6 por prueba manual en IntelliJ con guion escrito en el resultado.
+2. Solo forma exec.
+3. La sonda queda dentro del plugin, inerte sin TASKCODE_SONDA_MODO.
