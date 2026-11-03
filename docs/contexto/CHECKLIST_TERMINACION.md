@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 72 / 72 items terminados (100%)** · última actualización: 2026-10-08
+**Progreso global: 78 / 84 items terminados (93%)** · última actualización: 2026-11-03
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -35,7 +35,8 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | J — Doctor-deploy | 3 | **2** | — |
-| **Total pendiente** | **1** | — | — |
+| K — Frenos de verificación con hooks | 6 | **1** | — |
+| **Total pendiente** | **6** | — | — |
 
 ---
 
@@ -863,3 +864,25 @@ aviso en release (B).
 - [ ] TASK-068 — Doctor-deploy C: tipo de aplicacion y sondas deterministas
       extra (Firebase/RLS, .npmrc, docker-compose, CI, Dockerfile; version
       vigente de OWASP/ASVS)
+
+## K — Frenos de verificación con hooks (1/6)
+
+Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
+usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
+gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
+
+- [x] TASK-069 — Spike: hooks Stop y PreToolUse de Claude Code en
+      Windows/IntelliJ — cerrada el 2026-11-03
+      *Sonda inerte `hooks/sonda-hooks.mjs` (Node, forma exec) con 16 casos de
+      test y steps de CI. H1–H6 confirmadas en Windows nativo con Claude Code
+      2.1.317 (`claude -p`): Stop con exit 2 devuelve al agente y
+      `stop_hook_active` corta el bucle; PreToolUse bloquea `git merge` por
+      Bash y PowerShell, también en subagentes. Criterio de CI sin marcar: la
+      rama no se había subido. 2 rondas: IMP-1 (la regex bloqueaba
+      `git merge-base`), corregido; MEN-5 y MEN-6 aceptados para TASK-071/072.*
+- [ ] TASK-070 — Clave `comando_verificacion` en `.taskcode/config.yml`
+- [ ] TASK-071 — Hook Stop: una tarea no se da por hecha con la verificación
+      en rojo
+- [ ] TASK-072 — Puerta de verificación en `finish` y merge guard
+- [ ] TASK-073 — Tests held-out por tarea
+- [ ] TASK-074 — Cobertura sobre las líneas cambiadas
