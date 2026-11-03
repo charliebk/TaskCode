@@ -28,7 +28,7 @@ Diferido de TASK-066 y TASK-067 por decision de la persona. Que un punto aplique
 
 ## Criterios de aceptacion
 - [ ] taskctl doctor-deploy detecta el tipo de aplicacion (web, API, movil Android/iOS/Flutter/React Native, CLI, libreria) ademas del lenguaje, por marcadores declarados en scripts/doctor-deploy.yml, y lo muestra; con test por tipo
-- [ ] Los puntos del catalogo declaran a que tipos de aplicacion aplican; en una libreria o CLI, HTTPS, cookies, headers, rate limits, backups y health check salen NO APLICA con motivo
+- [ ] Los puntos del catalogo declaran punto_N_aplicaciones; con doctor-deploy --json, en una fixture de libreria y otra de CLI, https-obligatorio, cookies-seguras, security-headers, rate-limits, backups-y-migraciones y health-check salen no-aplica con un motivo que nombra el tipo, y en una fixture web y otra sin tipo detectado no salen no-aplica; test
 - [ ] Sondas deterministas nuevas, cada una con test que detecta y test que no da falso positivo: reglas Firebase con allow read, write: if true; tablas de migraciones SQL sin enable row level security; tokens en .npmrc, .pypirc o settings.xml versionados; contrasenas literales en docker-compose.yml
 - [ ] Sondas de CI y contenedor: workflows con pull_request_target que hacen checkout del PR, acciones de terceros sin fijar a SHA, y Dockerfile sin USER o con ADD de una URL; cada una con test
 - [ ] Los puntos que pasan a sonda dejan de ser juicio en el catalogo y el agente de seguridad ya no los recibe; test
