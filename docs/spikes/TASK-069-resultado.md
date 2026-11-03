@@ -35,8 +35,8 @@ Inspirado en gemba-app/brakes (Apache-2.0): se toman ideas, no codigo.
 
 | # | Hipotesis | Estado | Evidencia |
 |---|---|---|---|
-| H1 | `hooks/hooks.json` del plugin es aceptado | PENDIENTE CI | step "H1 (TASK-069)" del job `claude plugin validate` |
-| H2 | La sonda corre por forma exec en Linux | **CONFIRMADA** | `sonda-hooks.test.sh` 12/12 en la VM Linux del bridge (node v22.23.4), 2026-11-03; step "H2" Linux en CI |
+| H1 | `hooks/hooks.json` del plugin es aceptado | **CONFIRMADA en local (Windows)**, pendiente CI Linux | `claude plugin validate` da «Validation passed» en Windows nativo (revision ronda 1, 2026-11-03); step "H1 (TASK-069)" del job `claude plugin validate` |
+| H2 | La sonda corre por forma exec en Linux | **CONFIRMADA** | `sonda-hooks.test.sh` 12/12 en la VM Linux del bridge (node v22.23.4), 2026-11-03, antes de la ronda 2 (ahora son 16 casos); step "H2" Linux en CI |
 | H2 | La sonda corre por forma exec en Windows nativo | PENDIENTE CI | steps "H2" y "H2b" (cmd.exe, sin Git Bash) del job Windows |
 | H3 | Exit 2 en Stop hace que el agente siga trabajando | PENDIENTE manual | guion, paso 2 |
 | H4 | PreToolUse bloquea `git merge` y Claude recibe el motivo (Bash y PowerShell) | PENDIENTE manual | guion, paso 3 |
@@ -100,3 +100,14 @@ $env:TASKCODE_SONDA_LOG = "$env:TEMP\sonda.jsonl"
   `stop_hook_active` (si H5 se confirma).
 - El merge guard debe declarar `onFailure: "block"` y comprobar la version minima de Claude Code.
 - La sonda se sustituye; `hooks/test/` se reutiliza como patron de prueba.
+- **Deteccion del merge en el comando** (revision ronda 1, IMP-1): `\bgit\s+merge\b` casaba con
+  `git merge-base`, que usa el limite de WIP de `taskctl start`. La sonda usa ya
+  `\bgit(?:\s+-C\s+\S+)*\s+merge(?![\w-])`, con test para `merge-base` y para `git -C dir merge`.
+  Limitaciones que el freno real debe resolver o aceptar por escrito: el filtro `if: "Bash(git *)"`
+  no ve comandos compuestos (`cd x && git merge`), y la regex no cubre otras opciones globales
+  antes del subcomando (`git -c k=v merge`, `git --git-dir=... merge`) ni alias de git.
+- **Entrada por pipe en PowerShell 5.1** (revision ronda 1, MEN-3): `Get-Content x | node sonda`
+  antepone un BOM y la entrada deja de ser JSON; con redireccion `<` funciona. Claude Code usa su
+  propio pipe, pero las pruebas manuales en PowerShell deben usar `<` o `-Encoding`.
+- El step H2b (cmd.exe) va con `continue-on-error: true`: su resultado hay que mirarlo a mano en el
+  CI de Windows, porque un rojo no rompe el pipeline.

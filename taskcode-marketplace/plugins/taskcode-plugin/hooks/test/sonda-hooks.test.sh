@@ -18,7 +18,9 @@ caso() { # nombre esperado_codigo modo json [grep_stderr]
     err=$(printf '%s' "$json" | env -u TASKCODE_SONDA_MODO TASKCODE_SONDA_LOG="$LOG" node "$SONDA" 2>&1 >/dev/null); rc=$?
   fi
   if [ "$rc" != "$esperado" ]; then echo "FALLO $nombre: salida $rc, esperada $esperado"; fallos=$((fallos+1)); return; fi
-  if [ -n "$patron" ] && ! printf '%s' "$err" | grep -q "$patron"; then echo "FALLO $nombre: stderr sin '$patron': $err"; fallos=$((fallos+1)); return; fi
+  if [ "$patron" = "VACIO" ]; then
+    if [ -n "$err" ]; then echo "FALLO $nombre: stderr deberia estar vacio: $err"; fallos=$((fallos+1)); return; fi
+  elif [ -n "$patron" ] && ! printf '%s' "$err" | grep -q "$patron"; then echo "FALLO $nombre: stderr sin '$patron': $err"; fallos=$((fallos+1)); return; fi
   echo "ok   $nombre"
 }
 STOP='{"hook_event_name":"Stop","stop_hook_active":false,"session_id":"s","cwd":"/x"}'
@@ -26,20 +28,27 @@ STOP_ACTIVO='{"hook_event_name":"Stop","stop_hook_active":true}'
 MERGE='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git merge feature/x"}}'
 MERGE_PS='{"hook_event_name":"PreToolUse","tool_name":"PowerShell","tool_input":{"command":"git merge --no-ff feature/x"}}'
 STATUS='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git status"}}'
+MERGE_BASE='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git merge-base --is-ancestor a b"}}'
+MERGE_C='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git -C repo merge feature/x"}}'
+STOP_CON_MERGE='{"hook_event_name":"Stop","stop_hook_active":false,"tool_input":{"command":"git merge feature/x"}}'
 
-caso "inerte sin modo (Stop)"            0 ""          "$STOP"
-caso "inerte sin modo (merge)"           0 ""          "$MERGE"
+caso "inerte sin modo (Stop)"            0 ""          "$STOP"  VACIO
+caso "inerte sin modo (merge)"           0 ""          "$MERGE" VACIO
 [ -e "$LOG" ] && { echo "FALLO inerte: escribio registro sin modo"; fallos=$((fallos+1)); } || echo "ok   inerte no escribe registro"
 caso "stop2 bloquea Stop"                2 stop2       "$STOP" "Stop bloqueado"
 caso "stop2 respeta stop_hook_active"    0 stop2       "$STOP_ACTIVO"
 caso "pre2 bloquea git merge (Bash)"     2 pre2        "$MERGE" "git merge bloqueado"
 caso "pre2 bloquea git merge (PowerShell)" 2 pre2      "$MERGE_PS" "git merge bloqueado"
 caso "pre2 deja pasar git status"        0 pre2        "$STATUS"
+caso "pre2 deja pasar git merge-base"    0 pre2        "$MERGE_BASE"
+caso "pre2 bloquea git -C dir merge"     2 pre2        "$MERGE_C" "git merge bloqueado"
+caso "pre2 ignora un evento Stop"        0 pre2        "$STOP_CON_MERGE"
 caso "registrar nunca bloquea"           0 registrar   "$MERGE"
 caso "entrada no JSON no bloquea"        0 stop2       "esto no es json"
+caso "entrada JSON null no bloquea"      0 pre2        "null" "no es un objeto"
 caso "modo desconocido no bloquea"       0 raro        "$STOP"
 n=$(wc -l < "$LOG" | tr -d ' ')
-[ "$n" = "6" ] && echo "ok   registro con 6 lineas" || { echo "FALLO registro: $n lineas, esperadas 6"; fallos=$((fallos+1)); }
+[ "$n" = "9" ] && echo "ok   registro con 9 lineas" || { echo "FALLO registro: $n lineas, esperadas 9"; fallos=$((fallos+1)); }
 rm -rf "$TMP"
 [ "$fallos" = 0 ] && echo "TODO OK" || echo "$fallos FALLO(S)"
 exit "$fallos"

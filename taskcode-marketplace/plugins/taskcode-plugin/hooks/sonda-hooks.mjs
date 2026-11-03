@@ -20,7 +20,8 @@
  * Registro: una linea JSON por invocacion en TASKCODE_SONDA_LOG, o en
  * <tmpdir>/taskcode-sonda.jsonl si no esta definida.
  *
- * Cualquier fallo propio (stdin no JSON, log no escribible) sale 0: una
+ * Cualquier fallo propio (stdin no JSON o que no es un objeto, log no
+ * escribible) sale 0: una
  * sonda nunca debe bloquear por un error suyo. Los frenos reales de
  * TASK-071/072 decidiran su propia politica de fallo.
  */
@@ -54,7 +55,9 @@ function decidir(modoActual, entrada) {
   }
   if (modoActual === 'pre2' && evento === 'PreToolUse') {
     const comando = String(entrada.tool_input?.command ?? '');
-    if (/\bgit\s+merge\b/.test(comando)) {
+    // `merge` como subcomando entero: no casa con `merge-base` ni `merge-tree`
+    // (\b si casaria: hay frontera entre `e` y `-`). Admite `git -C <dir> merge`.
+    if (/\bgit(?:\s+-C\s+\S+)*\s+merge(?![\w-])/.test(comando)) {
       return { codigo: 2, motivo: `sonda TASK-069: git merge bloqueado a proposito (pre2). Comando: ${comando}` };
     }
   }
@@ -67,6 +70,11 @@ try {
   entrada = JSON.parse(crudo);
 } catch {
   process.stderr.write('sonda-hooks: la entrada no es JSON; se ignora.\n');
+  process.exit(0);
+}
+// `null`, un numero o una cadena son JSON valido pero no una entrada de hook.
+if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) {
+  process.stderr.write('sonda-hooks: la entrada no es un objeto JSON; se ignora.\n');
   process.exit(0);
 }
 
