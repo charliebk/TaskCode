@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-069-spike-hooks-stop-y-pretooluse-de-claude
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ Antes de construir frenos sobre hooks hay que saber como se comportan de verdad 
 - [ ] Comprobado que un Stop hook que devuelve exit 2 hace que el agente siga trabajando y que stop_hook_active evita el bucle infinito
 - [ ] Comprobado que un PreToolUse sobre Bash puede bloquear un comando concreto (git merge) y que el agente recibe el motivo
 - [ ] Resultado en docs/spikes/ con cada hipotesis marcada como confirmada o refutada y la evidencia
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-03T10:04:15Z | plan | automatico | persona |
