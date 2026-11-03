@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-069 (feature) — Spike: hooks Stop y PreToolUse de Claude Code en Windows/IntelliJ (2026-11-03)
 - TASK-067 (feature) — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release (2026-10-28)
 
 - TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)

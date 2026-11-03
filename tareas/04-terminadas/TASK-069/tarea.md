@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-069-spike-hooks-stop-y-pretooluse-de-claude
 asignado_a: charlie.bk@gmail.com
@@ -80,6 +80,7 @@ validador de Claude Code 2.1.316+.
 | 2026-11-03T11:14:07Z | start | automatico | persona |
 | 2026-11-03T12:48:47Z | review | automatico | persona |
 | 2026-11-03T13:11:04Z | review | automatico | persona |
+| 2026-11-03T13:33:23Z | finish | automatico | persona |
 
 ## Coste
 
