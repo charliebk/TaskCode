@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-068-doctor-deploy-c-tipo-de-aplicacion-y-son
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-10-27
-actualizado: 2026-10-27
+actualizado: 2026-11-03
 dependencias: []
 ---
 ## Objetivo
@@ -34,3 +34,9 @@ Diferido de TASK-066 y TASK-067 por decision de la persona. Que un punto aplique
 - [ ] Los puntos que pasan a sonda dejan de ser juicio en el catalogo y el agente de seguridad ya no los recibe; test
 - [ ] El campo referencia del catalogo usa la version vigente de OWASP Top 10 y ASVS, verificada contra la fuente oficial y anotada en el Resultado
 - [ ] Suite completa con solo los rojos conocidos de Windows; README y CHANGELOG al dia
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-03T11:39:42Z | plan | automatico | persona |
