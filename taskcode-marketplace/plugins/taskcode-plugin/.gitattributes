@@ -18,3 +18,9 @@ bin/* text eol=lf
 # los .cmd por bloques y con LF puede saltarse lineas o romper etiquetas;
 # esta regla va DESPUES de bin/* porque en .gitattributes gana la ultima.
 bin/*.cmd text eol=crlf
+
+# Los scripts de Bash (Git-Flow y pruebas de hooks) tambien con LF. Sin esta
+# regla, un checkout de Windows con core.autocrlf=true los deja en CRLF y bash
+# falla con "$'\r': command not found" (visto en TASK-069 al lanzar
+# create-feature.sh desde la VM del bridge sobre el checkout de Windows).
+*.sh text eol=lf

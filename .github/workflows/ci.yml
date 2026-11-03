@@ -76,6 +76,11 @@ jobs:
           git reset -q -- dist/src
           exit $rc
 
+      - name: "H2 (TASK-069): la sonda de hooks corre por forma exec en Linux"
+        shell: bash
+        continue-on-error: true
+        run: bash hooks/test/sonda-hooks.test.sh
+
   test-windows:
     name: Tests + validacion nativa (Windows)
     runs-on: windows-latest
@@ -164,6 +169,20 @@ jobs:
         continue-on-error: true
         run: node bin\taskctl --version
 
+      - name: "H2 (TASK-069): la sonda de hooks corre por forma exec en Windows"
+        shell: bash
+        continue-on-error: true
+        run: bash hooks/test/sonda-hooks.test.sh
+
+      - name: "H2b (TASK-069): la sonda corre desde cmd.exe con node, sin Git Bash"
+        shell: cmd
+        continue-on-error: true
+        run: |
+          set TASKCODE_SONDA_MODO=stop2
+          node hooks\sonda-hooks.mjs < hooks\test\stop.json
+          if %ERRORLEVEL% NEQ 2 exit /b 1
+          exit /b 0
+
   validate-plugin:
     name: claude plugin validate
     runs-on: ubuntu-latest
@@ -179,6 +198,12 @@ jobs:
       - name: Validar el manifiesto del plugin
         working-directory: .
         run: claude plugin validate ./taskcode-marketplace/plugins/taskcode-plugin
+      - name: "H1 (TASK-069): el plugin declara hooks/hooks.json y la validacion lo acepta"
+        working-directory: .
+        run: |
+          test -f taskcode-marketplace/plugins/taskcode-plugin/hooks/hooks.json
+          claude plugin validate ./taskcode-marketplace/plugins/taskcode-plugin 2>&1 | tee validate.log
+          ! grep -qiE "hook.*(error|invalid)" validate.log
       - name: Validar el marketplace
         working-directory: .
         run: claude plugin validate .
