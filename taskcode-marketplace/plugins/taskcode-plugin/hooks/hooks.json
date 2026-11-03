@@ -1,0 +1,38 @@
+{
+  "description": "TaskCode (TASK-069): sonda de hooks Stop y PreToolUse. Inerte salvo que TASKCODE_SONDA_MODO este definida; TASK-071/072 la sustituyen por los frenos reales.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"],
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git *)",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"],
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(git *)",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
