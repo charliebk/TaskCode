@@ -1,0 +1,33 @@
+---
+id: TASK-072
+titulo: "Puerta de verificacion en finish y merge guard"
+tipo: feature
+sprint: 0
+etiquetas: []
+complejidad: null
+modelo_sugerido: sonnet
+estado: planificada
+plan_aprobado: false
+rama: feature/task-072-puerta-de-verificacion-en-finish-y-merge
+asignado_a: null
+agente_revisor: general-purpose
+skills_recomendados: []
+regla_seleccion_skill: null
+ultimo_commit_revisado: null
+revision_codex: false
+tokens_diseno: null
+tokens_implementacion: null
+tokens_revision: null
+creado: 2026-11-03
+actualizado: 2026-11-03
+dependencias: []
+---
+## Objetivo
+
+Defensa en dos capas: finish no mergea con la verificacion en rojo, y un hook impide al agente saltarse finish con un git merge directo.
+
+## Criterios de aceptacion
+- [ ] taskctl finish ejecuta comando_verificacion antes del merge y aborta con la salida si falla; flag explicito para saltarlo que queda registrado en la tarea
+- [ ] Hook PreToolUse sobre Bash que bloquea git merge y los scripts de cierre de Git-Flow hacia develop o main cuando la verificacion esta en rojo
+- [ ] El hook no bloquea comandos de solo lectura ni merges hacia ramas de trabajo
+- [ ] Tests de ambas capas contra repos temporales reales
