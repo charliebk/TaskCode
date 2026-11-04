@@ -2,7 +2,7 @@
 
 - Commit revisado: ec2295ffcdcf53be7eb58e166e753f4592c447aa
 - Revisor: code-quality-reviewer (agente general-purpose, modelo sonnet)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-071 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
