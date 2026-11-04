@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 2408405
-tokens_implementacion: null
+tokens_implementacion: 28715018
 tokens_revision: null
 creado: 2026-10-27
 actualizado: 2026-11-03
@@ -48,3 +48,4 @@ Diferido de TASK-066 y TASK-067 por decision de la persona. Que un punto aplique
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-03T12:09:52Z | diseno | agente:ad1a7e7bb38b33839,aaf1a81ad7ac6e846,af05c341271d76ed0,a058c67b68e6e9420 | 90 | 265484 | 2099558 | 43273 | 61 | 2408405 |
+| 2026-11-04T10:10:17Z | implementacion | agente:a8415d4a595422892,a504ddf8f0a872ddc,ad1c6279d9c015c18 | 328 | 984708 | 27523989 | 205993 | 42 | 28715018 |
