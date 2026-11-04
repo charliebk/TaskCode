@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-072-puerta-de-verificacion-en-finish-y-merge
 asignado_a: charlie.bk@gmail.com
@@ -38,6 +38,7 @@ Defensa en dos capas: finish no mergea con la verificacion en rojo, y un hook im
 |---|---|---|---|
 | 2026-11-04T17:56:19Z | plan | automatico | persona |
 | 2026-11-04T18:06:30Z | approve | automatico | persona |
+| 2026-11-04T18:06:39Z | start | automatico | persona |
 
 ## Coste
 
