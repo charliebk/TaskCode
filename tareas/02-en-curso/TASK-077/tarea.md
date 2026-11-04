@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [hooks]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-077-guardian-de-merges-opciones-con-valor-an
 asignado_a: charlie.bk@gmail.com
@@ -38,6 +38,7 @@ Cerrar lo que quedo abierto de TASK-072: que bash -o pipefail -c y bash --rcfile
 |---|---|---|---|
 | 2026-11-04T20:33:52Z | plan | automatico | persona |
 | 2026-11-04T20:36:25Z | approve | automatico | persona |
+| 2026-11-04T20:36:27Z | start | automatico | persona |
 
 ## Coste
 
