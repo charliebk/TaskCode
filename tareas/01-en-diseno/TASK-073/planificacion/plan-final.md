@@ -1,20 +1,64 @@
 # Plan — TASK-073: Tests held-out por tarea
 
-(Lo consolida el agente unificador a partir de 3 roles de brainstorm
-lanzados en paralelo: arquitectura, riesgos, testing.
-Los desacuerdos entre roles se senalan, no se promedian.)
+## Enfoque
+Se crea (arquitectura), en este orden: `comando_heldout` en `config.ts` → `finish-heldout.ts` (`puertaHeldout`, hermana de `puertaVerificacion`, compartiendo `ejecutarVerificacion`) encadenada en `finish.ts` tras la verificación → hook `PreToolUse` nuevo (`pre-tool-lectura.ts` + `guardia-heldout.ts`, sale 2 y nunca 1) con entrada propia en `hooks.json` → skill de flujo.
+Se añade (riesgos): `aceptacion/` siempre fuera del diff de `review.ts:477-478`; casado sin mayúsculas del segmento `aceptacion` bajo `tareas/*/TASK-*/` tras resolver la ruta real; huella y anotación en `tarea.md` solo si D3 lo aprueba. Agent/Task fuera del matcher (riesgos; arquitectura tampoco lo incluye).
+Partición (propuesta del unificador, no de un rol, apoyada en que arquitectura declara los pasos 1-2 y 3 entregables por separado): TASK-073a = config + puerta de finish + exclusión en review + huella; TASK-073b = hook de deny + smoke; la skill va con la última, porque explica decisiones de las dos.
+Complejidad: declarada alta y heurística simple; las tres salidas describen al menos cinco piezas en cuatro módulos, lo que contradice a la heurística. Ningún rol lo valoró: lo confirma la persona (D4).
 
-## Enfoque propuesto
+## Desacuerdos resueltos
+- Mecanismo del deny — enunciado: «reglas deny de Read y Edit» / arquitectura: hook PreToolUse, porque implementa la sesión principal y (sin verificar) un plugin no publica `permissions.deny`; riesgos: el deny declarativo no basta y bloquea también a persona y revisor; testing: el criterio 5 exige algo ejecutable en la suite — gana el hook — es lo único que defienden los tres y lo único con prueba automática; el criterio se reescribe (Plan de pruebas). Los tres roles coinciden: el desacuerdo es con el enunciado, no entre ellos.
+- Alcance a Bash/PowerShell — arquitectura: no analizar rutas en shell, el freno disuade y la garantía es finish / riesgos: cubrir Bash/PowerShell por ruta normalizada; un «deny efectivo» que solo prueba Read «da por bueno un freno que no frena» — no gana ninguno aquí — sube entero a D2.
+- Revisor y `aceptacion/` — arquitectura: el hook deniega a todos, el revisor ve solo el resultado de finish / riesgos: que los ejecute sin citarlos, porque el informe llega al implementador / testing: si el hook no distingue identidad, la prueba del revisor no se puede escribir, y hay que decirlo — no gana ninguno aquí — sube a D1(2).
+- Salida de finish en rojo — arquitectura: reutilizar `formatearVerificacionRoja` / riesgos: solo nombres y recuento, porque ese formateador incluye las aserciones y el implementador las lee — no gana ninguno aquí — sube a D4.
+- Smoke real — riesgos: smoke con Claude Code real que intente leer por Bash, git y subagente / testing: aseverar «el canario no sale en la respuesta» es una aserción trampa; hay que aseverar el exit 2 del hook en la transcripción — se aplican los dos — no compiten: escenarios de riesgos con el criterio de aserción de testing.
 
-
-## Desacuerdos entre roles, y como se resuelven
-
-
-## Riesgos aceptados y que los contiene
-
+## Riesgos aceptados
+- Un agente hostil que ofusca (base64, alias, scripts generados) salta cualquier deny — riesgos — se declara contra despistes, como TASK-072; la red es la huella en finish, solo si D3 la aprueba.
+- Un `git merge` a mano no ejecuta los held-out — arquitectura — nada: el guardián de merges no cambia; finish es la única puerta.
+- Un held-out leído queda quemado y hay que reescribirlo; uno mergeado a develop queda en la historia para siempre (las ramas no se borran) — riesgos — nada lo deshace; D1 decide cuánto se expone.
+- Cada herramienta de lectura nueva (o MCP) abre un hueco en el matcher que ninguna prueba ve — testing — nada; solo la revisión al añadir herramientas.
+- Un `node` por cada Read/Edit/Grep/Glob — arquitectura — filtro barato sobre stdin antes de cargar la lógica; sin medir en Windows.
+- `Glob` deja ver nombres de ficheros; un hook roto deja pasar — riesgos — salir 2 y nunca 1 (arquitectura); para el hook roto no hay contención.
 
 ## Plan de pruebas
+- «Deny de Read y Edit», concretado: `spawnSync` contra el `dist` real con `tool_name` ∈ Read, Edit, Write, MultiEdit, NotebookEdit, Grep, Glob y ruta `.../TASK-NNN/aceptacion/x` sale 2; `.../TASK-NNN/tarea.md` y `aceptacionX/` salen 0; mayúsculas, `\`, relativa y `..` salen 2; si D2 = B, lo mismo con Bash/PowerShell (`cat`, `Get-Content`, `git show develop:.../aceptacion/x`); mutaciones: quitar `Edit` del matcher, `startsWith` sin separador — repo temporal — testing (casos, mutaciones) y riesgos (variantes de ruta, shell)
+- finish rojo: `comando_heldout` sale 1 con verificación verde o ausente → sin merge en develop, tarea sin mover, mensaje del held-out; si D4 = B, la salida no contiene el texto de una aserción canario; mutación: quitar el `throw` — repo temporal — testing; el canario, riesgos
+- finish verde: testigo en ruta ignorada + merge `--no-ff`; otra tarea con `aceptacion/` que falla no bloquea; si D3 aprueba la huella, huella distinta o «declarados y ninguno ejecutado» abortan — repo temporal — testing; huella, riesgos
+- Config y regresiones: `comando_heldout` en `CLAVES_CONFIG`, por defecto null, inválido aborta; `guardia-merge.test.ts:352/355` buscan su entrada por `args` (no relajar a `>= 1`); descripción sin nombre del producto (`freno-stop.test.ts:326`, `guardia-merge.test.ts:364`); las 8 de `finish-verificacion.test.ts` intactas — suite — testing
+- «La skill explica…», concretado: `SKILL.md` de task-workflow contiene `aceptacion/`, `comando_heldout`, la fase fijada en D1, la regla del revisor fijada en D1 y cómo trabaja la persona con el freno puesto, y no nombra el producto — test de contenido — testing pide presencia y nombre; fase, revisor y persona son concreción del unificador
+- Smoke manual con `claude --plugin-dir`: Read, Bash (`cat`, `git show`) y un subagente intentan leer un canario; evidencia = exit 2 del hook visible en la transcripción, en el `Resultado` — Claude Code real — riesgos (escenarios) y testing (aserción)
 
+## Sin cubrir
+- Cómo escribe la persona los held-out con Claude si el hook también se lo deniega a ella — arquitectura lo pone como contenido de la skill sin diseñar el mecanismo; nadie lo diseña — se decide con D1 antes de implementar.
+- El hook `Stop` puede ejecutar `aceptacion/` si el glob de tests del proyecto alcanza `tareas/**` — solo lo nombra riesgos, sin pieza en arquitectura ni prueba en testing — entra como comprobación o se acepta por escrito.
+- La exclusión de `aceptacion/` del diff de revisión — la pide riesgos; arquitectura no la incluye en sus piezas y testing no la prueba — está en el enfoque; falta su prueba, que hay que añadir al aprobar.
 
-## Lo que necesita decision de una persona
+## Salidas que faltaron
+- ninguna: llegaron las tres lanzadas. Dominio no se lanzó (3 roles = el mayor de alta/simple): arquitectura y riesgos le delegan quién escribe y lee los held-out y el contrato de `comando_heldout`, y nadie lo respondió; por eso D1 y D3 están abiertas.
 
+## Suposiciones no verificadas
+- Un plugin no puede publicar `permissions.deny` y sus agentes no admiten `permissionMode`/`hooks` — arquitectura, riesgos y testing — documentación oficial de plugins.
+- La entrada de PreToolUse trae `tool_input.file_path` (Read/Edit/Write), `path`/`pattern` (Grep/Glob) y `agent_type`/`agent_id` dentro de un subagente — arquitectura, riesgos y testing — referencia de hooks y `hooks/sonda-hooks.mjs`.
+- Los hooks de la sesión alcanzan las llamadas de un subagente lanzado por `Task` — riesgos — smoke manual.
+- Las reglas deny de Read se aplican a Grep/Glob pero no a Bash — riesgos — documentación de permisos.
+- `comando_heldout` recibe la carpeta por variable de entorno (`HELDOUT_DIR`) con cwd en la raíz, y vale reutilizar `timeout_verificacion` — arquitectura — D3.
+- El held-out puede escribir el testigo sin ensuciar el árbol — testing — `ejecutarVerificacion`.
+
+## Decision humana pendiente (resuelta abajo)
+- D1 — (1) Quién, rama, fase y llegada: ningún rol trae solución; riesgos fija el problema (escritos en develop después de crear la rama → la rama no los tiene; commiteados en la rama → historial visible) y arquitectura toma la carpeta del árbol de la rama (`path.dirname(initial.filePath)`). Opciones (enumeración del unificador): A) la persona los escribe y commitea en develop durante el diseño, antes de `start`, y la rama nace con ellos; B) los commitea en la rama de la tarea; C) no se versionan hasta finish (choca con el guard de árbol sucio). Recomendación: A + exclusión en review (riesgos) + D2 = B para cubrir `git show`; en contra: quedan en `git log -p` y en develop para siempre (punto sin retorno de riesgos). (2) Revisor: A) no los lee, solo ve el resultado de finish o los ejecuta sin citarlos (arquitectura y riesgos coinciden en el «no contenido»); B) los lee, lo que exige identidad de subagente sin verificar. Recomendación: A — No lo decide este rol: (1) no tiene propuesta de ningún rol, (2) depende de `agent_type` sin verificar, y las dos son caras de deshacer.
+- D2 — (3) Alcance del deny, contra despistes en los dos casos: A) solo herramientas de fichero (arquitectura); B) además Bash/PowerShell por ruta normalizada, que cubre `cat`, `Get-Content` y `git show rama:ruta`, pero no `git log -p` ni `git diff` (riesgos). Recomendación: B, porque el despiste realista es un `cat` o un `git show` y es el riesgo que más preocupa a riesgos; en contra: arquitectura no quiere ampliar el análisis de shell y testing avisa de que la prueba solo cubre la heurística — No lo decide este rol: es coste frente a cobertura y nadie midió el coste.
+- D3 — (4) Carpeta: A) variable `HELDOUT_DIR` con cwd en la raíz (arquitectura, sin verificar); B) marcador en el comando; C) ruta fija; riesgos avisa de que condiciona la rotura al cambiar de estado. Recomendación: A, calculada antes de mover la tarea (arquitectura). (5) Integridad: solo riesgos propone la huella al fijarlos, anotar en `tarea.md` comando, cuántos y huella, y abortar si se declararon y no se ejecutó ninguno; `ejecutarVerificacion` solo da el código de salida, y nadie diseñó cómo contar tests de un comando arbitrario. Opciones: A) huella + abortar si `aceptacion/` tiene ficheros y no hay `comando_heldout`; B) A + recuento de ejecutados (exige un formato de salida); C) nada. Recomendación: A; ni A ni B cubren el `comando_heldout: "true"` en `config.yml` que señala riesgos — No lo decide este rol: solo lo trajo un rol y el contrato es de dominio, que no se lanzó.
+- D4 — (6) Salida en rojo: A) completa vía `formatearVerificacionRoja` (arquitectura); B) solo nombres y recuento (riesgos). Recomendación: B, porque la salida de finish la lee el implementador; queda abierto cómo sacar nombres de un comando arbitrario. Y aprobar el plan entero con `taskctl approve`, incluida la partición 073a/073b y la complejidad — No lo decide este rol: el unificador no aprueba nada y no se implementa sin esa aprobación.
+
+## Decisiones de la persona (Carlos, 2026-11-04)
+- **Particion: SI.** Esta tarea (TASK-073) se queda con config (`comando_heldout`) + puerta en `finish` + exclusion de `aceptacion/` del diff de revision + huella + skill de flujo. El hook de deny (herramientas de fichero y Bash/PowerShell) y el smoke con Claude Code real pasan a una tarea nueva, TASK-078, que depende de esta. Los criterios del deny salen de esta tarea.
+- **D1 (1) Llegada: commit en develop durante el diseño**, antes de `start`: la rama nace con ellos y no estan en su diff. Se acepta que quedan en develop y en `git log -p` para siempre.
+- **D1 (2) Revisor: no los lee.** Solo ve el resultado (verde/rojo) de `finish`; la skill de revision lo dice. (El bloqueo efectivo llega con TASK-078.)
+- **D2 Alcance del deny (para TASK-078): herramientas de fichero + Bash/PowerShell** cuyo texto nombre una ruta `aceptacion/` de una tarea. Contra despistes.
+- **D3 Carpeta: variable `HELDOUT_DIR`** (ruta absoluta de la carpeta `aceptacion/` de la tarea) con cwd en la raiz del repo; timeout = `timeout_verificacion`. **Integridad: huella**: `finish` aborta si `aceptacion/` tiene ficheros y no hay `comando_heldout`, y si el contenido de `aceptacion/` en la rama no coincide con el de la rama base (`rama_base`): el implementador no puede editarlos, añadirlos ni borrarlos en la rama. Si la tarea no tiene `aceptacion/` (ni en la rama ni en la base), no hay puerta held-out.
+- **Escritura por la persona (para TASK-078):** el hook bloquea `aceptacion/` solo cuando la rama actual es la `rama` de esa tarea (como el freno Stop); en develop, durante el diseño, se escriben con Claude sin trabas.
+- **D4 Rojo: solo comando, codigo de salida y duracion**, sin la salida (no filtra aserciones); la persona ve el detalle ejecutando el comando a mano.
+- Sin cubrir que se resuelve aqui: el hook `Stop` y `comando_verificacion` pueden alcanzar `aceptacion/` si el glob de tests del proyecto incluye `tareas/**`: la skill lo advierte (los held-out deben quedar fuera del comando de verificacion). La exclusion del diff de revision lleva su prueba.
+- Complejidad: se mantiene `alta` para esta parte.
+- Plan aprobado por Carlos tras estas decisiones.

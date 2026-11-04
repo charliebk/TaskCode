@@ -28,10 +28,11 @@ Freno 7 de brakes: tests de aceptacion que la persona escribe a partir de los cr
 
 ## Criterios de aceptacion
 - [ ] Carpeta aceptacion/ dentro de la carpeta de la tarea, y clave comando_heldout opcional en config.yml
-- [ ] El plugin declara reglas deny de Read y Edit sobre las carpetas aceptacion/ para el agente implementador
-- [ ] taskctl finish ejecuta los held-out de la tarea y aborta si fallan
-- [ ] La skill de flujo explica cuando escribirlos y el agente revisor si puede leerlos
-- [ ] Tests: deny efectivo, finish rojo y verde
+- [ ] taskctl finish ejecuta los held-out de la tarea (HELDOUT_DIR) y aborta si fallan, mostrando solo comando, codigo y duracion
+- [ ] taskctl finish aborta si aceptacion/ tiene ficheros y no hay comando_heldout, o si su contenido en la rama no coincide con el de rama_base
+- [ ] aceptacion/ queda siempre fuera del diff de peticion-revision-N.md
+- [ ] La skill de flujo explica cuando escribirlos (en develop, en el diseño), que el revisor no los lee y que deben quedar fuera de comando_verificacion
+- [ ] Tests: finish rojo y verde, huella, exclusion del diff, config (deny efectivo en TASK-078)
 
 ## Transiciones
 
