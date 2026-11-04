@@ -27,10 +27,43 @@ dependencias: []
 Declarar como se verifica un proyecto, para que los frenos ejecuten el comando del repo y nunca uno inventado.
 
 ## Criterios de aceptacion
-- [ ] Nuevas claves opcionales comando_verificacion y timeout_verificacion en resolverConfig, con fallo cerrado ante valor invalido y defecto null (sin freno)
-- [ ] Sin la clave, el comportamiento de todos los comandos es identico al actual; los tests existentes pasan sin tocarlos
-- [ ] taskctl doctor informa si falta comando_verificacion, con el arreglo en la misma linea
-- [ ] Tabla de claves de config.ts, README y CHANGELOG al dia
+- [x] Nuevas claves opcionales comando_verificacion y timeout_verificacion en resolverConfig, con fallo cerrado ante valor invalido y defecto null (sin freno)
+- [x] Sin la clave, el comportamiento de todos los comandos es identico al actual; los tests existentes pasan sin tocarlos
+- [x] taskctl doctor informa si falta comando_verificacion, con el arreglo en la misma linea
+- [x] Tabla de claves de config.ts, README y CHANGELOG al dia
+
+## Resultado
+
+Implementado (commit 9c9a684):
+- : claves  (texto, defecto null = sin freno) y
+   (entero >= 1, segundos, defecto 600). Se reutilizan  y
+  , generalizados con la clave (los mensajes de sincronizacion no cambian;
+  hay test que lo fija). Nueva : el timeout sin comando aborta.
+  Tabla de claves de la cabecera al dia.
+- : comprobacion  tras la de config. Con comando,  con
+  comando y timeout; sin el,  con el arreglo en el propio mensaje (D1 del plan: un aviso
+  habria cambiado el recuento de avisos que fijan los tests existentes y dejaria un aviso permanente
+  en proyectos sin frenos); con la config rota, .
+- README del plugin (comprobacion de doctor y subseccion de la clave), CHANGELOG (bloque en «Sin
+  publicar»: no se publica version hasta TASK-071) y  (lista de
+  claves completa; corregido «una clave mal escrita aborta», falso desde TASK-061).
+- Tests:  (8) y 3 nuevos en ;
+  ningun test existente editado.
+
+Verificacion: suite completa 1716/1721; los 5 rojos son los conocidos de Windows (symlink EPERM,
+chmod de directorio, CRLF) y las 2 contrapruebas de descubrimiento de TASK-075. Smoke del CLI en
+repo temporal: sin clave, con clave, timeout sin comando, timeout de texto, comando vacio y errata
+(aviso con sugerencia).
+
+Revision por pares (ronda 1, code-quality-reviewer): **aprobada**, sin CRITICO ni IMPORTANTE.
+Reprodujo en clon propio (103 tests afectados en verde) y 4 mutantes, 3 detectados limpiamente.
+- MEN-1 (aceptado): con la config rota la verificacion sale , que no distingue «no
+  evaluable» de «no declarada»; es el mismo criterio que rama-base, origin y plataforma.
+- MEN-2 (aceptado): no hay test de CLI de punta a punta para el timeout sin comando; lo cubren
+  los tests de config y de doctor, y todos los comandos pasan por .
+
+Decisiones tomadas por el orquestador en modo automatico (plan, D1-D3):  en doctor,
+600 s por defecto, y aceptar una clave que solo lee doctor hasta TASK-071.
 
 ## Transiciones
 
