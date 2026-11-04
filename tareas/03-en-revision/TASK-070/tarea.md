@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-070-clave-comando-verificacion-en-taskcode-c
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Declarar como se verifica un proyecto, para que los frenos ejecuten el comando d
 | 2026-11-04T13:52:07Z | plan | automatico | persona |
 | 2026-11-04T13:56:20Z | approve | automatico | persona |
 | 2026-11-04T13:56:21Z | start | automatico | persona |
+| 2026-11-04T14:14:48Z | review | automatico | persona |
 
 ## Coste
 
