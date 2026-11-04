@@ -205,8 +205,8 @@ function textoDeShell(prog: string, seg: readonly string[]): string | null {
  * Donde acaban las opciones de un `bash|sh|zsh|dash` (TASK-077, MEN-4 de
  * TASK-072): una sola regla para `-c` y para el script de cierre.
  * - Es opcion todo token que empiece por `-` o `+`; `--` las termina.
- * - Llevan valor en el token siguiente `--rcfile`, `--init-file` y los grupos
- *   cortos que acaban en `o`/`O` (`-o pipefail`, `+o x`, `-O extglob`, `-eo x`).
+ * - Llevan valor en el token siguiente `--rcfile`, `--init-file`, y cada `o`/`O`
+ *   de un grupo corto consume uno (`-o pipefail`, `+o x`, `-O extglob`, `-oc x`).
  * - `conC`: hubo `-c` (solo o en un grupo corto: `-lc`, `-ec`).
  * `fin` es el indice del primer argumento que no es opcion.
  */
@@ -224,8 +224,11 @@ function opcionesDeShell(seg: readonly string[]): { fin: number; conC: boolean }
     if (!a.startsWith('--')) {
       const grupo = a.slice(1);
       if (a.startsWith('-') && grupo.includes('c')) conC = true;
-      if (/[oO]$/.test(grupo)) {
-        i += 2;
+      // Como bash: cada o/O del grupo consume un valor, este donde este
+      // (`-oc pipefail "..."`: MEN-1 de la revision de TASK-077).
+      const valores = (grupo.match(/[oO]/g) ?? []).length;
+      if (valores > 0) {
+        i += 1 + valores;
         continue;
       }
     }

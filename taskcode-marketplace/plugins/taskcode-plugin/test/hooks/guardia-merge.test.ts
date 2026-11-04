@@ -92,6 +92,8 @@ test('comando-merge (MEN-4, TASK-077): las opciones de bash con valor antes de -
     'bash -O extglob -c "git merge x"',
     'bash +O extglob -c "git merge x"',
     'bash -eo pipefail -c "git merge x"',
+    'bash -oc pipefail "git merge x"',
+    'bash -oO pipefail extglob -c "git merge x"',
     'bash --rcfile f -c "git merge x"',
     'bash --init-file f -c "git merge x"',
     'bash --norc -c "git merge x"',
@@ -111,6 +113,9 @@ test('comando-merge (MEN-4, TASK-077): las opciones de bash con valor antes de -
   );
   assert.deepEqual(analizarComando('bash -- scripts/merge-feature-to-develop.sh feature/x'), script('feature/x'));
   // Sin -c ni script de cierre: nada.
+  // +c desactiva la opcion: no es la forma -c, el argumento es un script (MEN-2).
+  assert.deepEqual(analizarComando('bash +c "git merge x"'), []);
+  assert.deepEqual(analizarComando('bash +c scripts/merge-feature-to-develop.sh feature/x'), script('feature/x'));
   assert.deepEqual(analizarComando('bash -o pipefail otro.sh'), []);
   assert.deepEqual(analizarComando('bash -c'), []);
 });
