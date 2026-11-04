@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-072 — Puerta de verificacion en finish y merge guard · etiquetas: (sin etiquetas) · rama feature/task-072-puerta-de-verificacion-en-finish-y-merge · terminada 2026-11-04 · tareas/04-terminadas/TASK-072/
 - TASK-071 — Hook Stop: una tarea no se da por hecha con la verificacion en rojo · etiquetas: (sin etiquetas) · rama feature/task-071-hook-stop-una-tarea-no-se-da-por-hecha-c · terminada 2026-11-04 · tareas/04-terminadas/TASK-071/
 - TASK-070 — Clave comando_verificacion en .taskcode/config.yml · etiquetas: (sin etiquetas) · rama feature/task-070-clave-comando-verificacion-en-taskcode-c · terminada 2026-11-04 · tareas/04-terminadas/TASK-070/
 - TASK-068 — Doctor-deploy C: tipo de aplicacion y sondas deterministas extra · etiquetas: doctor-deploy, seguridad · rama feature/task-068-doctor-deploy-c-tipo-de-aplicacion-y-son · terminada 2026-11-04 · tareas/04-terminadas/TASK-068/

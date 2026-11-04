@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-072-puerta-de-verificacion-en-finish-y-merge
 asignado_a: charlie.bk@gmail.com
@@ -99,6 +99,7 @@ Coste de implementacion sin registrar: la hizo el orquestador sin subagentes y n
 | 2026-11-04T18:06:39Z | start | automatico | persona |
 | 2026-11-04T18:37:45Z | review | automatico | persona |
 | 2026-11-04T20:22:04Z | review | automatico | persona |
+| 2026-11-04T20:31:11Z | finish | automatico | persona |
 
 ## Coste
 
