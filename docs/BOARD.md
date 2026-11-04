@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 21
+## Planificadas (00-planificadas) — 20
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -21,7 +21,6 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio   charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                             (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                       (sin asignar)
-TASK-070  Clave comando_verificacion en .taskcode/config.yml                                           (sin asignar)
 TASK-071  Hook Stop: una tarea no se da por hecha con la verificacion en rojo                          (sin asignar)
 TASK-072  Puerta de verificacion en finish y merge guard                                               (sin asignar)
 TASK-073  Tests held-out por tarea                                                                     (sin asignar)
@@ -30,7 +29,7 @@ TASK-075  Contrapruebas de descubrimiento rotas por el validador de Claude Code 
 TASK-076  Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico  (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 55
+## Terminadas (04-terminadas) — 56
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -90,4 +89,5 @@ TASK-066  Doctor-deploy A: catalogo generico y comprobaciones deterministas     
 TASK-067  Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release                   charlie.bk@gmail.com
 TASK-068  Doctor-deploy C: tipo de aplicacion y sondas deterministas extra                         charlie.bk@gmail.com
 TASK-069  Spike: hooks Stop y PreToolUse de Claude Code en Windows/IntelliJ                        charlie.bk@gmail.com
+TASK-070  Clave comando_verificacion en .taskcode/config.yml                                       charlie.bk@gmail.com
 ```

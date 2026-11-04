@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-070-clave-comando-verificacion-en-taskcode-c
 asignado_a: charlie.bk@gmail.com
@@ -73,6 +73,7 @@ Decisiones tomadas por el orquestador en modo automatico (plan, D1-D3):  en doct
 | 2026-11-04T13:56:20Z | approve | automatico | persona |
 | 2026-11-04T13:56:21Z | start | automatico | persona |
 | 2026-11-04T14:14:48Z | review | automatico | persona |
+| 2026-11-04T14:24:02Z | finish | automatico | persona |
 
 ## Coste
 
