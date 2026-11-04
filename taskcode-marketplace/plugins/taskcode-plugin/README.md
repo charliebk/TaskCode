@@ -541,6 +541,10 @@ algún error (los avisos no cuentan). Comprueba:
   `GIT_OPTIONAL_LOCKS=0`, así que no toma `index.lock`; un fallo por bloqueo es aviso.
 - **Config**: `.taskcode/config.yml` con el mismo validador que el resto de comandos
   (un valor inválido es error con su mensaje; una clave desconocida, aviso).
+- **Verificación**: si la config declara `comando_verificacion` (ver abajo), `ok`
+  con el comando y su timeout; sin él, `omitida` con el arreglo en la misma línea.
+  No es un aviso: un proyecto sin frenos de verificación no está mal configurado.
+  `doctor` no ejecuta el comando.
 - **Tareas**: cada `tarea.md` se lee y valida, y su `estado` tiene que ser el de
   su carpeta. Son errores, con el ID: un ID en dos carpetas, un `tarea.md` ilegible
   (con la ruta y la causa), una carpeta de tarea sin `tarea.md`, un estado distinto
@@ -554,6 +558,27 @@ algún error (los avisos no cuentan). Comprueba:
 `--json` escribe en stdout **solo** una línea de JSON
 (`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`), para que
 una skill la lea. `taskctl doctor` no escribe, no commitea ni cambia de rama.
+
+#### Cómo se verifica el proyecto: `comando_verificacion`
+
+Los frenos de verificación (que una tarea no se dé por hecha ni se mergee con
+los tests en rojo) ejecutan **el comando que declara el proyecto**, nunca uno
+deducido. Se declara en `.taskcode/config.yml`:
+
+```yaml
+comando_verificacion: "npm test"   # entrecomillado si lleva "#"
+timeout_verificacion: 900          # opcional, en segundos (por defecto 600)
+```
+
+- `comando_verificacion`: texto no vacío; lo ejecuta el shell del sistema tal
+  cual. Sin la clave no hay freno y todo funciona como antes.
+- `timeout_verificacion`: entero mayor o igual que 1, en segundos. Solo tiene
+  sentido con el comando: sin él, aborta.
+- Un valor inválido (comando vacío, timeout `0`, decimal o texto) aborta todos
+  los comandos con un mensaje que nombra la clave y la línea; nunca se cae al
+  valor por defecto en silencio.
+- Hoy solo la lee `taskctl doctor`; los frenos que la ejecutan (hook `Stop` y
+  puerta de `finish`) llegan en las versiones siguientes.
 
 `taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]`
 es otro comando, distinto de `doctor`: aquel comprueba que el proyecto está listo

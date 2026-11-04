@@ -184,9 +184,13 @@ que ha dejado de ser cierto es peor que no tenerlo.
 ## Configuracion (`.taskcode/config.yml`)
 
 Claves opcionales: `rama_base`, `agente_revisor_por_defecto`, `limite_wip`,
-`modo_flujo`, `excluir_de_revision` y las tres de sincronizacion de ficheros
-derivados tras cada transicion. Sin fichero, todo por defecto; una clave mal
-escrita aborta todos los comandos. La sincronizacion (y sus trampas: no usar un
+`modo_flujo`, `excluir_de_revision`, `cierre_por_defecto`, las dos del remoto
+(`plataforma_remota`, `url_base_remoto`), las dos de verificacion
+(`comando_verificacion`, el comando de tests del proyecto que ejecutan los
+frenos, y `timeout_verificacion`) y las tres de sincronizacion de ficheros
+derivados tras cada transicion. Sin fichero, todo por defecto; un valor
+invalido de una clave conocida aborta todos los comandos, y una clave
+desconocida avisa y se ignora. La sincronizacion (y sus trampas: no usar un
 hook de pre-commit, codigo de salida 3) esta en [sincronizacion.md](sincronizacion.md).
 
 ## Cerrar una tarea

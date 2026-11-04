@@ -8,6 +8,17 @@
 - TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)
 - TASK-067 (feature) — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release (2026-10-27)
 
+Comando de verificacion declarado (TASK-070), primer paso de los frenos de verificacion.
+
+- **`comando_verificacion` y `timeout_verificacion`** en `.taskcode/config.yml`:
+  el comando de tests del proyecto y sus segundos (por defecto 600). Opcionales;
+  sin ellas todo funciona como antes. Un valor invalido aborta (fallo cerrado) y
+  el timeout sin comando tambien.
+- **`taskctl doctor`** informa de la verificacion: `ok` con el comando, u
+  `omitida` con el arreglo en la misma linea si falta.
+- Todavia no hay freno que la ejecute: el hook `Stop` y la puerta de `finish`
+  llegan con TASK-071 y TASK-072. No se publica version hasta entonces.
+
 Doctor-deploy C (TASK-068): clase de aplicacion, sondas de configuracion y OWASP 2025.
 
 - **Clase de aplicacion**: doctor-deploy detecta web, api, Android, iOS, Flutter,

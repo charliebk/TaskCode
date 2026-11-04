@@ -16,6 +16,14 @@
  * | cierre_por_defecto           | merge             | siguiente.ts -> skill finish (modo automatico) |
  * | plataforma_remota            | null (por host)   | commands/finish-opciones.ts (--merge-request) |
  * | url_base_remoto              | null              | commands/finish-opciones.ts (--merge-request) |
+ * | comando_verificacion         | null (sin freno)  | commands/doctor.ts (y los frenos, TASK-071/072) |
+ * | timeout_verificacion         | 600 (segundos)    | los frenos (TASK-071/072)  |
+ *
+ * `comando_verificacion` y `timeout_verificacion` las anadio TASK-070: declaran
+ * como se verifica el proyecto (el comando de tests del repo) para que los
+ * frenos de verificacion ejecuten ESE comando y nunca uno inventado. Mismo
+ * patron que la pareja de sincronizacion: el timeout solo con el comando. Sin
+ * la clave no hay freno y todo se comporta como antes.
  *
  * `excluir_de_revision` la anadio TASK-034: la peticion de revision
  * embebia el diff entero, y el JS compilado, los lockfiles y la propia
@@ -144,6 +152,14 @@ export interface TaskcodeConfig {
    * null = la base es `https://<host de origin>`.
    */
   url_base_remoto: string | null;
+  /**
+   * TASK-070: comando con el que se verifica el proyecto (p. ej. `npm test`).
+   * null = sin freno de verificacion (lo de siempre). No se interpreta: lo
+   * ejecuta el shell del sistema tal cual.
+   */
+  comando_verificacion: string | null;
+  /** TASK-070: segundos que se le dejan a la verificacion antes de cortarla. */
+  timeout_verificacion: number;
 }
 
 export const PLATAFORMAS_REMOTAS: readonly Plataforma[] = ['github', 'gitlab'];
@@ -177,6 +193,8 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   cierre_por_defecto: 'merge',
   plataforma_remota: null,
   url_base_remoto: null,
+  comando_verificacion: null,
+  timeout_verificacion: 600,
 });
 
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
@@ -192,6 +210,8 @@ export const CLAVES_CONFIG = [
   'cierre_por_defecto',
   'plataforma_remota',
   'url_base_remoto',
+  'comando_verificacion',
+  'timeout_verificacion',
 ] as const;
 
 /**
@@ -417,7 +437,12 @@ export function parsearConfigConAvisos(
         config.limite_wip = validarEnteroPositivo(donde, par.clave, par.valor);
         break;
       case 'comando_sincronizacion':
-        config.comando_sincronizacion = validarComando(donde, par.valor);
+        config.comando_sincronizacion = validarComando(
+          donde,
+          par.clave,
+          par.valor,
+          'comando_sincronizacion: "node scripts/sincronizar-plan.mjs"'
+        );
         break;
       case 'rutas_sincronizacion':
         config.rutas_sincronizacion = validarRutasSincronizacion(donde, par.valor);
@@ -441,10 +466,17 @@ export function parsearConfigConAvisos(
         config.url_base_remoto = validarUrlBaseRemoto(donde, par.valor);
         dondeUrlBase = donde;
         break;
+      case 'comando_verificacion':
+        config.comando_verificacion = validarComando(donde, par.clave, par.valor, 'comando_verificacion: "npm test"');
+        break;
+      case 'timeout_verificacion':
+        config.timeout_verificacion = validarEnteroPositivo(donde, par.clave, par.valor);
+        break;
     }
   }
 
   validarSincronizacionCompleta(ruta, vistas);
+  validarVerificacionCompleta(ruta, vistas);
   validarRemotoCompleto(dondeUrlBase, config);
   return { config, avisos };
 }
@@ -542,6 +574,17 @@ function validarSincronizacionCompleta(ruta: string, vistas: ReadonlySet<string>
   }
 }
 
+/** TASK-070: el timeout de verificacion sin su comando no hace nada, como el de sincronizacion. */
+function validarVerificacionCompleta(ruta: string, vistas: ReadonlySet<string>): void {
+  if (vistas.has('timeout_verificacion') && !vistas.has('comando_verificacion')) {
+    throw new ConfigError(
+      `[ERROR] ${ruta}: "timeout_verificacion" sin "comando_verificacion" no hace nada.
+` +
+        '        Borrala, o declara tambien el comando (por ejemplo comando_verificacion: "npm test").'
+    );
+  }
+}
+
 /**
  * Lista flow de patrones `git :(glob)`. A diferencia de
  * `rutas_sincronizacion`, una lista vacia es valida (no excluir nada) y
@@ -583,12 +626,17 @@ function validarPatronesExclusion(donde: string, valor: unknown): readonly strin
 }
 
 /** El comando, recortado. No se interpreta: lo ejecuta el shell del sistema tal cual. */
-function validarComando(donde: string, valor: unknown): string {
+function validarComando(
+  donde: string,
+  clave: 'comando_sincronizacion' | 'comando_verificacion',
+  valor: unknown,
+  ejemplo: string
+): string {
   if (typeof valor !== 'string' || valor.trim() === '') {
     throw new ConfigError(
-      `[ERROR] ${donde}: "comando_sincronizacion" debe ser un comando (texto no vacio), ` +
+      `[ERROR] ${donde}: "${clave}" debe ser un comando (texto no vacio), ` +
         `y es ${describirValor(valor)}.\n` +
-        '        Ejemplo: comando_sincronizacion: "node scripts/sincronizar-plan.mjs". ' +
+        `        Ejemplo: ${ejemplo}. ` +
         'Si lleva "#", entrecomillalo entero.'
     );
   }
@@ -710,14 +758,16 @@ function validarTextoNoVacio(donde: string, clave: string, valor: unknown): stri
 /** Entero >= 1. Un limite de 0 no es "sin limite": es "no se puede trabajar". */
 function validarEnteroPositivo(
   donde: string,
-  clave: 'limite_wip' | 'timeout_sincronizacion',
+  clave: 'limite_wip' | 'timeout_sincronizacion' | 'timeout_verificacion',
   valor: unknown
 ): number {
   if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 1) {
     const consecuencia =
       clave === 'limite_wip'
         ? 'Un 0 o un negativo no significan "sin limite": impedirian arrancar cualquier tarea.'
-        : 'Son segundos: un 0 o un negativo matarian el comando antes de empezar.';
+        : clave === 'timeout_sincronizacion'
+          ? 'Son segundos: un 0 o un negativo matarian el comando antes de empezar.'
+          : 'Son segundos: un 0 o un negativo cortarian la verificacion antes de empezar.';
     throw new ConfigError(
       `[ERROR] ${donde}: "${clave}" debe ser un numero entero mayor o igual que 1, ` +
         `y es ${describirValor(valor)}.\n` +

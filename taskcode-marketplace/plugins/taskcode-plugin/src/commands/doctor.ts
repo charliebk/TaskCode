@@ -387,6 +387,24 @@ function comprobarConfig(cwd: string): { cs: Comprobacion[]; cfg: TaskcodeConfig
   }
 }
 
+/**
+ * TASK-070: si el proyecto declara como se verifica. Solo informa: no ejecuta
+ * el comando (eso es de los frenos). Sin la clave es `omitida` y no `aviso`:
+ * un proyecto sin frenos no esta mal configurado, y un aviso permanente en
+ * cada repo que no los use dejaria de leerse. El arreglo va en el mensaje.
+ */
+export function comprobarVerificacion(cfg: TaskcodeConfig | null): Comprobacion {
+  if (cfg === null) return omitida('verificacion', 'config invalida: no se sabe como se verifica el proyecto (ver config)');
+  if (cfg.comando_verificacion === null) {
+    return omitida(
+      'verificacion',
+      'sin comando_verificacion: los frenos de verificacion no actuan. Para activarlos, declara en ' +
+        '.taskcode/config.yml: comando_verificacion: "<tu comando de tests>"'
+    );
+  }
+  return ok('verificacion', `comando_verificacion: "${una(cfg.comando_verificacion)}" (timeout ${cfg.timeout_verificacion} s)`);
+}
+
 // ---------------------------------------------------------------------
 // Tareas
 // ---------------------------------------------------------------------
@@ -572,6 +590,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo, deps.timeoutGitMs ?? TIMEOUT_GIT_MS)));
 
   cs.push(...csConfig);
+  cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg)));
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
   cs.push(
     ...envolver('plataforma', () =>
