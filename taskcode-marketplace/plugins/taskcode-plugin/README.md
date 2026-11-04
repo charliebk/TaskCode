@@ -569,18 +569,36 @@ puntos de juicio (ver «Puntos de juicio» más abajo).
   `vendor`, `target`, `dist` ni `build`, y lo muestra. Los tipos y sus marcadores
   son datos del catálogo (`tipo_N_*`): añadir uno no toca código. Si no detecta
   ninguno, lo dice (los puntos que dependen de un tipo salen NO APLICA).
+- **Clase de aplicación** (segundo eje, independiente del lenguaje): web, api,
+  android, ios, flutter, react-native, cli o libreria, con los marcadores de la
+  familia `aplicacion_N_*` del catálogo (`id`, `nombre`, `marcadores` y,
+  opcional, `contiene`: textos que debe contener el fichero marcador; un
+  `package.json` es `cli` si contiene `"bin"`). Sale como «Aplicacion
+  detectada», con el fichero que la decidió. Un punto puede declarar
+  `punto_N_aplicaciones: [web, api, ...]`: se combina con `punto_N_tipos` con
+  Y, y dentro de cada lista basta con uno. **Si no se detecta ninguna clase, el
+  punto aplica**; solo sale NO APLICA si se detecta alguna y ninguna está en la
+  lista, con el tipo y el marcador en el motivo. Hoy eso apaga los puntos de
+  servicio desplegado (https-obligatorio, cookies-seguras, security-headers,
+  rate-limits, backups-y-migraciones, health-check, proteccion-de-bots,
+  limitar-respuestas-api, cors-restringido y proteccion-csrf) en una CLI o una
+  librería sin marcadores de web ni de api. Un id desconocido o del eje
+  equivocado aborta, también en `.taskcode/doctor-deploy.yml`.
 - **Catálogo**: `scripts/doctor-deploy.yml` (formato plano `punto_N_*`, con
   `total_puntos`). 43 puntos: los 20 pedidos, los medibles que faltaban y los de
   dominio. Cada uno tiene `id`, `severidad`, `tipos`, `metodo` (`determinista` o
   `juicio`), `sonda` (solo los deterministas), `arreglo`, `descripcion` y
-  `referencia` opcional (categoría OWASP Top 10 2021).
+  `referencia` opcional, con la categoría del OWASP Top 10 2025 y el capítulo
+  del ASVS 5.0 que lo cubren (`OWASP Top 10 2025 Axx; ASVS 5.0 Vnn`);
+  licencias-de-dependencias no la lleva porque ninguno de los dos trata
+  licencias.
 - **Cuatro estados**: `OK` (con evidencia: nunca OK sin ella), `FALLA` (con
   evidencia —fichero y línea, o commit— y el arreglo del catálogo), `NO VERIFICADO`
   (diciendo qué falta: una herramienta, o la revisión con juicio) y `NO APLICA`
   (con el motivo). Sale con **0 sin FALLA y 1 con alguna**. Un NO VERIFICADO no
   cambia el código de salida, pero el resumen dice «N de M sin verificar»: salir
   con 0 no significa «listo para publicar».
-- **Qué comprueba de forma determinista** (las únicas seis sondas; todo lo demás
+- **Qué comprueba de forma determinista** (trece sondas; todo lo demás
   es de juicio y sale NO VERIFICADO hasta que se revise con criterio):
   secretos en el árbol; secretos en **todo el historial** de git (todas las
   ramas, etiquetas y refs; un clon superficial, un desbordamiento de límites o un
@@ -596,6 +614,22 @@ puntos de juicio (ver «Puntos de juicio» más abajo).
   alta o crítica y el resto se lista sin fallar; una herramienta que no publica
   severidad se trata como alta. Sin la herramienta, con timeout, con un código de
   salida inesperado o con una salida que no se entiende: NO VERIFICADO.
+- **Sondas de configuración** (puntos 37–43, sobre los ficheros versionados):
+  reglas de Firebase abiertas (`allow ... : if true`, `allow` sin condición,
+  modo de prueba por fecha, `".read": true`); tablas de `supabase/migrations/`
+  sin `enable row level security` en ninguna migración del conjunto;
+  credenciales literales en `.npmrc`, `.pypirc` y `settings.xml` de Maven
+  (`${NPM_TOKEN}`, `${env.X}` y las cifradas no cuentan); contraseñas y tokens
+  literales en `docker-compose*.yml`/`compose*.yaml` (`${X}` y `*_FILE` sí
+  valen); flujos con `pull_request_target` que traen el código del PR; acciones
+  de terceros sin fijar a un SHA de 40 caracteres (las de `actions/`, `github/`,
+  las locales y `docker://` no cuentan); y Dockerfile cuya etapa final corre
+  como root o con `ADD <url>` sin `--checksum`. Sin ficheros que revisar, el
+  punto sale NO APLICA con el motivo; un fichero ilegible o mayor que el límite
+  lo deja en NO VERIFICADO. Un token que ya da FALLA en `secretos-en-arbol` no
+  se cuenta otra vez en `tokens-en-ficheros-de-gestor`. Cada hallazgo se
+  silencia con `patron` + `fichero` + `huella`; `dockerfile-sin-user` y
+  `pr-target-checkout` son del fichero entero y se silencian sin huella.
 - **Claves de ejemplo y públicas**: `AKIAIOSFODNN7EXAMPLE` y `sk_test_` no cuentan,
   ni la clave `anon`/`publishable` de Supabase ni la `apiKey` `AIza...` de la
   config web de Firebase; `service_role`, `sk_live_` y una clave privada sí. El
@@ -605,8 +639,8 @@ puntos de juicio (ver «Puntos de juicio» más abajo).
   primeros caracteres y la longitud (`sk_l**** (32 caracteres)`), y todo lo que
   sale (texto, JSON, informe) pasa además por una segunda red que enmascara
   cualquier clave que se cuele.
-- **`--json`**: una sola línea de JSON, **versión 2** (`version`, `commit`,
-  `rama`, `arbolSucio`, `tipos`, `avisos`, `puntos`, `veredictos`, `tareas`,
+- **`--json`**: una sola línea de JSON, **versión 3** (`version`, `commit`,
+  `rama`, `arbolSucio`, `tipos`, `aplicaciones`, `avisos`, `puntos`, `veredictos`, `tareas`,
   `resumen`, `codigo`). Cada punto lleva `origen`: `sonda` (lo decidió el
   comando) o `agente` (un veredicto con juicio incorporado con `--resultado`).
   `veredictos` y `tareas` son `null` si no se pidieron `--resultado` ni
