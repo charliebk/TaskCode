@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-073-tests-held-out-por-tarea
 asignado_a: charlie.bk@gmail.com
@@ -41,6 +41,7 @@ Freno 7 de brakes: tests de aceptacion que la persona escribe a partir de los cr
 | 2026-11-04T21:44:53Z | plan | automatico | persona |
 | 2026-11-04T22:02:54Z | approve | automatico | persona |
 | 2026-11-04T22:02:55Z | start | automatico | persona |
+| 2026-11-04T22:45:53Z | review | automatico | persona |
 
 ## Coste
 
