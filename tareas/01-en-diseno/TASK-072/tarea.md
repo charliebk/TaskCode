@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-072-puerta-de-verificacion-en-finish-y-merge
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Defensa en dos capas: finish no mergea con la verificacion en rojo, y un hook im
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-04T17:56:19Z | plan | automatico | persona |
+| 2026-11-04T18:06:30Z | approve | automatico | persona |
 
 ## Coste
 
