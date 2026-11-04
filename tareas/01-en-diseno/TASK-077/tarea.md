@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [hooks]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-077-guardian-de-merges-opciones-con-valor-an
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Cerrar lo que quedo abierto de TASK-072: que bash -o pipefail -c y bash --rcfile
 - [ ] bash -x script.sh rama y bash script.sh rama siguen detectandose como script de cierre, con test en test/hooks/guardia-merge.test.ts
 - [ ] README del plugin y CHANGELOG.md dicen que el guardian analiza el texto de bash -c, pwsh -Command y cmd /c
 - [ ] npm test en verde salvo los 5 rojos conocidos de Windows
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-04T20:33:52Z | plan | automatico | persona |
