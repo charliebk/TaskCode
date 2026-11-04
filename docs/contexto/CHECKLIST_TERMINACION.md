@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 79 / 86 items terminados (92%)** · última actualización: 2026-11-04
+**Progreso global: 80 / 86 items terminados (93%)** · última actualización: 2026-11-04
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -35,9 +35,9 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
-| K — Frenos de verificación con hooks | 6 | **3** | — |
+| K — Frenos de verificación con hooks | 6 | **4** | — |
 | L — Mantenimiento | 2 | **0** | — |
-| **Total pendiente** | **5** | — | — |
+| **Total pendiente** | **4** | — | — |
 
 ---
 
@@ -873,7 +873,7 @@ aviso en release (B).
       variantes de Dockerfile/compose, huella por paso en pr-target);
       MEN-3, 5, 6, 7 y 8 aceptados.*
 
-## K — Frenos de verificación con hooks (3/6)
+## K — Frenos de verificación con hooks (4/6)
 
 Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
 usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
@@ -907,7 +907,16 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       memo de verdes y rojos por huella en `.git/`. Envoltorio extraído a
       `fs/ejecucion-acotada.ts`. Smoke con `claude -p` real. 2 rondas: IMP-1 e
       IMP-2 (tests de huella y de tope) y MEN-1..7 corregidos; MEN-8 aceptado.*
-- [ ] TASK-072 — Puerta de verificación en `finish` y merge guard
+- [x] TASK-072 — Puerta de verificación en `finish` y merge guard — cerrada el
+      2026-11-04
+      *`finish` ejecuta siempre `comando_verificacion` antes de mergear o abrir
+      el MR (no en el segundo MR ni en el camino idempotente) y aborta en rojo;
+      `--sin-verificacion` lo anota commiteado en la rama antes del merge. Hook
+      `PreToolUse` sin `if` (sustituye a la sonda): bloquea `git merge` y los
+      scripts de cierre hacia `rama_base`/main sin verde guardado del commit
+      fuente; analiza compuestos y `bash -c`/`pwsh -Command`. Decisiones de
+      Carlos D1–D4. Smoke con `claude -p` real. 2 rondas: MEN-1..3 corregidos;
+      MEN-4 (`bash -o pipefail -c`) aceptado.*
 - [ ] TASK-073 — Tests held-out por tarea
 - [ ] TASK-074 — Cobertura sobre las líneas cambiadas
 
