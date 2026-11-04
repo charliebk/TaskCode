@@ -52,6 +52,18 @@ function textoTipos(tipos) {
         return 'ninguno (sin ficheros marcadores: los puntos que dependen de un tipo salen NO APLICA)';
     return tipos.map((t) => `${t.nombre} (${t.rutas.join(', ')})`).join('; ');
 }
+/** Un marcador de aplicacion en texto: `package.json contiene "bin"`, o solo la ruta. */
+export function textoMarcadorAplicacion(m) {
+    if (m.contiene === null)
+        return m.fichero;
+    // Los textos del catalogo que ya llevan comillas (`"bin"`) se muestran tal cual.
+    return `${m.fichero} contiene ${m.contiene.startsWith('"') ? m.contiene : `"${m.contiene}"`}`;
+}
+function textoAplicaciones(apps) {
+    if (apps.length === 0)
+        return 'ninguna (sin marcadores de tipo de aplicacion: los puntos que dependen de el aplican)';
+    return apps.map((a) => `${a.nombre} [${a.id}] (${a.marcadores.map(textoMarcadorAplicacion).join('; ')})`).join('; ');
+}
 /** Las tareas de `--crear-tareas` en texto: lo creado, lo reutilizado (y se dice) y las huerfanas. */
 export function lineasTareas(t) {
     const l = [];
@@ -76,6 +88,7 @@ export function formatearTexto(informe) {
     l.push('taskctl doctor-deploy');
     l.push(`Commit: ${informe.commit ?? '(sin commits)'}   Rama: ${informe.rama ?? '(desconocida)'}${informe.arbolSucio ? '   ARBOL SUCIO: lo comprobado puede no ser lo publicado' : ''}`);
     l.push(`Tipos detectados: ${textoTipos(informe.tipos)}`);
+    l.push(`Aplicacion detectada: ${textoAplicaciones(informe.aplicaciones)}`);
     for (const a of informe.avisos)
         l.push(`[AVISO] ${a}`);
     l.push('');
@@ -109,7 +122,7 @@ export function formatearTexto(informe) {
     l.push(r.falla === 0 ? 'Salida 0.' : `Salida 1: ${r.falla} punto(s) FALLA.`);
     return `${l.join('\n')}\n`;
 }
-/** Una sola linea de JSON (v2, TASK-067). */
+/** Una sola linea de JSON (v3, TASK-068). */
 export function formatearJson(informe) {
     const resumen = resumir(informe.puntos);
     return `${JSON.stringify({ ...informe, resumen, codigo: codigoSalida(informe.puntos) })}\n`;
@@ -131,6 +144,7 @@ export function formatearInforme(informe) {
     l.push(`- Rama: ${informe.rama ?? '(desconocida)'}`);
     l.push(`- Arbol de trabajo: ${informe.arbolSucio ? 'SUCIO (habia cambios sin commitear: este informe puede no describir lo que se publica)' : 'limpio'}`);
     l.push(`- Tipos detectados: ${textoTipos(informe.tipos)}`);
+    l.push(`- Aplicacion detectada: ${textoAplicaciones(informe.aplicaciones)}`);
     l.push(`- ${textoResumen(r)}`);
     l.push(`- Codigo de salida: ${codigoSalida(informe.puntos)}`);
     if (informe.tareas !== null) {

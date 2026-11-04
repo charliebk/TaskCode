@@ -8,6 +8,11 @@
  * fallo en cerrado. El catalogo del plugin lo distribuye el plugin: si falta o
  * esta roto, la instalacion esta rota y se aborta.
  *
+ * Dos ejes (TASK-068): `tipo_N_*` (lenguaje y herramientas: node, rust,
+ * docker...) y `aplicacion_N_*` (tipo de aplicacion: web, api, cli,
+ * libreria...). Cada punto nombra los suyos en `punto_N_tipos` y, opcional,
+ * `punto_N_aplicaciones`; un id del eje equivocado aborta.
+ *
  * Capa del proyecto (`.taskcode/doctor-deploy.yml`, opcional):
  * - `desactivar_N_id` + `desactivar_N_motivo`: desactiva un punto. Sin motivo
  *   aborta (es una aceptacion de riesgo). Un id que no existe AVISA y se
@@ -56,11 +61,34 @@ export interface TipoApp {
   marcadores: string[];
 }
 
+/**
+ * Tipo de aplicacion (TASK-068): el segundo eje, independiente del lenguaje
+ * (web, api, movil, cli, libreria). Se detecta por ficheros marcadores como los
+ * tipos, y opcionalmente por un texto que tiene que aparecer dentro del
+ * fichero marcador (`contiene`).
+ */
+export interface AplicacionCatalogo {
+  id: string;
+  nombre: string;
+  marcadores: string[];
+  /**
+   * Textos (basta uno, sin distinguir mayusculas) que tiene que contener el
+   * fichero marcador para contar; null = basta con que el fichero exista.
+   */
+  contiene: string[] | null;
+}
+
 export interface PuntoCatalogo {
   id: string;
   severidad: Severidad;
   /** Ids de tipo, o `['todos']`. */
   tipos: string[];
+  /**
+   * Ids de tipo de aplicacion a los que aplica; null = a todos. Se combina con
+   * `tipos` con Y; dentro de cada eje basta con uno (O). Solo deja el punto en
+   * NO APLICA si se detecto algun tipo de aplicacion y ninguno esta en la lista.
+   */
+  aplicaciones: string[] | null;
   metodo: Metodo;
   /** Solo en los deterministas. */
   sonda: string | null;
@@ -72,6 +100,7 @@ export interface PuntoCatalogo {
 
 export interface CatalogoBase {
   tipos: TipoApp[];
+  aplicaciones: AplicacionCatalogo[];
   puntos: PuntoCatalogo[];
 }
 
@@ -98,6 +127,7 @@ export interface CapaProyecto {
 
 export interface CatalogoEfectivo {
   tipos: TipoApp[];
+  aplicaciones: AplicacionCatalogo[];
   /** Los del plugin, en su orden, y detras los anadidos por el proyecto. */
   puntos: PuntoCatalogo[];
   /** id -> motivo de la desactivacion. */
@@ -112,7 +142,8 @@ export const RUTA_CAPA_PROYECTO = path.join('.taskcode', 'doctor-deploy.yml');
 
 const MAX_ENTRADAS = 500;
 const CAMPOS_TIPO = ['id', 'nombre', 'marcadores'] as const;
-const CAMPOS_PUNTO = ['id', 'severidad', 'tipos', 'metodo', 'sonda', 'arreglo', 'descripcion', 'referencia'] as const;
+const CAMPOS_APLICACION = ['id', 'nombre', 'marcadores', 'contiene'] as const;
+const CAMPOS_PUNTO = ['id', 'severidad', 'tipos', 'aplicaciones', 'metodo', 'sonda', 'arreglo', 'descripcion', 'referencia'] as const;
 const CAMPOS_DESACTIVAR = ['id', 'motivo'] as const;
 const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'huella', 'motivo', 'quien', 'fecha'] as const;
 
@@ -265,6 +296,7 @@ function construirPunto(
   ruta: string,
   origen: 'plugin' | 'proyecto',
   idsDeTipo: ReadonlySet<string>,
+  idsDeAplicacion: ReadonlySet<string>,
   fallar: (m: string) => Error
 ): PuntoCatalogo {
   const p = `punto_${n}`;
@@ -277,11 +309,42 @@ function construirPunto(
   const cTipos = exigir(bloque, 'punto', n, 'tipos', ruta, fallar);
   const tipos = lista(cTipos, `${p}_tipos`, ruta, fallar);
   for (const t of tipos) {
+    if (idsDeAplicacion.has(t)) {
+      throw fallar(
+        `[ERROR] ${ruta}:${cTipos.numeroLinea}: "${p}_tipos" nombra "${t}", que es un tipo de aplicacion, no de lenguaje: ` +
+          `va en "${p}_aplicaciones".`
+      );
+    }
     if (t !== TIPO_TODOS && !idsDeTipo.has(t)) {
       throw fallar(
         `[ERROR] ${ruta}:${cTipos.numeroLinea}: "${p}_tipos" nombra el tipo "${t}", que no existe. ` +
           `Tipos validos: ${TIPO_TODOS}, ${[...idsDeTipo].join(', ')}.`
       );
+    }
+  }
+  const cAplicaciones = bloque.get('aplicaciones');
+  let aplicaciones: string[] | null = null;
+  if (cAplicaciones !== undefined) {
+    aplicaciones = lista(cAplicaciones, `${p}_aplicaciones`, ruta, fallar);
+    for (const a of aplicaciones) {
+      if (a === TIPO_TODOS) {
+        throw fallar(
+          `[ERROR] ${ruta}:${cAplicaciones.numeroLinea}: "${p}_aplicaciones" no admite "${TIPO_TODOS}": ` +
+            'para que aplique a cualquier tipo de aplicacion, borra la linea.'
+        );
+      }
+      if (idsDeTipo.has(a)) {
+        throw fallar(
+          `[ERROR] ${ruta}:${cAplicaciones.numeroLinea}: "${p}_aplicaciones" nombra "${a}", que es un tipo de lenguaje, no de aplicacion: ` +
+            `va en "${p}_tipos".`
+        );
+      }
+      if (!idsDeAplicacion.has(a)) {
+        throw fallar(
+          `[ERROR] ${ruta}:${cAplicaciones.numeroLinea}: "${p}_aplicaciones" nombra el tipo de aplicacion "${a}", que no existe. ` +
+            `Tipos de aplicacion validos: ${[...idsDeAplicacion].join(', ') || '(el catalogo no declara ninguno)'}.`
+        );
+      }
     }
   }
   const cMetodo = exigir(bloque, 'punto', n, 'metodo', ruta, fallar);
@@ -306,7 +369,7 @@ function construirPunto(
   const descripcion = texto(exigir(bloque, 'punto', n, 'descripcion', ruta, fallar), `${p}_descripcion`, ruta, fallar);
   const cRef = bloque.get('referencia');
   const referencia = cRef === undefined ? null : texto(cRef, `${p}_referencia`, ruta, fallar);
-  return { id, severidad, tipos, metodo, sonda, arreglo, descripcion, referencia, origen };
+  return { id, severidad, tipos, aplicaciones, metodo, sonda, arreglo, descripcion, referencia, origen };
 }
 
 // ---------------------------------------------------------------------
@@ -340,9 +403,10 @@ export function parsearCatalogoDeploy(contenido: string, ruta: string): Catalogo
     pares,
     [
       { prefijo: 'tipo', campos: CAMPOS_TIPO },
+      { prefijo: 'aplicacion', campos: CAMPOS_APLICACION },
       { prefijo: 'punto', campos: CAMPOS_PUNTO },
     ],
-    ['total_tipos', 'total_puntos'],
+    ['total_tipos', 'total_aplicaciones', 'total_puntos'],
     ruta,
     fallar
   );
@@ -379,15 +443,61 @@ export function parsearCatalogoDeploy(contenido: string, ruta: string): Catalogo
     idsTipo.add(t.id);
   }
 
+  const aplicaciones = parsearAplicaciones(g, idsTipo, ruta, fallar);
+  const idsAplicacion = new Set(aplicaciones.map((a) => a.id));
+
   const puntos: PuntoCatalogo[] = [];
   const idsPunto = new Set<string>();
   for (let n = 1; n <= totalPuntos; n++) {
-    const p = construirPunto(bloquesPunto.get(n) as Bloque, n, ruta, 'plugin', idsTipo, fallar);
+    const p = construirPunto(bloquesPunto.get(n) as Bloque, n, ruta, 'plugin', idsTipo, idsAplicacion, fallar);
     if (idsPunto.has(p.id)) throw fallar(`[ERROR] ${ruta}: el punto "${p.id}" esta repetido.`);
     idsPunto.add(p.id);
     puntos.push(p);
   }
-  return { tipos, puntos };
+  return { tipos, aplicaciones, puntos };
+}
+
+/**
+ * Familia `aplicacion_N_*` (TASK-068). `total_aplicaciones` es opcional: sin el
+ * no puede haber ninguna entrada `aplicacion_N_*` (un catalogo antiguo sigue
+ * valiendo). Un id de aplicacion no puede coincidir con uno de tipo: los dos
+ * ejes se nombran en campos distintos y un id compartido seria ambiguo.
+ */
+function parsearAplicaciones(
+  g: Agrupado,
+  idsTipo: ReadonlySet<string>,
+  ruta: string,
+  fallar: (m: string) => Error
+): AplicacionCatalogo[] {
+  const bloques = g.bloques.get('aplicacion') as Map<number, Bloque>;
+  const parTotal = g.extras.get('total_aplicaciones');
+  const total = parTotal === undefined ? 0 : valorEntero(parTotal, 'total_aplicaciones', ruta, fallar);
+  if (exigirContiguos('aplicacion', bloques, ruta, fallar) !== total) {
+    throw fallar(
+      `[ERROR] ${ruta}: "total_aplicaciones" dice ${total}${parTotal === undefined ? ' (no esta)' : ''}, pero hay ${bloques.size} tipos de aplicacion. ` +
+        'Corrige el total o las entradas.'
+    );
+  }
+  const aplicaciones: AplicacionCatalogo[] = [];
+  const ids = new Set<string>();
+  for (let n = 1; n <= total; n++) {
+    const b = bloques.get(n) as Bloque;
+    const id = texto(exigir(b, 'aplicacion', n, 'id', ruta, fallar), `aplicacion_${n}_id`, ruta, fallar);
+    if (!ID_RE.test(id) || id === TIPO_TODOS) {
+      throw fallar(`[ERROR] ${ruta}: "aplicacion_${n}_id" vale "${id}"; usa minusculas, digitos y guiones, y no "${TIPO_TODOS}".`);
+    }
+    if (idsTipo.has(id)) {
+      throw fallar(`[ERROR] ${ruta}: "aplicacion_${n}_id" vale "${id}", que ya es un tipo de lenguaje (tipo_N_id). Usa otro id.`);
+    }
+    if (ids.has(id)) throw fallar(`[ERROR] ${ruta}: el tipo de aplicacion "${id}" esta repetido.`);
+    ids.add(id);
+    const nombre = b.has('nombre') ? texto(b.get('nombre') as Valor, `aplicacion_${n}_nombre`, ruta, fallar) : id;
+    const marcadores = lista(exigir(b, 'aplicacion', n, 'marcadores', ruta, fallar), `aplicacion_${n}_marcadores`, ruta, fallar);
+    const cContiene = b.get('contiene');
+    const contiene = cContiene === undefined ? null : lista(cContiene, `aplicacion_${n}_contiene`, ruta, fallar);
+    aplicaciones.push({ id, nombre, marcadores, contiene });
+  }
+  return aplicaciones;
 }
 
 // ---------------------------------------------------------------------
@@ -435,6 +545,7 @@ export function parsearCapaProyecto(contenido: string, ruta: string, base: Catal
 
   const idsBase = new Set(base.puntos.map((p) => p.id));
   const idsTipo = new Set(base.tipos.map((t) => t.id));
+  const idsAplicacion = new Set(base.aplicaciones.map((a) => a.id));
 
   // desactivar
   const bDes = g.bloques.get('desactivar') as Map<number, Bloque>;
@@ -459,7 +570,7 @@ export function parsearCapaProyecto(contenido: string, ruta: string, base: Catal
   const anadidos: PuntoCatalogo[] = [];
   const idsVistos = new Set<string>(idsBase);
   for (let n = 1; n <= nPun; n++) {
-    const p = construirPunto(bPun.get(n) as Bloque, n, ruta, 'proyecto', idsTipo, fallar);
+    const p = construirPunto(bPun.get(n) as Bloque, n, ruta, 'proyecto', idsTipo, idsAplicacion, fallar);
     if (idsVistos.has(p.id)) {
       throw fallar(
         `[ERROR] ${ruta}: el punto "${p.id}" ya existe ` +
@@ -538,5 +649,5 @@ export function combinarCatalogo(base: CatalogoBase, capa: CapaProyecto): Catalo
   const ids = new Set(puntos.map((p) => p.id));
   const desactivados = new Map<string, string>();
   for (const d of capa.desactivados) if (ids.has(d.id)) desactivados.set(d.id, d.motivo);
-  return { tipos: base.tipos, puntos, desactivados, silencios: capa.silencios, avisos: [...capa.avisos] };
+  return { tipos: base.tipos, aplicaciones: base.aplicaciones, puntos, desactivados, silencios: capa.silencios, avisos: [...capa.avisos] };
 }

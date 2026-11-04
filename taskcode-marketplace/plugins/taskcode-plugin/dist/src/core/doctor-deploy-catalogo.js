@@ -8,6 +8,11 @@
  * fallo en cerrado. El catalogo del plugin lo distribuye el plugin: si falta o
  * esta roto, la instalacion esta rota y se aborta.
  *
+ * Dos ejes (TASK-068): `tipo_N_*` (lenguaje y herramientas: node, rust,
+ * docker...) y `aplicacion_N_*` (tipo de aplicacion: web, api, cli,
+ * libreria...). Cada punto nombra los suyos en `punto_N_tipos` y, opcional,
+ * `punto_N_aplicaciones`; un id del eje equivocado aborta.
+ *
  * Capa del proyecto (`.taskcode/doctor-deploy.yml`, opcional):
  * - `desactivar_N_id` + `desactivar_N_motivo`: desactiva un punto. Sin motivo
  *   aborta (es una aceptacion de riesgo). Un id que no existe AVISA y se
@@ -48,7 +53,8 @@ export const FICHERO_CATALOGO_DEPLOY = 'doctor-deploy.yml';
 export const RUTA_CAPA_PROYECTO = path.join('.taskcode', 'doctor-deploy.yml');
 const MAX_ENTRADAS = 500;
 const CAMPOS_TIPO = ['id', 'nombre', 'marcadores'];
-const CAMPOS_PUNTO = ['id', 'severidad', 'tipos', 'metodo', 'sonda', 'arreglo', 'descripcion', 'referencia'];
+const CAMPOS_APLICACION = ['id', 'nombre', 'marcadores', 'contiene'];
+const CAMPOS_PUNTO = ['id', 'severidad', 'tipos', 'aplicaciones', 'metodo', 'sonda', 'arreglo', 'descripcion', 'referencia'];
 const CAMPOS_DESACTIVAR = ['id', 'motivo'];
 const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'huella', 'motivo', 'quien', 'fecha'];
 function packageRoot() {
@@ -144,7 +150,7 @@ function valorEntero(par, clave, ruta, fallar) {
     return par.valor;
 }
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
-function construirPunto(bloque, n, ruta, origen, idsDeTipo, fallar) {
+function construirPunto(bloque, n, ruta, origen, idsDeTipo, idsDeAplicacion, fallar) {
     const p = `punto_${n}`;
     const cId = exigir(bloque, 'punto', n, 'id', ruta, fallar);
     const id = texto(cId, `${p}_id`, ruta, fallar);
@@ -155,9 +161,32 @@ function construirPunto(bloque, n, ruta, origen, idsDeTipo, fallar) {
     const cTipos = exigir(bloque, 'punto', n, 'tipos', ruta, fallar);
     const tipos = lista(cTipos, `${p}_tipos`, ruta, fallar);
     for (const t of tipos) {
+        if (idsDeAplicacion.has(t)) {
+            throw fallar(`[ERROR] ${ruta}:${cTipos.numeroLinea}: "${p}_tipos" nombra "${t}", que es un tipo de aplicacion, no de lenguaje: ` +
+                `va en "${p}_aplicaciones".`);
+        }
         if (t !== TIPO_TODOS && !idsDeTipo.has(t)) {
             throw fallar(`[ERROR] ${ruta}:${cTipos.numeroLinea}: "${p}_tipos" nombra el tipo "${t}", que no existe. ` +
                 `Tipos validos: ${TIPO_TODOS}, ${[...idsDeTipo].join(', ')}.`);
+        }
+    }
+    const cAplicaciones = bloque.get('aplicaciones');
+    let aplicaciones = null;
+    if (cAplicaciones !== undefined) {
+        aplicaciones = lista(cAplicaciones, `${p}_aplicaciones`, ruta, fallar);
+        for (const a of aplicaciones) {
+            if (a === TIPO_TODOS) {
+                throw fallar(`[ERROR] ${ruta}:${cAplicaciones.numeroLinea}: "${p}_aplicaciones" no admite "${TIPO_TODOS}": ` +
+                    'para que aplique a cualquier tipo de aplicacion, borra la linea.');
+            }
+            if (idsDeTipo.has(a)) {
+                throw fallar(`[ERROR] ${ruta}:${cAplicaciones.numeroLinea}: "${p}_aplicaciones" nombra "${a}", que es un tipo de lenguaje, no de aplicacion: ` +
+                    `va en "${p}_tipos".`);
+            }
+            if (!idsDeAplicacion.has(a)) {
+                throw fallar(`[ERROR] ${ruta}:${cAplicaciones.numeroLinea}: "${p}_aplicaciones" nombra el tipo de aplicacion "${a}", que no existe. ` +
+                    `Tipos de aplicacion validos: ${[...idsDeAplicacion].join(', ') || '(el catalogo no declara ninguno)'}.`);
+            }
         }
     }
     const cMetodo = exigir(bloque, 'punto', n, 'metodo', ruta, fallar);
@@ -181,7 +210,7 @@ function construirPunto(bloque, n, ruta, origen, idsDeTipo, fallar) {
     const descripcion = texto(exigir(bloque, 'punto', n, 'descripcion', ruta, fallar), `${p}_descripcion`, ruta, fallar);
     const cRef = bloque.get('referencia');
     const referencia = cRef === undefined ? null : texto(cRef, `${p}_referencia`, ruta, fallar);
-    return { id, severidad, tipos, metodo, sonda, arreglo, descripcion, referencia, origen };
+    return { id, severidad, tipos, aplicaciones, metodo, sonda, arreglo, descripcion, referencia, origen };
 }
 // ---------------------------------------------------------------------
 // Catalogo del plugin
@@ -209,8 +238,9 @@ export function parsearCatalogoDeploy(contenido, ruta) {
     });
     const g = agrupar(pares, [
         { prefijo: 'tipo', campos: CAMPOS_TIPO },
+        { prefijo: 'aplicacion', campos: CAMPOS_APLICACION },
         { prefijo: 'punto', campos: CAMPOS_PUNTO },
-    ], ['total_tipos', 'total_puntos'], ruta, fallar);
+    ], ['total_tipos', 'total_aplicaciones', 'total_puntos'], ruta, fallar);
     const desconocida = g.desconocidas[0];
     if (desconocida !== undefined) {
         throw fallar(`[ERROR] ${ruta}:${desconocida.numeroLinea}: clave desconocida "${desconocida.clave}". Si es un error de tecleo, corrigela.`);
@@ -242,16 +272,54 @@ export function parsearCatalogoDeploy(contenido, ruta) {
             throw fallar(`[ERROR] ${ruta}: el tipo "${t.id}" esta repetido.`);
         idsTipo.add(t.id);
     }
+    const aplicaciones = parsearAplicaciones(g, idsTipo, ruta, fallar);
+    const idsAplicacion = new Set(aplicaciones.map((a) => a.id));
     const puntos = [];
     const idsPunto = new Set();
     for (let n = 1; n <= totalPuntos; n++) {
-        const p = construirPunto(bloquesPunto.get(n), n, ruta, 'plugin', idsTipo, fallar);
+        const p = construirPunto(bloquesPunto.get(n), n, ruta, 'plugin', idsTipo, idsAplicacion, fallar);
         if (idsPunto.has(p.id))
             throw fallar(`[ERROR] ${ruta}: el punto "${p.id}" esta repetido.`);
         idsPunto.add(p.id);
         puntos.push(p);
     }
-    return { tipos, puntos };
+    return { tipos, aplicaciones, puntos };
+}
+/**
+ * Familia `aplicacion_N_*` (TASK-068). `total_aplicaciones` es opcional: sin el
+ * no puede haber ninguna entrada `aplicacion_N_*` (un catalogo antiguo sigue
+ * valiendo). Un id de aplicacion no puede coincidir con uno de tipo: los dos
+ * ejes se nombran en campos distintos y un id compartido seria ambiguo.
+ */
+function parsearAplicaciones(g, idsTipo, ruta, fallar) {
+    const bloques = g.bloques.get('aplicacion');
+    const parTotal = g.extras.get('total_aplicaciones');
+    const total = parTotal === undefined ? 0 : valorEntero(parTotal, 'total_aplicaciones', ruta, fallar);
+    if (exigirContiguos('aplicacion', bloques, ruta, fallar) !== total) {
+        throw fallar(`[ERROR] ${ruta}: "total_aplicaciones" dice ${total}${parTotal === undefined ? ' (no esta)' : ''}, pero hay ${bloques.size} tipos de aplicacion. ` +
+            'Corrige el total o las entradas.');
+    }
+    const aplicaciones = [];
+    const ids = new Set();
+    for (let n = 1; n <= total; n++) {
+        const b = bloques.get(n);
+        const id = texto(exigir(b, 'aplicacion', n, 'id', ruta, fallar), `aplicacion_${n}_id`, ruta, fallar);
+        if (!ID_RE.test(id) || id === TIPO_TODOS) {
+            throw fallar(`[ERROR] ${ruta}: "aplicacion_${n}_id" vale "${id}"; usa minusculas, digitos y guiones, y no "${TIPO_TODOS}".`);
+        }
+        if (idsTipo.has(id)) {
+            throw fallar(`[ERROR] ${ruta}: "aplicacion_${n}_id" vale "${id}", que ya es un tipo de lenguaje (tipo_N_id). Usa otro id.`);
+        }
+        if (ids.has(id))
+            throw fallar(`[ERROR] ${ruta}: el tipo de aplicacion "${id}" esta repetido.`);
+        ids.add(id);
+        const nombre = b.has('nombre') ? texto(b.get('nombre'), `aplicacion_${n}_nombre`, ruta, fallar) : id;
+        const marcadores = lista(exigir(b, 'aplicacion', n, 'marcadores', ruta, fallar), `aplicacion_${n}_marcadores`, ruta, fallar);
+        const cContiene = b.get('contiene');
+        const contiene = cContiene === undefined ? null : lista(cContiene, `aplicacion_${n}_contiene`, ruta, fallar);
+        aplicaciones.push({ id, nombre, marcadores, contiene });
+    }
+    return aplicaciones;
 }
 // ---------------------------------------------------------------------
 // Capa del proyecto
@@ -287,6 +355,7 @@ export function parsearCapaProyecto(contenido, ruta, base) {
     const avisos = g.desconocidas.map((p) => `${ruta}:${p.numeroLinea}: clave desconocida "${p.clave}" (se ignora).`);
     const idsBase = new Set(base.puntos.map((p) => p.id));
     const idsTipo = new Set(base.tipos.map((t) => t.id));
+    const idsAplicacion = new Set(base.aplicaciones.map((a) => a.id));
     // desactivar
     const bDes = g.bloques.get('desactivar');
     const nDes = exigirContiguos('desactivar', bDes, ruta, fallar);
@@ -307,7 +376,7 @@ export function parsearCapaProyecto(contenido, ruta, base) {
     const anadidos = [];
     const idsVistos = new Set(idsBase);
     for (let n = 1; n <= nPun; n++) {
-        const p = construirPunto(bPun.get(n), n, ruta, 'proyecto', idsTipo, fallar);
+        const p = construirPunto(bPun.get(n), n, ruta, 'proyecto', idsTipo, idsAplicacion, fallar);
         if (idsVistos.has(p.id)) {
             throw fallar(`[ERROR] ${ruta}: el punto "${p.id}" ya existe ` +
                 `${idsBase.has(p.id) ? 'en el catalogo del plugin' : 'en este mismo fichero'}; un proyecto no puede redefinirlo. ` +
@@ -378,5 +447,5 @@ export function combinarCatalogo(base, capa) {
     for (const d of capa.desactivados)
         if (ids.has(d.id))
             desactivados.set(d.id, d.motivo);
-    return { tipos: base.tipos, puntos, desactivados, silencios: capa.silencios, avisos: [...capa.avisos] };
+    return { tipos: base.tipos, aplicaciones: base.aplicaciones, puntos, desactivados, silencios: capa.silencios, avisos: [...capa.avisos] };
 }
