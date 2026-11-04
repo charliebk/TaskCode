@@ -12,8 +12,9 @@
  * Decisiones:
  * - Solo lee. Con `--escribir` guarda el informe en docs/doctor-deploy/ pero
  *   NO lo commitea (como `metricas --escribir`).
- * - Las unicas comprobaciones deterministas son las de fs/sondas-deploy.ts; el
- *   resto del catalogo es de juicio y sale NO VERIFICADO.
+ * - Las comprobaciones deterministas son las sondas de fs/sondas-deploy.ts y
+ *   fs/sondas-deploy-config.ts; el resto del catalogo es de juicio y sale NO
+ *   VERIFICADO.
  * - Una sonda que lanza una excepcion es NO VERIFICADO de ESE punto, nunca un
  *   throw hacia el CLI ni un OK.
  * - Codigo de salida: 0 sin FALLA, 1 con alguna. NO VERIFICADO no lo cambia,
@@ -25,14 +26,14 @@ import { existsSync, linkSync, mkdirSync, readFileSync, realpathSync, renameSync
 import path from 'node:path';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { cargarCapaProyecto, cargarCatalogoDeploy, combinarCatalogo, TIPO_TODOS, } from '../core/doctor-deploy-catalogo.js';
-import { codigoSalida, formatearInforme, formatearJson, formatearTexto, sanearPunto, } from '../core/doctor-deploy.js';
+import { codigoSalida, formatearInforme, formatearJson, formatearTexto, sanearPunto, textoMarcadorAplicacion, } from '../core/doctor-deploy.js';
 import { mezclarVeredictos, parsearResultado, VeredictoFormatoError, } from '../core/doctor-deploy-veredictos.js';
 import { CARPETA_INFORMES_REL } from '../core/aviso-release.js';
 import { ocultarSecretos } from '../core/secretos.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
 import { BaseBranchGuardError } from '../fs/git.js';
 import { crearTareasDeFallas } from './doctor-deploy-tareas.js';
-import { detectarTipos, listarArchivos } from '../fs/deteccion-app.js';
+import { detectarAplicaciones, detectarTipos, listarArchivos } from '../fs/deteccion-app.js';
 import { comprobadorEnCommit } from '../fs/evidencia-veredicto.js';
 import { gitTexto } from '../fs/git-crudo.js';
 import { pathDelProceso } from '../fs/herramientas-deploy.js';
@@ -51,7 +52,29 @@ const MAX_BYTES_RESULTADO = 1024 * 1024;
 export const CARPETA_INFORMES = path.join(...CARPETA_INFORMES_REL.split('/'));
 const salidaSegura = (t) => ocultarSecretos(ocultarCredenciales(t));
 // ---------------------------------------------------------------------
-function evaluarPunto(punto, ctx, cat) {
+/**
+ * Eje de aplicacion (TASK-068), decision de la persona: sin ningun tipo de
+ * aplicacion detectado, el punto APLICA; solo sale NO APLICA si se detecto
+ * alguno y ninguno de los detectados esta en `punto.aplicaciones` (dentro del
+ * eje basta con uno: un repo con marcadores de cli y de web aplica). Devuelve
+ * el motivo del NO APLICA, que nombra cada tipo detectado y el marcador que lo
+ * decidio, o null si el punto aplica por este eje.
+ */
+export function motivoNoAplicaPorAplicacion(punto, aplicaciones) {
+    if (punto.aplicaciones === null || aplicaciones.length === 0)
+        return null;
+    const lista = punto.aplicaciones;
+    if (aplicaciones.some((a) => lista.includes(a.id)))
+        return null;
+    const detectadas = aplicaciones
+        .map((a) => {
+        const m = a.marcadores[0];
+        return m === undefined ? a.id : `${a.id} (por ${textoMarcadorAplicacion(m)})`;
+    })
+        .join(', ');
+    return `solo aplica a aplicaciones de tipo ${lista.join(' o ')}; aplicacion detectada: ${detectadas}`;
+}
+function evaluarPunto(punto, ctx, cat, aplicaciones) {
     const base = {
         id: punto.id,
         severidad: punto.severidad,
@@ -83,6 +106,11 @@ function evaluarPunto(punto, ctx, cat) {
                 evidencias: [],
             };
         }
+    }
+    // Los dos ejes se combinan con Y: aplica por lenguaje (arriba) Y por tipo de aplicacion.
+    const motivoAplicacion = motivoNoAplicaPorAplicacion(punto, aplicaciones);
+    if (motivoAplicacion !== null) {
+        return { ...base, estado: 'no-aplica', motivo: motivoAplicacion, evidencias: [] };
     }
     if (punto.metodo === 'juicio' || punto.sonda === null) {
         return {
@@ -248,6 +276,7 @@ function analizar(argv, deps) {
         throw new DoctorDeployCommandError('[ERROR] taskctl doctor-deploy: no se pudo listar los ficheros del proyecto (git ls-files fallo).');
     }
     const tipos = detectarTipos(archivos.presentes, catalogo.tipos);
+    const aplicaciones = detectarAplicaciones(raiz, archivos.presentes, catalogo.aplicaciones);
     const ctx = {
         cwd: raiz,
         presentes: archivos.presentes,
@@ -264,7 +293,7 @@ function analizar(argv, deps) {
             ...deps.opciones,
         },
     };
-    const puntos = catalogo.puntos.map((p) => evaluarPunto(p, ctx, catalogo));
+    const puntos = catalogo.puntos.map((p) => evaluarPunto(p, ctx, catalogo, aplicaciones));
     const avisos = [...catalogo.avisos];
     if (tipos.length === 0) {
         avisos.push('No se detecto ningun tipo de aplicacion (no hay package.json, Cargo.toml, pyproject.toml, pom.xml...): ' +
@@ -299,13 +328,14 @@ function analizar(argv, deps) {
     }
     const ahora = (deps.ahora ?? (() => new Date()))();
     const informe = {
-        version: 2,
+        version: 3,
         comando: 'doctor-deploy',
         fecha: ahora.toISOString(),
         commit,
         rama: rama === null || rama.trim() === '' ? null : rama.trim(),
         arbolSucio: estado === null ? true : estado.trim() !== '',
         tipos,
+        aplicaciones,
         avisos,
         puntos: puntosFinales,
         veredictos,

@@ -7,8 +7,10 @@
  * versionar que no estan ignorados), hasta una profundidad fija, sin mirar
  * dentro de las carpetas de dependencias ni de build.
  */
-import type { TipoApp } from '../core/doctor-deploy-catalogo.js';
-import type { TipoDetectado } from '../core/doctor-deploy.js';
+import { readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
+import type { AplicacionCatalogo, TipoApp } from '../core/doctor-deploy-catalogo.js';
+import type { AplicacionDetectada, MarcadorAplicacion, TipoDetectado } from '../core/doctor-deploy.js';
 import { gitTexto } from './git-crudo.js';
 
 /** Carpetas que ni se detectan ni se escanean: dependencias y build. */
@@ -82,4 +84,72 @@ export function detectarTipos(archivos: readonly string[], tipos: readonly TipoA
     if (rutas.size > 0) detectados.push({ id: t.id, nombre: t.nombre, rutas: [...rutas].sort() });
   }
   return detectados;
+}
+
+// ---------------------------------------------------------------------
+// Tipo de aplicacion (TASK-068): el segundo eje
+// ---------------------------------------------------------------------
+
+/** Un fichero marcador mayor que esto no se lee para buscar `contiene` (y no cuenta). */
+export const MAX_BYTES_MARCADOR_APLICACION = 1024 * 1024;
+
+/** Marcadores que se guardan por tipo de aplicacion detectado (para el informe). */
+const MAX_MARCADORES_POR_APLICACION = 5;
+
+/**
+ * Detecta los tipos de aplicacion (web, api, cli...) con los mismos marcadores
+ * y la misma profundidad que `detectarTipos`. Si el tipo declara `contiene`,
+ * el fichero marcador solo cuenta si su contenido incluye alguno de esos
+ * textos (sin distinguir mayusculas); solo entonces se lee, y solo los
+ * ficheros marcador. Un fichero ilegible o mayor que el tope no cuenta: sin
+ * deteccion, los puntos que dependen del tipo de aplicacion siguen aplicando
+ * (fallo en abierto).
+ *
+ * Por que no hace falta mas profundidad para React Native o Flutter: su
+ * `AndroidManifest.xml` esta en android/app/src/main/ (4 carpetas), pero se
+ * detectan por su manifiesto de raiz (`package.json` con `react-native`,
+ * `pubspec.yaml` con `sdk: flutter`), y Android por `android/app/build.gradle`
+ * con `com.android.application`.
+ */
+export function detectarAplicaciones(
+  cwd: string,
+  archivos: readonly string[],
+  aplicaciones: readonly AplicacionCatalogo[]
+): AplicacionDetectada[] {
+  const candidatos = archivos.filter((r) => profundidad(r) <= PROFUNDIDAD_MARCADORES);
+  const contenidos = new Map<string, string | null>();
+  const leer = (ruta: string): string | null => {
+    if (contenidos.has(ruta)) return contenidos.get(ruta) as string | null;
+    let t: string | null = null;
+    try {
+      const abs = path.join(cwd, ...ruta.split('/'));
+      const st = statSync(abs);
+      if (st.isFile() && st.size <= MAX_BYTES_MARCADOR_APLICACION) t = readFileSync(abs, 'utf8').toLowerCase();
+    } catch {
+      t = null;
+    }
+    contenidos.set(ruta, t);
+    return t;
+  };
+
+  const detectadas: AplicacionDetectada[] = [];
+  for (const a of aplicaciones) {
+    const marcadores: MarcadorAplicacion[] = [];
+    for (const r of candidatos) {
+      if (!a.marcadores.some((m) => coincideMarcador(r, m))) continue;
+      if (a.contiene === null) {
+        marcadores.push({ fichero: r, contiene: null });
+        continue;
+      }
+      const t = leer(r);
+      if (t === null) continue;
+      const texto = a.contiene.find((c) => t.includes(c.toLowerCase()));
+      if (texto !== undefined) marcadores.push({ fichero: r, contiene: texto });
+    }
+    if (marcadores.length === 0) continue;
+    marcadores.sort((x, y) => (x.fichero < y.fichero ? -1 : x.fichero > y.fichero ? 1 : 0));
+    const rutas = [...new Set(marcadores.map((m) => carpetaDe(m.fichero)))].sort();
+    detectadas.push({ id: a.id, nombre: a.nombre, rutas, marcadores: marcadores.slice(0, MAX_MARCADORES_POR_APLICACION) });
+  }
+  return detectadas;
 }

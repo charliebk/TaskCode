@@ -7,6 +7,34 @@
 - TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)
 - TASK-067 (feature) — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release (2026-10-27)
 
+Doctor-deploy C (TASK-068): clase de aplicacion, sondas de configuracion y OWASP 2025.
+
+- **Clase de aplicacion**: doctor-deploy detecta web, api, Android, iOS, Flutter,
+  React Native, CLI o libreria como segundo eje, independiente del lenguaje
+  (familia `aplicacion_N_*` del catalogo). Los puntos pueden declarar
+  `punto_N_aplicaciones`. En una CLI o una libreria sin marcadores de web ni de
+  api, los puntos de servicio desplegado (HTTPS, cookies, cabeceras, rate limits,
+  backups, health check, bots, respuestas de la API, CORS y CSRF) salen NO APLICA
+  con el tipo y el marcador en el motivo; sin clase detectada siguen aplicando.
+- **Siete sondas deterministas nuevas**: `reglas-firebase-abiertas`,
+  `migraciones-sin-rls`, `tokens-en-ficheros-de-gestor`, `compose-con-contrasenas`,
+  `ci-pull-request-target`, `acciones-ci-sin-sha` y `dockerfile-sin-user` pasan de
+  juicio a determinista: el agente revisor ya no los recibe y un veredicto suyo
+  para ellos se rechaza. Silencios por hallazgo para sus patrones (en
+  `pr-target-checkout`, por paso del flujo), salvo `dockerfile-sin-user`, que es
+  del fichero entero. Valores secretos siempre enmascarados.
+- **Referencias**: el campo `referencia` pasa de OWASP Top 10 2021 a OWASP Top 10
+  2025 + ASVS 5.0, remapeado por significado (SSRF de A10 a A01, inyeccion de A03
+  a A05...). La tabla esta en `docs/doctor-deploy-referencias-owasp.md`.
+- **Compatibilidad**:
+  - El JSON de `doctor-deploy` pasa a `version: 3` con el campo `aplicaciones`;
+    quien compruebe `version === 2` tiene que actualizarlo.
+  - Los puntos 37-43 antes salian siempre NO VERIFICADO, que no cambia el codigo
+    de salida; ahora pueden dar FALLA. Un CI que use `taskctl doctor-deploy` como
+    puerta puede ponerse rojo al actualizar el plugin sin que el proyecto haya
+    cambiado: revisa los hallazgos y arreglalos o silencia los falsos positivos.
+    Los ids de punto y de tipo no cambian.
+
 Doctor-deploy B (TASK-067), segunda mitad de doctor-deploy.
 
 - **Puntos de juicio**: nueva skill `/taskcode-plugin:doctor-deploy` y agente

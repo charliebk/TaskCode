@@ -12,8 +12,9 @@
  * Decisiones:
  * - Solo lee. Con `--escribir` guarda el informe en docs/doctor-deploy/ pero
  *   NO lo commitea (como `metricas --escribir`).
- * - Las unicas comprobaciones deterministas son las de fs/sondas-deploy.ts; el
- *   resto del catalogo es de juicio y sale NO VERIFICADO.
+ * - Las comprobaciones deterministas son las sondas de fs/sondas-deploy.ts y
+ *   fs/sondas-deploy-config.ts; el resto del catalogo es de juicio y sale NO
+ *   VERIFICADO.
  * - Una sonda que lanza una excepcion es NO VERIFICADO de ESE punto, nunca un
  *   throw hacia el CLI ni un OK.
  * - Codigo de salida: 0 sin FALLA, 1 con alguna. NO VERIFICADO no lo cambia,
@@ -38,6 +39,8 @@ import {
   formatearJson,
   formatearTexto,
   sanearPunto,
+  textoMarcadorAplicacion,
+  type AplicacionDetectada,
   type InformeDeploy,
   type ResultadoPunto,
 } from '../core/doctor-deploy.js';
@@ -52,7 +55,7 @@ import { ocultarSecretos } from '../core/secretos.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
 import { BaseBranchGuardError } from '../fs/git.js';
 import { crearTareasDeFallas, type ResultadoCrearTareas } from './doctor-deploy-tareas.js';
-import { detectarTipos, listarArchivos } from '../fs/deteccion-app.js';
+import { detectarAplicaciones, detectarTipos, listarArchivos } from '../fs/deteccion-app.js';
 import { comprobadorEnCommit } from '../fs/evidencia-veredicto.js';
 import { gitTexto } from '../fs/git-crudo.js';
 import { pathDelProceso } from '../fs/herramientas-deploy.js';
@@ -110,7 +113,33 @@ const salidaSegura = (t: string): string => ocultarSecretos(ocultarCredenciales(
 
 // ---------------------------------------------------------------------
 
-function evaluarPunto(punto: PuntoCatalogo, ctx: ContextoDeploy, cat: CatalogoEfectivo): ResultadoPunto {
+/**
+ * Eje de aplicacion (TASK-068), decision de la persona: sin ningun tipo de
+ * aplicacion detectado, el punto APLICA; solo sale NO APLICA si se detecto
+ * alguno y ninguno de los detectados esta en `punto.aplicaciones` (dentro del
+ * eje basta con uno: un repo con marcadores de cli y de web aplica). Devuelve
+ * el motivo del NO APLICA, que nombra cada tipo detectado y el marcador que lo
+ * decidio, o null si el punto aplica por este eje.
+ */
+export function motivoNoAplicaPorAplicacion(punto: PuntoCatalogo, aplicaciones: readonly AplicacionDetectada[]): string | null {
+  if (punto.aplicaciones === null || aplicaciones.length === 0) return null;
+  const lista = punto.aplicaciones;
+  if (aplicaciones.some((a) => lista.includes(a.id))) return null;
+  const detectadas = aplicaciones
+    .map((a) => {
+      const m = a.marcadores[0];
+      return m === undefined ? a.id : `${a.id} (por ${textoMarcadorAplicacion(m)})`;
+    })
+    .join(', ');
+  return `solo aplica a aplicaciones de tipo ${lista.join(' o ')}; aplicacion detectada: ${detectadas}`;
+}
+
+function evaluarPunto(
+  punto: PuntoCatalogo,
+  ctx: ContextoDeploy,
+  cat: CatalogoEfectivo,
+  aplicaciones: readonly AplicacionDetectada[]
+): ResultadoPunto {
   const base = {
     id: punto.id,
     severidad: punto.severidad,
@@ -145,6 +174,12 @@ function evaluarPunto(punto: PuntoCatalogo, ctx: ContextoDeploy, cat: CatalogoEf
         evidencias: [],
       };
     }
+  }
+
+  // Los dos ejes se combinan con Y: aplica por lenguaje (arriba) Y por tipo de aplicacion.
+  const motivoAplicacion = motivoNoAplicaPorAplicacion(punto, aplicaciones);
+  if (motivoAplicacion !== null) {
+    return { ...base, estado: 'no-aplica', motivo: motivoAplicacion, evidencias: [] };
   }
 
   if (punto.metodo === 'juicio' || punto.sonda === null) {
@@ -346,6 +381,7 @@ function analizar(argv: readonly string[], deps: DoctorDeployDeps): Analisis {
     throw new DoctorDeployCommandError('[ERROR] taskctl doctor-deploy: no se pudo listar los ficheros del proyecto (git ls-files fallo).');
   }
   const tipos = detectarTipos(archivos.presentes, catalogo.tipos);
+  const aplicaciones = detectarAplicaciones(raiz, archivos.presentes, catalogo.aplicaciones);
 
   const ctx: ContextoDeploy = {
     cwd: raiz,
@@ -364,7 +400,7 @@ function analizar(argv: readonly string[], deps: DoctorDeployDeps): Analisis {
     },
   };
 
-  const puntos = catalogo.puntos.map((p) => evaluarPunto(p, ctx, catalogo));
+  const puntos = catalogo.puntos.map((p) => evaluarPunto(p, ctx, catalogo, aplicaciones));
 
   const avisos = [...catalogo.avisos];
   if (tipos.length === 0) {
@@ -408,13 +444,14 @@ function analizar(argv: readonly string[], deps: DoctorDeployDeps): Analisis {
 
   const ahora = (deps.ahora ?? ((): Date => new Date()))();
   const informe: InformeDeploy = {
-    version: 2,
+    version: 3,
     comando: 'doctor-deploy',
     fecha: ahora.toISOString(),
     commit,
     rama: rama === null || rama.trim() === '' ? null : rama.trim(),
     arbolSucio: estado === null ? true : estado.trim() !== '',
     tipos,
+    aplicaciones,
     avisos,
     puntos: puntosFinales,
     veredictos,
