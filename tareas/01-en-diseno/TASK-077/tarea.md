@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 134631
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-04
@@ -37,3 +37,9 @@ Cerrar lo que quedo abierto de TASK-072: que bash -o pipefail -c y bash --rcfile
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-04T20:33:52Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-04T20:36:23Z | diseno | agente:aa7b581a794b448a0 | 14 | 23579 | 105958 | 5080 | 11 | 134631 |
