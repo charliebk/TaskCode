@@ -2,7 +2,7 @@
 
 - Commit revisado: 08cc6e32d82c57e55af26a5f91c46012bacbf646
 - Revisor: general-purpose (sonnet) con la skill code-quality-reviewer, independiente de la implementacion
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-072 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
