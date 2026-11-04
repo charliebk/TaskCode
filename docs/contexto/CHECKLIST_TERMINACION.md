@@ -35,9 +35,9 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
-| K — Frenos de verificación con hooks | 6 | **2** | — |
+| K — Frenos de verificación con hooks | 6 | **3** | — |
 | L — Mantenimiento | 2 | **0** | — |
-| **Total pendiente** | **6** | — | — |
+| **Total pendiente** | **5** | — | — |
 
 ---
 
@@ -873,7 +873,7 @@ aviso en release (B).
       variantes de Dockerfile/compose, huella por paso en pr-target);
       MEN-3, 5, 6, 7 y 8 aceptados.*
 
-## K — Frenos de verificación con hooks (2/6)
+## K — Frenos de verificación con hooks (3/6)
 
 Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
 usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
@@ -896,8 +896,17 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       misma línea (no `aviso`, para no tocar los tests existentes). Validadores
       de sincronización generalizados sin cambiar sus mensajes. 1 ronda:
       aprobada, MEN-1 y MEN-2 aceptados. Sin versión: llega con TASK-071.*
-- [ ] TASK-071 — Hook Stop: una tarea no se da por hecha con la verificación
-      en rojo
+- [x] TASK-071 — Hook Stop: una tarea no se da por hecha con la verificación
+      en rojo — cerrada el 2026-11-04
+      *Hook `Stop` en forma exec (`dist/src/hooks/stop-verificacion.js`,
+      timeout 3600): con tarea en `02-en-curso` en la rama y
+      `comando_verificacion`, ejecuta y sale 2 con comando, código, duración y
+      cola (40 líneas / 4 KiB, sin ANSI ni credenciales en URLs). Sin procesos
+      fuera de un proyecto con tareas; `FRENO_VERIFICACION=0` lo apaga.
+      Decisiones de Carlos: la clave basta, config inválida bloquea una vez,
+      memo de verdes y rojos por huella en `.git/`. Envoltorio extraído a
+      `fs/ejecucion-acotada.ts`. Smoke con `claude -p` real. 2 rondas: IMP-1 e
+      IMP-2 (tests de huella y de tope) y MEN-1..7 corregidos; MEN-8 aceptado.*
 - [ ] TASK-072 — Puerta de verificación en `finish` y merge guard
 - [ ] TASK-073 — Tests held-out por tarea
 - [ ] TASK-074 — Cobertura sobre las líneas cambiadas
