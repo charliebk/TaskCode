@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-068 — Doctor-deploy C: tipo de aplicacion y sondas deterministas extra · etiquetas: doctor-deploy, seguridad · rama feature/task-068-doctor-deploy-c-tipo-de-aplicacion-y-son · terminada 2026-11-04 · tareas/04-terminadas/TASK-068/
 - TASK-069 — Spike: hooks Stop y PreToolUse de Claude Code en Windows/IntelliJ · etiquetas: (sin etiquetas) · rama feature/task-069-spike-hooks-stop-y-pretooluse-de-claude · terminada 2026-11-03 · tareas/04-terminadas/TASK-069/
 - TASK-067 — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release · etiquetas: doctor-deploy, seguridad · rama feature/task-067-doctor-deploy-b-puntos-de-juicio-tareas · terminada 2026-10-28 · tareas/04-terminadas/TASK-067/
 - TASK-066 — Doctor-deploy A: catalogo generico y comprobaciones deterministas · etiquetas: doctor-deploy, seguridad · rama feature/task-066-doctor-deploy-a-catalogo-generico-y-comp · terminada 2026-10-27 · tareas/04-terminadas/TASK-066/

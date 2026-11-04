@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor-deploy, seguridad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-068-doctor-deploy-c-tipo-de-aplicacion-y-son
 asignado_a: charlie.bk@gmail.com
@@ -69,6 +69,7 @@ Fuera de alcance por decision de la persona: «secretos impresos en CI» (decisi
 | 2026-11-03T13:35:58Z | start | automatico | persona |
 | 2026-11-04T10:11:08Z | review | automatico | persona |
 | 2026-11-04T11:35:23Z | review | automatico | persona |
+| 2026-11-04T12:25:28Z | finish | automatico | persona |
 
 ## Coste
 

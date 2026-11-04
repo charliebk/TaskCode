@@ -1,42 +1,36 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-11-03. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-11-04. No editar a mano.
 
-## Planificadas (00-planificadas) — 19
-
-```text
-ID        Titulo                                                                                      Asignado
---------  ------------------------------------------------------------------------------------------  --------------------
-TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
-TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
-TASK-003  Comando taskctl new (alta individual de tarea)                                              (sin asignar)
-TASK-004  Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
-TASK-005  Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
-TASK-006  Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
-TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
-TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
-TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
-TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
-TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
-TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
-TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
-TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-070  Clave comando_verificacion en .taskcode/config.yml                                          (sin asignar)
-TASK-071  Hook Stop: una tarea no se da por hecha con la verificacion en rojo                         (sin asignar)
-TASK-072  Puerta de verificacion en finish y merge guard                                              (sin asignar)
-TASK-073  Tests held-out por tarea                                                                    (sin asignar)
-TASK-074  Cobertura sobre las lineas cambiadas                                                        (sin asignar)
-```
-
-## En diseno (01-en-diseno) — 1
+## Planificadas (00-planificadas) — 21
 
 ```text
-ID        Titulo                                                            Asignado
---------  ----------------------------------------------------------------  --------------------
-TASK-068  Doctor-deploy C: tipo de aplicacion y sondas deterministas extra  charlie.bk@gmail.com
+ID        Titulo                                                                                       Asignado
+--------  -------------------------------------------------------------------------------------------  --------------------
+TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                     (sin asignar)
+TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                     (sin asignar)
+TASK-003  Comando taskctl new (alta individual de tarea)                                               (sin asignar)
+TASK-004  Comando taskctl import (alta masiva desde Markdown)                                          charlie.bk@gmail.com
+TASK-005  Comando taskctl board (listado por estado)                                                   charlie.bk@gmail.com
+TASK-006  Empaquetado del plugin y validación de carga local                                           charlie.bk@gmail.com
+TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                      charlie.bk@gmail.com
+TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                        charlie.bk@gmail.com
+TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                         charlie.bk@gmail.com
+TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                           charlie.bk@gmail.com
+TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                      charlie.bk@gmail.com
+TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio   charlie.bk@gmail.com
+TASK-019  Revisión ligera sin agente para tareas triviales                                             (sin asignar)
+TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                       (sin asignar)
+TASK-070  Clave comando_verificacion en .taskcode/config.yml                                           (sin asignar)
+TASK-071  Hook Stop: una tarea no se da por hecha con la verificacion en rojo                          (sin asignar)
+TASK-072  Puerta de verificacion en finish y merge guard                                               (sin asignar)
+TASK-073  Tests held-out por tarea                                                                     (sin asignar)
+TASK-074  Cobertura sobre las lineas cambiadas                                                         (sin asignar)
+TASK-075  Contrapruebas de descubrimiento rotas por el validador de Claude Code 2.1.316+               (sin asignar)
+TASK-076  Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico  (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 54
+## Terminadas (04-terminadas) — 55
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -94,5 +88,6 @@ TASK-064  Metricas v2 (B): fila de metricas con coste desglosado, hallazgos y le
 TASK-065  Metricas v2 (C): evolucion, grupos y varios proyectos                                    charlie.bk@gmail.com
 TASK-066  Doctor-deploy A: catalogo generico y comprobaciones deterministas                        charlie.bk@gmail.com
 TASK-067  Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release                   charlie.bk@gmail.com
+TASK-068  Doctor-deploy C: tipo de aplicacion y sondas deterministas extra                         charlie.bk@gmail.com
 TASK-069  Spike: hooks Stop y PreToolUse de Claude Code en Windows/IntelliJ                        charlie.bk@gmail.com
 ```
