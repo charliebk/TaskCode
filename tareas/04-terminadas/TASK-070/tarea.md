@@ -35,19 +35,19 @@ Declarar como se verifica un proyecto, para que los frenos ejecuten el comando d
 ## Resultado
 
 Implementado (commit 9c9a684):
-- : claves  (texto, defecto null = sin freno) y
-   (entero >= 1, segundos, defecto 600). Se reutilizan  y
-  , generalizados con la clave (los mensajes de sincronizacion no cambian;
-  hay test que lo fija). Nueva : el timeout sin comando aborta.
+- `src/core/config.ts`: claves `comando_verificacion` (texto, defecto null = sin freno) y
+  `timeout_verificacion` (entero >= 1, segundos, defecto 600). Se reutilizan `validarComando` y
+  `validarEnteroPositivo`, generalizados con la clave (los mensajes de sincronizacion no cambian;
+  hay test que lo fija). Nueva `validarVerificacionCompleta`: el timeout sin comando aborta.
   Tabla de claves de la cabecera al dia.
-- : comprobacion  tras la de config. Con comando,  con
-  comando y timeout; sin el,  con el arreglo en el propio mensaje (D1 del plan: un aviso
+- `src/commands/doctor.ts`: comprobacion `verificacion` tras la de config. Con comando, `ok` con
+  comando y timeout; sin el, `omitida` con el arreglo en el propio mensaje (D1 del plan: un aviso
   habria cambiado el recuento de avisos que fijan los tests existentes y dejaria un aviso permanente
-  en proyectos sin frenos); con la config rota, .
+  en proyectos sin frenos); con la config rota, `omitida`.
 - README del plugin (comprobacion de doctor y subseccion de la clave), CHANGELOG (bloque en «Sin
-  publicar»: no se publica version hasta TASK-071) y  (lista de
+  publicar»: no se publica version hasta TASK-071) y `skills/task-workflow/SKILL.md` (lista de
   claves completa; corregido «una clave mal escrita aborta», falso desde TASK-061).
-- Tests:  (8) y 3 nuevos en ;
+- Tests: `test/core/config-verificacion.test.ts` (8) y 3 nuevos en `test/commands/doctor.test.ts`;
   ningun test existente editado.
 
 Verificacion: suite completa 1716/1721; los 5 rojos son los conocidos de Windows (symlink EPERM,
@@ -57,12 +57,12 @@ repo temporal: sin clave, con clave, timeout sin comando, timeout de texto, coma
 
 Revision por pares (ronda 1, code-quality-reviewer): **aprobada**, sin CRITICO ni IMPORTANTE.
 Reprodujo en clon propio (103 tests afectados en verde) y 4 mutantes, 3 detectados limpiamente.
-- MEN-1 (aceptado): con la config rota la verificacion sale , que no distingue «no
+- MEN-1 (aceptado): con la config rota la verificacion sale `omitida`, que no distingue «no
   evaluable» de «no declarada»; es el mismo criterio que rama-base, origin y plataforma.
 - MEN-2 (aceptado): no hay test de CLI de punta a punta para el timeout sin comando; lo cubren
-  los tests de config y de doctor, y todos los comandos pasan por .
+  los tests de config y de doctor, y todos los comandos pasan por `resolverConfig`.
 
-Decisiones tomadas por el orquestador en modo automatico (plan, D1-D3):  en doctor,
+Decisiones tomadas por el orquestador en modo automatico (plan, D1-D3): `omitida` en doctor,
 600 s por defecto, y aceptar una clave que solo lee doctor hasta TASK-071.
 
 ## Transiciones

@@ -35,9 +35,9 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
-| K — Frenos de verificación con hooks | 6 | **1** | — |
+| K — Frenos de verificación con hooks | 6 | **2** | — |
 | L — Mantenimiento | 2 | **0** | — |
-| **Total pendiente** | **7** | — | — |
+| **Total pendiente** | **6** | — | — |
 
 ---
 
@@ -873,7 +873,7 @@ aviso en release (B).
       variantes de Dockerfile/compose, huella por paso en pr-target);
       MEN-3, 5, 6, 7 y 8 aceptados.*
 
-## K — Frenos de verificación con hooks (1/6)
+## K — Frenos de verificación con hooks (2/6)
 
 Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
 usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
@@ -888,7 +888,14 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       Bash y PowerShell, también en subagentes. Criterio de CI sin marcar: la
       rama no se había subido. 2 rondas: IMP-1 (la regex bloqueaba
       `git merge-base`), corregido; MEN-5 y MEN-6 aceptados para TASK-071/072.*
-- [ ] TASK-070 — Clave `comando_verificacion` en `.taskcode/config.yml`
+- [x] TASK-070 — Clave `comando_verificacion` en `.taskcode/config.yml` —
+      cerrada el 2026-11-04
+      *`comando_verificacion` (null = sin freno) y `timeout_verificacion` (600 s)
+      en `config.ts`, con fallo cerrado y el timeout sin comando abortando;
+      `taskctl doctor` da `ok` con el comando u `omitida` con el arreglo en la
+      misma línea (no `aviso`, para no tocar los tests existentes). Validadores
+      de sincronización generalizados sin cambiar sus mensajes. 1 ronda:
+      aprobada, MEN-1 y MEN-2 aceptados. Sin versión: llega con TASK-071.*
 - [ ] TASK-071 — Hook Stop: una tarea no se da por hecha con la verificación
       en rojo
 - [ ] TASK-072 — Puerta de verificación en `finish` y merge guard
