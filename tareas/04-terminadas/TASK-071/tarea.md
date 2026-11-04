@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-071-hook-stop-una-tarea-no-se-da-por-hecha-c
 asignado_a: charlie.bk@gmail.com
@@ -97,6 +97,7 @@ Revision por pares, 2 rondas:
 | 2026-11-04T14:57:34Z | start | automatico | persona |
 | 2026-11-04T15:25:58Z | review | automatico | persona |
 | 2026-11-04T16:02:05Z | review | automatico | persona |
+| 2026-11-04T17:46:59Z | finish | automatico | persona |
 
 ## Coste
 
