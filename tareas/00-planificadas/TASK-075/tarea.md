@@ -1,0 +1,33 @@
+---
+id: TASK-075
+titulo: "Contrapruebas de descubrimiento rotas por el validador de Claude Code 2.1.316+"
+tipo: fix
+sprint: 0
+etiquetas: [tests, plugin]
+complejidad: simple
+modelo_sugerido: sonnet
+estado: planificada
+plan_aprobado: false
+rama: fix/task-075-contrapruebas-de-descubrimiento-rotas-po
+asignado_a: null
+agente_revisor: general-purpose
+skills_recomendados: []
+regla_seleccion_skill: null
+ultimo_commit_revisado: null
+revision_codex: false
+tokens_diseno: null
+tokens_implementacion: null
+tokens_revision: null
+creado: 2026-11-03
+actualizado: 2026-11-03
+dependencias: []
+---
+## Objetivo
+
+Desde Claude Code 2.1.316, claude plugin validate imprime comprobaciones del directorio de plugins (README missing, icon) marcadas con una cruz aunque la validacion termina en Validation passed. Los tests 14 (test/skills/task-workflow.test.ts) y 17 (test/agents/brainstorm-roles.test.ts) copian el plugin a un temporal sin README y exigen que la salida no contenga la cruz, asi que la copia intacta falla. Detectado al revisar TASK-069.
+
+## Criterios de aceptacion
+- [ ] Con Claude Code 2.1.316 o posterior, los tests 14 de test/skills/task-workflow.test.ts y 17 de test/agents/brainstorm-roles.test.ts pasan en Windows y en el CI de Linux
+- [ ] La contraprueba sigue detectando un agente o un SKILL.md roto en la copia: test con la mutacion que ya usa cada test
+- [ ] Los avisos del directorio de plugins no se confunden con errores de validacion: la condicion se apoya en el codigo de salida o en el bloque de resultado, no en buscar la cruz en toda la salida; test
+- [ ] Suite completa con solo los rojos conocidos de Windows; HALLAZGOS.md recoge el cambio de salida del validador
