@@ -577,8 +577,52 @@ timeout_verificacion: 900          # opcional, en segundos (por defecto 600)
 - Un valor inválido (comando vacío, timeout `0`, decimal o texto) aborta todos
   los comandos con un mensaje que nombra la clave y la línea; nunca se cae al
   valor por defecto en silencio.
-- Hoy solo la lee `taskctl doctor`; los frenos que la ejecutan (hook `Stop` y
-  puerta de `finish`) llegan en las versiones siguientes.
+- La ejecuta el **freno de fin de turno** (hook `Stop`, abajo). La puerta de
+  `finish` llega en una versión siguiente.
+
+#### Freno de fin de turno (hook `Stop`)
+
+El plugin declara en `hooks/hooks.json` un hook `Stop` que Claude Code ejecuta
+cada vez que el agente principal termina un turno, en todas las sesiones del
+proyecto. Solo actúa si **hay una tarea en `tareas/02-en-curso/` cuya `rama` es
+la rama actual** y el proyecto declara `comando_verificacion`; en cualquier otro
+caso sale 0 sin lanzar ningún proceso (ni `git`). Cuando actúa:
+
+- Ejecuta el comando con el mismo envoltorio que la sincronización (shell del
+  sistema, stdin cerrado, el árbol entero se mata al cortarlo) y la salida a un
+  fichero temporal, del que solo se lee el final.
+- **Verde** (código 0): deja terminar el turno, sin escribir nada.
+- **Rojo, cortado o no ejecutable**: sale con 2, así que Claude Code devuelve el
+  turno al agente con este informe por stderr: el comando, el código de salida
+  (o el corte), la duración y el final de la salida (stdout y stderr
+  intercalados), acotado a 40 líneas y 4 KiB, sin colores ANSI, sin credenciales
+  en URLs y sin partir caracteres. El informe pide no borrar ni saltar tests
+  para pasar el freno.
+- **Config inválida** con una tarea en curso en la rama: también sale con 2,
+  con el error de la config.
+- **Un solo disparo por turno**: si Claude Code ya está continuando por un
+  bloqueo del freno (`stop_hook_active`), deja terminar. Es a propósito: un test
+  intermitente no puede dejar al agente en un bucle.
+- **Memo por huella**: guarda el último resultado junto a una huella del árbol
+  (HEAD, comando, timeout y contenido de lo que no está limpio) en
+  `.git/freno-verificacion.json`. Con la misma huella no se vuelve a ejecutar:
+  un verde deja terminar y un rojo repite el informe, diciendo que es el
+  guardado. Cualquier cambio en el árbol lo invalida, salvo en ficheros
+  ignorados por `.gitignore` (la huella sale de `git status`): si lo único que
+  cambia es un ignorado (`.env.local`), cambia algo versionado o ejecuta el
+  comando a mano.
+- Una tarea de `02-en-curso` con el `tarea.md` ilegible no frena (no se sabe si
+  es la de esta rama), pero el hook la nombra en un aviso.
+- **Tope**: el `timeout` del hook es 3600 s, y Claude Code descarta la salida
+  de un hook que lo agota (el freno no frenaría). Por eso la verificación se
+  corta a `min(timeout_verificacion, 3540)` s, avisando si se recorta.
+- Si la verificación cambia ficheros del árbol (compilados, cobertura), el
+  informe lo avisa: el siguiente comando de `taskctl` puede abortar por
+  workspace sucio.
+- **Apagarlo**: `FRENO_VERIFICACION=0` en el entorno de Claude Code, o quitar
+  `comando_verificacion` de la config.
+- Los subagentes no disparan `Stop` (disparan `SubagentStop`), así que el freno
+  no los frena; y no actúa si la persona interrumpe el turno (Esc).
 
 `taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]`
 es otro comando, distinto de `doctor`: aquel comprueba que el proyecto está listo

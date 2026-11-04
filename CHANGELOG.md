@@ -9,6 +9,24 @@
 - TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)
 - TASK-067 (feature) — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release (2026-10-27)
 
+Freno de fin de turno (TASK-071): hook `Stop` que no deja dar el turno por terminado con la
+verificacion en rojo.
+
+- **Cambio de comportamiento**: un proyecto que declare `comando_verificacion` pasa a
+  EJECUTARLO al final de cada turno del agente mientras haya una tarea en
+  `tareas/02-en-curso/` en la rama actual. Sin la clave, o sin tarea en curso en la rama, el
+  hook sale 0 sin lanzar ningun proceso. Se apaga con `FRENO_VERIFICACION=0`.
+- En rojo (o cortada, o config invalida) sale con 2 y le devuelve el turno al agente con el
+  comando, el codigo, la duracion y el final de la salida (40 lineas / 4 KiB, sin ANSI ni
+  credenciales en URLs; otros secretos que imprima el comando no se filtran). Un solo disparo
+  por turno (`stop_hook_active`).
+- Memo por huella del arbol en `.git/freno-verificacion.json`: sin cambios, no se vuelve a
+  ejecutar la suite. Tope de 3540 s por debajo del `timeout` de 3600 s del hook.
+- El envoltorio que ejecuta comandos con tope y mata el arbol pasa a
+  `fs/ejecucion-acotada.ts`, compartido con la sincronizacion. Unico cambio: al cortar por
+  timeout deja de reenviar la salida del comando, para que la marca del corte sea lo ultimo.
+- El `PreToolUse` sigue siendo la sonda inerte de TASK-069 hasta TASK-072.
+
 Comando de verificacion declarado (TASK-070), primer paso de los frenos de verificacion.
 
 - **`comando_verificacion` y `timeout_verificacion`** en `.taskcode/config.yml`:
