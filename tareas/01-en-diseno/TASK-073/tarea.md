@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-073-tests-held-out-por-tarea
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
-actualizado: 2026-11-03
+actualizado: 2026-11-04
 dependencias: [TASK-070, TASK-072]
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ Freno 7 de brakes: tests de aceptacion que la persona escribe a partir de los cr
 - [ ] taskctl finish ejecuta los held-out de la tarea y aborta si fallan
 - [ ] La skill de flujo explica cuando escribirlos y el agente revisor si puede leerlos
 - [ ] Tests: deny efectivo, finish rojo y verde
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-04T21:44:53Z | plan | automatico | persona |
