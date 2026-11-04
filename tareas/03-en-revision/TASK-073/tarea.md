@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 831501
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 5355474
 creado: 2026-11-03
 actualizado: 2026-11-04
 dependencias: [TASK-070, TASK-072]
@@ -48,3 +48,4 @@ Freno 7 de brakes: tests de aceptacion que la persona escribe a partir de los cr
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-04T22:02:26Z | diseno | agente:a29945e03ddb57af8,a1b0b31a52a58d137,a31c511c3d2e10ad4,ac1fd97824ff336b7 | 68 | 137845 | 648810 | 44778 | 56 | 831501 |
+| 2026-11-04T23:08:42Z | revision | agente:a1b61fd69cf020b48 | 80 | 163559 | 5161757 | 30078 | 11 | 5355474 |
