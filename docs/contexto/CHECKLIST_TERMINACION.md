@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 78 / 85 items terminados (92%)** · última actualización: 2026-11-03
+**Progreso global: 78 / 86 items terminados (91%)** · última actualización: 2026-11-03
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -36,8 +36,8 @@ tomada y documentada, no aplazada.
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | J — Doctor-deploy | 3 | **2** | — |
 | K — Frenos de verificación con hooks | 6 | **1** | — |
-| L — Mantenimiento | 1 | **0** | — |
-| **Total pendiente** | **7** | — | — |
+| L — Mantenimiento | 2 | **0** | — |
+| **Total pendiente** | **8** | — | — |
 
 ---
 
@@ -888,9 +888,12 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
 - [ ] TASK-073 — Tests held-out por tarea
 - [ ] TASK-074 — Cobertura sobre las líneas cambiadas
 
-## L — Mantenimiento (0/1)
+## L — Mantenimiento (0/2)
 
 Arreglos que salen al revisar otras tareas y no son de ninguna fase.
 
 - [ ] TASK-075 — Contrapruebas de descubrimiento rotas por el validador de
       Claude Code 2.1.316+ (detectado al revisar TASK-069)
+- [ ] TASK-076 — `taskctl doctor` avisa de hooks PreToolUse sobre Agent que
+      bloquean los subagentes en modo automatico, y version nueva del plugin
+      para avisar a todos los proyectos (detectado durante TASK-068)
