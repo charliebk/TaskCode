@@ -645,6 +645,36 @@ reutiliza un verde guardado, porque la huella no ve los ficheros ignorados.
 - `finish` tarda lo que tarde la suite: si lo lanza un agente, que su
   herramienta de shell no lo corte antes.
 
+#### Tests held-out (`aceptacion/`)
+
+Tests de aceptación que escribe la **persona** a partir de los criterios y que
+el agente que implementa no debe ver. Van en la carpeta `aceptacion/` de la
+tarea, se commitean **en la rama base durante el diseño, antes de `start`** (la
+rama nace con ellos y no aparecen en su diff), y se ejecutan con:
+
+```yaml
+comando_heldout: "npm run aceptacion"   # recibe la carpeta en HELDOUT_DIR
+```
+
+`taskctl finish` los ejecuta justo después de la puerta de verificación, en
+los mismos caminos (no en el segundo `finish --merge-request` ni en el camino
+idempotente), con el cwd en la raíz del repo, `HELDOUT_DIR` = ruta absoluta de
+la carpeta y `timeout_verificacion` como tope. Aborta, sin mergear:
+
+- si no salen en verde, mostrando **solo** comando, código y duración: la salida
+  de un test suele llevar sus aserciones, y la lee el agente;
+- si la rama los ha **editado, añadido o borrado** respecto a la rama base (se
+  compara el árbol de Git de `aceptacion/`), o los trae sin estar en la base;
+- si la tarea tiene `aceptacion/` y la config no declara `comando_heldout`;
+- si en verde dejan el árbol sucio.
+
+`--sin-verificacion` no los salta. Sin `aceptacion/` (ni en la rama ni en la
+base) no hay puerta. La petición de revisión excluye siempre
+`tareas/*/TASK-*/aceptacion/**`, aunque se cambie `excluir_de_revision`: el
+revisor no los lee. Que queden fuera de `comando_verificacion`, o el freno de
+fin de turno mostraría su salida. El hook que impide leerlos o editarlos
+mientras se implementa llega en una versión siguiente.
+
 #### Guardián de merges (hook `PreToolUse`)
 
 Antes de cada comando Bash o PowerShell del agente (sin filtro `if`: el de

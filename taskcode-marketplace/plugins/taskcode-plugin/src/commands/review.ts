@@ -61,6 +61,7 @@ import {
 } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
+import { EXCLUIR_HELDOUT } from '../core/heldout.js';
 
 export class ReviewCommandError extends Error {}
 
@@ -474,7 +475,8 @@ export async function runReviewCommand(
   const commits = logOneline(desde, 'HEAD', deps.repoCwd);
   // TASK-034: lo generado (dist/, lockfiles) y la propia carpeta de
   // tareas no se embeben: eran el 27 % de los bytes de las peticiones.
-  const excluir = resolverConfig(deps.repoCwd).excluir_de_revision;
+  // TASK-073: los tests held-out nunca se embeben, se configure lo que se configure.
+  const excluir = [...new Set([...resolverConfig(deps.repoCwd).excluir_de_revision, EXCLUIR_HELDOUT])];
   const paraRevision = diffParaRevision(desde, 'HEAD', excluir, deps.repoCwd);
   const diff = paraRevision.diff;
 

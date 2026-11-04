@@ -18,6 +18,7 @@
  * | url_base_remoto              | null              | commands/finish-opciones.ts (--merge-request) |
  * | comando_verificacion         | null (sin freno)  | commands/doctor.ts (y los frenos, TASK-071/072) |
  * | timeout_verificacion         | 600 (segundos)    | los frenos (TASK-071/072)  |
+ * | comando_heldout              | null (sin held-out) | commands/finish-heldout.ts (TASK-073) |
  *
  * `comando_verificacion` y `timeout_verificacion` las anadio TASK-070: declaran
  * como se verifica el proyecto (el comando de tests del repo) para que los
@@ -121,6 +122,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
     url_base_remoto: null,
     comando_verificacion: null,
     timeout_verificacion: 600,
+    comando_heldout: null,
 });
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
 export const CLAVES_CONFIG = [
@@ -137,6 +139,7 @@ export const CLAVES_CONFIG = [
     'url_base_remoto',
     'comando_verificacion',
     'timeout_verificacion',
+    'comando_heldout',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -370,6 +373,9 @@ export function parsearConfigConAvisos(contenido, ruta) {
                 break;
             case 'timeout_verificacion':
                 config.timeout_verificacion = validarEnteroPositivo(donde, par.clave, par.valor);
+                break;
+            case 'comando_heldout':
+                config.comando_heldout = validarComando(donde, par.clave, par.valor, 'comando_heldout: "node --test $HELDOUT_DIR"');
                 break;
         }
     }

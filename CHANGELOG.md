@@ -12,6 +12,16 @@
 - TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)
 - TASK-067 (feature) — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release (2026-10-27)
 
+Tests held-out por tarea (TASK-073, primera parte).
+
+- Clave nueva `comando_heldout` en `.taskcode/config.yml`. Los held-out los escribe la persona
+  en `aceptacion/` de la tarea y los commitea en la rama base durante el diseno.
+- **`taskctl finish`** los ejecuta tras la verificacion (`HELDOUT_DIR` = la carpeta) y aborta
+  si fallan, mostrando solo comando, codigo y duracion; si la rama los cambio respecto a la base;
+  o si hay held-out y no `comando_heldout`. `--sin-verificacion` no los salta.
+- La peticion de revision excluye siempre `aceptacion/`. El hook que impide leerlos llega con
+  TASK-078.
+
 Puerta de verificacion en finish y guardian de merges (TASK-072).
 
 - **Cambio de comportamiento**: con `comando_verificacion` declarado, `taskctl finish` lo

@@ -31,6 +31,8 @@ const VERSION_MEMO = 1;
 export interface OpcionesVerificacion {
   /** Solo para tests: sustituye al timeout en segundos (en ms). */
   timeoutMs?: number;
+  /** Entorno del comando (por defecto el del proceso). */
+  env?: NodeJS.ProcessEnv;
 }
 
 /** Ejecuta `comando` en `raiz` con un tope de `timeoutS` segundos. Nunca lanza. */
@@ -41,7 +43,11 @@ export function ejecutarVerificacion(
   opciones: OpcionesVerificacion = {}
 ): ResultadoVerificacion {
   const timeoutMs = opciones.timeoutMs ?? timeoutS * 1000;
-  const r = ejecutarAcotado(raiz, comando, timeoutMs, { unirSalida: true, bytesCola: BYTES_COLA_LEIDOS });
+  const r = ejecutarAcotado(raiz, comando, timeoutMs, {
+    unirSalida: true,
+    bytesCola: BYTES_COLA_LEIDOS,
+    ...(opciones.env === undefined ? {} : { env: opciones.env }),
+  });
   const base = {
     comando,
     duracionMs: r.duracionMs,

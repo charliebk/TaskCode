@@ -41,6 +41,7 @@ import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeN
 import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { extraerSinVerificacion, puertaVerificacion } from './finish-verificacion.js';
+import { puertaHeldout } from './finish-heldout.js';
 import { runBoardCommand, boardFilePath } from './board.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
@@ -292,17 +293,28 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     }
     // TASK-072: la puerta de verificacion, justo antes del primer efecto y solo
     // en los caminos que van a integrar algo (abrir el MR o ejecutar el script).
-    const puerta = () => puertaVerificacion({
-        id,
-        rama,
-        tareasRoot,
-        initial: initial,
-        sinVerificacion,
-        cwd: deps.repoCwd,
-        instante: deps.ahora ?? today,
-        ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
-        ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
-    });
+    // TASK-073: y detras, la de los tests held-out (que --sin-verificacion no salta).
+    const puerta = async () => {
+        const r = await puertaVerificacion({
+            id,
+            rama,
+            tareasRoot,
+            initial: initial,
+            sinVerificacion,
+            cwd: deps.repoCwd,
+            instante: deps.ahora ?? today,
+            ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+            ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+        });
+        puertaHeldout({
+            id,
+            rama,
+            ramaBase: ramaIntegracion,
+            cwd: deps.repoCwd,
+            ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+        });
+        return r;
+    };
     if (mrCtx !== null && mrCtx.estado.tipo === 'ninguno') {
         initial = (await puerta()).tarea;
         return abrirMergeRequestYAnotar({
