@@ -1,7 +1,9 @@
 /**
  * Las comprobaciones deterministas de `taskctl doctor-deploy` (TASK-066): las
- * unicas seis que existen. Todo punto del catalogo que no nombra una de estas
- * sondas es de juicio y sale NO VERIFICADO.
+ * seis de secretos, lockfile y dependencias estan aqui; las siete de
+ * configuracion (TASK-068, puntos 37 a 43) en sondas-deploy-config.ts. Todo
+ * punto del catalogo que no nombra una sonda registrada es de juicio y sale
+ * NO VERIFICADO.
  *
  * Reglas que valen para todas:
  * - Solo leen. Nada se escribe ni se cambia de rama.
@@ -16,7 +18,7 @@ import { closeSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, statS
 import os from 'node:os';
 import path from 'node:path';
 import { buscarSecretos, IDS_PATRON } from '../core/secretos.js';
-import type { Silencio } from '../core/doctor-deploy-catalogo.js';
+import type { Silencio, SondaRegistrada } from '../core/doctor-deploy-catalogo.js';
 import type { Evidencia, ResultadoSonda, TipoDetectado } from '../core/doctor-deploy.js';
 import {
   interpretarCargoAudit,
@@ -28,6 +30,18 @@ import {
   type VeredictoAuditoria,
 } from '../core/doctor-deploy-auditoria.js';
 import { estaExcluido } from './deteccion-app.js';
+// Ciclo de modulos a proposito: sondas-deploy-config usa las utilidades de aqui y este
+// fichero registra sus sondas. Funciona en cualquier orden de carga porque esas sondas
+// son declaraciones de funcion (estan inicializadas antes de evaluar ningun modulo).
+import {
+  sondaAccionesSinSha,
+  sondaComposeContrasenas,
+  sondaDockerfileUser,
+  sondaMigracionesRls,
+  sondaPullRequestTarget,
+  sondaReglasFirebase,
+  sondaTokensGestor,
+} from './sondas-deploy-config.js';
 import { gitCrudo, gitTexto } from './git-crudo.js';
 import { ejecutarHerramienta, localizarHerramienta, versionDe } from './herramientas-deploy.js';
 
@@ -90,7 +104,7 @@ function esBinario(b: Buffer): boolean {
  * Texto del contenido, o null si es binario. Un UTF-16 con BOM (el `>` de
  * PowerShell 5.1 lo escribe asi) lleva NUL pero es texto: se decodifica.
  */
-function decodificar(b: Buffer): string | null {
+export function decodificar(b: Buffer): string | null {
   if (b.length >= 2 && b[0] === 0xff && b[1] === 0xfe) return b.subarray(2).toString('utf16le');
   if (b.length >= 2 && b[0] === 0xfe && b[1] === 0xff) {
     const par = b.subarray(2, 2 + ((b.length - 2) & ~1));
@@ -112,7 +126,7 @@ function cabeceraDe(abs: string): Buffer {
   }
 }
 
-interface ClaveHallazgo {
+export interface ClaveHallazgo {
   /** Hash del commit (historial). Ausente = hallazgo del arbol de trabajo. */
   commit?: string;
   /** Huella del valor, si se conoce. */
@@ -132,7 +146,7 @@ function claveDe(commit: string | undefined, huella: string | null): ClaveHallaz
  * (el parser lo obliga). Asi no se tapa una clave nueva del mismo patron en el
  * mismo fichero.
  */
-function buscarSilencio(ctx: ContextoDeploy, patron: string, fichero: string, clave: ClaveHallazgo): Silencio | null {
+export function buscarSilencio(ctx: ContextoDeploy, patron: string, fichero: string, clave: ClaveHallazgo): Silencio | null {
   for (const s of ctx.silencios) {
     if (s.patron !== patron || s.fichero !== fichero) continue;
     if (clave.commit !== undefined) {
@@ -147,7 +161,7 @@ function buscarSilencio(ctx: ContextoDeploy, patron: string, fichero: string, cl
   return null;
 }
 
-function evidenciaSilenciada(s: Silencio, patron: string, fichero: string, linea: number | undefined, commit: string | undefined): Evidencia {
+export function evidenciaSilenciada(s: Silencio, patron: string, fichero: string, linea: number | undefined, commit: string | undefined): Evidencia {
   const e: Evidencia = {
     descripcion: `SILENCIADO (silenciar_${s.numero}, patron ${patron}): ${s.motivo} - ${s.quien}, ${s.fecha}`,
     fichero,
@@ -1019,11 +1033,26 @@ export const sondaDependencias: Sonda = (ctx) => {
 // Registro
 // ---------------------------------------------------------------------
 
-export const SONDAS: Readonly<Record<string, Sonda>> = {
+/**
+ * Una entrada por cada nombre de `SONDAS_REGISTRADAS` (TASK-068): el tipo obliga a que
+ * las dos listas coincidan, asi que registrar una sonda sin implementarla (o al reves)
+ * no compila. Hacia fuera se ve como un registro indexable por texto (el catalogo
+ * guarda la sonda como `string`).
+ */
+const REGISTRO: Readonly<Record<SondaRegistrada, Sonda>> = {
   'secretos-arbol': sondaSecretosArbol,
   'secretos-historial': sondaSecretosHistorial,
   'ficheros-secretos': sondaFicherosSecretos,
   'gitignore-env': sondaGitignoreEnv,
   lockfile: sondaLockfile,
   dependencias: sondaDependencias,
+  'reglas-firebase': sondaReglasFirebase,
+  'migraciones-rls': sondaMigracionesRls,
+  'tokens-gestor': sondaTokensGestor,
+  'compose-contrasenas': sondaComposeContrasenas,
+  'ci-pull-request-target': sondaPullRequestTarget,
+  'acciones-sin-sha': sondaAccionesSinSha,
+  'dockerfile-user': sondaDockerfileUser,
 };
+
+export const SONDAS: Readonly<Record<string, Sonda>> = REGISTRO;

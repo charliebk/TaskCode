@@ -131,7 +131,7 @@ punto_6_severidad: critica
 punto_6_tipos: [todos]
 punto_6_metodo: juicio
 punto_6_arreglo: Activa la seguridad a nivel de fila en cada tabla expuesta (por ejemplo ALTER TABLE ... ENABLE ROW LEVEL SECURITY) y escribe una politica por operacion; sin politica, nadie accede.
-punto_6_descripcion: Toda tabla accesible desde el cliente tiene seguridad a nivel de fila (RLS) con politicas que limitan cada fila a quien le corresponde.
+punto_6_descripcion: Cada tabla accesible desde el cliente tiene politicas RLS que limitan cada fila a quien le corresponde, y RLS activado si no se crea en supabase/migrations (las de ahi las comprueba migraciones-sin-rls).
 punto_6_referencia: OWASP Top 10 2021 A01
 
 punto_7_id: cifrado-en-reposo
@@ -311,7 +311,7 @@ punto_28_severidad: alta
 punto_28_tipos: [docker]
 punto_28_metodo: juicio
 punto_28_arreglo: Ejecuta el proceso con un usuario sin privilegios y pasa los secretos en tiempo de ejecucion (variables o secretos del orquestador), nunca con COPY, ARG o ENV dentro de la imagen.
-punto_28_descripcion: El contenedor no corre como root y la imagen no lleva secretos dentro.
+punto_28_descripcion: La imagen no lleva secretos dentro (COPY, ARG o ENV) y el contenedor no acaba corriendo como root por otra via, como el orquestador o el entrypoint (el USER de la etapa final del Dockerfile lo comprueba dockerfile-sin-user).
 punto_28_referencia: OWASP Top 10 2021 A05
 
 punto_29_id: logs-sin-datos-sensibles
@@ -382,55 +382,62 @@ punto_36_referencia: OWASP Top 10 2021 A08
 punto_37_id: reglas-firebase-abiertas
 punto_37_severidad: critica
 punto_37_tipos: [todos]
-punto_37_metodo: juicio
+punto_37_metodo: determinista
+punto_37_sonda: reglas-firebase
 punto_37_arreglo: Sustituye reglas como "allow read, write: if true" por reglas que exijan sesion y comprueben el propietario; prueba las reglas con el emulador.
-punto_37_descripcion: Las reglas de Firebase (Firestore, Realtime Database y Storage) no estan abiertas a cualquiera.
+punto_37_descripcion: Las reglas de Firebase versionadas (firestore.rules, storage.rules, database.rules.json) no tienen allow sin condicion, con if true o en modo de prueba por fecha, ni ".read"/".write": true.
 punto_37_referencia: OWASP Top 10 2021 A01
 
 punto_38_id: migraciones-sin-rls
 punto_38_severidad: alta
 punto_38_tipos: [todos]
-punto_38_metodo: juicio
+punto_38_metodo: determinista
+punto_38_sonda: migraciones-rls
 punto_38_arreglo: Cada migracion que crea una tabla debe activar RLS y crear sus politicas en la misma migracion.
-punto_38_descripcion: Ninguna migracion crea una tabla sin activar la seguridad a nivel de fila.
+punto_38_descripcion: Toda tabla creada en las migraciones de Supabase (supabase/migrations) activa la seguridad a nivel de fila en alguna migracion.
 punto_38_referencia: OWASP Top 10 2021 A01
 
 punto_39_id: tokens-en-ficheros-de-gestor
 punto_39_severidad: critica
 punto_39_tipos: [node, python, java, dotnet, go, php, ruby, rust]
-punto_39_metodo: juicio
+punto_39_metodo: determinista
+punto_39_sonda: tokens-gestor
 punto_39_arreglo: Quita el token de .npmrc, .pypirc, settings.xml o equivalentes, usa una variable de entorno (por ejemplo ${NPM_TOKEN}) y rota el token expuesto.
-punto_39_descripcion: Los ficheros de configuracion de los gestores de paquetes (.npmrc, .pypirc, settings.xml) no llevan tokens ni contrasenas.
+punto_39_descripcion: Los ficheros de configuracion de los gestores de paquetes versionados (.npmrc, .pypirc, settings.xml) no llevan tokens ni contrasenas literales.
 punto_39_referencia: OWASP Top 10 2021 A02
 
 punto_40_id: compose-con-contrasenas
 punto_40_severidad: alta
 punto_40_tipos: [docker]
-punto_40_metodo: juicio
+punto_40_metodo: determinista
+punto_40_sonda: compose-contrasenas
 punto_40_arreglo: Saca las contrasenas del docker-compose y leelas de un fichero .env ignorado por git o de secretos de Docker.
-punto_40_descripcion: Los ficheros docker-compose no llevan contrasenas ni tokens escritos.
+punto_40_descripcion: Los ficheros docker-compose versionados no llevan contrasenas ni tokens literales (${VAR} y *_FILE si valen).
 punto_40_referencia: OWASP Top 10 2021 A05
 
 punto_41_id: ci-pull-request-target
 punto_41_severidad: alta
 punto_41_tipos: [todos]
-punto_41_metodo: juicio
+punto_41_metodo: determinista
+punto_41_sonda: ci-pull-request-target
 punto_41_arreglo: No uses el evento pull_request_target para ejecutar codigo de la rama de un fork; usa pull_request, o separa en dos flujos y no pases secretos al que ejecuta codigo ajeno.
-punto_41_descripcion: Los flujos de CI no ejecutan codigo de forks con permisos de escritura ni secretos (pull_request_target).
+punto_41_descripcion: Ningun flujo de CI con pull_request_target trae el codigo del PR (ref al head del PR, refs/pull o gh pr checkout).
 punto_41_referencia: OWASP Top 10 2021 A08
 
 punto_42_id: acciones-ci-sin-sha
 punto_42_severidad: media
 punto_42_tipos: [todos]
-punto_42_metodo: juicio
+punto_42_metodo: determinista
+punto_42_sonda: acciones-sin-sha
 punto_42_arreglo: Fija cada accion de terceros a un SHA de commit completo (con la version en un comentario) en lugar de a una etiqueta movil.
-punto_42_descripcion: Las acciones de CI de terceros estan fijadas a un SHA de commit.
+punto_42_descripcion: Las acciones de CI de terceros estan fijadas a un SHA de commit de 40 caracteres.
 punto_42_referencia: OWASP Top 10 2021 A08
 
 punto_43_id: dockerfile-sin-user
 punto_43_severidad: alta
 punto_43_tipos: [docker]
-punto_43_metodo: juicio
+punto_43_metodo: determinista
+punto_43_sonda: dockerfile-user
 punto_43_arreglo: Anade una instruccion USER con un usuario sin privilegios al final del Dockerfile y evita ADD de URLs remotas.
-punto_43_descripcion: El Dockerfile declara un USER distinto de root.
+punto_43_descripcion: La etapa final de cada Dockerfile declara un USER distinto de root y ningun ADD descarga una URL sin --checksum.
 punto_43_referencia: OWASP Top 10 2021 A05
