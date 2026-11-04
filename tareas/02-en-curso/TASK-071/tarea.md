@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-071-hook-stop-una-tarea-no-se-da-por-hecha-c
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Freno 12 de brakes: si hay una tarea en curso, el agente no puede terminar su tu
 |---|---|---|---|
 | 2026-11-04T14:36:31Z | plan | automatico | persona |
 | 2026-11-04T14:57:33Z | approve | automatico | persona |
+| 2026-11-04T14:57:34Z | start | automatico | persona |
 
 ## Coste
 
