@@ -40,6 +40,7 @@ import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, resolveIntegrationBranch, localBranchExists, commitDeIntegracion, numeroDePadres, pushRama, fetchOrigin, resolverCommit, fastForwardDesde, runGit, GitCommandError, } from '../fs/git.js';
 import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
+import { extraerSinVerificacion, puertaVerificacion } from './finish-verificacion.js';
 import { runBoardCommand, boardFilePath } from './board.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
@@ -175,7 +176,8 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_FINISH, 'finish', (m) => new FinishCommandError(m));
     const { push, resto: sinPush } = extraerPushFlag(argv);
-    const { tag: nombreTag, mergeRequest: pideMergeRequest, resto } = extraerFlagsCierre(sinPush);
+    const { sinVerificacion, resto: sinFlagVerificacion } = extraerSinVerificacion(sinPush);
+    const { tag: nombreTag, mergeRequest: pideMergeRequest, resto } = extraerFlagsCierre(sinFlagVerificacion);
     const id = resto[0];
     if (id === undefined || id.trim() === '') {
         throw new FinishCommandError('[ERROR] Falta el ID de la tarea: taskctl finish TASK-NNN.');
@@ -183,7 +185,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     // Lectura PRELIMINAR (regla de la doble lectura, TASK-012): rechazo
     // rapido sin tocar Git + metadata estable (tipo/rama/titulo). La
     // lectura que decide la escritura va DESPUES de los merges.
-    const initial = await readTareaFile(tareasRoot, id);
+    let initial = await readTareaFile(tareasRoot, id);
     // Mensaje propio para "no esta en este working tree" (hallazgo MENOR
     // de revision por pares, TASK-014): el generico de la maquina de
     // estados aconseja crear la tarea con import/new, que aqui es lo
@@ -288,7 +290,21 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
                 'antes de reintentar; no se ha tocado nada.');
         }
     }
+    // TASK-072: la puerta de verificacion, justo antes del primer efecto y solo
+    // en los caminos que van a integrar algo (abrir el MR o ejecutar el script).
+    const puerta = () => puertaVerificacion({
+        id,
+        rama,
+        tareasRoot,
+        initial: initial,
+        sinVerificacion,
+        cwd: deps.repoCwd,
+        instante: deps.ahora ?? today,
+        ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+        ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+    });
     if (mrCtx !== null && mrCtx.estado.tipo === 'ninguno') {
+        initial = (await puerta()).tarea;
         return abrirMergeRequestYAnotar({
             tareasRoot,
             id,
@@ -347,6 +363,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             `git merge --no-ff ${rama} — y reintenta taskctl finish.`);
     }
     else {
+        await puerta();
         const argsScript = [rama, '--develop', ramaIntegracion];
         // hotfix/release: el script pone el tag en main; --tag le da el nombre.
         if (nombreTag !== null && mainBranch !== null) {

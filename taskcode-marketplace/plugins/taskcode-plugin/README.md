@@ -577,8 +577,8 @@ timeout_verificacion: 900          # opcional, en segundos (por defecto 600)
 - Un valor inválido (comando vacío, timeout `0`, decimal o texto) aborta todos
   los comandos con un mensaje que nombra la clave y la línea; nunca se cae al
   valor por defecto en silencio.
-- La ejecuta el **freno de fin de turno** (hook `Stop`, abajo). La puerta de
-  `finish` llega en una versión siguiente.
+- La ejecutan el **freno de fin de turno** (hook `Stop`), la **puerta de
+  `finish`** y la consulta el **guardián de merges** (hook `PreToolUse`), abajo.
 
 #### Freno de fin de turno (hook `Stop`)
 
@@ -623,6 +623,50 @@ caso sale 0 sin lanzar ningún proceso (ni `git`). Cuando actúa:
   `comando_verificacion` de la config.
 - Los subagentes no disparan `Stop` (disparan `SubagentStop`), así que el freno
   no los frena; y no actúa si la persona interrumpe el turno (Esc).
+
+#### Puerta de verificación en `finish`
+
+Con `comando_verificacion` declarado, `taskctl finish` lo ejecuta **siempre**
+antes del primer efecto (merge, o subir la rama y abrir el merge request): no
+reutiliza un verde guardado, porque la huella no ve los ficheros ignorados.
+
+- **No verde**: aborta con el mismo informe que el freno y sin tocar nada.
+- **Verde que ensucia el árbol** (compilados, cobertura no ignorados): aborta con
+  un mensaje propio antes de que el script de Git-Flow lo haga por workspace sucio.
+- Hay que lanzarlo **desde la rama de la tarea**: es el árbol que se verifica.
+- **No corre** en el segundo `finish --merge-request` (la plataforma ya mergeó)
+  ni en el camino idempotente (los merges ya están hechos): ahí solo bloquearía
+  lo hecho.
+- `--sin-verificacion` la salta y lo deja escrito en `tarea.md`, sección
+  `## Verificacion omitida`, con un commit en la rama de la tarea **antes** del
+  merge: el rastro sobrevive aunque el proceso muera después.
+- Tras un verde guarda el memo con la huella del commit, que es lo que consulta
+  el guardián de merges.
+- `finish` tarda lo que tarde la suite: si lo lanza un agente, que su
+  herramienta de shell no lo corte antes.
+
+#### Guardián de merges (hook `PreToolUse`)
+
+Antes de cada comando Bash o PowerShell del agente (sin filtro `if`: el de
+prefijo no ve `cd x && git merge`), el hook mira si el texto integra algo en la
+rama de integración (`rama_base`) o en la principal:
+
+- `git [-C dir] merge … <ref>`, con destino la última rama de un `git
+  checkout|switch` del mismo texto o, si no hay, la rama actual; y los scripts
+  `merge-<tipo>-to-<destino>.sh <rama>`.
+- **Bloquea** (exit 2, el motivo le llega al agente) si no hay un **verde
+  guardado para el commit que entra** —sin verde cuenta como no verde— y remite
+  a `taskctl finish` (o a `--sin-verificacion`, si lo decide la persona).
+- **Deja pasar** si el texto no contiene `merge` (sale sin cargar nada),
+  `merge --abort|--continue|--quit|--skip`, `merge-base`, `git config merge.*`,
+  `echo "git merge …"`, merges hacia ramas de trabajo, lo que ya está integrado
+  (ancestro del destino, de la principal —el backmerge de recuperación de un
+  hotfix— o de `origin/<destino>`), proyectos sin `comando_verificacion` y
+  cualquier fallo antes de saber que el destino es protegido.
+- Nunca ejecuta la suite (su `timeout` es de 30 s): solo lee el memo.
+- Es una defensa contra despistes, no contra un agente hostil: no ve alias de
+  git, `git pull`, `git push . x:develop` ni lo que se calcula en una subshell.
+  La red de verdad es la puerta de `finish`.
 
 `taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]`
 es otro comando, distinto de `doctor`: aquel comprueba que el proyecto está listo
@@ -988,7 +1032,7 @@ escribe y commitea solo ese `tarea.md` (aborta si tiene cambios sin commitear o 
 la copia al día de la tarea está en su rama) y rechaza cifras de 0. `taskctl finish`
 avisa, sin bloquear, si falta el coste de diseño o de revisión.
 
-`taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--push]` cierra la
+`taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]` cierra la
 tarea. Sin los flags nuevos hace lo de siempre: merge `--no-ff` con el script de
 Git-Flow del tipo y tarea a `terminada`.
 

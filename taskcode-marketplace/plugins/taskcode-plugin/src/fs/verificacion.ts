@@ -95,6 +95,22 @@ export function huellaDelArbol(raiz: string, comando: string, timeoutS: number):
   return h.digest('hex');
 }
 
+/**
+ * Huella que tendria el arbol LIMPIO en el commit `ref` (TASK-072): la misma
+ * formula que `huellaDelArbol` sin ficheros sucios, asi que coincide con la
+ * que guardo una verificacion hecha con ese commit en HEAD y el arbol limpio
+ * (la de `finish`, o la del freno Stop si no habia nada sin commitear). La usa
+ * el guardian de merges, que pregunta por la rama que entra sin cambiarse a
+ * ella. null si `ref` no resuelve a un commit.
+ */
+export function huellaDeCommit(raiz: string, ref: string, comando: string, timeoutS: number): string | null {
+  const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
+  if (sha === null || sha === '') return null;
+  const h = createHash('sha1');
+  h.update(`v${String(VERSION_MEMO)}\0${sha}\0${comando}\0${String(timeoutS)}\0`);
+  return h.digest('hex');
+}
+
 export interface MemoVerificacion {
   version: number;
   huella: string;

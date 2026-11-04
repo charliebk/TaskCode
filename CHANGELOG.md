@@ -10,6 +10,24 @@
 - TASK-066 (feature) — Doctor-deploy A: catalogo generico y comprobaciones deterministas (2026-10-27)
 - TASK-067 (feature) — Doctor-deploy B: puntos de juicio, tareas TASK-9999 y aviso en release (2026-10-27)
 
+Puerta de verificacion en finish y guardian de merges (TASK-072).
+
+- **Cambio de comportamiento**: con `comando_verificacion` declarado, `taskctl finish` lo
+  EJECUTA siempre antes de mergear o de abrir el merge request (no reutiliza el memo) y aborta
+  con el informe si no sale en verde, o si en verde deja el arbol sucio. Hay que lanzarlo desde
+  la rama de la tarea. No corre en el segundo `finish --merge-request` ni en el camino
+  idempotente (los merges ya estan hechos). Puede tardar lo que tarde la suite.
+- `--sin-verificacion` la salta y lo anota en `tarea.md` (seccion `## Verificacion omitida`)
+  con un commit en la rama de la tarea ANTES del merge. Sin `comando_verificacion` solo avisa.
+- **Hook `PreToolUse`** (sustituye a la sonda de TASK-069, ya sin filtro `if`): bloquea un
+  `git merge` o un script `merge-*-to-*.sh` hacia la rama de integracion (`rama_base`) o la
+  principal si no consta un verde guardado del commit que entra, y remite a `taskctl finish`.
+  El destino sale del texto (`git checkout develop && git merge x`) o de la rama actual. Deja
+  pasar lecturas, `merge --abort|--continue|--quit`, `merge-base`, merges hacia ramas de
+  trabajo y lo ya integrado (el backmerge de un hotfix que ya esta en main). Corre antes de cada
+  comando Bash/PowerShell, pero sin `merge` en el texto sale sin cargar nada; nunca ejecuta la
+  suite. Limites aceptados: alias de git, `git pull`, `git push . x:develop`, subshells.
+
 Freno de fin de turno (TASK-071): hook `Stop` que no deja dar el turno por terminado con la
 verificacion en rojo.
 

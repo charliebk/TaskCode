@@ -236,3 +236,32 @@ export function registrarTransicion(body, fase, fecha, modoConfig, decididoPor =
     const modo = fase === 'plan' ? modoConfig : modoDeTarea(body, modoConfig);
     return anadirTransicion(body, { fecha, fase, modo, decidido_por: decididoPor });
 }
+// ---------------------------------------------------------------------
+// Verificacion omitida (TASK-072)
+// ---------------------------------------------------------------------
+/** Seccion que deja `taskctl finish --sin-verificacion`: una linea por cierre sin verificar. */
+export const SECCION_VERIFICACION_OMITIDA = '## Verificacion omitida';
+/**
+ * Anota que un cierre se hizo sin ejecutar `comando_verificacion`. Va en el
+ * cuerpo y no en el frontmatter (mismo criterio que `## Merge request`): es
+ * un dato de auditoria y un campo nuevo obligaria a tocar parser y board.
+ * Si la seccion ya existe (un reintento) la linea va al final de ella.
+ */
+export function anotarVerificacionOmitida(body, instante, comando) {
+    const eol = body.includes('\r\n') ? '\r\n' : '\n';
+    const linea = `- ${instante}: taskctl finish --sin-verificacion; no se ejecuto \`${comando.replace(/`/g, "'")}\``;
+    const lineas = body.split(/\r?\n/);
+    const rango = rangoDeSeccion(lineas, SECCION_VERIFICACION_OMITIDA);
+    if (rango === null) {
+        const base = body.replace(/(\r?\n)*$/, '');
+        return `${base}${base === '' ? '' : eol + eol}${SECCION_VERIFICACION_OMITIDA}${eol}${eol}${linea}${eol}`;
+    }
+    const [inicio, fin] = rango;
+    let ultima = inicio;
+    for (let i = inicio + 1; i < fin; i++)
+        if (lineas[i].trim() !== '')
+            ultima = i;
+    const desde = ultima === inicio ? inicio + 1 : ultima + 1;
+    const insertar = ultima === inicio ? ['', linea] : [linea];
+    return [...lineas.slice(0, desde), ...insertar, ...lineas.slice(desde)].join(eol);
+}

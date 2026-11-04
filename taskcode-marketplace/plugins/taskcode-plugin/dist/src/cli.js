@@ -63,7 +63,7 @@ Uso:
   taskctl codex-review TASK-NNN [--push]
   taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados>
                     [--informe <nombre>] [--push]
-  taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--push]
+  taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl doctor [--json]
   taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]
