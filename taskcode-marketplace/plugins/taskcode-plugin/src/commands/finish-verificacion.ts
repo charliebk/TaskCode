@@ -110,7 +110,10 @@ export async function puertaVerificacion(
 
   const timeoutS = config.timeout_verificacion;
   const r = ejecutarVerificacion(o.cwd, comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
-  const huella = huellaDelArbol(o.cwd, comando, timeoutS);
+  // El memo solo con el arbol limpio: es la huella del commit que consulta el
+  // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
+  const limpio = isWorkspaceClean(o.cwd);
+  const huella = limpio ? huellaDelArbol(o.cwd, comando, timeoutS) : null;
   if (huella !== null) guardarMemo(o.cwd, huella, r);
   if (r.estado !== 'verde') {
     throw new FinishCommandError(
@@ -120,7 +123,7 @@ export async function puertaVerificacion(
         'lo deja anotado en la tarea.'
     );
   }
-  if (!isWorkspaceClean(o.cwd)) {
+  if (!limpio) {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: la verificacion salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
         `("${comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita el ` +

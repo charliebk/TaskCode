@@ -153,6 +153,14 @@ export function analizarComando(texto: string): OperacionMerge[] {
       continue;
     }
 
+    // `bash -c "..."`, `pwsh -Command "..."`, `cmd /c ...`: el texto interior se
+    // analiza igual (MEN-1 de la revision: es una forma frecuente en agentes).
+    const interior = textoDeShell(prog, seg);
+    if (interior !== null) {
+      ops.push(...analizarComando(interior));
+      continue;
+    }
+
     // `bash script.sh rama`, `sh ./script.sh rama` o el script a secas.
     let iScript = 0;
     if (SHELLS.has(prog)) {
@@ -173,6 +181,31 @@ export function analizarComando(texto: string): OperacionMerge[] {
     });
   }
   return ops;
+}
+
+/**
+ * El comando que un shell recibe como texto, o null si no es esa forma:
+ * `bash|sh|zsh|dash [opts] -c <texto>` (tambien `-lc`, `-ec`...),
+ * `powershell|pwsh [opts] -Command|-c <texto...>` y `cmd /c|/k <texto...>`.
+ */
+function textoDeShell(prog: string, seg: readonly string[]): string | null {
+  if (SHELLS.has(prog)) {
+    for (let i = 1; i < seg.length; i++) {
+      const a = seg[i] as string;
+      if (!a.startsWith('-')) return null;
+      if (/^-[a-z]*c[a-z]*$/i.test(a) && !a.startsWith('--')) return seg[i + 1] ?? null;
+    }
+    return null;
+  }
+  if (prog === 'powershell' || prog === 'pwsh') {
+    const i = seg.findIndex((a, j) => j > 0 && /^-(c|com|comm|comma|comman|command)$/i.test(a));
+    return i === -1 ? null : seg.slice(i + 1).join(' ');
+  }
+  if (prog === 'cmd') {
+    const i = seg.findIndex((a, j) => j > 0 && /^\/[ck]$/i.test(a));
+    return i === -1 ? null : seg.slice(i + 1).join(' ');
+  }
+  return null;
 }
 
 /** Argumentos que no son opciones (ni el valor de una), hasta `--`. */
@@ -208,5 +241,7 @@ function ramaDeCambio(args: readonly string[]): string | null {
     if (args.indexOf('--') < args.length - 1) return null;
     return posicionales(antes, CAMBIO_CON_VALOR)[0] ?? null;
   }
-  return posicionales(args, CAMBIO_CON_VALOR)[0] ?? null;
+  // `git checkout develop src/a.ts` (sin `--`) tambien restaura ficheros (MEN-2).
+  const pos = posicionales(args, CAMBIO_CON_VALOR);
+  return pos.length === 1 ? (pos[0] as string) : null;
 }

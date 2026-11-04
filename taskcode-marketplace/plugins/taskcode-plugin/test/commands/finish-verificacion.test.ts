@@ -166,6 +166,8 @@ test('finish (puerta): una verificacion verde que ensucia el arbol aborta con me
       /salio en verde, pero ha dejado cambios en el arbol de trabajo/
     );
     assert.equal(integradaEnDevelop(task.rama, repoRoot), false);
+    // MEN-3: con el arbol sucio no se guarda un memo que el guardian no casaria nunca.
+    assert.equal(existsSync(path.join(repoRoot, '.git', 'freno-verificacion.json')), false);
   });
 });
 

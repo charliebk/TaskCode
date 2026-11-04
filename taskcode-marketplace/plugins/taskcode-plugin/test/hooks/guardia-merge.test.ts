@@ -62,6 +62,33 @@ test('comando-merge: detecta merges, su destino por checkout/switch y los script
   assert.equal((analizarComando('git checkout develop -- f.txt && git merge x')[0] as { destino: null }).destino, null);
 });
 
+test('comando-merge (MEN-1): el texto de bash -c, pwsh -Command y cmd /c se analiza igual', () => {
+  const esperado = [{ tipo: 'merge', fuentes: ['feature/x'], destino: 'develop', dir: null }];
+  assert.deepEqual(analizarComando('bash -c "git checkout develop && git merge feature/x"'), esperado);
+  assert.deepEqual(analizarComando("bash -lc 'git checkout develop && git merge feature/x'"), esperado);
+  assert.deepEqual(analizarComando('powershell -NoProfile -Command "git checkout develop; git merge feature/x"'), esperado);
+  assert.deepEqual(analizarComando('pwsh -c "git switch develop; git merge feature/x"'), esperado);
+  assert.deepEqual(analizarComando('cmd /c "git checkout develop && git merge feature/x"'), esperado);
+  assert.deepEqual(analizarComando('bash -c "bash scripts/merge-fix-to-develop.sh fix/y"')[0], {
+    tipo: 'script',
+    script: 'merge-fix-to-develop.sh',
+    fuente: 'fix/y',
+    destinos: ['integracion'],
+  });
+  assert.deepEqual(analizarComando('bash -c "git status"'), []);
+  assert.deepEqual(analizarComando('bash -x scripts/merge-feature-to-develop.sh feature/x')[0], {
+    tipo: 'script',
+    script: 'merge-feature-to-develop.sh',
+    fuente: 'feature/x',
+    destinos: ['integracion'],
+  });
+});
+
+test('comando-merge (MEN-2): git checkout <rama> <fichero> sin -- restaura ficheros, no cambia de rama', () => {
+  assert.equal((analizarComando('git checkout develop src/a.ts && git merge develop')[0] as { destino: null }).destino, null);
+  assert.equal((analizarComando('git checkout develop && git merge x')[0] as { destino: string }).destino, 'develop');
+});
+
 test('comando-merge: lo que no es un merge nuevo no aparece', () => {
   for (const c of [
     'git status',
@@ -143,6 +170,7 @@ test('guardia: bloquea un merge hacia develop o main sin verde del commit que en
     assert.match(d.stderr, /--sin-verificacion/);
     assert.equal(decide(raiz, `cd . && git switch main && git merge ${RAMA}`).codigo, 2);
     assert.equal(decide(raiz, `bash scripts/gitflow/merge-feature-to-develop.sh ${RAMA} --develop develop`).codigo, 2);
+    assert.equal(decide(raiz, `bash -c "git checkout develop && git merge ${RAMA}"`).codigo, 2, 'MEN-1');
     // Estando ya en develop / main (la rama actual es el destino).
     git(['checkout', '-q', 'develop'], raiz);
     d = decide(raiz, `git merge ${RAMA}`);
