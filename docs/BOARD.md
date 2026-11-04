@@ -27,7 +27,7 @@ TASK-075  Contrapruebas de descubrimiento rotas por el validador de Claude Code 
 TASK-076  Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico  (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 58
+## Terminadas (04-terminadas) — 59
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -90,4 +90,5 @@ TASK-069  Spike: hooks Stop y PreToolUse de Claude Code en Windows/IntelliJ     
 TASK-070  Clave comando_verificacion en .taskcode/config.yml                                       charlie.bk@gmail.com
 TASK-071  Hook Stop: una tarea no se da por hecha con la verificacion en rojo                      charlie.bk@gmail.com
 TASK-072  Puerta de verificacion en finish y merge guard                                           charlie.bk@gmail.com
+TASK-077  Guardian de merges: opciones con valor antes de -c y doc de bash -c                      charlie.bk@gmail.com
 ```

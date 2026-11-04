@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [hooks]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-077-guardian-de-merges-opciones-con-valor-an
 asignado_a: charlie.bk@gmail.com
@@ -73,6 +73,7 @@ Coste de implementacion sin registrar: la hizo el orquestador sin subagentes.
 | 2026-11-04T20:36:27Z | start | automatico | persona |
 | 2026-11-04T20:53:50Z | review | automatico | persona |
 | 2026-11-04T21:15:31Z | review | automatico | persona |
+| 2026-11-04T21:19:29Z | finish | automatico | persona |
 
 ## Coste
 
