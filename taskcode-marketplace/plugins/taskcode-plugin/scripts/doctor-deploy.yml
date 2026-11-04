@@ -16,11 +16,31 @@
 #     proyecto hasta 3 carpetas de profundidad, sin node_modules, vendor, target,
 #     dist ni build.
 #
+# TIPOS DE APLICACION (aplicacion_N_*). Segundo eje, independiente del
+# lenguaje: que clase de aplicacion es (web, api, movil, cli, libreria).
+# "total_aplicaciones" dice cuantos hay.
+#   - id: identificador estable (el que se usa en "aplicaciones" de cada
+#     punto). No puede coincidir con un id de tipo_N_.
+#   - nombre: como se muestra.
+#   - marcadores: como en los tipos (nombre, extension o sufijo de ruta, hasta
+#     3 carpetas de profundidad).
+#   - contiene: opcional; lista de textos. Si esta, un fichero marcador solo
+#     cuenta si contiene alguno de ellos (sin distinguir mayusculas). Se leen
+#     solo los ficheros marcador, y uno de mas de 1 MB no cuenta. Ejemplo: un
+#     package.json cuenta como "cli" solo si contiene "bin".
+# Puede detectarse mas de un tipo a la vez. Si no se detecta ninguno, los
+# puntos que dependen del tipo de aplicacion siguen aplicando.
+#
 # PUNTOS (punto_N_*).
 #   - id: identificador estable, en minusculas y con guiones.
 #   - severidad: critica | alta | media | baja.
 #   - tipos: tipos a los que aplica, o "todos". Si ninguno de esos tipos se
 #     detecta, el punto sale NO APLICA con el motivo.
+#   - aplicaciones: opcional; tipos de aplicacion a los que aplica (sin la
+#     linea, a todos). Se combina con "tipos" con Y, y dentro de cada lista
+#     basta con uno. Solo sale NO APLICA por este eje si se detecto algun
+#     tipo de aplicacion y ninguno esta en la lista; el motivo dice cual se
+#     detecto y por que fichero.
 #   - metodo: "determinista" (lo comprueba el comando, con evidencia) o "juicio"
 #     (hace falta leer el codigo con criterio: sale NO VERIFICADO hasta entonces).
 #   - sonda: solo en los deterministas; nombre de la comprobacion registrada.
@@ -33,6 +53,7 @@
 # con su propio fichero de ajustes (ver la documentacion del comando).
 #
 total_tipos: 15
+total_aplicaciones: 8
 total_puntos: 43
 
 tipo_1_id: node
@@ -80,6 +101,42 @@ tipo_14_marcadores: [Dockerfile, docker-compose.yml, docker-compose.yaml, compos
 tipo_15_id: frontend
 tipo_15_nombre: Frontend web
 tipo_15_marcadores: [vite.config.js, vite.config.ts, next.config.js, next.config.mjs, next.config.ts, angular.json, svelte.config.js, nuxt.config.ts, astro.config.mjs, public/index.html]
+
+# --- Tipos de aplicacion -----------------------------------------------------
+# Ante la duda, un punto aplica: por eso web y api se detectan con generosidad
+# y cli y libreria solo con una senal explicita en el manifiesto.
+
+aplicacion_1_id: web
+aplicacion_1_nombre: Aplicacion web
+aplicacion_1_marcadores: [vite.config.js, vite.config.ts, next.config.js, next.config.mjs, next.config.ts, angular.json, svelte.config.js, nuxt.config.ts, nuxt.config.js, astro.config.mjs, remix.config.js, gatsby-config.js, public/index.html]
+aplicacion_2_id: api
+aplicacion_2_nombre: API o servicio web
+aplicacion_2_marcadores: [package.json, requirements.txt, pyproject.toml, Pipfile, pom.xml, build.gradle, build.gradle.kts, go.mod, Gemfile, composer.json, Cargo.toml, *.csproj, openapi.yaml, openapi.yml, openapi.json, swagger.yaml, swagger.json]
+aplicacion_2_contiene: ["\"express\"", "\"fastify\"", "\"koa\"", "\"@nestjs/core\"", "\"@hapi/hapi\"", "\"hono\"", flask, fastapi, django, spring-boot-starter-web, gin-gonic/gin, labstack/echo, gofiber/fiber, go-chi/chi, "gem \"rails\"", "gem 'rails'", sinatra, laravel/framework, symfony/framework-bundle, axum, actix-web, Microsoft.NET.Sdk.Web, "openapi:", "\"openapi\"", "swagger:", "\"swagger\""]
+aplicacion_3_id: android
+aplicacion_3_nombre: App Android
+aplicacion_3_marcadores: [AndroidManifest.xml, build.gradle, build.gradle.kts]
+aplicacion_3_contiene: [com.android.application, "<manifest"]
+aplicacion_4_id: ios
+aplicacion_4_nombre: App iOS
+aplicacion_4_marcadores: [project.pbxproj, Podfile]
+aplicacion_4_contiene: [iphoneos, "platform :ios"]
+aplicacion_5_id: flutter
+aplicacion_5_nombre: App Flutter
+aplicacion_5_marcadores: [pubspec.yaml]
+aplicacion_5_contiene: ["sdk: flutter"]
+aplicacion_6_id: react-native
+aplicacion_6_nombre: App React Native
+aplicacion_6_marcadores: [package.json, metro.config.js]
+aplicacion_6_contiene: ["\"react-native\"", "@react-native/"]
+aplicacion_7_id: cli
+aplicacion_7_nombre: Herramienta de linea de comandos
+aplicacion_7_marcadores: [package.json, Cargo.toml, pyproject.toml, setup.py, setup.cfg]
+aplicacion_7_contiene: ["\"bin\"", "[[bin]]", "[project.scripts]", "[tool.poetry.scripts]", console_scripts]
+aplicacion_8_id: libreria
+aplicacion_8_nombre: Libreria
+aplicacion_8_marcadores: [package.json, Cargo.toml, *.gemspec]
+aplicacion_8_contiene: ["\"exports\":", "\"peerDependencies\":", "[lib]", Gem::Specification]
 
 # --- Los 20 puntos de base ---------------------------------------------------
 
@@ -170,6 +227,7 @@ punto_10_referencia: OWASP Top 10 2025 A08; ASVS 5.0 V15
 punto_11_id: cookies-seguras
 punto_11_severidad: alta
 punto_11_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_11_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_11_metodo: juicio
 punto_11_arreglo: Marca las cookies de sesion con HttpOnly, Secure y SameSite (Lax o Strict) y limita su dominio y ruta.
 punto_11_descripcion: Las cookies de sesion llevan HttpOnly, Secure y SameSite.
@@ -186,6 +244,7 @@ punto_12_referencia: OWASP Top 10 2025 A04; ASVS 5.0 V11
 punto_13_id: rate-limits
 punto_13_severidad: alta
 punto_13_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_13_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_13_metodo: juicio
 punto_13_arreglo: Pon un limite de peticiones por IP y por cuenta, mas estricto en login, registro, recuperacion de contrasena y envio de correos.
 punto_13_descripcion: Los endpoints sensibles (login, registro, recuperacion, envios) tienen limite de peticiones.
@@ -194,6 +253,7 @@ punto_13_referencia: OWASP Top 10 2025 A06; ASVS 5.0 V2
 punto_14_id: proteccion-de-bots
 punto_14_severidad: media
 punto_14_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_14_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_14_metodo: juicio
 punto_14_arreglo: Anade un desafio (captcha o equivalente) en registro, login y formularios publicos, y limita la creacion automatica de cuentas.
 punto_14_descripcion: Los formularios publicos y el registro tienen proteccion contra bots.
@@ -234,6 +294,7 @@ punto_18_referencia: OWASP Top 10 2025 A06; ASVS 5.0 V5
 punto_19_id: limitar-respuestas-api
 punto_19_severidad: media
 punto_19_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_19_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_19_metodo: juicio
 punto_19_arreglo: Pagina las listas con un maximo, devuelve solo los campos necesarios (nunca el registro entero con hashes o campos internos) y limita el tamano de las respuestas.
 punto_19_descripcion: Las respuestas de la API estan paginadas y limitadas, y no exponen campos internos.
@@ -242,6 +303,7 @@ punto_19_referencia: OWASP Top 10 2025 A01; ASVS 5.0 V15
 punto_20_id: security-headers
 punto_20_severidad: alta
 punto_20_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend]
+punto_20_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_20_metodo: juicio
 punto_20_arreglo: Envia Content-Security-Policy, Strict-Transport-Security, X-Content-Type-Options, Referrer-Policy y una politica de frame-ancestors (o X-Frame-Options).
 punto_20_descripcion: Las respuestas web llevan las cabeceras de seguridad habituales.
@@ -250,6 +312,7 @@ punto_20_referencia: OWASP Top 10 2025 A02; ASVS 5.0 V3
 punto_21_id: https-obligatorio
 punto_21_severidad: alta
 punto_21_tipos: [node, python, java, dotnet, go, php, ruby, rust, frontend, docker]
+punto_21_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_21_metodo: juicio
 punto_21_arreglo: Sirve todo por HTTPS con un certificado valido, redirige HTTP a HTTPS y activa HSTS.
 punto_21_descripcion: Todo el trafico va cifrado en transito con HTTPS y HTTP redirige a HTTPS.
@@ -269,6 +332,7 @@ punto_22_referencia: OWASP Top 10 2025 A03; ASVS 5.0 V15
 punto_23_id: cors-restringido
 punto_23_severidad: alta
 punto_23_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_23_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_23_metodo: juicio
 punto_23_arreglo: Lista los origenes permitidos de forma explicita; nunca "*" con credenciales ni reflejar el origen recibido.
 punto_23_descripcion: La configuracion de CORS solo admite los origenes que deben llamar a la API.
@@ -277,6 +341,7 @@ punto_23_referencia: OWASP Top 10 2025 A02; ASVS 5.0 V3
 punto_24_id: proteccion-csrf
 punto_24_severidad: alta
 punto_24_tipos: [node, python, java, dotnet, go, php, ruby, rust]
+punto_24_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_24_metodo: juicio
 punto_24_arreglo: Usa tokens anti-CSRF o cookies SameSite en toda peticion que cambie estado y no cambies estado con GET.
 punto_24_descripcion: Las peticiones que cambian estado y usan cookies estan protegidas contra CSRF.
@@ -350,6 +415,7 @@ punto_32_referencia: OWASP Top 10 2025 A07; ASVS 5.0 V7
 punto_33_id: backups-y-migraciones
 punto_33_severidad: alta
 punto_33_tipos: [todos]
+punto_33_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_33_metodo: juicio
 punto_33_arreglo: Programa copias automaticas de la base de datos, prueba restaurarlas y versiona las migraciones para poder reproducir y deshacer los cambios de esquema.
 punto_33_descripcion: Hay copias de seguridad probadas y migraciones de esquema versionadas.
@@ -358,6 +424,7 @@ punto_33_referencia: OWASP Top 10 2025 A06; ASVS 5.0 V14
 punto_34_id: health-check
 punto_34_severidad: baja
 punto_34_tipos: [node, python, java, dotnet, go, php, ruby, rust, docker]
+punto_34_aplicaciones: [web, api, android, ios, flutter, react-native]
 punto_34_metodo: juicio
 punto_34_arreglo: Expon un endpoint de salud que no revele detalles internos y usalo en el orquestador y en la monitorizacion.
 punto_34_descripcion: El servicio tiene un health check que no revela informacion interna.

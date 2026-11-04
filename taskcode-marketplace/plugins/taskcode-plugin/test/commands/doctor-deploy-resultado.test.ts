@@ -374,7 +374,7 @@ test('--escribir con --resultado: el informe en .md y .json lleva los veredictos
       assert.match(md, /\| auth-en-servidor \| critica \| juicio \| agente \| OK \|/);
       assert.match(md, /Rechazado \(rls-activo\)/);
       const j = JSON.parse(await readFile(res.rutaJson as string, 'utf8')) as InformeDeploy;
-      assert.equal(j.version, 2);
+      assert.equal(j.version, 3);
       assert.equal(j.veredictos?.aceptados, 1);
       assert.equal(punto(j, PUNTO).origen, 'agente');
       assert.match(res.salida, /Veredictos del agente: 1 aceptado\(s\), 1 rechazado\(s\)/);

@@ -639,12 +639,12 @@ test('--json: una linea que pasa JSON.parse, con el contrato (version, commit, r
     assert.ok(r.salida.endsWith('\n'));
     assert.equal(r.salida.trim().split('\n').length, 1);
     const o = JSON.parse(r.salida) as Record<string, unknown>;
-    assert.equal(o['version'], 2);
+    assert.equal(o['version'], 3);
     assert.equal(o['comando'], 'doctor-deploy');
     assert.equal(o['commit'], git(['rev-parse', 'HEAD'], raiz));
     assert.equal(o['rama'], 'main');
     assert.equal(o['arbolSucio'], false);
-    assert.ok(Array.isArray(o['tipos']) && Array.isArray(o['puntos']) && Array.isArray(o['avisos']));
+    assert.ok(Array.isArray(o['tipos']) && Array.isArray(o['aplicaciones']) && Array.isArray(o['puntos']) && Array.isArray(o['avisos']));
     const resumen = o['resumen'] as Record<string, number>;
     assert.equal(resumen['ok']! + resumen['falla']! + resumen['noVerificado']! + resumen['noAplica']!, resumen['total']);
     const p = (o['puntos'] as Array<Record<string, unknown>>)[0] as Record<string, unknown>;
@@ -735,9 +735,9 @@ test('--escribir: informe con commit, rama, tipos y una fila por punto; sin comm
     // Sin restos temporales.
     const archivosInforme = (await readdir(path.join(raiz, 'docs', 'doctor-deploy'))).sort();
     assert.deepEqual(archivosInforme, ['2026-10-27-2.json', '2026-10-27-2.md', '2026-10-27.json', '2026-10-27.md']);
-    // TASK-067: el JSON de al lado es el mismo informe (v2), con el mismo commit.
+    // TASK-067: el JSON de al lado es el mismo informe (v3 desde TASK-068), con el mismo commit.
     const j = JSON.parse(await readFile(r1.rutaJson as string, 'utf8')) as InformeDeploy;
-    assert.equal(j.version, 2);
+    assert.equal(j.version, 3);
     assert.equal(j.commit, hash);
     assert.equal(j.puntos.length, TOTAL_PUNTOS);
     assert.ok(j.puntos.every((p) => p.origen === 'sonda'));

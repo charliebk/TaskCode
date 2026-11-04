@@ -11,8 +11,8 @@
  * - `no-verificado`: no se pudo comprobar (falta una herramienta, o el punto
  *   pide juicio). Dice que falta. NO cambia el codigo de salida, pero el
  *   resumen cuenta cuantos puntos quedaron sin verificar.
- * - `no-aplica`: el punto no corresponde a los tipos detectados (o el
- *   proyecto lo desactivo). Dice por que.
+ * - `no-aplica`: el punto no corresponde a los tipos detectados, de lenguaje
+ *   o de aplicacion (o el proyecto lo desactivo). Dice por que.
  *
  * `Evidencia` NO tiene campo para el valor crudo de un secreto: lo enmascara
  * quien la crea. El enmascarado de la salida final (segunda red) lo aplica el
@@ -67,9 +67,26 @@ export interface TipoDetectado {
   rutas: string[];
 }
 
+/** Fichero marcador que decidio un tipo de aplicacion (TASK-068). */
+export interface MarcadorAplicacion {
+  /** Ruta relativa a la raiz del repo. */
+  fichero: string;
+  /** El texto del catalogo que se encontro dentro del fichero; null si bastaba con que existiera. */
+  contiene: string | null;
+}
+
+/** Tipo de aplicacion detectado (web, api, cli...): el segundo eje, aparte de `tipos` (TASK-068). */
+export interface AplicacionDetectada extends TipoDetectado {
+  /** Los ficheros que lo decidieron, ordenados (como mucho unos pocos). */
+  marcadores: MarcadorAplicacion[];
+}
+
 export interface InformeDeploy {
-  /** Version del formato del JSON. v2 (TASK-067): `origen` por punto y `veredictos`. */
-  version: 2;
+  /**
+   * Version del formato del JSON. v2 (TASK-067): `origen` por punto y `veredictos`.
+   * v3 (TASK-068): `aplicaciones` (tipo de aplicacion detectado, con sus marcadores).
+   */
+  version: 3;
   comando: 'doctor-deploy';
   /** Fecha y hora de la ejecucion (ISO 8601 UTC). */
   fecha: string;
@@ -78,6 +95,8 @@ export interface InformeDeploy {
   /** true si habia cambios sin commitear al ejecutar. */
   arbolSucio: boolean;
   tipos: TipoDetectado[];
+  /** Tipos de aplicacion detectados; vacio si ninguno (entonces ningun punto sale NO APLICA por este eje). */
+  aplicaciones: AplicacionDetectada[];
   avisos: string[];
   puntos: ResultadoPunto[];
   /** Resumen de los veredictos del agente; null si no se paso `--resultado`. */
@@ -158,6 +177,18 @@ function textoTipos(tipos: readonly TipoDetectado[]): string {
   return tipos.map((t) => `${t.nombre} (${t.rutas.join(', ')})`).join('; ');
 }
 
+/** Un marcador de aplicacion en texto: `package.json contiene "bin"`, o solo la ruta. */
+export function textoMarcadorAplicacion(m: MarcadorAplicacion): string {
+  if (m.contiene === null) return m.fichero;
+  // Los textos del catalogo que ya llevan comillas (`"bin"`) se muestran tal cual.
+  return `${m.fichero} contiene ${m.contiene.startsWith('"') ? m.contiene : `"${m.contiene}"`}`;
+}
+
+function textoAplicaciones(apps: readonly AplicacionDetectada[]): string {
+  if (apps.length === 0) return 'ninguna (sin marcadores de tipo de aplicacion: los puntos que dependen de el aplican)';
+  return apps.map((a) => `${a.nombre} [${a.id}] (${a.marcadores.map(textoMarcadorAplicacion).join('; ')})`).join('; ');
+}
+
 /** Las tareas de `--crear-tareas` en texto: lo creado, lo reutilizado (y se dice) y las huerfanas. */
 export function lineasTareas(t: ResumenTareas): string[] {
   const l: string[] = [];
@@ -180,6 +211,7 @@ export function formatearTexto(informe: InformeDeploy): string {
   l.push('taskctl doctor-deploy');
   l.push(`Commit: ${informe.commit ?? '(sin commits)'}   Rama: ${informe.rama ?? '(desconocida)'}${informe.arbolSucio ? '   ARBOL SUCIO: lo comprobado puede no ser lo publicado' : ''}`);
   l.push(`Tipos detectados: ${textoTipos(informe.tipos)}`);
+  l.push(`Aplicacion detectada: ${textoAplicaciones(informe.aplicaciones)}`);
   for (const a of informe.avisos) l.push(`[AVISO] ${a}`);
   l.push('');
   for (const p of informe.puntos) {
@@ -211,7 +243,7 @@ export function formatearTexto(informe: InformeDeploy): string {
   return `${l.join('\n')}\n`;
 }
 
-/** Una sola linea de JSON (v2, TASK-067). */
+/** Una sola linea de JSON (v3, TASK-068). */
 export function formatearJson(informe: InformeDeploy): string {
   const resumen = resumir(informe.puntos);
   return `${JSON.stringify({ ...informe, resumen, codigo: codigoSalida(informe.puntos) })}\n`;
@@ -239,6 +271,7 @@ export function formatearInforme(informe: InformeDeploy): string {
     `- Arbol de trabajo: ${informe.arbolSucio ? 'SUCIO (habia cambios sin commitear: este informe puede no describir lo que se publica)' : 'limpio'}`
   );
   l.push(`- Tipos detectados: ${textoTipos(informe.tipos)}`);
+  l.push(`- Aplicacion detectada: ${textoAplicaciones(informe.aplicaciones)}`);
   l.push(`- ${textoResumen(r)}`);
   l.push(`- Codigo de salida: ${codigoSalida(informe.puntos)}`);
   if (informe.tareas !== null) {
