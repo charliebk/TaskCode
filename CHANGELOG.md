@@ -23,7 +23,9 @@ Puerta de verificacion en finish y guardian de merges (TASK-072).
 - **Hook `PreToolUse`** (sustituye a la sonda de TASK-069, ya sin filtro `if`): bloquea un
   `git merge` o un script `merge-*-to-*.sh` hacia la rama de integracion (`rama_base`) o la
   principal si no consta un verde guardado del commit que entra, y remite a `taskctl finish`.
-  El destino sale del texto (`git checkout develop && git merge x`) o de la rama actual. Deja
+  El destino sale del texto (`git checkout develop && git merge x`) o de la rama actual. El
+  texto de `bash -c`, `pwsh -Command` y `cmd /c` se analiza igual (TASK-077: tambien con
+  opciones con valor delante, como `bash -o pipefail -c`). Deja
   pasar lecturas, `merge --abort|--continue|--quit`, `merge-base`, merges hacia ramas de
   trabajo y lo ya integrado (el backmerge de un hotfix que ya esta en main). Corre antes de cada
   comando Bash/PowerShell, pero sin `merge` en el texto sale sin cargar nada; nunca ejecuta la
