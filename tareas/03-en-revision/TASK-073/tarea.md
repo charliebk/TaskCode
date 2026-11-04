@@ -42,6 +42,7 @@ Freno 7 de brakes: tests de aceptacion que la persona escribe a partir de los cr
 | 2026-11-04T22:02:54Z | approve | automatico | persona |
 | 2026-11-04T22:02:55Z | start | automatico | persona |
 | 2026-11-04T22:45:53Z | review | automatico | persona |
+| 2026-11-04T23:32:22Z | review | automatico | persona |
 
 ## Coste
 
