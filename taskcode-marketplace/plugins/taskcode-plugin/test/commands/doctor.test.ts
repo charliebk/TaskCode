@@ -297,6 +297,41 @@ test('config con una clave desconocida: aviso (no error) que la nombra, codigo 0
   });
 });
 
+test('verificacion (TASK-070): sin comando_verificacion, omitida con el arreglo en la misma linea; no cambia avisos ni codigo', async () => {
+  await conRepo(async (repoRoot) => {
+    const r = doctor(repoRoot);
+    const c = por(r.comprobaciones, 'verificacion');
+    assert.equal(c.nivel, 'omitida');
+    assert.equal(c.arreglo, null);
+    assert.match(c.mensaje, /sin comando_verificacion[\s\S]*declara en \.taskcode\/config\.yml: comando_verificacion: "<tu comando de tests>"/);
+    const lineas = r.salida.split('\n').filter((l) => l.includes('comando_verificacion'));
+    assert.equal(lineas.length, 1, r.salida);
+    assert.match(lineas[0] as string, /declara en \.taskcode\/config\.yml/);
+    assert.equal(r.codigo, 0, niveles(r.comprobaciones));
+  });
+});
+
+test('verificacion (TASK-070): con comando_verificacion, ok con el comando y el timeout', async () => {
+  await conRepo(async (repoRoot) => {
+    await config(repoRoot, 'comando_verificacion: "npm test"\ntimeout_verificacion: 900\n');
+    const r = doctor(repoRoot);
+    const c = por(r.comprobaciones, 'verificacion');
+    assert.equal(c.nivel, 'ok');
+    assert.equal(c.mensaje, 'comando_verificacion: "npm test" (timeout 900 s)');
+  });
+});
+
+test('verificacion (TASK-070): con la config rota, omitida; un timeout invalido es error de config', async () => {
+  await conRepo(async (repoRoot) => {
+    await config(repoRoot, 'comando_verificacion: npm test\ntimeout_verificacion: 0\n');
+    const r = doctor(repoRoot);
+    assert.equal(por(r.comprobaciones, 'config').nivel, 'error');
+    assert.match(por(r.comprobaciones, 'config').mensaje, /timeout_verificacion/);
+    assert.equal(por(r.comprobaciones, 'verificacion').nivel, 'omitida');
+    assert.equal(r.codigo, 1);
+  });
+});
+
 test('doctor no escribe los avisos de la config en stderr (los da en su salida)', async () => {
   await conRepo(async (repoRoot) => {
     await config(repoRoot, 'clave_rara: 1\n');
