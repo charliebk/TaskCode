@@ -49,8 +49,11 @@ export function ejecutarVerificacion(
     bytesTotales: r.bytesTotales,
   };
   if (fueCortado(r)) {
-    const cola = r.salida.endsWith(MARCA_TIMEOUT) ? r.salida.slice(0, -MARCA_TIMEOUT.length) : r.salida;
-    return { ...base, estado: 'cortada', codigo: null, cola };
+    // La marca es del envoltorio, no del comando: fuera de la cola y de la cuenta de bytes.
+    const conMarca = r.salida.endsWith(MARCA_TIMEOUT);
+    const cola = conMarca ? r.salida.slice(0, -MARCA_TIMEOUT.length) : r.salida;
+    const bytesTotales = conMarca ? Math.max(0, r.bytesTotales - Buffer.byteLength(MARCA_TIMEOUT)) : r.bytesTotales;
+    return { ...base, bytesTotales, estado: 'cortada', codigo: null, cola };
   }
   if (r.error !== undefined) {
     return { ...base, estado: 'no-lanzable', codigo: null, cola: r.salida, error: r.error.message };

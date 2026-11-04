@@ -16,7 +16,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { decidirStop, MARGEN_HOOK_S, TECHO_HOOK_S, parsearEntrada } from '../../src/hooks/freno-stop.js';
+import { decidirStop, MARGEN_HOOK_S, TECHO_HOOK_S, parsearEntrada, timeoutEfectivoS } from '../../src/hooks/freno-stop.js';
+import { describirResultado, recortarCola, type ResultadoVerificacion } from '../../src/core/informe-verificacion.js';
 import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { git, sampleTask } from '../helpers/finish-fixtures.js';
 
@@ -24,13 +25,15 @@ const RAIZ_PLUGIN = path.join(import.meta.dirname, '..', '..', '..');
 const ENTRADA_HOOK = path.join(RAIZ_PLUGIN, 'dist', 'src', 'hooks', 'stop-verificacion.js');
 const RAMA = 'feature/task-071-freno';
 
-/** Lo que hace el script segun el fichero de desenlace: ok, ko, lento, ruido. */
+/** Lo que hace el script segun el fichero de desenlace: ok, ko, lento, lento-hablando, ensucia, ruido. */
 const SCRIPT = `
 const fs = require('node:fs');
 const d = fs.readFileSync(process.env.VERIF_DESENLACE, 'utf8').trim();
 fs.appendFileSync(process.env.VERIF_DESENLACE + '.cuenta', 'x');
 if (d === 'ok') { console.log('todo en verde'); process.exit(0); }
 if (d === 'lento') { setTimeout(() => {}, 60000); }
+else if (d === 'lento-hablando') { console.log('hola'); setTimeout(() => {}, 60000); }
+else if (d === 'ensucia') { fs.writeFileSync('cobertura.txt', String(Date.now())); process.exit(1); }
 else if (d === 'ruido') {
   for (let i = 0; i < 5000; i++) console.log('\\u001b[31mlinea ' + i + ' con ñ y € y emoji 🚀\\u001b[0m');
   console.error('fallo final: https://usuario:secreto@git.example.com/repo.git');
@@ -253,6 +256,17 @@ test('freno: memo por huella — mismo arbol no vuelve a ejecutar, un cambio si'
       assert.equal(r.ejecuciones(), 2, 'rojo memorizado');
       assert.match(otra.stderr, /resultado guardado de la ultima verificacion/);
       assert.match(otra.stderr, /salio con codigo 3/);
+      // IMP-1: misma ruta sucia con OTRO contenido tambien invalida el memo
+      // (la huella mira el contenido, no solo la lista de rutas).
+      await writeFile(path.join(r.raiz, 'nuevo.txt'), 'contenido distinto', 'utf8');
+      assert.equal((await decidir(r)).codigo, 0);
+      assert.equal(r.ejecuciones(), 3, 'el cambio de contenido reejecuta');
+      // MEN-7: un memo de otra version no se reutiliza.
+      const rutaMemo = path.join(r.raiz, '.git', 'freno-verificacion.json');
+      const memo = JSON.parse(readFileSync(rutaMemo, 'utf8')) as { version: number };
+      await writeFile(rutaMemo, JSON.stringify({ ...memo, version: 0 }), 'utf8');
+      assert.equal((await decidir(r)).codigo, 0);
+      assert.equal(r.ejecuciones(), 4, 'memo de otra version ignorado');
       // El memo no ensucia el arbol: vive bajo .git/.
       assert.equal(git(['status', '--porcelain', '--', '.taskcode', 'tareas', 'scripts'], r.raiz), '');
       assert.ok(existsSync(path.join(r.raiz, '.git', 'freno-verificacion.json')));
@@ -310,4 +324,73 @@ test('freno: hooks.json declara el Stop en forma exec, con el tope que usa el co
   assert.equal(stop.timeout, TECHO_HOOK_S);
   assert.ok(existsSync(ENTRADA_HOOK), 'el punto de entrada existe compilado en dist/src');
   assert.doesNotMatch(j.description, /taskcode|TASK-\d/i);
+});
+
+test('freno (IMP-2): el timeout efectivo nunca supera el tope del hook menos el margen', () => {
+  assert.equal(TECHO_HOOK_S - MARGEN_HOOK_S, 3540, 'con 3600 s de hook quedan 60 s para escribir el informe');
+  assert.deepEqual(timeoutEfectivoS(99999), { timeoutS: 3540, recortado: true });
+  assert.deepEqual(timeoutEfectivoS(3541), { timeoutS: 3540, recortado: true });
+  assert.deepEqual(timeoutEfectivoS(3540), { timeoutS: 3540, recortado: false });
+  assert.deepEqual(timeoutEfectivoS(600), { timeoutS: 600, recortado: false });
+  assert.deepEqual(timeoutEfectivoS(1), { timeoutS: 1, recortado: false });
+});
+
+test('freno (MEN-1): un corte con salida corta no se rotula como truncado', async () => {
+  await conRepo((r) =>
+    conDesenlace(r, async () => {
+      await writeFile(r.desenlace, 'lento-hablando', 'utf8');
+      const d = await decidir(r, {}, { timeoutMs: 1500 });
+      assert.equal(d.codigo, 2);
+      assert.match(d.stderr, /se ha cortado/);
+      assert.match(d.stderr, /Salida:\n {4}hola/);
+      assert.doesNotMatch(d.stderr, /truncada/);
+    })
+  );
+});
+
+test('freno (MEN-2): una tarea en curso ilegible no frena, pero se avisa', async () => {
+  await conRepo((r) =>
+    conDesenlace(r, async () => {
+      await writeFile(r.desenlace, 'ko', 'utf8');
+      await writeFile(path.join(r.raiz, 'tareas', '02-en-curso', 'TASK-071', 'tarea.md'), '---\nid: [\n---\n', 'utf8');
+      const d = await decidir(r);
+      assert.equal(d.codigo, 0);
+      assert.match(d.stderr, /no se pudo leer tareas[\\/]02-en-curso[\\/]TASK-071[\\/]tarea\.md/);
+      assert.equal(r.ejecuciones(), 0);
+    })
+  );
+});
+
+test('freno (MEN-7): si la propia verificacion ensucia el arbol, el informe lo avisa', async () => {
+  await conRepo((r) =>
+    conDesenlace(r, async () => {
+      await writeFile(r.desenlace, 'ensucia', 'utf8');
+      const d = await decidir(r);
+      assert.equal(d.codigo, 2);
+      assert.match(d.stderr, /La propia verificacion ha cambiado ficheros del arbol de trabajo/);
+    })
+  );
+});
+
+test('informe (MEN-7): recortarCola no parte caracteres multibyte en una linea larga', () => {
+  const { texto, recortada } = recortarCola('€'.repeat(3000), 4096, 40);
+  assert.equal(recortada, true);
+  assert.ok(!texto.includes('�'), 'sin caracteres partidos');
+  assert.ok(Buffer.byteLength(texto, 'utf8') <= 4096);
+  assert.equal(Buffer.byteLength(texto, 'utf8') % 3, 0, 'solo euros enteros');
+});
+
+test('informe (MEN-5): una muerte sin codigo no se describe como «codigo null»', () => {
+  const base: ResultadoVerificacion = {
+    estado: 'roja',
+    comando: 'x',
+    codigo: null,
+    duracionMs: 1,
+    timeoutS: 1,
+    cola: '',
+    bytesTotales: 0,
+    error: 'senal SIGKILL',
+  };
+  assert.equal(describirResultado(base), 'termino de forma anormal (senal SIGKILL)');
+  assert.equal(describirResultado({ ...base, codigo: 1 }), 'salio con codigo 1');
 });

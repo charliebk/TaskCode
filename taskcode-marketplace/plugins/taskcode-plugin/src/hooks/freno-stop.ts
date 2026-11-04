@@ -63,6 +63,18 @@ export interface DepsFreno {
 
 const DEJAR_PARAR: DecisionStop = Object.freeze({ codigo: 0, stderr: '' });
 
+/**
+ * Segundos que se le dan a la verificacion: `timeout_verificacion`, pero nunca
+ * mas que el `timeout` del hook menos el margen. Si el hook agotara el suyo,
+ * Claude Code descartaria el informe y el freno fallaria abierto.
+ */
+export function timeoutEfectivoS(timeoutVerificacion: number): { timeoutS: number; recortado: boolean } {
+  const techo = TECHO_HOOK_S - MARGEN_HOOK_S;
+  return timeoutVerificacion > techo
+    ? { timeoutS: techo, recortado: true }
+    : { timeoutS: timeoutVerificacion, recortado: false };
+}
+
 /** El directorio de tareas en curso, si existe. Sin procesos. */
 function carpetaEnCurso(raiz: string): string | null {
   const dir = path.join(raiz, 'tareas', '02-en-curso');
@@ -97,10 +109,21 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
     raiz = raizDelRepo(entrada.cwd);
     const dir = carpetaEnCurso(raiz);
     if (dir === null) return DEJAR_PARAR;
-    const { tareas } = await listTareasEnEstados(path.join(raiz, 'tareas'), ['en-curso']);
+    const { tareas, ilegibles } = await listTareasEnEstados(path.join(raiz, 'tareas'), ['en-curso']);
     const ramas = new Set(tareas.map((t) => t.task.rama).filter((r): r is string => typeof r === 'string' && r !== ''));
     ids = tareas.map((t) => t.task.id);
-    if (ramas.size === 0) return DEJAR_PARAR;
+    if (ramas.size === 0 && ilegibles.length === 0) return DEJAR_PARAR;
+    // Una tarea en curso ilegible podria ser la de esta rama: el freno no la
+    // ve. No se bloquea (no se sabe si aplica), pero tampoco se calla.
+    const sinLeer: DecisionStop =
+      ilegibles.length === 0
+        ? DEJAR_PARAR
+        : {
+            codigo: 0,
+            stderr:
+              `Aviso: no se pudo leer ${ilegibles.map((f) => path.relative(raiz, f)).join(', ')}. Si es la tarea ` +
+              'en curso de esta rama, el freno de verificacion no la ve: corrige su frontmatter.',
+          };
 
     // 5: un readFile.
     try {
@@ -113,7 +136,7 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
 
     // 6: el unico git hasta aqui.
     rama = ramaActual(raiz);
-    if (rama === null || !ramas.has(rama)) return DEJAR_PARAR;
+    if (rama === null || !ramas.has(rama)) return sinLeer;
     ids = tareas.filter((t) => t.task.rama === rama).map((t) => t.task.id);
   } catch {
     // Algo inesperado ANTES de saber si el freno aplica (tareas ilegibles,
@@ -134,13 +157,12 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       };
     }
     const comando = config.comando_verificacion as string;
-    const techo = TECHO_HOOK_S - MARGEN_HOOK_S;
-    const timeoutS = Math.min(config.timeout_verificacion, techo);
+    const { timeoutS, recortado } = timeoutEfectivoS(config.timeout_verificacion);
     const avisos: string[] = [];
-    if (config.timeout_verificacion > techo) {
+    if (recortado) {
       avisos.push(
         `timeout_verificacion pide ${String(config.timeout_verificacion)} s, pero este freno tiene un tope de ` +
-          `${String(techo)} s: se ha usado el tope.`
+          `${String(timeoutS)} s: se ha usado el tope.`
       );
     }
 

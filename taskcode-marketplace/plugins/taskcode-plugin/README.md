@@ -607,7 +607,12 @@ caso sale 0 sin lanzar ningún proceso (ni `git`). Cuando actúa:
   (HEAD, comando, timeout y contenido de lo que no está limpio) en
   `.git/freno-verificacion.json`. Con la misma huella no se vuelve a ejecutar:
   un verde deja terminar y un rojo repite el informe, diciendo que es el
-  guardado. Cualquier cambio en el árbol lo invalida.
+  guardado. Cualquier cambio en el árbol lo invalida, salvo en ficheros
+  ignorados por `.gitignore` (la huella sale de `git status`): si lo único que
+  cambia es un ignorado (`.env.local`), cambia algo versionado o ejecuta el
+  comando a mano.
+- Una tarea de `02-en-curso` con el `tarea.md` ilegible no frena (no se sabe si
+  es la de esta rama), pero el hook la nombra en un aviso.
 - **Tope**: el `timeout` del hook es 3600 s, y Claude Code descarta la salida
   de un hook que lo agota (el freno no frenaría). Por eso la verificación se
   corta a `min(timeout_verificacion, 3540)` s, avisando si se recorta.

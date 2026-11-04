@@ -18,11 +18,13 @@ verificacion en rojo.
   hook sale 0 sin lanzar ningun proceso. Se apaga con `FRENO_VERIFICACION=0`.
 - En rojo (o cortada, o config invalida) sale con 2 y le devuelve el turno al agente con el
   comando, el codigo, la duracion y el final de la salida (40 lineas / 4 KiB, sin ANSI ni
-  credenciales). Un solo disparo por turno (`stop_hook_active`).
+  credenciales en URLs; otros secretos que imprima el comando no se filtran). Un solo disparo
+  por turno (`stop_hook_active`).
 - Memo por huella del arbol en `.git/freno-verificacion.json`: sin cambios, no se vuelve a
   ejecutar la suite. Tope de 3540 s por debajo del `timeout` de 3600 s del hook.
 - El envoltorio que ejecuta comandos con tope y mata el arbol pasa a
-  `fs/ejecucion-acotada.ts`, compartido con la sincronizacion (sin cambio de comportamiento).
+  `fs/ejecucion-acotada.ts`, compartido con la sincronizacion. Unico cambio: al cortar por
+  timeout deja de reenviar la salida del comando, para que la marca del corte sea lo ultimo.
 - El `PreToolUse` sigue siendo la sonda inerte de TASK-069 hasta TASK-072.
 
 Comando de verificacion declarado (TASK-070), primer paso de los frenos de verificacion.

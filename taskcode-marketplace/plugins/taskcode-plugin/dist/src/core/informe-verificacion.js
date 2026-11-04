@@ -45,7 +45,9 @@ export function describirResultado(r) {
         case 'verde':
             return 'salio con codigo 0';
         case 'roja':
-            return `salio con codigo ${String(r.codigo)}`;
+            return r.codigo === null
+                ? `termino de forma anormal${r.error === undefined ? '' : ` (${r.error})`}`
+                : `salio con codigo ${String(r.codigo)}`;
         case 'cortada':
             return `no termino en ${String(r.timeoutS)} s y se ha cortado (con todos sus procesos)`;
         case 'no-lanzable':
