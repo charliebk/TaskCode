@@ -43,6 +43,7 @@ Diferido de TASK-066 y TASK-067 por decision de la persona. Que un punto aplique
 | 2026-11-03T12:11:18Z | approve | automatico | automatico |
 | 2026-11-03T13:35:58Z | start | automatico | persona |
 | 2026-11-04T10:11:08Z | review | automatico | persona |
+| 2026-11-04T11:35:23Z | review | automatico | persona |
 
 ## Coste
 
