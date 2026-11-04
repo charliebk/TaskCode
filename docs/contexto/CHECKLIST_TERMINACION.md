@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 80 / 86 items terminados (93%)** · última actualización: 2026-11-04
+**Progreso global: 81 / 87 items terminados (93%)** · última actualización: 2026-11-04
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -35,7 +35,7 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
-| K — Frenos de verificación con hooks | 6 | **4** | — |
+| K — Frenos de verificación con hooks | 7 | **5** | — |
 | L — Mantenimiento | 2 | **0** | — |
 | **Total pendiente** | **4** | — | — |
 
@@ -873,7 +873,7 @@ aviso en release (B).
       variantes de Dockerfile/compose, huella por paso en pr-target);
       MEN-3, 5, 6, 7 y 8 aceptados.*
 
-## K — Frenos de verificación con hooks (4/6)
+## K — Frenos de verificación con hooks (5/7)
 
 Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
 usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
@@ -916,7 +916,13 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       scripts de cierre hacia `rama_base`/main sin verde guardado del commit
       fuente; analiza compuestos y `bash -c`/`pwsh -Command`. Decisiones de
       Carlos D1–D4. Smoke con `claude -p` real. 2 rondas: MEN-1..3 corregidos;
-      MEN-4 (`bash -o pipefail -c`) aceptado.*
+      MEN-4 (`bash -o pipefail -c`) aceptado y resuelto en TASK-077.*
+- [x] TASK-077 — Guardián de merges: opciones con valor antes de `-c` y doc de
+      `bash -c` — cerrada el 2026-11-04
+      *Seguimiento de TASK-072: helper `opcionesDeShell` (una regla para `-c` y
+      para el script de cierre; un valor por cada `o`/`O` del grupo, `--rcfile`,
+      `--init-file`); texto de `-c` = primer no-opción. README y CHANGELOG. 2
+      rondas: MEN-1 (`-oc`) y MEN-2 (test de `+c`) corregidos.*
 - [ ] TASK-073 — Tests held-out por tarea
 - [ ] TASK-074 — Cobertura sobre las líneas cambiadas
 
