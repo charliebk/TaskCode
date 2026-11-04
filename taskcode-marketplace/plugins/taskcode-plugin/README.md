@@ -664,11 +664,17 @@ la carpeta y `timeout_verificacion` como tope. Aborta, sin mergear:
 - si no salen en verde, mostrando **solo** comando, código y duración: la salida
   de un test suele llevar sus aserciones, y la lee el agente;
 - si la rama los ha **editado, añadido o borrado** respecto a la rama base (se
-  compara el árbol de Git de `aceptacion/`), o los trae sin estar en la base;
+  compara el árbol de Git de `aceptacion/`, esté en el estado que esté), o los
+  trae sin estar en la base; el mensaje da las órdenes para restaurarlos en su
+  ruta. Si quien los cambió fue la base (la persona los corrigió después de
+  `start`), pide integrarla en la rama (`git merge <base>`);
+- si hay una carpeta `Aceptacion/` con otras mayúsculas;
 - si la tarea tiene `aceptacion/` y la config no declara `comando_heldout`;
 - si en verde dejan el árbol sucio.
 
-`--sin-verificacion` no los salta. Sin `aceptacion/` (ni en la rama ni en la
+La rama base es la de integración, salvo en un hotfix, que nace de la principal.
+`comando_heldout` y su timeout se leen de la config **de la rama base**: la rama de
+la tarea no puede cambiar cómo se ejecutan. `--sin-verificacion` no los salta. Sin `aceptacion/` (ni en la rama ni en la
 base) no hay puerta. La petición de revisión excluye siempre
 `tareas/*/TASK-*/aceptacion/**`, aunque se cambie `excluir_de_revision`: el
 revisor no los lee. Que queden fuera de `comando_verificacion`, o el freno de

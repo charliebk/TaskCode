@@ -5,10 +5,14 @@ tarea y que el agente que la implementa no debe ver.
 
 ## Cuando y donde se escriben
 
-- En la carpeta `aceptacion/` de la tarea.
+- En la carpeta `aceptacion/` de la tarea (en minusculas: `Aceptacion/` aborta).
 - **En la rama base y durante el diseno, antes de `start`**: la rama de la
-  tarea nace con ellos y no aparecen en su diff. Commitealos en la rama base.
-- Se ejecutan con `comando_heldout` de `.taskcode/config.yml`, que recibe la
+  tarea nace con ellos y no aparecen en su diff. Commitealos en la rama base
+  (la principal en un hotfix, que nace de ella).
+- Si la persona los corrige despues de `start`, `finish` pide integrar la rama
+  base en la de la tarea (`git merge <base>`).
+- Se ejecutan con `comando_heldout` de `.taskcode/config.yml` de la rama base
+  (la rama de la tarea no puede cambiarlo), que recibe la
   ruta absoluta de la carpeta en `HELDOUT_DIR` (cwd en la raiz del repo, tope
   `timeout_verificacion`).
 - Deben quedar fuera de `comando_verificacion` (que el glob de tests del

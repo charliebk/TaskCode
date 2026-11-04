@@ -17,6 +17,10 @@ export const VARIABLE_HELDOUT = 'HELDOUT_DIR';
  * proyecto cambie `excluir_de_revision`: el diff no puede llevar los held-out.
  */
 export const EXCLUIR_HELDOUT = `tareas/*/TASK-*/${CARPETA_HELDOUT}/**`;
+/** El ID escapado para meterlo en una expresion regular. */
+function escaparId(id) {
+    return id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 /**
  * Carpetas `tareas/<estado>/<id>/aceptacion` que aparecen en una lista de
  * rutas de fichero relativas a la raiz (las de `git ls-tree -r --name-only`),
@@ -24,11 +28,26 @@ export const EXCLUIR_HELDOUT = `tareas/*/TASK-*/${CARPETA_HELDOUT}/**`;
  * si la rama base la recibio despues de que la rama moviera la tarea.
  */
 export function carpetasHeldout(rutas, id) {
-    const prefijo = new RegExp(`^(tareas/[^/]+/${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/${CARPETA_HELDOUT})/`);
+    const prefijo = new RegExp(`^(tareas/[^/]+/${escaparId(id)}/${CARPETA_HELDOUT})/`);
     const vistas = new Set();
     for (const r of rutas) {
         const m = prefijo.exec(r);
         if (m !== null)
+            vistas.add(m[1]);
+    }
+    return [...vistas];
+}
+/**
+ * Carpetas de la tarea cuyo nombre es `aceptacion` con OTRAS mayusculas
+ * (`Aceptacion/`): no se tomarian por held-out, y en NTFS o macOS es un error
+ * facil (MEN-3 de la revision). `finish` aborta si aparece alguna.
+ */
+export function variantesHeldout(rutas, id) {
+    const re = new RegExp(`^(tareas/[^/]+/${escaparId(id)}/([^/]+))/`);
+    const vistas = new Set();
+    for (const r of rutas) {
+        const m = re.exec(r);
+        if (m !== null && m[2] !== CARPETA_HELDOUT && m[2].toLowerCase() === CARPETA_HELDOUT)
             vistas.add(m[1]);
     }
     return [...vistas];

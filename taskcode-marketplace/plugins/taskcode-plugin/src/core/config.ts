@@ -588,9 +588,10 @@ function validarSincronizacionCompleta(ruta: string, vistas: ReadonlySet<string>
 
 /** TASK-070: el timeout de verificacion sin su comando no hace nada, como el de sincronizacion. */
 function validarVerificacionCompleta(ruta: string, vistas: ReadonlySet<string>): void {
-  if (vistas.has('timeout_verificacion') && !vistas.has('comando_verificacion')) {
+  // TASK-073: el timeout tambien es el de comando_heldout.
+  if (vistas.has('timeout_verificacion') && !vistas.has('comando_verificacion') && !vistas.has('comando_heldout')) {
     throw new ConfigError(
-      `[ERROR] ${ruta}: "timeout_verificacion" sin "comando_verificacion" no hace nada.
+      `[ERROR] ${ruta}: "timeout_verificacion" sin "comando_verificacion" ni "comando_heldout" no hace nada.
 ` +
         '        Borrala, o declara tambien el comando (por ejemplo comando_verificacion: "npm test").'
     );
