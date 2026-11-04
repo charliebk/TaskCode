@@ -29,6 +29,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseBloqueClaveValor } from './frontmatter.js';
+import { PATRONES_REGLAS_SIN_HUELLA } from './doctor-deploy-reglas.js';
 export class DoctorDeployCatalogoError extends Error {
     constructor(message) {
         super(message);
@@ -37,7 +38,11 @@ export class DoctorDeployCatalogoError extends Error {
 }
 export const SEVERIDADES = ['critica', 'alta', 'media', 'baja'];
 export const METODOS = ['determinista', 'juicio'];
-/** Comprobaciones deterministas que existen en el codigo (`fs/sondas-deploy.ts`). */
+/**
+ * Comprobaciones deterministas que existen en el codigo (`fs/sondas-deploy.ts` y, las de
+ * configuracion de TASK-068, `fs/sondas-deploy-config.ts`). Es la fuente de verdad: el
+ * registro `SONDAS` se tipa con estos nombres y no compila si no coinciden.
+ */
 export const SONDAS_REGISTRADAS = [
     'secretos-arbol',
     'secretos-historial',
@@ -45,7 +50,24 @@ export const SONDAS_REGISTRADAS = [
     'gitignore-env',
     'lockfile',
     'dependencias',
+    'reglas-firebase',
+    'migraciones-rls',
+    'tokens-gestor',
+    'compose-contrasenas',
+    'ci-pull-request-target',
+    'acciones-sin-sha',
+    'dockerfile-user',
 ];
+/** true si `sonda` es una comprobacion registrada. */
+export function esSondaRegistrada(sonda) {
+    return SONDAS_REGISTRADAS.includes(sonda);
+}
+/**
+ * Patrones de silencio cuyo hallazgo no tiene valor ni huella (es del fichero entero):
+ * un silencio de estos vale solo con patron + fichero. Para el resto, un silencio sin
+ * commit exige la huella (D3: no tapar un hallazgo nuevo del mismo patron y fichero).
+ */
+export const PATRONES_SIN_HUELLA = ['fichero-secreto', ...PATRONES_REGLAS_SIN_HUELLA];
 /** Valor de `tipos` que significa «aplica siempre». */
 export const TIPO_TODOS = 'todos';
 export const FICHERO_CATALOGO_DEPLOY = 'doctor-deploy.yml';
@@ -198,7 +220,7 @@ function construirPunto(bloque, n, ruta, origen, idsDeTipo, idsDeAplicacion, fal
             throw fallar(`[ERROR] ${ruta}:${cMetodo.numeroLinea}: "${p}_metodo: determinista" exige "${p}_sonda".`);
         }
         sonda = texto(cSonda, `${p}_sonda`, ruta, fallar);
-        if (!SONDAS_REGISTRADAS.includes(sonda)) {
+        if (!esSondaRegistrada(sonda)) {
             throw fallar(`[ERROR] ${ruta}:${cSonda.numeroLinea}: "${p}_sonda" vale "${sonda}", que no es una comprobacion registrada. ` +
                 `Las que hay: ${SONDAS_REGISTRADAS.join(', ')}. Para algo distinto usa "${p}_metodo: juicio".`);
         }
@@ -424,8 +446,10 @@ export function parsearCapaProyecto(contenido, ruta, base) {
             }
         }
         // D3: un silencio es POR HALLAZGO. Sin commit solo vale para el arbol, y ahi se ata a la huella
-        // del valor: asi no tapa otra clave nueva del mismo patron en el mismo fichero.
-        if (commit === null && huella === null && patron !== 'fichero-secreto') {
+        // del valor: asi no tapa otra clave nueva del mismo patron en el mismo fichero. Los hallazgos
+        // que son del fichero entero (PATRONES_SIN_HUELLA: fichero-secreto, dockerfile-sin-user,
+        // pr-target-checkout) no tienen huella y valen con patron + fichero (TASK-068).
+        if (commit === null && huella === null && !PATRONES_SIN_HUELLA.includes(patron)) {
             throw fallar(`[ERROR] ${ruta}: silenciar_${n} exige "silenciar_${n}_commit" (hallazgo del historial) o "silenciar_${n}_huella" ` +
                 '(hallazgo del arbol: la huella sale en la evidencia). Sin ninguno taparia tambien las claves nuevas del mismo fichero.');
         }

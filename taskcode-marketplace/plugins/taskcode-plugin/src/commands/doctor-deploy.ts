@@ -12,8 +12,9 @@
  * Decisiones:
  * - Solo lee. Con `--escribir` guarda el informe en docs/doctor-deploy/ pero
  *   NO lo commitea (como `metricas --escribir`).
- * - Las unicas comprobaciones deterministas son las de fs/sondas-deploy.ts; el
- *   resto del catalogo es de juicio y sale NO VERIFICADO.
+ * - Las comprobaciones deterministas son las sondas de fs/sondas-deploy.ts y
+ *   fs/sondas-deploy-config.ts; el resto del catalogo es de juicio y sale NO
+ *   VERIFICADO.
  * - Una sonda que lanza una excepcion es NO VERIFICADO de ESE punto, nunca un
  *   throw hacia el CLI ni un OK.
  * - Codigo de salida: 0 sin FALLA, 1 con alguna. NO VERIFICADO no lo cambia,

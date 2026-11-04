@@ -10,6 +10,7 @@ import {
   cargarCatalogoDeploy,
   combinarCatalogo,
   DoctorDeployCatalogoError,
+  esSondaRegistrada,
   parsearCapaProyecto,
   parsearCatalogoDeploy,
   resolverRutaCatalogoDeploy,
@@ -60,7 +61,7 @@ const ANADIDOS = [
   'health-check',
   'licencias-de-dependencias',
   'tests-en-verde',
-  // Dominio: su sonda determinista llega en una tarea posterior.
+  // Dominio: deterministas desde TASK-068 (sondas de configuracion).
   'reglas-firebase-abiertas',
   'migraciones-sin-rls',
   'tokens-en-ficheros-de-gestor',
@@ -87,23 +88,83 @@ test('cada punto tiene todos los campos, y los deterministas una sonda registrad
     assert.ok(p.arreglo.length > 10, `${p.id}: arreglo`);
     assert.ok(p.descripcion.length > 10, `${p.id}: descripcion`);
     if (p.metodo === 'determinista') {
-      assert.ok(p.sonda !== null && SONDAS_REGISTRADAS.includes(p.sonda), `${p.id}: sonda`);
+      assert.ok(p.sonda !== null && esSondaRegistrada(p.sonda), `${p.id}: sonda`);
     } else {
       assert.equal(p.sonda, null, `${p.id}: un punto de juicio no lleva sonda`);
     }
   }
 });
 
-test('las sondas registradas y las implementadas son las mismas seis', () => {
+test('las sondas registradas y las implementadas son las mismas, nombradas una a una', () => {
   assert.deepEqual([...SONDAS_REGISTRADAS].sort(), Object.keys(SONDAS).sort());
-  assert.equal(SONDAS_REGISTRADAS.length, 6);
+  assert.deepEqual(
+    [...SONDAS_REGISTRADAS].sort(),
+    [
+      'acciones-sin-sha',
+      'ci-pull-request-target',
+      'compose-contrasenas',
+      'dependencias',
+      'dockerfile-user',
+      'ficheros-secretos',
+      'gitignore-env',
+      'lockfile',
+      'migraciones-rls',
+      'reglas-firebase',
+      'secretos-arbol',
+      'secretos-historial',
+      'tokens-gestor',
+    ]
+  );
   const usadas = new Set(BASE.puntos.flatMap((p) => (p.sonda === null ? [] : [p.sonda])));
   for (const s of SONDAS_REGISTRADAS) assert.ok(usadas.has(s), `ningun punto usa la sonda "${s}"`);
 });
 
-test('solo hay seis puntos deterministas: todo lo demas es de juicio (D6)', () => {
-  const deterministas = BASE.puntos.filter((p) => p.metodo === 'determinista').map((p) => p.id);
-  assert.equal(deterministas.length, 6, deterministas.join(', '));
+/** Los puntos deterministas, por id: los seis de TASK-066 y los siete de configuracion de TASK-068. */
+const DETERMINISTAS: Record<string, string> = {
+  'secretos-en-arbol': 'secretos-arbol',
+  'secretos-en-historial': 'secretos-historial',
+  'ficheros-secretos-versionados': 'ficheros-secretos',
+  'gitignore-cubre-env': 'gitignore-env',
+  'lockfile-versionado': 'lockfile',
+  'dependencias-vulnerables': 'dependencias',
+  'reglas-firebase-abiertas': 'reglas-firebase',
+  'migraciones-sin-rls': 'migraciones-rls',
+  'tokens-en-ficheros-de-gestor': 'tokens-gestor',
+  'compose-con-contrasenas': 'compose-contrasenas',
+  'ci-pull-request-target': 'ci-pull-request-target',
+  'acciones-ci-sin-sha': 'acciones-sin-sha',
+  'dockerfile-sin-user': 'dockerfile-user',
+};
+
+test('los puntos deterministas son exactamente estos, con su sonda: todo lo demas es de juicio (D6)', () => {
+  const deterministas = Object.fromEntries(BASE.puntos.filter((p) => p.metodo === 'determinista').map((p) => [p.id, p.sonda]));
+  assert.deepEqual(deterministas, DETERMINISTAS);
+});
+
+test('TASK-068: los puntos 37 a 43 son deterministas y rls-activo y contenedor-sin-root-ni-secretos siguen de juicio', () => {
+  const ids = ['reglas-firebase-abiertas', 'migraciones-sin-rls', 'tokens-en-ficheros-de-gestor', 'compose-con-contrasenas', 'ci-pull-request-target', 'acciones-ci-sin-sha', 'dockerfile-sin-user'];
+  for (const id of ids) {
+    const p = BASE.puntos.find((x) => x.id === id);
+    assert.ok(p !== undefined, id);
+    assert.equal(p.metodo, 'determinista', id);
+  }
+  for (const id of ['rls-activo', 'contenedor-sin-root-ni-secretos']) {
+    const p = BASE.puntos.find((x) => x.id === id);
+    assert.ok(p !== undefined, id);
+    assert.equal(p.metodo, 'juicio', id);
+    assert.equal(p.sonda, null, id);
+  }
+});
+
+test('TASK-068: un hallazgo por fichero (dockerfile-sin-user, pr-target-checkout) se silencia sin huella; uno con valor, no', () => {
+  const capa = (patron: string): string =>
+    `silenciar_1_patron: ${patron}\nsilenciar_1_fichero: Dockerfile\nsilenciar_1_motivo: imagen de pruebas\nsilenciar_1_quien: Ana\nsilenciar_1_fecha: 2026-11-04\n`;
+  const base: CatalogoBase = { tipos: BASE.tipos, aplicaciones: BASE.aplicaciones, puntos: BASE.puntos };
+  assert.equal(parsearCapaProyecto(capa('dockerfile-sin-user'), 'p.yml', base).silencios.length, 1);
+  assert.equal(parsearCapaProyecto(capa('pr-target-checkout'), 'p.yml', base).silencios.length, 1);
+  for (const patron of ['token-gestor', 'compose-contrasena', 'tabla-sin-rls', 'accion-sin-sha', 'firebase-regla-abierta', 'dockerfile-add-url']) {
+    assert.throws(() => parsearCapaProyecto(capa(patron), 'p.yml', base), /exige "silenciar_1_commit" .* o "silenciar_1_huella"/, patron);
+  }
 });
 
 test('el arreglo de los secretos en git dice rotar primero y reescribir despues', () => {

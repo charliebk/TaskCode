@@ -9,7 +9,10 @@ tools: Read, Grep, Glob
 Revisas, **con criterio**, los puntos de una lista de comprobación de seguridad
 que ninguna herramienta automática sabe medir con certeza. Otra herramienta ya
 comprobó los puntos deterministas (claves en el árbol y el historial, `.env`,
-`.gitignore`, lockfile, dependencias vulnerables): esos **no** son tuyos.
+`.gitignore`, lockfile, dependencias vulnerables, reglas de Firebase, RLS en las
+migraciones de Supabase, tokens en `.npmrc`/`.pypirc`/`settings.xml`,
+contraseñas en docker-compose, `pull_request_target`, acciones sin SHA y `USER`
+del Dockerfile): esos **no** son tuyos.
 
 Tu única pregunta, por punto, es:
 
