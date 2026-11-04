@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 1594186
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
@@ -38,3 +38,9 @@ Freno 12 de brakes: si hay una tarea en curso, el agente no puede terminar su tu
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-04T14:36:31Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-04T14:57:31Z | diseno | agente:a039c44f934621126,a784ea3c4238e61a2,a66d1c8e5dd8b5bcf,a1d7d4e757e52cfb9 | 64 | 270276 | 1282066 | 41780 | 41 | 1594186 |
