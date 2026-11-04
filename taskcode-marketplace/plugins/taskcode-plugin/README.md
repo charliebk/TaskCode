@@ -574,7 +574,10 @@ puntos de juicio (ver «Puntos de juicio» más abajo).
   familia `aplicacion_N_*` del catálogo (`id`, `nombre`, `marcadores` y,
   opcional, `contiene`: textos que debe contener el fichero marcador; un
   `package.json` es `cli` si contiene `"bin"`). Sale como «Aplicacion
-  detectada», con el fichero que la decidió. Un punto puede declarar
+  detectada», con el fichero que la decidió. Además de los frameworks, cuentan
+  como api las señales de servicio que no dependen de él: `EXPOSE` en un
+  Dockerfile, `ports:` en un compose o `web:` en un Procfile; una CLI que además
+  sirve HTTP sale cli y api, y los puntos aplican. Un punto puede declarar
   `punto_N_aplicaciones: [web, api, ...]`: se combina con `punto_N_tipos` con
   Y, y dentro de cada lista basta con uno. **Si no se detecta ninguna clase, el
   punto aplica**; solo sale NO APLICA si se detecta alguna y ninguna está en la
@@ -628,8 +631,10 @@ puntos de juicio (ver «Puntos de juicio» más abajo).
   punto sale NO APLICA con el motivo; un fichero ilegible o mayor que el límite
   lo deja en NO VERIFICADO. Un token que ya da FALLA en `secretos-en-arbol` no
   se cuenta otra vez en `tokens-en-ficheros-de-gestor`. Cada hallazgo se
-  silencia con `patron` + `fichero` + `huella`; `dockerfile-sin-user` y
-  `pr-target-checkout` son del fichero entero y se silencian sin huella.
+  silencia con `patron` + `fichero` + `huella` (en `pr-target-checkout`, una por
+  paso del flujo); `dockerfile-sin-user` es del fichero entero y se silencia sin
+  huella. Estas sondas miran cualquier `Dockerfile*`, `Containerfile` o
+  `compose*.yaml` versionado, aunque el tipo Docker no se detecte.
 - **Claves de ejemplo y públicas**: `AKIAIOSFODNN7EXAMPLE` y `sk_test_` no cuentan,
   ni la clave `anon`/`publishable` de Supabase ni la `apiKey` `AIza...` de la
   config web de Firebase; `service_role`, `sk_live_` y una clave privada sí. El

@@ -104,15 +104,18 @@ tipo_15_marcadores: [vite.config.js, vite.config.ts, next.config.js, next.config
 
 # --- Tipos de aplicacion -----------------------------------------------------
 # Ante la duda, un punto aplica: por eso web y api se detectan con generosidad
-# y cli y libreria solo con una senal explicita en el manifiesto.
+# y cli y libreria solo con una senal explicita en el manifiesto. Ademas de los
+# frameworks, cuentan como api las senales de servicio que no dependen de el:
+# un puerto expuesto en un Dockerfile, "ports:" en un compose o "web:" en un
+# Procfile. Una CLI que ademas sirve HTTP sale cli y api, y los puntos aplican.
 
 aplicacion_1_id: web
 aplicacion_1_nombre: Aplicacion web
 aplicacion_1_marcadores: [vite.config.js, vite.config.ts, next.config.js, next.config.mjs, next.config.ts, angular.json, svelte.config.js, nuxt.config.ts, nuxt.config.js, astro.config.mjs, remix.config.js, gatsby-config.js, public/index.html]
 aplicacion_2_id: api
 aplicacion_2_nombre: API o servicio web
-aplicacion_2_marcadores: [package.json, requirements.txt, pyproject.toml, Pipfile, pom.xml, build.gradle, build.gradle.kts, go.mod, Gemfile, composer.json, Cargo.toml, *.csproj, openapi.yaml, openapi.yml, openapi.json, swagger.yaml, swagger.json]
-aplicacion_2_contiene: ["\"express\"", "\"fastify\"", "\"koa\"", "\"@nestjs/core\"", "\"@hapi/hapi\"", "\"hono\"", flask, fastapi, django, spring-boot-starter-web, gin-gonic/gin, labstack/echo, gofiber/fiber, go-chi/chi, "gem \"rails\"", "gem 'rails'", sinatra, laravel/framework, symfony/framework-bundle, axum, actix-web, Microsoft.NET.Sdk.Web, "openapi:", "\"openapi\"", "swagger:", "\"swagger\""]
+aplicacion_2_marcadores: [package.json, requirements.txt, pyproject.toml, Pipfile, setup.py, setup.cfg, pom.xml, build.gradle, build.gradle.kts, go.mod, Gemfile, composer.json, Cargo.toml, *.csproj, openapi.yaml, openapi.yml, openapi.json, swagger.yaml, swagger.json, Dockerfile, docker-compose.yml, docker-compose.yaml, compose.yml, compose.yaml, Procfile]
+aplicacion_2_contiene: ["\"express\"", "\"fastify\"", "\"koa\"", "\"@nestjs/core\"", "\"@hapi/hapi\"", "\"hono\"", "\"restify\"", "apollo-server", "\"@apollo/server\"", "\"@trpc/server\"", "\"graphql-yoga\"", "\"@adonisjs/core\"", "\"@feathersjs/", "\"next\"", "\"nuxt\"", "\"@sveltejs/kit\"", "\"@remix-run/", "\"astro\"", flask, fastapi, django, aiohttp, tornado, sanic, starlette, bottle, litestar, quart, falcon, pyramid, spring-boot-starter-web, spring-boot-starter-webflux, micronaut, quarkus, ktor, javalin, gin-gonic/gin, labstack/echo, gofiber/fiber, go-chi/chi, gorilla/mux, "gem \"rails\"", "gem 'rails'", sinatra, laravel/framework, symfony/framework-bundle, slim/slim, axum, actix-web, rocket, warp, tide, poem, Microsoft.NET.Sdk.Web, "openapi:", "\"openapi\"", "swagger:", "\"swagger\"", "expose ", "ports:", "web:"]
 aplicacion_3_id: android
 aplicacion_3_nombre: App Android
 aplicacion_3_marcadores: [AndroidManifest.xml, build.gradle, build.gradle.kts]
@@ -476,7 +479,7 @@ punto_39_referencia: OWASP Top 10 2025 A02; ASVS 5.0 V13
 
 punto_40_id: compose-con-contrasenas
 punto_40_severidad: alta
-punto_40_tipos: [docker]
+punto_40_tipos: [todos]
 punto_40_metodo: determinista
 punto_40_sonda: compose-contrasenas
 punto_40_arreglo: Saca las contrasenas del docker-compose y leelas de un fichero .env ignorado por git o de secretos de Docker.
@@ -503,7 +506,7 @@ punto_42_referencia: OWASP Top 10 2025 A03; ASVS 5.0 V15
 
 punto_43_id: dockerfile-sin-user
 punto_43_severidad: alta
-punto_43_tipos: [docker]
+punto_43_tipos: [todos]
 punto_43_metodo: determinista
 punto_43_sonda: dockerfile-user
 punto_43_arreglo: Anade una instruccion USER con un usuario sin privilegios al final del Dockerfile y evita ADD de URLs remotas.

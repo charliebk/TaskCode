@@ -61,7 +61,7 @@ export const PATRON = {
 } as const;
 
 /** Patrones cuyo hallazgo es del fichero entero (sin huella): se silencian con patron + fichero. */
-export const PATRONES_REGLAS_SIN_HUELLA: readonly string[] = [PATRON.prTarget, PATRON.sinUser];
+export const PATRONES_REGLAS_SIN_HUELLA: readonly string[] = [PATRON.sinUser];
 
 // ---------------------------------------------------------------------
 // Utilidades
@@ -525,8 +525,10 @@ export const detectarTokensGestor: Detector = (ficheros) =>
 // 40 compose-con-contrasenas
 // ---------------------------------------------------------------------
 
-const CLAVE_SECRETA = /(?:^|_)(?:password|passwd|pass|pwd|secret|token|api_?key|access_?key|private_?key)$/i;
-const CLAVE_NO_SECRETA = /allow_empty|random_root|_file$/i;
+const CLAVE_SECRETA =
+  /(?:^|_)(?:password|passwd|pass|pwd|secret|token|api_?key|access_?key|private_?key|secret_?key|signing_?key|encryption_?key|auth_?key|master_?key)$/i;
+// Las claves *_FILE (secretos de Docker) ya no casan con CLAVE_SECRETA: no hace falta excluirlas.
+const CLAVE_NO_SECRETA = /allow_empty|random_root/i;
 const VALOR_NO_CONTRASENA = /^(?:true|false|yes|no|on|off|null|~|<[^>]*>|\*+)$/i;
 
 /** El valor de una clave del compose, si es una contrasena literal; null si no lo es. */
@@ -594,7 +596,14 @@ const RE_CODIGO_PR =
 
 /** true si el flujo se dispara con `pull_request_target` (bloque, escalar o lista en linea `[...]`). */
 export function usaPullRequestTarget(contenido: string): boolean {
-  const t = normalizar(contenido).split('\n').map(sinComentarioYaml).join('\n');
+  // Fuera las condiciones (`if:`) y las expresiones `${{ }}`: nombrar el evento en una
+  // comparacion (`github.event_name != 'pull_request_target'`) no es dispararse con el.
+  const t = normalizar(contenido)
+    .split('\n')
+    .map(sinComentarioYaml)
+    .filter((l) => !/^\s*(?:-\s*)?if\s*:/.test(l))
+    .map((l) => l.replace(/\$\{\{[^}]*\}\}/g, ' '))
+    .join('\n');
   return RE_EVENTO_PR_TARGET.test(t);
 }
 
@@ -622,7 +631,9 @@ export const detectarPullRequestTarget: Detector = (ficheros) =>
           fichero: f.ruta,
           linea: i + 1,
           descripcion: `el flujo se dispara con pull_request_target y trae el codigo del PR (${que}): ejecuta codigo ajeno con secretos y permisos de escritura`,
-          huella: null,
+          // Huella por paso (la linea sin espacios de mas): un silencio no tapa un paso
+          // peligroso que se anada despues al mismo flujo.
+          huella: huellaDe(`${PATRON.prTarget}|${l.trim().replace(/\s+/g, ' ')}`),
         });
       });
     return res;

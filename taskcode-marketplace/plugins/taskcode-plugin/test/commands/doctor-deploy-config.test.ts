@@ -312,3 +312,54 @@ test('las sondas leen lo versionado: un Dockerfile sin commitear no cuenta', asy
     assert.ok(p.evidencias.every((e) => e.fichero !== 'Dockerfile.nuevo'), 'el no versionado no se mira');
   });
 });
+
+// ---------------------------------------------------------------------
+// Correcciones de la ronda 1 de revision
+// ---------------------------------------------------------------------
+
+test('IMP-2: Dockerfile.prod, Containerfile y compose.prod.yaml se revisan aunque el tipo docker no se detecte', async () => {
+  await conRepo({ ...NODE, 'Dockerfile.prod': 'FROM node:22\nCMD ["node", "index.js"]\n' }, async (raiz, opciones) => {
+    assertFalla(punto(informe(raiz, opciones), 'dockerfile-sin-user'), 'Dockerfile.prod', /root|USER/);
+  });
+  await conRepo({ ...NODE, Containerfile: 'FROM node:22\n' }, async (raiz, opciones) => {
+    assertFalla(punto(informe(raiz, opciones), 'dockerfile-sin-user'), 'Containerfile', /root|USER/);
+  });
+  await conRepo(
+    { ...NODE, 'compose.prod.yaml': `services:\n  db:\n    image: postgres\n    environment:\n      POSTGRES_PASSWORD: ${PASS}\n` },
+    async (raiz, opciones) => {
+      assertFalla(punto(informe(raiz, opciones), 'compose-con-contrasenas'), 'compose.prod.yaml', /POSTGRES_PASSWORD/);
+    }
+  );
+});
+
+test('IMP-3: un silencio de pr-target-checkout es por paso; un paso peligroso nuevo vuelve a dar FALLA', async () => {
+  const cabecera = 'on: pull_request_target\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n';
+  const conRef = '      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n';
+  await conRepo({ ...NODE, '.github/workflows/pr.yml': cabecera + conRef }, async (raiz, opciones) => {
+    const p = punto(informe(raiz, opciones), 'ci-pull-request-target');
+    assert.equal(p.estado, 'falla');
+    const huella = /patron pr-target-checkout, huella ([0-9a-f]{12})/.exec(p.evidencias[0]?.descripcion ?? '')?.[1];
+    assert.ok(huella !== undefined, p.evidencias[0]?.descripcion);
+    await escribir(raiz, {
+      '.taskcode/doctor-deploy.yml': `silenciar_1_patron: pr-target-checkout\nsilenciar_1_fichero: .github/workflows/pr.yml\nsilenciar_1_huella: "${huella}"\nsilenciar_1_motivo: revisado\nsilenciar_1_quien: Ana\nsilenciar_1_fecha: 2026-11-04\n`,
+    });
+    assert.equal(punto(informe(raiz, opciones), 'ci-pull-request-target').estado, 'ok');
+    await writeFile(path.join(raiz, '.github/workflows/pr.yml'), cabecera + conRef + '      - run: gh pr checkout ${{ github.event.number }}\n', 'utf8');
+    assert.equal(punto(informe(raiz, opciones), 'ci-pull-request-target').estado, 'falla');
+  });
+});
+
+test('MEN-1 y MEN-2: SECRET_KEY en compose da FALLA; pull_request_target solo nombrado en un if: no', async () => {
+  await conRepo(
+    { ...DOCKER, 'docker-compose.yml': `services:\n  web:\n    image: app\n    environment:\n      SECRET_KEY: ${PASS}\n` },
+    async (raiz, opciones) => {
+      assertFalla(punto(informe(raiz, opciones), 'compose-con-contrasenas'), 'docker-compose.yml', /SECRET_KEY/);
+    }
+  );
+  const flujo =
+    "on: pull_request\njobs:\n  t:\n    if: github.event_name != 'pull_request_target'\n    runs-on: ubuntu-latest\n    steps:\n" +
+    '      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n';
+  await conRepo({ ...NODE, '.github/workflows/pr.yml': flujo }, async (raiz, opciones) => {
+    assert.notEqual(punto(informe(raiz, opciones), 'ci-pull-request-target').estado, 'falla');
+  });
+});

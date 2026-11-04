@@ -377,3 +377,47 @@ test('un fichero marcador sin versionar (no ignorado) tambien cuenta, como en lo
     await commit(raiz, 'herramienta');
   });
 });
+
+// ---------------------------------------------------------------------
+// IMP-1 (ronda 1): una API con un framework que no estaba en la lista, o con una
+// senal de servicio independiente del framework, no se queda en "cli" a secas.
+// ---------------------------------------------------------------------
+
+test('IMP-1: CLI que tambien es servidor (apollo, trpc, aiohttp, rocket, next) sale api y los puntos aplican', async () => {
+  const casos: Record<string, Record<string, string>> = {
+    apollo: { 'package.json': '{"name":"g","bin":{"g":"s.js"},"dependencies":{"apollo-server":"3"}}\n' },
+    trpc: { 'package.json': '{"name":"t","bin":{"t":"s.js"},"dependencies":{"@trpc/server":"10"}}\n' },
+    next: { 'package.json': '{"name":"n","bin":{"n":"s.js"},"dependencies":{"next":"14"}}\n' },
+    aiohttp: { 'pyproject.toml': '[project]\nname = "a"\ndependencies = ["aiohttp>=3"]\n[project.scripts]\na = "a:main"\n' },
+    rocket: { 'Cargo.toml': '[package]\nname = "r"\n[[bin]]\nname = "r"\n[dependencies]\nrocket = "0.5"\n' },
+  };
+  for (const [nombre, ficheros] of Object.entries(casos)) {
+    await conRepo({ ...GITIGNORE, ...ficheros }, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.ok(ids(j).includes('api'), `${nombre}: ${JSON.stringify(ids(j))}`);
+      for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', `${nombre}: ${id}`);
+    });
+  }
+});
+
+test('IMP-1: senales de servicio sin framework conocido (EXPOSE, ports:, Procfile web:) cuentan como api', async () => {
+  const cli = { ...GITIGNORE, 'package.json': '{"name":"c","bin":{"c":"s.js"}}\n' };
+  const casos: Record<string, Record<string, string>> = {
+    expose: { Dockerfile: 'FROM node:22\nEXPOSE 8080\nUSER node\n' },
+    ports: { 'compose.yaml': 'services:\n  app:\n    image: app\n    ports:\n      - "8080:8080"\n' },
+    procfile: { Procfile: 'web: node s.js\n' },
+  };
+  for (const [nombre, ficheros] of Object.entries(casos)) {
+    await conRepo({ ...cli, ...ficheros }, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['api', 'cli'], nombre);
+      for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', `${nombre}: ${id}`);
+    });
+  }
+  // Y una CLI de verdad, sin ninguna senal de servidor, sigue apagando los puntos.
+  await conRepo(cli, async (raiz, op) => {
+    const j = analisis(raiz, op);
+    assert.deepEqual(ids(j), ['cli']);
+    for (const id of SEIS) assert.equal(punto(j, id).estado, 'no-aplica', id);
+  });
+});

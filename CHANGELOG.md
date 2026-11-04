@@ -20,8 +20,9 @@ Doctor-deploy C (TASK-068): clase de aplicacion, sondas de configuracion y OWASP
   `migraciones-sin-rls`, `tokens-en-ficheros-de-gestor`, `compose-con-contrasenas`,
   `ci-pull-request-target`, `acciones-ci-sin-sha` y `dockerfile-sin-user` pasan de
   juicio a determinista: el agente revisor ya no los recibe y un veredicto suyo
-  para ellos se rechaza. Silencios por hallazgo para sus patrones. Valores
-  secretos siempre enmascarados.
+  para ellos se rechaza. Silencios por hallazgo para sus patrones (en
+  `pr-target-checkout`, por paso del flujo), salvo `dockerfile-sin-user`, que es
+  del fichero entero. Valores secretos siempre enmascarados.
 - **Referencias**: el campo `referencia` pasa de OWASP Top 10 2021 a OWASP Top 10
   2025 + ASVS 5.0, remapeado por significado (SSRF de A10 a A01, inyeccion de A03
   a A05...). La tabla esta en `docs/doctor-deploy-referencias-owasp.md`.

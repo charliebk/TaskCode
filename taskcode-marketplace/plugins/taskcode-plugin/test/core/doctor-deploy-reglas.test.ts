@@ -284,7 +284,7 @@ test('pr-target: pull_request_target con checkout del head del PR se detecta (es
     const h = uno(detectarPullRequestTarget, '.github/workflows/ci.yml', c);
     assert.equal(h.length, 1, c);
     assert.equal(h[0]?.patron, PATRON.prTarget);
-    assert.equal(h[0]?.huella, null);
+    assert.match(h[0]?.huella ?? '', /^[0-9a-f]{12}$/);
   }
 });
 

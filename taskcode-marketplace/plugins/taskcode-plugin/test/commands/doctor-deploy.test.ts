@@ -175,7 +175,7 @@ for (const [nombre, archivos, tipoId] of [
       assert.equal(dep.estado, 'no-verificado');
       assert.match(dep.motivo, /falta (npm|cargo-audit|pip-audit)/);
       // Un punto de otro tipo sale NO APLICA con motivo.
-      const docker = punto(informe, 'dockerfile-sin-user');
+      const docker = punto(informe, 'contenedor-sin-root-ni-secretos');
       assert.equal(docker.estado, 'no-aplica');
       assert.match(docker.motivo, /docker/);
       assert.match(docker.motivo, new RegExp(tipoId));

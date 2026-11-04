@@ -447,8 +447,8 @@ export function parsearCapaProyecto(contenido, ruta, base) {
         }
         // D3: un silencio es POR HALLAZGO. Sin commit solo vale para el arbol, y ahi se ata a la huella
         // del valor: asi no tapa otra clave nueva del mismo patron en el mismo fichero. Los hallazgos
-        // que son del fichero entero (PATRONES_SIN_HUELLA: fichero-secreto, dockerfile-sin-user,
-        // pr-target-checkout) no tienen huella y valen con patron + fichero (TASK-068).
+        // que son del fichero entero (PATRONES_SIN_HUELLA: fichero-secreto y dockerfile-sin-user)
+        // no tienen huella y valen con patron + fichero (TASK-068).
         if (commit === null && huella === null && !PATRONES_SIN_HUELLA.includes(patron)) {
             throw fallar(`[ERROR] ${ruta}: silenciar_${n} exige "silenciar_${n}_commit" (hallazgo del historial) o "silenciar_${n}_huella" ` +
                 '(hallazgo del arbol: la huella sale en la evidencia). Sin ninguno taparia tambien las claves nuevas del mismo fichero.');

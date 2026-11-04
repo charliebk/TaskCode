@@ -156,13 +156,12 @@ test('TASK-068: los puntos 37 a 43 son deterministas y rls-activo y contenedor-s
   }
 });
 
-test('TASK-068: un hallazgo por fichero (dockerfile-sin-user, pr-target-checkout) se silencia sin huella; uno con valor, no', () => {
+test('TASK-068: un hallazgo por fichero (dockerfile-sin-user) se silencia sin huella; uno por paso o con valor (pr-target-checkout desde IMP-3 de la ronda 1), no', () => {
   const capa = (patron: string): string =>
     `silenciar_1_patron: ${patron}\nsilenciar_1_fichero: Dockerfile\nsilenciar_1_motivo: imagen de pruebas\nsilenciar_1_quien: Ana\nsilenciar_1_fecha: 2026-11-04\n`;
   const base: CatalogoBase = { tipos: BASE.tipos, aplicaciones: BASE.aplicaciones, puntos: BASE.puntos };
   assert.equal(parsearCapaProyecto(capa('dockerfile-sin-user'), 'p.yml', base).silencios.length, 1);
-  assert.equal(parsearCapaProyecto(capa('pr-target-checkout'), 'p.yml', base).silencios.length, 1);
-  for (const patron of ['token-gestor', 'compose-contrasena', 'tabla-sin-rls', 'accion-sin-sha', 'firebase-regla-abierta', 'dockerfile-add-url']) {
+  for (const patron of ['pr-target-checkout', 'token-gestor', 'compose-contrasena', 'tabla-sin-rls', 'accion-sin-sha', 'firebase-regla-abierta', 'dockerfile-add-url']) {
     assert.throws(() => parsearCapaProyecto(capa(patron), 'p.yml', base), /exige "silenciar_1_commit" .* o "silenciar_1_huella"/, patron);
   }
 });
