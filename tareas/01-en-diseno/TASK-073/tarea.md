@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 831501
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
@@ -39,3 +39,9 @@ Freno 7 de brakes: tests de aceptacion que la persona escribe a partir de los cr
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-04T21:44:53Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-04T22:02:26Z | diseno | agente:a29945e03ddb57af8,a1b0b31a52a58d137,a31c511c3d2e10ad4,ac1fd97824ff336b7 | 68 | 137845 | 648810 | 44778 | 56 | 831501 |
