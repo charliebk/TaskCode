@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-072-puerta-de-verificacion-en-finish-y-merge
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
-actualizado: 2026-11-03
+actualizado: 2026-11-04
 dependencias: [TASK-071]
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Defensa en dos capas: finish no mergea con la verificacion en rojo, y un hook im
 - [ ] Hook PreToolUse sobre Bash que bloquea git merge y los scripts de cierre de Git-Flow hacia develop o main cuando la verificacion esta en rojo
 - [ ] El hook no bloquea comandos de solo lectura ni merges hacia ramas de trabajo
 - [ ] Tests de ambas capas contra repos temporales reales
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-04T17:56:19Z | plan | automatico | persona |
