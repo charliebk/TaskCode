@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 725035
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 974410
 creado: 2026-11-03
 actualizado: 2026-11-04
 dependencias: []
@@ -46,3 +46,4 @@ Declarar como se verifica un proyecto, para que los frenos ejecuten el comando d
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-04T13:56:11Z | diseno | agente:a6ba99584f516f5e1 | 36 | 53945 | 660351 | 10703 | 29 | 725035 |
+| 2026-11-04T14:23:21Z | revision | agente:ad5cb455dcdc21f65 | 20 | 102875 | 866648 | 4867 | 1 | 974410 |
