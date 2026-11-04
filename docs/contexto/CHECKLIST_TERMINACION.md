@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 78 / 86 items terminados (91%)** · última actualización: 2026-11-03
+**Progreso global: 79 / 86 items terminados (92%)** · última actualización: 2026-11-04
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -34,10 +34,10 @@ tomada y documentada, no aplazada.
 | ✅ G — Flujo guiado por fases | 5 | **5** | — |
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
-| J — Doctor-deploy | 3 | **2** | — |
+| ✅ J — Doctor-deploy | 3 | **3** | — |
 | K — Frenos de verificación con hooks | 6 | **1** | — |
 | L — Mantenimiento | 2 | **0** | — |
-| **Total pendiente** | **8** | — | — |
+| **Total pendiente** | **7** | — | — |
 
 ---
 
@@ -835,7 +835,7 @@ el diseño de TASK-063 en captura (A) y lectura (B).
       de ToolsaWeb, OpenGisViewer y TaskCode (194 tareas) en su Resultado.
       1 ronda, aprobada con 3 MENOR aceptados.*
 
-## J — Doctor-deploy (2/3)
+## J — Doctor-deploy (3/3)
 
 Pedido por Carlos el 2026-10-27: un doctor para antes de lanzar o publicar una
 aplicacion que compruebe punto por punto una lista de seguridad generica
@@ -862,9 +862,16 @@ aviso en release (B).
       TASK-9000..9999 fuera de la numeracion normal; aviso sin bloquear en
       `finish` de una release. 2 rondas: solo MENOR, corregidos (el aviso
       ignora tambien `tareas/` por decision de Carlos).*
-- [ ] TASK-068 — Doctor-deploy C: tipo de aplicacion y sondas deterministas
+- [x] TASK-068 — Doctor-deploy C: tipo de aplicacion y sondas deterministas
       extra (Firebase/RLS, .npmrc, docker-compose, CI, Dockerfile; version
-      vigente de OWASP/ASVS)
+      vigente de OWASP/ASVS) — cerrada el 2026-11-04
+      *Clase de aplicacion como segundo eje (web, api, movil, cli, libreria):
+      sin clase detectada los puntos aplican; con cli o libreria y sin senal de
+      servicio, diez puntos salen NO APLICA con el marcador en el motivo. Siete
+      sondas deterministas nuevas (puntos 37-43), JSON v3 y referencias OWASP
+      Top 10 2025 + ASVS 5.0. 2 rondas: IMP-1..3 corregidos (API con bin,
+      variantes de Dockerfile/compose, huella por paso en pr-target);
+      MEN-3, 5, 6, 7 y 8 aceptados.*
 
 ## K — Frenos de verificación con hooks (1/6)
 
