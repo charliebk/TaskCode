@@ -33,22 +33,12 @@
  *   (c) el comando toco ficheros no declarados: esos no se tocan y se
  *       nombran; las rutas declaradas si se commitean.
  */
-import { createHash } from 'node:crypto';
-import {
-  closeSync,
-  existsSync,
-  mkdtempSync,
-  openSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { raizDelRepo, type TaskcodeConfig } from '../core/config.js';
 import { runGit } from './git.js';
+import { ejecutarAcotado, fotoDelArbol, fueCortado, type SalidaEjecucion } from './ejecucion-acotada.js';
 
 /**
  * Codigo de salida del CLI cuando la transicion se hizo pero la
@@ -145,7 +135,7 @@ export function ejecutarSincronizacion(
   // stdin ignorado SIEMPRE: con una tuberia heredada que nadie cierra
   // (un arnes de agente, `node --test`) un script que pregunte algo
   // esperaria para siempre. Con EOF, falla y se va por (b).
-  const r = lanzarEnvoltorio(raiz, comando, timeoutMs);
+  const r = ejecutarAcotado(raiz, comando, timeoutMs);
 
   const fallo = describirFallo(r, timeoutMs);
   if (fallo !== null) {
@@ -278,133 +268,14 @@ function nombreRealEnDisco(raiz: string, rel: string): string | null {
   return partes.join('/');
 }
 
-/** Codigo con el que ENVOLTORIO dice "lo he cortado por timeout". */
-const CODIGO_TIMEOUT_ENVOLTORIO = 124;
-/**
- * Marca que ENVOLTORIO escribe en stderr al cortar. Sin ella, un script
- * que saliera con 124 por su cuenta se describiria como un timeout
- * (hallazgo MENOR de la revision).
- */
-const MARCA_TIMEOUT = '[taskctl:timeout]';
-
-/**
- * Ejecuta argv[1] con el shell del sistema y lo corta a los argv[2] ms.
- *
- * - shell: true en las dos plataformas: cmd.exe en Windows (necesario
- *   para resolver `pnpm.cmd` / `npm.cmd`; sin shell, ENOENT — el fallo
- *   que costo una ronda en codex-review) y /bin/sh en POSIX. El comando
- *   es entero de la persona y no se le interpola nada, asi que no se
- *   escapa: escaparlo cambiaria lo que escribio.
- * - Al vencer el timeout mata el ARBOL: `taskkill /T /F` en Windows
- *   (con el hijo aun vivo, que es cuando /T puede recorrerlo) y el
- *   grupo de procesos en POSIX (por eso `detached`).
- * - Al cortar sale EN EL ACTO, sin esperar al `close` del hijo. El hijo
- *   tiene tuberias propias (la salida se reenvia), asi que un nieto que
- *   sobreviviera al kill retendria las del envoltorio, no las de
- *   taskctl: `spawnSync` vuelve igual. Con `stdio: 'inherit'` y un kill
- *   que fallara, taskctl se quedaba colgado para siempre (medido con un
- *   mutante en la revision).
- * - Sale con el codigo del comando, o con 124 (como `timeout(1)`) si lo
- *   corto.
- */
-const ENVOLTORIO = `
-const { spawn, spawnSync } = require('node:child_process');
-const [comando, ms] = process.argv.slice(1);
-const win = process.platform === 'win32';
-const hijo = spawn(comando, { shell: true, stdio: ['ignore', 'pipe', 'pipe'],
-  windowsHide: true, detached: !win });
-hijo.stdout.on('data', (d) => process.stdout.write(d));
-hijo.stderr.on('data', (d) => process.stderr.write(d));
-const t = setTimeout(() => {
-  if (win) spawnSync('taskkill', ['/pid', String(hijo.pid), '/T', '/F'], { stdio: 'ignore' });
-  else { try { process.kill(-hijo.pid, 'SIGKILL'); } catch {} }
-  process.stderr.write('${MARCA_TIMEOUT}', () => process.exit(${String(CODIGO_TIMEOUT_ENVOLTORIO)}));
-}, Number(ms));
-hijo.on('error', (e) => { clearTimeout(t); process.stderr.write(String(e.message)); process.exit(127); });
-hijo.on('close', (code, signal) => {
-  clearTimeout(t);
-  if (code === null) { process.stderr.write('termino por la senal ' + signal); process.exit(1); }
-  process.exit(code);
-});
-`;
-
-interface SalidaEnvoltorio {
-  error?: Error;
-  status: number | null;
-  signal: NodeJS.Signals | null;
-  stderr: string;
-}
-
-/**
- * Lanza ENVOLTORIO con la salida a FICHEROS temporales, no a tuberias.
- * Con tuberias, en Windows cmd.exe hereda tambien las del propio
- * envoltorio, asi que un nieto que sobreviva al kill retiene la de
- * taskctl y `spawnSync` espera su EOF para siempre — medido con un
- * mutante del `taskkill` en la revision: el test se colgo 30 min y el
- * timeout por test no lo corta porque `spawnSync` bloquea el event
- * loop. Con ficheros, `spawnSync` vuelve en cuanto el envoltorio sale,
- * quede vivo lo que quede.
- */
-function lanzarEnvoltorio(raiz: string, comando: string, timeoutMs: number): SalidaEnvoltorio {
-  const dir = mkdtempSync(path.join(tmpdir(), 'taskctl-sync-salida-'));
-  const rutaOut = path.join(dir, 'stdout');
-  const rutaErr = path.join(dir, 'stderr');
-  const fdOut = openSync(rutaOut, 'w');
-  const fdErr = openSync(rutaErr, 'w');
-  // Una sola vez cada uno: cerrar dos veces el mismo numero de fd puede
-  // cerrar otro fichero que el sistema le haya reasignado entretanto.
-  let cerrados = false;
-  const cerrar = (): void => {
-    if (cerrados) return;
-    cerrados = true;
-    closeSync(fdOut);
-    closeSync(fdErr);
-  };
-  try {
-    const r = spawnSync(process.execPath, ['-e', ENVOLTORIO, comando, String(timeoutMs)], {
-      cwd: raiz,
-      stdio: ['ignore', fdOut, fdErr],
-      // Red de seguridad por si el propio envoltorio se colgara.
-      timeout: timeoutMs + 15000,
-      windowsHide: true,
-    });
-    cerrar();
-    const salida: SalidaEnvoltorio = {
-      status: r.status,
-      signal: r.signal,
-      stderr: readFileSync(rutaErr, 'utf8'),
-    };
-    if (r.error !== undefined) salida.error = r.error;
-    return salida;
-  } finally {
-    // Un huerfano puede tener aun el fichero abierto (EBUSY en
-    // Windows): se deja para el limpiador del sistema, no es un fallo.
-    try {
-      cerrar();
-    } catch {
-      /* no se pudo cerrar: no afecta a la transicion */
-    }
-    try {
-      rmSync(dir, { recursive: true, force: true });
-    } catch {
-      /* ver arriba */
-    }
-  }
-}
-
 /** null si el comando termino bien; si no, que le paso, en palabras de persona. */
-function describirFallo(r: SalidaEnvoltorio, timeoutMs: number): string | null {
+function describirFallo(r: SalidaEjecucion, timeoutMs: number): string | null {
   const corte = `no termino en ${String(Math.round(timeoutMs / 1000))} s y se ha cortado`;
-  if (r.error !== undefined) {
-    if ((r.error as NodeJS.ErrnoException).code === 'ETIMEDOUT') return corte;
-    return `no se pudo ejecutar (${r.error.message})`;
-  }
-  if (r.status === CODIGO_TIMEOUT_ENVOLTORIO && String(r.stderr ?? '').endsWith(MARCA_TIMEOUT)) {
-    return corte;
-  }
+  if (fueCortado(r)) return corte;
+  if (r.error !== undefined) return `no se pudo ejecutar (${r.error.message})`;
   if (r.signal !== null) return `termino por la senal ${r.signal}`;
   if (r.status !== 0) {
-    const stderr = String(r.stderr ?? '').trim();
+    const stderr = r.salida.trim();
     const cola = stderr === '' ? '' : `: ${ultimasLineas(stderr, 5)}`;
     return `salio con codigo ${String(r.status)}${cola}`;
   }
@@ -423,51 +294,6 @@ function porcelain(raiz: string, rutas: readonly string[]): string[] {
     .map((l) => l.trim())
     .filter((l) => l !== '')
     .map((l) => l.slice(l.indexOf(' ') + 1).trim());
-}
-
-/**
- * Foto de lo que NO esta limpio en el arbol: ruta -> huella del
- * contenido. Comparar solo el porcelain no basta (hallazgo del rol de
- * riesgos): un fichero que ya estaba en ` M` por trabajo de la persona
- * sigue en ` M` aunque el comando lo reescriba. Por eso se compara el
- * contenido, y solo de lo que ya esta sucio (lo limpio, si cambia,
- * aparece nuevo en la segunda foto).
- */
-function fotoDelArbol(raiz: string): Map<string, string> {
-  // Sin runGit a proposito: recorta la salida, y el recorte se come el
-  // espacio inicial de la primera entrada (" M ruta"), desplazando la
-  // ruta un caracter.
-  const r = spawnSync('git', ['status', '--porcelain', '-z', '--untracked-files=all'], {
-    cwd: raiz,
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (r.status !== 0) {
-    throw new Error(`git status fallo al sincronizar: ${String(r.stderr ?? '').trim()}`);
-  }
-  const salida = r.stdout ?? '';
-  const foto = new Map<string, string>();
-  const entradas = salida.split('\0');
-  for (let i = 0; i < entradas.length; i++) {
-    const e = entradas[i] as string;
-    if (e.length < 4) continue;
-    const xy = e.slice(0, 2);
-    const ruta = e.slice(3);
-    // En un renombrado, -z pone la ruta de origen en la entrada
-    // siguiente: se salta para no tomarla por un fichero aparte.
-    if (xy.includes('R') || xy.includes('C')) i++;
-    foto.set(ruta, huella(path.join(raiz, ruta)));
-  }
-  return foto;
-}
-
-function huella(fichero: string): string {
-  try {
-    if (!statSync(fichero).isFile()) return 'no-fichero';
-    return createHash('sha1').update(readFileSync(fichero)).digest('hex');
-  } catch {
-    return 'ausente';
-  }
 }
 
 /**

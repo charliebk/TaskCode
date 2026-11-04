@@ -1,5 +1,5 @@
 {
-  "description": "TaskCode (TASK-069): sonda de hooks Stop y PreToolUse. Inerte salvo que TASKCODE_SONDA_MODO este definida; TASK-071/072 la sustituyen por los frenos reales.",
+  "description": "Freno de fin de turno: con una tarea en curso en la rama y comando_verificacion declarado, el agente no da el turno por terminado con la verificacion en rojo (FRENO_VERIFICACION=0 lo apaga). El PreToolUse sigue siendo la sonda inerte, salvo que su variable de modo este definida.",
   "hooks": {
     "Stop": [
       {
@@ -7,8 +7,10 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"],
-            "timeout": 30
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/dist/src/hooks/stop-verificacion.js"
+            ],
+            "timeout": 3600
           }
         ]
       }
@@ -21,14 +23,18 @@
             "type": "command",
             "if": "Bash(git *)",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"
+            ],
             "timeout": 30
           },
           {
             "type": "command",
             "if": "PowerShell(git *)",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/sonda-hooks.mjs"
+            ],
             "timeout": 30
           }
         ]
