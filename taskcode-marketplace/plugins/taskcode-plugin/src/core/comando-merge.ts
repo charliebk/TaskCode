@@ -162,11 +162,7 @@ export function analizarComando(texto: string): OperacionMerge[] {
     }
 
     // `bash script.sh rama`, `sh ./script.sh rama` o el script a secas.
-    let iScript = 0;
-    if (SHELLS.has(prog)) {
-      iScript = 1;
-      while (iScript < seg.length && (seg[iScript] as string).startsWith('-')) iScript++;
-    }
+    const iScript = SHELLS.has(prog) ? opcionesDeShell(seg).fin : 0;
     const script = seg[iScript];
     if (script === undefined) continue;
     const nombre = script.split(/[\\/]/).pop() ?? script;
@@ -190,12 +186,9 @@ export function analizarComando(texto: string): OperacionMerge[] {
  */
 function textoDeShell(prog: string, seg: readonly string[]): string | null {
   if (SHELLS.has(prog)) {
-    for (let i = 1; i < seg.length; i++) {
-      const a = seg[i] as string;
-      if (!a.startsWith('-')) return null;
-      if (/^-[a-z]*c[a-z]*$/i.test(a) && !a.startsWith('--')) return seg[i + 1] ?? null;
-    }
-    return null;
+    // Como bash: con -c, el texto es el primer argumento que no es opcion.
+    const { fin, conC } = opcionesDeShell(seg);
+    return conC ? (seg[fin] ?? null) : null;
   }
   if (prog === 'powershell' || prog === 'pwsh') {
     const i = seg.findIndex((a, j) => j > 0 && /^-(c|com|comm|comma|comman|command)$/i.test(a));
@@ -206,6 +199,42 @@ function textoDeShell(prog: string, seg: readonly string[]): string | null {
     return i === -1 ? null : seg.slice(i + 1).join(' ');
   }
   return null;
+}
+
+/**
+ * Donde acaban las opciones de un `bash|sh|zsh|dash` (TASK-077, MEN-4 de
+ * TASK-072): una sola regla para `-c` y para el script de cierre.
+ * - Es opcion todo token que empiece por `-` o `+`; `--` las termina.
+ * - Llevan valor en el token siguiente `--rcfile`, `--init-file`, y cada `o`/`O`
+ *   de un grupo corto consume uno (`-o pipefail`, `+o x`, `-O extglob`, `-oc x`).
+ * - `conC`: hubo `-c` (solo o en un grupo corto: `-lc`, `-ec`).
+ * `fin` es el indice del primer argumento que no es opcion.
+ */
+function opcionesDeShell(seg: readonly string[]): { fin: number; conC: boolean } {
+  let conC = false;
+  let i = 1;
+  while (i < seg.length) {
+    const a = seg[i] as string;
+    if (a === '--') return { fin: i + 1, conC };
+    if (!a.startsWith('-') && !a.startsWith('+')) break;
+    if (a === '--rcfile' || a === '--init-file') {
+      i += 2;
+      continue;
+    }
+    if (!a.startsWith('--')) {
+      const grupo = a.slice(1);
+      if (a.startsWith('-') && grupo.includes('c')) conC = true;
+      // Como bash: cada o/O del grupo consume un valor, este donde este
+      // (`-oc pipefail "..."`: MEN-1 de la revision de TASK-077).
+      const valores = (grupo.match(/[oO]/g) ?? []).length;
+      if (valores > 0) {
+        i += 1 + valores;
+        continue;
+      }
+    }
+    i++;
+  }
+  return { fin: i, conC };
 }
 
 /** Argumentos que no son opciones (ni el valor de una), hasta `--`. */

@@ -654,6 +654,9 @@ rama de integración (`rama_base`) o en la principal:
 - `git [-C dir] merge … <ref>`, con destino la última rama de un `git
   checkout|switch` del mismo texto o, si no hay, la rama actual; y los scripts
   `merge-<tipo>-to-<destino>.sh <rama>`.
+- El texto de `bash|sh|zsh|dash [opciones] -c "…"`, `pwsh|powershell -Command …`
+  y `cmd /c|/k …` se analiza igual que si se hubiera escrito directamente
+  (también con opciones con valor delante, como `bash -o pipefail -c`).
 - **Bloquea** (exit 2, el motivo le llega al agente) si no hay un **verde
   guardado para el commit que entra** —sin verde cuenta como no verde— y remite
   a `taskctl finish` (o a `--sin-verificacion`, si lo decide la persona).

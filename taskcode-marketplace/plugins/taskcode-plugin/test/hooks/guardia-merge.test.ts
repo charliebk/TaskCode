@@ -84,6 +84,42 @@ test('comando-merge (MEN-1): el texto de bash -c, pwsh -Command y cmd /c se anal
   });
 });
 
+test('comando-merge (MEN-4, TASK-077): las opciones de bash con valor antes de -c o del script no lo esconden', () => {
+  const merge = [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }];
+  for (const c of [
+    'bash -o pipefail -c "git merge x"',
+    'bash +o pipefail -c "git merge x"',
+    'bash -O extglob -c "git merge x"',
+    'bash +O extglob -c "git merge x"',
+    'bash -eo pipefail -c "git merge x"',
+    'bash -oc pipefail "git merge x"',
+    'bash -oO pipefail extglob -c "git merge x"',
+    'bash --rcfile f -c "git merge x"',
+    'bash --init-file f -c "git merge x"',
+    'bash --norc -c "git merge x"',
+    'bash -c -x "git merge x"',
+    'sh -e -c "git merge x"',
+  ]) {
+    assert.deepEqual(analizarComando(c), merge, c);
+  }
+  const script = (fuente: string, nombre = 'merge-feature-to-develop.sh') => [
+    { tipo: 'script', script: nombre, fuente, destinos: ['integracion'] },
+  ];
+  assert.deepEqual(analizarComando('bash scripts/merge-feature-to-develop.sh feature/x'), script('feature/x'));
+  assert.deepEqual(analizarComando('bash -x scripts/merge-feature-to-develop.sh feature/x'), script('feature/x'));
+  assert.deepEqual(
+    analizarComando('bash -o pipefail scripts/merge-fix-to-develop.sh fix/y'),
+    script('fix/y', 'merge-fix-to-develop.sh')
+  );
+  assert.deepEqual(analizarComando('bash -- scripts/merge-feature-to-develop.sh feature/x'), script('feature/x'));
+  // Sin -c ni script de cierre: nada.
+  // +c desactiva la opcion: no es la forma -c, el argumento es un script (MEN-2).
+  assert.deepEqual(analizarComando('bash +c "git merge x"'), []);
+  assert.deepEqual(analizarComando('bash +c scripts/merge-feature-to-develop.sh feature/x'), script('feature/x'));
+  assert.deepEqual(analizarComando('bash -o pipefail otro.sh'), []);
+  assert.deepEqual(analizarComando('bash -c'), []);
+});
+
 test('comando-merge (MEN-2): git checkout <rama> <fichero> sin -- restaura ficheros, no cambia de rama', () => {
   assert.equal((analizarComando('git checkout develop src/a.ts && git merge develop')[0] as { destino: null }).destino, null);
   assert.equal((analizarComando('git checkout develop && git merge x')[0] as { destino: string }).destino, 'develop');
