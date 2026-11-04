@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 725035
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
@@ -37,3 +37,9 @@ Declarar como se verifica un proyecto, para que los frenos ejecuten el comando d
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-04T13:52:07Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-04T13:56:11Z | diseno | agente:a6ba99584f516f5e1 | 36 | 53945 | 660351 | 10703 | 29 | 725035 |
