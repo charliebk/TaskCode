@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-074-cobertura-sobre-las-lineas-cambiadas
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
-actualizado: 2026-11-03
+actualizado: 2026-11-05
 dependencias: [TASK-072]
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Freno 8 de brakes: una linea cambiada que ningun test ejecuta es un hallazgo, me
 - [ ] Lectura de un informe lcov generado por el comando del proyecto, sin ejecutar tests por su cuenta
 - [ ] taskctl review incluye en la peticion las lineas no cubiertas; umbral opcional en config.yml que convierte el hallazgo en puerta de finish
 - [ ] Tests con un lcov y un diff de ejemplo
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-05T17:07:09Z | plan | automatico | persona |
