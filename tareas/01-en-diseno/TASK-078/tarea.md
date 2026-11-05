@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [hooks]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-078-hook-que-impide-leer-y-editar-los-held-o
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-04
-actualizado: 2026-11-04
+actualizado: 2026-11-05
 dependencias: []
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ Segunda mitad de TASK-073 (depende de ella): que el agente que implementa una ta
 - [ ] En otra rama (develop, durante el diseno) no bloquea: la persona puede escribirlos con Claude
 - [ ] Rutas con mayusculas, barras invertidas, relativas o con .. se normalizan antes de comparar; Agent/Task fuera del matcher
 - [ ] Tests contra el dist real por stdin y repos temporales; smoke con claude -p --plugin-dir con el exit 2 del hook visible
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-05T14:30:10Z | plan | automatico | persona |
