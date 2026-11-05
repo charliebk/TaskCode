@@ -351,13 +351,69 @@ test('heldout (MEN-1): un hotfix compara y ejecuta contra la rama principal, de 
       await mkdir(dir, { recursive: true });
       await writeFile(path.join(dir, 'prueba.cjs'), "console.log('ok')\n", 'utf8');
       commitAll(c.repoRoot, 'docs: held-out del hotfix en main');
+      // develop NO los tiene: comparar con develop abortaria (el test discrimina, MEN-1 ronda 2).
       git(['checkout', '-q', 'develop'], c.repoRoot);
-      git(['merge', '-q', '--no-ff', '-m', 'main a develop', 'main'], c.repoRoot);
       const task = sampleTask({ id: 'TASK-745', tipo: 'hotfix', rama: 'hotfix/task-745-arreglo' });
       await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task, { base: 'main' });
       const r = await finish(c, ['TASK-745']);
       assert.equal(r.cierre, 'terminada');
       assert.equal(c.ejecuciones().length, 1);
+    },
+    { conHeldout: false }
+  );
+});
+
+test('heldout (IMP-3): un hotfix con los held-out solo en develop aborta en vez de cerrar sin ejecutarlos', async () => {
+  await conHeldout('TASK-748', async (c) => {
+    await c.desenlace('ko');
+    const config = readFileSync(path.join(c.repoRoot, '.taskcode', 'config.yml'), 'utf8');
+    git(['checkout', '-q', 'main'], c.repoRoot);
+    await mkdir(path.join(c.repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, '.taskcode', 'config.yml'), config, 'utf8');
+    commitAll(c.repoRoot, 'config en main');
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    const task = sampleTask({ id: 'TASK-748', tipo: 'hotfix', rama: 'hotfix/task-748-arreglo' });
+    await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task, { base: 'main' });
+    const mainAntes = git(['rev-parse', 'main'], c.repoRoot).trim();
+    await assert.rejects(
+      () => finish(c, ['TASK-748']),
+      /estan en "develop" \(tareas\/01-en-diseno\/TASK-748\/aceptacion\), pero un hotfix nace de "main", que no los tiene/
+    );
+    assert.equal(c.ejecuciones().length, 0);
+    assert.equal(git(['rev-parse', 'main'], c.repoRoot).trim(), mainAntes, 'main no se ha tocado');
+  });
+});
+
+test('heldout (MEN-5): si la rama los toco y la base tambien, pide integrar primero la base', async () => {
+  await conHeldout('TASK-749', async (c) => {
+    const task = sampleTask({ id: 'TASK-749' });
+    await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task);
+    const destino = moverComoStart(c, 'TASK-749');
+    await writeFile(path.join(c.repoRoot, destino, 'prueba.cjs'), '// rebajado\n', 'utf8');
+    commitAll(c.repoRoot, 'rebajar');
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    const enDevelop = path.join(c.tareasRoot, '01-en-diseno', 'TASK-749', 'aceptacion', 'prueba.cjs');
+    await writeFile(enDevelop, `${readFileSync(enDevelop, 'utf8')}// corregido\n`, 'utf8');
+    commitAll(c.repoRoot, 'corregir en develop');
+    git(['checkout', '-q', task.rama], c.repoRoot);
+    await assert.rejects(
+      () => finish(c, ['TASK-749']),
+      /la rama ha editado[\s\S]*Ademas "develop" los ha cambiado desde que nacio la rama: integra primero "develop"/
+    );
+  });
+});
+
+test('heldout (MEN-6): una Aceptacion/ creada solo en la rama se nombra como de la rama, no de develop', async () => {
+  await conHeldout(
+    'TASK-750',
+    async (c) => {
+      const task = sampleTask({ id: 'TASK-750' });
+      await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task);
+      const dir = path.join(c.tareasRoot, '03-en-revision', 'TASK-750', 'Aceptacion');
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, 'x.cjs'), '1\n', 'utf8');
+      commitAll(c.repoRoot, 'variante en la rama');
+      await assert.rejects(() => finish(c, ['TASK-750']), /en la rama de la tarea; en "develop" no esta[\s\S]*borrala de la rama/);
     },
     { conHeldout: false }
   );
@@ -386,7 +442,7 @@ test('heldout (MEN-3): una carpeta Aceptacion/ con otras mayusculas aborta en ve
       commitAll(c.repoRoot, 'held-out mal nombrados');
       const task = sampleTask({ id: 'TASK-747' });
       await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task);
-      await assert.rejects(() => finish(c, ['TASK-747']), /Aceptacion no se llama exactamente "aceptacion"/);
+      await assert.rejects(() => finish(c, ['TASK-747']), /Aceptacion \(en "develop"\) no se llama exactamente "aceptacion"/);
       assert.equal(integrada(task.rama, c.repoRoot), false);
     },
     { conHeldout: false }

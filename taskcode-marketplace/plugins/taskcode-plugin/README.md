@@ -672,7 +672,8 @@ la carpeta y `timeout_verificacion` como tope. Aborta, sin mergear:
 - si la tarea tiene `aceptacion/` y la config no declara `comando_heldout`;
 - si en verde dejan el árbol sucio.
 
-La rama base es la de integración, salvo en un hotfix, que nace de la principal.
+La rama base es la de integración, salvo en un hotfix, que nace de la principal. Si los held-out de un hotfix
+están en la rama de integración y no en la principal, aborta en vez de cerrar sin ejecutarlos.
 `comando_heldout` y su timeout se leen de la config **de la rama base**: la rama de
 la tarea no puede cambiar cómo se ejecutan. `--sin-verificacion` no los salta. Sin `aceptacion/` (ni en la rama ni en la
 base) no hay puerta. La petición de revisión excluye siempre

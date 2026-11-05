@@ -70,16 +70,32 @@ function remedio(base, origen, destino, otras) {
 export function puertaHeldout(o) {
     const rutasRama = rutasDe('HEAD', o.cwd);
     const rutasBase = rutasDe(o.ramaBase, o.cwd);
-    const raras = [...new Set([...variantesHeldout(rutasRama, o.id), ...variantesHeldout(rutasBase, o.id)])];
-    if (raras.length > 0) {
-        throw new FinishCommandError(`[ERROR] ${o.id}: ${raras.join(', ')} no se llama exactamente "${CARPETA_HELDOUT}" (en minusculas), ` +
-            `asi que no se tomaria por los tests held-out y no se ejecutarian. Renombrala a ${CARPETA_HELDOUT}/ ` +
-            `en "${o.ramaBase}". ${CIERRE}`);
+    // MEN-6 de la revision: se dice donde esta la variante (en la base, o solo en la rama).
+    const rarasBase = variantesHeldout(rutasBase, o.id);
+    const rarasRama = variantesHeldout(rutasRama, o.id).filter((c) => !rarasBase.includes(c));
+    if (rarasBase.length > 0 || rarasRama.length > 0) {
+        const donde = rarasBase.length > 0
+            ? `${rarasBase.join(', ')} (en "${o.ramaBase}")`
+            : `${rarasRama.join(', ')} (en la rama de la tarea; en "${o.ramaBase}" no esta)`;
+        throw new FinishCommandError(`[ERROR] ${o.id}: ${donde} no se llama exactamente "${CARPETA_HELDOUT}" (en minusculas), asi que no ` +
+            'se tomaria por los tests held-out y no se ejecutarian. ' +
+            (rarasBase.length > 0
+                ? `Renombrala a ${CARPETA_HELDOUT}/ en "${o.ramaBase}" e integralo en la rama. `
+                : `La rama no puede crear held-out: borrala de la rama. `) +
+            CIERRE);
     }
     const enRama = carpetasHeldout(rutasRama, o.id);
     const enBase = carpetasHeldout(rutasBase, o.id);
-    if (enRama.length === 0 && enBase.length === 0)
+    if (enRama.length === 0 && enBase.length === 0) {
+        const enDiseno = o.ramaDiseno === undefined ? [] : carpetasHeldout(rutasDe(o.ramaDiseno, o.cwd), o.id);
+        if (enDiseno.length > 0) {
+            throw new FinishCommandError(`[ERROR] ${o.id}: los tests held-out de esta tarea estan en "${o.ramaDiseno}" (${enDiseno.join(', ')}), ` +
+                `pero un hotfix nace de "${o.ramaBase}", que no los tiene, asi que no se ejecutarian. Commitealos ` +
+                `tambien en "${o.ramaBase}" e integralo en la rama del hotfix; si no aplican al hotfix, quitalos de ` +
+                `"${o.ramaDiseno}". ${CIERRE}`);
+        }
         return { tipo: 'sin-heldout' };
+    }
     const destino = `${o.carpetaTarea}/${CARPETA_HELDOUT}`;
     if (enBase.length === 0) {
         throw new FinishCommandError(`[ERROR] ${o.id}: la rama trae tests held-out (${enRama.join(', ')}) que no estan en "${o.ramaBase}". ` +
@@ -107,11 +123,19 @@ export function puertaHeldout(o) {
         }
         const enDestino = enRama.includes(destino);
         const otras = enRama.filter((c) => c !== destino);
+        // MEN-5 de la revision: si ademas la base los cambio, primero se integra, para
+        // que el conflicto (si lo hay) salga en la rama y no en el merge final.
+        const baseCambio = !(arbolesMb.size === 1 && arbolesMb.has(arbolBase));
         throw new FinishCommandError(`[ERROR] ${o.id}: la rama ha editado, añadido o borrado los tests held-out: su contenido ` +
             `(${enRama.length === 0 ? 'ninguno' : enRama.join(', ')}) no coincide con el de "${o.ramaBase}" (${base}). ` +
             'El agente que implementa no puede cambiarlos; si hay que cambiarlos, lo hace la persona en ' +
-            `"${o.ramaBase}". Para restaurarlos${enDestino ? '' : ` en ${destino}`}:\n  ` +
-            `${remedio(o.ramaBase, base, destino, otras)}\n${CIERRE}`);
+            `"${o.ramaBase}". ` +
+            (baseCambio
+                ? `Ademas "${o.ramaBase}" los ha cambiado desde que nacio la rama: integra primero "${o.ramaBase}" ` +
+                    `(git merge ${o.ramaBase}; si hay conflicto en los held-out, quedate con la version de ` +
+                    `"${o.ramaBase}") y reintenta; si sigue sin coincidir, restauralos`
+                : 'Para restaurarlos') +
+            `${enDestino ? '' : ` en ${destino}`}:\n  ${remedio(o.ramaBase, base, destino, otras)}\n${CIERRE}`);
     }
     const config = configDe(o.ramaBase, o.cwd, o.id);
     const comando = config.comando_heldout;

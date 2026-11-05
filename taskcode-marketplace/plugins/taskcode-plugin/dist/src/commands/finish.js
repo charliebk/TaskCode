@@ -311,6 +311,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             rama,
             // Un hotfix nace de la principal: sus held-out se commitean ahi (MEN-1).
             ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion,
+            ...(tipo === 'hotfix' && mainBranch !== null ? { ramaDiseno: ramaIntegracion } : {}),
             carpetaTarea: path
                 .relative(deps.repoCwd, path.dirname(initial.filePath))
                 .split(path.sep)
