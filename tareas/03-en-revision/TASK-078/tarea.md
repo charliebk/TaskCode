@@ -27,11 +27,11 @@ dependencias: []
 Segunda mitad de TASK-073 (depende de ella): que el agente que implementa una tarea no pueda leer ni editar sus tests held-out (carpeta aceptacion/) mientras trabaja en su rama, con un hook PreToolUse sobre herramientas de fichero y Bash/PowerShell.
 
 ## Criterios de aceptacion
-- [ ] Hook PreToolUse con matcher Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Glob que sale 2 ante una ruta tareas/*/TASK-NNN/aceptacion/ de una tarea cuya rama es la actual, y 0 ante rutas hermanas (tarea.md, aceptacionX/)
-- [ ] El guardian de Bash/PowerShell bloquea comandos cuyo texto nombra esa ruta (cat, Get-Content, git show rama:ruta)
-- [ ] En otra rama (develop, durante el diseno) no bloquea: la persona puede escribirlos con Claude
-- [ ] Rutas con mayusculas, barras invertidas, relativas o con .. se normalizan antes de comparar; Agent/Task fuera del matcher
-- [ ] Tests contra el dist real por stdin y repos temporales; smoke con claude -p --plugin-dir con el exit 2 del hook visible
+- [x] Hook PreToolUse con matcher Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Glob que sale 2 ante una ruta tareas/*/TASK-NNN/aceptacion/ de una tarea cuya rama es la actual, y 0 ante rutas hermanas (tarea.md, aceptacionX/)
+- [x] El guardian de Bash/PowerShell bloquea comandos cuyo texto nombra esa ruta (cat, Get-Content, git show rama:ruta)
+- [x] En otra rama (develop, durante el diseno) no bloquea: la persona puede escribirlos con Claude
+- [x] Rutas con mayusculas, barras invertidas, relativas o con .. se normalizan antes de comparar; Agent/Task fuera del matcher
+- [x] Tests contra el dist real por stdin y repos temporales; smoke con claude -p --plugin-dir con el exit 2 del hook visible
 
 ## Resultado
 
@@ -58,7 +58,7 @@ buscar o editar la carpeta `aceptacion/` de la tarea de la rama actual.
   el mismo mensaje; `Read` de `tarea.md` paso. El contenido del held-out no aparecio en la
   transcripcion. El revisor lo repitio con Read, Grep, Glob y Bash. Edit, Write, MultiEdit,
   NotebookEdit y PowerShell solo por stdin contra el dist.
-- Suite completa 1800/1803: los 3 rojos conocidos de Windows (symlink EPERM, chmod de directorio,
+- Suite completa 1801/1804 (tras la ronda 1): los 3 rojos conocidos de Windows (symlink EPERM, chmod de directorio,
   CRLF).
 
 Revision por pares:
@@ -67,6 +67,10 @@ Revision por pares:
   ruta de Windows y otro worktree) declarados en la skill como riesgo aceptado; MEN-3 (evidencia del
   smoke) en este Resultado; MEN-4 (relleno del ID en el mensaje) con test que mata el mutante;
   MEN-5 (errata y falso positivo) corregida y declarado. 13 mutantes muertos, 2 equivalentes.
+- Ronda 2 (`aprobada`, sin hallazgos): los cinco MENOR verificados; el test de MEN-4 mata los
+  mutantes sin `padStart(3)` y con `padStart(2)`.
+- Seguimiento, fuera de alcance: interruptor por variable de entorno del proceso de Claude para
+  investigar ramas antiguas conservadas (decision 3 del plan).
 
 ## Transiciones
 
