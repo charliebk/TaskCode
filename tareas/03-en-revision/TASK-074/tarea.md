@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-074-cobertura-sobre-las-lineas-cambiadas
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Freno 8 de brakes: una linea cambiada que ningun test ejecuta es un hallazgo, me
 | 2026-11-05T17:07:09Z | plan | automatico | persona |
 | 2026-11-05T17:15:49Z | approve | automatico | automatico |
 | 2026-11-05T17:15:50Z | start | automatico | persona |
+| 2026-11-05T17:54:47Z | review | automatico | persona |
 
 ## Coste
 
