@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, plugin]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-075-contrapruebas-de-descubrimiento-rotas-po
 asignado_a: charlie.bk@gmail.com
@@ -38,6 +38,7 @@ Desde Claude Code 2.1.316, claude plugin validate imprime comprobaciones del dir
 |---|---|---|---|
 | 2026-11-05T12:29:07Z | plan | automatico | persona |
 | 2026-11-05T12:33:27Z | approve | automatico | persona |
+| 2026-11-05T12:33:28Z | start | automatico | persona |
 
 ## Coste
 
