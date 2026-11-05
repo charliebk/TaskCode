@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 83 / 88 items terminados (94%)** · última actualización: 2026-11-04
+**Progreso global: 84 / 88 items terminados (95%)** · última actualización: 2026-11-05
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -35,9 +35,9 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
-| K — Frenos de verificación con hooks | 8 | **6** | — |
+| K — Frenos de verificación con hooks | 8 | **7** | — |
 | L — Mantenimiento | 2 | **1** | — |
-| **Total pendiente** | **3** | — | — |
+| **Total pendiente** | **2** | — | — |
 
 ---
 
@@ -873,7 +873,7 @@ aviso en release (B).
       variantes de Dockerfile/compose, huella por paso en pr-target);
       MEN-3, 5, 6, 7 y 8 aceptados.*
 
-## K — Frenos de verificación con hooks (6/8)
+## K — Frenos de verificación con hooks (7/8)
 
 Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
 usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
@@ -931,8 +931,16 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       config de la base; hotfix contra main; `aceptacion/` siempre fuera del
       diff de revisión; `heldout.md` en la skill. 3 rondas: IMP-1..3 y MEN-1..6
       corregidos; MEN-7 (test en negativo del «Ademas») aceptado.*
-- [ ] TASK-078 — Hook que impide leer y editar los held-out de la tarea en curso
-      (segunda parte de TASK-073)
+- [x] TASK-078 — Hook que impide leer y editar los held-out de la tarea en curso
+      (segunda parte de TASK-073) — cerrada el 2026-11-05
+      *Guardián `PreToolUse` (`guardia-heldout.ts`) con dos entradas: la nueva
+      de fichero (`Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Glob`) y la de
+      Bash/PowerShell ampliada. Casado por segmentos tras normalizar barras,
+      mayúsculas, `..` y relativas al cwd. Decisiones de Carlos: tarea protegida
+      por el nombre de la rama (nunca `tarea.md`), el remedio de `finish` lo
+      ejecuta la persona, sin interruptor. Riesgos aceptados declarados en
+      `heldout.md` (Grep sobre la raíz, cambiar de rama). Smoke con `claude -p`
+      real. 2 rondas: MEN-1..5 corregidos o declarados.*
 - [ ] TASK-074 — Cobertura sobre las líneas cambiadas
 
 ## L — Mantenimiento (1/2)
