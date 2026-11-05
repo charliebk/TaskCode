@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 902198
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-04
@@ -38,3 +38,9 @@ Segunda mitad de TASK-073 (depende de ella): que el agente que implementa una ta
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-05T14:30:10Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-05T14:37:13Z | diseno | agente:a33e65c96a79e4e53,a932a784f841e7ff6,a6fc0b58b60fd29ad | 58 | 121124 | 748853 | 32163 | 44 | 902198 |
