@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [tests, plugin]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-075-contrapruebas-de-descubrimiento-rotas-po
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
-actualizado: 2026-11-03
+actualizado: 2026-11-05
 dependencias: []
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Desde Claude Code 2.1.316, claude plugin validate imprime comprobaciones del dir
 - [ ] La contraprueba sigue detectando un agente o un SKILL.md roto en la copia: test con la mutacion que ya usa cada test
 - [ ] Los avisos del directorio de plugins no se confunden con errores de validacion: la condicion se apoya en el codigo de salida o en el bloque de resultado, no en buscar la cruz en toda la salida; test
 - [ ] Suite completa con solo los rojos conocidos de Windows; HALLAZGOS.md recoge el cambio de salida del validador
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-05T12:29:07Z | plan | automatico | persona |
