@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, plugin]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-075-contrapruebas-de-descubrimiento-rotas-po
 asignado_a: charlie.bk@gmail.com
@@ -77,6 +77,7 @@ Coste de implementacion sin registrar: la hizo el orquestador sin subagentes.
 | 2026-11-05T12:33:28Z | start | automatico | persona |
 | 2026-11-05T12:55:19Z | review | automatico | persona |
 | 2026-11-05T13:26:54Z | review | automatico | persona |
+| 2026-11-05T13:31:37Z | finish | automatico | persona |
 
 ## Coste
 
