@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 81 / 87 items terminados (93%)** · última actualización: 2026-11-04
+**Progreso global: 82 / 88 items terminados (93%)** · última actualización: 2026-11-04
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -35,7 +35,7 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
-| K — Frenos de verificación con hooks | 7 | **5** | — |
+| K — Frenos de verificación con hooks | 8 | **6** | — |
 | L — Mantenimiento | 2 | **0** | — |
 | **Total pendiente** | **4** | — | — |
 
@@ -873,7 +873,7 @@ aviso en release (B).
       variantes de Dockerfile/compose, huella por paso en pr-target);
       MEN-3, 5, 6, 7 y 8 aceptados.*
 
-## K — Frenos de verificación con hooks (5/7)
+## K — Frenos de verificación con hooks (6/8)
 
 Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
 usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
@@ -923,7 +923,16 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       para el script de cierre; un valor por cada `o`/`O` del grupo, `--rcfile`,
       `--init-file`); texto de `-c` = primer no-opción. README y CHANGELOG. 2
       rondas: MEN-1 (`-oc`) y MEN-2 (test de `+c`) corregidos.*
-- [ ] TASK-073 — Tests held-out por tarea
+- [x] TASK-073 — Tests held-out por tarea — cerrada el 2026-11-05
+      *Primera parte (partida por decisión de Carlos): `comando_heldout`;
+      `finish` ejecuta `aceptacion/` con `HELDOUT_DIR` tras la verificación y
+      aborta en rojo sin mostrar la salida; huella por árbol de Git frente a la
+      base (con merge-base para saber si cambió la base o la rama); comando de la
+      config de la base; hotfix contra main; `aceptacion/` siempre fuera del
+      diff de revisión; `heldout.md` en la skill. 3 rondas: IMP-1..3 y MEN-1..6
+      corregidos; MEN-7 (test en negativo del «Ademas») aceptado.*
+- [ ] TASK-078 — Hook que impide leer y editar los held-out de la tarea en curso
+      (segunda parte de TASK-073)
 - [ ] TASK-074 — Cobertura sobre las líneas cambiadas
 
 ## L — Mantenimiento (0/2)
