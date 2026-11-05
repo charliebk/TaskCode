@@ -2,7 +2,7 @@
 
 - Commit revisado: 070d7846eb6e4457c2a4c0a9c280e77f264f4aa4
 - Revisor: general-purpose (opus) con la skill code-quality-reviewer, independiente de la implementacion
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-073 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
