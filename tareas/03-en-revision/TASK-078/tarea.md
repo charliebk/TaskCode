@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 902198
 tokens_implementacion: null
-tokens_revision: 4192435
+tokens_revision: 4823527
 creado: 2026-11-04
 actualizado: 2026-11-05
 dependencias: []
@@ -84,3 +84,4 @@ Revision por pares:
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-05T14:37:13Z | diseno | agente:a33e65c96a79e4e53,a932a784f841e7ff6,a6fc0b58b60fd29ad | 58 | 121124 | 748853 | 32163 | 44 | 902198 |
 | 2026-11-05T15:27:29Z | revision | agente:afeb190b32e8b73c1 | 64 | 148120 | 4022345 | 21906 | 7 | 4192435 |
+| 2026-11-05T15:48:42Z | revision | agente:a63d746f34b034f79 | 14 | 95449 | 531379 | 4250 | 3 | 631092 |
