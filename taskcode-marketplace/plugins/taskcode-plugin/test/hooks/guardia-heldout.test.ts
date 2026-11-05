@@ -219,6 +219,15 @@ test('guardia-heldout (criterio 3): en la rama base (diseño) no bloquea; al cam
   });
 });
 
+test('guardia-heldout (MEN-4 de la revision): el mensaje nombra el ID con su relleno, TASK-042 y no TASK-42', async () => {
+  await conRepo(async (raiz) => {
+    git(['checkout', '-q', '-b', 'feature/task-042-corta'], raiz);
+    const d = decidirHeldout({ cwd: raiz, tool_name: 'Read', tool_input: { file_path: 'tareas/02-en-curso/TASK-042/aceptacion/x.cjs' } });
+    assert.equal(d.codigo, 2);
+    assert.match(d.stderr, /la carpeta aceptacion\/ de TASK-042, la tarea de la rama actual \("feature\/task-042-corta"\)/);
+  });
+});
+
 test('guardia-heldout: con HEAD desacoplado en un rebase, la rama es la que se esta rebasando', async () => {
   await conRepo(async (raiz) => {
     git(['checkout', '-q', '--detach'], raiz);

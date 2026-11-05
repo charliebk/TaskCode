@@ -89,7 +89,7 @@ const SEPARADORES_COMANDO = /[\s"'`;|&()<>=,:]+/;
  * de Bash o PowerShell (`cat`, `Get-Content`, `git show rama:ruta`...). Se
  * parte por separadores y cada palabra se trata como una ruta relativa a
  * `cwd`. NO usa el tokenizador del guardian de merges, que trata `\` como
- * escape y romperia las rutas de PowerShell. Es un baden, no un cierre: no
+ * escape y romperia las rutas de PowerShell. Es un badén, no un cierre: no
  * sigue un `cd` previo ni deshace concatenaciones o escapes del shell.
  */
 export function numerosHeldoutEnTexto(texto, cwd) {

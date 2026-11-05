@@ -50,7 +50,15 @@ Es un freno contra despistes, no un cierre. **No ve**, y se acepta asi:
   `aceptacion/` y devuelve su contenido) ni un indice de codigo por MCP;
 - cambiar de rama para leerlos (`git switch` a la base, leer, volver);
 - un comando que llega a la ruta sin escribirla (`cd` previo y ruta relativa,
-  concatenaciones o escapes del shell, `git cat-file` por hash).
+  concatenaciones o escapes del shell, `git cat-file` por hash);
+- formas de ruta que Windows resuelve a la misma carpeta (espacio o punto
+  final, nombre corto `ACEPTA~1`);
+- la ruta absoluta de otro checkout o worktree: la rama que cuenta es la del
+  cwd, no la del repo que contiene la ruta.
+
+Al reves, bloquea cualquier comando cuyo texto nombre la ruta aunque no la
+lea (un `git commit -m` o un `echo` que la cite): no la escribas en mensajes
+ni comandos; nombra la tarea o la carpeta `aceptacion/` sin la ruta completa.
 
 Un held-out leido no se deshace: esa tarea queda gastada y solo lo arregla que
 la persona los reescriba. El cierre de la edicion es la huella de `finish`.
