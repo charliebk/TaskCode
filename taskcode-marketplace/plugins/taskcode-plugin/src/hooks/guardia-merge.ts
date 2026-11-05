@@ -31,18 +31,9 @@ import { raizDelRepo, resolverConfigConAvisos, type TaskcodeConfig } from '../co
 import { huellaDeCommit, leerMemo } from '../fs/verificacion.js';
 import { timeoutEfectivoS } from './freno-stop.js';
 
-export interface EntradaPreToolUse {
-  cwd?: unknown;
-  tool_name?: unknown;
-  tool_input?: unknown;
-}
+import { PASAR, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
 
-export interface DecisionPreToolUse {
-  codigo: 0 | 2;
-  stderr: string;
-}
-
-const PASAR: DecisionPreToolUse = Object.freeze({ codigo: 0, stderr: '' });
+export { parsearEntradaPreToolUse, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
 
 /** Guarda 1, sin I/O: el comando de la entrada, si puede contener un merge. */
 export function comandoCandidato(entrada: EntradaPreToolUse): string | null {
@@ -184,14 +175,4 @@ function mensaje(fuente: string, sha: string | null, destino: string, comando: s
     'Si la persona decide integrar sin verificar, es taskctl finish TASK-NNN --sin-verificacion, que lo deja',
     'anotado en la tarea. No integres por otra via para saltarte esta comprobacion.',
   ].join('\n');
-}
-
-/** El JSON del hook. Un JSON roto o vacio es una entrada sin campos. */
-export function parsearEntradaPreToolUse(texto: string): EntradaPreToolUse {
-  try {
-    const v: unknown = JSON.parse(texto);
-    return typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as EntradaPreToolUse) : {};
-  } catch {
-    return {};
-  }
 }

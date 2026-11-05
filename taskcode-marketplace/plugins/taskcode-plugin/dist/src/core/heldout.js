@@ -3,11 +3,13 @@
  * los criterios, en la carpeta `aceptacion/` de la tarea, y los commitea en la
  * rama base durante el diseño, antes de `start`: la rama nace con ellos y no
  * aparecen en su diff. El agente que implementa no debe leerlos ni editarlos
- * (el hook que lo impide llega con TASK-078); `finish` los ejecuta con
- * `comando_heldout` y comprueba que la rama no los ha tocado.
+ * (TASK-078: el hook PreToolUse de guardia-heldout.ts lo frena); `finish` los
+ * ejecuta con `comando_heldout` y comprueba que la rama no los ha tocado.
  *
- * Puro: nombres, patrones y la busqueda de la carpeta en una lista de rutas.
+ * Puro: nombres, patrones, la busqueda de la carpeta en una lista de rutas y
+ * que tareas nombra una ruta o el texto de un comando.
  */
+import path from 'node:path';
 /** Nombre de la carpeta de held-out dentro de la carpeta de una tarea. */
 export const CARPETA_HELDOUT = 'aceptacion';
 /** Variable de entorno con la ruta absoluta de la carpeta, para `comando_heldout`. */
@@ -51,4 +53,52 @@ export function variantesHeldout(rutas, id) {
             vistas.add(m[1]);
     }
     return [...vistas];
+}
+/**
+ * Una ruta held-out, ya normalizada (`/`, minusculas, sin `.` ni `..`): la
+ * secuencia de segmentos `tareas/<estado>/task-NNN/aceptacion` en cualquier
+ * punto de la ruta, seguida de `/` o del final. `aceptacionX/` y `tarea.md`
+ * no casan.
+ */
+const RUTA_HELDOUT_RE = new RegExp(`(?:^|/)tareas/[^/]+/task-(\\d{3,})/${CARPETA_HELDOUT}(?:/|$)`);
+function casar(normalizada, nums) {
+    const m = RUTA_HELDOUT_RE.exec(normalizada);
+    if (m !== null)
+        nums.add(parseInt(m[1], 10));
+}
+/**
+ * Numeros de las tareas cuya carpeta held-out nombra `ruta`. Se prueba la
+ * ruta tal cual y resuelta contra `base` (el cwd, o el `path` de Grep/Glob),
+ * con barras invertidas, mayusculas, `.` y `..` normalizados, para que una
+ * relativa dentro de la carpeta de la tarea (`aceptacion/x`) o una absoluta
+ * de Windows o de git-bash (`C:\...`, `/c/...`) casen igual.
+ */
+export function numerosHeldoutEnRuta(ruta, base) {
+    const nums = new Set();
+    const barras = ruta.replace(/\\/g, '/');
+    if (barras.trim() === '')
+        return [];
+    casar(path.posix.normalize(barras).toLowerCase(), nums);
+    casar(path.resolve(base, barras).replace(/\\/g, '/').toLowerCase(), nums);
+    return [...nums];
+}
+/** Separadores de palabra en el texto de un comando: blancos, comillas, operadores y el `:` de `rama:ruta`. */
+const SEPARADORES_COMANDO = /[\s"'`;|&()<>=,:]+/;
+/**
+ * Numeros de las tareas cuya carpeta held-out nombra el texto de un comando
+ * de Bash o PowerShell (`cat`, `Get-Content`, `git show rama:ruta`...). Se
+ * parte por separadores y cada palabra se trata como una ruta relativa a
+ * `cwd`. NO usa el tokenizador del guardian de merges, que trata `\` como
+ * escape y romperia las rutas de PowerShell. Es un badén, no un cierre: no
+ * sigue un `cd` previo ni deshace concatenaciones o escapes del shell.
+ */
+export function numerosHeldoutEnTexto(texto, cwd) {
+    const nums = new Set();
+    for (const palabra of texto.split(SEPARADORES_COMANDO)) {
+        if (palabra === '')
+            continue;
+        for (const n of numerosHeldoutEnRuta(palabra, cwd))
+            nums.add(n);
+    }
+    return [...nums];
 }

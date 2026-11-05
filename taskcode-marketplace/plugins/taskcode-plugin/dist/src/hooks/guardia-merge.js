@@ -30,7 +30,8 @@ import { analizarComando } from '../core/comando-merge.js';
 import { raizDelRepo, resolverConfigConAvisos } from '../core/config.js';
 import { huellaDeCommit, leerMemo } from '../fs/verificacion.js';
 import { timeoutEfectivoS } from './freno-stop.js';
-const PASAR = Object.freeze({ codigo: 0, stderr: '' });
+import { PASAR } from './entrada-pretooluse.js';
+export { parsearEntradaPreToolUse } from './entrada-pretooluse.js';
 /** Guarda 1, sin I/O: el comando de la entrada, si puede contener un merge. */
 export function comandoCandidato(entrada) {
     const ti = entrada.tool_input;
@@ -168,14 +169,4 @@ function mensaje(fuente, sha, destino, comando, motivo) {
         'Si la persona decide integrar sin verificar, es taskctl finish TASK-NNN --sin-verificacion, que lo deja',
         'anotado en la tarea. No integres por otra via para saltarte esta comprobacion.',
     ].join('\n');
-}
-/** El JSON del hook. Un JSON roto o vacio es una entrada sin campos. */
-export function parsearEntradaPreToolUse(texto) {
-    try {
-        const v = JSON.parse(texto);
-        return typeof v === 'object' && v !== null && !Array.isArray(v) ? v : {};
-    }
-    catch {
-        return {};
-    }
 }
