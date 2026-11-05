@@ -20,7 +20,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { claudeDisponible, validarPlugin as validar, validacionLimpia } from '../helpers/validador-claude.js';
 import { cp, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -675,27 +675,6 @@ test('21. ningun .md de task-workflow arrastra marcas de este repo ni rutas de m
 
 // --- 2. De integracion: el validador oficial ----------------------------
 
-interface ResultadoValidate {
-  status: number | null;
-  salida: string;
-}
-
-function claudeDisponible(): boolean {
-  try {
-    const r = spawnSync('claude', ['--version'], { encoding: 'utf8' });
-    return r.status === 0;
-  } catch {
-    return false;
-  }
-}
-
-function validar(ruta: string): ResultadoValidate {
-  const r = spawnSync('claude', ['plugin', 'validate', ruta], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  return { status: r.status, salida: `${r.stdout ?? ''}${r.stderr ?? ''}` };
-}
 
 // Skip explicito y visible: en el CI de Linux `claude` no esta
 // instalado, y un test que pasa en falso es peor que uno que no corre.
@@ -703,15 +682,14 @@ const SKIP_INTEGRACION: false | string = claudeDisponible()
   ? false
   : 'el binario "claude" no esta en el PATH: la comprobacion empirica no se puede hacer aqui';
 
-const CRUZ = '\u2718';
-
 test(
   '13. `claude plugin validate` sobre el plugin real sale 0',
   { skip: SKIP_INTEGRACION },
   () => {
     const { status, salida } = validar(PLUGIN_ROOT);
     assert.equal(status, 0, `exit ${String(status)}. Salida:\n${salida}`);
-    assert.ok(!salida.includes(CRUZ), `la salida reporta errores:\n${salida}`);
+    const limpia = validacionLimpia({ status, salida });
+    assert.ok(limpia.ok, `la salida reporta errores (${limpia.motivo}):\n${salida}`);
   }
 );
 
@@ -747,7 +725,7 @@ test(
       `la copia intacta no valida (exit ${String(intacta.status)}):\n${intacta.salida}`
     );
     assert.ok(
-      !intacta.salida.includes(CRUZ),
+      validacionLimpia(intacta).ok,
       `la copia intacta reporta errores:\n${intacta.salida}`
     );
 
