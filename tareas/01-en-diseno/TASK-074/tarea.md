@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 922803
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
@@ -37,3 +37,9 @@ Freno 8 de brakes: una linea cambiada que ningun test ejecuta es un hallazgo, me
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-05T17:07:09Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-05T17:15:36Z | diseno | agente:a6e758af87c52ec67,a27c5a90f106d2646,acf962f629a824993,a1dff1917970a1488 | 62 | 181258 | 708750 | 32733 | 47 | 922803 |
