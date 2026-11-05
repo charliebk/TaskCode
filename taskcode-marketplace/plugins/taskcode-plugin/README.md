@@ -710,10 +710,15 @@ umbral_cobertura: 80                       # opcional: % minimo cubierto para qu
   del informe es del fuente del repo. Sin datos nunca cuenta como aprobado.
 - Cuenta una línea cambiada (no en blanco) con `DA` en el informe (`DA:n,0` =
   sin cubrir); sin `DA` no es ejecutable. Un fichero cambiado que el informe no
-  lista y cuya extensión **sí** mide en otros ficheros (un `.mjs` nuevo que
-  ningún test carga: `node --test` y c8 sin `--all` solo listan lo cargado)
-  cuenta con todas sus líneas sin cubrir. Uno cuya extensión el informe no mide
-  (`.md`, `.yml`…) no cuenta: una tarea de solo documentación no se frena.
+  lista cuenta con todas sus líneas sin cubrir si el informe **sí** mide su
+  extensión y alguna de sus carpetas (sin contar la raíz) tiene un fichero
+  medido: un `.mjs` nuevo en `src/` que ningún test carga (`node --test` y c8
+  sin `--all` solo listan lo cargado). No cuentan un `.md` o un `.yml`, los
+  tests si el proyecto los excluye de la cobertura (`test/` sin nada medido) ni
+  los `*.d.ts`: una tarea de solo documentación, o de solo tests, no se frena.
+  Un `.ts` solo de tipos en una carpeta medida sí cuenta; para evitarlo, genera
+  la cobertura con `--all`/`include`, y saldrá en el informe sin líneas
+  ejecutables.
 - Las rutas `SF:` pueden ser absolutas o relativas, con `\` o `/`. Una relativa
   se resuelve contra la carpeta del informe y cada una de sus padres hasta la
   raíz, la más cercana primero: un proyecto en `pkg/` con el informe en

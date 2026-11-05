@@ -16,6 +16,7 @@ import { lineasAnadidas, mergeBase } from '../../src/fs/git.js';
 import { coberturaDeRama, leerInformeCobertura } from '../../src/fs/cobertura.js';
 import { runFinishCommand, FinishCommandError } from '../../src/commands/finish.js';
 import { runReviewCommand } from '../../src/commands/review.js';
+import { runVeredictoCommand } from '../../src/commands/veredicto.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
 
 /**
@@ -36,7 +37,8 @@ fs.mkdirSync('coverage', { recursive: true });
 if (modo === 'dist') { fs.writeFileSync('coverage/lcov.info', 'SF:dist/x.js\\nDA:1,1\\nend_of_record\\n'); process.exit(0); }
 const env = { ...process.env };
 delete env.NODE_TEST_CONTEXT;
-const r = spawnSync(process.execPath, ['--test', '--experimental-test-coverage', '--test-reporter=lcov',
+const excluir = modo === 'cov-sin-tests' ? ['--test-coverage-exclude=test/**'] : [];
+const r = spawnSync(process.execPath, ['--test', '--experimental-test-coverage', ...excluir, '--test-reporter=lcov',
   '--test-reporter-destination=coverage/lcov.info', 'test/*.test.mjs'], { env, encoding: 'utf8' });
 process.exit(r.status === null ? 1 : r.status);
 `;
@@ -49,7 +51,7 @@ interface Ctx {
   repoRoot: string;
   tareasRoot: string;
   dir: string;
-  modo(m: 'cov' | 'nada' | 'dist'): Promise<void>;
+  modo(m: 'cov' | 'cov-sin-tests' | 'nada' | 'dist'): Promise<void>;
   ejecuciones(): number;
   generar(): void;
 }
@@ -417,7 +419,7 @@ test('finish (IMP-1): un modulo nuevo que ningun test carga no pasa el umbral; u
     commitAll(c.repoRoot, 'feat: modulo sin test');
     await assert.rejects(
       () => finish(c, ['TASK-975']),
-      /no llega al umbral[\s\S]*- `src\/nuevo\.mjs`: 1-4 \(el informe no lo lista: ningun test lo carga\)/
+      /no llega al umbral[\s\S]*- `src\/nuevo\.mjs`: 1-4 \(el informe no lo lista, y es codigo de una carpeta que si mide: cuenta entero\)/
     );
     assert.equal(integrada(task.rama, c.repoRoot), false);
   });
@@ -510,5 +512,51 @@ test('review (IMP-4, MEN-4): en una peticion fragmentada cada dominio ve solo la
     assert.match(java, /`java\/X\.java`/, 'el .java no esta instrumentado: va aparte');
     assert.match(generico, /- `src\/a\.mjs`: 6\n/);
     assert.doesNotMatch(generico, /X\.java/);
+  });
+});
+
+// ---------------------------------------------------------------------
+// Ronda 2 de revision
+// ---------------------------------------------------------------------
+
+test('finish (IMP-5): con los tests excluidos de la cobertura, una tarea que solo añade tests cierra', async () => {
+  await conCobertura('umbral_cobertura: 100\n', async (c) => {
+    // Base con el codigo cubierto por completo.
+    await mkdir(path.join(c.repoRoot, 'src'), { recursive: true });
+    await mkdir(path.join(c.repoRoot, 'test'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'src', 'a.mjs'), FUENTE, 'utf8');
+    await writeFile(path.join(c.repoRoot, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
+    commitAll(c.repoRoot, 'codigo en la base');
+    await c.modo('cov-sin-tests');
+    const task = sampleTask({ id: 'TASK-969', rama: 'feature/task-969-cob' });
+    await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task);
+    await writeFile(path.join(c.repoRoot, 'test', 'b.test.mjs'), "import { test } from 'node:test';\nimport { f } from '../src/a.mjs';\ntest('neg', () => { f(-1); });\n", 'utf8');
+    commitAll(c.repoRoot, 'test: rama neg');
+    const r = await finish(c, ['TASK-969']);
+    assert.equal(r.cierre, 'terminada', 'test/b.test.mjs no esta en el informe ni en una carpeta medida: no cuenta');
+  });
+});
+
+test('review (MEN-5): en la ronda 2 fragmentada, una linea sin cubrir de un dominio sin peticion va a la primera', async () => {
+  await conCobertura('', async (c) => {
+    await tareaEnCurso(c, 'TASK-968', 'feature/task-968-cob');
+    c.generar();
+    await runFinishlessReview(c, 'TASK-968');
+    await runVeredictoCommand(c.tareasRoot, ['TASK-968', 'cambios-solicitados'], { repoCwd: c.repoRoot });
+    // La ronda 2 solo toca otros dominios: java y vue, sin grupo generico.
+    await mkdir(path.join(c.repoRoot, 'java'), { recursive: true });
+    await mkdir(path.join(c.repoRoot, 'web'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'java', 'X.java'), 'class X {}\n', 'utf8');
+    await writeFile(path.join(c.repoRoot, 'web', 'C.vue'), '<template><p/></template>\n', 'utf8');
+    commitAll(c.repoRoot, 'feat: java y vue');
+    c.generar();
+    const r2 = await runReviewCommand(c.tareasRoot, ['TASK-968'], '2026-11-05', { repoCwd: c.repoRoot, scriptsDir: SCRIPTS_DIR });
+    assert.equal(r2.incremental, true);
+    const dir = path.join(c.tareasRoot, '03-en-revision', 'TASK-968', 'revision');
+    const java = await readFile(path.join(dir, 'peticion-revision-2-java-spring-reviewer.md'), 'utf8');
+    const vue = await readFile(path.join(dir, 'peticion-revision-2-angular-vue-reviewer.md'), 'utf8');
+    const conA = [java, vue].filter((p) => /- `src\/a\.mjs`: 6\n/.test(p));
+    assert.equal(conA.length, 1, 'la linea sin cubrir de la ronda 1 sale una vez, aunque su dominio no tenga peticion');
+    assert.doesNotMatch(vue, /X\.java/);
   });
 });

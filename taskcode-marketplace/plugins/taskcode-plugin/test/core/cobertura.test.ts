@@ -116,11 +116,38 @@ test('cruce (IMP-1/IMP-2 de la revision): un fichero de codigo que el informe no
   ]);
   assert.deepEqual(c.sinInstrumentar, ['Makefile', 'docs/guia.md']);
   assert.deepEqual([c.cubiertas, c.ejecutables], [1, 4]);
-  assert.match(describirCruce(c), /- `src\/nuevo\.mjs`: 1-2, 4 \(el informe no lo lista: ningun test lo carga\)/);
+  assert.match(
+    describirCruce(c),
+    /- `src\/nuevo\.mjs`: 1-2, 4 \(el informe no lo lista, y es codigo de una carpeta que si mide: cuenta entero\)/
+  );
   // Una tarea de solo docs no tiene nada que medir.
   const docs = cruzarCobertura(new Map([['docs/guia.md', [1]]]), informe);
   assert.equal(docs.ejecutables, 0);
   assert.equal(cumpleUmbral(docs, 100), true);
+});
+
+test('cruce (IMP-5 de la ronda 2): fuera del informe solo cuenta el codigo de una carpeta medida; tests excluidos y .d.ts, no', () => {
+  const anadidas = new Map([
+    ['test/b.test.mjs', [1, 2]],
+    ['src/tipos.d.ts', [1]],
+    ['src/Tipos.D.MTS', [1]],
+    ['src/sub/n.mjs', [1, 2]],
+    ['otra/x.mjs', [1]],
+    ['raiz.mjs', [1]],
+    ['src/Mayus.MJS', [1]],
+  ]);
+  const c = cruzarCobertura(anadidas, informe);
+  assert.deepEqual(
+    c.ficheros.map((f) => f.ruta),
+    ['src/Mayus.MJS', 'src/sub/n.mjs'],
+    'src/ tiene ficheros medidos (tambien una subcarpeta suya); la extension no distingue mayusculas'
+  );
+  assert.deepEqual(c.sinInstrumentar, ['otra/x.mjs', 'raiz.mjs', 'src/Tipos.D.MTS', 'src/tipos.d.ts', 'test/b.test.mjs']);
+  // Con un fichero medido en la raiz, un .mjs nuevo de la raiz si cuenta.
+  const conRaiz = new Map([...informe, ['main.mjs', new Map([[1, 1]])]]);
+  assert.deepEqual(cruzarCobertura(new Map([['raiz.mjs', [1]]]), conRaiz).ficheros.map((f) => f.ruta), ['raiz.mjs']);
+  // Una tarea que solo añade tests (excluidos del informe) no se frena.
+  assert.equal(cumpleUmbral(cruzarCobertura(new Map([['test/b.test.mjs', [1]]]), informe), 100), true);
 });
 
 test('porcentaje (MEN-2 de la revision): redondea hacia abajo, para no decir «91 % no llega a 91 %»', () => {
@@ -128,7 +155,7 @@ test('porcentaje (MEN-2 de la revision): redondea hacia abajo, para no decir «9
   assert.equal(formatearPorcentaje(90), '90');
   assert.equal(formatearPorcentaje((100 * 2) / 3), '66.6');
   assert.equal(formatearPorcentaje(100), '100');
-  assert.equal(formatearPorcentaje((100 * 29) / 100), '29', 'sin el error de coma flotante');
+  assert.equal(formatearPorcentaje((100 * 999) / 1000), '99.9');
 });
 
 test('cruce: filtrar por los ficheros de un dominio recalcula los totales', () => {

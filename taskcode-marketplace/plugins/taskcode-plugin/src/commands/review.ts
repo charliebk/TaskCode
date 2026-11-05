@@ -514,13 +514,21 @@ export async function runReviewCommand(
   // TASK-074 (MEN-4 de la revision): en una peticion fragmentada, la seccion
   // de cobertura de cada dominio lleva SUS ficheros cambiados desde la merge
   // base, no solo los del delta de la ronda: una linea sin cubrir de la ronda
-  // 1 sigue en la 2 aunque su fichero no haya vuelto a cambiar.
+  // 1 sigue en la 2 aunque su fichero no haya vuelto a cambiar. Y si el
+  // dominio de un fichero no tiene peticion en esta ronda (el delta solo toca
+  // otros dominios), sus lineas van a la primera peticion: no se pierden
+  // (MEN-5 de la ronda 2).
   const coberturaPorRevisor = new Map<string, Set<string>>();
   if (plan.fragmentado && datosCobertura?.tipo === 'ok' && datosCobertura.cobertura.cruce !== null) {
     const cruce = datosCobertura.cobertura.cruce;
     const cambiados = [...cruce.ficheros.map((f) => f.ruta), ...cruce.sinInstrumentar];
+    const conPeticion = new Set(plan.grupos.map((g) => g.revisor));
+    const primera = (plan.grupos[0] as { revisor: string }).revisor;
     for (const g of clasificarPorDominio(cambiados, catalogoRevisores).grupos) {
-      coberturaPorRevisor.set(g.revisor, new Set(g.ficheros));
+      const destino = conPeticion.has(g.revisor) ? g.revisor : primera;
+      const set = coberturaPorRevisor.get(destino) ?? new Set<string>();
+      for (const f of g.ficheros) set.add(f);
+      coberturaPorRevisor.set(destino, set);
     }
   }
 

@@ -1,8 +1,18 @@
 /** Extension en minusculas (`.mjs`), o '' si no tiene. */
-function extension(ruta) {
+export function extension(ruta) {
     const base = ruta.slice(ruta.lastIndexOf('/') + 1);
     const punto = base.lastIndexOf('.');
     return punto <= 0 ? '' : base.slice(punto).toLowerCase();
+}
+/** Declaraciones de TypeScript: no tienen codigo ejecutable. */
+const DECLARACIONES_RE = /\.d\.[cm]?ts$/i;
+/** Carpetas (sin la raiz) de una ruta del repo, de la mas cercana a la mas lejana: `a/b/c.js` -> `a/b`, `a`. */
+function carpetas(ruta) {
+    const partes = ruta.split('/').slice(0, -1);
+    const r = [];
+    for (let i = partes.length; i > 0; i--)
+        r.push(partes.slice(0, i).join('/'));
+    return r;
 }
 /**
  * Cruza las lineas añadidas (por ruta del repo) con el informe (por ruta del
@@ -11,12 +21,26 @@ function extension(ruta) {
 export function cruzarCobertura(anadidas, informe, clave = (r) => r) {
     const porClave = new Map();
     const medidas = new Set();
+    /** Carpetas (por clave, sin la raiz) con algun fichero medido debajo. */
+    const carpetasMedidas = new Set();
+    let raizMedida = false;
     for (const [ruta, lineas] of informe) {
         porClave.set(clave(ruta), lineas);
         const ext = extension(ruta);
         if (ext !== '')
             medidas.add(ext);
+        const cs = carpetas(ruta);
+        if (cs.length === 0)
+            raizMedida = true;
+        for (const c of cs)
+            carpetasMedidas.add(clave(c));
     }
+    const esCodigoMedido = (ruta) => {
+        if (DECLARACIONES_RE.test(ruta) || !medidas.has(extension(ruta)))
+            return false;
+        const cs = carpetas(ruta);
+        return cs.length === 0 ? raizMedida : cs.some((c) => carpetasMedidas.has(clave(c)));
+    };
     const ficheros = [];
     const sinInstrumentar = [];
     let ejecutables = 0;
@@ -26,7 +50,7 @@ export function cruzarCobertura(anadidas, informe, clave = (r) => r) {
             continue;
         const registro = porClave.get(clave(ruta));
         if (registro === undefined) {
-            if (!medidas.has(extension(ruta))) {
+            if (!esCodigoMedido(ruta)) {
                 sinInstrumentar.push(ruta);
                 continue;
             }
@@ -94,7 +118,7 @@ export function rangos(lineas) {
  * que un 90.96 que no llega a 91 no se lea «91 % no llega a 91 %» (MEN-2).
  */
 export function formatearPorcentaje(p) {
-    return String(Math.floor(p * 10 + 1e-9) / 10);
+    return String(Math.floor(p * 10) / 10);
 }
 /** true si cumple el umbral (porcentaje minimo; el valor exacto pasa). Sin lineas ejecutables, pasa. */
 export function cumpleUmbral(c, umbral) {
@@ -114,7 +138,7 @@ export function describirCruce(c) {
         lineas.push('', 'Sin cubrir (ningun test las ejecuta):', '');
         for (const f of conHuecos) {
             lineas.push(`- \`${f.ruta}\`: ${rangos(f.sinCubrir)}` +
-                (f.fueraDelInforme ? ' (el informe no lo lista: ningun test lo carga)' : ''));
+                (f.fueraDelInforme ? ' (el informe no lo lista, y es codigo de una carpeta que si mide: cuenta entero)' : ''));
         }
     }
     if (c.sinInstrumentar.length > 0) {

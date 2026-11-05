@@ -74,6 +74,10 @@ Decidido por la persona el 2026-11-05:
   nuevo que ningun test carga) cuenta con todas sus lineas añadidas sin cubrir; solo va aparte como
   «sin instrumentar» si su extension el informe no la mide (.md, .yml...). Una tarea de solo docs
   sigue cerrando.
+  **Acotada por la persona tras la ronda 2 (IMP-5), el 2026-11-05:** solo cuenta si ademas alguna
+  carpeta del fichero (la propia o una padre, sin la raiz) tiene un fichero medido, y los `*.d.ts`
+  nunca cuentan: los tests excluidos de la cobertura no frenan. Riesgo aceptado: un .ts solo de
+  tipos en una carpeta medida cuenta sin cubrir; el remedio documentado es `--all`/`include`.
 - (e) **Dogfooding fuera de alcance**: si el lcov solo cubre rutas excluidas, se avisa de mala
   configuracion. Hacerlo funcionar en este repo (source maps o cobertura sobre `src`) queda como
   seguimiento.

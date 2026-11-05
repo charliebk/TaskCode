@@ -9,12 +9,19 @@
  * - Cuenta una linea añadida o cambiada con `DA` en el informe: `DA:n,0` es
  *   sin cubrir, `DA:n,k>0` cubierta. Sin `DA` (comentario, linea en blanco,
  *   un `type`) no es ejecutable y no cuenta.
- * - Un fichero cambiado que no esta en el informe y cuya extension el
- *   informe SI instrumenta en otros ficheros (un .mjs nuevo que ningun test
- *   carga: `node --test` y c8 sin `--all` solo listan lo cargado) cuenta con
- *   todas sus lineas añadidas sin cubrir (IMP-1 e IMP-2 de la revision).
- * - Uno cuya extension el informe no mide (un .md, un .yml...) va aparte,
- *   «sin instrumentar»: no cuenta. Una tarea de solo docs no se frena.
+ * - Un fichero cambiado que no esta en el informe cuenta con todas sus
+ *   lineas añadidas sin cubrir si el informe SI mide su extension Y alguna
+ *   carpeta suya (la propia o una padre, sin contar la raiz del repo) tiene un
+ *   fichero medido: un .mjs nuevo en `src/` que ningun test carga (`node
+ *   --test` y c8 sin `--all` solo listan lo cargado). IMP-1 e IMP-2 de la
+ *   ronda 1; acotada en la ronda 2 (IMP-5) para no frenar en falso.
+ * - Si no, va aparte como «sin instrumentar» y no cuenta: un .md o un .yml
+ *   (extension no medida), los tests cuando el proyecto los excluye de la
+ *   cobertura (`test/` sin ningun fichero medido) y los `*.d.ts`, que no
+ *   tienen codigo. Una tarea de solo docs, o de solo tests, no se frena.
+ *   Riesgo aceptado: un .ts solo de tipos en una carpeta medida cuenta sin
+ *   cubrir; el remedio es generar la cobertura con `--all`/`include`, y
+ *   entonces sale en el informe sin lineas ejecutables.
  * - El umbral es el porcentaje minimo cubierto; el valor exacto pasa.
  *
  * Puro: recibe las lineas cambiadas y el informe ya resuelto a rutas del repo.
@@ -28,15 +35,26 @@ export interface CoberturaFichero {
   cubiertas: number;
   /** Lineas cambiadas con `DA:n,0`, en orden. */
   sinCubrir: number[];
-  /** El informe no lista el fichero (ningun test lo carga): todas sus lineas cuentan sin cubrir. */
+  /** El informe no lista el fichero, y es codigo de una carpeta medida: todas sus lineas cuentan sin cubrir. */
   fueraDelInforme?: true;
 }
 
 /** Extension en minusculas (`.mjs`), o '' si no tiene. */
-function extension(ruta: string): string {
+export function extension(ruta: string): string {
   const base = ruta.slice(ruta.lastIndexOf('/') + 1);
   const punto = base.lastIndexOf('.');
   return punto <= 0 ? '' : base.slice(punto).toLowerCase();
+}
+
+/** Declaraciones de TypeScript: no tienen codigo ejecutable. */
+const DECLARACIONES_RE = /\.d\.[cm]?ts$/i;
+
+/** Carpetas (sin la raiz) de una ruta del repo, de la mas cercana a la mas lejana: `a/b/c.js` -> `a/b`, `a`. */
+function carpetas(ruta: string): string[] {
+  const partes = ruta.split('/').slice(0, -1);
+  const r: string[] = [];
+  for (let i = partes.length; i > 0; i--) r.push(partes.slice(0, i).join('/'));
+  return r;
 }
 
 export interface CruceCobertura {
@@ -60,11 +78,22 @@ export function cruzarCobertura(
 ): CruceCobertura {
   const porClave = new Map<string, LineasEjecutadas>();
   const medidas = new Set<string>();
+  /** Carpetas (por clave, sin la raiz) con algun fichero medido debajo. */
+  const carpetasMedidas = new Set<string>();
+  let raizMedida = false;
   for (const [ruta, lineas] of informe) {
     porClave.set(clave(ruta), lineas);
     const ext = extension(ruta);
     if (ext !== '') medidas.add(ext);
+    const cs = carpetas(ruta);
+    if (cs.length === 0) raizMedida = true;
+    for (const c of cs) carpetasMedidas.add(clave(c));
   }
+  const esCodigoMedido = (ruta: string): boolean => {
+    if (DECLARACIONES_RE.test(ruta) || !medidas.has(extension(ruta))) return false;
+    const cs = carpetas(ruta);
+    return cs.length === 0 ? raizMedida : cs.some((c) => carpetasMedidas.has(clave(c)));
+  };
   const ficheros: CoberturaFichero[] = [];
   const sinInstrumentar: string[] = [];
   let ejecutables = 0;
@@ -73,7 +102,7 @@ export function cruzarCobertura(
     if (lineas.length === 0) continue;
     const registro = porClave.get(clave(ruta));
     if (registro === undefined) {
-      if (!medidas.has(extension(ruta))) {
+      if (!esCodigoMedido(ruta)) {
         sinInstrumentar.push(ruta);
         continue;
       }
@@ -140,7 +169,7 @@ export function rangos(lineas: readonly number[]): string {
  * que un 90.96 que no llega a 91 no se lea «91 % no llega a 91 %» (MEN-2).
  */
 export function formatearPorcentaje(p: number): string {
-  return String(Math.floor(p * 10 + 1e-9) / 10);
+  return String(Math.floor(p * 10) / 10);
 }
 
 /** true si cumple el umbral (porcentaje minimo; el valor exacto pasa). Sin lineas ejecutables, pasa. */
@@ -164,7 +193,7 @@ export function describirCruce(c: CruceCobertura): string {
     for (const f of conHuecos) {
       lineas.push(
         `- \`${f.ruta}\`: ${rangos(f.sinCubrir)}` +
-          (f.fueraDelInforme ? ' (el informe no lo lista: ningun test lo carga)' : '')
+          (f.fueraDelInforme ? ' (el informe no lo lista, y es codigo de una carpeta que si mide: cuenta entero)' : '')
       );
     }
   }
