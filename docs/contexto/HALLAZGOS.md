@@ -706,6 +706,19 @@ y las aserciones estructurales propias son la única red real. La contraprueba
 (romper una copia y ver que la nombra) sigue siendo la forma de saber si el
 validador mira siquiera esa ruta.
 
+**Desde Claude Code 2.1.316 la cruz ya no significa error** (TASK-075). El
+validador añade al final un bloque «Plugin directory checks» con lo que el
+directorio de plugins rechazaría (README, icono...), y sus problemas salen con
+`✘` **aunque no cambien el resultado**: la copia de un plugin sin README sale
+con exit 0, una `✘ ... README_MISSING` y termina en `✔ Validation passed`. Las
+contrapruebas 14 y 17 buscaban la cruz en toda la salida y fallaban con la copia
+intacta (eran 2 de los 5 rojos «fijos» de Windows). La regla, en
+`test/helpers/validador-claude.ts`: exit 0, la última línea dice `Validation
+passed` y ninguna `✘` **antes** del bloque del directorio; nunca buscar la cruz
+en toda la salida. Alternativas medidas: `--json` (mismos códigos de salida)
+separa `directory.findings` de `manifest.errors` / `contents[].errors`, y
+`--profile directory` hace que lo del directorio sí falle.
+
 ### El dato se acomoda al lector, no al revés
 
 El único parser del repo lee pares `clave: valor` y listas **en línea**, y
