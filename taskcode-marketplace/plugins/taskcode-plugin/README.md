@@ -679,8 +679,59 @@ la tarea no puede cambiar cómo se ejecutan. `--sin-verificacion` no los salta. 
 base) no hay puerta. La petición de revisión excluye siempre
 `tareas/*/TASK-*/aceptacion/**`, aunque se cambie `excluir_de_revision`: el
 revisor no los lee. Que queden fuera de `comando_verificacion`, o el freno de
-fin de turno mostraría su salida. El hook que impide leerlos o editarlos
-mientras se implementa llega en una versión siguiente.
+fin de turno mostraría su salida. En la rama de la tarea, un hook `PreToolUse`
+impide al agente leerlos, buscarlos o editarlos (ver `skills/task-workflow/heldout.md`).
+
+#### Cobertura de las líneas cambiadas
+
+Una línea cambiada que ningún test ejecuta es un hallazgo. Se mide sobre las
+líneas añadidas o cambiadas desde la **merge base** de la rama con su base (no
+sobre todo el repo), sin lo que excluye `excluir_de_revision` ni los held-out, y
+con el informe **lcov** que genera el propio `comando_verificacion`: taskctl
+nunca ejecuta tests para obtenerlo.
+
+```yaml
+comando_verificacion: "npm test"           # tiene que escribir el lcov
+informe_cobertura: coverage/lcov.info      # relativa a la raiz del repo; ignorala en .gitignore
+umbral_cobertura: 80                       # opcional: % minimo cubierto para que finish cierre
+```
+
+- **`taskctl review`** añade a la petición la sección «Cobertura de las líneas
+  cambiadas»: las líneas sin cubrir por fichero (`src/a.ts: 4-6, 9`), el
+  porcentaje y los ficheros que cambian pero el informe no lista. Solo informa:
+  si el informe no existe, está cortado, es anterior al último commit de la
+  rama o ninguna de sus rutas es un fichero del repo fuera de lo excluido, lo
+  dice como aviso y no lista líneas. Sin `informe_cobertura` no hay sección.
+- **`taskctl finish`**, solo con `umbral_cobertura`: justo después de la
+  verificación (que acaba de regenerar el informe) y antes de los held-out,
+  aborta sin mergear si el porcentaje cubierto no llega al umbral (el valor
+  exacto pasa), y también si no hay datos fiables: el informe no existe, está
+  cortado, es anterior a la verificación de ese mismo `finish`, o ninguna ruta
+  del informe es del fuente del repo. Sin datos nunca cuenta como aprobado.
+- Cuenta una línea cambiada (no en blanco) con `DA` en el informe (`DA:n,0` =
+  sin cubrir); sin `DA` no es ejecutable. Un fichero cambiado que el informe no
+  lista cuenta con todas sus líneas sin cubrir si el informe **sí** mide su
+  extensión y alguna de sus carpetas tiene un fichero medido, sin contar la
+  raíz del repo ni la del proyecto que generó el informe (la carpeta contra la
+  que se resuelven sus rutas relativas, como `pkg/`, y sus padres): un `.mjs`
+  nuevo en `src/` que ningún test carga (`node --test` y c8
+  sin `--all` solo listan lo cargado). No cuentan un `.md` o un `.yml`, los
+  tests si el proyecto los excluye de la cobertura (`test/` sin nada medido) ni
+  los `*.d.ts`: una tarea de solo documentación, o de solo tests, no se frena.
+  Un `.ts` solo de tipos en una carpeta medida sí cuenta; para evitarlo, genera
+  la cobertura con `--all`/`include`, y saldrá en el informe sin líneas
+  ejecutables.
+- Las rutas `SF:` pueden ser absolutas o relativas, con `\` o `/`. Una relativa
+  se resuelve contra la carpeta del informe y cada una de sus padres hasta la
+  raíz, la más cercana primero: un proyecto en `pkg/` con el informe en
+  `pkg/coverage/lcov.info` funciona.
+- `umbral_cobertura` e `informe_cobertura` se leen, en `finish`, de la config
+  **de la rama base**: la rama no puede rebajar su propio freno. El umbral exige
+  `informe_cobertura` y `comando_verificacion`.
+- `--sin-verificacion` no regenera el informe, así que tampoco mide el umbral:
+  lo avisa, y el salto queda anotado en la tarea.
+- Si la cobertura mide el código compilado (por ejemplo `dist/`, excluido) y no
+  el fuente, el informe no sirve: con umbral, `finish` no cierra.
 
 #### Guardián de merges (hook `PreToolUse`)
 

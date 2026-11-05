@@ -19,6 +19,8 @@
  * | comando_verificacion         | null (sin freno)  | commands/doctor.ts (y los frenos, TASK-071/072) |
  * | timeout_verificacion         | 600 (segundos)    | los frenos (TASK-071/072)  |
  * | comando_heldout              | null (sin held-out) | commands/finish-heldout.ts (TASK-073) |
+ * | informe_cobertura            | null (sin freno)  | commands/review.ts, finish-cobertura.ts (TASK-074) |
+ * | umbral_cobertura             | null (solo informa) | commands/finish-cobertura.ts (TASK-074) |
  *
  * `comando_verificacion` y `timeout_verificacion` las anadio TASK-070: declaran
  * como se verifica el proyecto (el comando de tests del repo) para que los
@@ -167,6 +169,19 @@ export interface TaskcodeConfig {
    * sin held-out. Usa `timeout_verificacion`.
    */
   comando_heldout: string | null;
+  /**
+   * TASK-074: ruta, relativa a la raiz del repo, del informe lcov que genera
+   * `comando_verificacion`. null = sin freno de cobertura. Nunca se ejecutan
+   * tests para generarlo: se lee lo que haya.
+   */
+  informe_cobertura: string | null;
+  /**
+   * TASK-074: porcentaje minimo (0-100) de lineas cambiadas ejecutables que
+   * tienen que estar cubiertas para que `finish` cierre; el valor exacto pasa.
+   * null = la cobertura solo se informa en la peticion de revision. Exige
+   * `informe_cobertura` y `comando_verificacion` (que regenera el informe).
+   */
+  umbral_cobertura: number | null;
 }
 
 export const PLATAFORMAS_REMOTAS: readonly Plataforma[] = ['github', 'gitlab'];
@@ -203,6 +218,8 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   comando_verificacion: null,
   timeout_verificacion: 600,
   comando_heldout: null,
+  informe_cobertura: null,
+  umbral_cobertura: null,
 });
 
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
@@ -221,6 +238,8 @@ export const CLAVES_CONFIG = [
   'comando_verificacion',
   'timeout_verificacion',
   'comando_heldout',
+  'informe_cobertura',
+  'umbral_cobertura',
 ] as const;
 
 /**
@@ -484,11 +503,18 @@ export function parsearConfigConAvisos(
       case 'comando_heldout':
         config.comando_heldout = validarComando(donde, par.clave, par.valor, 'comando_heldout: "node --test $HELDOUT_DIR"');
         break;
+      case 'informe_cobertura':
+        config.informe_cobertura = validarInformeCobertura(donde, par.valor);
+        break;
+      case 'umbral_cobertura':
+        config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
+        break;
     }
   }
 
   validarSincronizacionCompleta(ruta, vistas);
   validarVerificacionCompleta(ruta, vistas);
+  validarCoberturaCompleta(ruta, vistas);
   validarRemotoCompleto(dondeUrlBase, config);
   return { config, avisos };
 }
@@ -596,6 +622,51 @@ function validarVerificacionCompleta(ruta: string, vistas: ReadonlySet<string>):
         '        Borrala, o declara tambien el comando (por ejemplo comando_verificacion: "npm test").'
     );
   }
+}
+
+/**
+ * TASK-074: el umbral solo tiene sentido con el informe que mide y con el
+ * comando que lo regenera en `finish`: sin comando, la puerta leeria un
+ * informe viejo (o ninguno) y bloquearia siempre.
+ */
+function validarCoberturaCompleta(ruta: string, vistas: ReadonlySet<string>): void {
+  if (!vistas.has('umbral_cobertura')) return;
+  if (!vistas.has('informe_cobertura') || !vistas.has('comando_verificacion')) {
+    throw new ConfigError(
+      `[ERROR] ${ruta}: "umbral_cobertura" necesita tambien "informe_cobertura" y "comando_verificacion".
+` +
+        '        El umbral se mide sobre el informe lcov que regenera la verificacion antes de cerrar. ' +
+        'Declara las dos (p. ej. informe_cobertura: coverage/lcov.info), o borra el umbral.'
+    );
+  }
+}
+
+/** Ruta relativa a la raiz del repo, como las de sincronizacion (no absoluta, no carpeta, no fuera del repo). */
+function validarInformeCobertura(donde: string, valor: unknown): string {
+  const texto = validarTextoNoVacio(donde, 'informe_cobertura', valor);
+  const motivo = motivoRutaInvalida(texto);
+  if (motivo !== null) {
+    throw new ConfigError(
+      `[ERROR] ${donde}: "informe_cobertura" "${texto}" no vale: ${motivo}.
+` +
+        '        Es la ruta del fichero lcov relativa a la raiz del repo, p. ej. informe_cobertura: coverage/lcov.info.'
+    );
+  }
+  return path.posix.normalize(texto.replace(/\\/g, '/'));
+}
+
+/** Numero de 0 a 100 (admite decimales). */
+function validarUmbralCobertura(donde: string, valor: unknown): number {
+  // El parser de bloques solo convierte enteros: `87.5` llega como texto.
+  const numero = typeof valor === 'string' && /^\d+(\.\d+)?$/.test(valor.trim()) ? parseFloat(valor) : valor;
+  if (typeof numero !== 'number' || !Number.isFinite(numero) || numero < 0 || numero > 100) {
+    throw new ConfigError(
+      `[ERROR] ${donde}: "umbral_cobertura" debe ser un numero de 0 a 100, y es ${describirValor(valor)}.
+` +
+        '        Es el porcentaje minimo de lineas cambiadas cubiertas para que finish cierre (p. ej. umbral_cobertura: 80).'
+    );
+  }
+  return numero;
 }
 
 /**

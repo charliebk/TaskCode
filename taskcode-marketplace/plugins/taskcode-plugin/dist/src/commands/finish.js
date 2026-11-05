@@ -42,6 +42,7 @@ import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { extraerSinVerificacion, puertaVerificacion } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
+import { puertaCobertura } from './finish-cobertura.js';
 import { runBoardCommand, boardFilePath } from './board.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
@@ -305,6 +306,15 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             instante: deps.ahora ?? today,
             ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
             ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+        });
+        // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
+        // de que el comando de held-out pueda reescribirlo.
+        puertaCobertura({
+            id,
+            ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion,
+            verificacion: r.resultado,
+            cwd: deps.repoCwd,
+            ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
         });
         puertaHeldout({
             id,

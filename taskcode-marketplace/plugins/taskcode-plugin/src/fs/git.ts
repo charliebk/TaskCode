@@ -307,7 +307,7 @@ export function diffParaRevision(
   cwd: string
 ): DiffParaRevision {
   const rango = `${desde}..${hasta}`;
-  const sinExcluidos = ['--', '.', ...excluir.map((p) => `:(exclude,glob)${p}`)];
+  const sinExcluidos = pathspecSinExcluidos(excluir);
   const nombres = (args: readonly string[]): string[] =>
     partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', rango, ...args], cwd));
 
@@ -332,6 +332,113 @@ export function diffParaRevision(
             cwd
           ),
   };
+}
+
+/**
+ * Pathspec «todo el repo menos los excluidos». Lo comparten el diff de la
+ * peticion de revision y las lineas cambiadas de la cobertura (TASK-074):
+ * un solo motor de patrones, el de Git.
+ */
+export function pathspecSinExcluidos(excluir: readonly string[]): string[] {
+  return ['--', '.', ...excluir.map((p) => `:(exclude,glob)${p}`)];
+}
+
+/**
+ * TASK-074: lineas añadidas o cambiadas entre `desde` y `hasta`, por ruta del
+ * repo (con `/`), sin los ficheros que casan con `excluir` y sin las lineas
+ * en blanco. Sale de un diff sin contexto (`-U0`). Las opciones que cambian la
+ * salida del diff segun la configuracion de la maquina se fijan aqui
+ * (renombres, prefijos, colores, diff externo): un rename no puede convertir
+ * el fichero entero en «cambiado». Borrados y binarios no aportan lineas.
+ */
+export function lineasAnadidas(
+  desde: string,
+  hasta: string,
+  excluir: readonly string[],
+  cwd: string
+): Map<string, number[]> {
+  const salida = runGit(
+    [
+      ...SIN_COMILLAS,
+      '-c',
+      'diff.noprefix=false',
+      '-c',
+      'diff.mnemonicPrefix=false',
+      'diff',
+      '-U0',
+      '--no-color',
+      '--no-ext-diff',
+      '--no-textconv',
+      '-M',
+      '--src-prefix=a/',
+      '--dst-prefix=b/',
+      `${desde}..${hasta}`,
+      ...pathspecSinExcluidos(excluir),
+    ],
+    cwd
+  );
+  const lineas = new Map<string, number[]>();
+  // Cabecera (desde `diff --git` hasta el primer `@@`) o hunk: dentro de un
+  // hunk, una linea añadida que empieza por `++ ` es contenido, no la
+  // cabecera `+++` de otro fichero (MEN-1 de la revision).
+  let actual: number[] | null = null;
+  let enHunk = false;
+  let siguiente = 0;
+  for (const l of salida.split('\n')) {
+    if (l.startsWith('diff --git ')) {
+      actual = null;
+      enHunk = false;
+      continue;
+    }
+    if (!enHunk) {
+      if (l.startsWith('+++ ')) {
+        // Git añade un tabulador tras la ruta si esta lleva espacios.
+        const destino = l.slice(4).replace(/\t$/, '');
+        if (destino === '/dev/null' || !destino.startsWith('b/')) {
+          actual = null;
+          continue;
+        }
+        const ruta = destino.slice(2);
+        actual = lineas.get(ruta) ?? [];
+        lineas.set(ruta, actual);
+        continue;
+      }
+      if (!l.startsWith('@@ ')) continue;
+    }
+    if (l.startsWith('@@ ')) {
+      const m = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(l);
+      if (m === null || actual === null) {
+        enHunk = false;
+        continue;
+      }
+      enHunk = true;
+      siguiente = parseInt(m[1] as string, 10);
+      continue;
+    }
+    if (actual === null) continue;
+    if (l.startsWith('+')) {
+      // Una linea en blanco no es codigo: ni cuenta ni puede estar sin cubrir.
+      if (l.slice(1).trim() !== '') actual.push(siguiente);
+      siguiente++;
+    }
+  }
+  return lineas;
+}
+
+/** TASK-074: ficheros versionados en HEAD fuera de `excluir`, con `/`. */
+export function ficherosVersionados(excluir: readonly string[], cwd: string): string[] {
+  return partirNul(runGit([...SIN_COMILLAS, 'ls-files', '-z', ...pathspecSinExcluidos(excluir)], cwd));
+}
+
+/**
+ * TASK-074: instante (ms) del ultimo commit de `ref` que no es un merge. El
+ * update de review mergea la base en la rama justo antes de la peticion: ese
+ * merge es siempre mas nuevo que cualquier informe de cobertura.
+ */
+export function instanteUltimoCommitPropio(ref: string, cwd: string): number | null {
+  // --first-parent: los commits de la base que entran con ese merge tampoco son de la rama.
+  const s = runGit(['log', '-1', '--first-parent', '--no-merges', '--format=%ct', ref], cwd);
+  return s === '' ? null : parseInt(s, 10) * 1000;
 }
 
 /**

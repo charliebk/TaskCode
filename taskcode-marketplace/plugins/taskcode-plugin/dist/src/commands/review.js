@@ -30,7 +30,8 @@ import path from 'node:path';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { STATE_FOLDER } from '../core/task.js';
-import { resolverConfig } from '../core/config.js';
+import { raizDelRepo, resolverConfig } from '../core/config.js';
+import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertura.js';
 import { registrarTransicion } from '../core/transiciones.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
@@ -129,7 +130,8 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `${fence}diff\n` +
         `${diffBlock}\n` +
         `${fence}\n` +
-        seccionExcluidos(desde, extras));
+        seccionExcluidos(desde, extras) +
+        (extras.seccionCobertura ?? ''));
 }
 async function leerRondaPrevia(revisionDir) {
     const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
@@ -322,9 +324,17 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     // TASK-034: lo generado (dist/, lockfiles) y la propia carpeta de
     // tareas no se embeben: eran el 27 % de los bytes de las peticiones.
     // TASK-073: los tests held-out nunca se embeben, se configure lo que se configure.
-    const excluir = [...new Set([...resolverConfig(deps.repoCwd).excluir_de_revision, EXCLUIR_HELDOUT])];
+    const configRama = resolverConfig(deps.repoCwd);
+    const excluir = [...new Set([...configRama.excluir_de_revision, EXCLUIR_HELDOUT])];
     const paraRevision = diffParaRevision(desde, 'HEAD', excluir, deps.repoCwd);
     const diff = paraRevision.diff;
+    // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
+    // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
+    // nadie arreglo sigue ahi). Una vez por ronda y antes de escribir nada;
+    // nunca lanza: un informe roto es un aviso en la peticion.
+    const datosCobertura = configRama.informe_cobertura === null
+        ? null
+        : datosCoberturaRevision(raizDelRepo(deps.repoCwd), baseBranch, configRama.informe_cobertura, excluir, configRama.umbral_cobertura, configRama.comando_verificacion);
     // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
     // el diff real de la rama, no `task.agente_revisor` del frontmatter,
     // decide quien revisa. El catalogo se relee de skills/*/SKILL.md en
@@ -336,6 +346,27 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const ficherosTocados = paraRevision.incluidos;
     const catalogoRevisores = cargarCatalogoRevisores();
     const plan = clasificarPorDominio(ficherosTocados, catalogoRevisores);
+    // TASK-074 (MEN-4 de la revision): en una peticion fragmentada, la seccion
+    // de cobertura de cada dominio lleva SUS ficheros cambiados desde la merge
+    // base, no solo los del delta de la ronda: una linea sin cubrir de la ronda
+    // 1 sigue en la 2 aunque su fichero no haya vuelto a cambiar. Y si el
+    // dominio de un fichero no tiene peticion en esta ronda (el delta solo toca
+    // otros dominios), sus lineas van a la primera peticion: no se pierden
+    // (MEN-5 de la ronda 2).
+    const coberturaPorRevisor = new Map();
+    if (plan.fragmentado && datosCobertura?.tipo === 'ok' && datosCobertura.cobertura.cruce !== null) {
+        const cruce = datosCobertura.cobertura.cruce;
+        const cambiados = [...cruce.ficheros.map((f) => f.ruta), ...cruce.sinInstrumentar];
+        const conPeticion = new Set(plan.grupos.map((g) => g.revisor));
+        const primera = plan.grupos[0].revisor;
+        for (const g of clasificarPorDominio(cambiados, catalogoRevisores).grupos) {
+            const destino = conPeticion.has(g.revisor) ? g.revisor : primera;
+            const set = coberturaPorRevisor.get(destino) ?? new Set();
+            for (const f of g.ficheros)
+                set.add(f);
+            coberturaPorRevisor.set(destino, set);
+        }
+    }
     const updated = { ...task, estado: 'en-revision', actualizado: today };
     // Peticion + scaffold de informe ANTES de mover la tarea (hallazgo
     // IMPORTANTE de revision por pares, TASK-013): si una escritura
@@ -397,6 +428,11 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
                 patrones: excluir,
                 ...(incremental && desde !== baseBranch ? { desde } : {}),
                 ...(previa !== null ? { seccionPrevia: previa.seccion } : {}),
+                ...(datosCobertura === null
+                    ? {}
+                    : {
+                        seccionCobertura: seccionCoberturaRevision(datosCobertura, plan.fragmentado ? (coberturaPorRevisor.get(escritura.revisor) ?? new Set()) : undefined),
+                    }),
             }));
             await escribir(path.join(revisionDir, escritura.nombreInforme), informeTemplate(updated, commitRevisado, ronda));
         }
