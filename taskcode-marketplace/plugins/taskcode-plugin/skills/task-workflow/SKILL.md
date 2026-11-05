@@ -202,12 +202,13 @@ explicitamente al terminar: el freno solo bloquea una vez por turno.
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
 `taskctl finish` (lanzado desde la rama de la tarea) ejecuta la verificacion
-antes de mergear y aborta si no sale en verde; tarda lo que tarde la suite.
-Un `git merge` o un script de cierre hacia la rama de integracion o la
-principal queda bloqueado si no consta un verde del commit que entra: cierra
-siempre con `taskctl finish`, nunca mergeando a mano. Saltarse la
-verificacion (`--sin-verificacion`) lo decide la persona, no tu, y queda
-anotado en la tarea.
+antes de mergear y aborta si no sale en verde. Un `git merge` o un script de
+cierre hacia la rama de integracion o la principal queda bloqueado sin un
+verde del commit que entra: cierra siempre con `taskctl finish`. Saltarse la
+verificacion (`--sin-verificacion`) lo decide la persona, no tu.
+
+**Tests held-out (`aceptacion/`).** Son de la persona: si implementas, no los
+leas ni los edites. Detalle en [heldout.md](heldout.md).
 
 ## Cerrar una tarea
 

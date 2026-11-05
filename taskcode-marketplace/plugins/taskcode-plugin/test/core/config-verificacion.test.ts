@@ -72,7 +72,7 @@ test('verificacion: un timeout que no es entero >= 1 aborta (fallo cerrado, nunc
 });
 
 test('verificacion: el timeout sin comando no hace nada y aborta; la clave repetida tambien', () => {
-  rechaza('timeout_verificacion: 300\n', /"timeout_verificacion" sin "comando_verificacion" no hace nada/);
+  rechaza('timeout_verificacion: 300\n', /"timeout_verificacion" sin "comando_verificacion" ni "comando_heldout" no hace nada/);
   rechaza('comando_verificacion: npm test\ncomando_verificacion: cargo test\n', /"comando_verificacion" esta repetida/);
 });
 

@@ -173,3 +173,16 @@ test('config (TASK-034): excluir_de_revision valida, ancla los patrones sin / y 
     );
   }
 });
+
+test('review (TASK-073): los tests held-out (aceptacion/) nunca se embeben, aunque excluir_de_revision este vacio', async () => {
+  const { peticion } = await revisar(
+    {
+      'src/b.ts': 'export const b = 1;\n',
+      'tareas/02-en-curso/TASK-930/aceptacion/secreto.test.cjs': "assert('SECRETO-HELDOUT')\n",
+    },
+    'excluir_de_revision: []\n'
+  );
+  assert.match(bloqueDiff(peticion), /diff --git a\/src\/b\.ts/);
+  assert.doesNotMatch(peticion, /SECRETO-HELDOUT/, 'el contenido de un held-out no puede llegar a la peticion');
+  assert.match(peticion, /## Excluido del diff \(1 fichero\(s\)\)/);
+});

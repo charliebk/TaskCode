@@ -105,6 +105,7 @@ export function ejecutarAcotado(raiz, comando, timeoutMs, opciones = {}) {
             // Red de seguridad por si el propio envoltorio se colgara.
             timeout: timeoutMs + 15000,
             windowsHide: true,
+            ...(opciones.env === undefined ? {} : { env: opciones.env }),
         });
         const duracionMs = Date.now() - inicio;
         cerrar();

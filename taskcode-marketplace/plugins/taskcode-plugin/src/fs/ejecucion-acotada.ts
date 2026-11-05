@@ -76,6 +76,8 @@ export interface OpcionesEjecucion {
   unirSalida?: boolean;
   /** Bytes que se leen del final de la salida (por defecto 64 KiB). Nunca se lee entera. */
   bytesCola?: number;
+  /** Entorno del comando (por defecto el del proceso). TASK-073: HELDOUT_DIR. */
+  env?: NodeJS.ProcessEnv;
 }
 
 export interface SalidaEjecucion {
@@ -133,6 +135,7 @@ export function ejecutarAcotado(
       // Red de seguridad por si el propio envoltorio se colgara.
       timeout: timeoutMs + 15000,
       windowsHide: true,
+      ...(opciones.env === undefined ? {} : { env: opciones.env }),
     });
     const duracionMs = Date.now() - inicio;
     cerrar();
