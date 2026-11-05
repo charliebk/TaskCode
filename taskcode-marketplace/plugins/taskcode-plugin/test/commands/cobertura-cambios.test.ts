@@ -406,6 +406,35 @@ test('cobertura (IMP-3): un proyecto en subcarpeta con el informe en pkg/coverag
     assert.ok(l.tipo === 'ok');
     assert.deepEqual([...l.porRuta.keys()].sort(), ['pkg/src/a.mjs', 'pkg/test/a.test.mjs']);
     assert.equal(l.validos, 2);
+    assert.deepEqual(l.raices, ['pkg'], 'la raiz del proyecto que genero el informe');
+  });
+});
+
+test('cobertura (IMP-6 de la ronda 3): en un proyecto en subcarpeta con los tests excluidos, un test nuevo no cuenta y un modulo nuevo si', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const pkg = path.join(repoRoot, 'pkg');
+    await mkdir(path.join(pkg, 'src'), { recursive: true });
+    await mkdir(path.join(pkg, 'test'), { recursive: true });
+    await writeFile(path.join(pkg, 'src', 'a.mjs'), FUENTE, 'utf8');
+    await writeFile(path.join(pkg, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
+    commitAll(repoRoot, 'pkg');
+    git(['checkout', '-q', '-b', 'feature/task-967-x', 'develop'], repoRoot);
+    await writeFile(path.join(pkg, 'test', 'b.test.mjs'), "import { test } from 'node:test';\nimport { f } from '../src/a.mjs';\ntest('neg', () => { f(-1); });\n", 'utf8');
+    await writeFile(path.join(pkg, 'src', 'nuevo.mjs'), 'export const n = 1;\n', 'utf8');
+    commitAll(repoRoot, 'test y modulo nuevos');
+    await mkdir(path.join(pkg, 'coverage'), { recursive: true });
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    const r = spawnSync(
+      process.execPath,
+      ['--test', '--experimental-test-coverage', '--test-coverage-exclude=test/**', '--test-reporter=lcov', '--test-reporter-destination=coverage/lcov.info', 'test/*.test.mjs'],
+      { cwd: pkg, env, encoding: 'utf8' }
+    );
+    assert.equal(r.status, 0, r.stderr);
+    const c = coberturaDeRama(repoRoot, 'develop', 'pkg/coverage/lcov.info', []);
+    assert.ok(c.cruce);
+    assert.deepEqual(c.cruce.ficheros.map((f) => f.ruta), ['pkg/src/nuevo.mjs']);
+    assert.ok(c.cruce.sinInstrumentar.includes('pkg/test/b.test.mjs'));
   });
 });
 
@@ -558,5 +587,8 @@ test('review (MEN-5): en la ronda 2 fragmentada, una linea sin cubrir de un domi
     const conA = [java, vue].filter((p) => /- `src\/a\.mjs`: 6\n/.test(p));
     assert.equal(conA.length, 1, 'la linea sin cubrir de la ronda 1 sale una vez, aunque su dominio no tenga peticion');
     assert.doesNotMatch(vue, /X\.java/);
+    // MEN-8 de la ronda 3: la peticion que recibe src/a.mjs conserva tambien sus propios ficheros.
+    if (conA[0] === java) assert.match(java, /`java\/X\.java`/);
+    else assert.match(vue, /`web\/C\.vue`/);
   });
 });

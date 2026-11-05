@@ -11,10 +11,11 @@
  *   un `type`) no es ejecutable y no cuenta.
  * - Un fichero cambiado que no esta en el informe cuenta con todas sus
  *   lineas añadidas sin cubrir si el informe SI mide su extension Y alguna
- *   carpeta suya (la propia o una padre, sin contar la raiz del repo) tiene un
- *   fichero medido: un .mjs nuevo en `src/` que ningun test carga (`node
- *   --test` y c8 sin `--all` solo listan lo cargado). IMP-1 e IMP-2 de la
- *   ronda 1; acotada en la ronda 2 (IMP-5) para no frenar en falso.
+ *   carpeta suya (la propia o una padre, sin contar la raiz del repo ni la
+ *   del proyecto que genero el informe, p. ej. `pkg/`) tiene un fichero
+ *   medido: un .mjs nuevo en `src/` que ningun test carga (`node --test` y
+ *   c8 sin `--all` solo listan lo cargado). IMP-1 e IMP-2 de la ronda 1;
+ *   acotada en la ronda 2 (IMP-5) y en la 3 (IMP-6) para no frenar en falso.
  * - Si no, va aparte como «sin instrumentar» y no cuenta: un .md o un .yml
  *   (extension no medida), los tests cuando el proyecto los excluye de la
  *   cobertura (`test/` sin ningun fichero medido) y los `*.d.ts`, que no
@@ -67,32 +68,51 @@ export interface CruceCobertura {
   porcentaje: number | null;
 }
 
+/** Carpeta de una ruta del repo ('' en la raiz). */
+function padre(ruta: string): string {
+  const i = ruta.lastIndexOf('/');
+  return i < 0 ? '' : ruta.slice(0, i);
+}
+
 /**
  * Cruza las lineas añadidas (por ruta del repo) con el informe (por ruta del
  * repo). `clave` normaliza la ruta para comparar: en Windows, sin mayusculas.
+ * `raices`: carpetas del repo que son la raiz de un proyecto que genero el
+ * informe (`pkg`, `packages/a`). Ellas y sus padres se descuentan como la
+ * raiz del repo: `pkg/` siempre «tiene algo medido» y no dice nada de
+ * `pkg/test/` (IMP-6 de la ronda 3).
  */
 export function cruzarCobertura(
   anadidas: ReadonlyMap<string, readonly number[]>,
   informe: ReadonlyMap<string, LineasEjecutadas>,
-  clave: (ruta: string) => string = (r) => r
+  clave: (ruta: string) => string = (r) => r,
+  raices: readonly string[] = []
 ): CruceCobertura {
+  const descontadas = new Set<string>();
+  for (const r of raices) {
+    descontadas.add(clave(r));
+    for (const c of carpetas(r)) descontadas.add(clave(c));
+  }
+  /** Carpetas de la ruta que dicen algo: sin la raiz del repo ni las de los proyectos. */
+  const efectivas = (ruta: string): string[] => carpetas(ruta).filter((c) => !descontadas.has(clave(c)));
   const porClave = new Map<string, LineasEjecutadas>();
   const medidas = new Set<string>();
-  /** Carpetas (por clave, sin la raiz) con algun fichero medido debajo. */
+  /** Carpetas (por clave) con algun fichero medido debajo. */
   const carpetasMedidas = new Set<string>();
-  let raizMedida = false;
+  /** Raices (del repo o de un proyecto, por clave) con un fichero medido directamente. */
+  const raicesMedidas = new Set<string>();
   for (const [ruta, lineas] of informe) {
     porClave.set(clave(ruta), lineas);
     const ext = extension(ruta);
     if (ext !== '') medidas.add(ext);
-    const cs = carpetas(ruta);
-    if (cs.length === 0) raizMedida = true;
+    const cs = efectivas(ruta);
+    if (cs.length === 0) raicesMedidas.add(clave(padre(ruta)));
     for (const c of cs) carpetasMedidas.add(clave(c));
   }
   const esCodigoMedido = (ruta: string): boolean => {
     if (DECLARACIONES_RE.test(ruta) || !medidas.has(extension(ruta))) return false;
-    const cs = carpetas(ruta);
-    return cs.length === 0 ? raizMedida : cs.some((c) => carpetasMedidas.has(clave(c)));
+    const cs = efectivas(ruta);
+    return cs.length === 0 ? raicesMedidas.has(clave(padre(ruta))) : cs.some((c) => carpetasMedidas.has(clave(c)));
   };
   const ficheros: CoberturaFichero[] = [];
   const sinInstrumentar: string[] = [];

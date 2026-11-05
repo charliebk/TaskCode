@@ -14,32 +14,50 @@ function carpetas(ruta) {
         r.push(partes.slice(0, i).join('/'));
     return r;
 }
+/** Carpeta de una ruta del repo ('' en la raiz). */
+function padre(ruta) {
+    const i = ruta.lastIndexOf('/');
+    return i < 0 ? '' : ruta.slice(0, i);
+}
 /**
  * Cruza las lineas añadidas (por ruta del repo) con el informe (por ruta del
  * repo). `clave` normaliza la ruta para comparar: en Windows, sin mayusculas.
+ * `raices`: carpetas del repo que son la raiz de un proyecto que genero el
+ * informe (`pkg`, `packages/a`). Ellas y sus padres se descuentan como la
+ * raiz del repo: `pkg/` siempre «tiene algo medido» y no dice nada de
+ * `pkg/test/` (IMP-6 de la ronda 3).
  */
-export function cruzarCobertura(anadidas, informe, clave = (r) => r) {
+export function cruzarCobertura(anadidas, informe, clave = (r) => r, raices = []) {
+    const descontadas = new Set();
+    for (const r of raices) {
+        descontadas.add(clave(r));
+        for (const c of carpetas(r))
+            descontadas.add(clave(c));
+    }
+    /** Carpetas de la ruta que dicen algo: sin la raiz del repo ni las de los proyectos. */
+    const efectivas = (ruta) => carpetas(ruta).filter((c) => !descontadas.has(clave(c)));
     const porClave = new Map();
     const medidas = new Set();
-    /** Carpetas (por clave, sin la raiz) con algun fichero medido debajo. */
+    /** Carpetas (por clave) con algun fichero medido debajo. */
     const carpetasMedidas = new Set();
-    let raizMedida = false;
+    /** Raices (del repo o de un proyecto, por clave) con un fichero medido directamente. */
+    const raicesMedidas = new Set();
     for (const [ruta, lineas] of informe) {
         porClave.set(clave(ruta), lineas);
         const ext = extension(ruta);
         if (ext !== '')
             medidas.add(ext);
-        const cs = carpetas(ruta);
+        const cs = efectivas(ruta);
         if (cs.length === 0)
-            raizMedida = true;
+            raicesMedidas.add(clave(padre(ruta)));
         for (const c of cs)
             carpetasMedidas.add(clave(c));
     }
     const esCodigoMedido = (ruta) => {
         if (DECLARACIONES_RE.test(ruta) || !medidas.has(extension(ruta)))
             return false;
-        const cs = carpetas(ruta);
-        return cs.length === 0 ? raizMedida : cs.some((c) => carpetasMedidas.has(clave(c)));
+        const cs = efectivas(ruta);
+        return cs.length === 0 ? raicesMedidas.has(clave(padre(ruta))) : cs.some((c) => carpetasMedidas.has(clave(c)));
     };
     const ficheros = [];
     const sinInstrumentar = [];

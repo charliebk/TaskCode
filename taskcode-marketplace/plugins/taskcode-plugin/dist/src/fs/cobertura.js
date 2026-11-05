@@ -47,16 +47,35 @@ function basesRelativas(raizReal, dirInforme) {
         bases.push(raizReal);
     return bases;
 }
-/** Ruta del repo (con `/`) de una entrada `SF:`, o null si cae fuera del repo. */
-export function resolverSf(sf, raizReal, dirInforme) {
-    const s = sf.replace(/\\/g, '/');
-    const absoluta = /^[A-Za-z]:\//.test(s) || s.startsWith('/');
-    const candidatos = absoluta ? [s] : basesRelativas(raizReal, dirInforme).map((b) => path.join(b, s));
-    const elegido = candidatos.find((c) => existsSync(c)) ?? candidatos[0];
-    const rel = path.relative(raizReal, real(elegido));
+/** Ruta del repo con `/`, o null si `abs` cae fuera de el (o es la raiz). */
+function relativaAlRepo(raizReal, abs) {
+    const rel = path.relative(raizReal, real(abs));
     if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel))
         return null;
     return rel.split(path.sep).join('/');
+}
+/**
+ * Ruta del repo (con `/`) de una entrada `SF:`, o null si cae fuera del repo;
+ * y, si era relativa, la carpeta del repo contra la que se resolvio (la raiz
+ * del proyecto que genero el informe; '' si es la raiz del repo).
+ */
+function resolverSfConBase(sf, raizReal, dirInforme) {
+    const s = sf.replace(/\\/g, '/');
+    const absoluta = /^[A-Za-z]:\//.test(s) || s.startsWith('/');
+    if (absoluta) {
+        const ruta = relativaAlRepo(raizReal, s);
+        return ruta === null ? null : { ruta, base: null };
+    }
+    const bases = basesRelativas(raizReal, dirInforme);
+    const elegida = bases.find((b) => existsSync(path.join(b, s))) ?? bases[0];
+    const ruta = relativaAlRepo(raizReal, path.join(elegida, s));
+    if (ruta === null)
+        return null;
+    return { ruta, base: relativaAlRepo(raizReal, elegida) ?? '' };
+}
+/** Ruta del repo (con `/`) de una entrada `SF:`, o null si cae fuera del repo. */
+export function resolverSf(sf, raizReal, dirInforme) {
+    return resolverSfConBase(sf, raizReal, dirInforme)?.ruta ?? null;
 }
 /** Lee y resuelve el informe. `informe` es relativa a la raiz del repo. */
 export function leerInformeCobertura(raiz, informe, excluir) {
@@ -76,10 +95,14 @@ export function leerInformeCobertura(raiz, informe, excluir) {
         return { tipo: 'truncado', ruta: informe, mtimeMs };
     const dirInforme = path.dirname(abs);
     const porRuta = new Map();
+    const raices = new Set();
     for (const [sf, lineas] of lcov.ficheros) {
-        const ruta = resolverSf(sf, raizReal, dirInforme);
-        if (ruta === null)
+        const r = resolverSfConBase(sf, raizReal, dirInforme);
+        if (r === null)
             continue;
+        const ruta = r.ruta;
+        if (r.base !== null && r.base !== '')
+            raices.add(r.base);
         const previa = porRuta.get(ruta);
         if (previa === undefined) {
             porRuta.set(ruta, lineas);
@@ -94,7 +117,7 @@ export function leerInformeCobertura(raiz, informe, excluir) {
     for (const ruta of porRuta.keys())
         if (versionados.has(claveRuta(ruta)))
             validos++;
-    return { tipo: 'ok', ruta: informe, mtimeMs, porRuta, validos };
+    return { tipo: 'ok', ruta: informe, mtimeMs, porRuta, validos, raices: [...raices].sort() };
 }
 /** Lineas añadidas desde la merge base de HEAD con `base`, cruzadas con el informe. */
 export function coberturaDeRama(raiz, base, informe, excluir) {
@@ -103,7 +126,7 @@ export function coberturaDeRama(raiz, base, informe, excluir) {
     if (lectura.tipo !== 'ok')
         return { mergeBase: mb, lectura, cruce: null };
     const anadidas = lineasAnadidas(mb, 'HEAD', excluir, raiz);
-    return { mergeBase: mb, lectura, cruce: cruzarCobertura(anadidas, lectura.porRuta, claveRuta) };
+    return { mergeBase: mb, lectura, cruce: cruzarCobertura(anadidas, lectura.porRuta, claveRuta, lectura.raices) };
 }
 /** Nunca lanza: un fallo es un aviso en la peticion, no una ronda sin escribir. */
 export function datosCoberturaRevision(raiz, base, informe, excluir, umbral, comando) {

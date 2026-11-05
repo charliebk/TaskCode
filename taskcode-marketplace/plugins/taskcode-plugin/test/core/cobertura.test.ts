@@ -150,6 +150,44 @@ test('cruce (IMP-5 de la ronda 2): fuera del informe solo cuenta el codigo de un
   assert.equal(cumpleUmbral(cruzarCobertura(new Map([['test/b.test.mjs', [1]]]), informe), 100), true);
 });
 
+test('cruce (IMP-6 de la ronda 3): la raiz de un proyecto en subcarpeta se descuenta como la del repo', () => {
+  const mono = new Map([
+    ['packages/a/src/a.mjs', new Map([[1, 1]])],
+    ['packages/a/test/a.test.mjs', new Map([[1, 1]])],
+  ]);
+  const anadidas = new Map([
+    ['packages/a/test2/b.test.mjs', [1]],
+    ['packages/a/src/sub/n.mjs', [1]],
+    ['packages/a/x.mjs', [1]],
+    ['packages/b/src/x.mjs', [1]],
+  ]);
+  const sinRaices = cruzarCobertura(anadidas, mono);
+  assert.deepEqual(sinRaices.sinInstrumentar, [], 'sin raices, packages/ y packages/a/ «tienen algo medido»');
+  const c = cruzarCobertura(anadidas, mono, (r) => r, ['packages/a']);
+  assert.deepEqual(c.ficheros.map((f) => f.ruta), ['packages/a/src/sub/n.mjs']);
+  assert.deepEqual(c.sinInstrumentar, ['packages/a/test2/b.test.mjs', 'packages/a/x.mjs', 'packages/b/src/x.mjs']);
+  // Un fichero medido directamente en la raiz del proyecto hace contar a sus vecinos de raiz.
+  const conDirecto = new Map([...mono, ['packages/a/index.mjs', new Map([[1, 1]])]]);
+  assert.deepEqual(
+    cruzarCobertura(new Map([['packages/a/x.mjs', [1]]]), conDirecto, (r) => r, ['packages/a']).ficheros.map((f) => f.ruta),
+    ['packages/a/x.mjs']
+  );
+});
+
+test('cruce (MEN-7 de la ronda 3): declaraciones .d.mts/.D.CTS con un informe que mide .mts/.cts, y carpetas con otras mayusculas', () => {
+  const mts = new Map([
+    ['src/a.mts', new Map([[1, 1]])],
+    ['src/b.cts', new Map([[1, 1]])],
+  ]);
+  const c = cruzarCobertura(new Map([['src/t.d.mts', [1]], ['src/T.D.CTS', [1]], ['src/n.mts', [1]]]), mts);
+  assert.deepEqual(c.sinInstrumentar, ['src/T.D.CTS', 'src/t.d.mts']);
+  assert.deepEqual(c.ficheros.map((f) => f.ruta), ['src/n.mts']);
+  // Con la clave sin mayusculas (Windows), la carpeta medida se compara por clave.
+  const app = new Map([['App/a.mjs', new Map([[1, 1]])]]);
+  const sinMayus = cruzarCobertura(new Map([['App/n.mjs', [1]]]), app, (r) => r.toLowerCase());
+  assert.deepEqual(sinMayus.ficheros.map((f) => f.ruta), ['App/n.mjs']);
+});
+
 test('porcentaje (MEN-2 de la revision): redondea hacia abajo, para no decir «91 % no llega a 91 %»', () => {
   assert.equal(formatearPorcentaje((100 * 1820) / 2001), '90.9');
   assert.equal(formatearPorcentaje(90), '90');

@@ -32,6 +32,11 @@ export type LecturaInforme =
       porRuta: Map<string, LineasEjecutadas>;
       /** Ficheros del informe que son ficheros versionados del repo fuera de lo excluido. */
       validos: number;
+      /**
+       * Carpetas del repo (sin la raiz) contra las que se resolvieron las `SF:`
+       * relativas: las raices de los proyectos que generaron el informe (`pkg`).
+       */
+      raices: string[];
     };
 
 function real(p: string): string {
@@ -61,15 +66,35 @@ function basesRelativas(raizReal: string, dirInforme: string): string[] {
   return bases;
 }
 
-/** Ruta del repo (con `/`) de una entrada `SF:`, o null si cae fuera del repo. */
-export function resolverSf(sf: string, raizReal: string, dirInforme: string): string | null {
-  const s = sf.replace(/\\/g, '/');
-  const absoluta = /^[A-Za-z]:\//.test(s) || s.startsWith('/');
-  const candidatos = absoluta ? [s] : basesRelativas(raizReal, dirInforme).map((b) => path.join(b, s));
-  const elegido = candidatos.find((c) => existsSync(c)) ?? (candidatos[0] as string);
-  const rel = path.relative(raizReal, real(elegido));
+/** Ruta del repo con `/`, o null si `abs` cae fuera de el (o es la raiz). */
+function relativaAlRepo(raizReal: string, abs: string): string | null {
+  const rel = path.relative(raizReal, real(abs));
   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return null;
   return rel.split(path.sep).join('/');
+}
+
+/**
+ * Ruta del repo (con `/`) de una entrada `SF:`, o null si cae fuera del repo;
+ * y, si era relativa, la carpeta del repo contra la que se resolvio (la raiz
+ * del proyecto que genero el informe; '' si es la raiz del repo).
+ */
+function resolverSfConBase(sf: string, raizReal: string, dirInforme: string): { ruta: string; base: string | null } | null {
+  const s = sf.replace(/\\/g, '/');
+  const absoluta = /^[A-Za-z]:\//.test(s) || s.startsWith('/');
+  if (absoluta) {
+    const ruta = relativaAlRepo(raizReal, s);
+    return ruta === null ? null : { ruta, base: null };
+  }
+  const bases = basesRelativas(raizReal, dirInforme);
+  const elegida = bases.find((b) => existsSync(path.join(b, s))) ?? (bases[0] as string);
+  const ruta = relativaAlRepo(raizReal, path.join(elegida, s));
+  if (ruta === null) return null;
+  return { ruta, base: relativaAlRepo(raizReal, elegida) ?? '' };
+}
+
+/** Ruta del repo (con `/`) de una entrada `SF:`, o null si cae fuera del repo. */
+export function resolverSf(sf: string, raizReal: string, dirInforme: string): string | null {
+  return resolverSfConBase(sf, raizReal, dirInforme)?.ruta ?? null;
 }
 
 /** Lee y resuelve el informe. `informe` es relativa a la raiz del repo. */
@@ -88,9 +113,12 @@ export function leerInformeCobertura(raiz: string, informe: string, excluir: rea
   if (lcov.truncado) return { tipo: 'truncado', ruta: informe, mtimeMs };
   const dirInforme = path.dirname(abs);
   const porRuta = new Map<string, LineasEjecutadas>();
+  const raices = new Set<string>();
   for (const [sf, lineas] of lcov.ficheros) {
-    const ruta = resolverSf(sf, raizReal, dirInforme);
-    if (ruta === null) continue;
+    const r = resolverSfConBase(sf, raizReal, dirInforme);
+    if (r === null) continue;
+    const ruta = r.ruta;
+    if (r.base !== null && r.base !== '') raices.add(r.base);
     const previa = porRuta.get(ruta);
     if (previa === undefined) {
       porRuta.set(ruta, lineas);
@@ -101,7 +129,7 @@ export function leerInformeCobertura(raiz: string, informe: string, excluir: rea
   const versionados = new Set(ficherosVersionados(excluir, raiz).map(claveRuta));
   let validos = 0;
   for (const ruta of porRuta.keys()) if (versionados.has(claveRuta(ruta))) validos++;
-  return { tipo: 'ok', ruta: informe, mtimeMs, porRuta, validos };
+  return { tipo: 'ok', ruta: informe, mtimeMs, porRuta, validos, raices: [...raices].sort() };
 }
 
 export interface CoberturaDeRama {
@@ -117,7 +145,7 @@ export function coberturaDeRama(raiz: string, base: string, informe: string, exc
   const lectura = leerInformeCobertura(raiz, informe, excluir);
   if (lectura.tipo !== 'ok') return { mergeBase: mb, lectura, cruce: null };
   const anadidas = lineasAnadidas(mb, 'HEAD', excluir, raiz);
-  return { mergeBase: mb, lectura, cruce: cruzarCobertura(anadidas, lectura.porRuta, claveRuta) };
+  return { mergeBase: mb, lectura, cruce: cruzarCobertura(anadidas, lectura.porRuta, claveRuta, lectura.raices) };
 }
 
 /** Lo que la peticion de revision necesita, calculado UNA vez por ronda. */

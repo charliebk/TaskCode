@@ -711,8 +711,10 @@ umbral_cobertura: 80                       # opcional: % minimo cubierto para qu
 - Cuenta una línea cambiada (no en blanco) con `DA` en el informe (`DA:n,0` =
   sin cubrir); sin `DA` no es ejecutable. Un fichero cambiado que el informe no
   lista cuenta con todas sus líneas sin cubrir si el informe **sí** mide su
-  extensión y alguna de sus carpetas (sin contar la raíz) tiene un fichero
-  medido: un `.mjs` nuevo en `src/` que ningún test carga (`node --test` y c8
+  extensión y alguna de sus carpetas tiene un fichero medido, sin contar la
+  raíz del repo ni la del proyecto que generó el informe (la carpeta contra la
+  que se resuelven sus rutas relativas, como `pkg/`, y sus padres): un `.mjs`
+  nuevo en `src/` que ningún test carga (`node --test` y c8
   sin `--all` solo listan lo cargado). No cuentan un `.md` o un `.yml`, los
   tests si el proyecto los excluye de la cobertura (`test/` sin nada medido) ni
   los `*.d.ts`: una tarea de solo documentación, o de solo tests, no se frena.

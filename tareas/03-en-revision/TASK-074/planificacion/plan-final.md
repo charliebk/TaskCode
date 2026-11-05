@@ -78,6 +78,11 @@ Decidido por la persona el 2026-11-05:
   carpeta del fichero (la propia o una padre, sin la raiz) tiene un fichero medido, y los `*.d.ts`
   nunca cuentan: los tests excluidos de la cobertura no frenan. Riesgo aceptado: un .ts solo de
   tipos en una carpeta medida cuenta sin cubrir; el remedio documentado es `--all`/`include`.
+  **Acotada otra vez por la persona tras la ronda 3 (IMP-6), el 2026-11-05:** ademas de la raiz del
+  repo se descuentan la raiz del proyecto que genero el informe (la carpeta contra la que se
+  resolvieron sus `SF:` relativas, p. ej. `pkg/`) y sus padres: en un proyecto en subcarpeta o un
+  monorepo, `pkg/test/` sin nada medido no cuenta y `pkg/src/` si. Con `SF:` absolutas rige la raiz
+  del repo.
 - (e) **Dogfooding fuera de alcance**: si el lcov solo cubre rutas excluidas, se avisa de mala
   configuracion. Hacerlo funcionar en este repo (source maps o cobertura sobre `src`) queda como
   seguimiento.
