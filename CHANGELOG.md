@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-074 (feature) — Cobertura sobre las lineas cambiadas (2026-11-05)
 - TASK-078 (feature) — Hook que impide leer y editar los held-out de la tarea en curso (2026-11-05)
 - TASK-075 (fix) — Contrapruebas de descubrimiento rotas por el validador de Claude Code 2.1.316+ (2026-11-05)
 - TASK-073 (feature) — Tests held-out por tarea (2026-11-05)

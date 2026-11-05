@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-074-cobertura-sobre-las-lineas-cambiadas
 asignado_a: charlie.bk@gmail.com
@@ -79,6 +79,7 @@ Revision por pares, 4 rondas (la 4 autorizada por la persona):
 | 2026-11-05T18:58:41Z | review | automatico | persona |
 | 2026-11-05T19:58:21Z | review | automatico | persona |
 | 2026-11-05T20:53:16Z | review | automatico | persona |
+| 2026-11-05T21:47:18Z | finish | automatico | persona |
 
 ## Coste
 
