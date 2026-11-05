@@ -76,6 +76,7 @@ Revision por pares:
 | 2026-11-05T14:37:38Z | approve | automatico | automatico |
 | 2026-11-05T14:37:51Z | start | automatico | persona |
 | 2026-11-05T15:05:13Z | review | automatico | persona |
+| 2026-11-05T15:44:18Z | review | automatico | persona |
 
 ## Coste
 
