@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-074-cobertura-sobre-las-lineas-cambiadas
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Freno 8 de brakes: una linea cambiada que ningun test ejecuta es un hallazgo, me
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-05T17:07:09Z | plan | automatico | persona |
+| 2026-11-05T17:15:49Z | approve | automatico | automatico |
 
 ## Coste
 
