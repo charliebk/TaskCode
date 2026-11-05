@@ -27,10 +27,46 @@ dependencias: [TASK-072]
 Freno 8 de brakes: una linea cambiada que ningun test ejecuta es un hallazgo, medido contra la merge base y no sobre todo el repo.
 
 ## Criterios de aceptacion
-- [ ] Calculo de lineas cambiadas con git diff contra la merge base de la rama de la tarea, respetando excluir_de_revision
-- [ ] Lectura de un informe lcov generado por el comando del proyecto, sin ejecutar tests por su cuenta
-- [ ] taskctl review incluye en la peticion las lineas no cubiertas; umbral opcional en config.yml que convierte el hallazgo en puerta de finish
-- [ ] Tests con un lcov y un diff de ejemplo
+- [x] Calculo de lineas cambiadas con git diff contra la merge base de la rama de la tarea, respetando excluir_de_revision
+- [x] Lectura de un informe lcov generado por el comando del proyecto, sin ejecutar tests por su cuenta
+- [x] taskctl review incluye en la peticion las lineas no cubiertas; umbral opcional en config.yml que convierte el hallazgo en puerta de finish
+- [x] Tests con un lcov y un diff de ejemplo
+
+## Resultado
+
+Freno 8: una linea cambiada que ningun test ejecuta es un hallazgo, medida desde la merge base.
+
+- Piezas: `core/lcov.ts` (parser propio, cero dependencias), `core/cobertura-cambios.ts` (unico sitio
+  que decide «sin cubrir»: cruce, umbral, texto), `fs/cobertura.ts` (lee el informe y resuelve las
+  `SF:`), `fs/git.ts` (`lineasAnadidas` con `git diff -U0` y opciones fijas: renombres, prefijos, sin
+  color ni diff externo; `pathspecSinExcluidos` compartido con el diff de la peticion),
+  `commands/finish-cobertura.ts` (puerta tras la verificacion y antes de los held-out) y
+  `fs/config-de-ref.ts` (config de otra rama, extraida de `finish-heldout.ts`). Claves nuevas
+  `informe_cobertura` y `umbral_cobertura`.
+- `review` informa (seccion «Cobertura de las lineas cambiadas», solo con `informe_cobertura`, avisos
+  si el informe falta, esta cortado, es viejo o no es del repo); `finish` frena con el umbral.
+- Decisiones de Carlos: (a) umbral e informe de la config de la RAMA BASE; (b)+(c) sin datos fiables no
+  cierra, y `--sin-verificacion` salta tambien esta puerta; (d) porcentaje minimo cubierto, el valor
+  exacto pasa, precisada tres veces por la revision: un fichero que el informe no lista cuenta entero
+  sin cubrir solo si es codigo de una carpeta medida, sin contar la raiz del repo ni la del proyecto
+  que genero el informe, y nunca los `*.d.ts`; (e) dogfooding fuera de alcance (este repo mide `dist/`).
+- Hallazgo de entorno: `node --test` escribe `SF:` RELATIVO al cwd y con `\` en Windows, no absoluto
+  como suponian los tres roles del diseño: los tests usan un lcov real, no uno escrito a mano.
+- Smoke con el CLI real en un repo temporal: `review` con el aviso de informe ausente; `finish` con
+  90 % frente a 95 % bloqueado nombrando `src/a.mjs: 6` y sin mover `develop`; con la linea cubierta,
+  cerro y mergeo.
+- Suite completa 1838/1841: los 3 rojos conocidos de Windows (symlink EPERM, chmod de directorio, CRLF).
+
+Revision por pares, 4 rondas (la 4 autorizada por la persona):
+- Ronda 1 (`cambios-solicitados`): IMP-1/IMP-2 (codigo nuevo sin test fuera del informe no contaba),
+  IMP-3 (proyecto en subcarpeta), IMP-4 (protecciones sin test), MEN-1..4. Corregidos.
+- Ronda 2 (`cambios-solicitados`): IMP-5 (falsos rojos con tests excluidos y `.d.ts`), MEN-5, MEN-6.
+  Corregidos; al escribir el test de `--no-merges` salio un fallo real (hacia falta `--first-parent`).
+- Ronda 3 (`cambios-solicitados`): IMP-6 (la raiz del proyecto en subcarpeta), MEN-7, MEN-8. Corregidos.
+- Ronda 4 (`aprobada-con-correcciones`): MEN-9 y MEN-10, dos huecos de test sobre codigo correcto
+  (`padre()` y `clave` en el descuento de raices; `raices` vacio con `SF:` absolutas). **Aceptados por
+  la persona** sin ronda 5; quedan como seguimiento barato.
+- Seguimiento: dogfooding de la cobertura en este repo (source maps o cobertura sobre `src/`).
 
 ## Transiciones
 

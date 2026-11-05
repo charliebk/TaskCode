@@ -8,8 +8,8 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-9 | MENOR | abierto | test/core/cobertura.test.ts (caso IMP-6: `padre()` y `clave` en `descontadas`) / src/core/cobertura-cambios.ts:71-74, 92-96 | implementacion |
-| MEN-10 | MENOR | abierto | test/commands/cobertura-cambios.test.ts / src/fs/cobertura.ts (`resolverSfConBase`, rama absoluta) | implementacion |
+| MEN-9 | MENOR | aceptado | test/core/cobertura.test.ts (caso IMP-6: `padre()` y `clave` en `descontadas`) / src/core/cobertura-cambios.ts:71-74, 92-96 | implementacion |
+| MEN-10 | MENOR | aceptado | test/commands/cobertura-cambios.test.ts / src/fs/cobertura.ts (`resolverSfConBase`, rama absoluta) | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
