@@ -18,6 +18,13 @@ tiene criterios que solo se verifican tras el merge.
 4. Actualizar el registro de progreso que use el proyecto.
 5. `taskctl finish`.
 
+**Cobertura de las lineas cambiadas.** Con `informe_cobertura` (el lcov que
+escribe `comando_verificacion`), la peticion de revision lista las lineas
+cambiadas desde la merge base que ningun test ejecuta: cada una es un hallazgo
+(se añade el test o se justifica por que no). Con `umbral_cobertura` en la
+config de la rama base, `finish` no cierra por debajo del porcentaje, ni sin un
+informe fresco que medir. No toques el umbral para pasar: es de la persona.
+
 Commits: mensajes en el idioma del proyecto, una rama por tarea, merge sin
 fast-forward. Si el repo tiene activada la politica de conservar ramas, no se
 borran tras el merge.

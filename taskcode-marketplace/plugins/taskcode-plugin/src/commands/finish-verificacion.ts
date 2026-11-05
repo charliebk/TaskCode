@@ -53,7 +53,8 @@ export interface PuertaVerificacionOpts {
 
 export type ResultadoPuerta =
   | { tipo: 'sin-comando' }
-  | { tipo: 'verde'; duracionMs: number }
+  /** `inicioMs`: instante en que arranco la verificacion (TASK-074: un informe de cobertura anterior es viejo). */
+  | { tipo: 'verde'; duracionMs: number; inicioMs: number }
   | { tipo: 'omitida'; commit: string | null };
 
 /**
@@ -109,6 +110,7 @@ export async function puertaVerificacion(
   }
 
   const timeoutS = config.timeout_verificacion;
+  const inicioMs = Date.now();
   const r = ejecutarVerificacion(o.cwd, comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
   // El memo solo con el arbol limpio: es la huella del commit que consulta el
   // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
@@ -130,5 +132,5 @@ export async function puertaVerificacion(
         'workspace limpio: ignora esos ficheros en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.'
     );
   }
-  return { resultado: { tipo: 'verde', duracionMs: r.duracionMs }, tarea: o.initial };
+  return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea: o.initial };
 }

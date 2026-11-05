@@ -77,6 +77,7 @@ export async function puertaVerificacion(o) {
         return { resultado: { tipo: 'omitida', commit: c.commit }, tarea: releida };
     }
     const timeoutS = config.timeout_verificacion;
+    const inicioMs = Date.now();
     const r = ejecutarVerificacion(o.cwd, comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
     // El memo solo con el arbol limpio: es la huella del commit que consulta el
     // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
@@ -95,5 +96,5 @@ export async function puertaVerificacion(o) {
             `("${comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita el ` +
             'workspace limpio: ignora esos ficheros en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.');
     }
-    return { resultado: { tipo: 'verde', duracionMs: r.duracionMs }, tarea: o.initial };
+    return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea: o.initial };
 }

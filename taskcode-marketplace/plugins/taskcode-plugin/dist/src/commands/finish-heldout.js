@@ -25,7 +25,8 @@
  */
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ConfigError, parsearConfig } from '../core/config.js';
+import { ConfigError } from '../core/config.js';
+import { configDeRef } from '../fs/config-de-ref.js';
 import { carpetasHeldout, variantesHeldout, CARPETA_HELDOUT, VARIABLE_HELDOUT } from '../core/heldout.js';
 import { describirResultado } from '../core/informe-verificacion.js';
 import { currentBranch, isWorkspaceClean, runGit } from '../fs/git.js';
@@ -52,9 +53,8 @@ function mergeBase(a, b, cwd) {
 }
 /** La config de `.taskcode/config.yml` en `ref`; sin fichero, la de por defecto. */
 function configDe(ref, cwd, id) {
-    const r = spawnSync('git', ['show', `${ref}:.taskcode/config.yml`], { cwd, encoding: 'utf8', windowsHide: true });
     try {
-        return parsearConfig(r.status === 0 ? (r.stdout ?? '') : '', `${ref}:.taskcode/config.yml`);
+        return configDeRef(ref, cwd);
     }
     catch (e) {
         if (!(e instanceof ConfigError))

@@ -281,7 +281,7 @@ export function diffRange(desde, hasta, cwd) {
  */
 export function diffParaRevision(desde, hasta, excluir, cwd) {
     const rango = `${desde}..${hasta}`;
-    const sinExcluidos = ['--', '.', ...excluir.map((p) => `:(exclude,glob)${p}`)];
+    const sinExcluidos = pathspecSinExcluidos(excluir);
     const nombres = (args) => partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', rango, ...args], cwd));
     const todos = nombres([]);
     const incluidos = excluir.length === 0 ? todos : nombres(sinExcluidos);
@@ -299,6 +299,80 @@ export function diffParaRevision(desde, hasta, excluir, cwd) {
                 // el revisor no sabria que pedir (MENOR-3 de la revision).
                 runGit([...SIN_COMILLAS, 'diff', '--stat=200', rango, '--', ...excluir.map((p) => `:(glob)${p}`)], cwd),
     };
+}
+/**
+ * Pathspec «todo el repo menos los excluidos». Lo comparten el diff de la
+ * peticion de revision y las lineas cambiadas de la cobertura (TASK-074):
+ * un solo motor de patrones, el de Git.
+ */
+export function pathspecSinExcluidos(excluir) {
+    return ['--', '.', ...excluir.map((p) => `:(exclude,glob)${p}`)];
+}
+/**
+ * TASK-074: lineas añadidas o cambiadas entre `desde` y `hasta`, por ruta del
+ * repo (con `/`), sin los ficheros que casan con `excluir`. Solo cabeceras
+ * `@@ -a,b +c,d @@` de un diff sin contexto. Las opciones que cambian la
+ * salida del diff segun la configuracion de la maquina se fijan aqui
+ * (renombres, prefijos, colores, diff externo): un rename no puede convertir
+ * el fichero entero en «cambiado». Borrados y binarios no aportan lineas.
+ */
+export function lineasAnadidas(desde, hasta, excluir, cwd) {
+    const salida = runGit([
+        ...SIN_COMILLAS,
+        '-c',
+        'diff.noprefix=false',
+        '-c',
+        'diff.mnemonicPrefix=false',
+        'diff',
+        '-U0',
+        '--no-color',
+        '--no-ext-diff',
+        '--no-textconv',
+        '-M',
+        '--src-prefix=a/',
+        '--dst-prefix=b/',
+        `${desde}..${hasta}`,
+        ...pathspecSinExcluidos(excluir),
+    ], cwd);
+    const lineas = new Map();
+    let actual = null;
+    for (const l of salida.split('\n')) {
+        if (l.startsWith('+++ ')) {
+            // Git añade un tabulador tras la ruta si esta lleva espacios.
+            const destino = l.slice(4).replace(/\t$/, '');
+            if (destino === '/dev/null' || !destino.startsWith('b/')) {
+                actual = null;
+                continue;
+            }
+            const ruta = destino.slice(2);
+            actual = lineas.get(ruta) ?? [];
+            lineas.set(ruta, actual);
+            continue;
+        }
+        if (actual === null || !l.startsWith('@@ '))
+            continue;
+        const m = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(l);
+        if (m === null)
+            continue;
+        const inicio = parseInt(m[1], 10);
+        const cuantas = m[2] === undefined ? 1 : parseInt(m[2], 10);
+        for (let i = 0; i < cuantas; i++)
+            actual.push(inicio + i);
+    }
+    return lineas;
+}
+/** TASK-074: ficheros versionados en HEAD fuera de `excluir`, con `/`. */
+export function ficherosVersionados(excluir, cwd) {
+    return partirNul(runGit([...SIN_COMILLAS, 'ls-files', '-z', ...pathspecSinExcluidos(excluir)], cwd));
+}
+/**
+ * TASK-074: instante (ms) del ultimo commit de `ref` que no es un merge. El
+ * update de review mergea la base en la rama justo antes de la peticion: ese
+ * merge es siempre mas nuevo que cualquier informe de cobertura.
+ */
+export function instanteUltimoCommitPropio(ref, cwd) {
+    const s = runGit(['log', '-1', '--no-merges', '--format=%ct', ref], cwd);
+    return s === '' ? null : parseInt(s, 10) * 1000;
 }
 /**
  * TASK-054: sin esto Git entrecomilla las rutas no ASCII y las escapa en
