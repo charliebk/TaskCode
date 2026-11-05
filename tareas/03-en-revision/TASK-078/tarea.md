@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 902198
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 4192435
 creado: 2026-11-04
 actualizado: 2026-11-05
 dependencias: []
@@ -47,3 +47,4 @@ Segunda mitad de TASK-073 (depende de ella): que el agente que implementa una ta
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-05T14:37:13Z | diseno | agente:a33e65c96a79e4e53,a932a784f841e7ff6,a6fc0b58b60fd29ad | 58 | 121124 | 748853 | 32163 | 44 | 902198 |
+| 2026-11-05T15:27:29Z | revision | agente:afeb190b32e8b73c1 | 64 | 148120 | 4022345 | 21906 | 7 | 4192435 |
