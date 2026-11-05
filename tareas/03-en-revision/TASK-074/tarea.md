@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 922803
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 8287714
 creado: 2026-11-03
 actualizado: 2026-11-05
 dependencias: [TASK-072]
@@ -46,3 +46,4 @@ Freno 8 de brakes: una linea cambiada que ningun test ejecuta es un hallazgo, me
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-05T17:15:36Z | diseno | agente:a6e758af87c52ec67,a27c5a90f106d2646,acf962f629a824993,a1dff1917970a1488 | 62 | 181258 | 708750 | 32733 | 47 | 922803 |
+| 2026-11-05T18:23:53Z | revision | agente:a3be9170e0df89f6f | 116 | 179937 | 8073404 | 34257 | 9 | 8287714 |
