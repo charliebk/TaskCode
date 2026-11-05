@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 126993
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-03
@@ -37,3 +37,9 @@ Desde Claude Code 2.1.316, claude plugin validate imprime comprobaciones del dir
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-05T12:29:07Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-05T12:33:24Z | diseno | agente:aa2f7337150d06416 | 12 | 27854 | 92142 | 6985 | 13 | 126993 |
