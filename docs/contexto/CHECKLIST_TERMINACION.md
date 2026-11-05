@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 84 / 88 items terminados (95%)** · última actualización: 2026-11-05
+**Progreso global: 85 / 88 items terminados (97%)** · última actualización: 2026-11-05
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -35,9 +35,9 @@ tomada y documentada, no aplazada.
 | ✅ H — Peticiones tras el plan | 3 | **3** | — |
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
-| K — Frenos de verificación con hooks | 8 | **7** | — |
+| ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | L — Mantenimiento | 2 | **1** | — |
-| **Total pendiente** | **2** | — | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -873,7 +873,7 @@ aviso en release (B).
       variantes de Dockerfile/compose, huella por paso en pr-target);
       MEN-3, 5, 6, 7 y 8 aceptados.*
 
-## K — Frenos de verificación con hooks (7/8)
+## ✅ K — Frenos de verificación con hooks (8/8)
 
 Que una tarea no se dé por hecha ni se mergee con la verificación en rojo,
 usando hooks Stop y PreToolUse de Claude Code. Ideas tomadas de
@@ -941,7 +941,17 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       ejecuta la persona, sin interruptor. Riesgos aceptados declarados en
       `heldout.md` (Grep sobre la raíz, cambiar de rama). Smoke con `claude -p`
       real. 2 rondas: MEN-1..5 corregidos o declarados.*
-- [ ] TASK-074 — Cobertura sobre las líneas cambiadas
+- [x] TASK-074 — Cobertura sobre las líneas cambiadas — cerrada el 2026-11-05
+      *Freno 8: lcov propio (`core/lcov.ts`) cruzado con las líneas añadidas desde
+      la merge base (`git diff -U0` con opciones fijas, respetando
+      `excluir_de_revision`). `review` lo informa en la petición; `finish` frena
+      con `umbral_cobertura` (% mínimo, el exacto pasa) leído de la rama base, y
+      sin datos fiables no cierra. Claves `informe_cobertura` y
+      `umbral_cobertura`. Node escribe `SF:` relativo y con `\`: tests con lcov
+      real. Smoke con el CLI real. 4 rondas (la 4.ª autorizada por Carlos):
+      IMP-1..6 y MEN-1..8 corregidos, con la regla de los ficheros fuera del
+      informe precisada tres veces por Carlos; MEN-9 y MEN-10 (huecos de test)
+      aceptados. Seguimiento: dogfooding en este repo.*
 
 ## L — Mantenimiento (1/2)
 
