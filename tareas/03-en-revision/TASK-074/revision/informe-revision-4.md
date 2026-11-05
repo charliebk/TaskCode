@@ -2,7 +2,7 @@
 
 - Commit revisado: 1ede0f62cf905085dc3c8076599fab692db8a398
 - Revisor: code-quality-reviewer (agente general-purpose, modelo opus, independiente; no implemento la tarea)
-- Veredicto: aprobada-con-correcciones
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
