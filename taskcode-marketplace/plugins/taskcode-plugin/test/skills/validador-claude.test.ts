@@ -70,6 +70,15 @@ test('validador (TASK-075): exit 0 con una cruz ANTES del bloque del directorio 
   assert.match(r.motivo, /antes de las comprobaciones del directorio/);
 });
 
+test('validador (MEN-1): la frase del bloque dentro de una ruta no corta: el error de despues cuenta', () => {
+  const salida =
+    'Validating agent: /x/Plugin directory checks/agents/a.md\n\n✘ Found 1 error:\n\n  ❯ frontmatter: roto\n\n' +
+    `${DIRECTORIO}\n✔ Validation passed\n`;
+  const r = validacionLimpia({ status: 0, salida });
+  assert.equal(r.ok, false, 'falso verde: el corte se hizo en la ruta');
+  assert.match(r.motivo, /antes de las comprobaciones del directorio/);
+});
+
 test('validador (TASK-075): «Validation passed with warnings» tambien cuenta como paso', () => {
   const salida = COPIA_INTACTA.replace('Validation passed', 'Validation passed with warnings');
   assert.equal(validacionLimpia({ status: 0, salida }).ok, true);

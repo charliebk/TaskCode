@@ -17,8 +17,12 @@ export interface ResultadoValidate {
 }
 
 const CRUZ = '✘';
-/** Primera linea del bloque del directorio de plugins (Claude Code 2.1.316+). */
-const MARCA_DIRECTORIO = 'Plugin directory checks';
+/**
+ * Primera linea del bloque del directorio de plugins (Claude Code 2.1.316+),
+ * anclada al principio de linea: la frase dentro de una ruta o de un mensaje
+ * no corta (MEN-1 de la revision de TASK-075).
+ */
+const MARCA_DIRECTORIO = /^Plugin directory checks for /m;
 const RESULTADO_OK = 'Validation passed';
 
 export function claudeDisponible(): boolean {
@@ -51,7 +55,7 @@ export function validacionLimpia(r: ResultadoValidate): { ok: boolean; motivo: s
   if (!ultima.includes(RESULTADO_OK)) {
     return { ok: false, motivo: `la ultima linea no dice "${RESULTADO_OK}": "${ultima}"` };
   }
-  const i = r.salida.indexOf(MARCA_DIRECTORIO);
+  const i = r.salida.search(MARCA_DIRECTORIO);
   const resultado = i === -1 ? r.salida : r.salida.slice(0, i);
   if (resultado.includes(CRUZ)) return { ok: false, motivo: 'hay errores antes de las comprobaciones del directorio' };
   return { ok: true, motivo: '' };
