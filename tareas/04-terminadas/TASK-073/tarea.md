@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: opus
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-073-tests-held-out-por-tarea
 asignado_a: charlie.bk@gmail.com
@@ -96,6 +96,7 @@ Coste de implementacion sin registrar: la hizo el orquestador sin subagentes.
 | 2026-11-04T22:45:53Z | review | automatico | persona |
 | 2026-11-04T23:32:22Z | review | automatico | persona |
 | 2026-11-05T00:38:13Z | review | automatico | persona |
+| 2026-11-05T12:24:19Z | finish | automatico | persona |
 
 ## Coste
 

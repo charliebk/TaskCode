@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-073 (feature) — Tests held-out por tarea (2026-11-05)
 - TASK-077 (fix) — Guardian de merges: opciones con valor antes de -c y doc de bash -c (2026-11-04)
 - TASK-072 (feature) — Puerta de verificacion en finish y merge guard (2026-11-04)
 - TASK-071 (feature) — Hook Stop: una tarea no se da por hecha con la verificacion en rojo (2026-11-04)
