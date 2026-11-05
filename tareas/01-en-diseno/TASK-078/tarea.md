@@ -7,7 +7,7 @@ etiquetas: [hooks]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-078-hook-que-impide-leer-y-editar-los-held-o
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,6 +38,7 @@ Segunda mitad de TASK-073 (depende de ella): que el agente que implementa una ta
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-05T14:30:10Z | plan | automatico | persona |
+| 2026-11-05T14:37:38Z | approve | automatico | automatico |
 
 ## Coste
 
