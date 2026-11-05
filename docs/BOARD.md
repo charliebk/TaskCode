@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-05. No editar a mano.
 
-## Planificadas (00-planificadas) — 17
+## Planificadas (00-planificadas) — 16
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -23,10 +23,9 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                       (sin asignar)
 TASK-074  Cobertura sobre las lineas cambiadas                                                         (sin asignar)
 TASK-076  Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico  (sin asignar)
-TASK-078  Hook que impide leer y editar los held-out de la tarea en curso                              (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 61
+## Terminadas (04-terminadas) — 62
 
 ```text
 ID        Titulo                                                                                   Asignado
@@ -92,4 +91,5 @@ TASK-072  Puerta de verificacion en finish y merge guard                        
 TASK-073  Tests held-out por tarea                                                                 charlie.bk@gmail.com
 TASK-075  Contrapruebas de descubrimiento rotas por el validador de Claude Code 2.1.316+           charlie.bk@gmail.com
 TASK-077  Guardian de merges: opciones con valor antes de -c y doc de bash -c                      charlie.bk@gmail.com
+TASK-078  Hook que impide leer y editar los held-out de la tarea en curso                          charlie.bk@gmail.com
 ```

@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-078 — Hook que impide leer y editar los held-out de la tarea en curso · etiquetas: hooks · rama feature/task-078-hook-que-impide-leer-y-editar-los-held-o · terminada 2026-11-05 · tareas/04-terminadas/TASK-078/
 - TASK-075 — Contrapruebas de descubrimiento rotas por el validador de Claude Code 2.1.316+ · etiquetas: tests, plugin · rama fix/task-075-contrapruebas-de-descubrimiento-rotas-po · terminada 2026-11-05 · tareas/04-terminadas/TASK-075/
 - TASK-073 — Tests held-out por tarea · etiquetas: (sin etiquetas) · rama feature/task-073-tests-held-out-por-tarea · terminada 2026-11-05 · tareas/04-terminadas/TASK-073/
 - TASK-077 — Guardian de merges: opciones con valor antes de -c y doc de bash -c · etiquetas: hooks · rama fix/task-077-guardian-de-merges-opciones-con-valor-an · terminada 2026-11-04 · tareas/04-terminadas/TASK-077/

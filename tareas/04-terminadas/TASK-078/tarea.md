@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [hooks]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-078-hook-que-impide-leer-y-editar-los-held-o
 asignado_a: charlie.bk@gmail.com
@@ -81,6 +81,7 @@ Revision por pares:
 | 2026-11-05T14:37:51Z | start | automatico | persona |
 | 2026-11-05T15:05:13Z | review | automatico | persona |
 | 2026-11-05T15:44:18Z | review | automatico | persona |
+| 2026-11-05T15:49:08Z | finish | automatico | persona |
 
 ## Coste
 
