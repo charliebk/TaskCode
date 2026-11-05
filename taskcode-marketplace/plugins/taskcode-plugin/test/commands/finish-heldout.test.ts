@@ -308,6 +308,8 @@ test('heldout (IMP-1): si los edita la rama, el remedio del mensaje los restaura
         return /la rama ha editado, añadido o borrado los tests held-out/.test(mensaje);
       }
     );
+    // TASK-078: el remedio lo ejecuta la persona; el agente tiene bloqueadas esas ordenes.
+    assert.match(mensaje, /Esto lo resuelve la persona en su terminal, fuera del agente/);
     const orden = /\n {2}(git rm .*)\n/.exec(mensaje)?.[1];
     assert.ok(orden, `sin remedio en: ${mensaje}`);
     assert.match(orden, new RegExp(`git read-tree --prefix=${destino}/ develop:tareas/01-en-diseno/TASK-742/aceptacion`));
@@ -398,7 +400,7 @@ test('heldout (MEN-5): si la rama los toco y la base tambien, pide integrar prim
     git(['checkout', '-q', task.rama], c.repoRoot);
     await assert.rejects(
       () => finish(c, ['TASK-749']),
-      /la rama ha editado[\s\S]*Ademas "develop" los ha cambiado desde que nacio la rama: integra primero "develop"/
+      /la rama ha editado[\s\S]*Ademas "develop" los ha cambiado desde que nacio la rama: que integre primero "develop"/
     );
   });
 });

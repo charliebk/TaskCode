@@ -349,10 +349,11 @@ test('guardia: hooks.json declara el PreToolUse sin filtro if, en forma exec, si
     description: string;
     hooks: { PreToolUse: { matcher: string; hooks: { type: string; command: string; args: string[]; timeout: number; if?: string }[] }[] };
   };
-  assert.equal(j.hooks.PreToolUse.length, 1);
-  const pre = j.hooks.PreToolUse[0];
+  // TASK-078 anade el de herramientas de fichero: el de shell se busca por su entrada.
+  const shell = j.hooks.PreToolUse.filter((p) => p.matcher === 'Bash|PowerShell');
+  assert.equal(shell.length, 1);
+  const pre = shell[0];
   assert.ok(pre);
-  assert.equal(pre.matcher, 'Bash|PowerShell');
   assert.equal(pre.hooks.length, 1);
   const h = pre.hooks[0];
   assert.ok(h);

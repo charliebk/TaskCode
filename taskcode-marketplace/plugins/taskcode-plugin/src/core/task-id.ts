@@ -13,6 +13,12 @@ const TASK_ID_RE = /^TASK-(\d{3,})$/;
 /** `feature/task-9999-slug`, `fix/task-9998`: el numero de tarea dentro del nombre de una rama. */
 const RAMA_TASK_RE = /(?:^|\/)task-(\d{3,})(?:-|$)/i;
 
+/** Numero de la tarea en un nombre de rama (`feature/task-078-x` -> 78), o null. */
+export function numeroDeRama(rama: string): number | null {
+  const m = RAMA_TASK_RE.exec(rama);
+  return m === null ? null : parseInt(m[1] as string, 10);
+}
+
 /** Primer numero del rango reservado. */
 export const ID_RESERVADO_MIN = 9000;
 /** Primer ID que reparte el rango reservado (y el mayor posible). */

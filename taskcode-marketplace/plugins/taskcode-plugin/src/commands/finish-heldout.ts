@@ -54,6 +54,15 @@ export type ResultadoHeldout = { tipo: 'sin-heldout' } | { tipo: 'verde'; carpet
 
 const CIERRE = 'No se ha mergeado nada.';
 
+/**
+ * Decision de Carlos en TASK-078: el remedio sobre los held-out lo ejecuta la
+ * persona. El guardian de held-out bloquea al agente las ordenes que nombran
+ * la carpeta, y en modo automatico reintentarlas seria un bucle.
+ */
+const PERSONA =
+  'Esto lo resuelve la persona en su terminal, fuera del agente: el agente tiene bloqueadas las ordenes ' +
+  'que nombran los held-out, asi que para aqui y pasale este mensaje.';
+
 function rutasDe(ref: string, cwd: string): string[] {
   const salida = runGit(['ls-tree', '-r', '--name-only', ref, '--', 'tareas'], cwd);
   return salida === '' ? [] : salida.split('\n');
@@ -170,11 +179,11 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
       `[ERROR] ${o.id}: la rama ha editado, añadido o borrado los tests held-out: su contenido ` +
         `(${enRama.length === 0 ? 'ninguno' : enRama.join(', ')}) no coincide con el de "${o.ramaBase}" (${base}). ` +
         'El agente que implementa no puede cambiarlos; si hay que cambiarlos, lo hace la persona en ' +
-        `"${o.ramaBase}". ` +
+        `"${o.ramaBase}". ${PERSONA} ` +
         (baseCambio
-          ? `Ademas "${o.ramaBase}" los ha cambiado desde que nacio la rama: integra primero "${o.ramaBase}" ` +
-            `(git merge ${o.ramaBase}; si hay conflicto en los held-out, quedate con la version de ` +
-            `"${o.ramaBase}") y reintenta; si sigue sin coincidir, restauralos`
+          ? `Ademas "${o.ramaBase}" los ha cambiado desde que nacio la rama: que integre primero ` +
+            `"${o.ramaBase}" (git merge ${o.ramaBase}; si hay conflicto en los held-out, con la version de ` +
+            `"${o.ramaBase}") y reintente; si sigue sin coincidir, que los restaure`
           : 'Para restaurarlos') +
         `${enDestino ? '' : ` en ${destino}`}:\n  ${remedio(o.ramaBase, base, destino, otras)}\n${CIERRE}`
     );
