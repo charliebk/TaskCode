@@ -69,6 +69,11 @@ Decidido por la persona el 2026-11-05:
   ejecutables (con `DA`) que tienen que estar cubiertas; el valor exacto pasa
   (`cubierto >= umbral`). Las lineas sin `DA` no cuentan; los ficheros sin `SF` van aparte como «sin
   instrumentar».
+  **Precisada por la persona tras la ronda 1 de revision (IMP-1, IMP-2), el 2026-11-05:** un fichero
+  cambiado que el informe no lista y cuya extension el informe SI mide en otros ficheros (un modulo
+  nuevo que ningun test carga) cuenta con todas sus lineas añadidas sin cubrir; solo va aparte como
+  «sin instrumentar» si su extension el informe no la mide (.md, .yml...). Una tarea de solo docs
+  sigue cerrando.
 - (e) **Dogfooding fuera de alcance**: si el lcov solo cubre rutas excluidas, se avisa de mala
   configuracion. Hacerlo funcionar en este repo (source maps o cobertura sobre `src`) queda como
   seguimiento.

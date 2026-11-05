@@ -511,6 +511,18 @@ export async function runReviewCommand(
   const ficherosTocados = paraRevision.incluidos;
   const catalogoRevisores = cargarCatalogoRevisores();
   const plan = clasificarPorDominio(ficherosTocados, catalogoRevisores);
+  // TASK-074 (MEN-4 de la revision): en una peticion fragmentada, la seccion
+  // de cobertura de cada dominio lleva SUS ficheros cambiados desde la merge
+  // base, no solo los del delta de la ronda: una linea sin cubrir de la ronda
+  // 1 sigue en la 2 aunque su fichero no haya vuelto a cambiar.
+  const coberturaPorRevisor = new Map<string, Set<string>>();
+  if (plan.fragmentado && datosCobertura?.tipo === 'ok' && datosCobertura.cobertura.cruce !== null) {
+    const cruce = datosCobertura.cobertura.cruce;
+    const cambiados = [...cruce.ficheros.map((f) => f.ruta), ...cruce.sinInstrumentar];
+    for (const g of clasificarPorDominio(cambiados, catalogoRevisores).grupos) {
+      coberturaPorRevisor.set(g.revisor, new Set(g.ficheros));
+    }
+  }
 
   const updated: Task = { ...task, estado: 'en-revision', actualizado: today };
 
@@ -595,7 +607,7 @@ export async function runReviewCommand(
               : {
                   seccionCobertura: seccionCoberturaRevision(
                     datosCobertura,
-                    plan.fragmentado ? new Set(escritura.ficheros) : undefined
+                    plan.fragmentado ? (coberturaPorRevisor.get(escritura.revisor) ?? new Set<string>()) : undefined
                   ),
                 }),
           }

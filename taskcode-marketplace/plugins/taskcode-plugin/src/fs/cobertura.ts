@@ -5,9 +5,9 @@
  *
  * Las rutas `SF:` se resuelven contra el repo: absolutas (c8, istanbul) o
  * relativas al cwd en que corrieron los tests (`node --test`, con `\` en
- * Windows). Una relativa se prueba contra la raiz del repo y, si alli no
- * existe, contra la carpeta del propio informe (un proyecto cuyos tests
- * corren en un subdirectorio y escriben el lcov ahi). Las rutas cortas 8.3 de
+ * Windows). Una relativa se prueba contra la carpeta del informe y cada una
+ * de sus padres hasta la raiz del repo, la mas cercana primero (un proyecto
+ * cuyos tests corren en un subdirectorio y escriben el lcov ahi). Las rutas cortas 8.3 de
  * Windows se expanden con realpath, y en Windows se comparan sin mayusculas.
  */
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
@@ -42,11 +42,30 @@ function real(p: string): string {
   }
 }
 
+/**
+ * Donde puede haber corrido el generador: la carpeta del informe y cada una de
+ * sus padres hasta la raiz del repo, la mas cercana primero. Un proyecto en
+ * `pkg/` que escribe `pkg/coverage/lcov.info` con `SF:src\a.mjs` es `pkg/`
+ * (IMP-3 de la revision); un informe en `coverage/` de la raiz, la raiz.
+ */
+function basesRelativas(raizReal: string, dirInforme: string): string[] {
+  const bases: string[] = [];
+  let dir = dirInforme;
+  for (;;) {
+    bases.push(dir);
+    const rel = path.relative(raizReal, dir);
+    if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) break;
+    dir = path.dirname(dir);
+  }
+  if (!bases.includes(raizReal)) bases.push(raizReal);
+  return bases;
+}
+
 /** Ruta del repo (con `/`) de una entrada `SF:`, o null si cae fuera del repo. */
 export function resolverSf(sf: string, raizReal: string, dirInforme: string): string | null {
   const s = sf.replace(/\\/g, '/');
   const absoluta = /^[A-Za-z]:\//.test(s) || s.startsWith('/');
-  const candidatos = absoluta ? [s] : [path.join(raizReal, s), path.join(dirInforme, s)];
+  const candidatos = absoluta ? [s] : basesRelativas(raizReal, dirInforme).map((b) => path.join(b, s));
   const elegido = candidatos.find((c) => existsSync(c)) ?? (candidatos[0] as string);
   const rel = path.relative(raizReal, real(elegido));
   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return null;
@@ -164,7 +183,7 @@ export function seccionCoberturaRevision(d: DatosCoberturaRevision, rutas?: Read
   if (lectura.validos === 0) {
     return (
       `${titulo}${cabecera}[AVISO] Ninguna ruta del informe es un fichero del repo fuera de lo excluido ` +
-      '(¿mide el codigo compilado, o rutas de otra maquina?): el informe esta mal configurado y no se usa.\n'
+      '(¿mide el codigo compilado, esta vacio, o sus rutas son de otra maquina o relativas a una carpeta que no es la del informe ni una de sus padres?): el informe esta mal configurado y no se usa.\n'
     );
   }
   const cruce = rutas === undefined ? cobertura.cruce : cobertura.cruce === null ? null : filtrarCruce(cobertura.cruce, rutas);

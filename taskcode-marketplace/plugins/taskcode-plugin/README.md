@@ -708,9 +708,16 @@ umbral_cobertura: 80                       # opcional: % minimo cubierto para qu
   exacto pasa), y también si no hay datos fiables: el informe no existe, está
   cortado, es anterior a la verificación de ese mismo `finish`, o ninguna ruta
   del informe es del fuente del repo. Sin datos nunca cuenta como aprobado.
-- Cuenta una línea cambiada con `DA` en el informe (`DA:n,0` = sin cubrir); sin
-  `DA` no es ejecutable. Las rutas `SF:` pueden ser absolutas o relativas (a la
-  raíz del repo o a la carpeta del informe), con `\` o `/`.
+- Cuenta una línea cambiada (no en blanco) con `DA` en el informe (`DA:n,0` =
+  sin cubrir); sin `DA` no es ejecutable. Un fichero cambiado que el informe no
+  lista y cuya extensión **sí** mide en otros ficheros (un `.mjs` nuevo que
+  ningún test carga: `node --test` y c8 sin `--all` solo listan lo cargado)
+  cuenta con todas sus líneas sin cubrir. Uno cuya extensión el informe no mide
+  (`.md`, `.yml`…) no cuenta: una tarea de solo documentación no se frena.
+- Las rutas `SF:` pueden ser absolutas o relativas, con `\` o `/`. Una relativa
+  se resuelve contra la carpeta del informe y cada una de sus padres hasta la
+  raíz, la más cercana primero: un proyecto en `pkg/` con el informe en
+  `pkg/coverage/lcov.info` funciona.
 - `umbral_cobertura` e `informe_cobertura` se leen, en `finish`, de la config
   **de la rama base**: la rama no puede rebajar su propio freno. El umbral exige
   `informe_cobertura` y `comando_verificacion`.

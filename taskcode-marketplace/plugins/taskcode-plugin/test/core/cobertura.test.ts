@@ -61,6 +61,9 @@ test('lcov: un SF repetido (informes fusionados) suma: la linea se ejecuto si se
     [10, 5],
     [11, 0],
   ]);
+  // MEN-3 de la revision: en el otro orden, sobrescribir daria 0.
+  const inverso = parsearLcov('SF:a.js\nDA:10,5\nend_of_record\nSF:a.js\nDA:10,0\nend_of_record\n');
+  assert.deepEqual([...(inverso.ficheros.get('a.js') as Map<number, number>)], [[10, 5]]);
 });
 
 const informe = new Map([
@@ -87,13 +90,45 @@ test('cruce: solo cuentan las lineas cambiadas con DA; DA:n,0 es sin cubrir; sin
 
 test('cruce: la clave de ruta decide mayusculas (Windows) y un fichero sin lineas ejecutables cambiadas no cuenta', () => {
   const anadidas = new Map([['src/b.ts', [1]]]);
-  assert.deepEqual(cruzarCobertura(anadidas, informe).sinInstrumentar, ['src/b.ts']);
+  // Sin la clave sin mayusculas, src/b.ts no casa con src/B.ts: es un .ts que el informe no lista.
+  assert.deepEqual(cruzarCobertura(anadidas, informe).ficheros, [
+    { ruta: 'src/b.ts', ejecutables: 1, cubiertas: 0, sinCubrir: [1], fueraDelInforme: true },
+  ]);
   const c = cruzarCobertura(anadidas, informe, (r) => r.toLowerCase());
   assert.deepEqual(c.ficheros, [{ ruta: 'src/b.ts', ejecutables: 1, cubiertas: 0, sinCubrir: [1] }]);
   const soloComentarios = cruzarCobertura(new Map([['src/a.mjs', [7, 8]]]), informe);
   assert.deepEqual(soloComentarios.ficheros, []);
   assert.equal(soloComentarios.porcentaje, null);
   assert.match(describirCruce(soloComentarios), /Ninguna linea cambiada es ejecutable/);
+});
+
+test('cruce (IMP-1/IMP-2 de la revision): un fichero de codigo que el informe no lista cuenta entero sin cubrir; uno de docs, no', () => {
+  const anadidas = new Map([
+    ['src/a.mjs', [3]],
+    ['src/nuevo.mjs', [1, 2, 4]],
+    ['docs/guia.md', [1, 2]],
+    ['Makefile', [1]],
+  ]);
+  const c = cruzarCobertura(anadidas, informe);
+  assert.deepEqual(c.ficheros, [
+    { ruta: 'src/a.mjs', ejecutables: 1, cubiertas: 1, sinCubrir: [] },
+    { ruta: 'src/nuevo.mjs', ejecutables: 3, cubiertas: 0, sinCubrir: [1, 2, 4], fueraDelInforme: true },
+  ]);
+  assert.deepEqual(c.sinInstrumentar, ['Makefile', 'docs/guia.md']);
+  assert.deepEqual([c.cubiertas, c.ejecutables], [1, 4]);
+  assert.match(describirCruce(c), /- `src\/nuevo\.mjs`: 1-2, 4 \(el informe no lo lista: ningun test lo carga\)/);
+  // Una tarea de solo docs no tiene nada que medir.
+  const docs = cruzarCobertura(new Map([['docs/guia.md', [1]]]), informe);
+  assert.equal(docs.ejecutables, 0);
+  assert.equal(cumpleUmbral(docs, 100), true);
+});
+
+test('porcentaje (MEN-2 de la revision): redondea hacia abajo, para no decir «91 % no llega a 91 %»', () => {
+  assert.equal(formatearPorcentaje((100 * 1820) / 2001), '90.9');
+  assert.equal(formatearPorcentaje(90), '90');
+  assert.equal(formatearPorcentaje((100 * 2) / 3), '66.6');
+  assert.equal(formatearPorcentaje(100), '100');
+  assert.equal(formatearPorcentaje((100 * 29) / 100), '29', 'sin el error de coma flotante');
 });
 
 test('cruce: filtrar por los ficheros de un dominio recalcula los totales', () => {

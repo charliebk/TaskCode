@@ -107,7 +107,7 @@ export function puertaCobertura(o: PuertaCoberturaOpts): ResultadoCobertura {
   if (lectura.validos === 0) {
     throw sinDatos(
       `ninguna ruta del informe ${informe} es un fichero del repo fuera de lo excluido de la revision ` +
-        '(¿mide el codigo compilado, o rutas de otra maquina?)'
+        '(¿mide el codigo compilado, esta vacio, o sus rutas son de otra maquina o relativas a una carpeta que no es la del informe ni una de sus padres?)'
     );
   }
   const cruce = c.cruce;

@@ -350,3 +350,165 @@ test('finish: --sin-verificacion salta tambien la cobertura y lo avisa; sin umbr
     assert.equal(r.cierre, 'terminada', 'sin umbral, sin informe: no frena');
   });
 });
+
+// ---------------------------------------------------------------------
+// Ronda 1 de revision
+// ---------------------------------------------------------------------
+
+test('lineasAnadidas (MEN-1): una linea añadida que empieza por "++ " es contenido, no una cabecera; las vacias no cuentan', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const base = Array.from({ length: 20 }, (_, i) => `l${i + 1}`);
+    await writeFile(path.join(repoRoot, 'x.txt'), base.join('\n') + '\n', 'utf8');
+    commitAll(repoRoot, 'x');
+    git(['checkout', '-q', '-b', 'feature/task-979-x', 'develop'], repoRoot);
+    const l = [...base];
+    l.splice(2, 0, '++ b/otro');
+    l.splice(10, 0, '   ');
+    l.splice(16, 0, 'nueva');
+    await writeFile(path.join(repoRoot, 'x.txt'), l.join('\n') + '\n', 'utf8');
+    commitAll(repoRoot, 'x cambiado');
+    const mb = mergeBase('HEAD', 'develop', repoRoot);
+    assert.deepEqual([...lineasAnadidas(mb, 'HEAD', [], repoRoot)], [['x.txt', [3, 17]]]);
+  });
+});
+
+test('cobertura (IMP-4): un diff externo configurado en el repo no cambia las lineas', async () => {
+  await withTempRepo(async (repoRoot) => {
+    git(['checkout', '-q', '-b', 'feature/task-978-x', 'develop'], repoRoot);
+    await writeFile(path.join(repoRoot, 'a.mjs'), 'uno\n', 'utf8');
+    commitAll(repoRoot, 'a');
+    git(['config', 'diff.external', 'false'], repoRoot);
+    const mb = mergeBase('HEAD', 'develop', repoRoot);
+    assert.deepEqual([...lineasAnadidas(mb, 'HEAD', [], repoRoot)], [['a.mjs', [1]]]);
+  });
+});
+
+test('cobertura (IMP-3): un proyecto en subcarpeta con el informe en pkg/coverage/ resuelve sus rutas a pkg/', async () => {
+  await withTempRepo(async (repoRoot) => {
+    const pkg = path.join(repoRoot, 'pkg');
+    await mkdir(path.join(pkg, 'src'), { recursive: true });
+    await mkdir(path.join(pkg, 'test'), { recursive: true });
+    await mkdir(path.join(pkg, 'coverage'), { recursive: true });
+    await writeFile(path.join(pkg, 'src', 'a.mjs'), FUENTE, 'utf8');
+    await writeFile(path.join(pkg, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
+    commitAll(repoRoot, 'pkg');
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    const r = spawnSync(
+      process.execPath,
+      ['--test', '--experimental-test-coverage', '--test-reporter=lcov', '--test-reporter-destination=coverage/lcov.info', 'test/*.test.mjs'],
+      { cwd: pkg, env, encoding: 'utf8' }
+    );
+    assert.equal(r.status, 0, r.stderr);
+    const l = leerInformeCobertura(repoRoot, 'pkg/coverage/lcov.info', []);
+    assert.ok(l.tipo === 'ok');
+    assert.deepEqual([...l.porRuta.keys()].sort(), ['pkg/src/a.mjs', 'pkg/test/a.test.mjs']);
+    assert.equal(l.validos, 2);
+  });
+});
+
+test('finish (IMP-1): un modulo nuevo que ningun test carga no pasa el umbral; una tarea de solo docs, si', async () => {
+  await conCobertura('umbral_cobertura: 50\n', async (c) => {
+    // El codigo medido ya esta en la base; la rama solo añade un modulo sin test.
+    await codigoDeLaTarea(c.repoRoot);
+    const task = sampleTask({ id: 'TASK-975', rama: 'feature/task-975-cob' });
+    await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task);
+    await writeFile(path.join(c.repoRoot, 'src', 'nuevo.mjs'), 'export function g(x) {\n  if (x) return 1;\n  return 2;\n}\n', 'utf8');
+    commitAll(c.repoRoot, 'feat: modulo sin test');
+    await assert.rejects(
+      () => finish(c, ['TASK-975']),
+      /no llega al umbral[\s\S]*- `src\/nuevo\.mjs`: 1-4 \(el informe no lo lista: ningun test lo carga\)/
+    );
+    assert.equal(integrada(task.rama, c.repoRoot), false);
+  });
+  await conCobertura('umbral_cobertura: 100\n', async (c) => {
+    await codigoDeLaTarea(c.repoRoot);
+    const task = sampleTask({ id: 'TASK-976', rama: 'feature/task-976-cob' });
+    await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task);
+    await mkdir(path.join(c.repoRoot, 'docs'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'docs', 'guia.md'), '# guia\n', 'utf8');
+    commitAll(c.repoRoot, 'docs');
+    const r = await finish(c, ['TASK-976']);
+    assert.equal(r.cierre, 'terminada', 'solo docs y .txt: nada que medir');
+  });
+});
+
+test('finish (IMP-4): una rama que quita comando_verificacion no sortea el umbral de la base', async () => {
+  await conCobertura('umbral_cobertura: 10\n', async (c) => {
+    await tareaEnRevision(c, 'TASK-974');
+    await writeFile(path.join(c.repoRoot, '.taskcode', 'config.yml'), 'informe_cobertura: coverage/lcov.info\n', 'utf8');
+    commitAll(c.repoRoot, 'quitar la verificacion en la rama');
+    await assert.rejects(() => finish(c, ['TASK-974']), /la rama no declara comando_verificacion, asi que nadie regenera el informe/);
+    assert.equal(integrada('feature/task-974-cob', c.repoRoot), false);
+  });
+});
+
+test('finish (IMP-4): un hotfix mide contra la principal y con la config de la principal', async () => {
+  await conCobertura('umbral_cobertura: 0\n', async (c) => {
+    const config = await readFile(path.join(c.repoRoot, '.taskcode', 'config.yml'), 'utf8');
+    git(['checkout', '-q', 'main'], c.repoRoot);
+    await mkdir(path.join(c.repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, '.taskcode', 'config.yml'), config.replace('umbral_cobertura: 0', 'umbral_cobertura: 100'), 'utf8');
+    await writeFile(path.join(c.repoRoot, '.gitignore'), 'logs/\ncoverage/\n', 'utf8');
+    commitAll(c.repoRoot, 'config en main');
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    const task = sampleTask({ id: 'TASK-973', tipo: 'hotfix', rama: 'hotfix/task-973-arreglo' });
+    await setupTaskEnRevision(c.repoRoot, c.tareasRoot, task, { base: 'main' });
+    await codigoDeLaTarea(c.repoRoot);
+    await assert.rejects(() => finish(c, ['TASK-973']), /no llega al umbral de "main" \(100 %\)/);
+  });
+});
+
+/** Commit con fecha de autor y de commit fijas: el merge que haga review sera posterior. */
+function commitConFecha(repoRoot: string, mensaje: string, fecha: string): void {
+  git(['add', '-A'], repoRoot);
+  const r = spawnSync('git', ['commit', '-q', '-m', mensaje], {
+    cwd: repoRoot,
+    env: { ...process.env, GIT_AUTHOR_DATE: fecha, GIT_COMMITTER_DATE: fecha },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stderr);
+}
+
+test('review (IMP-4): el merge de la base que hace el update no deja el informe por viejo', async () => {
+  await conCobertura('', async (c) => {
+    const { writeTareaFile } = await import('../../src/fs/task-store.js');
+    git(['checkout', '-q', '-b', 'feature/task-972-cob', 'develop'], c.repoRoot);
+    await writeTareaFile(c.tareasRoot, sampleTask({ id: 'TASK-972', rama: 'feature/task-972-cob', estado: 'en-curso' }), '## Objetivo\nProbar.\n');
+    await mkdir(path.join(c.repoRoot, 'src'), { recursive: true });
+    await mkdir(path.join(c.repoRoot, 'test'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'src', 'a.mjs'), FUENTE, 'utf8');
+    await writeFile(path.join(c.repoRoot, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
+    commitConFecha(c.repoRoot, 'feat: codigo', '2020-01-01T00:00:00Z');
+    c.generar();
+    const informe = new Date('2021-01-01T00:00:00Z');
+    await utimes(path.join(c.repoRoot, 'coverage', 'lcov.info'), informe, informe);
+    // La base avanza: el update de review la mergea en la rama con la fecha de hoy.
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    await writeFile(path.join(c.repoRoot, 'otro.txt'), 'de develop\n', 'utf8');
+    commitAll(c.repoRoot, 'develop avanza');
+    git(['checkout', '-q', 'feature/task-972-cob'], c.repoRoot);
+    const p = await peticion(c, 'TASK-972');
+    assert.doesNotMatch(p, /anterior al ultimo commit de la rama/);
+    assert.match(p, /- `src\/a\.mjs`: 6\n/);
+  });
+});
+
+test('review (IMP-4, MEN-4): en una peticion fragmentada cada dominio ve solo la cobertura de sus ficheros', async () => {
+  await conCobertura('', async (c) => {
+    await tareaEnCurso(c, 'TASK-971', 'feature/task-971-cob');
+    await mkdir(path.join(c.repoRoot, 'java'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'java', 'X.java'), 'class X {}\n', 'utf8');
+    commitAll(c.repoRoot, 'feat: java');
+    c.generar();
+    await runFinishlessReview(c, 'TASK-971');
+    const dir = path.join(c.tareasRoot, '03-en-revision', 'TASK-971', 'revision');
+    const java = await readFile(path.join(dir, 'peticion-revision-1-java-spring-reviewer.md'), 'utf8');
+    const generico = await readFile(path.join(dir, 'peticion-revision-1-code-quality-reviewer.md'), 'utf8');
+    assert.match(java, /## Cobertura de las lineas cambiadas/);
+    assert.doesNotMatch(java, /src\/a\.mjs/);
+    assert.match(java, /`java\/X\.java`/, 'el .java no esta instrumentado: va aparte');
+    assert.match(generico, /- `src\/a\.mjs`: 6\n/);
+    assert.doesNotMatch(generico, /X\.java/);
+  });
+});
