@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 126993
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 5235856
 creado: 2026-11-03
 actualizado: 2026-11-05
 dependencias: []
@@ -46,3 +46,4 @@ Desde Claude Code 2.1.316, claude plugin validate imprime comprobaciones del dir
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-05T12:33:24Z | diseno | agente:aa2f7337150d06416 | 12 | 27854 | 92142 | 6985 | 13 | 126993 |
+| 2026-11-05T13:11:43Z | revision | agente:a0b344edd306cf2b4 | 104 | 125773 | 5090567 | 19412 | 14 | 5235856 |
