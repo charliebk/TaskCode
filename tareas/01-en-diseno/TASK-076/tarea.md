@@ -7,7 +7,7 @@ etiquetas: [doctor, hooks, plugin]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-076-doctor-avisa-de-hooks-pretooluse-sobre-a
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,6 +38,7 @@ Desde Claude Code 2.1.317/2.1.318, el modo automatico puede denegar el lanzamien
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-06T17:59:51Z | plan | automatico | persona |
+| 2026-11-06T18:10:02Z | approve | automatico | automatico |
 
 ## Coste
 
