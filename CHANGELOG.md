@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-079 (feature) — Revisor por pares de dominio para Rust y WASM (2026-11-06)
 
 ## 0.10.0 — 2026-11-06
 

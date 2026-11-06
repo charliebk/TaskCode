@@ -24,15 +24,7 @@ TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin               
 TASK-080  Accesibilidad en angular-vue-reviewer y roles de arquitectura y rendimiento en plan         (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 1
-
-```text
-ID        Titulo                                         Asignado
---------  ---------------------------------------------  --------------------
-TASK-079  Revisor por pares de dominio para Rust y WASM  charlie.bk@gmail.com
-```
-
-## Terminadas (04-terminadas) — 64
+## Terminadas (04-terminadas) — 65
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -101,4 +93,5 @@ TASK-075  Contrapruebas de descubrimiento rotas por el validador de Claude Code 
 TASK-076  Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico  charlie.bk@gmail.com
 TASK-077  Guardian de merges: opciones con valor antes de -c y doc de bash -c                          charlie.bk@gmail.com
 TASK-078  Hook que impide leer y editar los held-out de la tarea en curso                              charlie.bk@gmail.com
+TASK-079  Revisor por pares de dominio para Rust y WASM                                                charlie.bk@gmail.com
 ```

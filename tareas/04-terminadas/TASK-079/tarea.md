@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [skills, revisores, rust, wasm]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-079-revisor-por-pares-de-dominio-para-rust-y
 asignado_a: charlie.bk@gmail.com
@@ -82,6 +82,7 @@ temporales: `.rs` + `.vue` dan 2 peticiones; con un `.worker.ts`, 3; con Java y 
 | 2026-11-06T19:39:24Z | start | automatico | persona |
 | 2026-11-06T20:01:34Z | review | automatico | persona |
 | 2026-11-06T20:21:12Z | review | automatico | persona |
+| 2026-11-06T20:35:55Z | finish | automatico | persona |
 
 ## Coste
 
