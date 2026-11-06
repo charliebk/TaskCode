@@ -48,8 +48,9 @@ approve | start | review | finish [--tag <nombre>] [--merge-request] [--sin-veri
 recover | abort-merge`. El ciclo de vida está completo: Fases A, B y C
 cerradas.
 
-El plugin además **expone contenido a Claude Code**: cinco skills
-(`task-workflow` y los cuatro revisores por dominio) y cuatro agentes (los
+El plugin además **expone contenido a Claude Code**: sus skills
+(`task-workflow`, las de cada fase, `doctor-deploy` y cinco revisoras: cuatro
+de dominio y el genérico `code-quality-reviewer`) y cuatro agentes (los
 roles del brainstorm), más `scripts/heuristica-complejidad.yml`. Todo eso se
 instala en proyectos que **no son este**, así que ninguno de esos ficheros
 puede mencionar TaskCode, sus rutas ni sus documentos internos — hay tests

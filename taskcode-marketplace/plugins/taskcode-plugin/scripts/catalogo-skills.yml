@@ -83,8 +83,9 @@
 # este mismo repo (y en cualquier proyecto que instale el plugin) es la
 # skill de ejecucion mas relevante siempre que exista la carpeta `tareas/`.
 #
-# CONTENIDO INICIAL - alcance de TASK-017. Las cinco entradas de abajo son
-# los cinco skills que YA trae `taskcode-plugin` (carpeta `skills/`), leidos
+# CONTENIDO INICIAL - alcance de TASK-017 (TASK-079 anadio la sexta,
+# rust-wasm-reviewer). Las cinco entradas de entonces eran
+# los cinco skills que YA traia `taskcode-plugin` (carpeta `skills/`), leidos
 # de su SKILL.md real. Ningun rol del brainstorm de disenio propuso que
 # skills externos entrar en esta primera version (quedo anotado en
 # plan-final.md como hueco de dominio, sin rol de especialista lanzado esa

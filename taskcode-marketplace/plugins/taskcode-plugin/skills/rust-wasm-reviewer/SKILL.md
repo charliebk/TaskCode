@@ -101,6 +101,10 @@ Quedan fuera a proposito, aunque un proyecto Rust y WASM tambien los toque:
   cliente) — no hay sufijo ni carpeta que lo distinga de cualquier otro
   `.ts`. Lo revisa el generico; pero si el diff cambia el contrato del
   limite, este revisor lo pide como contexto (ver la regla de abajo).
+- `.rustfmt.toml` y `.clippy.toml` con punto delante — rustfmt y clippy los
+  leen igual que sin punto, pero son la variante menos comun. Si el proyecto
+  los usa, un cambio en ellos cae al generico; no cambian el codigo, solo como
+  se formatea o que lints se aplican.
 - `.cargo/config` sin extension — el nombre antiguo de `.cargo/config.toml`.
   Igual que `rust-toolchain`: si el proyecto aun lo usa, cae al generico.
 - `deny.toml` — la configuracion de `cargo-deny` (licencias, avisos de
@@ -147,9 +151,13 @@ cada llamada) casi nunca se ve leyendo: se ve ejecutando.
 2. **Compilar con el lockfile**: `cargo build --locked` (y `--release` si el
    cambio toca rendimiento). Si el proyecto compila a WebAssembly, tambien
    para ese objetivo: `cargo build --locked --target wasm32-unknown-unknown`,
-   o el comando de `wasm-pack` que use el proyecto. Muchos errores (una
-   dependencia que no compila para `wasm32`, un `std::time::Instant` que
-   alli no existe) solo salen ahi. Si no compila, ahi acaba la revision.
+   o el comando de `wasm-pack` que use el proyecto. Algunos errores (una
+   dependencia que no compila para `wasm32`, una funcion de `std` que ese
+   objetivo no tiene) solo salen ahi. Si no compila, ahi acaba la revision.
+   Ojo: otros compilan limpios y fallan al ejecutar en `wasm32` —el caso
+   tipico es `std::time::Instant::now()`, que hace `panic`—; esos solo los
+   encuentra el paso 4 con los tests de WebAssembly o una llamada real desde
+   JavaScript, no el build.
 3. **Pasar el formateo y los lints**: `cargo fmt --check` y
    `cargo clippy --all-targets --locked -- -D warnings`, con los lints que
    el proyecto ya tenga configurados. Un aviso nuevo de clippy no es por si
@@ -205,9 +213,14 @@ fuera de rango, geometria degenerada) se devuelven con `Result` y un tipo de
 error que conserve la causa y permita al llamador decidir; no con `panic`.
 En codigo de biblioteca y en todo lo que se exporta a WebAssembly, `unwrap`,
 `expect` y `panic!` sobre datos que vienen de fuera son un defecto: en
-`wasm32-unknown-unknown` un `panic` aborta la instancia entera, y el
-JavaScript que llama recibe un `RuntimeError: unreachable` sin contexto, con
-el modulo inservible hasta que se recarga. Se aceptan en tests, en
+`wasm32-unknown-unknown` un `panic` aborta la llamada con un
+`RuntimeError: unreachable` sin contexto (solo `console_error_panic_hook`, si
+el proyecto lo instala, deja el mensaje en la consola), y la instancia sigue
+invocable pero con su estado posiblemente inconsistente: objetos exportados a
+medio modificar, prestamos de `wasm_bindgen` que no se liberaron. Lo que se
+espera es que la funcion exportada devuelva `Result<_, JsError>` (o
+`Result<_, JsValue>`) y que JavaScript reciba una excepcion con mensaje. Se
+aceptan en tests, en
 invariantes que el propio tipo garantiza (y entonces con un `expect` que diga
 cual), y en el arranque de un binario. Que el error no se convierta en texto
 demasiado pronto: comparar cadenas de error en vez de variantes es fragil.
@@ -297,8 +310,8 @@ mutacion.
 contrario de lo que dice:
 
 - Un `unwrap` o un indexado sobre datos de entrada en una funcion exportada a
-  WebAssembly, con una entrada real que lo dispara: el modulo aborta y la
-  aplicacion queda inservible hasta recargar.
+  WebAssembly, con una entrada real que lo dispara: la llamada aborta sin
+  mensaje util y la instancia queda con su estado a medias.
 - Un NaN que nace en un calculo y sale como un resultado numerico plausible
   que se guarda o se usa para decidir.
 - Un bloque `unsafe` cuyo invariante no se cumple en un caso alcanzable (una
