@@ -33,7 +33,7 @@ EL PLUGIN (se instala una vez, se comparte con todo el equipo)         → distr
       angular-vue-reviewer/SKILL.md
       csharp-autocad-ifc-reviewer/SKILL.md
       code-quality-reviewer/SKILL.md
-    agents/                        ← definiciones de los roles de brainstorm (arquitectura, riesgos, testing, dominio)
+    agents/                        ← definiciones de los roles de brainstorm (arquitectura, riesgos, testing, dominio; rendimiento, condicional por etiquetas)
     commands/                      ← slash-commands de conveniencia (opcional, envuelven taskctl)
 
 CADA REPO DE PROYECTO (datos propios de ese proyecto, sí se versiona ahí)

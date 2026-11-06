@@ -77,8 +77,18 @@ const FICHEROS = ROLES.map((r) => `${r}.md`);
  */
 const FICHERO_UNIFICADOR = `${UNIFICADOR_ID}.md`;
 
-/** Todo lo que vive en agents/: los cuatro roles mas el unificador. */
-const AGENTES = [...FICHEROS, FICHERO_UNIFICADOR];
+/**
+ * Roles condicionales (TASK-080): entran por las etiquetas de la tarea y
+ * se suman a la escalera sin gastar presupuesto. Viven aparte de ROLES
+ * por lo mismo que el unificador: el test 14b deriva de `FICHEROS.length`
+ * cuantos caben en `critica`, y el 13b mide el reparto entre los roles
+ * de la escalera. Si entraran en FICHEROS, ninguno de los dos mediria lo
+ * que dice. Si pasan los tests 2 a 13 como cualquier agente.
+ */
+const FICHEROS_CONDICIONALES = ['brainstorm-rendimiento.md'];
+
+/** Todo lo que vive en agents/: la escalera, los condicionales y el unificador. */
+const AGENTES = [...FICHEROS, ...FICHEROS_CONDICIONALES, FICHERO_UNIFICADOR];
 
 /** Claves que se admiten en el frontmatter de un agente. Nada mas. */
 const CLAVES_PERMITIDAS = new Set(['name', 'description', 'tools', 'model']);
@@ -408,7 +418,7 @@ test('el test apunta de verdad a la raiz del plugin (guard de no-vacuidad)', asy
 
 // --- 1. Estructurales ---------------------------------------------------
 
-test('1. agents/ contiene los cuatro roles y el unificador, esos y solo esos', async () => {
+test('1. agents/ contiene los roles de la escalera, los condicionales y el unificador, esos y solo esos', async () => {
   // En Windows el filesystem es case-insensitive: un stat() de la ruta NO
   // demuestra el case. El listado del directorio si lo demuestra.
   const enAgents = await readdir(AGENTS_DIR);
@@ -864,6 +874,53 @@ test('13b. rendimiento y escalabilidad los reclama un solo rol y los ceden los o
       '"Qué NO miras". Nombrar el tema sin nombrar a quien se le pasa no es cederlo: ' +
       'un tema reclamado en un solo sentido se acaba mirando dos veces o ninguna'
   );
+});
+
+// Mutacion: borrar de brainstorm-rendimiento.md la vineta de copias entre JS y WASM -> rojo.
+// Mutacion: quitar de su "Qué NO miras" la frase que cede la escalabilidad a arquitectura -> rojo.
+test('13c. el rol de rendimiento mira sus seis temas y cede la forma y la escalabilidad a arquitectura', async () => {
+  const { body } = parseFrontmatter(await leerTexto('brainstorm-rendimiento.md'));
+  const queMira = normalizar(entre(body, '## Qué miras', '## Qué NO miras'));
+  const queNoMira = normalizar(entre(body, '## Qué NO miras', '\n## '));
+  assert.ok(queMira !== '' && queNoMira !== '', 'no se aislan las dos secciones');
+  const temas: ReadonlyArray<readonly [string, RegExp]> = [
+    ['coste algoritmico', /coste algorítmico/i],
+    ['asignaciones en bucles calientes', /asignaciones en bucles calientes/i],
+    ['copias JS-WASM', /copias entre JS y WASM/i],
+    ['Web Workers', /Web Workers/],
+    ['mallas y teselas', /mallas.*teselas/i],
+    ['medir con datos reales antes de optimizar', /medir con datos reales antes de optimizar/i],
+  ];
+  const faltan = temas.filter(([, re]) => !re.test(queMira)).map(([t]) => t);
+  assert.deepEqual(faltan, [], `brainstorm-rendimiento.md no mira: ${faltan.join(', ')}`);
+  // Ceder es nombrar a quien, en la misma frase. Se mide con
+  // "escalabilidad" y no con "rendimiento": el rol se llama asi, y
+  // cualquier frase que lo nombre cumpliria una asercion sobre esa palabra.
+  assert.ok(
+    frasesDe(queNoMira).some((f) => /escalabilidad/i.test(f) && /\barquitectura\b/i.test(f)),
+    'brainstorm-rendimiento.md no cede la escalabilidad al rol de arquitectura en ninguna frase'
+  );
+  for (const otro of ['riesgos', 'testing', 'dominio']) {
+    assert.match(queNoMira, new RegExp(`\\b${otro}\\b`, 'i'), `no cede nada al rol de ${otro}`);
+  }
+});
+
+// Mutacion: borrar la vineta de la direccion de las dependencias de brainstorm-arquitectura.md -> rojo.
+// Mutacion: mover la vineta de los ADR a "Qué NO miras" -> rojo.
+test('13d. el rol de arquitectura mira limites, dependencias, acoplamiento y ADR, y no los cede', async () => {
+  const { body } = parseFrontmatter(await leerTexto('brainstorm-arquitectura.md'));
+  const queMira = normalizar(entre(body, '## Qué miras', '## Qué NO miras'));
+  const queNoMira = normalizar(entre(body, '## Qué NO miras', '\n## '));
+  const temas: ReadonlyArray<readonly [string, RegExp]> = [
+    ['limites entre modulos', /límites entre módulos/i],
+    ['direccion de las dependencias', /dirección de las dependencias/i],
+    ['acoplamiento', /acoplamiento/i],
+    ['ADR', /\bADR\b/],
+  ];
+  const faltan = temas.filter(([, re]) => !re.test(queMira)).map(([t]) => t);
+  assert.deepEqual(faltan, [], `brainstorm-arquitectura.md no mira: ${faltan.join(', ')}`);
+  const cedidos = temas.filter(([, re]) => re.test(queNoMira)).map(([t]) => t);
+  assert.deepEqual(cedidos, [], `brainstorm-arquitectura.md cede en "Qué NO miras": ${cedidos.join(', ')}`);
 });
 
 test('14. el rol de testing deja escrita la alternativa de degradarlo a checklist del unificador', async () => {

@@ -285,7 +285,15 @@ function brainstormNotice(result: PlanCommandResult): string {
       `Complejidad declarada "${result.resolucion.nivelDeclarado}", heuristica ` +
         `"${result.resolucion.nivelHeuristico}" (${result.resolucion.puntos} puntos): se lanzan ` +
         `${result.resolucion.agentes === 1 ? '1 rol' : `${result.resolucion.agentes} roles`}, ` +
-        'el mayor de los dos.'
+        'el mayor de los dos' +
+        // TASK-080 (MEN-1 de la revision): los condicionales se suman aparte;
+        // sin decirlo, esta linea contradecia a la de "N roles en paralelo".
+        (result.roles.length > result.resolucion.agentes
+          ? `, mas ${result.roles
+              .slice(result.resolucion.agentes)
+              .map((r) => r.titulo)
+              .join(', ')} por las etiquetas de la tarea.`
+          : '.')
     );
   }
   // El orden de estas ramas importa, y costo un IMPORTANTE en la cuarta
@@ -588,7 +596,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
     try {
       const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd, ahora: ahora() });
       printBaseBranchSwitchNotice(result.baseBranchGuard);
-      printAvisos(result.avisoIdentidad, ...result.avisosEnunciado);
+      printAvisos(result.avisoIdentidad, ...result.avisosEnunciado, ...result.avisosRoles);
       // Tres desenlaces posibles desde TASK-027 (item C3): scaffold
       // nuevo, plan que ya estaba en planificacion/, o plan legado
       // suelto en la raiz que esta invocacion acaba de mover ahi.

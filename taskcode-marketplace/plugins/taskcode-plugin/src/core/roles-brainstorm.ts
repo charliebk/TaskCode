@@ -29,14 +29,27 @@
  * caliente (leer cuatro ficheros en cada `plan` para verificar una
  * constante es gasto sin retorno): lo comprueba la suite, en las dos
  * direcciones, contra el contenido real de agents/.
+ *
+ * ROLES CONDICIONALES (TASK-080). Ademas de la escalera de prioridad hay
+ * roles que no compiten por el presupuesto N: entran por las ETIQUETAS
+ * de la tarea y se suman a los N de la escalera. El primero es
+ * rendimiento (wasm, workers, 3d, carga pesada). Con eso los roles de una
+ * tarea dejan de ser siempre un prefijo de ROLES_BRAINSTORM: quien
+ * necesite saber que roles lleva una tarea usa seleccionarRolesDeTarea,
+ * y quien busque un rol por nombre (salidas en disco) usa
+ * TODOS_LOS_ROLES. Un condicional solo se suma cuando la escalera ya
+ * lanza MIN_ROLES_PARA_CONDICIONALES o mas: con 0 o 1 rol no hay
+ * unificador, y el condicional quedaria como autor unico de un plan
+ * cuya forma no le toca proponer (decision de la persona en TASK-080).
  */
 
-/** Los cuatro roles, en orden de prioridad. Es tambien el tipo de `id`. */
+/** Los roles de la escalera, en orden de prioridad, y los condicionales. */
 export type RolBrainstormId =
   | 'brainstorm-arquitectura'
   | 'brainstorm-riesgos'
   | 'brainstorm-testing'
-  | 'brainstorm-dominio';
+  | 'brainstorm-dominio'
+  | 'brainstorm-rendimiento';
 
 export interface RolBrainstorm {
   /** Igual al `name:` del frontmatter de agents/<id>.md. */
@@ -157,6 +170,52 @@ export const ROLES_BRAINSTORM: readonly RolBrainstorm[] = Object.freeze([
   }),
 ]);
 
+/** Un rol que entra por las etiquetas de la tarea, fuera del presupuesto N. */
+export interface RolCondicional {
+  rol: RolBrainstorm;
+  /** Etiquetas que lo disparan, en minusculas. Basta con que la tarea lleve una. */
+  etiquetas: readonly string[];
+}
+
+export const ROLES_CONDICIONALES: readonly RolCondicional[] = Object.freeze([
+  Object.freeze({
+    rol: Object.freeze({
+      id: 'brainstorm-rendimiento',
+      titulo: 'rendimiento',
+      pregunta: '¿Cuanto cuesta esto en ejecucion con los datos reales, y donde se va ese coste?',
+      mira: Object.freeze([
+        'El coste algoritmico con el volumen real de datos: que crece mas que lineal y a partir de que tamaño se nota.',
+        'Las asignaciones y copias en los bucles calientes: lo que se crea en cada iteracion o en cada frame.',
+        'Las fronteras caras: copias entre JS y WASM, mensajes y transferibles hacia Web Workers, lo que bloquea el hilo principal.',
+        'Las cargas grandes: mallas 3D, teselas e imagenes pesadas, cuanta memoria ocupan y cuando se liberan.',
+        'Como se mide antes de optimizar: con que datos reales, que metrica y que umbral decide si hace falta.',
+      ]),
+      noMira: Object.freeze([
+        'La forma del cambio y la escalabilidad que fija el diseño (es del rol de arquitectura).',
+        'Por donde se rompe (es del rol de riesgos).',
+        'Que aserciones escribir (es del rol de testing).',
+        'Las reglas de negocio (son del rol de dominio).',
+      ]),
+      entregables: Object.freeze([
+        'Donde se va el coste, con el volumen de datos real de cada punto',
+        'Fronteras caras: JS-WASM, Web Workers e hilo principal',
+        'Que medir antes de optimizar, con que datos y que umbral',
+        'La optimizacion que NO harias todavia (UNA sola)',
+      ]),
+    }),
+    etiquetas: Object.freeze(['rendimiento', 'wasm', 'workers', '3d']),
+  }),
+]);
+
+/** Escalera + condicionales: para buscar un rol por nombre (salidas en disco). */
+export const TODOS_LOS_ROLES: readonly RolBrainstorm[] = Object.freeze([
+  ...ROLES_BRAINSTORM,
+  ...ROLES_CONDICIONALES.map((c) => c.rol),
+]);
+
+/** Por debajo de este numero de roles de la escalera no se suma ningun condicional. */
+export const MIN_ROLES_PARA_CONDICIONALES = 2;
+
 /** El id del agente unificador. No es un rol de brainstorm: consolida los que hay. */
 export const UNIFICADOR_ID = 'brainstorm-unificador';
 
@@ -179,4 +238,47 @@ export function seleccionarRoles(n: number): readonly RolBrainstorm[] {
     );
   }
   return ROLES_BRAINSTORM.slice(0, n);
+}
+
+/** La etiqueta de la tarea que dispara el condicional, o null. Sin distinguir mayusculas. */
+function etiquetaQueDispara(c: RolCondicional, etiquetas: readonly string[]): string | null {
+  for (const e of etiquetas) {
+    if (c.etiquetas.includes(e.trim().toLowerCase())) return e;
+  }
+  return null;
+}
+
+/**
+ * Los roles que lanza una tarea: los `n` de la escalera y, si son al menos
+ * MIN_ROLES_PARA_CONDICIONALES, los condicionales que disparan sus
+ * etiquetas, al final y en el orden de ROLES_CONDICIONALES.
+ */
+export function seleccionarRolesDeTarea(
+  n: number,
+  etiquetas: readonly string[]
+): readonly RolBrainstorm[] {
+  const base = seleccionarRoles(n);
+  if (base.length < MIN_ROLES_PARA_CONDICIONALES) return base;
+  return [
+    ...base,
+    ...ROLES_CONDICIONALES.filter((c) => etiquetaQueDispara(c, etiquetas) !== null).map((c) => c.rol),
+  ];
+}
+
+/**
+ * Los condicionales que las etiquetas disparan pero que no entran porque la
+ * escalera lanza menos de MIN_ROLES_PARA_CONDICIONALES. `plan` lo avisa:
+ * quien puso la etiqueta tiene que saber por que el rol no se lanzo.
+ */
+export function condicionalesDescartados(
+  n: number,
+  etiquetas: readonly string[]
+): readonly { rol: RolBrainstorm; etiqueta: string }[] {
+  if (seleccionarRoles(n).length >= MIN_ROLES_PARA_CONDICIONALES) return [];
+  const fuera: { rol: RolBrainstorm; etiqueta: string }[] = [];
+  for (const c of ROLES_CONDICIONALES) {
+    const etiqueta = etiquetaQueDispara(c, etiquetas);
+    if (etiqueta !== null) fuera.push({ rol: c.rol, etiqueta });
+  }
+  return fuera;
 }

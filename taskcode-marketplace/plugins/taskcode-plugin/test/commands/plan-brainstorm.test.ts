@@ -29,6 +29,7 @@ import {
   PLAN_FINAL_FILENAME as PLAN_FINAL_NOMBRE,
 } from '../../src/commands/plan.js';
 import { ROLES_BRAINSTORM } from '../../src/core/roles-brainstorm.js';
+import { runApproveCommand, ApproveCommandError } from '../../src/commands/approve.js';
 import {
   nombrePeticionRol,
   nombreSalidaRol,
@@ -1537,4 +1538,241 @@ test('src/ no contiene ninguna invocacion a un modelo ni ninguna llamada de red'
       );
     }
   }
+});
+
+// ─── TASK-080: el rol condicional de rendimiento ───────────────────────
+
+/** Los ficheros de una ronda 1 de unificador con estos roles, escritos a mano. */
+function ficherosDeRonda(ids: readonly string[]): string[] {
+  return ids
+    .flatMap((id) => [`peticion-${id}-1.md`, `salida-${id}-1.md`])
+    .concat(['peticion-unificador-1.md'])
+    .sort();
+}
+
+/**
+ * Mutaciones que lo ponen rojo: quitar una etiqueta de rendimiento del
+ * nucleo (rojo ese caso); comparar sin pasar a minusculas (rojo 'WASM');
+ * volver a `seleccionarRoles(resolucion.agentes)` en plan (rojos todos);
+ * buscar las salidas solo en ROLES_BRAINSTORM (la peticion del unificador
+ * titula "rol ya no declarado en el plugin").
+ */
+for (const etiqueta of ['rendimiento', 'wasm', 'workers', '3d', 'WASM']) {
+  test(`plan (TASK-080): una tarea media con la etiqueta "${etiqueta}" lanza rendimiento ademas de sus 2 roles`, async () => {
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media', etiquetas: [etiqueta] }), BODY);
+      commitAll(repoRoot, 'tarea TASK-800');
+
+      const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+
+      assert.deepEqual(
+        result.roles.map((r) => r.id),
+        ['brainstorm-arquitectura', 'brainstorm-riesgos', 'brainstorm-rendimiento']
+      );
+      assert.equal(result.modo, 'unificador');
+      assert.deepEqual(result.avisosRoles, []);
+      const dir = brainstormDir(result.filePath);
+      assert.deepEqual(
+        (await readdir(dir)).sort(),
+        ficherosDeRonda(['brainstorm-arquitectura', 'brainstorm-riesgos', 'brainstorm-rendimiento'])
+      );
+
+      const unificador = await readFile(path.join(dir, 'peticion-unificador-1.md'), 'utf8');
+      assert.match(unificador, /`salida-brainstorm-rendimiento-1\.md` — rol rendimiento/);
+      assert.doesNotMatch(unificador, /ya no declarado/);
+
+      const peticion = await readFile(path.join(dir, 'peticion-brainstorm-rendimiento-1.md'), 'utf8');
+      assert.match(peticion, /lanzalo con el agente de ese mismo nombre/);
+      assert.match(peticion, /\*\*arquitectura\*\*, \*\*riesgos\*\*/);
+      const salida = await readFile(path.join(dir, 'salida-brainstorm-rendimiento-1.md'), 'utf8');
+      assert.match(salida, /## Que medir antes de optimizar, con que datos y que umbral/);
+
+      const plan = await readFile(result.planPath, 'utf8');
+      assert.match(plan, /3 roles de brainstorm/);
+      assert.match(plan, /arquitectura, riesgos, rendimiento/);
+    });
+  });
+}
+
+/**
+ * Mutacion que lo pone rojo: lanzar el rol siempre, o comparar con un
+ * `includes` sobre las etiquetas unidas en una cadena ('web-workers'
+ * contiene 'workers', 'wasmtime' contiene 'wasm').
+ */
+for (const etiquetas of [[], ['web-workers'], ['wasmtime'], ['performance']]) {
+  test(`plan (TASK-080): con etiquetas ${JSON.stringify(etiquetas)} no se lanza rendimiento`, async () => {
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media', etiquetas }), BODY);
+      commitAll(repoRoot, 'tarea TASK-800');
+
+      const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+
+      assert.deepEqual(result.roles.map((r) => r.id), ['brainstorm-arquitectura', 'brainstorm-riesgos']);
+      assert.deepEqual(result.avisosRoles, []);
+      assert.deepEqual(
+        (await readdir(brainstormDir(result.filePath))).sort(),
+        ficherosDeRonda(['brainstorm-arquitectura', 'brainstorm-riesgos'])
+      );
+    });
+  });
+}
+
+/**
+ * Decision de la persona en TASK-080: con 0 o 1 rol de la escalera
+ * rendimiento no entra, y plan lo avisa. Con 4 se suma: 5 peticiones.
+ * Mutacion: quitar el corte por MIN_ROLES_PARA_CONDICIONALES (simple pasa
+ * a modo unificador con 2 roles, trivial lanza un rol sin unificador);
+ * dejar `avisosRoles` vacio siempre (rojo el aviso).
+ */
+test('plan (TASK-080): simple y trivial con "wasm" no lanzan rendimiento y lo avisan; critica lo suma', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple', etiquetas: ['wasm'] }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+    const simple = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    assert.equal(simple.modo, 'redaccion');
+    assert.deepEqual(simple.roles.map((r) => r.id), ['brainstorm-arquitectura']);
+    assert.deepEqual(await readdir(brainstormDir(simple.filePath)), ['peticion-plan-1.md']);
+    assert.equal(simple.avisosRoles.length, 1);
+    assert.match(simple.avisosRoles[0]!, /"wasm".*rendimiento.*no se lanza/);
+    commitAll(repoRoot, 'plan TASK-800');
+
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({ id: 'TASK-801', rama: 'feature/task-801-p', complejidad: 'trivial', etiquetas: ['3d'] }),
+      BODY
+    );
+    commitAll(repoRoot, 'tarea TASK-801');
+    const trivial = await runPlanCommand(tareasRoot, ['TASK-801'], '2026-09-08', { repoCwd: repoRoot });
+    assert.deepEqual(trivial.roles, []);
+    assert.equal(trivial.avisosRoles.length, 1);
+    assert.match(trivial.avisosRoles[0]!, /"3d"/);
+    commitAll(repoRoot, 'plan TASK-801');
+
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({ id: 'TASK-802', rama: 'feature/task-802-p', complejidad: 'critica', etiquetas: ['wasm'] }),
+      BODY
+    );
+    commitAll(repoRoot, 'tarea TASK-802');
+    const critica = await runPlanCommand(tareasRoot, ['TASK-802'], '2026-09-08', { repoCwd: repoRoot });
+    assert.deepEqual(critica.roles.map((r) => r.id), [
+      'brainstorm-arquitectura',
+      'brainstorm-riesgos',
+      'brainstorm-testing',
+      'brainstorm-dominio',
+      'brainstorm-rendimiento',
+    ]);
+    assert.equal(
+      (await readdir(brainstormDir(critica.filePath))).filter((f) => f.startsWith('peticion-brainstorm-')).length,
+      5
+    );
+  });
+});
+
+/**
+ * El fallo que los tres roles del diseño de TASK-080 dieron por el mas
+ * grave: un plan-final.md sin tocar con rendimiento no casaba con ninguna
+ * plantilla de prefijo y approve lo daba por redactado. Y, por decision de
+ * la persona, los roles salen del disco: quitar la etiqueta entre plan y
+ * approve no cambia el resultado.
+ * Mutacion: volver a solo prefijos en planEsPlantilla -> approve aprueba
+ * (rojo). Quitar la lectura del disco y dejar solo seleccionarRolesDeTarea
+ * -> rojo tras quitar la etiqueta.
+ */
+test('approve (TASK-080): rechaza la plantilla sin rellenar de un plan con rendimiento, aunque cambien las etiquetas', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media', etiquetas: ['wasm'] }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+    await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    commitAll(repoRoot, 'plan TASK-800');
+
+    // Se quita la etiqueta: ahora la tarea resolveria 2 roles, sin rendimiento.
+    const leida = await readTareaFile(tareasRoot, 'TASK-800');
+    await writeTareaFile(tareasRoot, { ...leida!.task, etiquetas: [] }, leida!.body);
+    commitAll(repoRoot, 'sin etiqueta');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot }),
+      (e: unknown) => e instanceof ApproveCommandError && /plantilla sin rellenar/.test(e.message)
+    );
+    const tras = await readTareaFile(tareasRoot, 'TASK-800');
+    assert.equal(tras?.task.plan_aprobado, false);
+  });
+});
+
+/**
+ * IMP-1 de la revision de TASK-080: el aviso tiene que llegar a la salida
+ * del binario real, no solo al resultado de runPlanCommand.
+ * Mutacion: quitar `...result.avisosRoles` del printAvisos de cli.ts -> rojo.
+ * MEN-1: la linea de discrepancia dice los roles de la escalera mas los
+ * condicionales. Mutacion: volver a terminar en "el mayor de los dos." -> rojo.
+ */
+test('plan (TASK-080): el binario avisa por stderr de que rendimiento no entra, y la discrepancia nombra el condicional', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const taskctl = path.join(PACKAGE_ROOT, 'bin', 'taskctl');
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple', etiquetas: ['wasm'] }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+    const simple = spawnSync(process.execPath, [taskctl, 'plan', 'TASK-800'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(simple.status, 0, simple.stderr);
+    assert.match(simple.stderr, /\[AVISO\] La etiqueta "wasm" pediria el rol rendimiento/);
+    assert.match(simple.stderr, /Si hace falta, sube la complejidad/);
+
+    // Declarada simple con 6 criterios y 5 etiquetas: la heuristica sube y
+    // hay discrepancia; con 2+ roles entra rendimiento.
+    const criterios = Array.from({ length: 6 }, (_, i) => `- [ ] \`taskctl plan\` caso ${i + 1}.`).join('\n');
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({
+        id: 'TASK-801',
+        rama: 'feature/task-801-p',
+        complejidad: 'simple',
+        etiquetas: ['wasm', 'a', 'b', 'c', 'd'],
+      }),
+      `## Objetivo\n\nProbar la discrepancia.\n\n## Criterios de aceptacion\n${criterios}\n`
+    );
+    commitAll(repoRoot, 'tarea TASK-801');
+    const discrepa = spawnSync(process.execPath, [taskctl, 'plan', 'TASK-801'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(discrepa.status, 0, discrepa.stderr);
+    assert.match(discrepa.stdout, /el mayor de los dos, mas rendimiento por las etiquetas de la tarea\./);
+  });
+});
+
+/**
+ * MEN-2: en un hotfix el tope es 1 agente; el aviso no aconseja subir la
+ * complejidad. Mutacion: quitar la condicion de tipo -> rojo.
+ */
+test('plan (TASK-080): en un hotfix el aviso no aconseja subir la complejidad', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({ tipo: 'hotfix', rama: 'hotfix/task-800-p', complejidad: 'critica', etiquetas: ['wasm'] }),
+      BODY
+    );
+    commitAll(repoRoot, 'tarea TASK-800');
+    propagarAMain(repoRoot);
+    const r = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    assert.equal(r.avisosRoles.length, 1);
+    assert.doesNotMatch(r.avisosRoles[0]!, /sube la complejidad/);
+  });
+});
+
+/**
+ * MEN-4: si falta la carpeta del brainstorm, las candidatas por etiquetas
+ * siguen reconociendo la plantilla vacia con rendimiento.
+ * Mutacion: quitar `seleccionarRolesDeTarea(k, task.etiquetas)` de
+ * planEsPlantilla -> approve aprueba (rojo).
+ */
+test('approve (TASK-080): sin la carpeta del brainstorm, la plantilla con rendimiento se reconoce por las etiquetas', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media', etiquetas: ['wasm'] }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    await rm(brainstormDir(result.filePath), { recursive: true, force: true });
+    commitAll(repoRoot, 'plan TASK-800 sin brainstorm');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot }),
+      (e: unknown) => e instanceof ApproveCommandError && /plantilla sin rellenar/.test(e.message)
+    );
+  });
 });

@@ -29,9 +29,22 @@ import {
 } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { planTemplate, resolverPlanFinal, type PlanFinalUbicacion } from './plan.js';
-import { readFile } from 'node:fs/promises';
-import { ROLES_BRAINSTORM, seleccionarRoles } from '../core/roles-brainstorm.js';
+import {
+  planTemplate,
+  resolverPlanFinal,
+  BRAINSTORM_DIRNAME,
+  PLANIFICACION_DIRNAME,
+  type PlanFinalUbicacion,
+} from './plan.js';
+import { readFile, readdir } from 'node:fs/promises';
+import {
+  ROLES_BRAINSTORM,
+  TODOS_LOS_ROLES,
+  seleccionarRoles,
+  seleccionarRolesDeTarea,
+  type RolBrainstorm,
+} from '../core/roles-brainstorm.js';
+import { nombrePeticionRol } from '../core/plan-brainstorm.js';
 import { planEsEsqueleto } from '../core/validacion-tarea.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 import {
@@ -228,14 +241,54 @@ function extraerDecididoPor(argv: readonly string[]): { decididoPor: DecididoPor
 }
 
 /**
- * ¿El plan-final.md es la plantilla sin rellenar? Se compara con las
- * plantillas posibles (los roles se eligen en un orden fijo, asi que solo
- * hay 0..N prefijos). Lo comparten approve y `taskctl siguiente` (TASK-056).
+ * Los juegos de roles que de verdad se lanzaron, uno por ronda, leidos de
+ * las peticiones de `planificacion/brainstorm/` (TASK-080). Es lo que
+ * escribio `plan`, y no depende de las etiquetas de hoy: si cambiaron entre
+ * `plan` y `approve`, la plantilla vacia se sigue reconociendo.
+ */
+async function juegosDeRolesEnDisco(rutaPlan: string): Promise<RolBrainstorm[][]> {
+  const dir = path.dirname(rutaPlan);
+  // Canonica: planificacion/plan-final.md. Legada: plan-final.md suelto.
+  const candidatas = [
+    path.join(dir, BRAINSTORM_DIRNAME),
+    path.join(dir, PLANIFICACION_DIRNAME, BRAINSTORM_DIRNAME),
+  ];
+  const juegos: RolBrainstorm[][] = [];
+  for (const brainstormDir of candidatas) {
+    let ficheros: string[];
+    try {
+      ficheros = await readdir(brainstormDir);
+    } catch {
+      continue;
+    }
+    const rondas = new Set<number>();
+    for (const f of ficheros) {
+      const m = /^peticion-brainstorm-[a-z0-9-]+-(\d+)\.md$/.exec(f);
+      if (m !== null) rondas.add(Number(m[1]));
+    }
+    for (const n of rondas) {
+      juegos.push(TODOS_LOS_ROLES.filter((r) => ficheros.includes(nombrePeticionRol(r, n))));
+    }
+  }
+  return juegos;
+}
+
+/**
+ * ¿El plan-final.md es la plantilla sin rellenar? Se compara con todas las
+ * plantillas posibles: los prefijos de la escalera, los juegos que darian
+ * las etiquetas de hoy y, sobre todo, los juegos que se lanzaron de verdad
+ * segun el disco (TASK-080: con un rol condicional los roles ya no son
+ * siempre un prefijo, y una plantilla con "rendimiento" no casaba con
+ * ninguna y se daba por redactada). Lo comparten approve y
+ * `taskctl siguiente` (TASK-056).
  */
 export async function planEsPlantilla(task: Task, rutaPlan: string): Promise<boolean> {
-  const plantillas = Array.from({ length: ROLES_BRAINSTORM.length + 1 }, (_, k) =>
-    planTemplate(task, seleccionarRoles(k))
-  );
+  const juegos: (readonly RolBrainstorm[])[] = [];
+  for (let k = 0; k <= ROLES_BRAINSTORM.length; k++) {
+    juegos.push(seleccionarRoles(k), seleccionarRolesDeTarea(k, task.etiquetas));
+  }
+  juegos.push(...(await juegosDeRolesEnDisco(rutaPlan)));
+  const plantillas = juegos.map((roles) => planTemplate(task, roles));
   return planEsEsqueleto(await readFile(rutaPlan, 'utf8'), plantillas);
 }
 
