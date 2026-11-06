@@ -38,7 +38,7 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| **Total pendiente** | **1** | — | — |
+| **Total pendiente** | **0** | — | — |
 
 ---
 
