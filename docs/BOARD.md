@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-06. No editar a mano.
 
-## Planificadas (00-planificadas) — 15
+## Planificadas (00-planificadas) — 14
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,10 +21,9 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-080  Accesibilidad en angular-vue-reviewer y roles de arquitectura y rendimiento en plan         (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 65
+## Terminadas (04-terminadas) — 66
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -94,4 +93,5 @@ TASK-076  Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagent
 TASK-077  Guardian de merges: opciones con valor antes de -c y doc de bash -c                          charlie.bk@gmail.com
 TASK-078  Hook que impide leer y editar los held-out de la tarea en curso                              charlie.bk@gmail.com
 TASK-079  Revisor por pares de dominio para Rust y WASM                                                charlie.bk@gmail.com
+TASK-080  Accesibilidad en angular-vue-reviewer y roles de arquitectura y rendimiento en plan          charlie.bk@gmail.com
 ```

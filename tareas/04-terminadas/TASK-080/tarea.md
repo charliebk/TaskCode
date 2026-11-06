@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [skills, revisores, brainstorm, accesibilidad, rendimiento]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-080-accesibilidad-en-angular-vue-reviewer-y
 asignado_a: charlie.bk@gmail.com
@@ -89,6 +89,7 @@ Revision por pares, 2 rondas (code-quality-reviewer, sonnet), con mutantes en cl
 | 2026-11-06T21:32:17Z | start | automatico | persona |
 | 2026-11-06T22:05:59Z | review | automatico | persona |
 | 2026-11-06T22:59:55Z | review | automatico | persona |
+| 2026-11-06T23:16:48Z | finish | automatico | persona |
 
 ## Coste
 
