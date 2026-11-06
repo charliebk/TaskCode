@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 842644
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 2239009
 creado: 2026-11-04
 actualizado: 2026-11-06
 dependencias: []
@@ -47,3 +47,4 @@ Desde Claude Code 2.1.317/2.1.318, el modo automatico puede denegar el lanzamien
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-06T18:09:51Z | diseno | agente:a1998e76cc4b8e3dd | 44 | 53619 | 776948 | 12033 | 34 | 842644 |
+| 2026-11-06T18:57:10Z | revision | agente:a76f5dc734c22f4da | 38 | 127876 | 2099965 | 11130 | 3 | 2239009 |
