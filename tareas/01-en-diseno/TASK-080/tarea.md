@@ -6,13 +6,13 @@ sprint: 0
 etiquetas: [skills, revisores, brainstorm, accesibilidad, rendimiento]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-080-accesibilidad-en-angular-vue-reviewer-y
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
-skills_recomendados: []
-regla_seleccion_skill: null
+skills_recomendados: [angular-vue-reviewer]
+regla_seleccion_skill: solape
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
@@ -33,3 +33,9 @@ Tres refuerzos pedidos por la persona. Primero, la accesibilidad WCAG 2.2 dentro
 - [ ] taskctl plan lanza brainstorm-rendimiento cuando la tarea tiene etiquetas de rendimiento, wasm, workers o 3d, y no lo lanza sin ellas; lo cubren tests en test/commands/plan-brainstorm.test.ts
 - [ ] brainstorm-unificador integra la salida de rendimiento; README del plugin, documentacion de roles y CHANGELOG lo recogen, y catalogo-skills.yml queda con total_skills cuadrado si cambia
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows) en la rama de la tarea
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-06T20:50:55Z | plan | automatico | persona |
