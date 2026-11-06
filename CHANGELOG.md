@@ -1,7 +1,6 @@
 # Changelog
 
 ## Sin publicar
-- TASK-079 (feature) — Revisor por pares de dominio para Rust y WASM (2026-11-06)
 
 ## 0.10.0 — 2026-11-06
 
@@ -16,6 +15,7 @@ cuatro revisores de dominio, un diff de Rust, Vue, Java y C# a la vez supera el
 umbral de 3 y va entero al generico, y `code-quality-reviewer` ya lo contempla.
 Actualizar como en 0.9.0, y despues `taskctl doctor` en cada proyecto.
 
+- TASK-079 (feature) — Revisor por pares de dominio para Rust y WASM (2026-11-06)
 ## 0.9.0 — 2026-11-06
 
 Doctor avisa de los hooks que bloquean los subagentes (TASK-076): con el modo de

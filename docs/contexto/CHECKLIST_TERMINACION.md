@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 86 / 88 items terminados (98%)** · última actualización: 2026-11-06
+**Progreso global: 87 / 90 items terminados (97%)** · última actualización: 2026-11-06
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -37,7 +37,8 @@ tomada y documentada, no aplazada.
 | ✅ J — Doctor-deploy | 3 | **3** | — |
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
-| **Total pendiente** | **0** | — | — |
+| M — Revisores y roles de dominio | 2 | **1** | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -976,3 +977,18 @@ Arreglos que salen al revisar otras tareas y no son de ninguna fase.
       «Problemas conocidos», regla en `avance.md`, versión 0.9.0 (sin publicar:
       sale con TASK-079 y TASK-080). 2 rondas: MEN-1..5 corregidos; MEN-6 y MEN-7
       aceptados.*
+
+## M — Revisores y roles de dominio (1/2)
+
+Revisores por pares y roles del brainstorm para dominios que el plugin no cubria.
+
+- [x] TASK-079 — Revisor por pares de dominio para Rust y WASM — cerrada el 2026-11-06
+      *Skill `rust-wasm-reviewer` (`.rs`, `Cargo.toml`, `Cargo.lock`, `build.rs`,
+      `.cargo/config.toml`, toolchain/rustfmt/clippy): ownership, errores sin panic,
+      limite JS-WASM (llamador TS y `.d.ts` obligatorios si cambia una firma
+      exportada), numerica en f64, `unsafe`, rendimiento. Catalogo `skill_6`, tabla
+      de revisores en el README, nota de umbral del generico (con cuatro dominios
+      ya puede superarse). Version 0.10.0, sin publicar. 2 rondas: MEN-2, 3, 4 y 6
+      corregidos (exactitud tecnica de la skill); MEN-1 y MEN-5 aceptados.*
+- [ ] TASK-080 — Accesibilidad en angular-vue-reviewer y roles de arquitectura y
+      rendimiento en plan
