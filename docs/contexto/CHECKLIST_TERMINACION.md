@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 87 / 90 items terminados (97%)** · última actualización: 2026-11-06
+**Progreso global: 88 / 90 items terminados (98%)** · última actualización: 2026-11-06
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -37,7 +37,7 @@ tomada y documentada, no aplazada.
 | ✅ J — Doctor-deploy | 3 | **3** | — |
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
-| M — Revisores y roles de dominio | 2 | **1** | — |
+| ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | **Total pendiente** | **1** | — | — |
 
 ---
@@ -978,7 +978,7 @@ Arreglos que salen al revisar otras tareas y no son de ninguna fase.
       sale con TASK-079 y TASK-080). 2 rondas: MEN-1..5 corregidos; MEN-6 y MEN-7
       aceptados.*
 
-## M — Revisores y roles de dominio (1/2)
+## M — Revisores y roles de dominio (2/2)
 
 Revisores por pares y roles del brainstorm para dominios que el plugin no cubria.
 
@@ -990,5 +990,13 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
       de revisores en el README, nota de umbral del generico (con cuatro dominios
       ya puede superarse). Version 0.10.0, sin publicar. 2 rondas: MEN-2, 3, 4 y 6
       corregidos (exactitud tecnica de la skill); MEN-1 y MEN-5 aceptados.*
-- [ ] TASK-080 — Accesibilidad en angular-vue-reviewer y roles de arquitectura y
-      rendimiento en plan
+- [x] TASK-080 — Accesibilidad en angular-vue-reviewer y roles de arquitectura y
+      rendimiento en plan — cerrada el 2026-11-06
+      *`angular-vue-reviewer` revisa accesibilidad por criterio WCAG 2.2 (contraste,
+      foco, teclado, ARIA, nombre accesible, dialogos) con severidad escrita;
+      `brainstorm-arquitectura` mira limites, dependencias, acoplamiento y ADR. Rol
+      condicional `brainstorm-rendimiento` (etiquetas rendimiento/wasm/workers/3d,
+      solo con 2+ roles, fuera de la escalera; con 0 o 1, `plan` avisa).
+      `planEsPlantilla` lee los roles del disco: la plantilla vacia con rendimiento
+      ya no se da por redactada. Sin publicar (sale con 0.9.0/0.10.0). 2 rondas:
+      IMP-1 y MEN-1..5 corregidos; MEN-6 (restos cosmeticos de "cuatro") aceptado.*

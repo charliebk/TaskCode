@@ -1,7 +1,6 @@
 # Changelog
 
 ## Sin publicar
-- TASK-080 (feature) — Accesibilidad en angular-vue-reviewer y roles de arquitectura y rendimiento en plan (2026-11-06)
 
 Accesibilidad y roles del brainstorm (TASK-080). `angular-vue-reviewer` revisa la
 accesibilidad por criterio de WCAG 2.2: contraste (un contraste que el diff no deja
