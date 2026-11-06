@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [skills, revisores, brainstorm, accesibilidad, rendimiento]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-080-accesibilidad-en-angular-vue-reviewer-y
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ Tres refuerzos pedidos por la persona. Primero, la accesibilidad WCAG 2.2 dentro
 |---|---|---|---|
 | 2026-11-06T20:50:55Z | plan | automatico | persona |
 | 2026-11-06T21:31:57Z | approve | automatico | persona |
+| 2026-11-06T21:32:17Z | start | automatico | persona |
 
 ## Coste
 
