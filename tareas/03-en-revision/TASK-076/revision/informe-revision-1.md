@@ -2,7 +2,7 @@
 
 - Commit revisado: c85d64106bf9e8619a3af3b7e44e6721f5913120
 - Revisor: code-quality-reviewer (agente revisor independiente, general-purpose, sonnet)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-076 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 Veredicto propuesto por el revisor: aprobada-con-correcciones. En modo automatico lo
 mergeado tiene que ser lo revisado, asi que quien orquesta lo registra como
