@@ -211,14 +211,46 @@ mas evento cuando el padre es el dueno del dato, en vez de un enlace
 bidireccional que difumina quien manda. Y que no se manipule el DOM interno
 de un hijo desde el padre.
 
-**Accesibilidad.** Elementos interactivos que son un `div` con un manejador
-de clic, sin rol, sin poder recibir foco y sin responder al teclado. Campos
-sin etiqueta asociada. Imagenes sin texto alternativo, o con uno redundante.
-Dialogos que no atrapan el foco, no lo devuelven al cerrarse y no responden
-a Escape. Atributos ARIA que contradicen el rol del elemento o que apuntan a
-un identificador que no existe. Estados que cambian sin anunciarse. Foco
-visible eliminado sin nada que lo sustituya. Y el orden del DOM discrepando
-del orden visual.
+**Accesibilidad (WCAG 2.2).** Cada hallazgo cita el criterio de exito que
+incumple, con su numero, y el elemento concreto; "no es accesible" no es un
+hallazgo. Lo que se mira en el diff:
+
+- **Contraste** (1.4.3 texto, nivel AA; 1.4.11 contraste de componentes y
+  del indicador de foco). Texto normal por debajo de 4.5:1, texto grande o
+  bordes de controles por debajo de 3:1. Si los colores salen de variables
+  CSS o de un tema que el diff no muestra, el contraste no se puede verificar
+  desde aqui: se anota como comprobacion pendiente, nunca como CRITICO.
+- **Orden y visibilidad del foco** (2.4.3 orden del foco; 2.4.7 foco
+  visible; 2.4.11 foco no oculto, nuevo en 2.2). El orden de tabulacion
+  sigue al orden visual, sin `tabindex` positivos; `outline: none` sin un
+  sustituto visible; un control enfocado tapado por una cabecera fija, un
+  banner o un panel.
+- **Trampas de teclado** (2.1.1 teclado; 2.1.2 sin trampas de teclado).
+  Todo lo que se hace con el raton se hace con el teclado: un `div` con
+  manejador de clic sin rol, sin `tabindex="0"` y sin responder a Enter y
+  Espacio. Y del foco siempre se sale: un componente que lo retiene sin una
+  salida con Escape o Tab es una trampa.
+- **Etiquetas y ARIA en controles** (1.3.1 informacion y relaciones; 3.3.2
+  etiquetas o instrucciones; 4.1.2 nombre, rol y valor). Campos sin `label`
+  asociado o con un placeholder como unica etiqueta; atributos `aria-*` que
+  contradicen el rol nativo o apuntan a un `id` que no existe; estados
+  (`aria-expanded`, `aria-checked`, `aria-invalid`) que no cambian cuando
+  cambia el estado real; cambios de estado que no se anuncian (4.1.3
+  mensajes de estado).
+- **Nombre accesible de iconos y botones** (1.1.1 contenido no textual;
+  2.5.3 etiqueta en el nombre; 4.1.2). Boton que solo contiene un icono sin
+  `aria-label` ni texto oculto; icono decorativo sin `aria-hidden="true"`;
+  imagenes sin texto alternativo o con uno redundante; un nombre accesible
+  que no contiene el texto visible del boton.
+- **Dialogos modales** (2.1.2; 2.4.3; 4.1.2). El dialogo tiene
+  `role="dialog"` o el `<dialog>` nativo, `aria-modal` y un nombre
+  (`aria-labelledby`); al abrir mueve el foco dentro, lo mantiene dentro
+  mientras esta abierto, se cierra con Escape y al cerrar devuelve el foco
+  al elemento que lo abrio. El contenido de detras no es alcanzable con
+  Tab.
+
+Ademas: el orden del DOM no discrepa del orden visual, y los objetivos
+tactiles no bajan de 24 por 24 pixeles (2.5.8, nuevo en 2.2).
 
 **Rendimiento de renderizado.** Listas sin identidad estable (`trackBy`
 ausente, o la clave puesta al indice en una lista que se reordena o se

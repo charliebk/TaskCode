@@ -37,6 +37,13 @@ conflicto reaparece cuando ya hay código escrito.
   por tus manos.
 - **Lo que necesita decidir una persona** antes de implementar: lo que quedó
   abierto, lo que ningún rol pudo fundamentar, y lo caro de deshacer.
+- **La salida de rendimiento, cuando existe**: es un rol condicional, que solo
+  se lanza si la tarea trae etiquetas de rendimiento, WASM, workers o 3D. Sus
+  costes y mediciones entran en el plan atribuidos a él; su choque con la forma
+  que propone el rol de arquitectura es un desacuerdo como cualquier otro, y
+  lo que pida medir antes de optimizar va al plan de pruebas o a la decisión
+  humana. Si la petición no lista una salida de rendimiento, no falta nada: no
+  la nombres en las salidas que faltaron.
 
 ## Qué NO miras
 

@@ -45,6 +45,22 @@ más de tres dominios, va entero al genérico):
 | `rust-wasm-reviewer` | Rust y WebAssembly | `.rs`, `Cargo.toml`, `Cargo.lock`, `build.rs`, `.cargo/config.toml`, toolchain/rustfmt/clippy |
 | `code-quality-reviewer` | Genérico | Lo que no casa con ningún dominio, o más de tres dominios a la vez |
 
+## Roles del brainstorm de diseño
+
+`taskctl plan` lanza roles de `agents/` según la complejidad, por este orden de
+prioridad: `brainstorm-arquitectura`, `brainstorm-riesgos`,
+`brainstorm-testing` y `brainstorm-dominio`. Con dos o más, el
+`brainstorm-unificador` consolida sus salidas en el plan.
+
+`brainstorm-rendimiento` es un rol **condicional**: no ocupa sitio en esa
+escalera. Se suma cuando la tarea lleva una de las etiquetas `rendimiento`,
+`wasm`, `workers` o `3d` (sin distinguir mayúsculas) y la complejidad ya
+lanza dos roles o más. Mira el coste algorítmico con el volumen real, las
+asignaciones en bucles calientes, las copias entre JS y WASM, los Web Workers,
+las mallas y teselas grandes, y qué medir antes de optimizar. Con cero o un rol,
+`plan` avisa de que no entra y por qué: sin unificador, rendimiento quedaría
+como autor único de un plan cuya forma no le toca proponer.
+
 ## Instalación local (para desarrollo y pruebas)
 
 **Corrección respecto al texto original de TASK-006:** la tarea describía

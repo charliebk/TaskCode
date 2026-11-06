@@ -1216,3 +1216,34 @@ test(
     assert.ok(!salida.includes('✘'), `el validador reporta errores:\n${salida}`);
   }
 );
+
+// TASK-080. Se mira DENTRO del bloque de accesibilidad de "Que se revisa",
+// no en el fichero entero: "accesibilidad", "foco" o "aria" ya salian en
+// la description y en "Reproducir antes de reportar" antes del cambio.
+// Mutacion: cambiar "WCAG 2.2" por "WCAG 2.1" en la skill -> rojo.
+// Mutacion: borrar la vineta del foco no oculto (2.4.11) -> rojo.
+// Mutacion: borrar la vineta de los dialogos modales -> rojo.
+test('14. angular-vue revisa la accesibilidad por criterio, citando WCAG 2.2', async () => {
+  const texto = await leer('angular-vue-reviewer');
+  const desde = texto.indexOf('**Accesibilidad (WCAG 2.2).**');
+  assert.ok(desde !== -1, 'angular-vue-reviewer no tiene el bloque "Accesibilidad (WCAG 2.2)"');
+  const hasta = texto.indexOf('**Rendimiento de renderizado.**', desde);
+  assert.ok(hasta > desde, 'no se aisla el bloque de accesibilidad');
+  const bloque = texto.slice(desde, hasta).replace(/\s+/g, ' ');
+  assert.ok(texto.indexOf('## Que se revisa') < desde, 'el bloque no esta dentro de "Que se revisa"');
+
+  const temas: ReadonlyArray<readonly [string, RegExp]> = [
+    ['contraste', /\*\*Contraste\*\* \(1\.4\.3/],
+    ['orden y visibilidad del foco', /\*\*Orden y visibilidad del foco\*\* \(2\.4\.3[^)]*2\.4\.7[^)]*2\.4\.11/],
+    ['trampas de teclado', /\*\*Trampas de teclado\*\* \([^)]*2\.1\.2/],
+    ['etiquetas y aria en controles', /\*\*Etiquetas y ARIA en controles\*\* \([^)]*4\.1\.2/],
+    ['nombre accesible de iconos y botones', /\*\*Nombre accesible de iconos y botones\*\* \(1\.1\.1/],
+    ['dialogos modales', /\*\*Dialogos modales\*\* \(2\.1\.2/],
+  ];
+  const faltan = temas.filter(([, re]) => !re.test(bloque)).map(([t]) => t);
+  assert.deepEqual(faltan, [], `el bloque de accesibilidad no cubre: ${faltan.join(', ')}`);
+  assert.match(bloque, /WCAG 2\.2/);
+  assert.doesNotMatch(bloque, /WCAG 2\.[01]\b/);
+  // Un contraste que el diff no deja verificar no puede bloquear el cierre.
+  assert.match(bloque, /nunca como CRITICO/);
+});

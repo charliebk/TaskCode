@@ -2,6 +2,19 @@
 
 ## Sin publicar
 
+Accesibilidad y roles del brainstorm (TASK-080). `angular-vue-reviewer` revisa la
+accesibilidad por criterio de WCAG 2.2: contraste (un contraste que el diff no deja
+verificar nunca es CRITICO), orden, visibilidad y foco no oculto, trampas de
+teclado, etiquetas y ARIA, nombre accesible de iconos y botones, y dialogos
+modales; sus `patrones_archivo` no cambian. `brainstorm-arquitectura` mira
+ademas limites entre modulos, direccion de las dependencias, acoplamiento y
+coherencia con los ADR. Rol nuevo y condicional, `brainstorm-rendimiento`: lo
+suman las etiquetas `rendimiento`, `wasm`, `workers` o `3d` (sin distinguir
+mayusculas) cuando la tarea ya lanza 2 roles o mas, sin gastar presupuesto de la
+escalera; con 0 o 1, `plan` avisa de que no entra. `approve` y `taskctl
+siguiente` reconocen la plantilla vacia de un plan con rendimiento leyendo los
+roles de las peticiones en disco (antes la daban por redactada).
+
 ## 0.10.0 — 2026-11-06
 
 Revisor por pares de dominio para Rust y WebAssembly (TASK-079): la skill

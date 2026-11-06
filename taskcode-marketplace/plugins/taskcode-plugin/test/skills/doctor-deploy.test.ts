@@ -101,10 +101,11 @@ test('skills/ contiene exactamente las skills esperadas, doctor-deploy entre ell
   assert.ok((await readdir(path.join(SKILLS_DIR, 'doctor-deploy'))).includes('SKILL.md'));
 });
 
-test('agents/ contiene los cinco del brainstorm y el revisor de seguridad de doctor-deploy, y nada mas', async () => {
+test('agents/ contiene los del brainstorm y el revisor de seguridad de doctor-deploy, y nada mas', async () => {
   const esperados = [
     'brainstorm-arquitectura.md',
     'brainstorm-dominio.md',
+    'brainstorm-rendimiento.md',
     'brainstorm-riesgos.md',
     'brainstorm-testing.md',
     'brainstorm-unificador.md',

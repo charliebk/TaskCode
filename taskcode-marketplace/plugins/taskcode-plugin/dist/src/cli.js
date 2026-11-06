@@ -532,7 +532,7 @@ async function mainComando(argvEntrada) {
         try {
             const result = await runPlanCommand(tareasRoot, argv.slice(1), today(), { repoCwd, ahora: ahora() });
             printBaseBranchSwitchNotice(result.baseBranchGuard);
-            printAvisos(result.avisoIdentidad, ...result.avisosEnunciado);
+            printAvisos(result.avisoIdentidad, ...result.avisosEnunciado, ...result.avisosRoles);
             // Tres desenlaces posibles desde TASK-027 (item C3): scaffold
             // nuevo, plan que ya estaba en planificacion/, o plan legado
             // suelto en la raiz que esta invocacion acaba de mover ahi.

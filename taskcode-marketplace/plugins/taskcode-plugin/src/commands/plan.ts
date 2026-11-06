@@ -53,8 +53,10 @@ import {
   type ResolucionAgentes,
 } from '../core/heuristica.js';
 import {
-  seleccionarRoles,
-  ROLES_BRAINSTORM,
+  seleccionarRolesDeTarea,
+  condicionalesDescartados,
+  TODOS_LOS_ROLES,
+  MIN_ROLES_PARA_CONDICIONALES,
   type RolBrainstorm,
 } from '../core/roles-brainstorm.js';
 import {
@@ -263,6 +265,11 @@ export function planTemplate(task: Task, roles: readonly RolBrainstorm[]): strin
 export interface PlanCommandResult {
   /** TASK-043: avisos de la validacion del enunciado (no bloquean). */
   avisosEnunciado: string[];
+  /**
+   * TASK-080: roles condicionales que las etiquetas dispararian y no entran
+   * porque la escalera lanza menos de MIN_ROLES_PARA_CONDICIONALES.
+   */
+  avisosRoles: string[];
   id: string;
   filePath: string;
   planPath: string;
@@ -474,7 +481,15 @@ export async function runPlanCommand(
   // se entere de que el brainstorm no se hizo.
   const heuristica = cargarHeuristica();
   const resolucion = resolverNumeroAgentes(task, body, heuristica);
-  const roles = seleccionarRoles(resolucion.agentes);
+  // TASK-080: los N de la escalera mas los condicionales que disparan las
+  // etiquetas (rendimiento). Ya no son siempre un prefijo de la escalera.
+  const roles = seleccionarRolesDeTarea(resolucion.agentes, task.etiquetas);
+  const avisosRoles = condicionalesDescartados(resolucion.agentes, task.etiquetas).map(
+    ({ rol, etiqueta }) =>
+      `La etiqueta "${etiqueta}" pediria el rol ${rol.titulo} (${rol.id}), pero no se lanza: ` +
+      `esta tarea resuelve menos de ${MIN_ROLES_PARA_CONDICIONALES} roles de brainstorm y sin ` +
+      'unificador ese rol quedaria como autor unico del plan. Si hace falta, sube la complejidad.'
+  );
 
   // --- Seleccion determinista de skill (seccion 6.6/16.4.1, TASK-017) -
   // Mismo criterio fail-closed que la heuristica de arriba, y por eso
@@ -914,7 +929,7 @@ export async function runPlanCommand(
       ? roles
       : rondaRoles === null
       ? []
-      : ROLES_BRAINSTORM.filter((r) =>
+      : TODOS_LOS_ROLES.filter((r) =>
           [...enBrainstorm, ...(relanzarRoles ? roles.map((x) => nombrePeticionRol(x, ronda)) : [])]
             .includes(nombrePeticionRol(r, rondaRoles as number))
         );
@@ -944,7 +959,7 @@ export async function runPlanCommand(
     const sufijo = `-${rondaRoles}.md`;
     for (const nombre of await listarDir(brainstormDir)) {
       if (!nombre.startsWith('salida-brainstorm-') || !nombre.endsWith(sufijo)) continue;
-      const rol = ROLES_BRAINSTORM.find((r) => nombre === nombreSalidaRol(r, rondaRoles as number));
+      const rol = TODOS_LOS_ROLES.find((r) => nombre === nombreSalidaRol(r, rondaRoles as number));
       salidasAConsolidar.push({
         nombre,
         // Sin el "rol" delante salia "— rol rol desconocido" para una
@@ -1053,6 +1068,7 @@ export async function runPlanCommand(
 
   return {
     avisosEnunciado,
+    avisosRoles,
     autoCommit: commitResult,
     id: task.id,
     filePath: newFilePath,

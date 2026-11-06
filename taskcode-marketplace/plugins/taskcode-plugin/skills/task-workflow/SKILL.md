@@ -226,10 +226,10 @@ escribe lo que alguien tiene que disparar despues.
 
 **Lo que resuelve el CLI, sin llamar a nadie.** Cuantos roles entran, por una
 tabla por complejidad que trae el plugin, y cuales, por un orden de prioridad
-fijo: **arquitectura, riesgos, testing, dominio**. Con un solo rol entra
-arquitectura, que es el unico que propone una forma para el cambio; el primero
-que se cae es dominio. Pueden salir **cero roles**: no hay brainstorm y el plan
-se redacta a partir del enunciado.
+fijo: **arquitectura, riesgos, testing, dominio** (con uno, arquitectura: la
+unica que propone una forma). Con **cero roles** el plan sale del enunciado.
+Las etiquetas `rendimiento`, `wasm`, `workers` o `3d` suman **rendimiento**
+si ya entran 2 roles o mas; si no, `plan` lo avisa.
 
 Sin complejidad declarada (`null`) decide la tabla, que calcula leyendo la
 tarea; declarada, se toma el **mayor** de las dos. Si difieren, el comando lo

@@ -38,7 +38,7 @@ import { validarEnunciado } from '../core/validacion-tarea.js';
 import { proponerParticion } from '../core/particion-tarea.js';
 import { escribirPropuestaParticion } from '../fs/particion.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
-import { seleccionarRoles, ROLES_BRAINSTORM, } from '../core/roles-brainstorm.js';
+import { seleccionarRolesDeTarea, condicionalesDescartados, TODOS_LOS_ROLES, MIN_ROLES_PARA_CONDICIONALES, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, nombrePeticionRedaccion, peticionRedaccionTemplate, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
 import { cargarCatalogoSkills, seleccionarSkill, FICHERO_CATALOGO_SKILLS, } from '../core/catalogo-skills.js';
 import { PETICION_DESEMPATE_SKILL_FILENAME, SALIDA_DESEMPATE_SKILL_FILENAME, peticionDesempateSkillTemplate, salidaDesempateSkillTemplate, leerGanadorDesempate, } from '../core/plan-desempate-skill.js';
@@ -315,7 +315,12 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     // se entere de que el brainstorm no se hizo.
     const heuristica = cargarHeuristica();
     const resolucion = resolverNumeroAgentes(task, body, heuristica);
-    const roles = seleccionarRoles(resolucion.agentes);
+    // TASK-080: los N de la escalera mas los condicionales que disparan las
+    // etiquetas (rendimiento). Ya no son siempre un prefijo de la escalera.
+    const roles = seleccionarRolesDeTarea(resolucion.agentes, task.etiquetas);
+    const avisosRoles = condicionalesDescartados(resolucion.agentes, task.etiquetas).map(({ rol, etiqueta }) => `La etiqueta "${etiqueta}" pediria el rol ${rol.titulo} (${rol.id}), pero no se lanza: ` +
+        `esta tarea resuelve menos de ${MIN_ROLES_PARA_CONDICIONALES} roles de brainstorm y sin ` +
+        'unificador ese rol quedaria como autor unico del plan. Si hace falta, sube la complejidad.');
     // --- Seleccion determinista de skill (seccion 6.6/16.4.1, TASK-017) -
     // Mismo criterio fail-closed que la heuristica de arriba, y por eso
     // va aqui y no mas abajo (hallazgo IMPORTANTE de revision por pares,
@@ -703,7 +708,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         ? roles
         : rondaRoles === null
             ? []
-            : ROLES_BRAINSTORM.filter((r) => [...enBrainstorm, ...(relanzarRoles ? roles.map((x) => nombrePeticionRol(x, ronda)) : [])]
+            : TODOS_LOS_ROLES.filter((r) => [...enBrainstorm, ...(relanzarRoles ? roles.map((x) => nombrePeticionRol(x, ronda)) : [])]
                 .includes(nombrePeticionRol(r, rondaRoles)));
     // Los scaffolds se aseguran SIEMPRE, se relancen los roles o no.
     // Antes iban dentro del "si no se reutiliza", asi que un scaffold que
@@ -727,7 +732,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         for (const nombre of await listarDir(brainstormDir)) {
             if (!nombre.startsWith('salida-brainstorm-') || !nombre.endsWith(sufijo))
                 continue;
-            const rol = ROLES_BRAINSTORM.find((r) => nombre === nombreSalidaRol(r, rondaRoles));
+            const rol = TODOS_LOS_ROLES.find((r) => nombre === nombreSalidaRol(r, rondaRoles));
             salidasAConsolidar.push({
                 nombre,
                 // Sin el "rol" delante salia "— rol rol desconocido" para una
@@ -801,6 +806,7 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     }
     return {
         avisosEnunciado,
+        avisosRoles,
         autoCommit: commitResult,
         id: task.id,
         filePath: newFilePath,

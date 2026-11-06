@@ -33,9 +33,14 @@ import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../../src/core/frontmatter.js';
 import {
   ROLES_BRAINSTORM,
+  ROLES_CONDICIONALES,
+  TODOS_LOS_ROLES,
+  MIN_ROLES_PARA_CONDICIONALES,
   RolesBrainstormError,
   UNIFICADOR_ID,
+  condicionalesDescartados,
   seleccionarRoles,
+  seleccionarRolesDeTarea,
 } from '../../src/core/roles-brainstorm.js';
 import type { RolBrainstorm, RolBrainstormId } from '../../src/core/roles-brainstorm.js';
 
@@ -62,6 +67,9 @@ const ids = (roles: readonly RolBrainstorm[]): RolBrainstormId[] =>
 
 /** Los ids como texto llano, para poder compararlos con `UNIFICADOR_ID`. */
 const idsComoTexto = (): string[] => ROLES_BRAINSTORM.map((r) => r.id);
+
+/** Escalera + condicionales (TASK-080): lo que tiene que haber en agents/. */
+const todosComoTexto = (): string[] => TODOS_LOS_ROLES.map((r) => r.id);
 
 /** Los nombres (sin `.md`) de los ficheros de rol que hay en `agents/`. */
 async function rolesEnDisco(): Promise<string[]> {
@@ -124,8 +132,8 @@ test('0. el test apunta de verdad a la raiz del plugin (guard de no-vacuidad)', 
 
 // Mutacion: borrar el rol 'brainstorm-dominio' de ROLES_BRAINSTORM (o crear
 // agents/brainstorm-seguridad.md sin tocar la constante) -> rojo.
-test('1. los ids de ROLES_BRAINSTORM y los ficheros de agents/ son el MISMO conjunto', async () => {
-  const esperados = [...idsComoTexto()].sort();
+test('1. los ids de TODOS_LOS_ROLES (escalera y condicionales) y los ficheros de agents/ son el MISMO conjunto', async () => {
+  const esperados = [...todosComoTexto()].sort();
   // Guard de no-vacuidad: con la constante vacia, la comparacion de
   // abajo seria [] contra [] y este test daria verde sin medir nada.
   assert.ok(
@@ -154,7 +162,7 @@ test('1. los ids de ROLES_BRAINSTORM y los ficheros de agents/ son el MISMO conj
   );
 });
 
-for (const rol of ROLES_BRAINSTORM) {
+for (const rol of TODOS_LOS_ROLES) {
   // Mutacion: cambiar el id 'brainstorm-riesgos' por 'brainstorm-riesgo' en el modulo -> rojo.
   test(`2. ${rol.id}: el id es literalmente el "name:" del frontmatter de agents/${rol.id}.md`, async () => {
     // El listado del directorio, y no un stat() de la ruta: en Windows
@@ -502,4 +510,97 @@ test('10. ningun campo de texto esta vacio y los titulos son todos distintos', (
     titulos.length,
     `hay titulos repetidos entre los roles: ${titulos.join(', ')}`
   );
+});
+
+// --- 6. Roles condicionales (TASK-080) ---------------------------------
+
+/**
+ * Las etiquetas que disparan rendimiento, escritas A MANO: si se derivan
+ * de la constante, quitar una etiqueta dejaria el test verde.
+ */
+const ETIQUETAS_RENDIMIENTO = ['rendimiento', 'wasm', 'workers', '3d'];
+
+// Mutacion: quitar 'workers' de las etiquetas de rendimiento en el modulo -> rojo.
+test('11. rendimiento es el unico condicional, fuera de la escalera, y lo disparan sus cuatro etiquetas', () => {
+  assert.deepEqual(
+    ROLES_CONDICIONALES.map((c) => c.rol.id),
+    ['brainstorm-rendimiento']
+  );
+  assert.deepEqual([...ROLES_CONDICIONALES[0]!.etiquetas], ETIQUETAS_RENDIMIENTO);
+  // Fuera de la escalera: no compite por el presupuesto N.
+  assert.ok(!idsComoTexto().includes('brainstorm-rendimiento'));
+  assert.deepEqual(
+    todosComoTexto(),
+    [...idsComoTexto(), 'brainstorm-rendimiento'],
+    'TODOS_LOS_ROLES tiene que ser la escalera seguida de los condicionales'
+  );
+  assert.equal(MIN_ROLES_PARA_CONDICIONALES, 2);
+});
+
+// Mutacion: quitar el `if (base.length < MIN_ROLES_PARA_CONDICIONALES) return base` -> rojo (n=0, n=1).
+// Mutacion: quitar el `.toLowerCase()` de la comparacion de etiquetas -> rojo ('WASM').
+test('12. seleccionarRolesDeTarea suma rendimiento solo con 2+ roles y con una etiqueta que lo dispara', () => {
+  const casos: ReadonlyArray<readonly [number, readonly string[], readonly string[]]> = [
+    [0, ['wasm'], []],
+    [1, ['3d'], ['brainstorm-arquitectura']],
+    [2, ['wasm'], ['brainstorm-arquitectura', 'brainstorm-riesgos', 'brainstorm-rendimiento']],
+    [3, ['WASM'], ['brainstorm-arquitectura', 'brainstorm-riesgos', 'brainstorm-testing', 'brainstorm-rendimiento']],
+    [3, [' Workers '], ['brainstorm-arquitectura', 'brainstorm-riesgos', 'brainstorm-testing', 'brainstorm-rendimiento']],
+    [
+      4,
+      ['otra', 'rendimiento', '3d'],
+      [
+        'brainstorm-arquitectura',
+        'brainstorm-riesgos',
+        'brainstorm-testing',
+        'brainstorm-dominio',
+        'brainstorm-rendimiento',
+      ],
+    ],
+    [3, [], ['brainstorm-arquitectura', 'brainstorm-riesgos', 'brainstorm-testing']],
+    [3, ['web-workers', 'wasmtime', 'performance'], ['brainstorm-arquitectura', 'brainstorm-riesgos', 'brainstorm-testing']],
+  ];
+  for (const [n, etiquetas, esperado] of casos) {
+    assert.deepEqual(
+      ids(seleccionarRolesDeTarea(n, etiquetas)),
+      esperado,
+      `seleccionarRolesDeTarea(${n}, ${JSON.stringify(etiquetas)})`
+    );
+  }
+  // El rango lo sigue guardando seleccionarRoles.
+  assert.throws(() => seleccionarRolesDeTarea(ROLES_BRAINSTORM.length + 1, ['wasm']), RolesBrainstormError);
+});
+
+// Mutacion: devolver [] siempre en condicionalesDescartados -> rojo.
+test('13. condicionalesDescartados nombra el rol y la etiqueta que no entran por falta de roles', () => {
+  assert.deepEqual(
+    condicionalesDescartados(1, ['otra', 'WASM']).map((d) => [d.rol.id, d.etiqueta]),
+    [['brainstorm-rendimiento', 'WASM']]
+  );
+  assert.deepEqual(
+    condicionalesDescartados(0, ['3d']).map((d) => d.rol.id),
+    ['brainstorm-rendimiento']
+  );
+  assert.deepEqual(condicionalesDescartados(2, ['wasm']), [], 'con 2 roles entra: nada que avisar');
+  assert.deepEqual(condicionalesDescartados(1, ['web-workers']), [], 'sin etiqueta que dispare: nada que avisar');
+});
+
+// Mutacion: borrar del noMira de rendimiento la vineta que cede la forma a arquitectura -> rojo.
+test('14. cada condicional cede a los roles de la escalera, nunca a si mismo, y mira algo distinto', () => {
+  for (const { rol } of ROLES_CONDICIONALES) {
+    const texto = rol.noMira.join(' | ');
+    const nombra = (titulo: string): boolean => new RegExp(`\\b${titulo}\\b`, 'i').test(texto);
+    const sinCeder = ROLES_BRAINSTORM.filter((r) => !nombra(r.titulo)).map((r) => r.titulo);
+    assert.deepEqual(sinCeder, [], `"${rol.id}" no cede nada a ${sinCeder.join(', ')}`);
+    assert.equal(nombra(rol.titulo), false, `"${rol.id}" se nombra a si mismo en su noMira`);
+    for (const otro of ROLES_BRAINSTORM) {
+      assert.notEqual(rol.pregunta, otro.pregunta);
+      assert.deepEqual(rol.mira.filter((l) => otro.mira.includes(l)), []);
+    }
+    assert.ok(rol.entregables.length > 0 && rol.mira.length > 0);
+    assert.ok(Object.isFrozen(rol) && Object.isFrozen(rol.mira) && Object.isFrozen(rol.noMira));
+  }
+  assert.ok(Object.isFrozen(ROLES_CONDICIONALES) && Object.isFrozen(TODOS_LOS_ROLES));
+  const titulos = TODOS_LOS_ROLES.map((r) => r.titulo);
+  assert.equal(new Set(titulos).size, titulos.length, 'titulos repetidos entre escalera y condicionales');
 });
