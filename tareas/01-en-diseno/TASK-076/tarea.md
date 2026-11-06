@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [doctor, hooks, plugin]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-076-doctor-avisa-de-hooks-pretooluse-sobre-a
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-04
-actualizado: 2026-11-04
+actualizado: 2026-11-06
 dependencias: []
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ Desde Claude Code 2.1.317/2.1.318, el modo automatico puede denegar el lanzamien
 - [ ] El README del plugin tiene una seccion de problemas conocidos con el sintoma (subagente denegado con Auto-Mode Bypass), la causa y las salidas: quitar Agent del matcher con un hook propio de SessionStart, desactivar el plugin causante o aprobar a mano los lanzamientos
 - [ ] La skill task-workflow (avance) indica que hacer si un lanzamiento de subagente se deniega: ejecutar taskctl doctor y no rodear la denegacion; los tests de neutralidad de skills siguen en verde (ningun fichero instalable menciona TaskCode)
 - [ ] Version del plugin incrementada en plugin.json y marketplace, CHANGELOG con la entrada que explica el aviso; suite completa con solo los rojos conocidos de Windows
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-06T17:59:51Z | plan | automatico | persona |
