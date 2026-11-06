@@ -123,3 +123,10 @@ En los dos casos la skill termina ahi, sin volver a pasar por esta seccion.
   paso editando ficheros a mano.
 - Las guardas del CLI (limite de trabajo en curso, rama base limpia, revisor
   independiente, veredicto, segunda opinion) no se rodean en ningun modo.
+- Si Claude Code deniega el lanzamiento de un subagente (roles, unificador,
+  revisores; con el modo de permisos automatico de Claude Code suele decir «Auto-Mode Bypass»), ejecutar
+  `taskctl doctor`, mostrar su aviso `hooks-subagente` y parar. No rodear la
+  denegacion: ni hacer tu el trabajo del subagente ni relanzarlo con otro
+  encargo. La causa habitual es un hook PreToolUse de otro plugin o de los
+  settings que reescribe el encargo; las salidas estan en «Problemas
+  conocidos» del README del plugin.

@@ -1,6 +1,25 @@
 # Changelog
 
 ## Sin publicar
+
+## 0.9.0 — 2026-11-06
+
+Doctor avisa de los hooks que bloquean los subagentes (TASK-076): con el modo de
+permisos automatico, Claude Code 2.1.317+ deniega el lanzamiento de un subagente
+(Auto-Mode Bypass) si un hook PreToolUse sobre Agent/Task reescribe el encargo, y
+plan y review se paraban sin explicacion. `taskctl doctor` da ahora un AVISO
+`hooks-subagente` por cada hook PreToolUse cuyo matcher alcanza a Agent o Task
+(tambien `""`, `"*"` o sin matcher) en los plugins habilitados (version activa de
+`installed_plugins.json`: su `hooks/hooks.json` y los `hooks` de su `plugin.json`)
+y en los settings de usuario, de proyecto y locales, con origen, ruta y matcher; no
+cambia el codigo de salida. El README trae "Problemas conocidos" con las salidas, y
+la skill de flujo manda ejecutar `taskctl doctor` y parar ante una denegacion.
+Esta version incluye ademas todo lo acumulado desde 0.8.0 (TASK-066 a 078:
+held-out, puerta de verificacion, hooks Stop y de merges, doctor-deploy, cobertura).
+Actualizar con `claude plugin marketplace update taskcode-marketplace`,
+`claude plugin update taskcode-plugin@taskcode-marketplace` y reiniciar
+Claude Code (o `/reload-plugins`). Despues, `taskctl doctor` en cada proyecto.
+
 - TASK-074 (feature) — Cobertura sobre las lineas cambiadas (2026-11-05)
 - TASK-078 (feature) — Hook que impide leer y editar los held-out de la tarea en curso (2026-11-05)
 - TASK-075 (fix) — Contrapruebas de descubrimiento rotas por el validador de Claude Code 2.1.316+ (2026-11-05)
