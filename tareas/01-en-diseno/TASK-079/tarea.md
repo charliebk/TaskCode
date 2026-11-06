@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [skills, revisores, rust, wasm]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-079-revisor-por-pares-de-dominio-para-rust-y
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -34,3 +34,9 @@ Hoy ninguna skill revisora reclama ficheros Rust, asi que taskctl review manda t
 - [ ] Los patrones de rust-wasm-reviewer no se solapan con los de ningun otro revisor (test de solape de test/skills/revisores.test.ts en verde)
 - [ ] README del plugin, CHANGELOG y la documentacion que lista los revisores nombran rust-wasm-reviewer y la version del plugin sube segun la convencion
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows) en la rama de la tarea
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-06T18:45:22Z | plan | automatico | persona |
