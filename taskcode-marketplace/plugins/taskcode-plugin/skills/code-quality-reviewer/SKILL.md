@@ -48,14 +48,13 @@ En el caso 1 recibes el diff de la rama contra su base. En el caso 2 recibes
 el diff completo a proposito: partirlo por dominio es justo lo que se ha
 decidido no hacer.
 
-**Nota sobre el umbral de 3.** Hoy el camino 2 es teorico: el catalogo de
-revisores de dominio que viaja con este plugin tiene exactamente tres, asi
-que "mas de tres dominios" no puede darse y **no se puede ejercitar**. El
-umbral esta escrito para cuando el catalogo crezca —o cuando un proyecto
-anada revisores propios—, no como comportamiento observable hoy. Quede
-constancia: si alguien afirma haber llegado aqui por exceso de dominios con
-el catalogo actual, se equivoca de camino; llego por descarte (caso 1) o
-porque se lo pidieron (caso 3).
+**Nota sobre el umbral de 3.** El catalogo de revisores de dominio que viaja
+con este plugin tiene cuatro (Angular/Vue, C# con AutoCAD e IFC, Java/Spring y
+Rust/WebAssembly), asi que el camino 2 es real: un diff que toca a la vez
+Rust, Vue, Java y C# supera el umbral y llega aqui entero. Pasa poco —hacen
+falta cuatro ecosistemas en una sola tarea—, pero cuando pasa no es un error
+de enrutado: revisa el diff completo con el metodo de esta skill y di en el
+informe que llegaste por exceso de dominios.
 
 ## Antes de revisar: la puerta determinista
 

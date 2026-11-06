@@ -2,6 +2,19 @@
 
 ## Sin publicar
 
+## 0.10.0 — 2026-11-06
+
+Revisor por pares de dominio para Rust y WebAssembly (TASK-079): la skill
+`rust-wasm-reviewer` reclama `.rs`, `Cargo.toml`, `Cargo.lock`, `build.rs`,
+`.cargo/config.toml` y la configuracion de toolchain, rustfmt y clippy, y revisa
+ownership, errores sin `unwrap` ni `panic`, el limite JS-WASM con `wasm-bindgen`
+(si cambia una firma exportada pide siempre el llamador TS/JS y el `.d.ts`),
+numerica en `f64`, `unsafe` y rendimiento. Antes todo el Rust iba al generico.
+Registrada en el catalogo de skills (prioridad 10, etiquetas de Rust y WASM). Con
+cuatro revisores de dominio, un diff de Rust, Vue, Java y C# a la vez supera el
+umbral de 3 y va entero al generico, y `code-quality-reviewer` ya lo contempla.
+Actualizar como en 0.9.0, y despues `taskctl doctor` en cada proyecto.
+
 ## 0.9.0 — 2026-11-06
 
 Doctor avisa de los hooks que bloquean los subagentes (TASK-076): con el modo de

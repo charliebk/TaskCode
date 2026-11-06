@@ -573,6 +573,7 @@ const DISPARADORES: Record<string, string[]> = {
   'java-spring-reviewer': ['.java', 'pom.xml', 'build.gradle', 'application*.yml', 'Spring'],
   'angular-vue-reviewer': ['.vue', '.component.ts', '.directive.ts', 'composables', 'src/app', 'Angular 19', 'Angular 20'],
   'csharp-autocad-ifc-reviewer': ['.cs', '.csproj', '.ifc', 'AutoCAD', 'ObjectARX', 'IfcOpenShell', 'BIM'],
+  'rust-wasm-reviewer': ['.rs', 'Cargo.toml', 'build.rs', '.cargo/config.toml', 'wasm-bindgen', 'unwrap', 'f64'],
 };
 
 test('19b. las descriptions acortadas conservan sus disparadores', async () => {

@@ -1,6 +1,6 @@
 /**
- * Tests de las cuatro skills revisoras del plugin (item D6): java-spring,
- * angular-vue, csharp-autocad-ifc y code-quality.
+ * Tests de las skills revisoras del plugin (item D6): java-spring,
+ * angular-vue, csharp-autocad-ifc, code-quality y, desde TASK-079, rust-wasm.
  *
  * El fichero hermano `task-workflow.test.ts` ya cubre a fondo la forma de
  * UNA skill (bytes, BOM, claves del spec, limites de longitud). Aqui no se
@@ -69,6 +69,7 @@ const REVISORES_DE_DOMINIO = [
   'java-spring-reviewer',
   'angular-vue-reviewer',
   'csharp-autocad-ifc-reviewer',
+  'rust-wasm-reviewer',
 ] as const;
 
 const REVISOR_GENERICO = 'code-quality-reviewer';
@@ -349,6 +350,20 @@ const RUTAS_LEGITIMAS: ReadonlyArray<readonly [string, RevisorDeDominio, string]
   ['src/Exporter/Exporter.csproj', 'csharp-autocad-ifc-reviewer', 'csharp'],
   ['Solucion.sln', 'csharp-autocad-ifc-reviewer', 'csharp'],
   ['test/fixtures/minimal.ifc', 'csharp-autocad-ifc-reviewer', 'ifc'],
+
+  // Rust / WebAssembly (TASK-079): crate suelto, workspace y la cadena de Cargo.
+  ['src/lib.rs', 'rust-wasm-reviewer', 'rust'],
+  ['crates/geometria/src/area.rs', 'rust-wasm-reviewer', 'rust workspace'],
+  ['tests/integracion.rs', 'rust-wasm-reviewer', 'rust'],
+  ['benches/triangulos.rs', 'rust-wasm-reviewer', 'rust'],
+  ['build.rs', 'rust-wasm-reviewer', 'cargo'],
+  ['Cargo.toml', 'rust-wasm-reviewer', 'cargo'],
+  ['crates/geometria/Cargo.toml', 'rust-wasm-reviewer', 'cargo workspace'],
+  ['Cargo.lock', 'rust-wasm-reviewer', 'cargo'],
+  ['.cargo/config.toml', 'rust-wasm-reviewer', 'cargo wasm32'],
+  ['rust-toolchain.toml', 'rust-wasm-reviewer', 'cargo'],
+  ['clippy.toml', 'rust-wasm-reviewer', 'cargo'],
+  ['rustfmt.toml', 'rust-wasm-reviewer', 'cargo'],
 ];
 
 /**
@@ -446,6 +461,16 @@ const RUTAS_AJENAS: ReadonlyArray<readonly [string, string]> = [
   ['src/lib/templates/email.html', 'backend ts con plantilla de correo'],
   ['public/index.html', 'sitio estatico'],
   ['src/lib/components/Button.svelte', 'svelte'],
+
+  // Lo que la skill de Rust deja fuera a proposito (TASK-079).
+  ['pkg/geometria.js', 'salida de wasm-pack'],
+  ['pkg/geometria.d.ts', 'salida de wasm-pack'],
+  ['pkg/geometria_bg.wasm', 'salida de wasm-pack'],
+  ['src/worker/geometria.worker.ts', 'llamador TS del modulo wasm'],
+  ['rust-toolchain', 'toolchain sin extension'],
+  ['.cargo/config', 'config de cargo sin extension'],
+  ['deny.toml', 'cargo-deny'],
+  ['pyproject.toml', 'python (otro toml)'],
 ];
 
 /** Patrones leidos de los SKILL.md, una sola vez. */
@@ -480,7 +505,7 @@ test('6b. la tabla de enrutado no esta vacia ni cojea (guard de no-vacuidad)', a
     'la tabla de capturas aceptadas esta vacia: los huecos conocidos dejarian de estar congelados'
   );
 
-  // Los tres revisores de dominio tienen que estar representados; si no, la
+  // Todos los revisores de dominio tienen que estar representados; si no, la
   // direccion positiva estaria verde por no mirar a dos de ellos.
   for (const nombre of REVISORES_DE_DOMINIO) {
     assert.ok(

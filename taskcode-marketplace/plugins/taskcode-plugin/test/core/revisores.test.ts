@@ -42,19 +42,41 @@ const SKILLS_DIR_REAL = path.join(PLUGIN_ROOT, 'skills');
 
 // --- cargarCatalogoRevisores, contra las skills reales -------------------
 
-test('cargarCatalogoRevisores: lee las skills reales del plugin (3 de dominio + 1 generico con umbral 3)', () => {
+test('cargarCatalogoRevisores: lee las skills reales del plugin (4 de dominio + 1 generico con umbral 3)', () => {
   const catalogo = cargarCatalogoRevisores(SKILLS_DIR_REAL);
   const nombres = catalogo.dominio.map((r) => r.nombre).sort();
   assert.deepEqual(nombres, [
     'angular-vue-reviewer',
     'csharp-autocad-ifc-reviewer',
     'java-spring-reviewer',
+    'rust-wasm-reviewer',
   ]);
   for (const revisor of catalogo.dominio) {
     assert.ok(revisor.patronesArchivo.length > 0, `${revisor.nombre}: sin patrones`);
   }
   assert.equal(catalogo.generico.nombre, 'code-quality-reviewer');
   assert.equal(catalogo.generico.umbralDominios, 3);
+});
+
+test('catalogo real (TASK-079): un diff con .rs y .vue se parte en dos grupos, rust-wasm y angular-vue', () => {
+  const plan = clasificarPorDominio(['crates/geo/src/area.rs', 'src/components/Mapa.vue'], cargarCatalogoRevisores(SKILLS_DIR_REAL));
+  assert.equal(plan.fragmentado, true);
+  assert.deepEqual(
+    plan.grupos.map((g) => [g.revisor, g.ficheros]).sort(),
+    [
+      ['angular-vue-reviewer', ['src/components/Mapa.vue']],
+      ['rust-wasm-reviewer', ['crates/geo/src/area.rs']],
+    ]
+  );
+});
+
+test('catalogo real (TASK-079): Rust + Vue + Java + C# supera el umbral de 3 y cae al generico', () => {
+  const ficheros = ['src/lib.rs', 'src/App.vue', 'src/main/java/com/acme/A.java', 'src/Exporter/IfcExporter.cs'];
+  const plan = clasificarPorDominio(ficheros, cargarCatalogoRevisores(SKILLS_DIR_REAL));
+  assert.equal(plan.fragmentado, false);
+  assert.equal(plan.grupos.length, 1);
+  assert.equal(plan.grupos[0]!.revisor, 'code-quality-reviewer');
+  assert.deepEqual(plan.grupos[0]!.ficheros, ficheros);
 });
 
 test('cargarCatalogoRevisores: relee el disco en cada llamada, sin cache (no diverge si una skill cambia)', async () => {

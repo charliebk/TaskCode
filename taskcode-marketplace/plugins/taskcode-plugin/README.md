@@ -31,6 +31,20 @@ en su frontmatter. Es una decisión, no un olvido (TASK-049, comprobado el
 Quien orquesta pasa `modelo_sugerido` como `model` al lanzar cada agente (la
 salida de `taskctl review` ya lo nombra).
 
+## Revisores por pares que trae el plugin
+
+`taskctl review` reparte el diff de la tarea entre las skills revisoras según
+los `patrones_archivo` que declara cada una en su `SKILL.md` (si el diff toca
+más de tres dominios, va entero al genérico):
+
+| Skill | Dominio | Entra si el diff toca |
+|---|---|---|
+| `angular-vue-reviewer` | Angular y Vue | `.vue`, `.component.ts`, plantillas y rutas bajo `src/app`, composables |
+| `csharp-autocad-ifc-reviewer` | C# sobre AutoCAD o IFC | `.cs`, `.csproj`, `.sln`, `.ifc` |
+| `java-spring-reviewer` | Java y Spring Boot | `.java`, `pom.xml`, `build.gradle`, `application*.yml` |
+| `rust-wasm-reviewer` | Rust y WebAssembly | `.rs`, `Cargo.toml`, `Cargo.lock`, `build.rs`, `.cargo/config.toml`, toolchain/rustfmt/clippy |
+| `code-quality-reviewer` | Genérico | Lo que no casa con ningún dominio, o más de tres dominios a la vez |
+
 ## Instalación local (para desarrollo y pruebas)
 
 **Corrección respecto al texto original de TASK-006:** la tarea describía
@@ -252,11 +266,11 @@ ejecución aplicado:
 
 ```
 $ node bin/taskctl --help
-taskctl 0.9.0 — TaskCode
+taskctl 0.10.0 — TaskCode
 [...]
 
 $ ./bin/taskctl --help          # ejecución directa vía shebang + bit +x
-taskctl 0.9.0 — TaskCode
+taskctl 0.10.0 — TaskCode
 [...]                            # salida idéntica
 
 $ PATH="$(pwd)/bin:$PATH" taskctl --version   # simula resolución por PATH
