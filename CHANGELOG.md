@@ -1,6 +1,6 @@
 # Changelog
 
-## Sin publicar
+## 0.11.0 — 2026-11-06
 
 Accesibilidad y roles del brainstorm (TASK-080). `angular-vue-reviewer` revisa la
 accesibilidad por criterio de WCAG 2.2: contraste (un contraste que el diff no deja
@@ -14,6 +14,9 @@ mayusculas) cuando la tarea ya lanza 2 roles o mas, sin gastar presupuesto de la
 escalera; con 0 o 1, `plan` avisa de que no entra. `approve` y `taskctl
 siguiente` reconocen la plantilla vacia de un plan con rendimiento leyendo los
 roles de las peticiones en disco (antes la daban por redactada).
+Actualizar como en 0.9.0, y despues `taskctl doctor` en cada proyecto.
+
+- TASK-080 (feature) — Accesibilidad en angular-vue-reviewer y roles de arquitectura y rendimiento en plan (2026-11-06)
 
 ## 0.10.0 — 2026-11-06
 

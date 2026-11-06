@@ -998,5 +998,5 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
       condicional `brainstorm-rendimiento` (etiquetas rendimiento/wasm/workers/3d,
       solo con 2+ roles, fuera de la escalera; con 0 o 1, `plan` avisa).
       `planEsPlantilla` lee los roles del disco: la plantilla vacia con rendimiento
-      ya no se da por redactada. Sin publicar (sale con 0.9.0/0.10.0). 2 rondas:
+      ya no se da por redactada. Publicada en 0.11.0. 2 rondas:
       IMP-1 y MEN-1..5 corregidos; MEN-6 (restos cosmeticos de "cuatro") aceptado.*

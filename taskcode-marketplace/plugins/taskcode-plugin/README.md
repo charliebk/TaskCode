@@ -282,11 +282,11 @@ ejecución aplicado:
 
 ```
 $ node bin/taskctl --help
-taskctl 0.10.0 — TaskCode
+taskctl 0.11.0 — TaskCode
 [...]
 
 $ ./bin/taskctl --help          # ejecución directa vía shebang + bit +x
-taskctl 0.10.0 — TaskCode
+taskctl 0.11.0 — TaskCode
 [...]                            # salida idéntica
 
 $ PATH="$(pwd)/bin:$PATH" taskctl --version   # simula resolución por PATH
