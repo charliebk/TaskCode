@@ -1699,3 +1699,80 @@ test('approve (TASK-080): rechaza la plantilla sin rellenar de un plan con rendi
     assert.equal(tras?.task.plan_aprobado, false);
   });
 });
+
+/**
+ * IMP-1 de la revision de TASK-080: el aviso tiene que llegar a la salida
+ * del binario real, no solo al resultado de runPlanCommand.
+ * Mutacion: quitar `...result.avisosRoles` del printAvisos de cli.ts -> rojo.
+ * MEN-1: la linea de discrepancia dice los roles de la escalera mas los
+ * condicionales. Mutacion: volver a terminar en "el mayor de los dos." -> rojo.
+ */
+test('plan (TASK-080): el binario avisa por stderr de que rendimiento no entra, y la discrepancia nombra el condicional', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const taskctl = path.join(PACKAGE_ROOT, 'bin', 'taskctl');
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'simple', etiquetas: ['wasm'] }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+    const simple = spawnSync(process.execPath, [taskctl, 'plan', 'TASK-800'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(simple.status, 0, simple.stderr);
+    assert.match(simple.stderr, /\[AVISO\] La etiqueta "wasm" pediria el rol rendimiento/);
+    assert.match(simple.stderr, /Si hace falta, sube la complejidad/);
+
+    // Declarada simple con 6 criterios y 5 etiquetas: la heuristica sube y
+    // hay discrepancia; con 2+ roles entra rendimiento.
+    const criterios = Array.from({ length: 6 }, (_, i) => `- [ ] \`taskctl plan\` caso ${i + 1}.`).join('\n');
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({
+        id: 'TASK-801',
+        rama: 'feature/task-801-p',
+        complejidad: 'simple',
+        etiquetas: ['wasm', 'a', 'b', 'c', 'd'],
+      }),
+      `## Objetivo\n\nProbar la discrepancia.\n\n## Criterios de aceptacion\n${criterios}\n`
+    );
+    commitAll(repoRoot, 'tarea TASK-801');
+    const discrepa = spawnSync(process.execPath, [taskctl, 'plan', 'TASK-801'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(discrepa.status, 0, discrepa.stderr);
+    assert.match(discrepa.stdout, /el mayor de los dos, mas rendimiento por las etiquetas de la tarea\./);
+  });
+});
+
+/**
+ * MEN-2: en un hotfix el tope es 1 agente; el aviso no aconseja subir la
+ * complejidad. Mutacion: quitar la condicion de tipo -> rojo.
+ */
+test('plan (TASK-080): en un hotfix el aviso no aconseja subir la complejidad', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(
+      tareasRoot,
+      sampleTask({ tipo: 'hotfix', rama: 'hotfix/task-800-p', complejidad: 'critica', etiquetas: ['wasm'] }),
+      BODY
+    );
+    commitAll(repoRoot, 'tarea TASK-800');
+    propagarAMain(repoRoot);
+    const r = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    assert.equal(r.avisosRoles.length, 1);
+    assert.doesNotMatch(r.avisosRoles[0]!, /sube la complejidad/);
+  });
+});
+
+/**
+ * MEN-4: si falta la carpeta del brainstorm, las candidatas por etiquetas
+ * siguen reconociendo la plantilla vacia con rendimiento.
+ * Mutacion: quitar `seleccionarRolesDeTarea(k, task.etiquetas)` de
+ * planEsPlantilla -> approve aprueba (rojo).
+ */
+test('approve (TASK-080): sin la carpeta del brainstorm, la plantilla con rendimiento se reconoce por las etiquetas', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, sampleTask({ complejidad: 'media', etiquetas: ['wasm'] }), BODY);
+    commitAll(repoRoot, 'tarea TASK-800');
+    const result = await runPlanCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot });
+    await rm(brainstormDir(result.filePath), { recursive: true, force: true });
+    commitAll(repoRoot, 'plan TASK-800 sin brainstorm');
+
+    await assert.rejects(
+      () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-08', { repoCwd: repoRoot }),
+      (e: unknown) => e instanceof ApproveCommandError && /plantilla sin rellenar/.test(e.message)
+    );
+  });
+});

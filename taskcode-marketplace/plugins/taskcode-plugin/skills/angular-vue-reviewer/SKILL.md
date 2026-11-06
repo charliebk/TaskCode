@@ -293,6 +293,10 @@ contrario de lo que dice:
   resuelve por defecto a "aceptar".
 - Un valor de configuracion sensible incrustado en el codigo del cliente,
   que viaja en el paquete servido al navegador.
+- Una trampa de teclado verificable (WCAG 2.1.2) en un flujo principal: con
+  teclado no se puede salir del componente y la vista queda inoperable.
+- Un dialogo modal sin nombre accesible y sin foco gestionado que bloquea
+  la accion principal de la vista para quien usa teclado o lector.
 
 **IMPORTANTE** — comportamiento incorrecto en un caso real, no de borde:
 
@@ -314,6 +318,8 @@ contrario de lo que dice:
 - Componente barato sin la estrategia de deteccion acotada.
 - Estilo global anadido donde bastaba uno con alcance al componente.
 - Texto alternativo redundante que el lector de pantalla repite.
+- Contraste que el diff no deja verificar (colores por variable CSS o por
+  tema): se anota como comprobacion pendiente, nunca como CRITICO.
 - Import o dependencia que el diff deja sin usar.
 
 ## Estructura del informe

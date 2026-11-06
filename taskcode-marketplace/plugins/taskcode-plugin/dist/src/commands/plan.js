@@ -320,7 +320,10 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
     const roles = seleccionarRolesDeTarea(resolucion.agentes, task.etiquetas);
     const avisosRoles = condicionalesDescartados(resolucion.agentes, task.etiquetas).map(({ rol, etiqueta }) => `La etiqueta "${etiqueta}" pediria el rol ${rol.titulo} (${rol.id}), pero no se lanza: ` +
         `esta tarea resuelve menos de ${MIN_ROLES_PARA_CONDICIONALES} roles de brainstorm y sin ` +
-        'unificador ese rol quedaria como autor unico del plan. Si hace falta, sube la complejidad.');
+        'unificador ese rol quedaria como autor unico del plan.' +
+        // MEN-2 de la revision: en un hotfix el tope es 1 agente, subir la
+        // complejidad no cambia nada y el consejo mandaria en mala direccion.
+        (task.tipo === 'hotfix' ? '' : ' Si hace falta, sube la complejidad.'));
     // --- Seleccion determinista de skill (seccion 6.6/16.4.1, TASK-017) -
     // Mismo criterio fail-closed que la heuristica de arriba, y por eso
     // va aqui y no mas abajo (hallazgo IMPORTANTE de revision por pares,
