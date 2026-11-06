@@ -1,7 +1,6 @@
 # Changelog
 
 ## Sin publicar
-- TASK-076 (fix) — Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico (2026-11-06)
 
 ## 0.9.0 — 2026-11-06
 
@@ -21,6 +20,7 @@ Actualizar con `claude plugin marketplace update taskcode-marketplace`,
 `claude plugin update taskcode-plugin@taskcode-marketplace` y reiniciar
 Claude Code (o `/reload-plugins`). Despues, `taskctl doctor` en cada proyecto.
 
+- TASK-076 (fix) — Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico (2026-11-06)
 - TASK-074 (feature) — Cobertura sobre las lineas cambiadas (2026-11-05)
 - TASK-078 (feature) — Hook que impide leer y editar los held-out de la tarea en curso (2026-11-05)
 - TASK-075 (fix) — Contrapruebas de descubrimiento rotas por el validador de Claude Code 2.1.316+ (2026-11-05)

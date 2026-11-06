@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 85 / 88 items terminados (97%)** · última actualización: 2026-11-05
+**Progreso global: 86 / 88 items terminados (98%)** · última actualización: 2026-11-06
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -36,8 +36,8 @@ tomada y documentada, no aplazada.
 | ✅ I — Métricas v2 | 3 | **3** | — |
 | ✅ J — Doctor-deploy | 3 | **3** | — |
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
-| L — Mantenimiento | 2 | **1** | — |
-| **Total pendiente** | **1** | — | — |
+| ✅ L — Mantenimiento | 2 | **2** | — |
+| **Total pendiente** | **0** | — | — |
 
 ---
 
@@ -953,7 +953,7 @@ gemba-app/brakes (Apache-2.0), sin copiar código. Empieza por un spike.
       informe precisada tres veces por Carlos; MEN-9 y MEN-10 (huecos de test)
       aceptados. Seguimiento: dogfooding en este repo.*
 
-## L — Mantenimiento (1/2)
+## ✅ L — Mantenimiento (2/2)
 
 Arreglos que salen al revisar otras tareas y no son de ninguna fase.
 
@@ -965,6 +965,14 @@ Arreglos que salen al revisar otras tareas y no son de ninguna fase.
       pase). Tests 13/14/16/17 lo usan; test unitario que corre en CI. En
       Windows quedan solo los 3 rojos conocidos. 2 rondas: MEN-1 (corte anclado a
       principio de línea) corregido; MEN-2 aceptado.*
-- [ ] TASK-076 — `taskctl doctor` avisa de hooks PreToolUse sobre Agent que
+- [x] TASK-076 — `taskctl doctor` avisa de hooks PreToolUse sobre Agent que
       bloquean los subagentes en modo automatico, y version nueva del plugin
-      para avisar a todos los proyectos (detectado durante TASK-068)
+      para avisar a todos los proyectos (detectado durante TASK-068) — cerrada el 2026-11-06
+      *Comprobación `hooks-subagente` (AVISO, id fijo, origen + ruta + matcher):
+      settings de usuario, proyecto y local, y la versión activa de cada plugin
+      habilitado (`installed_plugins.json`, `enabledPlugins`, `projectPath`,
+      `hooks.json` y `hooks` de `plugin.json`); respeta `disableAllHooks`. Matcher
+      con regex anclada y `""`/`*`/ausente cuentan (decisión de Carlos). README con
+      «Problemas conocidos», regla en `avance.md`, versión 0.9.0 (sin publicar:
+      sale con TASK-079 y TASK-080). 2 rondas: MEN-1..5 corregidos; MEN-6 y MEN-7
+      aceptados.*
