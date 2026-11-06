@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor, hooks, plugin]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-076-doctor-avisa-de-hooks-pretooluse-sobre-a
 asignado_a: charlie.bk@gmail.com
@@ -79,6 +79,7 @@ Revision por pares, 2 rondas (code-quality-reviewer, sonnet):
 | 2026-11-06T18:10:17Z | start | automatico | persona |
 | 2026-11-06T18:40:12Z | review | automatico | persona |
 | 2026-11-06T19:22:35Z | review | automatico | persona |
+| 2026-11-06T19:34:46Z | finish | automatico | persona |
 
 ## Coste
 

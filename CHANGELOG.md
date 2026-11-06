@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-076 (fix) — Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico (2026-11-06)
 
 ## 0.9.0 — 2026-11-06
 
