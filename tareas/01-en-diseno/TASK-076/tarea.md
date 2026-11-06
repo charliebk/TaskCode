@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 842644
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-04
@@ -38,3 +38,9 @@ Desde Claude Code 2.1.317/2.1.318, el modo automatico puede denegar el lanzamien
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-06T17:59:51Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-06T18:09:51Z | diseno | agente:a1998e76cc4b8e3dd | 44 | 53619 | 776948 | 12033 | 34 | 842644 |
