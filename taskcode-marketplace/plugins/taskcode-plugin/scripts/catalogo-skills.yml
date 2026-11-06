@@ -71,8 +71,8 @@
 #                               real del SKILL.md correspondiente; no lo
 #                               sustituye ni se lee como fuente de verdad.
 #
-# PRIORIDAD - criterio seguido en esta version. Los tres revisores de
-# dominio (Angular/Vue, C#-AutoCAD-IFC, Java/Spring) llevan la misma
+# PRIORIDAD - criterio seguido en esta version. Los cuatro revisores de
+# dominio (Angular/Vue, C#-AutoCAD-IFC, Java/Spring, Rust/WASM) llevan la misma
 # prioridad (10): ninguno debe ganarle al otro por defecto, porque sus
 # etiquetas no se solapan entre si y en la practica nunca compiten por la
 # misma tarea. code-quality-reviewer lleva la prioridad mas baja (1) a
@@ -83,8 +83,9 @@
 # este mismo repo (y en cualquier proyecto que instale el plugin) es la
 # skill de ejecucion mas relevante siempre que exista la carpeta `tareas/`.
 #
-# CONTENIDO INICIAL - alcance de TASK-017. Las cinco entradas de abajo son
-# los cinco skills que YA trae `taskcode-plugin` (carpeta `skills/`), leidos
+# CONTENIDO INICIAL - alcance de TASK-017 (TASK-079 anadio la sexta,
+# rust-wasm-reviewer). Las cinco entradas de entonces eran
+# los cinco skills que YA traia `taskcode-plugin` (carpeta `skills/`), leidos
 # de su SKILL.md real. Ningun rol del brainstorm de disenio propuso que
 # skills externos entrar en esta primera version (quedo anotado en
 # plan-final.md como hueco de dominio, sin rol de especialista lanzado esa
@@ -103,7 +104,7 @@
 # que no cuadra con el numero de bloques presentes ABORTA taskctl plan
 # entero, con el mismo criterio que cargarHeuristica().
 
-total_skills: 5
+total_skills: 6
 
 # ---------------------------------------------------------------------
 # 1. task-workflow - skills/task-workflow/SKILL.md
@@ -159,3 +160,14 @@ skill_5_prioridad: 10
 skill_5_etiquetas: [java, spring, spring-boot, backend]
 skill_5_patrones_archivo: ["**/*.java", "src/main/java/**", "src/test/java/**", "**/pom.xml", "**/build.gradle", "**/build.gradle.kts", "**/settings.gradle", "**/settings.gradle.kts", "**/application*.properties", "**/application*.yml", "**/application*.yaml", "**/bootstrap*.yml", "**/src/main/resources/db/migration/**", "**/src/main/resources/db/changelog/**"]
 skill_5_descripcion: "Revision por pares de Java y Spring Boot: capas de servicio/repositorio, limites transaccionales y consultas N+1"
+
+# ---------------------------------------------------------------------
+# 6. rust-wasm-reviewer - skills/rust-wasm-reviewer/SKILL.md
+# ---------------------------------------------------------------------
+skill_6_id: rust-wasm-reviewer
+skill_6_origen: taskcode-plugin
+skill_6_rol: revisor
+skill_6_prioridad: 10
+skill_6_etiquetas: [rust, wasm, webassembly, wasm-bindgen, cargo]
+skill_6_patrones_archivo: ["**/*.rs", "**/Cargo.toml", "**/Cargo.lock", "**/build.rs", "**/.cargo/config.toml", "**/rust-toolchain.toml", "**/clippy.toml", "**/rustfmt.toml"]
+skill_6_descripcion: "Revision por pares de Rust y WebAssembly: ownership, errores sin panic, limite JS-WASM con wasm-bindgen y numerica en f64"

@@ -135,7 +135,7 @@ function errorAccionable(re: RegExp): (e: unknown) => boolean {
 // --------------------------------------------------------------------
 
 test('parsea el catalogo real del repo sin lanzar', () => {
-  assert.equal(CATALOGO.length, 5);
+  assert.equal(CATALOGO.length, 6);
   assert.deepEqual(
     CATALOGO.map((e) => e.id),
     [
@@ -144,6 +144,7 @@ test('parsea el catalogo real del repo sin lanzar', () => {
       'angular-vue-reviewer',
       'csharp-autocad-ifc-reviewer',
       'java-spring-reviewer',
+      'rust-wasm-reviewer',
     ]
   );
 });

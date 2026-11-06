@@ -91,6 +91,7 @@ test('skills/ contiene exactamente las skills esperadas, doctor-deploy entre ell
     'new',
     'plan',
     'review',
+    'rust-wasm-reviewer',
     'start',
     'task-workflow',
   ];

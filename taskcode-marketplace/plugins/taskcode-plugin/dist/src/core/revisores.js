@@ -3,7 +3,7 @@
  *
  * `taskctl review` invocaba siempre el mismo agente declarado en
  * `tarea.md` (`agente_revisor`), sin mirar que toca de verdad el diff.
- * TASK-032 (D6/D7) dejo cuatro skills revisoras con `patrones_archivo`,
+ * TASK-032 (D6/D7) dejo cuatro skills revisoras (TASK-079 anadio la quinta, rust-wasm) con `patrones_archivo`,
  * `fallback` y `umbral_dominios` declarados en un bloque ```yaml de su
  * SKILL.md, pero SOLO como texto: el unico lector que existia era el
  * helper `bloqueYaml()` de test/skills/revisores.test.ts, sin ningun
