@@ -41,6 +41,7 @@ Desde Claude Code 2.1.317/2.1.318, el modo automatico puede denegar el lanzamien
 | 2026-11-06T18:10:02Z | approve | automatico | automatico |
 | 2026-11-06T18:10:17Z | start | automatico | persona |
 | 2026-11-06T18:40:12Z | review | automatico | persona |
+| 2026-11-06T19:22:35Z | review | automatico | persona |
 
 ## Coste
 
