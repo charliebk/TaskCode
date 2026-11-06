@@ -2,7 +2,7 @@
 
 - Commit revisado: b554c67ac6ab1504ebe5cfa74248c52872846910
 - Revisor: code-quality-reviewer (agente revisor independiente, general-purpose, sonnet), con revision del contenido tecnico Rust/WASM de rust-wasm-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-079 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 Veredicto propuesto por el revisor: aprobada (sin CRITICO ni IMPORTANTE; los 7 criterios se cumplen;
 6 MENOR). Quien orquesta lo registra como cambios-solicitados para corregir MEN-2 y MEN-3 (la skill se
