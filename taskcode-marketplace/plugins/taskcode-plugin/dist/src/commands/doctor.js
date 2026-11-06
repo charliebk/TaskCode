@@ -414,9 +414,16 @@ const ARREGLO_HOOKS_SUBAGENTE = 'Con el modo de permisos automatico, Claude Code
 export function comprobarHooksSubagente(deps) {
     const s = sondearHooksClaude(deps.configClaudeDir ?? directorioConfigClaude(), deps.repoCwd);
     const cs = s.hallazgos.map((h) => aviso('hooks-subagente', una(`${h.origen} tiene un hook PreToolUse que alcanza a Agent/Task (matcher "${h.matcher}") en ${h.ruta}`), ARREGLO_HOOKS_SUBAGENTE));
+    if (s.hooksDesactivadosEn !== null) {
+        return [ok('hooks-subagente', una(`los hooks estan desactivados (disableAllHooks en ${s.hooksDesactivadosEn})`))];
+    }
+    const nota = s.ilegibles.length === 0 ? '' : `; sin leer: ${s.ilegibles.join('; ')}`;
     if (cs.length === 0) {
-        const nota = s.ilegibles.length === 0 ? '' : `; sin leer: ${s.ilegibles.join('; ')}`;
         cs.push(ok('hooks-subagente', una(`ningun hook PreToolUse alcanza a Agent/Task (${s.leidos} ficheros leidos${nota})`)));
+    }
+    else if (nota !== '') {
+        // Con avisos, los ilegibles se siguen nombrando (revision ronda 1, MEN-4); no son un aviso mas.
+        cs.push(omitida('hooks-subagente', una(`ficheros sin leer al buscar hooks${nota.replace(/^;/, ':')}`)));
     }
     return cs;
 }

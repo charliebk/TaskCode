@@ -35,7 +35,7 @@ function mismaRuta(a, b) {
     return n(a) === n(b);
 }
 export function sondearHooksClaude(configDir, repoCwd) {
-    const r = { hallazgos: [], leidos: 0, ilegibles: [] };
+    const r = { hallazgos: [], leidos: 0, ilegibles: [], hooksDesactivadosEn: null };
     const leer = (ruta) => {
         const l = leerJson(ruta);
         if (l.estado === 'ok') {
@@ -56,6 +56,13 @@ export function sondearHooksClaude(configDir, repoCwd) {
     const usuario = leer(rutaUsuario);
     const proyecto = leer(rutaProyecto);
     const local = leer(rutaLocal);
+    // `disableAllHooks` en cualquiera de los settings apaga todos los hooks (revision ronda 1, MEN-3).
+    for (const [s, ruta] of [[local, rutaLocal], [proyecto, rutaProyecto], [usuario, rutaUsuario]]) {
+        if (esObjeto(s) && s['disableAllHooks'] === true) {
+            r.hooksDesactivadosEn = ruta;
+            return r;
+        }
+    }
     examinar(usuario, 'settings de usuario', rutaUsuario);
     examinar(proyecto, 'settings del proyecto', rutaProyecto);
     examinar(local, 'settings locales del proyecto', rutaLocal);

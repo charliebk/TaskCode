@@ -7,7 +7,8 @@
  *
  * Semantica del matcher (plan de TASK-076, Carlos 2026-11-06):
  * - `""`, `"*"` o sin matcher: alcanza a todas las herramientas, cuenta.
- * - Solo letras, digitos, `_` y `|`: lista de nombres exactos separada por `|`.
+ * - Solo letras, digitos, `_` y `|` (tras quitar los espacios alrededor de
+ *   cada `|`): lista de nombres exactos separada por `|`.
  * - Cualquier otra cosa: regex anclada (`^(?:...)$`); si no compila, se parte
  *   por `|` y se compara literal.
  */
@@ -25,7 +26,7 @@ export interface HallazgoHook {
 }
 
 function porNombres(matcher: string): boolean {
-  const nombres = matcher.split('|').map((n) => n.trim());
+  const nombres = matcher.split('|');
   return HERRAMIENTAS_SUBAGENTE.some((h) => nombres.includes(h));
 }
 
@@ -33,7 +34,11 @@ function porNombres(matcher: string): boolean {
 export function matcherAlcanzaSubagente(matcher: unknown): boolean {
   if (matcher === undefined || matcher === null) return true;
   if (typeof matcher !== 'string') return false;
-  const m = matcher.trim();
+  // Sin espacios alrededor de cada `|`: "Bash | Agent" es la lista Bash, Agent (revision ronda 1, MEN-1).
+  const m = matcher
+    .split('|')
+    .map((n) => n.trim())
+    .join('|');
   if (m === '' || m === '*') return true;
   if (/^[A-Za-z0-9_|]+$/.test(m)) return porNombres(m);
   let re: RegExp;

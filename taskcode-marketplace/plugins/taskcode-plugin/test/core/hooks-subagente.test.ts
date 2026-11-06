@@ -15,6 +15,15 @@ test('matcher: nombres exactos y listas con |', () => {
   }
 });
 
+test('matcher: espacios alrededor de | no esconden el nombre (revision ronda 1, MEN-1)', () => {
+  assert.equal(matcherAlcanzaSubagente('Bash | Agent'), true);
+  assert.equal(matcherAlcanzaSubagente(' Read |Task '), true);
+  assert.equal(matcherAlcanzaSubagente('Bash | Read'), false);
+  assert.equal(matcherAlcanzaSubagente('   '), true); // equivale a vacio
+  assert.equal(matcherAlcanzaSubagente('(Agent | Task)'), true);
+  assert.equal(matcherAlcanzaSubagente('Ag'), false); // regex anclada, decision del plan (aceptado en ronda 1)
+});
+
 test('matcher: vacio, * o ausente alcanzan a todo; un no-string no', () => {
   assert.equal(matcherAlcanzaSubagente(''), true);
   assert.equal(matcherAlcanzaSubagente('*'), true);

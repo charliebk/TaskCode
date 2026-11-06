@@ -194,6 +194,39 @@ test('JSON roto o installed_plugins.json con formato desconocido: no es error, s
   });
 });
 
+test('disableAllHooks en cualquiera de los settings: ok que lo dice, sin avisos (revision ronda 1, MEN-3)', async () => {
+  await conRepo(async (repoRoot) => {
+    await conConfig(async (config) => {
+      await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
+      await escribirJson(path.join(config, 'settings.json'), { hooks: { PreToolUse: [{ matcher: 'Agent' }] } });
+      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso', 'aviso']);
+      const local = path.join(repoRoot, '.claude', 'settings.local.json');
+      await escribirJson(local, { disableAllHooks: true });
+      const cs = hooks(repoRoot, config);
+      assert.deepEqual(cs.map((c) => c.nivel), ['ok']);
+      assert.ok(cs[0]?.mensaje.includes('disableAllHooks') && cs[0].mensaje.includes(local), cs[0]?.mensaje);
+      await escribirJson(local, { disableAllHooks: false });
+      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso', 'aviso']);
+    });
+  });
+});
+
+test('con avisos, los ficheros ilegibles se siguen nombrando en una omitida (revision ronda 1, MEN-4)', async () => {
+  await conRepo(async (repoRoot) => {
+    await conConfig(async (config) => {
+      await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
+      const roto = path.join(repoRoot, '.claude', 'settings.json');
+      await mkdir(path.dirname(roto), { recursive: true });
+      await writeFile(roto, '{ roto', 'utf8');
+      const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: config });
+      const cs = r.comprobaciones.filter((c) => c.id === 'hooks-subagente');
+      assert.deepEqual(cs.map((c) => c.nivel), ['aviso', 'omitida']);
+      assert.ok(cs[1]?.mensaje.startsWith('ficheros sin leer al buscar hooks: ') && cs[1].mensaje.includes(roto), cs[1]?.mensaje);
+      assert.equal(r.codigo, 0);
+    });
+  });
+});
+
 test('CLI --json: el aviso lleva el id estable hooks-subagente, nivel aviso y arreglo; codigo 0', async () => {
   await conRepo(async (repoRoot) => {
     await conConfig(async (config) => {

@@ -7,14 +7,15 @@
  *
  * Semantica del matcher (plan de TASK-076, Carlos 2026-11-06):
  * - `""`, `"*"` o sin matcher: alcanza a todas las herramientas, cuenta.
- * - Solo letras, digitos, `_` y `|`: lista de nombres exactos separada por `|`.
+ * - Solo letras, digitos, `_` y `|` (tras quitar los espacios alrededor de
+ *   cada `|`): lista de nombres exactos separada por `|`.
  * - Cualquier otra cosa: regex anclada (`^(?:...)$`); si no compila, se parte
  *   por `|` y se compara literal.
  */
 /** Herramientas con las que Claude Code lanza subagentes. */
 export const HERRAMIENTAS_SUBAGENTE = ['Agent', 'Task'];
 function porNombres(matcher) {
-    const nombres = matcher.split('|').map((n) => n.trim());
+    const nombres = matcher.split('|');
     return HERRAMIENTAS_SUBAGENTE.some((h) => nombres.includes(h));
 }
 /** true si un matcher de PreToolUse se aplica a `Agent` o a `Task`. */
@@ -23,7 +24,11 @@ export function matcherAlcanzaSubagente(matcher) {
         return true;
     if (typeof matcher !== 'string')
         return false;
-    const m = matcher.trim();
+    // Sin espacios alrededor de cada `|`: "Bash | Agent" es la lista Bash, Agent (revision ronda 1, MEN-1).
+    const m = matcher
+        .split('|')
+        .map((n) => n.trim())
+        .join('|');
     if (m === '' || m === '*')
         return true;
     if (/^[A-Za-z0-9_|]+$/.test(m))

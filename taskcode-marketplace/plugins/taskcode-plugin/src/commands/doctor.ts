@@ -566,9 +566,15 @@ export function comprobarHooksSubagente(deps: DoctorCommandDeps): Comprobacion[]
       ARREGLO_HOOKS_SUBAGENTE
     )
   );
+  if (s.hooksDesactivadosEn !== null) {
+    return [ok('hooks-subagente', una(`los hooks estan desactivados (disableAllHooks en ${s.hooksDesactivadosEn})`))];
+  }
+  const nota = s.ilegibles.length === 0 ? '' : `; sin leer: ${s.ilegibles.join('; ')}`;
   if (cs.length === 0) {
-    const nota = s.ilegibles.length === 0 ? '' : `; sin leer: ${s.ilegibles.join('; ')}`;
     cs.push(ok('hooks-subagente', una(`ningun hook PreToolUse alcanza a Agent/Task (${s.leidos} ficheros leidos${nota})`)));
+  } else if (nota !== '') {
+    // Con avisos, los ilegibles se siguen nombrando (revision ronda 1, MEN-4); no son un aviso mas.
+    cs.push(omitida('hooks-subagente', una(`ficheros sin leer al buscar hooks${nota.replace(/^;/, ':')}`)));
   }
   return cs;
 }
