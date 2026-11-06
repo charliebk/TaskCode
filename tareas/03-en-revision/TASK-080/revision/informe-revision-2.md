@@ -2,7 +2,7 @@
 
 - Commit revisado: 848ea1b (revision incremental desde d49d92500e05ab07b896ac4b6e398cd7efb12839)
 - Revisor: code-quality-reviewer (agente general-purpose independiente, modelo sonnet)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-080 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada
 
 ## Hallazgos
 
