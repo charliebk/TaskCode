@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 2267798
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 4026078
 creado: 2026-11-06
 actualizado: 2026-11-06
 dependencias: []
@@ -49,3 +49,4 @@ Hoy ninguna skill revisora reclama ficheros Rust, asi que taskctl review manda t
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-06T18:57:11Z | diseno | agente:a0945abf517696826,aacf0a92d54aa51b9,a539e553c5c399498 | 80 | 213536 | 2017152 | 37030 | 54 | 2267798 |
+| 2026-11-06T20:18:03Z | revision | agente:a33724f6940d3d651 | 64 | 157685 | 3848856 | 19473 | 4 | 4026078 |
