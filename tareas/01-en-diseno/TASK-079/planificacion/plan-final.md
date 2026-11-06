@@ -49,4 +49,5 @@ Los desacuerdos entre roles se senalan, no se promedian.)
 
 ## Lo que necesita decision de una persona
 - Versión: 0.10.0 (propuesta del orquestador, porque 0.9.0 la toma TASK-076 sin mergear) o 0.9.0 y reajustar si 076 entra antes — depende del orden de merge, que no decide este rol.
+- **Decidido por la persona (2026-11-06): versión 0.10.0.**
 - Aprobar el plan entero con `taskctl approve`, incluidas las elecciones de arriba (Cargo.lock y tomls dentro, lado TS obligatorio, sin entradas externas, tocar `code-quality-reviewer`) — sin esa aprobación no se implementa.
