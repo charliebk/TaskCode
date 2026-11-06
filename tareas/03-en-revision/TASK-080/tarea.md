@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 3070861
 tokens_implementacion: null
-tokens_revision: 7845662
+tokens_revision: 9942791
 creado: 2026-11-06
 actualizado: 2026-11-06
 dependencias: []
@@ -50,3 +50,4 @@ Tres refuerzos pedidos por la persona. Primero, la accesibilidad WCAG 2.2 dentro
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-06T21:13:18Z | diseno | agente:ae91fdc05286e3c5d,a2d673ab9621e7d07,a6241d7727e43c650,ad36fb944f6fa6717 | 112 | 275361 | 2751344 | 44044 | 83 | 3070861 |
 | 2026-11-06T22:38:43Z | revision | agente:a997ec01fea174e67 | 100 | 185300 | 7630902 | 29360 | 4 | 7845662 |
+| 2026-11-06T23:15:53Z | revision | agente:a504d99e341f74e57 | 40 | 112236 | 1976671 | 8182 | 2 | 2097129 |
