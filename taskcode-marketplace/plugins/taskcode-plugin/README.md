@@ -252,11 +252,11 @@ ejecución aplicado:
 
 ```
 $ node bin/taskctl --help
-taskctl 0.8.0 — TaskCode
+taskctl 0.9.0 — TaskCode
 [...]
 
 $ ./bin/taskctl --help          # ejecución directa vía shebang + bit +x
-taskctl 0.8.0 — TaskCode
+taskctl 0.9.0 — TaskCode
 [...]                            # salida idéntica
 
 $ PATH="$(pwd)/bin:$PATH" taskctl --version   # simula resolución por PATH
@@ -489,6 +489,45 @@ comprobación desde esta misma sesión. Quedó descartado por alcance/tiempo,
 no porque no fuera técnicamente posible — se deja anotado como opción más
 barata que esperar a una sesión nativa, por si alguien quiere intentarlo
 antes.
+
+## Problemas conocidos
+
+### Un subagente se deniega con «Auto-Mode Bypass»
+
+**Síntoma.** Con Claude Code en modo de permisos automático (*auto mode*; no
+confundir con `modo_flujo: automatico` del plugin), las fases que lanzan subagentes (`plan` con
+sus roles y el unificador, `review` con los revisores) se paran porque Claude
+Code deniega el lanzamiento y cita *Auto-Mode Bypass*, sin más explicación.
+
+**Causa.** Desde Claude Code 2.1.317/2.1.318, el modo automático deniega el
+lanzamiento de un subagente cuando un hook `PreToolUse` cuyo matcher alcanza
+a `Agent` (o `Task`) reescribe el encargo. Es lo que hace, por ejemplo,
+context-mode 1.0.169, que añade un bloque al prompt de cada subagente. El
+hook puede venir de otro plugin instalado o de un `settings.json` (de
+usuario, de proyecto o `settings.local.json`).
+
+**Diagnóstico.** `taskctl doctor` (o `taskctl doctor --json`) lo detecta: da
+un AVISO con id `hooks-subagente` por cada hook `PreToolUse` cuyo matcher
+alcanza a `Agent` o `Task` (también `""`, `"*"` o sin matcher), con el origen
+(plugin o settings), la ruta del fichero y el matcher literal. Solo mira los
+plugins habilitados (`enabledPlugins`) y la versión instalada activa de cada
+uno. Es un aviso y no cambia el código de salida: el hook puede ser inocuo.
+
+**Salidas** (cualquiera de las tres):
+
+1. **Quitar `Agent` y `Task` del matcher.** Si el hook está en tus settings,
+   edítalo. Si es de un plugin, sus ficheros se sobrescriben al actualizarlo:
+   la forma estable es un hook propio de `SessionStart` en tus settings que,
+   al arrancar cada sesión, reescriba el `hooks.json` de ese plugin sin
+   `Agent` ni `Task` en el matcher.
+2. **Desactivar el plugin causante:** `"enabledPlugins": { "<plugin>@<marketplace>": false }`
+   en `settings.json`, o `/plugin` en Claude Code.
+3. **Aprobar a mano cada lanzamiento:** salir del modo de permisos
+   automático de Claude Code (por ejemplo, al modo por defecto, que pregunta)
+   mientras se lanzan los subagentes, y aprobar cada uno.
+
+Después, `taskctl doctor` debe dar `hooks-subagente` en `ok` (salvo que
+elijas la tercera salida).
 
 ## Mecanismo determinista de sección 14 (punto 11): sigue sin confirmarse
 

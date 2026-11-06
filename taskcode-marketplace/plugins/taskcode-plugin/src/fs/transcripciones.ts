@@ -4,15 +4,11 @@
  * `<config>` = `CLAUDE_CONFIG_DIR` si esta definida y, si no, `~/.claude`.
  */
 import { readdir, readFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import path from 'node:path';
 import { esAgentIdValido } from '../core/coste-transcripcion.js';
 import { isEnoent, isEnotdir } from './task-store.js';
 
-export function directorioConfigClaude(env: NodeJS.ProcessEnv = process.env): string {
-  const d = env['CLAUDE_CONFIG_DIR'];
-  return d !== undefined && d.trim() !== '' ? d : path.join(homedir(), '.claude');
-}
+export { directorioConfigClaude } from './config-claude.js';
 
 async function subdirectorios(dir: string): Promise<string[]> {
   try {

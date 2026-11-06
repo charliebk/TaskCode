@@ -51,6 +51,8 @@ import { resolveGitflowScriptsDir, sondearBash } from '../fs/gitflow-runner.js';
 import { urlsDeOrigin } from '../fs/git.js';
 import { sondearCli } from '../fs/merge-request.js';
 import { resolverRemotoDeOrigin } from './finish-opciones.js';
+import { directorioConfigClaude } from '../fs/config-claude.js';
+import { sondearHooksClaude } from '../fs/sondas-hooks-claude.js';
 
 export class DoctorCommandError extends Error {}
 
@@ -70,6 +72,8 @@ export interface DoctorCommandDeps {
   timeoutPlataformaMs?: number;
   /** Timeout de `git status` (por defecto 15 s). Para los tests. */
   timeoutGitMs?: number;
+  /** Directorio de configuracion de Claude Code (por defecto CLAUDE_CONFIG_DIR o ~/.claude). Para los tests. */
+  configClaudeDir?: string;
 }
 
 export interface DoctorCommandResult {
@@ -539,6 +543,43 @@ function comprobarPlataforma(cwd: string, cfg: TaskcodeConfig | null, hayOrigin:
 }
 
 // ---------------------------------------------------------------------
+// Hooks que alcanzan a los subagentes (TASK-076)
+// ---------------------------------------------------------------------
+
+const ARREGLO_HOOKS_SUBAGENTE =
+  'Con el modo de permisos automatico, Claude Code puede denegar el lanzamiento de subagentes (Auto-Mode Bypass) si un hook ' +
+  'PreToolUse reescribe el encargo. Salidas: quita Agent y Task del matcher de ese hook (si es de un plugin, con ' +
+  'un hook propio de SessionStart que lo reescriba al arrancar), desactiva el plugin causante en enabledPlugins, ' +
+  'o sal del modo de permisos automatico y aprueba a mano cada lanzamiento. Ver "Problemas conocidos" en el README del plugin.';
+
+/**
+ * Siempre aviso como maximo: los ficheros son de terceros y el hook puede ser
+ * inocuo. La sonda no lanza, asi que un fichero ajeno roto nunca acaba en el
+ * `error` de `envolver`: se nombra en el mensaje y sigue.
+ */
+export function comprobarHooksSubagente(deps: DoctorCommandDeps): Comprobacion[] {
+  const s = sondearHooksClaude(deps.configClaudeDir ?? directorioConfigClaude(), deps.repoCwd);
+  const cs: Comprobacion[] = s.hallazgos.map((h) =>
+    aviso(
+      'hooks-subagente',
+      una(`${h.origen} tiene un hook PreToolUse que alcanza a Agent/Task (matcher "${h.matcher}") en ${h.ruta}`),
+      ARREGLO_HOOKS_SUBAGENTE
+    )
+  );
+  if (s.hooksDesactivadosEn !== null) {
+    return [ok('hooks-subagente', una(`los hooks estan desactivados (disableAllHooks en ${s.hooksDesactivadosEn})`))];
+  }
+  const nota = s.ilegibles.length === 0 ? '' : `; sin leer: ${s.ilegibles.join('; ')}`;
+  if (cs.length === 0) {
+    cs.push(ok('hooks-subagente', una(`ningun hook PreToolUse alcanza a Agent/Task (${s.leidos} ficheros leidos${nota})`)));
+  } else if (nota !== '') {
+    // Con avisos, los ilegibles se siguen nombrando (revision ronda 1, MEN-4); no son un aviso mas.
+    cs.push(omitida('hooks-subagente', una(`ficheros sin leer al buscar hooks${nota.replace(/^;/, ':')}`)));
+  }
+  return cs;
+}
+
+// ---------------------------------------------------------------------
 // Orquestacion
 // ---------------------------------------------------------------------
 
@@ -597,6 +638,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
       comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)
     )
   );
+  cs.push(...envolver('hooks-subagente', () => comprobarHooksSubagente(deps)));
 
   return {
     comprobaciones: cs,

@@ -6,6 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { runDoctorCommand } from '../../src/commands/doctor.js';
 import { NODE_MINIMO, nodeSoportado, type Comprobacion } from '../../src/core/doctor.js';
@@ -14,6 +15,8 @@ import { git } from '../helpers/finish-fixtures.js';
 import { plantillaRepo } from '../helpers/repo-plantilla.js';
 
 const PLUGIN_ROOT = path.join(import.meta.dirname, '..', '..', '..');
+/** Config de Claude Code que no existe: los hooks de la maquina no entran en estos tests (TASK-076, MEN-5). */
+const SIN_CONFIG_CLAUDE = path.join(tmpdir(), 'taskctl-doctor-sin-config-claude-no-existe');
 
 const conRepo = plantillaRepo('taskctl-doctor-corr-', async (repoRoot) => {
   git(['init', '-q', '-b', 'main'], repoRoot);
@@ -44,7 +47,7 @@ test('config invalida: lo que depende de la config sale omitido, no ok con los v
   await conRepo(async (repoRoot) => {
     // rama_base valida pero distinta de develop, y un valor invalido en otra clave.
     await config(repoRoot, 'rama_base: dev\nmodo_flujo: xx\n');
-    const r = runDoctorCommand([], { repoCwd: repoRoot });
+    const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE });
     assert.equal(por(r.comprobaciones, 'config').nivel, 'error');
     const base = por(r.comprobaciones, 'rama-base');
     assert.equal(base.nivel, 'omitida');
@@ -60,7 +63,7 @@ test('config invalida: lo que depende de la config sale omitido, no ok con los v
 test('config invalida y sin origin: origin se omite (no se sabe si hace falta), no es aviso ni error por defecto', async () => {
   await conRepo(async (repoRoot) => {
     await config(repoRoot, 'cierre_por_defecto: merge-request\nlimite_wip: abc\n');
-    const o = por(runDoctorCommand([], { repoCwd: repoRoot }).comprobaciones, 'origin');
+    const o = por(runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE }).comprobaciones, 'origin');
     assert.equal(o.nivel, 'omitida');
     assert.match(o.mensaje, /config invalida/);
   });
@@ -70,13 +73,13 @@ test('config invalida y sin origin: origin se omite (no se sabe si hace falta), 
 test('el mensaje de la config no repite el prefijo [ERROR] / [AVISO], ni en texto ni en JSON', async () => {
   await conRepo(async (repoRoot) => {
     await config(repoRoot, 'limite_wip: abc\n');
-    const r = runDoctorCommand([], { repoCwd: repoRoot });
+    const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE });
     assert.doesNotMatch(r.salida, /\[ERROR\][^\n]*\[ERROR\]/);
     assert.match(por(r.comprobaciones, 'config').mensaje, /^[^[]/);
-    const j = JSON.parse(runDoctorCommand(['--json'], { repoCwd: repoRoot }).salida) as { comprobaciones: Comprobacion[] };
+    const j = JSON.parse(runDoctorCommand(['--json'], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE }).salida) as { comprobaciones: Comprobacion[] };
     assert.doesNotMatch(por(j.comprobaciones, 'config').mensaje, /^\[(ERROR|AVISO)\]/);
     await config(repoRoot, 'clave_rara: 1\n');
-    const a = runDoctorCommand([], { repoCwd: repoRoot });
+    const a = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE });
     assert.doesNotMatch(a.salida, /\[AVISO\][^\n]*\[AVISO\]/);
     assert.doesNotMatch(por(a.comprobaciones, 'config-claves').mensaje, /^\[AVISO\]/);
     assert.match(por(a.comprobaciones, 'config-claves').mensaje, /clave_rara/);
@@ -103,7 +106,7 @@ test('git status que no responde a tiempo es aviso, no error (timeout propio)', 
     // Un fsmonitor que tarda 30 s: git status se queda esperando al hook.
     git(['config', 'core.fsmonitor', 'sleep 30 #'], repoRoot);
     const t0 = Date.now();
-    const r = runDoctorCommand([], { repoCwd: repoRoot, timeoutGitMs: 1500 });
+    const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE, timeoutGitMs: 1500 });
     const w = por(r.comprobaciones, 'workspace');
     if (Date.now() - t0 > 25_000) return t.skip('esta version de Git no espera al hook de fsmonitor');
     assert.equal(w.nivel, 'aviso', `${w.nivel}: ${w.mensaje}`);

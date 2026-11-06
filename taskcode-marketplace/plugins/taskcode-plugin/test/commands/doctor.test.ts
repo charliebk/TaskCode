@@ -26,6 +26,8 @@ import { conDoblePlataforma, sinPlataformasEnElPath } from '../helpers/plataform
 
 const TASKCTL = path.join(import.meta.dirname, '..', '..', '..', 'bin', 'taskctl');
 const CARPETAS = Object.values(STATE_FOLDER);
+/** Config de Claude Code que no existe: los hooks de la maquina no cambian los avisos que cuentan estos tests (TASK-076). */
+const SIN_CONFIG_CLAUDE = path.join(tmpdir(), 'taskctl-doctor-sin-config-claude-no-existe');
 
 /** Proyecto completo: main + develop, las cinco carpetas commiteadas, sin remotos, workspace limpio. */
 const conRepo = plantillaRepo('taskctl-doctor-', async (repoRoot) => {
@@ -43,7 +45,7 @@ const conRepo = plantillaRepo('taskctl-doctor-', async (repoRoot) => {
 });
 
 function doctor(repoRoot: string, opts: { timeoutPlataformaMs?: number; scriptsDir?: string } = {}) {
-  return runDoctorCommand([], { repoCwd: repoRoot, ...opts });
+  return runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE, ...opts });
 }
 
 function por(cs: readonly Comprobacion[], id: string): Comprobacion {
@@ -75,7 +77,11 @@ async function config(repoRoot: string, texto: string): Promise<void> {
 }
 
 function cli(cwd: string, args: string[]) {
-  const r = spawnSync(process.execPath, [TASKCTL, ...args], { cwd, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [TASKCTL, ...args], {
+    cwd,
+    encoding: 'utf8',
+    env: { ...process.env, CLAUDE_CONFIG_DIR: SIN_CONFIG_CLAUDE },
+  });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 }
 
