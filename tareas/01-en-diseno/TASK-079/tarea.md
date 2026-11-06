@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 2267798
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-06
@@ -40,3 +40,9 @@ Hoy ninguna skill revisora reclama ficheros Rust, asi que taskctl review manda t
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-06T18:45:22Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-06T18:57:11Z | diseno | agente:a0945abf517696826,aacf0a92d54aa51b9,a539e553c5c399498 | 80 | 213536 | 2017152 | 37030 | 54 | 2267798 |
