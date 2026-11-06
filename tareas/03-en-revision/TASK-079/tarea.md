@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [skills, revisores, rust, wasm]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-079-revisor-por-pares-de-dominio-para-rust-y
 asignado_a: charlie.bk@gmail.com
@@ -42,6 +42,7 @@ Hoy ninguna skill revisora reclama ficheros Rust, asi que taskctl review manda t
 | 2026-11-06T18:45:22Z | plan | automatico | persona |
 | 2026-11-06T18:57:43Z | approve | automatico | persona |
 | 2026-11-06T19:39:24Z | start | automatico | persona |
+| 2026-11-06T20:01:34Z | review | automatico | persona |
 
 ## Coste
 
