@@ -2,7 +2,7 @@
 
 - Commit revisado: a35717aed117def8f12035bf6da7841af17d87de
 - Revisor: code-quality-reviewer (agente revisor independiente, general-purpose, sonnet; no implemento la tarea)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-076 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada con correcciones
 
 Veredicto propuesto por el revisor: aprobada-con-correcciones (sin CRITICO ni IMPORTANTE; los 5 MENOR
 de la ronda 1 corregidos; 2 MENOR nuevos que no justifican otra ronda). Quien orquesta acepta MEN-6 y
