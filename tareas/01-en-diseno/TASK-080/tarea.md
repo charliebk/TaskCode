@@ -15,7 +15,7 @@ skills_recomendados: [angular-vue-reviewer]
 regla_seleccion_skill: solape
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 3070861
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-06
@@ -39,3 +39,9 @@ Tres refuerzos pedidos por la persona. Primero, la accesibilidad WCAG 2.2 dentro
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-06T20:50:55Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-06T21:13:18Z | diseno | agente:ae91fdc05286e3c5d,a2d673ab9621e7d07,a6241d7727e43c650,ad36fb944f6fa6717 | 112 | 275361 | 2751344 | 44044 | 83 | 3070861 |
