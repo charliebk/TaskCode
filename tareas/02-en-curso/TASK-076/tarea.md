@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor, hooks, plugin]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-076-doctor-avisa-de-hooks-pretooluse-sobre-a
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Desde Claude Code 2.1.317/2.1.318, el modo automatico puede denegar el lanzamien
 |---|---|---|---|
 | 2026-11-06T17:59:51Z | plan | automatico | persona |
 | 2026-11-06T18:10:02Z | approve | automatico | automatico |
+| 2026-11-06T18:10:17Z | start | automatico | persona |
 
 ## Coste
 
