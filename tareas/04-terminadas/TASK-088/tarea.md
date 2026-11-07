@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor, verificacion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-088-taskctl-doctor-avisa-si-falta-comando-ve
 asignado_a: charlie.bk@gmail.com
@@ -83,6 +83,7 @@ Ronda 2: aprobada, sin hallazgos nuevos; todos los mutantes de las correcciones 
 | 2026-11-07T18:03:06Z | start | automatico | persona |
 | 2026-11-07T18:28:14Z | review | automatico | persona |
 | 2026-11-07T19:24:42Z | review | automatico | persona |
+| 2026-11-07T19:35:04Z | finish | automatico | persona |
 
 ## Coste
 

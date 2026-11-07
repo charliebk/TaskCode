@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-088 (feature) — taskctl doctor avisa si falta comando_verificacion con tests detectables (2026-11-07)
 - TASK-087 (feature) — taskctl doctor avisa si el plugin instalado esta desactualizado (2026-11-07)
 - TASK-086 (feature) — Descontar las pausas de las duraciones de las metricas (2026-11-07)
 
