@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 84782
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 757497
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -46,3 +46,4 @@ El test sin-literales-secretos de TASK-089 tolera por valor la clave de ejemplo 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T21:12:41Z | diseno | agente:a269401a4a2993ca0 | 8 | 23575 | 55275 | 5924 | 6 | 84782 |
+| 2026-11-07T22:04:10Z | revision | agente:a2042029b290b7741 | 16 | 101489 | 648966 | 7026 | 2 | 757497 |
