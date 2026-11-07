@@ -7,7 +7,7 @@ etiquetas: [revision, skills, flujo]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-082-autorrevision-del-implementador-antes-de
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Con la 0.8 ninguna tarea de ToolsaWeb salio en una sola ronda y el 86% de los ha
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T03:03:48Z | plan | automatico | persona |
+| 2026-11-07T09:50:16Z | approve | automatico | automatico |
 
 ## Coste
 
