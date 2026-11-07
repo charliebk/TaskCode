@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [doctor, distribucion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-087-taskctl-doctor-avisa-si-el-plugin-instal
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Un equipo estuvo en 0.8.0 mientras el repo iba por 0.10.0 sin saberlo. doctor co
 - [ ] Sin marketplace local o sin red no falla: informa de que no pudo comprobarlo
 - [ ] No cambia el codigo de salida de doctor; lo cubren tests con ficheros de plugins temporales
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-07T16:26:24Z | plan | automatico | persona |
