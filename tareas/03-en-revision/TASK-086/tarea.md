@@ -40,6 +40,7 @@ Las duraciones de taskctl metricas son de calendario y no descuentan pausas (un 
 | 2026-11-07T14:38:13Z | approve | automatico | automatico |
 | 2026-11-07T14:38:26Z | start | automatico | persona |
 | 2026-11-07T15:01:33Z | review | automatico | persona |
+| 2026-11-07T15:50:56Z | review | automatico | persona |
 
 ## Coste
 
