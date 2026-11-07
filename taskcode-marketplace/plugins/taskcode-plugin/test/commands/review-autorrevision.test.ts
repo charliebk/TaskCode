@@ -120,6 +120,18 @@ test('siguiente --json en fase review da las mismas revisoras que reparte review
   });
 });
 
+test('siguiente --json en fase review sin la rama de la tarea en local: sin campo revisores y sin error', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // En curso en develop y sin rama local (p. ej. solo en el remoto).
+    const task = sampleTask({ id: 'TASK-826', rama: 'feature/task-826-sin-rama-local' });
+    await writeTareaFile(tareasRoot, task, '## Objetivo\nProbar el caso sin rama.\n');
+    commitAll(repoRoot, 'tarea sin rama local');
+    const paso = await runSiguienteCommand(tareasRoot, ['TASK-826', '--json'], { repoCwd: repoRoot });
+    assert.equal(paso.fase, 'review');
+    assert.equal('revisores' in paso, false);
+  });
+});
+
 test('siguiente --json desde develop lee las revisoras de la rama de la tarea', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await tareaConDosDominios(repoRoot, tareasRoot, 'TASK-825', null);
