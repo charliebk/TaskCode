@@ -63,6 +63,17 @@ cuantas lecturas de ficheros hicieron); con `--tokens N`, una fila `manual`
 con solo el total. No la edites a mano: el total de la fase sigue siendo el
 campo `tokens_<fase>`, y la tabla es su desglose.
 
+En la fase **revision**, una llamada con varios `--agente` deja **una fila por
+agente** (en un solo commit), no una fila sumada: cada fila lleva la `ronda` y
+el `revisor` del agente, que se deducen de su transcripcion (el nombre
+`peticion-revision-N[-skill].md` que lleva el prompt con el que lo lanzaste;
+sin sufijo si la ronda no se fragmento). Lo que no se pueda deducir queda `-`,
+«sin atribuir». Asi se ve cuantas lecturas hizo cada revisor en cada ronda.
+Si una transcripcion no nombra su peticion, puedes declararlo con
+`--ronda N [--revisor <skill>]`, solo con un unico `--agente`: el revisor tiene
+que ser uno de los sufijos de los `peticion-revision-N-*.md` de la carpeta
+`revision/` de la tarea (texto libre da error).
+
 Un agente que se **reanuda** (el mismo id, otra vez con la herramienta Agent)
 acumula en su transcripcion los dos trabajos. Por eso, si el `--agente` ya esta
 anotado en `## Coste` de esa fase, `registrar-coste` suma solo lo que crecio la

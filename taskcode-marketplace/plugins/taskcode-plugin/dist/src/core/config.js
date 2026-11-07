@@ -12,6 +12,7 @@
  * | rutas_sincronizacion         | []                | fs/sincronizacion.ts    |
  * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
  * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
+ * | contexto_revision            | []                | commands/review.ts    |
  * | modo_flujo                   | manual            | core/flujo.ts, plan.ts, approve.ts |
  * | cierre_por_defecto           | merge             | siguiente.ts -> skill finish (modo automatico) |
  * | plataforma_remota            | null (por host)   | commands/finish-opciones.ts (--merge-request) |
@@ -118,6 +119,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
         '**/*-lock.*',
         'tareas/**',
     ]),
+    contexto_revision: Object.freeze([]),
     modo_flujo: 'manual',
     cierre_por_defecto: 'merge',
     plataforma_remota: null,
@@ -137,6 +139,7 @@ export const CLAVES_CONFIG = [
     'rutas_sincronizacion',
     'timeout_sincronizacion',
     'excluir_de_revision',
+    'contexto_revision',
     'modo_flujo',
     'cierre_por_defecto',
     'plataforma_remota',
@@ -361,6 +364,9 @@ export function parsearConfigConAvisos(contenido, ruta) {
             case 'excluir_de_revision':
                 config.excluir_de_revision = validarPatronesExclusion(donde, par.valor);
                 break;
+            case 'contexto_revision':
+                config.contexto_revision = validarPatronesExclusion(donde, par.valor, 'contexto_revision', false);
+                break;
             case 'modo_flujo':
                 config.modo_flujo = validarModoFlujo(donde, par.valor);
                 break;
@@ -526,27 +532,27 @@ function validarUmbralCobertura(donde, valor) {
  * `** /*.lock`), que es lo que una persona espera y no lo que hace
  * `:(glob)` a secas, donde `*` no cruza carpetas.
  */
-function validarPatronesExclusion(donde, valor) {
+function validarPatronesExclusion(donde, valor, clave = 'excluir_de_revision', anclar = true) {
     if (!Array.isArray(valor)) {
-        throw new ConfigError(`[ERROR] ${donde}: "excluir_de_revision" debe ser una lista entre corchetes, ` +
+        throw new ConfigError(`[ERROR] ${donde}: "${clave}" debe ser una lista entre corchetes, ` +
             `y es ${describirValor(valor)}.\n` +
-            '        Ejemplo: excluir_de_revision: [**/dist/**, **/*.lock]. Para no excluir ' +
-            'nada: excluir_de_revision: [].');
+            `        Ejemplo: ${clave}: [**/dist/**, **/*.lock]. Para no excluir ` +
+            `nada: ${clave}: [].`);
     }
     const patrones = [];
     for (const elemento of valor) {
         if (typeof elemento !== 'string' || elemento.trim() === '') {
-            throw new ConfigError(`[ERROR] ${donde}: "excluir_de_revision" contiene un elemento vacio o que no es texto.`);
+            throw new ConfigError(`[ERROR] ${donde}: "${clave}" contiene un elemento vacio o que no es texto.`);
         }
         const conBarras = elemento.trim().replace(/\\/g, '/');
         const absoluto = conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras);
         if (absoluto || conBarras.split('/').includes('..')) {
-            throw new ConfigError(`[ERROR] ${donde}: el patron "${elemento.trim()}" de "excluir_de_revision" no vale: ` +
+            throw new ConfigError(`[ERROR] ${donde}: el patron "${elemento.trim()}" de "${clave}" no vale: ` +
                 `${absoluto ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
                 '        Los patrones son relativos a la raiz del repo y siguen la semantica de ' +
                 'git :(glob) (por ejemplo **/dist/**).');
         }
-        const anclado = conBarras.includes('/') ? conBarras : `**/${conBarras}`;
+        const anclado = !anclar || conBarras.includes('/') ? conBarras : `**/${conBarras}`;
         if (!patrones.includes(anclado))
             patrones.push(anclado);
     }

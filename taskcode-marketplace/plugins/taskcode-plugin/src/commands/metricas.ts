@@ -35,6 +35,11 @@
  * TASK-084: `--por-version` agrupa las terminadas por la version de taskctl
  * de su ultimo `finish` (`core/versiones-metricas.ts`). Es otro agregado,
  * como `--evolucion` y `--grupos`: se combina con ellos y con `--json`.
+ *
+ * TASK-081: con `--tokens`, bajo la tabla y APARTE de ella, un bloque con las
+ * lecturas, la entrada y la cache_lectura de cada (ronda, revisor) de `## Coste`
+ * y los CRITICO/IMPORTANTE de su informe; `--json` lo lleva en `lecturasRevision`.
+ * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -56,6 +61,9 @@ import {
   claveTarea,
   etiquetaTarea,
   notasFilaEnriquecida,
+  formatearLecturasRevision,
+  lecturasRevisionJson,
+  type LecturaRevisionJson,
   BloqueTokensError,
   NOTA_TOKENS,
   renderBloqueTokens,
@@ -138,6 +146,8 @@ export interface MetricasCommandResult {
 export interface SalidaJsonMetricas {
   proyectos: { proyecto: string; ruta: string; tareas: number }[];
   sinCoste: ResumenSinCoste;
+  /** TASK-081: lecturas por (tarea, ronda, revisor), con sus CRITICO/IMPORTANTE; siempre presente. */
+  lecturasRevision: LecturaRevisionJson[];
   evolucion?: Evolucion;
   grupos?: Grupos;
   /** TASK-084: con `--por-version`. */
@@ -571,6 +581,7 @@ export async function runMetricasCommand(
         tareas: filas.filter((f) => f.proyecto === r.proyecto).length,
       })),
       sinCoste: resumenSinCoste(filas),
+      lecturasRevision: lecturasRevisionJson(filas),
       ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
       ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
       ...(conPorVersion ? { porVersion: calcularPorVersion(filas) } : {}),
@@ -627,6 +638,7 @@ export async function runMetricasCommand(
       NOTA_TOKENS,
       NOTA_DESGLOSE_TOKENS,
       '',
+      ...formatearLecturasRevision(f, varios),
     ];
   };
 

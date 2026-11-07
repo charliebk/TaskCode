@@ -26,7 +26,13 @@ punto, no un formalismo.
 3. Por cada `revision/peticion-revision-N*.md` de la ronda que no tenga ya su
    informe con veredicto (una por dominio si esta fragmentada), lanza un
    agente revisor independiente, en paralelo y en un solo mensaje, con la
-   skill revisora que nombra la peticion. Que reproduzca empiricamente (clon
+   skill revisora que nombra la peticion. **El prompt de cada revisor lleva
+   la ruta de SU peticion** (`revision/peticion-revision-N[-skill].md`): de
+   ahi deducen las metricas la ronda y el revisor de cada agente, y ahi esta
+   su `## Contexto permitido`. Si la peticion trae la linea
+   `- Modelo sugerido para esta ronda: <modelo> (...)`, lanza el revisor con
+   ESE modelo; si no, con el `modelo sugerido` de la linea `Agente a lanzar`.
+   Que reproduzca empiricamente (clon
    temporal, suite una vez, mutantes) y devuelva su informe con la tabla de
    hallazgos, con la columna `Origen` rellena en cada fila
    (`implementacion`, `plan` o `especificacion`: si el fallo es del codigo,

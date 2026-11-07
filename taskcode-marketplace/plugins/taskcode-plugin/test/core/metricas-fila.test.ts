@@ -68,6 +68,8 @@ function agente(fase: FilaCoste['fase'], fuente: string, e: number, w: number, r
     salida: s,
     lecturas: l,
     total: e + w + r + s,
+    ronda: null,
+    revisor: null,
   };
 }
 
@@ -82,12 +84,14 @@ function manual(fase: FilaCoste['fase'], total: number): FilaCoste {
     salida: null,
     lecturas: null,
     total,
+    ronda: null,
+    revisor: null,
   };
 }
 
 function filaTexto(f: FilaCoste): string {
   const c = (n: number | null): string => (n === null ? '-' : String(n));
-  return `| ${f.fecha} | ${f.fase} | ${f.fuente} | ${c(f.entrada)} | ${c(f.cacheEscritura)} | ${c(f.cacheLectura)} | ${c(f.salida)} | ${c(f.lecturas)} | ${String(f.total)} |`;
+  return `| ${f.fecha} | ${f.fase} | ${f.fuente} | ${c(f.entrada)} | ${c(f.cacheEscritura)} | ${c(f.cacheLectura)} | ${c(f.salida)} | ${c(f.lecturas)} | ${String(f.total)} |${f.ronda === null ? ' - | - |' : ''}`;
 }
 
 function cuerpoConCoste(filas: readonly FilaCoste[], extra = ''): string {

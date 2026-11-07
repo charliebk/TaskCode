@@ -25,6 +25,8 @@ const AGENTE: FilaCoste = {
   salida: 800,
   lecturas: 14,
   total: 93920,
+  ronda: null,
+  revisor: null,
 };
 
 const MANUAL: FilaCoste = {
@@ -37,6 +39,8 @@ const MANUAL: FilaCoste = {
   salida: null,
   lecturas: null,
   total: 5000,
+  ronda: null,
+  revisor: null,
 };
 
 const ANTIGUO = '## Objetivo\nAlgo.\n\n## Criterios de aceptacion\n- [ ] uno\n';
@@ -48,8 +52,8 @@ test('cuerpo sin seccion: la crea al final, deja el resto byte a byte y la fila 
     body.slice(ANTIGUO.length),
     '\n## Coste\n\n' +
       `${CABECERA_COSTE}\n` +
-      '|---|---|---|---|---|---|---|---|---|\n' +
-      '| 2026-10-25T14:03:22Z | diseno | agente:a1b2c3d4e5f60718 | 120 | 3000 | 90000 | 800 | 14 | 93920 |\n'
+      '|---|---|---|---|---|---|---|---|---|---|---|\n' +
+      '| 2026-10-25T14:03:22Z | diseno | agente:a1b2c3d4e5f60718 | 120 | 3000 | 90000 | 800 | 14 | 93920 | - | - |\n'
   );
   assert.deepEqual(leerCostes(body), [AGENTE]);
 });
@@ -63,7 +67,7 @@ test('una tarea antigua sin tabla no tiene filas, y leer no falla con basura', (
 test('la segunda fila va detras de la ultima de la tabla, sin reescribir la primera; la manual lleva "-"', () => {
   const una = anadirCoste(ANTIGUO, AGENTE);
   const dos = anadirCoste(una + '\nTexto despues de la tabla.\n', MANUAL);
-  assert.match(dos, /\| 93920 \|\n\| 2026-10-25T15:10:00Z \| implementacion \| manual \| - \| - \| - \| - \| - \| 5000 \|\n\nTexto despues/);
+  assert.match(dos, /\| 93920 \| - \| - \|\n\| 2026-10-25T15:10:00Z \| implementacion \| manual \| - \| - \| - \| - \| - \| 5000 \| - \| - \|\n\nTexto despues/);
   assert.deepEqual(leerCostes(dos), [AGENTE, MANUAL]);
 });
 

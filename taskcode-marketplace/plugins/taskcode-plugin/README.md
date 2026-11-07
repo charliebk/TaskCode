@@ -45,6 +45,28 @@ más de tres dominios, va entero al genérico):
 | `rust-wasm-reviewer` | Rust y WebAssembly | `.rs`, `Cargo.toml`, `Cargo.lock`, `build.rs`, `.cargo/config.toml`, toolchain/rustfmt/clippy |
 | `code-quality-reviewer` | Genérico | Lo que no casa con ningún dominio, o más de tres dominios a la vez |
 
+Cada petición de revisión trae una sección `## Contexto permitido` con lo que
+el revisor puede leer:
+- el `tarea.md` y `planificacion/` de la tarea;
+- los ficheros de su parte del diff, sin lo excluido ni los tests reservados;
+- las rutas que el proyecto añada con la clave `contexto_revision` de
+  `.taskcode/config.yml`, que es una lista de rutas, como `CLAUDE.md` o una
+  carpeta de documentación.
+
+La skill común de los revisores (sección «Lo que lees») manda no leer fuera de
+esa lista. Lo que se lea de más se justifica en `## Lecturas fuera del contexto
+permitido` del informe.
+
+En una ronda de verificación (la 2 o posterior), la petición añade la línea
+`- Modelo sugerido para esta ronda:` con un modelo un escalón más barato
+(opus→sonnet→haiku). Solo aparece si la ronda anterior cumple todo esto:
+- ningún CRÍTICO, en cualquier estado;
+- todas las tablas de hallazgos son legibles;
+- no hay ninguna severidad desconocida;
+- ningún informe sigue siendo la plantilla.
+
+En cualquier otro caso, el revisor usa el modelo de la tarea.
+
 ## Roles del brainstorm de diseño
 
 `taskctl plan` lanza roles de `agents/` según la complejidad, por este orden de
@@ -1212,6 +1234,15 @@ fase es un agente reanudado (su transcripción acumula los dos trabajos): se sum
 solo lo que creció su transcripción desde lo ya anotado para ese id, y la fila lo
 marca en su fuente (`agente:dif:<id>`), que `metricas` no avisa como repetida; si
 no ha crecido, o el id está anotado junto a otros en una misma fila, aborta.
+En `--fase revision` cada `--agente` va en **su propia fila** (en el mismo
+commit), con las columnas `ronda` y `revisor` que se deducen de su
+transcripción. Se sacan del nombre `peticion-revision-N[-skill].md` que lleva
+el prompt del revisor. Lo que no se puede deducir queda como `-` («sin
+atribuir»). Con un único `--agente`, `--ronda N [--revisor <skill>]` los
+declara a mano; el revisor se valida contra las peticiones de `revision/`.
+Las filas antiguas de 9 columnas se siguen leyendo. `metricas --tokens` las
+resume, por ronda y revisor, en un bloque aparte, también en `--json`: las
+lecturas, los tokens de entrada y caché, y los CRÍTICO e IMPORTANTE de su informe.
 `--tokens N` da una cifra a mano (la parte del
 orquestador, estimada) y se excluye con `--agente`. Si el id no se encuentra, está
 en más de una sesión o la transcripción no trae `usage`, aborta diciendo qué hacer

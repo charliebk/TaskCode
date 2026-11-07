@@ -34,12 +34,22 @@
  *    commit que el total. Con `--agente`, el desglose sumado de sus agentes
  *    (entrada, escritura y lectura de cache, salida, lecturas); con
  *    `--tokens N`, una fila `manual` con solo el total.
+ * 6. TASK-081: con `--fase revision` y `--agente`, UNA FILA POR AGENTE (en el
+ *    mismo fichero y commit), cada una con la ronda y el revisor que deduce
+ *    de su transcripcion (el nombre `peticion-revision-N[-skill].md` del
+ *    primer mensaje de usuario). Lo que no se deduce queda `-`: sin atribuir.
+ *    `--ronda N [--revisor <skill>]` lo declaran a mano, solo con un unico
+ *    `--agente`, y se validan contra las peticiones que hay en `revision/`.
+ *    Las otras fases siguen con una sola fila por llamada.
  */
-import { writeFile } from 'node:fs/promises';
+import { readdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible } from '../cli/args.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
-import { esAgentIdValido, sumarUsoTranscripcion } from '../core/coste-transcripcion.js';
+import { esAgentIdValido, rondaYRevisorDeTranscripcion, sumarUsoTranscripcion, } from '../core/coste-transcripcion.js';
+import { rondaYRevisorDePeticion } from '../fs/rondas.js';
+import { isEnoent, isEnotdir } from '../fs/task-store.js';
 import { anadirCoste, FASES_COSTE, PREFIJO_DIFERENCIA, idsDeFuente, leerCostes, } from '../core/coste-registro.js';
 import { formatearInstante } from '../core/transiciones.js';
 import { buscarTranscripciones, directorioConfigClaude, leerTranscripcion } from '../fs/transcripciones.js';
@@ -48,7 +58,15 @@ import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js'
 export class RegistrarCosteCommandError extends Error {
 }
 /** Flags de `taskctl registrar-coste`: --fase, --tokens y --agente, mas extraerPushFlag. */
-export const FLAGS_REGISTRAR_COSTE = ['--fase', '--tokens', '--agente', '--push', '-p'];
+export const FLAGS_REGISTRAR_COSTE = [
+    '--fase',
+    '--tokens',
+    '--agente',
+    '--ronda',
+    '--revisor',
+    '--push',
+    '-p',
+];
 /** Fase → campo de la tarea donde se acumula su coste. */
 export const CAMPO_COSTE_POR_FASE = {
     diseno: 'tokens_diseno',
@@ -57,7 +75,7 @@ export const CAMPO_COSTE_POR_FASE = {
 };
 export { FASES_COSTE };
 const USO = 'Uso: taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> ' +
-    '(--agente <id> [--agente <id2>...] | --tokens N) [--push]';
+    '(--agente <id> [--agente <id2>...] | --tokens N) [--ronda N [--revisor <skill>]] [--push]';
 /** Saca todos los `--agente <id>` / `--agente=<id>` de argv (lector comun de flags repetibles). */
 function extraerAgentes(argv) {
     const { valores, resto } = extraerRepetible(argv, '--agente', () => new RegistrarCosteCommandError(`[ERROR] --agente necesita el id del subagente (el que devuelve la herramienta Agent). ${USO}`));
@@ -143,7 +161,7 @@ async function costeDeAgentes(agentes, configDir, anotado = new Map()) {
                 `herramienta Agent). ${USO}`);
         }
     }
-    const suma = { tokens: 0, entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0, lecturas: 0 };
+    const porAgente = [];
     for (const id of unicos) {
         const rutas = await buscarTranscripciones(configDir, id);
         const donde = `${configDir}/projects/*/*/subagents/agent-${id}.jsonl`;
@@ -157,7 +175,8 @@ async function costeDeAgentes(agentes, configDir, anotado = new Map()) {
                 `${rutas.join('\n  ')}\nBorra las copias que sobren o registra la cifra a mano con ` +
                 '--tokens N. No se ha tocado nada.');
         }
-        const uso = sumarUsoTranscripcion(await leerTranscripcion(rutas[0]));
+        const texto = await leerTranscripcion(rutas[0]);
+        const uso = sumarUsoTranscripcion(texto);
         if (uso === null) {
             throw new RegistrarCosteCommandError(`[ERROR] La transcripcion ${rutas[0]} no tiene ninguna llamada con "usage": formato ` +
                 'desconocido, probablemente Claude Code lo cambio. Registra la cifra a mano con --tokens N. ' +
@@ -176,13 +195,92 @@ async function costeDeAgentes(agentes, configDir, anotado = new Map()) {
                         'recorto. Revisa "## Coste" o registra la cifra a mano con --tokens N. No se ha tocado nada.');
             }
         }
+        const delAgente = {
+            id,
+            tokens: 0,
+            entrada: 0,
+            cacheEscritura: 0,
+            cacheLectura: 0,
+            salida: 0,
+            lecturas: 0,
+            atribucion: rondaYRevisorDeTranscripcion(texto),
+        };
         for (const k of CAMPOS_COSTE)
-            suma[k] += uso[k] - (previo?.[k] ?? 0);
+            delAgente[k] = uso[k] - (previo?.[k] ?? 0);
+        porAgente.push(delAgente);
     }
-    if (suma.tokens === 0) {
+    if (sumarAgentes(porAgente).tokens === 0) {
         throw new RegistrarCosteCommandError('[ERROR] Las transcripciones suman 0 tokens: registrar nada no tiene sentido. No se ha tocado nada.');
     }
+    return porAgente;
+}
+function sumarAgentes(lista) {
+    const suma = { tokens: 0, entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0, lecturas: 0 };
+    for (const a of lista)
+        for (const k of CAMPOS_COSTE)
+            suma[k] += a[k];
     return suma;
+}
+/** Sintaxis de `--ronda` / `--revisor`, sin mirar el disco; aborta si no cuadran con el resto de flags. */
+function leerAtribucionManual(flags, fase, nAgentes) {
+    const ronda = flags['ronda'];
+    const revisor = flags['revisor'];
+    if (ronda === undefined && revisor === undefined)
+        return null;
+    if (fase !== 'revision' || nAgentes !== 1) {
+        throw new RegistrarCosteCommandError('[ERROR] --ronda y --revisor solo valen con --fase revision y UN unico --agente: son un sustituto ' +
+            'de lo que se deduce de su transcripcion. Con varios agentes, deja que cada uno se deduzca de ' +
+            `la suya. ${USO}`);
+    }
+    if (typeof ronda !== 'string' || !/^[1-9]\d*$/.test(ronda) || !Number.isSafeInteger(Number(ronda))) {
+        throw new RegistrarCosteCommandError(`[ERROR] --ronda ${typeof ronda === 'string' ? `"${ronda}" no es` : 'necesita'} un entero de 1 o mas ` +
+            `(el N de peticion-revision-N.md). ${USO}`);
+    }
+    if (revisor !== undefined && (typeof revisor !== 'string' || revisor === '')) {
+        throw new RegistrarCosteCommandError(`[ERROR] --revisor necesita el nombre de la skill revisora (el sufijo de peticion-revision-N-<skill>.md). ${USO}`);
+    }
+    return { ronda: Number(ronda), revisor: typeof revisor === 'string' ? revisor : null };
+}
+/** Peticiones de revision de la carpeta de la tarea, con su ronda y su revisor; vacio sin `revision/`. */
+async function peticionesDeRevision(dirTarea) {
+    let nombres;
+    try {
+        nombres = await readdir(path.join(dirTarea, 'revision'));
+    }
+    catch (e) {
+        if (isEnoent(e) || isEnotdir(e))
+            return [];
+        throw e;
+    }
+    return nombres.flatMap((n) => {
+        const p = rondaYRevisorDePeticion(n);
+        return p === null ? [] : [p];
+    });
+}
+/**
+ * Valida lo dado a mano contra las peticiones que existen (texto libre aborta:
+ * una atribucion inventada falsearia las lecturas por revisor) y lo cruza con
+ * lo deducido de la transcripcion: si discrepan, aborta en vez de elegir.
+ */
+function resolverAtribucion(id, manual, deducida, peticiones) {
+    const n = String(manual.ronda);
+    const deLaRonda = peticiones.filter((p) => p.ronda === manual.ronda);
+    if (deLaRonda.length === 0) {
+        throw new RegistrarCosteCommandError(`[ERROR] ${id}: --ronda ${n} no existe: no hay ningun peticion-revision-${n}[-<skill>].md en la carpeta ` +
+            'revision/ de la tarea. No se ha tocado nada.');
+    }
+    const revisor = manual.revisor ?? deducida?.revisor ?? '';
+    if (!deLaRonda.some((p) => p.revisor === revisor)) {
+        const validos = deLaRonda.map((p) => (p.revisor === '' ? '(sin sufijo)' : p.revisor)).join(', ');
+        throw new RegistrarCosteCommandError(`[ERROR] ${id}: --revisor "${revisor}" no es ninguno de los revisores de la ronda ${n}: ${validos}. ` +
+            `Son los sufijos de peticion-revision-${n}-<skill>.md que hay en revision/; no se ha tocado nada.`);
+    }
+    if (deducida !== null && (deducida.ronda !== manual.ronda || deducida.revisor !== revisor)) {
+        const quien = deducida.revisor === '' ? '' : ` y el revisor ${deducida.revisor}`;
+        throw new RegistrarCosteCommandError(`[ERROR] ${id}: la transcripcion del agente nombra la ronda ${String(deducida.ronda)}${quien}, y ` +
+            '--ronda/--revisor dicen otra cosa. Quita los flags o corrigelos; no se ha tocado nada.');
+    }
+    return { ronda: manual.ronda, revisor };
 }
 export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
@@ -199,6 +297,8 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
         throw new RegistrarCosteCommandError(`[ERROR] Argumentos de mas: ${positional.join(' ')}. ${USO}`);
     }
     const { fase, tokens: tokensManuales } = leerFaseYTokens(flags, agentes.length > 0);
+    // TASK-081: la sintaxis de --ronda/--revisor, antes de leer nada.
+    const manual = leerAtribucionManual(flags, fase, new Set(agentes).size);
     const leida = await readTareaFile(tareasRoot, id);
     if (leida === null) {
         throw new RegistrarCosteCommandError(`[ERROR] ${id}: no se encuentra en el working tree de la rama actual. Cambiate a la rama ` +
@@ -222,9 +322,10 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
     // TASK-065: un agente ya anotado en esta fase es un agente reanudado: su
     // transcripcion acumula lo ya registrado, asi que solo se suma lo que crecio.
     const anotado = tokensManuales === null ? yaAnotado(leerCostes(body), fase, unicos, id) : new Map();
-    const desglose = tokensManuales === null
+    const porAgente = tokensManuales === null
         ? await costeDeAgentes(unicos, deps.configDir ?? directorioConfigClaude(), anotado)
         : null;
+    const desglose = porAgente === null ? null : sumarAgentes(porAgente);
     const reanudados = unicos.filter((a) => anotado.has(a));
     const tokens = desglose?.tokens ?? tokensManuales;
     const campo = CAMPO_COSTE_POR_FASE[fase];
@@ -234,21 +335,48 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
             'campo en tarea.md; no se ha tocado nada.');
     }
     const nueva = { ...task, [campo]: total };
-    // TASK-063: la fila del desglose viaja en el mismo fichero y commit que el total.
-    const fila = {
-        fecha: deps.ahora ?? formatearInstante(new Date()),
-        fase,
-        fuente: desglose === null
-            ? 'manual'
-            : `agente:${unicos.map((a) => (anotado.has(a) ? `${PREFIJO_DIFERENCIA}${a}` : a)).join(',')}`,
-        entrada: desglose?.entrada ?? null,
-        cacheEscritura: desglose?.cacheEscritura ?? null,
-        cacheLectura: desglose?.cacheLectura ?? null,
-        salida: desglose?.salida ?? null,
-        lecturas: desglose?.lecturas ?? null,
-        total: tokens,
-    };
-    await writeFile(filePath, serializeTareaFile(nueva, anadirCoste(body, fila)), 'utf8');
+    // TASK-063: las filas del desglose viajan en el mismo fichero y commit que el total.
+    const fecha = deps.ahora ?? formatearInstante(new Date());
+    const fuenteDe = (ids) => `agente:${ids.map((a) => (anotado.has(a) ? `${PREFIJO_DIFERENCIA}${a}` : a)).join(',')}`;
+    const filas = [];
+    if (porAgente !== null && fase === 'revision') {
+        // TASK-081: una fila por agente, cada una con su ronda y su revisor. Lo que
+        // no se deduce ni se declara queda sin atribuir (ronda null), nunca inventado.
+        const peticiones = manual === null ? [] : await peticionesDeRevision(path.dirname(filePath));
+        for (const ag of porAgente) {
+            const atribucion = manual === null ? ag.atribucion : resolverAtribucion(id, manual, ag.atribucion, peticiones);
+            filas.push({
+                fecha,
+                fase,
+                fuente: fuenteDe([ag.id]),
+                entrada: ag.entrada,
+                cacheEscritura: ag.cacheEscritura,
+                cacheLectura: ag.cacheLectura,
+                salida: ag.salida,
+                lecturas: ag.lecturas,
+                total: ag.tokens,
+                ronda: atribucion?.ronda ?? null,
+                revisor: atribucion?.revisor ?? null,
+            });
+        }
+    }
+    else {
+        filas.push({
+            fecha,
+            fase,
+            fuente: desglose === null ? 'manual' : fuenteDe(unicos),
+            entrada: desglose?.entrada ?? null,
+            cacheEscritura: desglose?.cacheEscritura ?? null,
+            cacheLectura: desglose?.cacheLectura ?? null,
+            salida: desglose?.salida ?? null,
+            lecturas: desglose?.lecturas ?? null,
+            total: tokens,
+            ronda: null,
+            revisor: null,
+        });
+    }
+    const cuerpo = filas.reduce((acum, f) => anadirCoste(acum, f), body);
+    await writeFile(filePath, serializeTareaFile(nueva, cuerpo), 'utf8');
     const detalle = nAgentes > 0 ? ` (${String(nAgentes)} agente${nAgentes === 1 ? '' : 's'})` : '';
     const commit = autoCommit({
         cwd: deps.repoCwd,
@@ -256,5 +384,16 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
         mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),
         push,
     });
-    return { id, fase, sumado: tokens, total, agentes: nAgentes, reanudados, fila, filePath, autoCommit: commit };
+    return {
+        id,
+        fase,
+        sumado: tokens,
+        total,
+        agentes: nAgentes,
+        reanudados,
+        fila: filas[0],
+        filas,
+        filePath,
+        autoCommit: commit,
+    };
 }

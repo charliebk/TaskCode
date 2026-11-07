@@ -84,7 +84,27 @@ export const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-([a-z0-9-]+))?\.m
  * Peticiones de revision, con el mismo sufijo opcional por revisor. Vive
  * aqui desde TASK-064 (antes en commands/review.ts, que la reexporta).
  */
-export const PETICION_REVISION_RE = /^peticion-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+const PETICION_REVISION_PATRON = String.raw `peticion-revision-(\d+)(?:-([a-z0-9-]+))?\.md`;
+export const PETICION_REVISION_RE = new RegExp(`^${PETICION_REVISION_PATRON}$`);
+/**
+ * TASK-081: la misma regex, sin anclar, para buscar el nombre de una peticion
+ * dentro de un texto (el prompt de un revisor: `.../revision/peticion-revision-1-x.md`).
+ * Sale del MISMO patron que `PETICION_REVISION_RE`, asi que no pueden divergir.
+ * Grupo 1 = ronda, grupo 2 = revisor (el sufijo; ausente sin fragmentar). No
+ * casa si el nombre va pegado a otro (`xpeticion-revision-1.md`).
+ */
+export const PETICION_REVISION_EN_TEXTO_RE = new RegExp(`(?<![A-Za-z0-9_-])${PETICION_REVISION_PATRON}`);
+/**
+ * Ronda y revisor de un nombre de peticion de revision (TASK-081), con la
+ * misma convencion que `rondaYRevisorDeInforme`: revisor '' sin sufijo. null
+ * si el nombre no es una peticion de revision.
+ */
+export function rondaYRevisorDePeticion(nombre) {
+    const m = PETICION_REVISION_RE.exec(nombre);
+    if (m === null)
+        return null;
+    return { ronda: Number(m[1]), revisor: m[2] ?? '' };
+}
 /**
  * Ronda y revisor de un nombre de informe de revision (TASK-064): el
  * revisor es el sufijo de una ronda fragmentada, '' sin sufijo. null si el

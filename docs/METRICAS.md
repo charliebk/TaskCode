@@ -547,6 +547,65 @@ baratas.
 Se revisará cuando haya unas 10 tareas por nivel con `tokens_*` registrados:
 `taskctl metricas --tokens` da ya el resumen por complejidad.
 
+## 12. Lecturas de los revisores por ronda y revisor (TASK-081)
+
+La revisión es la fase cara: la **mediana de tokens de revisión en ToolsaWeb
+es hoy de 6,8 M** por tarea. **Objetivo: volver a 3-4 M de tokens de revisión
+en tareas medias.** Es una cifra de hoy y un objetivo, no una medida de este
+repo: qué es una «tarea media» no está definido y 3-4 M no se ha contrastado
+con una muestra. Para poder saber si se llega hay que ver *dónde* se gasta, y
+eso es lo que mide esta sección.
+
+**Qué se guarda.** `taskctl registrar-coste --fase revision --agente <id>...`
+deja **una fila por agente** en la tabla `## Coste` de la tarea (un solo
+commit), y cada fila lleva dos columnas nuevas al final, `ronda` y `revisor`
+(11 columnas en total; `-` = sin dato):
+
+- `ronda` y `revisor` salen de la **transcripción del propio revisor**: se
+  busca el nombre `peticion-revision-<N>[-<skill>].md` en su primer mensaje de
+  usuario (el prompt con el que se lo lanzó, que debe llevar la ruta de su
+  petición). El revisor es el sufijo (`-<skill>`); en una ronda sin fragmentar
+  no hay sufijo y el revisor se muestra como «(sin fragmentar)».
+- Lo que no se puede deducir queda **sin atribuir**: `ronda` `-`, y en
+  `metricas` sale como «—», nunca como la ronda 1 ni como 0.
+- `--ronda N [--revisor <skill>]` lo declaran a mano, solo con un único
+  `--agente`, y se validan contra las peticiones que existen en `revision/`
+  (texto libre = error; si contradicen lo que dice la transcripción, error).
+- Las filas anteriores (9 columnas) se siguen leyendo con sus totales, sin
+  ronda ni revisor. **Nunca se reescriben.**
+
+**Cómo se lee.** `taskctl metricas --tokens` pinta, **bajo la tabla y aparte de
+ella**, un bloque «Lecturas de revisión por revisor y ronda» con una línea por
+tarea, ronda y revisor: `lecturas`, `entrada` y `cache_lect` de esas filas, y
+los `crit` e `imp` (CRÍTICO e IMPORTANTE) del informe de ese revisor y ronda,
+para no dar por buena una bajada de lecturas que sea solo revisar peor. Lo
+ausente se pinta «—», nunca `0`: `crit`/`imp` «—» es que no hay informe de ese
+revisor y ronda o su tabla de hallazgos no se puede leer, y `0` es que la tabla
+existe y no tiene ninguno. `--json` lleva lo mismo en `lecturasRevision`. El
+bloque **no entra en `--escribir`**: lo generado entre los marcadores de este
+fichero no cambia de forma. `metricas` solo lee el repo; **nunca lee
+`~/.claude`** (las lecturas se guardaron al registrar el coste, y siguen ahí
+aunque Claude Code purgue las transcripciones).
+
+**Qué no dice.**
+
+- `lecturas` cuenta **llamadas** de lectura (`Read`, `Grep`, `Glob`, `cat`...),
+  **no bytes**, y no ve `cd x && cat y` ni `Get-Content`. Una lectura enorme
+  cuenta 1. Por eso no es la causa de los tokens: se muestran al lado `entrada`
+  y `cache_lect`.
+- Es heurístico y depende del formato de transcripción de Claude Code, que es
+  externo. Si cambiara, la suite seguiría en verde y en producción saldrían 0
+  lecturas.
+- **Riesgo aceptado de doble conteo con un plugin viejo.** Un plugin anterior a
+  TASK-081 descarta las filas de 11 columnas, así que `yaAnotado` no ve que un
+  agente ya está registrado y, si vuelve a registrar *ese mismo agente* en la
+  misma fase, suma su transcripción entera otra vez (y no se puede deshacer
+  sola). Solo pasa si se mezcla un plugin viejo con tareas registradas con el
+  nuevo; con el mismo plugin, un agente reanudado suma solo lo que creció
+  (`agente:dif:<id>`).
+- Un agente lanzado sin la ruta de su petición en el prompt sale «sin
+  atribuir», y sus lecturas no se reparten entre revisores.
+
 <!-- taskctl metricas --tokens: inicio -->
 ## Coste en tokens por tarea (generado)
 

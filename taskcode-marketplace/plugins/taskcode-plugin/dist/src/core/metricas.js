@@ -48,8 +48,8 @@
  */
 import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
-import { FASES_COSTE, leerCostes, resumirCostes } from './coste-registro.js';
-import { resumirHallazgos, veredictoDeRonda, } from './informe-revision.js';
+import { FASES_COSTE, leerCostes, lecturasDeRevision, resumirCostes, } from './coste-registro.js';
+import { leerHallazgos, resumirHallazgos, veredictoDeRonda, } from './informe-revision.js';
 import { extraerSecciones } from './tarea-body.js';
 /**
  * Clave de una tarea en cualquier Map de metricas: (proyecto, id). Hoy hay
@@ -186,11 +186,22 @@ export function calcularFila(e) {
             revision: e.task.tokens_revision,
         }),
         hallazgos: resumirHallazgos(e.informes ?? []),
+        lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
         total: duracionEntre(marcas.plan, marcas.finish),
         veredictoRonda1: veredictoRonda1(e.informes ?? []),
         versionCierre: versionDeCierre(e.body),
     };
+}
+function lecturasRevisionDe(body, informes) {
+    return lecturasDeRevision(leerCostes(body)).map((g) => {
+        const deEse = g.ronda === null ? [] : informes.filter((i) => i.ronda === g.ronda && i.revisor === g.revisor);
+        const lecturas = deEse.map((i) => leerHallazgos(i.texto));
+        if (lecturas.length === 0 || lecturas.some((l) => !l.tabla))
+            return { ...g, critico: null, importante: null };
+        const cuenta = (sev) => lecturas.reduce((a, l) => a + l.hallazgos.filter((h) => h.severidadReconocida === sev).length, 0);
+        return { ...g, critico: cuenta('CRITICO'), importante: cuenta('IMPORTANTE') };
+    });
 }
 function veredictoRonda1(informes) {
     const primera = informes.filter((i) => i.ronda === 1);
@@ -612,4 +623,39 @@ export function lineaSinCoste(r, varios = false) {
     return (`Terminadas sin coste en alguna fase: ${String(r.total)} de ${String(r.terminadas)} ` +
         `(${FASES_COSTE.map((k) => `${k} ${String(r.porFase[k])}`).join(', ')}): ${primeras}` +
         (resto > 0 ? ` y ${String(resto)} mas (lista completa con --json).` : '.'));
+}
+// --- Lecturas por revisor y ronda (TASK-081) ---------------------------------
+function celdaOAusente(n) {
+    return n === null ? '—' : String(n);
+}
+export const NOTA_LECTURAS_REVISION = 'Lecturas de revision por tarea, ronda y revisor (de "## Coste", fase revision, una fila por agente): ' +
+    'lecturas = LLAMADAS de lectura del revisor, no bytes ni causa de los tokens (no ve "cd x && cat y"); ' +
+    'entrada y cache_lect, sus tokens de esas filas; crit e imp, los CRITICO e IMPORTANTE de su informe. ' +
+    '«—» = sin dato (no es 0): ronda y revisor «—» = fila sin atribuir (anterior a TASK-081 o su ' +
+    'transcripcion no nombra la peticion); crit e imp «—» = sin informe de ese revisor o sin tabla legible. ' +
+    'Revisor "(sin fragmentar)" = ronda sin sufijo.';
+/** Bloque aparte bajo la tabla de `--tokens`: una linea por (tarea, ronda, revisor). Vacio si ninguna tarea tiene filas de revision. */
+export function formatearLecturasRevision(filas, varios = false) {
+    const celdas = filas.flatMap((f) => f.lecturasRevision.map((g) => [
+        etiquetaTarea(f, varios),
+        g.ronda === null ? '—' : String(g.ronda),
+        g.revisor === null ? '—' : g.revisor === '' ? '(sin fragmentar)' : g.revisor,
+        celdaOAusente(g.lecturas),
+        celdaOAusente(g.entrada),
+        celdaOAusente(g.cacheLectura),
+        celdaOAusente(g.critico),
+        celdaOAusente(g.importante),
+    ]));
+    if (celdas.length === 0)
+        return [];
+    return [
+        'Lecturas de revision por revisor y ronda:',
+        tablaDeTexto(['tarea', 'ronda', 'revisor', 'lecturas', 'entrada', 'cache_lect', 'crit', 'imp'], celdas),
+        '',
+        NOTA_LECTURAS_REVISION,
+        '',
+    ];
+}
+export function lecturasRevisionJson(filas) {
+    return filas.flatMap((f) => f.lecturasRevision.map((g) => ({ proyecto: f.proyecto, id: f.id, ...g })));
 }

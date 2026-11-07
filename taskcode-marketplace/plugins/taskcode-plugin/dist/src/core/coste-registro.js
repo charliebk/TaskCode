@@ -2,10 +2,11 @@
  * Desglose del coste de una tarea (TASK-063): la seccion `## Coste` de
  * `tarea.md`, una fila por cada `taskctl registrar-coste`.
  *
- * | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
- * |---|---|---|---|---|---|---|---|---|
- * | 2026-10-25T14:03:22Z | diseno | agente:a1b2c3d4e5f60718 | 120 | 3000 | 90000 | 800 | 14 | 93920 |
- * | 2026-10-25T15:10:00Z | diseno | manual | - | - | - | - | - | 5000 |
+ * | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+ * |---|---|---|---|---|---|---|---|---|---|---|
+ * | 2026-10-25T14:03:22Z | diseno | agente:a1b2c3d4e5f60718 | 120 | 3000 | 90000 | 800 | 14 | 93920 | - | - |
+ * | 2026-10-25T15:10:00Z | diseno | manual | - | - | - | - | - | 5000 | - | - |
+ * | 2026-10-25T16:00:00Z | revision | agente:b1... | 90 | 800 | 40000 | 600 | 9 | 41490 | 1 | java-spring-reviewer |
  *
  * Calcado de `core/transiciones.ts` (misma busqueda de seccion, fuera de
  * bloques de codigo, la ultima gana), y por la misma razon que TASK-056: una
@@ -26,6 +27,20 @@
  *    que no es 0: una fila `manual` solo tiene `total`.
  *  - `total`: lo que la fila sumo a `tokens_<fase>`. Sin ella, una fila
  *    manual no tendria donde poner su cifra.
+ *  - `ronda` y `revisor` (TASK-081, solo con `--fase revision`): a que ronda
+ *    de revision y a que revisor (el sufijo de `peticion-revision-N-<skill>.md`)
+ *    pertenece la fila, para medir las lecturas por revisor y ronda. `-` en
+ *    `ronda` = SIN ATRIBUIR (no se pudo deducir; no es la ronda 0 ni la 1).
+ *    Con ronda conocida, `-` en `revisor` = ronda sin fragmentar (revisor
+ *    '' en memoria, como `InformeLeido.revisor`).
+ *  - Las filas anteriores a TASK-081 tienen 9 columnas y se leen igual, con
+ *    ronda y revisor sin atribuir. Nunca se reescriben: la tabla de un
+ *    tarea.md antiguo mezcla filas de 9 y de 11 columnas, y la cabecera es la
+ *    de 11 solo en las tablas nuevas.
+ *
+ * Un plugin ANTERIOR a TASK-081 ignora las filas de 11 columnas: si vuelve a
+ * registrar el mismo agente, `yaAnotado` no lo ve y lo suma otra vez (riesgo
+ * aceptado y documentado en docs/METRICAS.md).
  *
  * Puro: recibe y devuelve el cuerpo como texto. Nunca reescribe filas ni
  * toca nada fuera de su seccion; leer nunca falla.
@@ -34,16 +49,19 @@ import { dentroDeBloque, precisionDeFecha, rangoDeSeccion } from './transiciones
 export const SECCION_COSTE = '## Coste';
 /** Fases con coste propio, cada una con su `tokens_<fase>` en el frontmatter. */
 export const FASES_COSTE = ['diseno', 'implementacion', 'revision'];
-export const CABECERA_COSTE = '| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |';
-const SEPARADOR = '|---|---|---|---|---|---|---|---|---|';
-const COLUMNAS = 9;
+export const CABECERA_COSTE = '| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |';
+const SEPARADOR = '|---|---|---|---|---|---|---|---|---|---|---|';
+const COLUMNAS_ANTIGUA = 9;
+const COLUMNAS = 11;
 const SIN_DATO = '-';
 function celda(n) {
     return n === null ? SIN_DATO : String(n);
 }
 function filaATexto(f) {
+    const revisor = f.ronda === null || f.revisor === null || f.revisor === '' ? SIN_DATO : f.revisor;
     return (`| ${f.fecha} | ${f.fase} | ${f.fuente} | ${celda(f.entrada)} | ${celda(f.cacheEscritura)} | ` +
-        `${celda(f.cacheLectura)} | ${celda(f.salida)} | ${celda(f.lecturas)} | ${String(f.total)} |`);
+        `${celda(f.cacheLectura)} | ${celda(f.salida)} | ${celda(f.lecturas)} | ${String(f.total)} | ` +
+        `${celda(f.ronda)} | ${revisor} |`);
 }
 /**
  * Anade una fila al desglose. Si la seccion no existe la crea al final del
@@ -101,21 +119,33 @@ export function leerCostes(body) {
             .replace(/\|$/, '')
             .split('|')
             .map((c) => c.trim());
-        if (celdas.length !== COLUMNAS)
+        if (celdas.length !== COLUMNAS_ANTIGUA && celdas.length !== COLUMNAS)
             continue;
-        const [fecha, fase, fuente, ...numeros] = celdas;
+        const [fecha, fase, fuente, ...resto] = celdas;
         if (precisionDeFecha(fecha) === null)
             continue;
         if (!FASES_COSTE.includes(fase))
             continue;
         if (fuente === '')
             continue;
-        const valores = numeros.map(leerNumero);
+        const valores = resto.slice(0, 6).map(leerNumero);
         if (valores.some((v) => v === undefined))
             continue;
         const [entrada, cacheEscritura, cacheLectura, salida, lecturas, total] = valores;
         if (total === null || total === undefined)
             continue;
+        // TASK-081: ronda y revisor (solo en las filas de 11). Una ronda ilegible
+        // deja la fila sin atribuir, no la descarta: su coste cuenta igual.
+        let ronda = null;
+        let revisor = null;
+        if (celdas.length === COLUMNAS) {
+            const r = leerNumero(resto[6]);
+            if (typeof r === 'number' && r >= 1) {
+                ronda = r;
+                const v = resto[7];
+                revisor = v === SIN_DATO || v === '' ? '' : v;
+            }
+        }
         filas.push({
             fecha,
             fase: fase,
@@ -126,9 +156,48 @@ export function leerCostes(body) {
             salida: salida ?? null,
             lecturas: lecturas ?? null,
             total,
+            ronda,
+            revisor,
         });
     }
     return filas;
+}
+function sumaODato(valores) {
+    const datos = valores.filter((v) => v !== null);
+    return datos.length === 0 ? null : datos.reduce((a, b) => a + b, 0);
+}
+/**
+ * Agrupa por (ronda, revisor) las filas de fase `revision`. Orden: rondas
+ * ascendentes, revisores por nombre, y el grupo sin atribuir al final. Pura:
+ * no lee nada, y no inventa un grupo si no hay filas de revision.
+ */
+export function lecturasDeRevision(filas) {
+    const grupos = new Map();
+    for (const f of filas) {
+        if (f.fase !== 'revision')
+            continue;
+        const clave = f.ronda === null ? '\u0000sin' : `${String(f.ronda)}\u0000${f.revisor ?? ''}`;
+        const lista = grupos.get(clave) ?? [];
+        lista.push(f);
+        grupos.set(clave, lista);
+    }
+    const salida = [];
+    for (const lista of grupos.values()) {
+        const primera = lista[0];
+        salida.push({
+            ronda: primera.ronda,
+            revisor: primera.ronda === null ? null : (primera.revisor ?? ''),
+            filas: lista.length,
+            lecturas: sumaODato(lista.map((f) => f.lecturas)),
+            entrada: sumaODato(lista.map((f) => f.entrada)),
+            cacheLectura: sumaODato(lista.map((f) => f.cacheLectura)),
+        });
+    }
+    return salida.sort((a, b) => {
+        if (a.ronda === null || b.ronda === null)
+            return a.ronda === b.ronda ? 0 : a.ronda === null ? 1 : -1;
+        return a.ronda - b.ronda || a.revisor.localeCompare(b.revisor);
+    });
 }
 function conDesglose(f) {
     return f.entrada !== null && f.cacheEscritura !== null && f.cacheLectura !== null && f.salida !== null;
