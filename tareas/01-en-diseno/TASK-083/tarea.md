@@ -7,7 +7,7 @@ etiquetas: [revision, coste, flujo]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-083-cierre-sin-ronda-2-completa-cuando-solo
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Muchas segundas rondas probablemente solo verifican MENORES. Primero confirmarlo
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T10:48:07Z | plan | automatico | persona |
+| 2026-11-07T10:54:59Z | approve | automatico | persona |
 
 ## Coste
 
