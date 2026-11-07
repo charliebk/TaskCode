@@ -2,7 +2,7 @@
 
 - Commit revisado: a68f7812ac2e3d0bfbda69eeb38dcb26c7b7f708
 - Revisor: agente general-purpose (sonnet) con skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-087 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 > El revisor propuso `aprobada`. Quien orquesta (modo automatico) pide
 > `cambios-solicitados` para corregir MEN-1 y MEN-2 antes del merge: en
