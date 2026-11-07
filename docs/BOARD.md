@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-07. No editar a mano.
 
-## Planificadas (00-planificadas) — 15
+## Planificadas (00-planificadas) — 14
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,10 +21,9 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-089  Evitar literales con forma de secreto en el repo y tags de version que faltan               (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 74
+## Terminadas (04-terminadas) — 75
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -103,4 +102,5 @@ TASK-085  Coste de implementacion registrado automaticamente                    
 TASK-086  Descontar las pausas de las duraciones de las metricas                                       charlie.bk@gmail.com
 TASK-087  taskctl doctor avisa si el plugin instalado esta desactualizado                              charlie.bk@gmail.com
 TASK-088  taskctl doctor avisa si falta comando_verificacion con tests detectables                     charlie.bk@gmail.com
+TASK-089  Evitar literales con forma de secreto en el repo y tags de version que faltan                charlie.bk@gmail.com
 ```

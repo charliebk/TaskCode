@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [seguridad, distribucion, tests]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-089-evitar-literales-con-forma-de-secreto-en
 asignado_a: charlie.bk@gmail.com
@@ -75,6 +75,7 @@ version como v0.8.0 y v0.11.0; se crean y empujan tras el merge (CA3).
 | 2026-11-07T19:45:01Z | approve | automatico | persona |
 | 2026-11-07T19:45:16Z | start | automatico | persona |
 | 2026-11-07T20:12:32Z | review | automatico | persona |
+| 2026-11-07T20:35:33Z | finish | automatico | persona |
 
 ## Coste
 

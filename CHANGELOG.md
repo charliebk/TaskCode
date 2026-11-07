@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-089 (feature) — Evitar literales con forma de secreto en el repo y tags de version que faltan (2026-11-07)
 - TASK-088 (feature) — taskctl doctor avisa si falta comando_verificacion con tests detectables (2026-11-07)
 - TASK-087 (feature) — taskctl doctor avisa si el plugin instalado esta desactualizado (2026-11-07)
 - TASK-086 (feature) — Descontar las pausas de las duraciones de las metricas (2026-11-07)
