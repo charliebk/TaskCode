@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-086-descontar-las-pausas-de-las-duraciones-d
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Las duraciones de taskctl metricas son de calendario y no descuentan pausas (un 
 - [ ] Las tareas sin pausas dan la misma duracion que hoy; lo cubren tests
 - [ ] La leyenda de la salida y docs/METRICAS.md explican el descuento
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-07T14:20:07Z | plan | automatico | persona |
