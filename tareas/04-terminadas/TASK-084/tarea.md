@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas, transiciones]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-084-version-del-plugin-en-cada-tarea-y-metri
 asignado_a: charlie.bk@gmail.com
@@ -97,6 +97,7 @@ Revisor independiente general-purpose (sonnet) + `code-quality-reviewer`: clon t
 | 2026-11-07T00:23:27Z | approve | automatico | persona |
 | 2026-11-07T00:23:35Z | start | automatico | persona |
 | 2026-11-07T00:45:10Z | review | automatico | persona |
+| 2026-11-07T01:07:05Z | finish | automatico | persona |
 
 ## Coste
 

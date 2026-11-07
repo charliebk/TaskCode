@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-084 — Version del plugin en cada tarea y metricas por version · etiquetas: metricas, transiciones · rama feature/task-084-version-del-plugin-en-cada-tarea-y-metri · terminada 2026-11-07 · tareas/04-terminadas/TASK-084/
 - TASK-080 — Accesibilidad en angular-vue-reviewer y roles de arquitectura y rendimiento en plan · etiquetas: skills, revisores, brainstorm, accesibilidad, rendimiento · rama feature/task-080-accesibilidad-en-angular-vue-reviewer-y · terminada 2026-11-06 · tareas/04-terminadas/TASK-080/
 - TASK-079 — Revisor por pares de dominio para Rust y WASM · etiquetas: skills, revisores, rust, wasm · rama feature/task-079-revisor-por-pares-de-dominio-para-rust-y · terminada 2026-11-06 · tareas/04-terminadas/TASK-079/
 - TASK-076 — Doctor avisa de hooks PreToolUse sobre Agent que bloquean los subagentes en modo automatico · etiquetas: doctor, hooks, plugin · rama fix/task-076-doctor-avisa-de-hooks-pretooluse-sobre-a · terminada 2026-11-06 · tareas/04-terminadas/TASK-076/
