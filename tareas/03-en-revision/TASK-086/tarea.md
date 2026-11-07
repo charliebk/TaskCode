@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 444899
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 4297192
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -46,3 +46,4 @@ Las duraciones de taskctl metricas son de calendario y no descuentan pausas (un 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T14:38:00Z | diseno | agente:a53ac3116bd79d9ad | 22 | 51019 | 385474 | 8384 | 16 | 444899 |
+| 2026-11-07T15:47:05Z | revision | agente:a03c80fb085231ee7 | 74 | 126441 | 4153648 | 17029 | 7 | 4297192 |
