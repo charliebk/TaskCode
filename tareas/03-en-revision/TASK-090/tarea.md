@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [seguridad, tests]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-090-el-guardian-de-secretos-tolera-excepcion
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ El test sin-literales-secretos de TASK-089 tolera por valor la clave de ejemplo 
 | 2026-11-07T21:10:36Z | plan | automatico | persona |
 | 2026-11-07T21:34:23Z | approve | automatico | persona |
 | 2026-11-07T21:34:24Z | start | automatico | persona |
+| 2026-11-07T21:59:21Z | review | automatico | persona |
 
 ## Coste
 
