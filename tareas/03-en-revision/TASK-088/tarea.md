@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 380039
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 2844003
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -46,3 +46,4 @@ Sin comando_verificacion no funcionan los frenos de la 0.11 (hook Stop, puerta d
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T18:01:59Z | diseno | agente:a8affc352f2ef1cc3 | 18 | 56486 | 314760 | 8775 | 16 | 380039 |
+| 2026-11-07T19:03:47Z | revision | agente:a460db242356fd7d1 | 52 | 118392 | 2712468 | 13091 | 4 | 2844003 |
