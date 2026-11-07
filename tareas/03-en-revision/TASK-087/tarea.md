@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor, distribucion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-087-taskctl-doctor-avisa-si-el-plugin-instal
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Un equipo estuvo en 0.8.0 mientras el repo iba por 0.10.0 sin saberlo. doctor co
 | 2026-11-07T16:26:24Z | plan | automatico | persona |
 | 2026-11-07T16:48:32Z | approve | automatico | persona |
 | 2026-11-07T16:48:47Z | start | automatico | persona |
+| 2026-11-07T17:11:35Z | review | automatico | persona |
 
 ## Coste
 
