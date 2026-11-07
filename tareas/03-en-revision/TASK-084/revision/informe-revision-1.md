@@ -2,7 +2,7 @@
 
 - Commit revisado: 37185ea499e4b841a74fc497ef22c1288148bd2c
 - Revisor: general-purpose (sonnet) + code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-084 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada
 
 ## Hallazgos
 
