@@ -12,6 +12,7 @@
  * | rutas_sincronizacion         | []                | fs/sincronizacion.ts    |
  * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
  * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
+ * | contexto_revision            | []                | commands/review.ts    |
  * | modo_flujo                   | manual            | core/flujo.ts, plan.ts, approve.ts |
  * | cierre_por_defecto           | merge             | siguiente.ts -> skill finish (modo automatico) |
  * | plataforma_remota            | null (por host)   | commands/finish-opciones.ts (--merge-request) |
@@ -130,6 +131,11 @@ export interface TaskcodeConfig {
    */
   excluir_de_revision: readonly string[];
   /**
+   * TASK-081: ficheros o carpetas (relativos a la raiz) que el revisor puede
+   * leer ademas del enunciado, el plan y el diff de su dominio. `[]` = nada mas.
+   */
+  contexto_revision: readonly string[];
+  /**
    * TASK-056: como avanza el ciclo entre fases. `manual`, la persona lanza
    * cada comando (lo de siempre); `semiautomatico`, se pregunta al cerrar
    * cada fase; `automatico`, las preguntas se hacen en plan y el resto se
@@ -211,6 +217,7 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
     '**/*-lock.*',
     'tareas/**',
   ]) as readonly string[],
+  contexto_revision: Object.freeze([]) as readonly string[],
   modo_flujo: 'manual',
   cierre_por_defecto: 'merge',
   plataforma_remota: null,
@@ -231,6 +238,7 @@ export const CLAVES_CONFIG = [
   'rutas_sincronizacion',
   'timeout_sincronizacion',
   'excluir_de_revision',
+  'contexto_revision',
   'modo_flujo',
   'cierre_por_defecto',
   'plataforma_remota',
@@ -481,6 +489,9 @@ export function parsearConfigConAvisos(
       case 'excluir_de_revision':
         config.excluir_de_revision = validarPatronesExclusion(donde, par.valor);
         break;
+      case 'contexto_revision':
+        config.contexto_revision = validarPatronesExclusion(donde, par.valor, 'contexto_revision', false);
+        break;
       case 'modo_flujo':
         config.modo_flujo = validarModoFlujo(donde, par.valor);
         break;
@@ -677,33 +688,38 @@ function validarUmbralCobertura(donde: string, valor: unknown): number {
  * `** /*.lock`), que es lo que una persona espera y no lo que hace
  * `:(glob)` a secas, donde `*` no cruza carpetas.
  */
-function validarPatronesExclusion(donde: string, valor: unknown): readonly string[] {
+function validarPatronesExclusion(
+  donde: string,
+  valor: unknown,
+  clave: 'excluir_de_revision' | 'contexto_revision' = 'excluir_de_revision',
+  anclar = true
+): readonly string[] {
   if (!Array.isArray(valor)) {
     throw new ConfigError(
-      `[ERROR] ${donde}: "excluir_de_revision" debe ser una lista entre corchetes, ` +
+      `[ERROR] ${donde}: "${clave}" debe ser una lista entre corchetes, ` +
         `y es ${describirValor(valor)}.\n` +
-        '        Ejemplo: excluir_de_revision: [**/dist/**, **/*.lock]. Para no excluir ' +
-        'nada: excluir_de_revision: [].'
+        `        Ejemplo: ${clave}: [**/dist/**, **/*.lock]. Para no excluir ` +
+        `nada: ${clave}: [].`
     );
   }
   const patrones: string[] = [];
   for (const elemento of valor) {
     if (typeof elemento !== 'string' || elemento.trim() === '') {
       throw new ConfigError(
-        `[ERROR] ${donde}: "excluir_de_revision" contiene un elemento vacio o que no es texto.`
+        `[ERROR] ${donde}: "${clave}" contiene un elemento vacio o que no es texto.`
       );
     }
     const conBarras = elemento.trim().replace(/\\/g, '/');
     const absoluto = conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras);
     if (absoluto || conBarras.split('/').includes('..')) {
       throw new ConfigError(
-        `[ERROR] ${donde}: el patron "${elemento.trim()}" de "excluir_de_revision" no vale: ` +
+        `[ERROR] ${donde}: el patron "${elemento.trim()}" de "${clave}" no vale: ` +
           `${absoluto ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
           '        Los patrones son relativos a la raiz del repo y siguen la semantica de ' +
           'git :(glob) (por ejemplo **/dist/**).'
       );
     }
-    const anclado = conBarras.includes('/') ? conBarras : `**/${conBarras}`;
+    const anclado = !anclar || conBarras.includes('/') ? conBarras : `**/${conBarras}`;
     if (!patrones.includes(anclado)) patrones.push(anclado);
   }
   return patrones;

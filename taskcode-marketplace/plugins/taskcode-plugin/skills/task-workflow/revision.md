@@ -46,6 +46,19 @@ revision: es un requisito que no se cumplio.
 Si el proyecto no tiene alguno de los tres pasos, dilo en el informe. "No hay
 linter configurado" es informacion; suponer que se ejecuto, no.
 
+## Lo que lees
+
+La peticion de revision trae una seccion `## Contexto permitido`: el enunciado
+y el plan de la tarea, y los ficheros de tu parte del diff. Lee **solo eso**
+mas lo que el propio diff embebido te muestre. Recorrer el repo entero no es
+revisar mejor: es gastar contexto en lo que nadie te pidio mirar.
+
+La lista orienta, no prohibe. Si para reproducir o entender un hallazgo
+necesitas leer algo que no esta en ella (otro modulo, un test vecino, una
+configuracion), lo lees, y lo anotas con su motivo bajo `## Lecturas fuera del
+contexto permitido` de tu informe: una linea por fichero. Si no leiste nada
+fuera, esa seccion dice `ninguna`.
+
 ## Clasificacion
 
 CRITICO: perdida de datos, corrupcion de estado, o el comando hace lo

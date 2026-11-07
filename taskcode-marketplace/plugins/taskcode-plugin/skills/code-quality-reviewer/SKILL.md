@@ -13,6 +13,9 @@ minimo que **todo** cambio tiene que superar.
 El objetivo no es opinar sobre el diff: es **encontrar el caso que lo rompe y
 demostrarlo**.
 
+Lee solo lo que la seccion `## Contexto permitido` de tu peticion lista (ver
+"Lo que lees" en [revision.md](../task-workflow/revision.md)).
+
 Antes de empezar, lee [revision.md](../task-workflow/revision.md): lo comun a
 toda revision (la puerta determinista, una sola ejecucion de la suite por
 ronda, la plantilla de cada hallazgo, las rondas, la linea del veredicto que

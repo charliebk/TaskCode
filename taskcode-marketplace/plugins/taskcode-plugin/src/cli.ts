@@ -689,7 +689,8 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         .map(
           (grupo) =>
             `Peticion de revision (ronda ${result.ronda}, ${grupo.revisor}): ${grupo.peticionPath}\n` +
-            `Lanza el agente "${result.agente}" (modelo ${result.modelo}) cargando la skill ` +
+            `Lanza el agente "${result.agente}" (modelo ${result.modeloRonda ?? result.modelo}` +
+            `${result.modeloRonda === undefined ? '' : `: verificacion de correcciones, la tarea usa ${result.modelo}`}) cargando la skill ` +
             `"${grupo.revisor}" con esa peticion y vuelca su salida en ${grupo.informePath}.\n`
         )
         .join('');

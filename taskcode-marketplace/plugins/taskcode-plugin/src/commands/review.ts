@@ -38,6 +38,8 @@ import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, sigui
 import {
   commitRevisadoDe,
   hallazgosNoCerrados,
+  leerHallazgos,
+  veredictoDe,
   veredictoDeRonda,
   type VeredictoInforme,
 } from '../core/informe-revision.js';
@@ -63,6 +65,8 @@ import {
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 import { EXCLUIR_HELDOUT } from '../core/heldout.js';
+import { contextoPermitido } from '../core/contexto-revision.js';
+import { modeloDeVerificacion } from '../core/modelo-revision.js';
 
 export class ReviewCommandError extends Error {}
 
@@ -131,11 +135,18 @@ export interface ReviewCommandResult {
   /**
    * Agente que se lanza para revisar (`agente_revisor` de la tarea) y el
    * modelo con que se lanza (`modelo_sugerido`: por la seccion 16.6 de la
-   * metodologia, el revisor usa el mismo modelo que la tarea). TASK-047: la
+   * metodologia, enmendada en TASK-081, el revisor usa el mismo modelo que la
+   * tarea, salvo en la ronda de verificacion: ver `modeloRonda`). TASK-047: la
    * skill revisora de cada grupo es otra cosa y va en `informes[].revisor`.
    */
   agente: string;
   modelo: string;
+  /**
+   * TASK-081: modelo mas barato que la peticion sugiere para ESTA ronda, solo
+   * si es una ronda de verificacion y la anterior cumple la regla estricta
+   * (ver `modeloBaratoPermitido`). Ausente: se mantiene `modelo`.
+   */
+  modeloRonda?: string;
   /**
    * Un elemento por revisor que interviene en esta ronda (TASK-018): uno
    * solo, con el generico, si el diff no se fragmento por dominio; uno
@@ -198,6 +209,9 @@ export function peticionTemplate(
     `- Commit revisado (HEAD): ${commitRevisado}\n` +
     `- Fecha: ${fecha}\n` +
     `- Agente a lanzar: ${task.agente_revisor} (modelo sugerido: ${task.modelo_sugerido})\n` +
+    (extras.modeloRonda === undefined
+      ? ''
+      : `- Modelo sugerido para esta ronda: ${extras.modeloRonda} (verificacion de correcciones; la tarea usa ${task.modelo_sugerido})\n`) +
     `- Skill revisora a cargar: ${skillRevisora}\n` +
     (extras.carpetaTarea === undefined
       ? ''
@@ -217,6 +231,7 @@ export function peticionTemplate(
     'explicito tambien vale; inventar hallazgos, no. Vuelca tu salida en el\n' +
     `informe de esta ronda (${nombreInforme}), sin borrar la\n` +
     'peticion.\n\n' +
+    seccionContextoPermitido(extras.contextoPermitido) +
     (extras.seccionPrevia ?? '') +
     `## Commits a revisar (git log ${desde}..HEAD)\n\n` +
     `${fence}\n` +
@@ -247,6 +262,23 @@ export interface ExtrasPeticion {
   seccionPrevia?: string;
   /** TASK-074: lineas cambiadas sin cubrir (solo si el proyecto declara `informe_cobertura`). */
   seccionCobertura?: string;
+  /** TASK-081: lo que el revisor puede leer sin justificarlo (ver core/contexto-revision.ts). */
+  contextoPermitido?: readonly string[];
+  /** TASK-081: modelo mas barato sugerido para esta ronda de verificacion. */
+  modeloRonda?: string;
+}
+
+/** TASK-081: la lista orienta, no prohibe; lo de fuera se justifica en el informe. */
+function seccionContextoPermitido(rutas: readonly string[] | undefined): string {
+  if (rutas === undefined) return '';
+  return (
+    '## Contexto permitido\n\n' +
+    'Lee solo esto: el enunciado y el plan de la tarea, y los ficheros de tu parte del diff.\n' +
+    'Si necesitas algo mas, leelo y anotalo con su motivo en `## Lecturas fuera del\n' +
+    'contexto permitido` de tu informe.\n\n' +
+    rutas.map((r) => `- ${r}`).join('\n') +
+    '\n\n'
+  );
 }
 
 /** Lo que hace falta saber de la ronda N para generar la N+1 (TASK-040). */
@@ -257,6 +289,31 @@ interface RondaPrevia {
   commit: string | null;
   /** Seccion de la peticion con los hallazgos que siguen abiertos. */
   seccion: string;
+  /** TASK-081: la ronda cumple la regla estricta para verificar con un modelo mas barato. */
+  modeloBaratoPermitido: boolean;
+}
+
+/**
+ * Regla ESTRICTA (decision de la persona, TASK-081) para que la ronda de
+ * verificacion use un modelo mas barato. Se cumple solo si, en TODOS los
+ * informes de la ronda anterior: la tabla de hallazgos se lee, no hay ningun
+ * CRITICO en ningun estado (tampoco uno `corregido`), no hay severidades
+ * fuera del vocabulario, y el informe no sigue siendo la plantilla (sin filas
+ * reales de hallazgo y con la fila de ejemplo, o con el veredicto PENDIENTE).
+ */
+export function modeloBaratoPermitido(informes: readonly string[]): boolean {
+  if (informes.length === 0) return false;
+  for (const texto of informes) {
+    const lectura = leerHallazgos(texto);
+    if (!lectura.tabla) return false;
+    if (lectura.hallazgos.some((h) => h.severidadReconocida === null || h.severidadReconocida === 'CRITICO')) {
+      return false;
+    }
+    const plantilla =
+      lectura.hallazgos.length === 0 && (/^\|\s*\(ej\./im.test(texto) || veredictoDe(texto) === 'pendiente');
+    if (plantilla) return false;
+  }
+  return true;
 }
 
 async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
@@ -299,7 +356,13 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
       `\nTabla de hallazgos ausente o ilegible en: ${sinTabla.join(', ')}. ` +
       'Lee esos informes enteros.\n';
   }
-  return { ronda: informes.ronda, veredicto: veredictoDeRonda(textos.map((t) => t.texto)), commit, seccion: seccion + '\n' };
+  return {
+    ronda: informes.ronda,
+    veredicto: veredictoDeRonda(textos.map((t) => t.texto)),
+    commit,
+    seccion: seccion + '\n',
+    modeloBaratoPermitido: modeloBaratoPermitido(textos.map((t) => t.texto)),
+  };
 }
 
 /**
@@ -354,7 +417,10 @@ export function informeTemplate(task: Task, commitRevisado: string, ronda: numbe
     'Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el\n' +
     'plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el\n' +
     'enunciado o en los criterios de aceptacion de la tarea.\n\n' +
-    'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n'
+    'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n\n' +
+    // TASK-081: lo leido fuera de la lista de la peticion, con su motivo.
+    '## Lecturas fuera del contexto permitido\n\n' +
+    'ninguna\n'
   );
 }
 
@@ -551,6 +617,13 @@ export async function runReviewCommand(
   // Un par de nombres (con o sin sufijo de dominio) por grupo del plan.
   // Sin fragmentar hay un unico grupo y se usa el nombre de siempre, sin
   // sufijo: ninguna tarea que solo cae al generico cambia de convencion.
+  // TASK-081: todo lo que va a la peticion se calcula ANTES del primer
+  // writeFile: si algo falla aqui no queda nada a medias en revision/.
+  const carpetaTarea = `tareas/${STATE_FOLDER[updated.estado]}/${updated.id}`;
+  const modeloRonda =
+    incremental && previa !== null && previa.modeloBaratoPermitido
+      ? modeloDeVerificacion(updated.modelo_sugerido)
+      : null;
   const escrituras = plan.grupos.map((grupo) => {
     const sufijo = plan.fragmentado ? `-${grupo.revisor}` : '';
     return {
@@ -558,6 +631,12 @@ export async function runReviewCommand(
       ficheros: grupo.ficheros,
       nombrePeticion: `peticion-revision-${ronda}${sufijo}.md`,
       nombreInforme: `informe-revision-${ronda}${sufijo}.md`,
+      contexto: contextoPermitido({
+        carpetaTarea,
+        ficherosDelGrupo: grupo.ficheros,
+        extra: configRama.contexto_revision,
+        excluir,
+      }),
     };
   });
 
@@ -604,7 +683,9 @@ export async function runReviewCommand(
           {
             // La peticion se escribe ANTES de mover la tarea: la carpeta
             // sale del estado destino, no de filePath.
-            carpetaTarea: `tareas/${STATE_FOLDER[updated.estado]}/${updated.id}`,
+            carpetaTarea,
+            contextoPermitido: escritura.contexto,
+            ...(modeloRonda === null ? {} : { modeloRonda }),
             excluidos: paraRevision.excluidos,
             stat: paraRevision.stat,
             patrones: excluir,
@@ -672,6 +753,7 @@ export async function runReviewCommand(
     filePath: newFilePath,
     agente: updated.agente_revisor,
     modelo: updated.modelo_sugerido,
+    ...(modeloRonda === null ? {} : { modeloRonda }),
     informes,
   };
 }

@@ -35,7 +35,7 @@ import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertur
 import { registrarTransicion } from '../core/transiciones.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
-import { commitRevisadoDe, hallazgosNoCerrados, veredictoDeRonda, } from '../core/informe-revision.js';
+import { commitRevisadoDe, hallazgosNoCerrados, leerHallazgos, veredictoDe, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, } from '../fs/git.js';
@@ -43,6 +43,8 @@ import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js'
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 import { EXCLUIR_HELDOUT } from '../core/heldout.js';
+import { contextoPermitido } from '../core/contexto-revision.js';
+import { modeloDeVerificacion } from '../core/modelo-revision.js';
 export class ReviewCommandError extends Error {
 }
 /** Flags de `taskctl review`: solo extraerPushFlag. */
@@ -102,6 +104,9 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `- Commit revisado (HEAD): ${commitRevisado}\n` +
         `- Fecha: ${fecha}\n` +
         `- Agente a lanzar: ${task.agente_revisor} (modelo sugerido: ${task.modelo_sugerido})\n` +
+        (extras.modeloRonda === undefined
+            ? ''
+            : `- Modelo sugerido para esta ronda: ${extras.modeloRonda} (verificacion de correcciones; la tarea usa ${task.modelo_sugerido})\n`) +
         `- Skill revisora a cargar: ${skillRevisora}\n` +
         (extras.carpetaTarea === undefined
             ? ''
@@ -121,6 +126,7 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         'explicito tambien vale; inventar hallazgos, no. Vuelca tu salida en el\n' +
         `informe de esta ronda (${nombreInforme}), sin borrar la\n` +
         'peticion.\n\n' +
+        seccionContextoPermitido(extras.contextoPermitido) +
         (extras.seccionPrevia ?? '') +
         `## Commits a revisar (git log ${desde}..HEAD)\n\n` +
         `${fence}\n` +
@@ -132,6 +138,41 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `${fence}\n` +
         seccionExcluidos(desde, extras) +
         (extras.seccionCobertura ?? ''));
+}
+/** TASK-081: la lista orienta, no prohibe; lo de fuera se justifica en el informe. */
+function seccionContextoPermitido(rutas) {
+    if (rutas === undefined)
+        return '';
+    return ('## Contexto permitido\n\n' +
+        'Lee solo esto: el enunciado y el plan de la tarea, y los ficheros de tu parte del diff.\n' +
+        'Si necesitas algo mas, leelo y anotalo con su motivo en `## Lecturas fuera del\n' +
+        'contexto permitido` de tu informe.\n\n' +
+        rutas.map((r) => `- ${r}`).join('\n') +
+        '\n\n');
+}
+/**
+ * Regla ESTRICTA (decision de la persona, TASK-081) para que la ronda de
+ * verificacion use un modelo mas barato. Se cumple solo si, en TODOS los
+ * informes de la ronda anterior: la tabla de hallazgos se lee, no hay ningun
+ * CRITICO en ningun estado (tampoco uno `corregido`), no hay severidades
+ * fuera del vocabulario, y el informe no sigue siendo la plantilla (sin filas
+ * reales de hallazgo y con la fila de ejemplo, o con el veredicto PENDIENTE).
+ */
+export function modeloBaratoPermitido(informes) {
+    if (informes.length === 0)
+        return false;
+    for (const texto of informes) {
+        const lectura = leerHallazgos(texto);
+        if (!lectura.tabla)
+            return false;
+        if (lectura.hallazgos.some((h) => h.severidadReconocida === null || h.severidadReconocida === 'CRITICO')) {
+            return false;
+        }
+        const plantilla = lectura.hallazgos.length === 0 && (/^\|\s*\(ej\./im.test(texto) || veredictoDe(texto) === 'pendiente');
+        if (plantilla)
+            return false;
+    }
+    return true;
 }
 async function leerRondaPrevia(revisionDir) {
     const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
@@ -171,7 +212,13 @@ async function leerRondaPrevia(revisionDir) {
             `\nTabla de hallazgos ausente o ilegible en: ${sinTabla.join(', ')}. ` +
                 'Lee esos informes enteros.\n';
     }
-    return { ronda: informes.ronda, veredicto: veredictoDeRonda(textos.map((t) => t.texto)), commit, seccion: seccion + '\n' };
+    return {
+        ronda: informes.ronda,
+        veredicto: veredictoDeRonda(textos.map((t) => t.texto)),
+        commit,
+        seccion: seccion + '\n',
+        modeloBaratoPermitido: modeloBaratoPermitido(textos.map((t) => t.texto)),
+    };
 }
 /**
  * Lo excluido del diff no desaparece: se dice que es, cuanto pesa y con
@@ -222,7 +269,10 @@ export function informeTemplate(task, commitRevisado, ronda) {
         'Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el\n' +
         'plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el\n' +
         'enunciado o en los criterios de aceptacion de la tarea.\n\n' +
-        'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n');
+        'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n\n' +
+        // TASK-081: lo leido fuera de la lista de la peticion, con su motivo.
+        '## Lecturas fuera del contexto permitido\n\n' +
+        'ninguna\n');
 }
 /** isAncestor sin lanzar: un SHA que ya no existe (gc) no es antepasado. */
 function esAntepasado(sha, cwd) {
@@ -384,6 +434,12 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     // Un par de nombres (con o sin sufijo de dominio) por grupo del plan.
     // Sin fragmentar hay un unico grupo y se usa el nombre de siempre, sin
     // sufijo: ninguna tarea que solo cae al generico cambia de convencion.
+    // TASK-081: todo lo que va a la peticion se calcula ANTES del primer
+    // writeFile: si algo falla aqui no queda nada a medias en revision/.
+    const carpetaTarea = `tareas/${STATE_FOLDER[updated.estado]}/${updated.id}`;
+    const modeloRonda = incremental && previa !== null && previa.modeloBaratoPermitido
+        ? modeloDeVerificacion(updated.modelo_sugerido)
+        : null;
     const escrituras = plan.grupos.map((grupo) => {
         const sufijo = plan.fragmentado ? `-${grupo.revisor}` : '';
         return {
@@ -391,6 +447,12 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
             ficheros: grupo.ficheros,
             nombrePeticion: `peticion-revision-${ronda}${sufijo}.md`,
             nombreInforme: `informe-revision-${ronda}${sufijo}.md`,
+            contexto: contextoPermitido({
+                carpetaTarea,
+                ficherosDelGrupo: grupo.ficheros,
+                extra: configRama.contexto_revision,
+                excluir,
+            }),
         };
     });
     // TASK-040 (riesgo 1 del brainstorm): si una escritura falla a mitad,
@@ -422,7 +484,9 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
             await escribir(path.join(revisionDir, escritura.nombrePeticion), peticionTemplate(updated, baseBranch, commitRevisado, ronda, today, commits, diffDelGrupo, escritura.revisor, escritura.nombreInforme, alcanceDiff, {
                 // La peticion se escribe ANTES de mover la tarea: la carpeta
                 // sale del estado destino, no de filePath.
-                carpetaTarea: `tareas/${STATE_FOLDER[updated.estado]}/${updated.id}`,
+                carpetaTarea,
+                contextoPermitido: escritura.contexto,
+                ...(modeloRonda === null ? {} : { modeloRonda }),
                 excluidos: paraRevision.excluidos,
                 stat: paraRevision.stat,
                 patrones: excluir,
@@ -479,6 +543,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
         filePath: newFilePath,
         agente: updated.agente_revisor,
         modelo: updated.modelo_sugerido,
+        ...(modeloRonda === null ? {} : { modeloRonda }),
         informes,
     };
 }
