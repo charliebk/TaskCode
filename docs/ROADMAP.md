@@ -1,7 +1,7 @@
 # Roadmap de TaskCode
 
 > Qué falta por hacer y qué está hecho, en un solo sitio. Última actualización:
-> **2026-11-07** (TASK-084 cerrada: abre la 0.12.0).
+> **2026-11-07** (TASK-081 cerrada, en la 0.12.0).
 >
 > **Cómo se mantiene**: al crear una tarea se añade a «Pendiente»; al cerrarla
 > con `taskctl finish` se pasa a «Terminado», bajo la versión con la que sale.
@@ -12,16 +12,16 @@
 
 | | Tareas |
 |---|---|
-| Terminadas | **80** (TASK-001 a TASK-080 salvo TASK-019, y TASK-084) |
+| Terminadas | **81** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 y TASK-084) |
 | Descartadas | 1 (TASK-019) |
-| **Pendientes** | **8** (TASK-081 a TASK-089, salvo TASK-084) |
+| **Pendientes** | **7** (TASK-082, TASK-083 y TASK-085 a TASK-089) |
 | Versión publicada | **0.11.0** (2026-11-06); en desarrollo, **0.12.0** |
 
 ---
 
 ## Pendiente
 
-### Fase N — Mejoras tras las métricas de la 0.8 (1/9)
+### Fase N — Mejoras tras las métricas de la 0.8 (2/9)
 
 Salen de medir ToolsaWeb con `taskctl metricas` (119 tareas terminadas, 51 de
 ellas con la 0.8). Con la 0.8 la calidad se mantuvo (0 CRÍTICOS), pero los
@@ -33,7 +33,6 @@ Orden recomendado (la columna «Orden» manda; los IDs son de alta):
 
 | Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
 |---|---|---|---|---|---|
-| 2 | TASK-081 | Revisión más barata: medir y acotar las lecturas de los revisores | alta | alta | TASK-084 ✅ (para medir el efecto) |
 | 3 | TASK-082 | Autorrevisión del implementador antes de pedir revisión | media | alta | — |
 | 4 | TASK-083 | Cierre sin ronda 2 completa cuando solo quedan MENORES | media | alta | — (empieza midiendo) |
 | 5 | TASK-085 | Coste de implementación registrado automáticamente | media | media | — |
@@ -67,16 +66,17 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
 
 ## Terminado
 
-80 tareas, agrupadas por la versión con la que salieron (la más reciente
+81 tareas, agrupadas por la versión con la que salieron (la más reciente
 primero). TASK-021 (publicar el marketplace) se adelantó al Sprint 1 como
 item A1. Las carpetas de TASK-001 a TASK-012 y TASK-021 siguen en
 `tareas/00-planificadas/` porque se hicieron antes de que existiera el ciclo
 de `taskctl`; su cierre consta en el checklist, no en la carpeta.
 
-### v0.12.0 (sin publicar) — 1 tarea
+### v0.12.0 (sin publicar) — 2 tareas
 
 | Tarea | Título | Cierre |
 |---|---|---|
+| TASK-081 | Revisión más barata: medir y acotar las lecturas de los revisores | 2026-11-07 |
 | TASK-084 | Versión del plugin en cada tarea y métricas por versión | 2026-11-07 |
 
 ### v0.11.0 — 1 tarea

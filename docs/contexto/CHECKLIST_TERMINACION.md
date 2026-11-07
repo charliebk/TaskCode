@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 91 / 99 items terminados (92%)** · última actualización: 2026-11-07
+**Progreso global: 92 / 99 items terminados (93%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **1** | — |
-| **Total pendiente** | **8** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **2** | — |
+| **Total pendiente** | **7** | — | — |
 
 ---
 
@@ -1004,14 +1004,25 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (1/9)
+## N — Mejoras tras las métricas de la 0.8 (2/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
 tarea a la primera y datos incompletos para comparar versiones. Orden y
 dependencias en `docs/ROADMAP.md`.
 
-- [ ] TASK-081 — Revisión más barata: medir y acotar las lecturas de los revisores
+- [x] TASK-081 — Revisión más barata: medir y acotar las lecturas de los revisores — cerrada el 2026-11-07
+      *`## Coste` gana las columnas `ronda` y `revisor` (las filas de 9 se siguen
+      leyendo); `registrar-coste` escribe una fila por revisor deduciendo ronda y
+      revisor de su transcripción, y `metricas --tokens` muestra lecturas y
+      CRÍTICO/IMPORTANTE por ronda y revisor. La petición trae `## Contexto
+      permitido` (clave `contexto_revision`), la skill común la sección «Lo que
+      lees» y el informe sus lecturas fuera de contexto. En ronda 2+ se sugiere un
+      modelo un escalón más barato con regla estricta (enmienda de la §16.6).
+      Dogfooding: ronda 1 (sonnet) 12,5 M con 14 lecturas; ronda 2 (haiku,
+      acotada) 1,97 M: el exceso viene del contexto que acumula el revisor, no de
+      leer ficheros. 2 rondas: MEN-1, 2 y 4 corregidos; MEN-3, MEN-5 y dos MENOR
+      de r2 (mayúsculas y `..` en `contexto_revision`) aceptados.*
 - [ ] TASK-082 — Autorrevisión del implementador antes de pedir revisión
 - [ ] TASK-083 — Cierre sin ronda 2 completa cuando solo quedan MENORES
 - [x] TASK-084 — Versión del plugin en cada tarea y métricas por versión — cerrada el 2026-11-07

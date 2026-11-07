@@ -1,9 +1,5 @@
 # Changelog
 
-## Sin publicar
-
-- TASK-081 (feature) — Revision mas barata: medir y acotar las lecturas de los revisores (2026-11-07)
-
 ## 0.12.0 — sin publicar
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
@@ -18,6 +14,16 @@ nunca deducidas por fecha. La version vive en `src/core/version.ts` y un test
 exige que coincida con `package.json` y `plugin.json`. Regla nueva: la version
 se sube al abrir el ciclo, no al publicar. Un taskctl anterior no lee las filas
 nuevas: una version del plugin por repo.
+
+Revision mas barata (TASK-081). `## Coste` gana las columnas `ronda` y
+`revisor`; en revision, `registrar-coste` escribe una fila por revisor con la
+ronda y el revisor deducidos de su transcripcion (`--ronda`/`--revisor` como
+sustitutos) y `metricas --tokens` muestra, por ronda y revisor, lecturas, cache
+y CRITICO/IMPORTANTE. La peticion de revision trae `## Contexto permitido`
+(clave nueva `contexto_revision`), la skill comun de los revisores manda no
+leer fuera de ella salvo justificandolo, y en la ronda 2 o posterior se sugiere
+un modelo un escalon mas barato si la ronda anterior no dejo ningun CRITICO.
+Las filas de `## Coste` de 11 columnas no las lee un taskctl anterior.
 
 ## 0.11.0 — 2026-11-06
 
