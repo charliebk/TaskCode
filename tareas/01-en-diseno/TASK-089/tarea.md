@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [seguridad, distribucion, tests]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-089-evitar-literales-con-forma-de-secreto-en
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ La proteccion de GitHub bloqueo el push de 0.11.0 por una clave de Stripe falsa 
 - [ ] Los fixtures de doctor-deploy construyen sus claves troceadas y siguen detectandose; sus tests en verde
 - [ ] Existen los tags anotados v0.9.0 y v0.10.0 en los commits de esas versiones y estan en origin
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-07T19:37:59Z | plan | automatico | persona |
