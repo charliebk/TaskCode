@@ -1,9 +1,5 @@
 # Changelog
 
-## Sin publicar
-
-- TASK-085 (feature) — Coste de implementacion registrado automaticamente (2026-11-07)
-
 ## 0.12.0 — sin publicar
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
@@ -50,6 +46,17 @@ trae un merge o toca un fichero que ningun hallazgo nombraba; tras una acotada,
 la completa revisa desde la base. Cada peticion lleva `- Alcance:` con su
 motivo, `--completa` la fuerza y `taskctl veredicto` avisa si se piden cambios
 con solo MENORES.
+
+Coste de implementacion registrado automaticamente (TASK-085). Con una tarea
+en curso en la rama, un hook en `Stop` y `SubagentStop` anota en
+`.git/coste-pendiente.jsonl` que transcripciones trabajan en ella (solo rutas:
+no lee transcripciones, no toca `tarea.md`, sale siempre con 0). `taskctl
+review` suma a `tokens_implementacion` y a `## Coste` (`sesion:<id>` y
+`agente:<id>`) lo gastado entre el `start` y el `review`, en la rama de la
+tarea y dentro del repo, descontando lo ya anotado; `finish` lo repite como
+red. Si todo cabe en un turno usa la sesion de `CLAUDE_CODE_SESSION_ID`.
+`registrar-coste --fase implementacion` queda como respaldo y
+`COSTE_AUTOMATICO=0` lo apaga.
 
 ## 0.11.0 — 2026-11-06
 

@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 94 / 99 items terminados (95%)** · última actualización: 2026-11-07
+**Progreso global: 95 / 99 items terminados (96%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **4** | — |
-| **Total pendiente** | **5** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **5** | — |
+| **Total pendiente** | **4** | — | — |
 
 ---
 
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (4/9)
+## N — Mejoras tras las métricas de la 0.8 (5/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1054,7 +1054,16 @@ dependencias en `docs/ROADMAP.md`.
       por fase; las sin versión, aparte. Versión subida a 0.12.0 al abrir el ciclo
       (sin publicar). 1 ronda, aprobada: MEN-1 y MEN-2 (dos huecos de test, el
       código es correcto) y MEN-3 (separador con alineación) aceptados.*
-- [ ] TASK-085 — Coste de implementación registrado automáticamente
+- [x] TASK-085 — Coste de implementación registrado automáticamente — cerrada el 2026-11-07
+      *Hook en `Stop` y `SubagentStop` que solo anota rutas de transcripción en
+      `.git/coste-pendiente.jsonl` (guardas baratas, ningún proceso sin tarea en
+      curso, siempre exit 0). `review` suma, en su commit, lo gastado entre el
+      `start` y el `review` en la rama y el repo de la tarea (`timestamp`,
+      `gitBranch` y `cwd` de cada línea), descontando lo ya anotado (`dif:`);
+      `finish` repite como red. Decisiones de Carlos: el hilo principal cuenta,
+      volcado en review/finish, las 97 tareas viejas de ToolsaWeb fuera. Probado
+      en la propia tarea (+14,3 M de implementación). 2 rondas: MEN-1 y MEN-2
+      (tests de la red de finish y del guard de campos negativos) corregidos.*
 - [ ] TASK-086 — Descontar las pausas de las duraciones de las métricas
 - [ ] TASK-087 — `taskctl doctor` avisa si el plugin instalado está desactualizado
 - [ ] TASK-088 — `taskctl doctor` avisa si falta `comando_verificacion` con tests detectables
