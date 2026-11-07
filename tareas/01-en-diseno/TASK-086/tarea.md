@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 444899
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-07
@@ -37,3 +37,9 @@ Las duraciones de taskctl metricas son de calendario y no descuentan pausas (un 
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T14:20:07Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-07T14:38:00Z | diseno | agente:a53ac3116bd79d9ad | 22 | 51019 | 385474 | 8384 | 16 | 444899 |
