@@ -2,7 +2,7 @@
 
 - Commit revisado: 1eefd549b205f3f22ddb40d3ef069a6a0c1fadf1
 - Revisor: agente general-purpose (sonnet) con skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-087 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada
 
 ## Hallazgos
 
