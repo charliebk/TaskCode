@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 1302865
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 3099932
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -46,6 +46,7 @@ Con la 0.8 ninguna tarea de ToolsaWeb salio en una sola ronda y el 86% de los ha
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T09:49:47Z | diseno | agente:a16510ee8f123cf95,ae0f1f76e6c641aea,a16253767c1e058b3 | 54 | 175190 | 1099991 | 27630 | 46 | 1302865 |
+| 2026-11-07T10:40:47Z | revision | agente:a75356ef3c60d8111 | 54 | 125934 | 2962157 | 11787 | 5 | 3099932 |
 
 ## Autorrevision
 
