@@ -58,8 +58,9 @@ import {
 // del repo.
 import { ConfigError } from './core/config.js';
 import { formatearInstante } from './core/transiciones.js';
+import { VERSION_TASKCTL } from './core/version.js';
 
-const VERSION = '0.11.0';
+const VERSION = VERSION_TASKCTL;
 
 const HELP = `taskctl ${VERSION} — TaskCode
 
@@ -75,7 +76,7 @@ Uso:
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
   taskctl metricas [--heuristica] [--tokens [--escribir]] [--repo <ruta>]...
-  taskctl metricas [--evolucion [--tramo N]] [--grupos] [--json] [--repo <ruta>]...
+  taskctl metricas [--evolucion [--tramo N]] [--grupos] [--por-version] [--json] [--repo <ruta>]...
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
@@ -110,8 +111,10 @@ resumen por sprint y por complejidad; con --escribir lo
 regenera en el bloque delimitado de docs/METRICAS.md (sin commitear). Sin
 --escribir solo lee. --repo <ruta> (repetible) junta varios proyectos; --evolucion
 [--tramo N] da las terminadas por tramos de cierre y --grupos las agrupa por tipo,
-complejidad, criterios, KB de peticion de revision y proyecto; --json da un unico
-objeto JSON (solo con --repo, --evolucion, --tramo y --grupos).
+complejidad, criterios, KB de peticion de revision y proyecto; --por-version agrupa
+las terminadas por la version de taskctl de su ultimo finish (las que no la llevan
+anotada, aparte); --json da un unico objeto JSON (solo con --repo, --evolucion,
+--tramo, --grupos y --por-version).
 Un flag repetido que no admite repeticion aborta en cualquier comando.
 registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
 --agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la

@@ -28,8 +28,10 @@ rama de un merge request: `finish --merge-request` la sube siempre, porque sin
 ella no hay merge request; en `automatico` con `cierre_por_defecto:
 merge-request` eso ocurre sin preguntar, y el tag nunca se sube sin `--push`),
 y cada transicion deja
-una fila en la seccion `## Transiciones` de `tarea.md` (fecha, fase, modo y
-quien decidio) en el mismo commit que la transicion.
+una fila en la seccion `## Transiciones` de `tarea.md` (fecha, fase, modo,
+quien decidio y la version de taskctl que la escribio) en el mismo commit que
+la transicion. Un taskctl anterior no lee las filas con version: usa la misma
+version del plugin en todo el repo.
 
 Al cerrar, la skill `finish` pregunta en `manual` y `semiautomatico` (merge
 normal, merge request, tag opcional); en `automatico` no pregunta y usa el

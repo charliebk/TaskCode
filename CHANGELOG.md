@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.12.0 — sin publicar
+
+Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
+lleva como quinta columna la version de `taskctl` que la escribio; las filas
+anteriores, de 4 columnas, se siguen leyendo igual y siguen congelando el modo.
+La primera fila con version bajo una cabecera de 4 columnas amplia solo la
+cabecera y su separador, para que se vea en GitHub y GitLab. `taskctl metricas
+--por-version [--json]` agrupa las terminadas por la version de su ultimo
+`finish`, en orden semver: rondas, aprobadas a la primera, hallazgos por
+severidad y origen y tokens por fase; las que no la llevan anotada van aparte,
+nunca deducidas por fecha. La version vive en `src/core/version.ts` y un test
+exige que coincida con `package.json` y `plugin.json`. Regla nueva: la version
+se sube al abrir el ciclo, no al publicar. Un taskctl anterior no lee las filas
+nuevas: una version del plugin por repo.
+
 ## 0.11.0 — 2026-11-06
 
 Accesibilidad y roles del brainstorm (TASK-080). `angular-vue-reviewer` revisa la

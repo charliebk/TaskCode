@@ -13,8 +13,10 @@ import {
   precisionDeFecha,
   instanteDe,
   formatearInstante,
+  versionDeCierre,
   type FilaTransicion,
 } from '../../src/core/transiciones.js';
+import { VERSION_TASKCTL } from '../../src/core/version.js';
 
 const CUERPO = '## Objetivo\n\nHacer algo.\n\n## Criterios de aceptacion\n- [ ] Que funcione\n';
 
@@ -23,6 +25,7 @@ const fila = (o: Partial<FilaTransicion> = {}): FilaTransicion => ({
   fase: 'plan',
   modo: 'manual',
   decidido_por: 'persona',
+  version: null,
   ...o,
 });
 
@@ -31,8 +34,8 @@ test('anadirTransicion: sin seccion, la crea al final y deja el cuerpo intacto p
   assert.ok(r.startsWith(CUERPO.trimEnd() + '\n\n## Transiciones\n'), r);
   assert.ok(
     r.endsWith(
-      '## Transiciones\n\n| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n' +
-        '| 2026-10-04 | plan | manual | persona |\n'
+      '## Transiciones\n\n| fecha | fase | modo | decidido_por | version |\n|---|---|---|---|---|\n' +
+        '| 2026-10-04 | plan | manual | persona |  |\n'
     ),
     r
   );
@@ -51,7 +54,7 @@ test('anadirTransicion: con seccion, la fila va detras de la ultima de la tabla,
   // El Resultado sigue intacto y detras.
   assert.ok(r.endsWith('## Resultado\n\nTexto del resultado.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n'), r);
   const antesDeResultado = r.slice(0, r.indexOf('## Resultado'));
-  assert.match(antesDeResultado, /\| 2026-10-04 \| approve \| manual \| automatico \|\n/);
+  assert.match(antesDeResultado, /\| 2026-10-04 \| approve \| manual \| automatico \|  \|\n/);
 });
 
 test('anadirTransicion: respeta CRLF si el cuerpo lo usa', () => {
@@ -207,8 +210,8 @@ test('registrarTransicion: plan toma el modo del config; el resto, el congelado 
   const tras = registrarTransicion(CUERPO, 'plan', '2026-10-04', 'automatico');
   const aprobada = registrarTransicion(tras, 'approve', '2026-10-05', 'manual', 'automatico');
   assert.deepEqual(leerTransiciones(aprobada), [
-    fila({ modo: 'automatico' }),
-    fila({ fecha: '2026-10-05', fase: 'approve', modo: 'automatico', decidido_por: 'automatico' }),
+    fila({ modo: 'automatico', version: VERSION_TASKCTL }),
+    fila({ fecha: '2026-10-05', fase: 'approve', modo: 'automatico', decidido_por: 'automatico', version: VERSION_TASKCTL }),
   ]);
   // Tarea anterior al registro (sin fila plan): el modo es el del config.
   assert.equal(modoDeTarea(CUERPO, 'semiautomatico'), 'semiautomatico');
@@ -227,8 +230,8 @@ const PLAN_AUTO_CON_HORA = fila({ fecha: '2026-10-05T14:03:22Z', modo: 'automati
 
 test('TASK-052: registrarTransicion con instante lo escribe tal cual y leerTransiciones lo devuelve', () => {
   const r = registrarTransicion(CUERPO, 'plan', '2026-10-05T14:03:22Z', 'automatico');
-  assert.ok(r.includes('| 2026-10-05T14:03:22Z | plan | automatico | persona |'), r);
-  assert.deepEqual(leerTransiciones(r), [PLAN_AUTO_CON_HORA]);
+  assert.ok(r.includes(`| 2026-10-05T14:03:22Z | plan | automatico | persona | ${VERSION_TASKCTL} |`), r);
+  assert.deepEqual(leerTransiciones(r), [{ ...PLAN_AUTO_CON_HORA, version: VERSION_TASKCTL }]);
 });
 
 test('TASK-052: modoCongelado sigue funcionando con filas con hora', () => {
@@ -286,4 +289,104 @@ test('TASK-052: formatearInstante es UTC al segundo e instanteDe lo invierte', (
   assert.equal(precisionDeFecha(formatearInstante(d)), 'segundo');
   assert.equal(instanteDe('2026-10-05T23:59:59Z'), Date.UTC(2026, 9, 5, 23, 59, 59));
   assert.equal(instanteDe('2026-10-05'), Date.UTC(2026, 9, 5));
+});
+
+// --------------------------------------------------------------------
+// TASK-084: quinta columna `version`. Las filas viejas de 4 celdas se siguen
+// leyendo (con version null) y siguen congelando el modo; la primera fila con
+// version bajo una cabecera de 4 columnas amplia SOLO cabecera y separador.
+// --------------------------------------------------------------------
+
+const TABLA_VIEJA =
+  CUERPO +
+  '\n## Transiciones\n\n| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n' +
+  '| 2026-10-04 | plan | manual | persona |\n' +
+  '| 2026-10-05T10:00:00Z | approve | manual | persona |\n';
+
+test('TASK-084: una tabla de 4 columnas se lee entera, sin version, y congela el modo', () => {
+  assert.deepEqual(leerTransiciones(TABLA_VIEJA), [
+    fila(),
+    fila({ fecha: '2026-10-05T10:00:00Z', fase: 'approve' }),
+  ]);
+  assert.equal(modoCongelado(TABLA_VIEJA), 'manual');
+  assert.equal(versionDeCierre(TABLA_VIEJA), null);
+});
+
+test('TASK-084: la primera fila con version amplia cabecera y separador y no toca las filas viejas', () => {
+  const r = registrarTransicion(TABLA_VIEJA, 'start', '2026-10-06T09:00:00Z', 'automatico', 'persona', '0.12.0');
+  const esperado =
+    TABLA_VIEJA.replace(
+      '| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n',
+      '| fecha | fase | modo | decidido_por | version |\n|---|---|---|---|---|\n'
+    ) + '| 2026-10-06T09:00:00Z | start | manual | persona | 0.12.0 |\n';
+  assert.equal(r, esperado);
+  assert.deepEqual(
+    leerTransiciones(r).map((f) => [f.fase, f.modo, f.version]),
+    [
+      ['plan', 'manual', null],
+      ['approve', 'manual', null],
+      ['start', 'manual', '0.12.0'],
+    ]
+  );
+  // La segunda fila ya encuentra la cabecera de 5: no se vuelve a tocar.
+  const r2 = registrarTransicion(r, 'review', '2026-10-06T10:00:00Z', 'manual', 'persona', '0.12.0');
+  assert.equal(r2, r + '| 2026-10-06T10:00:00Z | review | manual | persona | 0.12.0 |\n');
+});
+
+test('TASK-084: la ampliacion de la cabecera respeta CRLF', () => {
+  const crlf = TABLA_VIEJA.replace(/\n/g, '\r\n');
+  const r = registrarTransicion(crlf, 'start', '2026-10-06T09:00:00Z', 'manual', 'persona', '0.12.0');
+  assert.equal(r.replace(/\r\n/g, '').includes('\n'), false, 'no mezcla LF suelto');
+  assert.ok(r.includes('| fecha | fase | modo | decidido_por | version |\r\n|---|---|---|---|---|\r\n'), r);
+});
+
+test('TASK-084: una cabecera editada a mano (no la de 4 columnas exacta) no se reescribe', () => {
+  const editada = TABLA_VIEJA.replace('| fecha | fase | modo | decidido_por |', '| Fecha | fase | modo | decidido_por |');
+  const r = registrarTransicion(editada, 'start', '2026-10-06T09:00:00Z', 'manual', 'persona', '0.12.0');
+  assert.ok(r.includes('| Fecha | fase | modo | decidido_por |\n|---|---|---|---|\n'), r);
+  assert.equal(leerTransiciones(r)[2]?.version, '0.12.0');
+  // Una cabecera de 4 dentro de un bloque de codigo de la seccion tampoco.
+  const conBloque =
+    anadirTransicion(CUERPO, fila({ version: '0.12.0' })) +
+    '\n```md\n| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n```\n';
+  const r3 = anadirTransicion(conBloque, fila({ fase: 'approve', version: '0.12.0' }));
+  assert.ok(r3.includes('```md\n| fecha | fase | modo | decidido_por |\n|---|---|---|---|\n```'), r3);
+});
+
+test('TASK-084: una celda de version que no es version deja la fila (y su modo) sin version', () => {
+  const cuerpo =
+    CUERPO +
+    '\n## Transiciones\n\n| fecha | fase | modo | decidido_por | version |\n|---|---|---|---|---|\n' +
+    '| 2026-10-04 | plan | automatico | persona | ayer |\n' +
+    '| 2026-10-05 | approve | automatico | persona |  |\n' +
+    '| 2026-10-06 | start | automatico | persona | 0.12.0-dev.1 |\n' +
+    '| 2026-10-07 | review | automatico | persona | 0.12.0 | extra |\n';
+  assert.deepEqual(
+    leerTransiciones(cuerpo).map((f) => [f.fase, f.version]),
+    [
+      ['plan', null],
+      ['approve', null],
+      ['start', '0.12.0-dev.1'],
+    ]
+  );
+  assert.equal(modoCongelado(cuerpo), 'automatico');
+});
+
+test('TASK-084: versionDeCierre es la del ULTIMO finish; null sin finish o si no la lleva', () => {
+  let r = registrarTransicion(CUERPO, 'plan', '2026-10-04T10:00:00Z', 'manual', 'persona', '0.11.0');
+  assert.equal(versionDeCierre(r), null, 'sin finish no hay version de cierre');
+  r = registrarTransicion(r, 'finish', '2026-10-05T10:00:00Z', 'manual', 'persona', '0.11.0');
+  assert.equal(versionDeCierre(r), '0.11.0');
+  // finish abortado y reintentado con el plugin actualizado: cuenta el ultimo.
+  r = registrarTransicion(r, 'finish', '2026-10-06T10:00:00Z', 'manual', 'persona', '0.12.0');
+  assert.equal(versionDeCierre(r), '0.12.0');
+  // Un ultimo finish sin version no hereda la del anterior.
+  r = anadirTransicion(r, fila({ fecha: '2026-10-07', fase: 'finish' }));
+  assert.equal(versionDeCierre(r), null);
+});
+
+test('TASK-084: registrarTransicion anota por defecto la version de este taskctl', () => {
+  const r = registrarTransicion(CUERPO, 'plan', '2026-10-04T10:00:00Z', 'manual');
+  assert.equal(leerTransiciones(r)[0]?.version, VERSION_TASKCTL);
+  assert.ok(r.includes(`| persona | ${VERSION_TASKCTL} |`), r);
 });

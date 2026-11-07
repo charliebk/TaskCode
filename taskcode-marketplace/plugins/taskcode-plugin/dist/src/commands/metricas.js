@@ -31,6 +31,10 @@
  * lleva su proyecto y toda la lectura va con la clave (proyecto, id), asi que
  * un mismo TASK-NNN en dos repos no mezcla datos. Sin `--repo` se lee el repo
  * actual y la salida es la de siempre.
+ *
+ * TASK-084: `--por-version` agrupa las terminadas por la version de taskctl
+ * de su ultimo `finish` (`core/versiones-metricas.ts`). Es otro agregado,
+ * como `--evolucion` y `--grupos`: se combina con ellos y con `--json`.
  */
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -45,6 +49,7 @@ import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/t
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion } from '../core/evolucion.js';
 import { calcularGrupos, formatearGrupos } from '../core/grupos-metricas.js';
+import { calcularPorVersion, formatearPorVersion } from '../core/versiones-metricas.js';
 export class MetricasCommandError extends Error {
 }
 export const FLAGS_METRICAS = [
@@ -55,6 +60,7 @@ export const FLAGS_METRICAS = [
     '--evolucion',
     '--tramo',
     '--grupos',
+    '--por-version',
     '--json',
 ];
 /**
@@ -63,7 +69,7 @@ export const FLAGS_METRICAS = [
  * nada: su salida es texto o un fichero, y mezclarla con el JSON romperia a
  * quien lo lea.
  */
-export const FLAGS_CON_JSON = ['--repo', '--evolucion', '--tramo', '--grupos'];
+export const FLAGS_CON_JSON = ['--repo', '--evolucion', '--tramo', '--grupos', '--por-version'];
 /** Ruta de docs/METRICAS.md dentro del repo del usuario. */
 export function metricasFilePath(repoCwd) {
     return path.join(repoCwd, 'docs', 'METRICAS.md');
@@ -122,18 +128,19 @@ function parseFlagsMetricas(argv) {
         repos,
         evolucion: null,
         grupos: flagSuelto(flags, 'grupos'),
+        porVersion: flagSuelto(flags, 'por-version'),
         json,
     };
     const conEvolucion = flagSuelto(flags, 'evolucion');
     const tramo = leerTramo(flags['tramo'], conEvolucion);
     if (conEvolucion)
         f.evolucion = tramo;
-    if (conEvolucion || f.grupos) {
+    if (conEvolucion || f.grupos || f.porVersion) {
         // Los agregados sustituyen a la tabla por tarea: lo que anaden --heuristica
         // y --tokens (columnas y resumenes de esa tabla) no saldria en ningun sitio.
         const choca = ['heuristica', 'tokens', 'escribir'].filter((k) => f[k]);
         if (choca.length > 0) {
-            const agregado = conEvolucion ? '--evolucion' : '--grupos';
+            const agregado = conEvolucion ? '--evolucion' : f.grupos ? '--grupos' : '--por-version';
             throw new MetricasCommandError(`[ERROR] ${agregado} no se combina con ${choca.map((k) => `--${k}`).join(' ni ')}: saca agregados ` +
                 'en lugar de la tabla por tarea. Lanzalos por separado.');
         }
@@ -330,7 +337,7 @@ export async function leerRepoMetricas(repo, varios) {
 }
 export async function runMetricasCommand(tareasRoot, argv, deps) {
     rechazarFlagsDesconocidos(argv, FLAGS_METRICAS, 'metricas', (m) => new MetricasCommandError(m));
-    const { heuristica: conHeuristica, tokens: conTokens, escribir, repos: valoresRepo, evolucion: tramoEvolucion, grupos: conGrupos, json, } = parseFlagsMetricas(argv);
+    const { heuristica: conHeuristica, tokens: conTokens, escribir, repos: valoresRepo, evolucion: tramoEvolucion, grupos: conGrupos, porVersion: conPorVersion, json, } = parseFlagsMetricas(argv);
     // Como board --escribir: sin tareas/ en este directorio no se crea un
     // docs/METRICAS.md fantasma.
     if (escribir) {
@@ -393,6 +400,7 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
             sinCoste: resumenSinCoste(filas),
             ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
             ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
+            ...(conPorVersion ? { porVersion: calcularPorVersion(filas) } : {}),
         };
         return {
             output: JSON.stringify(objeto),
@@ -406,12 +414,14 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
     }
     // TASK-065: los agregados sustituyen a la tabla por tarea, y salen tambien
     // sin tareas (con sus ceros y sus n 0 a la vista).
-    if (tramoEvolucion !== null || conGrupos) {
+    if (tramoEvolucion !== null || conGrupos || conPorVersion) {
         const secciones = [];
         if (tramoEvolucion !== null)
             secciones.push(formatearEvolucion(calcularEvolucion(filas, tramoEvolucion), varios));
         if (conGrupos)
             secciones.push(formatearGrupos(calcularGrupos(filas, proyectos)));
+        if (conPorVersion)
+            secciones.push(formatearPorVersion(calcularPorVersion(filas)));
         return {
             output: secciones.join('\n\n'),
             totalTareas: filas.length,

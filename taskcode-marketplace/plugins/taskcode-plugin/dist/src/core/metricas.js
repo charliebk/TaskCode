@@ -46,7 +46,7 @@
  * (`ResumenCostes`, `ResumenHallazgos`), para que quien agregue no tenga que
  * adivinar si un 0 es un cero o una ausencia.
  */
-import { leerTransiciones, instanteDe, precisionDeFecha } from './transiciones.js';
+import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, resumirCostes } from './coste-registro.js';
 import { resumirHallazgos, veredictoDeRonda, } from './informe-revision.js';
@@ -189,6 +189,7 @@ export function calcularFila(e) {
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
         total: duracionEntre(marcas.plan, marcas.finish),
         veredictoRonda1: veredictoRonda1(e.informes ?? []),
+        versionCierre: versionDeCierre(e.body),
     };
 }
 function veredictoRonda1(informes) {

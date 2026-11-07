@@ -282,11 +282,11 @@ ejecución aplicado:
 
 ```
 $ node bin/taskctl --help
-taskctl 0.11.0 — TaskCode
+taskctl 0.12.0 — TaskCode
 [...]
 
 $ ./bin/taskctl --help          # ejecución directa vía shebang + bit +x
-taskctl 0.11.0 — TaskCode
+taskctl 0.12.0 — TaskCode
 [...]                            # salida idéntica
 
 $ PATH="$(pwd)/bin:$PATH" taskctl --version   # simula resolución por PATH
@@ -1157,11 +1157,39 @@ de hallazgos. Los grupos son fijos: uno sin tareas sale con 0 y «—».
 `--evolucion` y `--grupos` se combinan entre sí y con `--repo`, no con
 `--heuristica`, `--tokens` ni `--escribir`.
 
+**`--por-version`** (desde la 0.12.0) agrupa las tareas terminadas por la
+versión de `taskctl` con la que se cerraron: la de la columna `version` de la
+última fila `finish` de `## Transiciones` (un `finish` abortado y reintentado
+con otro plugin deja dos; cuenta el último). Por versión, en orden semver
+(0.9 antes que 0.10; una pre-release como `0.12.0-dev` antes de su release):
+tareas, con revisión, % aprobado a la primera, rondas medias, tokens medios por
+fase (con su `n`) y una segunda tabla con los hallazgos por severidad y por
+origen (de las tareas con tabla de hallazgos). Las tareas sin versión anotada
+(cerradas antes de la 0.12.0, medidas con los commits o con la celda editada a
+mano) van a un grupo «sin version» aparte: la versión **nunca se deduce por la
+fecha de cierre**. Se combina como `--evolucion` y `--grupos`.
+
+**La columna `version` de `## Transiciones`.** Desde la 0.12.0 cada transición
+anota la versión de `taskctl` que la escribió, como quinta columna. Las filas
+anteriores, de cuatro columnas, se siguen leyendo igual (y siguen congelando el
+modo). La primera fila con versión que se añade bajo una cabecera de cuatro
+columnas cambia **solo la cabecera y su separador** a cinco, para que la
+versión se vea en GitHub y GitLab; las filas viejas no se tocan. Un `taskctl`
+anterior a la 0.12.0 no reconoce las filas de cinco columnas y deja de ver el
+modo congelado de esa tarea: **usa la misma versión del plugin en todo el
+repo**. Para que la versión anotada sea útil, se sube al **abrir** el ciclo de
+una versión nueva (la primera tarea que la construye), no al publicarla.
+
 **`--json`** escribe en stdout un único objeto JSON
 (`{proyectos: [{proyecto, ruta, tareas}], sinCoste: {terminadas, total, porFase,
-tareas}, evolucion?, grupos?}`), también sin tareas; los avisos y la lista de
+tareas}, evolucion?, grupos?, porVersion?}`), también sin tareas; los avisos y la lista de
 repos van por stderr. Cada `null` va junto a un `n: 0` en el mismo objeto; nunca
-`NaN`. Solo se combina con `--repo`, `--evolucion`, `--tramo` y `--grupos`: con
+`NaN`. `porVersion` es `{terminadas, versiones: [...], sinVersion}`, con cada grupo
+en la forma `{version, n, conRevision, aprobadasPrimera, pctAprobadaPrimera,
+rondasMedia, sinRevision, conHallazgos, sinTablaHallazgos, hallazgosPorSeveridad,
+hallazgosPorOrigen, tokens: {diseno, implementacion, revision}}` (cada fase
+`{suma, conDato, media}`). Solo se combina con `--repo`, `--evolucion`, `--tramo`,
+`--grupos` y `--por-version`: con
 cualquier otro flag aborta sin leer ni escribir nada.
 
 En cualquier comando de `taskctl`, un flag repetido que no admite repetición

@@ -46,7 +46,7 @@
  * (`ResumenCostes`, `ResumenHallazgos`), para que quien agregue no tenga que
  * adivinar si un 0 es un cero o una ausencia.
  */
-import { leerTransiciones, instanteDe, precisionDeFecha, type PrecisionFecha } from './transiciones.js';
+import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre, type PrecisionFecha } from './transiciones.js';
 import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState, type TaskType } from './task.js';
 import { FASES_COSTE, leerCostes, resumirCostes, type FaseCoste, type ResumenCostes } from './coste-registro.js';
 import {
@@ -155,6 +155,12 @@ export interface FilaMetricas {
    * de la ronda 1. «Aprobada a la primera» = `rondas === 1` y esto `aprobada`.
    */
   veredictoRonda1: VeredictoInforme | null;
+  /**
+   * TASK-084: version de taskctl del ultimo `finish` del registro; null sin
+   * `finish`, sin version anotada o con origen `git` (que no la lleva). Nunca
+   * se deduce por la fecha.
+   */
+  versionCierre: string | null;
   /** Solo con `--heuristica`. */
   heuristica?: HeuristicaFila;
 }
@@ -301,6 +307,7 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
     total: duracionEntre(marcas.plan, marcas.finish),
     veredictoRonda1: veredictoRonda1(e.informes ?? []),
+    versionCierre: versionDeCierre(e.body),
   };
 }
 

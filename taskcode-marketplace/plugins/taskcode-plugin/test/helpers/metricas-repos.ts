@@ -36,6 +36,14 @@ export interface TareaFixture {
   finish?: string | null;
   rondas?: RondaFixture[];
   tokensRevision?: number | null;
+  tokensDiseno?: number | null;
+  /**
+   * TASK-084: version de las filas de `plan` y `finish` (tabla de 5 columnas).
+   * Sin el campo, la tabla es la de 4 columnas, anterior a la version.
+   */
+  version?: string;
+  /** TASK-084: filas de 5 celdas que se anaden tal cual tras las demas. */
+  filasExtra?: string[];
 }
 
 function git(args: string[], cwd: string): string {
@@ -62,7 +70,7 @@ function tarea(t: TareaFixture): Task {
     regla_seleccion_skill: null,
     ultimo_commit_revisado: null,
     revision_codex: false,
-    tokens_diseno: null,
+    tokens_diseno: t.tokensDiseno ?? null,
     tokens_implementacion: null,
     tokens_revision: t.tokensRevision ?? null,
     creado: '2026-10-01',
@@ -74,10 +82,13 @@ function tarea(t: TareaFixture): Task {
 function cuerpo(t: TareaFixture): string {
   const criterios = Array.from({ length: t.criterios ?? 2 }, (_, i) => `- [ ] Criterio ${String(i + 1)}`);
   const filas: string[] = [];
+  const cinco = t.version !== undefined || t.filasExtra !== undefined;
+  const v = cinco ? ` ${t.version ?? ''} |` : '';
   const plan = t.plan === undefined ? '2026-10-01T10:00:00Z' : t.plan;
-  if (plan !== null) filas.push(`| ${plan} | plan | manual | persona |`);
+  if (plan !== null) filas.push(`| ${plan} | plan | manual | persona |${v}`);
   const fin = t.finish === undefined ? null : t.finish;
-  if (fin !== null) filas.push(`| ${fin} | finish | manual | persona |`);
+  if (fin !== null) filas.push(`| ${fin} | finish | manual | persona |${v}`);
+  filas.push(...(t.filasExtra ?? []));
   return [
     '## Objetivo',
     '',
@@ -88,8 +99,8 @@ function cuerpo(t: TareaFixture): string {
     '',
     '## Transiciones',
     '',
-    '| fecha | fase | modo | decidido_por |',
-    '|---|---|---|---|',
+    cinco ? '| fecha | fase | modo | decidido_por | version |' : '| fecha | fase | modo | decidido_por |',
+    cinco ? '|---|---|---|---|---|' : '|---|---|---|---|',
     ...filas,
     '',
   ].join('\n');

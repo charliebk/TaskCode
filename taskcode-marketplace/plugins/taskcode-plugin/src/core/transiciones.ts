@@ -27,10 +27,25 @@
  * esa tarea, que es lo que impide aprobar en automatico un plan que se
  * cerro en manual (riesgo del plan de TASK-055).
  *
- * Puro: recibe y devuelve el cuerpo como texto. Nunca reescribe filas ni
- * toca nada fuera de su seccion.
+ * TASK-084: quinta columna `version`, la de taskctl que escribio la fila
+ * (`VERSION_TASKCTL`). Es lo que agrupa `taskctl metricas --por-version`
+ * (la version del ultimo `finish`), y sustituye a deducirla por la fecha de
+ * cierre, que casi lleva a error. La lectura acepta filas de 4 celdas (las
+ * anteriores, sin version) y de 5. A diferencia de la columna `hora` que
+ * descarto TASK-052, aqui el lector nuevo no pierde las filas viejas. Lo que
+ * se pierde es lo mismo que entonces: un plugin ANTERIOR descarta las filas
+ * de 5 celdas y deja de ver el modo congelado; se acepta con una version del
+ * plugin por repo.
+ *
+ * Puro: recibe y devuelve el cuerpo como texto. Nunca reescribe filas de
+ * datos ni toca nada fuera de su seccion. UNICA excepcion (TASK-084,
+ * decidida por Carlos): la primera fila con version que se anade bajo una
+ * cabecera de 4 columnas cambia la cabecera y su separador a 5, porque en
+ * GFM la celda que sobra respecto a la cabecera no se muestra. Las filas
+ * viejas no se tocan: GFM les pone la quinta celda vacia.
  */
 import { MODOS_FLUJO, type ModoFlujo } from './config.js';
+import { VERSION_TASKCTL } from './version.js';
 
 export const SECCION_TRANSICIONES = '## Transiciones';
 
@@ -46,7 +61,16 @@ export interface FilaTransicion {
   fase: FaseRegistrada;
   modo: ModoFlujo;
   decidido_por: DecididoPor;
+  /**
+   * TASK-084: version de taskctl que escribio la fila; null en las filas
+   * anteriores (4 celdas) o con una celda que no es una version. Al
+   * escribir, omitirla deja la celda vacia.
+   */
+  version?: string | null;
 }
+
+/** `MAYOR.MENOR.PARCHE` con pre-release opcional (`0.12.0-dev`). */
+export const VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 /** Precision de la celda `fecha`: solo el dia, o el instante al segundo. */
 export type PrecisionFecha = 'dia' | 'segundo';
@@ -80,11 +104,43 @@ export function formatearInstante(d: Date): string {
 }
 
 const FASES: readonly FaseRegistrada[] = ['plan', 'approve', 'start', 'review', 'finish', 'pausa'];
-const CABECERA = '| fecha | fase | modo | decidido_por |';
-const SEPARADOR = '|---|---|---|---|';
+const CABECERA = '| fecha | fase | modo | decidido_por | version |';
+const SEPARADOR = '|---|---|---|---|---|';
+/** Las celdas de la cabecera anterior a TASK-084, la unica que se reescribe. */
+const CABECERA_4 = ['fecha', 'fase', 'modo', 'decidido_por'];
+const SEPARADOR_4_RE = /^\|(\s*:?-+:?\s*\|){4}$/;
 
 function filaATexto(f: FilaTransicion): string {
-  return `| ${f.fecha} | ${f.fase} | ${f.modo} | ${f.decidido_por} |`;
+  return `| ${f.fecha} | ${f.fase} | ${f.modo} | ${f.decidido_por} | ${f.version ?? ''} |`;
+}
+
+/** Las celdas de una linea de tabla, sin las barras de los extremos. */
+function celdasDe(linea: string): string[] {
+  return linea
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((c) => c.trim());
+}
+
+/**
+ * TASK-084: si la seccion tiene la cabecera de 4 columnas seguida de su
+ * separador, los cambia a los de 5 (ver la excepcion en la cabecera del
+ * modulo). Cualquier otra forma (ya de 5, editada a mano) se deja tal cual.
+ */
+function ampliarCabecera(lineas: string[], inicio: number, fin: number, enBloque: readonly boolean[]): void {
+  for (let i = inicio + 1; i + 1 < fin; i++) {
+    if (enBloque[i] || !(lineas[i] as string).trimStart().startsWith('|')) continue;
+    const celdas = celdasDe(lineas[i] as string);
+    if (celdas.length === CABECERA_4.length && celdas.every((c, k) => c === CABECERA_4[k])) {
+      if (!enBloque[i + 1] && SEPARADOR_4_RE.test((lineas[i + 1] as string).trim())) {
+        lineas[i] = CABECERA;
+        lineas[i + 1] = SEPARADOR;
+      }
+    }
+    return; // solo la primera linea de tabla puede ser la cabecera
+  }
 }
 
 /** Valla de apertura de CommonMark: 0-3 espacios, 3+ ` o ~ (con ` el texto de info no lleva `). */
@@ -178,6 +234,7 @@ export function anadirTransicion(body: string, fila: FilaTransicion): string {
 
   const [inicio, fin] = rango;
   const enBloque = dentroDeBloque(lineas);
+  ampliarCabecera(lineas, inicio, fin, enBloque);
   let ultimaTabla = -1;
   for (let i = inicio + 1; i < fin; i++) {
     if (!enBloque[i] && (lineas[i] as string).trimStart().startsWith('|')) ultimaTabla = i;
@@ -205,14 +262,10 @@ export function leerTransiciones(body: string): FilaTransicion[] {
   const filas: FilaTransicion[] = [];
   for (let i = rango[0] + 1; i < rango[1]; i++) {
     if (enBloque[i]) continue;
-    const celdas = (lineas[i] as string)
-      .trim()
-      .replace(/^\|/, '')
-      .replace(/\|$/, '')
-      .split('|')
-      .map((c) => c.trim());
-    if (celdas.length !== 4) continue;
-    const [fecha, fase, modo, decidido] = celdas as [string, string, string, string];
+    const celdas = celdasDe(lineas[i] as string);
+    // TASK-084: 4 celdas (filas anteriores, sin version) o 5.
+    if (celdas.length !== 4 && celdas.length !== 5) continue;
+    const [fecha, fase, modo, decidido, celdaVersion] = celdas as [string, string, string, string, string?];
     // TASK-052: dia (filas viejas) o instante (nuevas). El regex del dia a
     // secas haria invisibles las filas nuevas y apagaria en silencio el
     // modo congelado (riesgo del plan): hay un test que lo fija.
@@ -225,6 +278,9 @@ export function leerTransiciones(body: string): FilaTransicion[] {
       fase: fase as FaseRegistrada,
       modo: modo as ModoFlujo,
       decidido_por: decidido as DecididoPor,
+      // Una celda que no es version (vacia, editada a mano) no invalida la
+      // fila: perderla apagaria el modo congelado. Solo queda sin version.
+      version: celdaVersion !== undefined && VERSION_RE.test(celdaVersion) ? celdaVersion : null,
     });
   }
   return filas;
@@ -250,16 +306,30 @@ export function modoDeTarea(body: string, modoConfig: ModoFlujo): ModoFlujo {
  * del config, y con eso queda congelado; en el resto, el congelado.
  * `fecha` es el instante (`formatearInstante`) desde TASK-052; un dia a
  * secas se sigue aceptando para quien no tenga reloj que pasar.
+ * `version` es la de este taskctl (TASK-084); el parametro existe para los
+ * tests, ningun comando lo pasa.
  */
 export function registrarTransicion(
   body: string,
   fase: FaseRegistrada,
   fecha: string,
   modoConfig: ModoFlujo,
-  decididoPor: DecididoPor = 'persona'
+  decididoPor: DecididoPor = 'persona',
+  version: string = VERSION_TASKCTL
 ): string {
   const modo = fase === 'plan' ? modoConfig : modoDeTarea(body, modoConfig);
-  return anadirTransicion(body, { fecha, fase, modo, decidido_por: decididoPor });
+  return anadirTransicion(body, { fecha, fase, modo, decidido_por: decididoPor, version });
+}
+
+/**
+ * TASK-084: version con la que se cerro la tarea, la del ULTIMO `finish` del
+ * registro (un `finish` abortado y reintentado con otro plugin deja dos), o
+ * null si no hay `finish` o no lleva version. Nunca se deduce por la fecha.
+ */
+export function versionDeCierre(body: string): string | null {
+  const finishes = leerTransiciones(body).filter((f) => f.fase === 'finish');
+  const ultimo = finishes[finishes.length - 1];
+  return ultimo?.version ?? null;
 }
 
 // ---------------------------------------------------------------------

@@ -15,6 +15,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from '../../src/core/frontmatter.js';
+import { VERSION_TASKCTL } from '../../src/core/version.js';
 
 // dist/test/empaquetado -> tres niveles arriba esta la raiz del plugin, y
 // tres mas la del repo (mismo truco que distribucion.test.ts).
@@ -62,6 +63,17 @@ test('plugin.json y la entrada del marketplace no se desalinean', async (t) => {
   for (const campo of ['displayName', 'repository', 'keywords', 'version']) {
     assert.deepEqual(entrada[campo], manifiesto[campo], `"${campo}" distinto en plugin.json y marketplace.json`);
   }
+});
+
+// TASK-084: cada fila de ## Transiciones graba VERSION_TASKCTL. Si se sube
+// una de las tres y se olvida otra, las filas quedan con una version falsa
+// que no se puede corregir sin reescribir historia.
+test('la version de taskctl coincide con la de package.json y plugin.json', async () => {
+  const paquete = await leerJson(path.join(PLUGIN_ROOT, 'package.json'));
+  const manifiesto = await leerJson(path.join(PLUGIN_ROOT, '.claude-plugin', 'plugin.json'));
+  assert.equal(paquete.name, 'taskcode-plugin', 'el test no esta leyendo el package.json del plugin');
+  assert.equal(paquete.version, VERSION_TASKCTL, 'package.json y src/core/version.ts no coinciden');
+  assert.equal(manifiesto.version, VERSION_TASKCTL, 'plugin.json y src/core/version.ts no coinciden');
 });
 
 test('los agentes no declaran model: (manda el parametro de cada invocacion)', async () => {
