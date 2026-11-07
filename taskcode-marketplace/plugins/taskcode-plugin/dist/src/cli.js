@@ -60,7 +60,7 @@ Uso:
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
-  taskctl review TASK-NNN [--push]
+  taskctl review TASK-NNN [--completa] [--push]
   taskctl codex-review TASK-NNN [--push]
   taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados>
                     [--informe <nombre>] [--push]
@@ -639,6 +639,13 @@ async function mainComando(argvEntrada) {
                     `${result.desde} (sin update de "${result.baseBranch}": lo integra finish).\n`
                 : `Tarea ${result.id} en revision: "${result.baseBranch}" integrada en ` +
                     `"${result.rama}" (merge verificado), tarea movida a ${result.filePath}.\n`) +
+                // TASK-083: el alcance solo se dice en las rondas N+1, donde puede variar.
+                (result.incremental
+                    ? result.alcance === 'acotada'
+                        ? `Alcance: verificacion acotada al diff de las correcciones (${result.motivoAlcance}). ` +
+                            `Una revision completa se pide de antemano con: taskctl review ${result.id} --completa.\n`
+                        : `Alcance: revision completa (${result.motivoAlcance}).\n`
+                    : '') +
                 lineasInformes);
             printAutoCommit(result.autoCommit);
             return 0;
@@ -814,6 +821,7 @@ async function mainComando(argvEntrada) {
         const tareasRoot = path.join(repoCwd, 'tareas');
         try {
             const result = await runVeredictoCommand(tareasRoot, argv.slice(1), { repoCwd });
+            printAvisos(...result.avisos);
             process.stdout.write(`Tarea ${result.id}: "${result.linea}" escrito en ${result.informePath} (ronda ${result.ronda}).
 `);
             printAutoCommit(result.autoCommit);

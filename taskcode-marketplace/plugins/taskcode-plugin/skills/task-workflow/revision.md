@@ -85,6 +85,22 @@ y comprueba **cada uno de esos hallazgos**: las correcciones son justo donde
 se cuelan los fallos nuevos. El revisor corre la suite completa una vez por
 ronda; los mutantes, con el fichero de test concreto.
 
+**Verificacion acotada.** Si la ronda anterior pidio cambios y en **todos**
+sus informes solo hay MENOR, `taskctl review` genera la ronda siguiente como
+verificacion acotada: un solo revisor (el generico), sin fragmentar por
+dominio, con la linea `- Alcance: verificacion acotada al diff de las
+correcciones` y sus propias instrucciones. Se verifica cada hallazgo, se
+ejecuta la suite y se busca el fallo que abre la correccion; no se vuelve a
+revisar la rama entera. Es **siempre completa** (`- Alcance: completa`, con
+su motivo) si: hay un CRITICO o IMPORTANTE en la ronda anterior **en
+cualquier estado**, tambien `corregido` o `aceptado`; algun informe no tiene
+tabla legible, sigue siendo la plantilla o trae una severidad fuera del
+vocabulario; no hay diff de correcciones (el commit anterior ya no existe);
+el delta trae un merge; o el delta toca un fichero que no nombraba ningun
+hallazgo (columna `Fichero`). Tras una acotada, una ronda completa revisa
+desde la rama base. `taskctl review TASK-NNN --completa` la fuerza de
+antemano.
+
 ## El informe
 
 `taskctl review` deja el esqueleto del informe en la carpeta de revision de

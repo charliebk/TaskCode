@@ -227,6 +227,114 @@ export function hallazgosNoCerrados(informe) {
         .map(({ id, severidad, estado, fichero }) => ({ id, severidad, estado, fichero }));
     return { tabla, abiertos };
 }
+// --- Alcance de la ronda siguiente (TASK-081, TASK-083) ----------------------
+/** El informe sigue siendo la plantilla: sin filas reales y con la fila de ejemplo, o con el veredicto PENDIENTE. */
+function esPlantilla(texto, lectura) {
+    return lectura.hallazgos.length === 0 && (/^\|\s*\(ej\./im.test(texto) || veredictoDe(texto) === 'pendiente');
+}
+/**
+ * Regla ESTRICTA (decision de la persona, TASK-081) para que la ronda de
+ * verificacion use un modelo mas barato. Se cumple solo si, en TODOS los
+ * informes de la ronda anterior: la tabla de hallazgos se lee, no hay ningun
+ * CRITICO en ningun estado (tampoco uno `corregido`), no hay severidades
+ * fuera del vocabulario, y el informe no sigue siendo la plantilla.
+ * Vive aqui desde TASK-083, junto a la regla del alcance; review.ts la reexporta.
+ */
+export function modeloBaratoPermitido(informes) {
+    if (informes.length === 0)
+        return false;
+    for (const texto of informes) {
+        const lectura = leerHallazgos(texto);
+        if (!lectura.tabla)
+            return false;
+        if (lectura.hallazgos.some((h) => h.severidadReconocida === null || h.severidadReconocida === 'CRITICO')) {
+            return false;
+        }
+        if (esPlantilla(texto, lectura))
+            return false;
+    }
+    return true;
+}
+/**
+ * Rutas de una celda `Fichero`: `src/a.ts:12`, `` `b.vue:191` ``,
+ * `a.ts:1-3, b.ts:7` o `c.ts#L4`. Sin la linea, con `/` y sin `./` delante.
+ */
+export function rutasDeCeldaFichero(celda) {
+    return celda
+        .split(/[\s,;]+/)
+        .map((t) => t
+        .replace(/^[*_`(]+|[*_`)]+$/g, '')
+        .replace(/#L\d+(?:-L?\d+)?$/i, '')
+        .replace(/:\d+(?:[-–:]\d+)*$/, '')
+        .replace(/\\/g, '/')
+        .replace(/^\.\//, ''))
+        .filter((t) => t !== '' && !SOLO_GUION_RE.test(t));
+}
+/**
+ * true si `ruta` (relativa a la raiz del repo) es una de las nombradas: igual,
+ * o la nombrada es su final (`Armazon.vue` nombra `src/ui/Armazon.vue`), o la
+ * nombrada es un directorio que la contiene (`src/core/`).
+ */
+export function ficheroNombrado(ruta, nombrados) {
+    const r = ruta.replace(/\\/g, '/');
+    return nombrados.some((n) => r === n || r.endsWith(`/${n}`) || (n.endsWith('/') && r.startsWith(n)));
+}
+/**
+ * Alcance de la ronda N+1 a partir de los informes de la ronda N (todos sus
+ * fragmentos a la vez: decidir por fragmento deja pasar un IMPORTANTE de otro
+ * dominio). Fail-closed (TASK-083, decision de la persona): la ronda solo
+ * puede ser acotada si la ronda N pidio cambios, todos sus informes tienen
+ * tabla legible, ninguno es la plantilla, ninguna severidad cae fuera del
+ * vocabulario, hay al menos un hallazgo y TODOS son MENOR. Un CRITICO o
+ * IMPORTANTE en CUALQUIER estado (tambien `corregido` o `aceptado`) obliga a
+ * la ronda completa: un IMPORTANTE marcado como corregido es justo la
+ * correccion que mas falta hace verificar.
+ */
+export function alcanceRondaSiguiente(informes) {
+    const modeloBarato = modeloBaratoPermitido(informes);
+    const completa = (motivo) => ({ acotada: false, modeloBarato, motivo, ficherosNombrados: [] });
+    if (informes.length === 0)
+        return completa('la ronda anterior no tiene informes');
+    const veredicto = veredictoDeRonda(informes);
+    if (veredicto !== 'cambios-solicitados')
+        return completa(`el veredicto de la ronda anterior es "${veredicto}"`);
+    const nombrados = new Set();
+    let menores = 0;
+    for (const texto of informes) {
+        const lectura = leerHallazgos(texto);
+        if (!lectura.tabla)
+            return completa('un informe de la ronda anterior no tiene tabla de hallazgos legible');
+        if (esPlantilla(texto, lectura))
+            return completa('un informe de la ronda anterior sigue siendo la plantilla');
+        for (const h of lectura.hallazgos) {
+            if (h.severidadReconocida === null) {
+                return completa(`la severidad "${h.severidad}" de ${h.id} no es CRITICO, IMPORTANTE ni MENOR`);
+            }
+            if (h.severidadReconocida !== 'MENOR') {
+                return completa(`la ronda anterior tiene un ${h.severidadReconocida} (${h.id}, ${h.estado || 'sin estado'})`);
+            }
+            menores++;
+            for (const r of rutasDeCeldaFichero(h.fichero))
+                nombrados.add(r);
+        }
+    }
+    if (menores === 0)
+        return completa('la ronda anterior pidio cambios sin anotar ningun hallazgo');
+    return {
+        acotada: true,
+        modeloBarato,
+        motivo: `la ronda anterior solo dejo MENORES (${menores})`,
+        ficherosNombrados: [...nombrados],
+    };
+}
+/**
+ * TASK-083: true si el informe tiene tabla, al menos un hallazgo, y todos son
+ * MENOR. Es lo que `taskctl veredicto` avisa al registrar `cambios-solicitados`.
+ */
+export function soloMenores(informe) {
+    const lectura = leerHallazgos(informe);
+    return lectura.tabla && lectura.hallazgos.length > 0 && lectura.hallazgos.every((h) => h.severidadReconocida === 'MENOR');
+}
 export function resumirHallazgos(informes) {
     const informesSinTabla = [];
     const severidadesDesconocidas = [];

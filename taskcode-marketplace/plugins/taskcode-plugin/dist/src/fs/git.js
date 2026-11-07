@@ -263,6 +263,10 @@ export function isAncestor(ancestor, descendant, cwd) {
 export function logOneline(desde, hasta, cwd) {
     return runGit(['log', '--oneline', `${desde}..${hasta}`], cwd);
 }
+/** TASK-083: true si entre `desde` (excluido) y `hasta` hay algun commit de merge. */
+export function hayMergesEntre(desde, hasta, cwd) {
+    return runGit(['rev-list', '--merges', '--count', `${desde}..${hasta}`], cwd).trim() !== '0';
+}
 /** `git diff <desde>..<hasta>` (vacio si no hay diferencias). */
 export function diffRange(desde, hasta, cwd) {
     return runGit(['diff', `${desde}..${hasta}`], cwd);
