@@ -7,7 +7,7 @@ etiquetas: [doctor, distribucion]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-087-taskctl-doctor-avisa-si-el-plugin-instal
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Un equipo estuvo en 0.8.0 mientras el repo iba por 0.10.0 sin saberlo. doctor co
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T16:26:24Z | plan | automatico | persona |
+| 2026-11-07T16:48:32Z | approve | automatico | persona |
 
 ## Coste
 
