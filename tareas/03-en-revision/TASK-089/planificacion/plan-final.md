@@ -24,7 +24,7 @@ tocan ficheros.
     `sk_test_4eC39...` (ejemplo publico de Stripe) y `AKIAIOSFODNN7EXAMPLE`.
   - `doctor-deploy.test.ts:890` y `:1076`: `sk_live_Nueva0Clave1Dist`.
   - `secretos.test.ts:48`: cabecera `-----BEGIN RSA PRIVATE KEY-----` y
-    `xoxb-1234567890-abcdefghij`.
+    un token de bot de Slack.
 - Fuera de los tests: `README.md:1001`, comentarios de `src/core/secretos.ts`
   (y `dist/src/core/secretos.js`, versionado) citan `AKIAIOSFODNN7EXAMPLE`.
   Los artefactos historicos de `tareas/04-terminadas/TASK-066/revision/` y
