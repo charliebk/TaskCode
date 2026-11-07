@@ -2,7 +2,7 @@
 
 - Commit revisado: 66a5624532ed868bfeda6670fc8c1b089058eada
 - Revisor: code-quality-reviewer (agente general-purpose independiente, modelo sonnet)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-089 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada
 
 ## Hallazgos
 
