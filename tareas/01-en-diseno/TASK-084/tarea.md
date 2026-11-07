@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 709642
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-07
@@ -37,3 +37,9 @@ Para comparar versiones del plugin hubo que deducir la version por la fecha de c
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T00:17:31Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-07T00:22:37Z | diseno | agente:a66679d6288860bb7,a891ec8ffae0220da,acb47bbb54691a1c7 | 44 | 135632 | 552551 | 21415 | 31 | 709642 |
