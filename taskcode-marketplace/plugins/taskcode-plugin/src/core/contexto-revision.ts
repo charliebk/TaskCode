@@ -55,6 +55,19 @@ export function casaConAlguno(ruta: string, patrones: readonly string[]): boolea
   return patrones.some((p) => globARegExp(p).test(ruta));
 }
 
+/**
+ * Una carpeta que contiene (o es) la de tests reservados de alguna tarea:
+ * `.`, `tareas`, `tareas/<estado>`, `tareas/<estado>/TASK-NNN` o su
+ * `aceptacion`. `EXCLUIR_HELDOUT` solo casa con lo que ya esta DENTRO de
+ * `aceptacion/`, asi que listar una carpeta padre los colaria (MEN-2, r1).
+ */
+function contieneHeldout(ruta: string): boolean {
+  const segmentos = ruta.replace(/\/+$/, '').split('/').filter((s) => s !== '' && s !== '.');
+  const molde = EXCLUIR_HELDOUT.split('/').slice(0, -1); // sin el `**` final
+  if (segmentos.length > molde.length) return false;
+  return segmentos.every((s, i) => globARegExp(molde[i] as string).test(s));
+}
+
 function normalizar(ruta: string): string {
   return ruta.trim().replace(/\\/g, '/').replace(/^\.\//, '');
 }
@@ -76,6 +89,7 @@ export function contextoPermitido(entrada: EntradaContexto): string[] {
   const resto = [...entrada.ficherosDelGrupo, ...entrada.extra]
     .map(normalizar)
     .filter((r) => r !== '')
-    .filter((r) => !casaConAlguno(r, [...entrada.excluir, EXCLUIR_HELDOUT]));
+    .filter((r) => !casaConAlguno(r, [...entrada.excluir, EXCLUIR_HELDOUT]))
+    .filter((r) => !contieneHeldout(r));
   return [...new Set([...deLaTarea, ...resto])];
 }

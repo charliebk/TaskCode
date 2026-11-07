@@ -232,7 +232,7 @@ function leerAtribucionManual(flags, fase, nAgentes) {
             'de lo que se deduce de su transcripcion. Con varios agentes, deja que cada uno se deduzca de ' +
             `la suya. ${USO}`);
     }
-    if (typeof ronda !== 'string' || !/^[1-9]d*$/.test(ronda) || !Number.isSafeInteger(Number(ronda))) {
+    if (typeof ronda !== 'string' || !/^[1-9]\d*$/.test(ronda) || !Number.isSafeInteger(Number(ronda))) {
         throw new RegistrarCosteCommandError(`[ERROR] --ronda ${typeof ronda === 'string' ? `"${ronda}" no es` : 'necesita'} un entero de 1 o mas ` +
             `(el N de peticion-revision-N.md). ${USO}`);
     }

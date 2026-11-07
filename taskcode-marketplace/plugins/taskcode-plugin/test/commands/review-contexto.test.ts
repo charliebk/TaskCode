@@ -136,6 +136,32 @@ test('contexto permitido (TASK-081): la funcion pura filtra grupo y extra con ex
   ]);
 });
 
+test('contexto permitido (TASK-081, MEN-2 r1): ni los tests reservados ni una carpeta que los contenga entran, aunque excluir no cubra tareas/**', () => {
+  const lista = contextoPermitido({
+    carpetaTarea: 'tareas/03-en-revision/TASK-1',
+    ficherosDelGrupo: ['src/a.ts'],
+    extra: [
+      '.',
+      'tareas',
+      'tareas/03-en-revision/',
+      'tareas/03-en-revision/TASK-1',
+      'tareas/03-en-revision/TASK-1/aceptacion',
+      'tareas/03-en-revision/TASK-1/aceptacion/caso.test.ts',
+      'tareas/03-en-revision/TASK-1/notas.md',
+      'docs',
+    ],
+    // Sin EXCLUIR_HELDOUT ni tareas/**: el filtro de reservados es de la propia funcion.
+    excluir: [],
+  });
+  assert.deepEqual(lista, [
+    'tareas/03-en-revision/TASK-1/tarea.md',
+    'tareas/03-en-revision/TASK-1/planificacion/',
+    'src/a.ts',
+    'tareas/03-en-revision/TASK-1/notas.md',
+    'docs',
+  ]);
+});
+
 test('contexto permitido (TASK-081): contexto_revision en config.yml es una lista y no ancla los patrones', () => {
   const RUTA = '/repo/.taskcode/config.yml';
   assert.deepEqual(parsearConfig('limite_wip: 1\n', RUTA).contexto_revision, []);

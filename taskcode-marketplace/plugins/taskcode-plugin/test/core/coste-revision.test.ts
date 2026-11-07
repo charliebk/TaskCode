@@ -60,6 +60,16 @@ test('rondaYRevisorDeTranscripcion: solo mira el PRIMER mensaje de usuario', () 
   assert.deepEqual(rondaYRevisorDeTranscripcion(primero), { ronda: 1, revisor: 'x' });
 });
 
+test('rondaYRevisorDeTranscripcion (MEN-4 r1): salta las lineas que no son de usuario antes del primer mensaje user', () => {
+  const otras = [
+    JSON.stringify({ type: 'summary', summary: 'resumen previo' }),
+    JSON.stringify({ type: 'system', content: 'arranque' }),
+    JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: 'mira peticion-revision-7-z.md' } }),
+  ];
+  const texto = unir([...otras, usuarioTexto(promptDeRevision('peticion-revision-2-y.md'))]);
+  assert.deepEqual(rondaYRevisorDeTranscripcion(texto), { ronda: 2, revisor: 'y' });
+});
+
 test('la regex de rondas es una sola: rondaYRevisorDePeticion da la misma clave que los informes', () => {
   assert.deepEqual(rondaYRevisorDePeticion('peticion-revision-2-x.md'), { ronda: 2, revisor: 'x' });
   assert.deepEqual(rondaYRevisorDePeticion('peticion-revision-2.md'), { ronda: 2, revisor: '' });

@@ -249,6 +249,8 @@ test('--ronda/--revisor: solo con un unico --agente, validados contra las petici
         [['--agente', Z, '--revisor', 'x-reviewer'], /--ronda necesita un entero/],
         [['--agente', Z, '--ronda', 'abc'], /--ronda "abc" no es un entero/],
         [['--agente', Z, '--ronda', '0'], /--ronda "0" no es un entero/],
+        // MEN-1 (r1): una ronda de dos cifras es un entero valido; aqui solo falla porque no existe.
+        [['--agente', Z, '--ronda', '10', '--revisor', 'x-reviewer'], /--ronda 10 no existe/],
         [['--agente', Z, '--agente', X, '--ronda', '1', '--revisor', 'x-reviewer'], /UN unico --agente/],
         [['--tokens', '10', '--ronda', '1'], /UN unico --agente/],
         [['--agente', W, '--ronda', '1', '--revisor', 'y-reviewer'], /nombra la ronda 1 y el revisor x-reviewer, y --ronda\/--revisor dicen otra cosa/],
