@@ -7,7 +7,7 @@ etiquetas: [metricas, transiciones]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-084-version-del-plugin-en-cada-tarea-y-metri
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Para comparar versiones del plugin hubo que deducir la version por la fecha de c
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T00:17:31Z | plan | automatico | persona |
+| 2026-11-07T00:23:27Z | approve | automatico | persona |
 
 ## Coste
 
