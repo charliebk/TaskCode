@@ -11,8 +11,7 @@ import { spawnSync } from 'node:child_process';
 import { runDoctorDeployCommand, runDoctorDeployCompleto, type DoctorDeployResult } from '../../src/commands/doctor-deploy.js';
 import type { InformeDeploy, ResultadoPunto } from '../../src/core/doctor-deploy.js';
 
-export const AWS = 'AKIA' + 'ABCDEFGHIJKLMNOP';
-export const STRIPE = 'sk_live_' + 'Zq81xKd0TvR4mNb7YcW2pLfH';
+export { AWS, STRIPE_LIVE as STRIPE } from './claves-falsas.js';
 
 export function git(args: string[], cwd: string): string {
   const r = spawnSync('git', args, { cwd, encoding: 'utf8' });

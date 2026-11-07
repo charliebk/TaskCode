@@ -5,12 +5,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buscarSecretos, enmascarar, ocultarSecretos } from '../../src/core/secretos.js';
+import {
+  AWS,
+  AWS_EJEMPLO,
+  GITHUB_TOKEN,
+  PEM_CABECERA,
+  PEM_PIE,
+  SLACK,
+  STRIPE_LIVE as STRIPE,
+  STRIPE_TEST_EJEMPLO,
+} from '../helpers/claves-falsas.js';
 
 const b64url = (o: unknown): string => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (payload: unknown): string => `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url(payload)}.firmaFirmaFirmaFirma`;
-
-const AWS = 'AKIA' + 'ABCDEFGHIJKLMNOP';
-const STRIPE = 'sk_live_' + 'Zq81xKd0TvR4mNb7YcW2pLfH';
 
 test('detecta una clave de AWS y una sk_live_, con linea, y sin devolver el valor', () => {
   const h = buscarSecretos(`# config\nAWS=${AWS}\n\nSTRIPE="${STRIPE}"\n`);
@@ -25,7 +32,7 @@ test('detecta una clave de AWS y una sk_live_, con linea, y sin devolver el valo
 });
 
 test('las claves de ejemplo y de prueba no son secretos', () => {
-  const h = buscarSecretos('AKIAIOSFODNN7EXAMPLE\nsk_test_4eC39HqLyjWDarjtT1zdp7dc\n');
+  const h = buscarSecretos(`${AWS_EJEMPLO}\n${STRIPE_TEST_EJEMPLO}\n`);
   assert.deepEqual(h.map((x) => [x.patron, x.clase]), [['aws-access-key', 'ejemplo'], ['stripe-test', 'ejemplo']]);
 });
 
@@ -45,7 +52,7 @@ test('Firebase: la apiKey web AIza es publica', () => {
 });
 
 test('clave privada PEM, token de GitHub y de Slack', () => {
-  const t = `-----BEGIN RSA PRIVATE KEY-----\nxx\n-----END RSA PRIVATE KEY-----\nghp_${'a1B2c3D4e5'.repeat(4)}\nxoxb-1234567890-abcdefghij\n`;
+  const t = `${PEM_CABECERA}\nxx\n${PEM_PIE}\n${GITHUB_TOKEN}\n${SLACK}\n`;
   assert.deepEqual(buscarSecretos(t).map((x) => x.patron), ['clave-privada', 'github-token', 'slack-token']);
   assert.deepEqual(buscarSecretos('-----BEGIN PUBLIC KEY-----\n'), []);
 });

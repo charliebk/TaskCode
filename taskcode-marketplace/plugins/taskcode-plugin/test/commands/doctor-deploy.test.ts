@@ -25,11 +25,9 @@ import {
 import { DoctorDeployCatalogoError, cargarCatalogoDeploy } from '../../src/core/doctor-deploy-catalogo.js';
 import type { InformeDeploy, ResultadoPunto } from '../../src/core/doctor-deploy.js';
 import { motivoFicheroSecreto, requirementsFijado } from '../../src/fs/sondas-deploy.js';
+import { AWS, AWS_EJEMPLO, STRIPE_LIVE as STRIPE, STRIPE_LIVE_OTRA, STRIPE_TEST_EJEMPLO } from '../helpers/claves-falsas.js';
 
 const TOTAL_PUNTOS = cargarCatalogoDeploy().puntos.length;
-
-const AWS = 'AKIA' + 'ABCDEFGHIJKLMNOP';
-const STRIPE = 'sk_live_' + 'Zq81xKd0TvR4mNb7YcW2pLfH';
 const b64url = (o: unknown): string => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (payload: unknown): string => `${b64url({ alg: 'HS256' })}.${b64url(payload)}.firmaFirmaFirmaFirma`;
 
@@ -364,7 +362,7 @@ test('claves de ejemplo, de prueba y publicas a proposito no fallan; service_rol
   await conRepo(
     {
       ...NODE,
-      'docs/ejemplo.md': 'AKIAIOSFODNN7EXAMPLE\nsk_test_4eC39HqLyjWDarjtT1zdp7dc\n',
+      'docs/ejemplo.md': `${AWS_EJEMPLO}\n${STRIPE_TEST_EJEMPLO}\n`,
       'src/cliente.js': `const anon = "${jwt({ role: 'anon' })}";\nconst fb = "AIza${'SyA-1234567890abcdefghijklmnopqrstu'}";\n`,
     },
     async (raiz, opciones) => {
@@ -887,7 +885,7 @@ test('IMP-4: un silencio de arbol va atado a la huella del valor: otra clave nue
     assert.ok(silenciado.evidencias.some((e) => e.descripcion.startsWith('SILENCIADO')));
 
     // Una clave NUEVA del mismo patron en el MISMO fichero no queda tapada.
-    await escribir(raiz, { 'config/prod.env.js': `module.exports = { k: "${STRIPE}", otra: "sk_live_Nueva0Clave1Dist" };\n` });
+    await escribir(raiz, { 'config/prod.env.js': `module.exports = { k: "${STRIPE}", otra: "${STRIPE_LIVE_OTRA}" };\n` });
     const nueva = punto(JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy, 'secretos-en-arbol');
     assert.equal(nueva.estado, 'falla');
     assert.equal(nueva.evidencias.filter((e) => e.muestra !== undefined).length, 1);
@@ -1073,7 +1071,7 @@ test('IMP-7: un silencio con commit (sin huella) no tapa una clave NUEVA del mis
     git(['rm', '-q', 'config/prod.env.js'], raiz);
     await commit(raiz, 'quita k1');
     await escribir(raiz, {
-      'config/prod.env.js': 'k="sk_live_Nueva0Clave1Dist"\n',
+      'config/prod.env.js': `k="${STRIPE_LIVE_OTRA}"\n`,
       '.taskcode/doctor-deploy.yml': `silenciar_1_patron: stripe-live\nsilenciar_1_fichero: config/prod.env.js\nsilenciar_1_commit: "${hash}"\nsilenciar_1_motivo: K1 rotada\nsilenciar_1_quien: carlos\nsilenciar_1_fecha: 2026-10-27\n`,
     });
     const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
