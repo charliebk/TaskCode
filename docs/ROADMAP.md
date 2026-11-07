@@ -1,7 +1,7 @@
 # Roadmap de TaskCode
 
 > Qué falta por hacer y qué está hecho, en un solo sitio. Última actualización:
-> **2026-11-07** (TASK-089 cerrada, en la 0.12.0).
+> **2026-11-07** (TASK-090 cerrada; 0.12.0 publicada).
 >
 > **Cómo se mantiene**: al crear una tarea se añade a «Pendiente»; al cerrarla
 > con `taskctl finish` se pasa a «Terminado», bajo la versión con la que sale.
@@ -12,10 +12,10 @@
 
 | | Tareas |
 |---|---|
-| Terminadas | **88** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-089) |
+| Terminadas | **89** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-090) |
 | Descartadas | 1 (TASK-019) |
 | **Pendientes** | **0** |
-| Versión publicada | **0.11.0** (2026-11-06); en desarrollo, **0.12.0** |
+| Versión publicada | **0.12.0** (2026-11-07) |
 
 ---
 
@@ -59,16 +59,17 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
 
 ## Terminado
 
-88 tareas, agrupadas por la versión con la que salieron (la más reciente
+89 tareas, agrupadas por la versión con la que salieron (la más reciente
 primero). TASK-021 (publicar el marketplace) se adelantó al Sprint 1 como
 item A1. Las carpetas de TASK-001 a TASK-012 y TASK-021 siguen en
 `tareas/00-planificadas/` porque se hicieron antes de que existiera el ciclo
 de `taskctl`; su cierre consta en el checklist, no en la carpeta.
 
-### v0.12.0 (sin publicar) — 9 tareas
+### v0.12.0 — 2026-11-07 — 10 tareas
 
 | Tarea | Título | Cierre |
 |---|---|---|
+| TASK-090 | El guardián de secretos tolera excepciones solo en su fichero histórico | 2026-11-07 |
 | TASK-089 | Evitar literales con forma de secreto en el repo y tags de versión que faltan | 2026-11-07 |
 | TASK-088 | `taskctl doctor` avisa si falta `comando_verificacion` con tests detectables | 2026-11-07 |
 | TASK-087 | `taskctl doctor` avisa si el plugin instalado está desactualizado | 2026-11-07 |

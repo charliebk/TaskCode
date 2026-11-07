@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 99 / 99 items terminados (100%)** · última actualización: 2026-11-07
+**Progreso global: 100 / 100 items terminados (100%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,7 +38,7 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| ✅ N — Mejoras tras las métricas de la 0.8 | 9 | **9** | — |
+| ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | **Total pendiente** | **0** | — | — |
 
 ---
@@ -975,8 +975,8 @@ Arreglos que salen al revisar otras tareas y no son de ninguna fase.
       habilitado (`installed_plugins.json`, `enabledPlugins`, `projectPath`,
       `hooks.json` y `hooks` de `plugin.json`); respeta `disableAllHooks`. Matcher
       con regex anclada y `""`/`*`/ausente cuentan (decisión de Carlos). README con
-      «Problemas conocidos», regla en `avance.md`, versión 0.9.0 (sin publicar:
-      sale con TASK-079 y TASK-080). 2 rondas: MEN-1..5 corregidos; MEN-6 y MEN-7
+      «Problemas conocidos», regla en `avance.md`, versión 0.9.0 (publicada en
+      0.9.0; tag creado en TASK-089). 2 rondas: MEN-1..5 corregidos; MEN-6 y MEN-7
       aceptados.*
 
 ## M — Revisores y roles de dominio (2/2)
@@ -989,7 +989,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
       limite JS-WASM (llamador TS y `.d.ts` obligatorios si cambia una firma
       exportada), numerica en f64, `unsafe`, rendimiento. Catalogo `skill_6`, tabla
       de revisores en el README, nota de umbral del generico (con cuatro dominios
-      ya puede superarse). Version 0.10.0, sin publicar. 2 rondas: MEN-2, 3, 4 y 6
+      ya puede superarse). Version 0.10.0, publicada (tag creado en TASK-089). 2 rondas: MEN-2, 3, 4 y 6
       corregidos (exactitud tecnica de la skill); MEN-1 y MEN-5 aceptados.*
 - [x] TASK-080 — Accesibilidad en angular-vue-reviewer y roles de arquitectura y
       rendimiento en plan — cerrada el 2026-11-06
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (9/9)
+## N — Mejoras tras las métricas de la 0.8 (10/10)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1052,7 +1052,7 @@ dependencias en `docs/ROADMAP.md`.
       [--json]` agrupa las terminadas por la versión del último `finish`, en orden
       semver, con rondas, a la primera, hallazgos por severidad y origen y tokens
       por fase; las sin versión, aparte. Versión subida a 0.12.0 al abrir el ciclo
-      (sin publicar). 1 ronda, aprobada: MEN-1 y MEN-2 (dos huecos de test, el
+      (publicada el 2026-11-07). 1 ronda, aprobada: MEN-1 y MEN-2 (dos huecos de test, el
       código es correcto) y MEN-3 (separador con alineación) aceptados.*
 - [x] TASK-085 — Coste de implementación registrado automáticamente — cerrada el 2026-11-07
       *Hook en `Stop` y `SubagentStop` que solo anota rutas de transcripción en
@@ -1089,3 +1089,11 @@ dependencias en `docs/ROADMAP.md`.
       una lista blanca de tres valores exactos de informes históricos. Tags anotados v0.9.0
       (`df59da2`) y v0.10.0 (`b85f37e`) creados y en origin. Revisión: aprobada en ronda 1, dos
       MENOR aceptados (solo mira lo rastreado; los patrones son un subconjunto de los de GitHub).*
+- [x] TASK-090 — El guardián de secretos tolera excepciones solo en su fichero histórico — cerrada el 2026-11-07
+      *Fix de TASK-089: GitHub bloqueó el push de develop porque el plan de TASK-089
+      citaba entera la clave de ejemplo de Stripe y el guardián la toleraba por valor
+      (Carlos la permitió en GitHub, sin reescribir historial). Ahora solo
+      `AWS_EJEMPLO` vale en cualquier fichero; Stripe y Slack, como parejas exactas
+      fichero+valor de los informes históricos de TASK-066 y TASK-089, y una pareja
+      sin uso es rojo. 1 ronda, aprobada, 8 mutantes en rojo; MEN-1 (apariciones sin
+      límite en su fichero) y MEN-2 (AWS por valor) aceptados. Publicada en 0.12.0.*

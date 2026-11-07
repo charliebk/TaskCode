@@ -1,14 +1,6 @@
 # Changelog
 
-## Sin publicar
-
-- TASK-090 (fix) — El guardian de secretos tolera excepciones solo en su fichero historico (2026-11-07)
-- TASK-089 (feature) — Evitar literales con forma de secreto en el repo y tags de version que faltan (2026-11-07)
-- TASK-088 (feature) — taskctl doctor avisa si falta comando_verificacion con tests detectables (2026-11-07)
-- TASK-087 (feature) — taskctl doctor avisa si el plugin instalado esta desactualizado (2026-11-07)
-- TASK-086 (feature) — Descontar las pausas de las duraciones de las metricas (2026-11-07)
-
-## 0.12.0 — sin publicar
+## 0.12.0 — 2026-11-07
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
 lleva como quinta columna la version de `taskctl` que la escribio; las filas
@@ -65,6 +57,37 @@ tarea y dentro del repo, descontando lo ya anotado; `finish` lo repite como
 red. Si todo cabe en un turno usa la sesion de `CLAUDE_CODE_SESSION_ID`.
 `registrar-coste --fase implementacion` queda como respaldo y
 `COSTE_AUTOMATICO=0` lo apaga.
+
+Pausas fuera de las duraciones (TASK-086). `taskctl metricas` descuenta de
+`diseno`, `curso`, `revision` y `total` el tiempo entre una fila `pausa` y la
+siguiente transicion; con precision de dia no descuenta nada. `--json` gana la
+clave `pausas` (con `enPausa` por tarea).
+
+Doctor mas util. `version-plugin` (TASK-087) avisa si el plugin instalado es mas
+viejo que el de la copia local del marketplace, con los comandos para
+actualizar; sin red y nunca error. `verificacion` (TASK-088) pasa a AVISO sin
+`comando_verificacion` cuando la raiz tiene tests detectables (npm/pnpm/yarn,
+Cargo, Maven, Gradle, .NET, Go, pytest) y propone el comando.
+
+Sin literales con forma de secreto (TASK-089 y TASK-090). Las claves falsas de
+los tests se arman troceadas en un solo helper y un test recorre `git ls-files`
+con los patrones de la proteccion de push de GitHub; las excepciones son
+parejas exactas fichero+valor de informes historicos, y una pareja que sobra
+tambien es rojo. Ademas, los tags v0.9.0 y v0.10.0 que faltaban.
+
+Actualizar como en 0.9.0, y despues `taskctl doctor` en cada proyecto (desde
+esta version avisa si el plugin instalado se queda atras).
+
+- TASK-090 (fix) — El guardian de secretos tolera excepciones solo en su fichero historico (2026-11-07)
+- TASK-089 (feature) — Evitar literales con forma de secreto en el repo y tags de version que faltan (2026-11-07)
+- TASK-088 (feature) — taskctl doctor avisa si falta comando_verificacion con tests detectables (2026-11-07)
+- TASK-087 (feature) — taskctl doctor avisa si el plugin instalado esta desactualizado (2026-11-07)
+- TASK-086 (feature) — Descontar las pausas de las duraciones de las metricas (2026-11-07)
+- TASK-085 (feature) — Coste de implementacion registrado automaticamente (2026-11-07)
+- TASK-084 (feature) — Version del plugin en cada tarea y metricas por version (2026-11-07)
+- TASK-083 (feature) — Cierre sin ronda 2 completa cuando solo quedan MENORES (2026-11-07)
+- TASK-082 (feature) — Autorrevision del implementador antes de pedir revision (2026-11-07)
+- TASK-081 (feature) — Revision mas barata: medir y acotar las lecturas de los revisores (2026-11-07)
 
 ## 0.11.0 — 2026-11-06
 
