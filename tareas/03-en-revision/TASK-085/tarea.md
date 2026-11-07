@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas, coste, hooks]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-085-coste-de-implementacion-registrado-autom
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 1444672
-tokens_implementacion: null
+tokens_implementacion: 14336319
 tokens_revision: null
 creado: 2026-11-07
 actualizado: 2026-11-07
@@ -34,14 +34,16 @@ En ToolsaWeb falta el coste de implementacion en 97 de 119 tareas, asi que el co
 
 ## Transiciones
 
-| fecha | fase | modo | decidido_por |
-|---|---|---|---|
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
 | 2026-11-07T11:58:23Z | plan | automatico | persona |
 | 2026-11-07T12:34:16Z | approve | automatico | persona |
 | 2026-11-07T12:34:25Z | start | automatico | persona |
+| 2026-11-07T13:03:17Z | review | automatico | persona | 0.12.0 |
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T12:05:43Z | diseno | agente:a65224b999240bfbb,aa5ddc57d52c649a3,a199d2b1441f10c5d | 62 | 161568 | 1252929 | 30113 | 44 | 1444672 |
+| 2026-11-07T13:03:17Z | implementacion | sesion:aa9a2319-7c42-41b4-86ee-0101f7ccd03a | 126 | 154281 | 14114110 | 67802 | 26 | 14336319 | - | - |
