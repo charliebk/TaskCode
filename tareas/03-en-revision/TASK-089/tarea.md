@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 505513
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 3056873
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -46,3 +46,4 @@ La proteccion de GitHub bloqueo el push de 0.11.0 por una clave de Stripe falsa 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T19:43:18Z | diseno | agente:adfbb640fa14fb660 | 30 | 45623 | 446261 | 13599 | 25 | 505513 |
+| 2026-11-07T20:34:28Z | revision | agente:ab271b90c99f51954 | 56 | 119161 | 2925602 | 12054 | 6 | 3056873 |
