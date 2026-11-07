@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 90 / 99 items terminados (91%)** · última actualización: 2026-11-07
+**Progreso global: 91 / 99 items terminados (92%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **0** | — |
-| **Total pendiente** | **9** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **1** | — |
+| **Total pendiente** | **8** | — | — |
 
 ---
 
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (0/9)
+## N — Mejoras tras las métricas de la 0.8 (1/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1014,7 +1014,16 @@ dependencias en `docs/ROADMAP.md`.
 - [ ] TASK-081 — Revisión más barata: medir y acotar las lecturas de los revisores
 - [ ] TASK-082 — Autorrevisión del implementador antes de pedir revisión
 - [ ] TASK-083 — Cierre sin ronda 2 completa cuando solo quedan MENORES
-- [ ] TASK-084 — Versión del plugin en cada tarea y métricas por versión
+- [x] TASK-084 — Versión del plugin en cada tarea y métricas por versión — cerrada el 2026-11-07
+      *Cada fila de `## Transiciones` lleva como quinta columna la versión de
+      taskctl (`src/core/version.ts`, con test de alineación con `package.json` y
+      `plugin.json`); las de 4 columnas se siguen leyendo y la primera fila con
+      versión amplía solo cabecera y separador. `taskctl metricas --por-version
+      [--json]` agrupa las terminadas por la versión del último `finish`, en orden
+      semver, con rondas, a la primera, hallazgos por severidad y origen y tokens
+      por fase; las sin versión, aparte. Versión subida a 0.12.0 al abrir el ciclo
+      (sin publicar). 1 ronda, aprobada: MEN-1 y MEN-2 (dos huecos de test, el
+      código es correcto) y MEN-3 (separador con alineación) aceptados.*
 - [ ] TASK-085 — Coste de implementación registrado automáticamente
 - [ ] TASK-086 — Descontar las pausas de las duraciones de las métricas
 - [ ] TASK-087 — `taskctl doctor` avisa si el plugin instalado está desactualizado
