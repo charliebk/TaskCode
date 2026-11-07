@@ -42,8 +42,10 @@ casi todas salieron de algo que salió mal una vez.
 8. Aplicar los hallazgos: CRÍTICO e IMPORTANTE siempre; MENOR si sale barato,
    y si no, documentarlo explícitamente sin corregir.
 9. Actualizar el `tarea.md`: criterios marcados + sección `## Resultado`.
-10. Actualizar `docs/PLAN_SPRINTS.md` (fila de métricas) y
-    `docs/contexto/CHECKLIST_TERMINACION.md` (casilla + contadores).
+10. Actualizar `docs/PLAN_SPRINTS.md` (fila de métricas),
+    `docs/contexto/CHECKLIST_TERMINACION.md` (casilla + contadores) y
+    `docs/ROADMAP.md` (la tarea pasa de «Pendiente» a «Terminado», bajo su
+    versión). Al dar de alta una tarea, también se añade a «Pendiente».
 11. Merge a `develop` con `--no-ff` y verificar que los tests siguen verdes.
 
 ## Revisión por pares

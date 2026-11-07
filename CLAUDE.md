@@ -7,7 +7,8 @@ usándose a sí mismo (dogfooding).
 
 **Antes de tocar nada, lee [`docs/contexto/`](docs/contexto/)** — sobre todo
 `ESTADO.md` (dónde estamos), `CONVENCIONES.md` (cómo se trabaja aquí) y
-`HALLAZGOS.md` (las trampas que ya nos han costado tiempo).
+`HALLAZGOS.md` (las trampas que ya nos han costado tiempo). Lo que falta por
+hacer, en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Idioma
 

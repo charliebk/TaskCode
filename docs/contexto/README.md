@@ -14,6 +14,8 @@ Empieza por aquí si acabas de abrir el repo. Orden de lectura:
 
 Fuera de esta carpeta, lo que importa:
 
+- [`../ROADMAP.md`](../ROADMAP.md) — **qué falta por hacer** y qué está
+  hecho, tarea a tarea y por versión. Lo primero que mirar para saber qué toca.
 - [`../PROPUESTA_METODOLOGIA.md`](../PROPUESTA_METODOLOGIA.md) — la metodología
   completa (v15, **congelada**). El porqué de todo lo demás.
 - [`../PLAN_SPRINTS.md`](../PLAN_SPRINTS.md) — plan por sprints y tabla de

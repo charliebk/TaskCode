@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 88 / 90 items terminados (98%)** · última actualización: 2026-11-06
+**Progreso global: 90 / 99 items terminados (91%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,7 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| **Total pendiente** | **0** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **0** | — |
+| **Total pendiente** | **9** | — | — |
 
 ---
 
@@ -1000,3 +1001,22 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
       `planEsPlantilla` lee los roles del disco: la plantilla vacia con rendimiento
       ya no se da por redactada. Publicada en 0.11.0. 2 rondas:
       IMP-1 y MEN-1..5 corregidos; MEN-6 (restos cosmeticos de "cuatro") aceptado.*
+
+---
+
+## N — Mejoras tras las métricas de la 0.8 (0/9)
+
+Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
+con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
+tarea a la primera y datos incompletos para comparar versiones. Orden y
+dependencias en `docs/ROADMAP.md`.
+
+- [ ] TASK-081 — Revisión más barata: medir y acotar las lecturas de los revisores
+- [ ] TASK-082 — Autorrevisión del implementador antes de pedir revisión
+- [ ] TASK-083 — Cierre sin ronda 2 completa cuando solo quedan MENORES
+- [ ] TASK-084 — Versión del plugin en cada tarea y métricas por versión
+- [ ] TASK-085 — Coste de implementación registrado automáticamente
+- [ ] TASK-086 — Descontar las pausas de las duraciones de las métricas
+- [ ] TASK-087 — `taskctl doctor` avisa si el plugin instalado está desactualizado
+- [ ] TASK-088 — `taskctl doctor` avisa si falta `comando_verificacion` con tests detectables
+- [ ] TASK-089 — Evitar literales con forma de secreto en el repo y tags de versión que faltan
