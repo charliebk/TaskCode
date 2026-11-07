@@ -42,7 +42,8 @@ import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseA
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
-import { EXCLUIR_HELDOUT } from '../core/heldout.js';
+import { excluirDeRevision } from '../fs/revisores-rango.js';
+import { avisoAutorrevision } from '../core/autorrevision.js';
 import { contextoPermitido } from '../core/contexto-revision.js';
 import { modeloDeVerificacion } from '../core/modelo-revision.js';
 export class ReviewCommandError extends Error {
@@ -359,6 +360,12 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     // revisado en la ronda N si sigue siendo antepasado de HEAD; si no (un
     // rebase, un amend, un gc) o no consta, el diff completo con un aviso.
     const avisos = [];
+    // TASK-082: aviso (sin bloquear) si falta la constancia de la
+    // autorrevision. Sobre la lectura fresca y antes de cualquier escritura;
+    // avisoAutorrevision es pura y nunca lanza.
+    const sinAutorrevision = avisoAutorrevision(body, id);
+    if (sinAutorrevision !== null)
+        avisos.push(sinAutorrevision);
     let desde = baseBranch;
     if (incremental && previa !== null) {
         const valido = previa.commit !== null && esAntepasado(previa.commit, deps.repoCwd);
@@ -375,7 +382,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     // tareas no se embeben: eran el 27 % de los bytes de las peticiones.
     // TASK-073: los tests held-out nunca se embeben, se configure lo que se configure.
     const configRama = resolverConfig(deps.repoCwd);
-    const excluir = [...new Set([...configRama.excluir_de_revision, EXCLUIR_HELDOUT])];
+    const excluir = excluirDeRevision(configRama.excluir_de_revision);
     const paraRevision = diffParaRevision(desde, 'HEAD', excluir, deps.repoCwd);
     const diff = paraRevision.diff;
     // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE

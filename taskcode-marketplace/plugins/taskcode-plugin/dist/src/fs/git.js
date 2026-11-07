@@ -282,11 +282,7 @@ export function diffRange(desde, hasta, cwd) {
 export function diffParaRevision(desde, hasta, excluir, cwd) {
     const rango = `${desde}..${hasta}`;
     const sinExcluidos = pathspecSinExcluidos(excluir);
-    const nombres = (args) => partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', rango, ...args], cwd));
-    const todos = nombres([]);
-    const incluidos = excluir.length === 0 ? todos : nombres(sinExcluidos);
-    const enIncluidos = new Set(incluidos);
-    const excluidos = todos.filter((f) => !enIncluidos.has(f));
+    const { incluidos, excluidos } = ficherosParaRevision(desde, hasta, excluir, cwd);
     return {
         incluidos,
         excluidos,
@@ -299,6 +295,19 @@ export function diffParaRevision(desde, hasta, excluir, cwd) {
                 // el revisor no sabria que pedir (MENOR-3 de la revision).
                 runGit([...SIN_COMILLAS, 'diff', '--stat=200', rango, '--', ...excluir.map((p) => `:(glob)${p}`)], cwd),
     };
+}
+/**
+ * Solo los nombres de `diffParaRevision` (incluidos y excluidos), sin el
+ * diff: lo que necesita quien solo quiere saber que revisoras tocan
+ * (TASK-082, `taskctl siguiente`), sin pagar el `git diff` entero.
+ */
+export function ficherosParaRevision(desde, hasta, excluir, cwd) {
+    const rango = `${desde}..${hasta}`;
+    const nombres = (args) => partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', rango, ...args], cwd));
+    const todos = nombres([]);
+    const incluidos = excluir.length === 0 ? todos : nombres(pathspecSinExcluidos(excluir));
+    const enIncluidos = new Set(incluidos);
+    return { incluidos, excluidos: todos.filter((f) => !enIncluidos.has(f)) };
 }
 /**
  * Pathspec «todo el repo menos los excluidos». Lo comparten el diff de la

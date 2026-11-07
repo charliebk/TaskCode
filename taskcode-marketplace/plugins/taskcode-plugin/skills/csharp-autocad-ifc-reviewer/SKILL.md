@@ -124,7 +124,7 @@ Reproducciones baratas que este dominio agradece:
 - **Modelo grande de verdad**: si el diff toca rendimiento, medir con un
   modelo del orden de magnitud real, no con tres elementos.
 
-## Que se revisa en este dominio
+## Que se revisa
 
 ### Interoperabilidad con la API de AutoCAD
 

@@ -33,9 +33,12 @@ import {
   isAncestor,
   localBranchExists,
   lsTreeNames,
+  mergeBase,
+  resolveBaseBranchForTipo,
   runGit,
   showFileAtRef,
 } from '../fs/git.js';
+import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import type { Task } from '../core/task.js';
 import { REVISION_DIRNAME } from './review.js';
 import { planRedactado } from './approve.js';
@@ -62,6 +65,14 @@ export interface SiguienteCommandResult extends SiguientePaso {
   leidaDe: 'working-tree' | 'rama';
   /** true si se pidio --json. */
   json: boolean;
+  /**
+   * TASK-082: solo con `fase: review`. Las skills revisoras que repartiria
+   * `review` para TODA la tarea (desde la merge base con su rama base), con
+   * el mismo clasificador: las listas `## Que se revisa` que pasa el
+   * implementador en su autorrevision. Ausente si no se puede calcular (la
+   * rama de la tarea no esta en local, o Git falla): no rompe `siguiente`.
+   */
+  revisores?: string[];
 }
 
 /**
@@ -214,13 +225,41 @@ export async function runSiguienteCommand(
   };
 
   const modo = modoDeTarea(body, modoConfig);
-  return {
+  const paso = siguienteFase(task, ctx, modo);
+  const resultado: SiguienteCommandResult = {
     id: task.id,
     estado: task.estado,
     modo,
     cierre: config.cierre_por_defecto,
     leidaDe: enOtraRama ? 'rama' : 'working-tree',
     json,
-    ...siguienteFase(task, ctx, modo),
+    ...paso,
   };
+  if (paso.fase === 'review') {
+    const ref = enOtraRama ? rama : currentBranch(deps.repoCwd) === rama ? 'HEAD' : null;
+    const revisores = ref === null ? null : revisoresDeLaTarea(task, ref, config.excluir_de_revision, deps.repoCwd);
+    if (revisores !== null) resultado.revisores = revisores;
+  }
+  return resultado;
+}
+
+/**
+ * TASK-082: revisoras de toda la tarea, desde la merge base con su rama base
+ * hasta `ref`. La merge base y no la punta de la base: antes de `review` la
+ * base aun no esta integrada y `base..ref` meteria lo que la base trajo
+ * despues. null si Git no puede calcularlo: `siguiente` decide el paso y no
+ * debe caerse por un dato auxiliar.
+ */
+function revisoresDeLaTarea(
+  task: Task,
+  ref: string,
+  excluirConfig: readonly string[],
+  cwd: string
+): string[] | null {
+  try {
+    const desde = mergeBase(resolveBaseBranchForTipo(task.tipo, cwd), ref, cwd);
+    return revisoresDelRango(desde, ref, excluirDeRevision(excluirConfig), cwd);
+  } catch {
+    return null;
+  }
 }

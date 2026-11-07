@@ -19,10 +19,27 @@ punto, no un formalismo.
    y haz SOLO lo que corresponde a su `fase`:
    - `review`: la implementacion (o las correcciones de la ronda anterior)
      tiene que estar commiteada y la suite en verde. Si no lo esta, para y
-     dilo. Si lo esta, ejecuta `taskctl review TASK-NNN` y sigue en el paso 3.
+     dilo. Si lo esta, haz la **autorrevision** (abajo), ejecuta
+     `taskctl review TASK-NNN` y sigue en el paso 3.
    - `veredicto`: ya hay peticion de revision; sigue en el paso 3.
    - `codex-review`: paso 5.
    - `veredicto-codex`: paso 6. **No ejecutes `codex-review`**.
+
+   **Autorrevision**, antes de cada `taskctl review` y sin lanzar ningun
+   agente: la haces tu, en tu contexto. El campo `revisores` del JSON de
+   `siguiente` dice que skills revisoras le tocan a la tarea (lo calcula el
+   mismo clasificador que reparte la revision: no lo deduzcas tu de los
+   patrones). De cada una lee **solo** su seccion `## Que se revisa`, en
+   `../<revisora>/SKILL.md`, sin copiarla a ningun sitio, y repasa con ella
+   tu diff; corrige lo evidente y commitea. Despues anota la constancia al
+   final de `tarea.md`, bajo `## Autorrevision` (creala si no existe), una
+   linea por revisora: `- <revisora> — <commit>`, con el commit corto que
+   repasaste, y nada mas. Sin juicios ni «sin hallazgos»: el revisor lee
+   `tarea.md` y no debe anclarse. Commitea antes de `taskctl review` (con el
+   workspace sucio aborta). En cada ronda siguiente, anade otra linea. Si el
+   JSON no trae `revisores`, usa las revisoras cuya `description` encaje
+   con los ficheros del diff, y `code-quality-reviewer` para el resto.
+   `taskctl review` avisa, sin bloquear, si falta la constancia.
 3. Por cada `revision/peticion-revision-N*.md` de la ronda que no tenga ya su
    informe con veredicto (una por dominio si esta fragmentada), lanza un
    agente revisor independiente, en paralelo y en un solo mensaje, con la

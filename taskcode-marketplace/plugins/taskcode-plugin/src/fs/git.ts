@@ -308,13 +308,7 @@ export function diffParaRevision(
 ): DiffParaRevision {
   const rango = `${desde}..${hasta}`;
   const sinExcluidos = pathspecSinExcluidos(excluir);
-  const nombres = (args: readonly string[]): string[] =>
-    partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', rango, ...args], cwd));
-
-  const todos = nombres([]);
-  const incluidos = excluir.length === 0 ? todos : nombres(sinExcluidos);
-  const enIncluidos = new Set(incluidos);
-  const excluidos = todos.filter((f) => !enIncluidos.has(f));
+  const { incluidos, excluidos } = ficherosParaRevision(desde, hasta, excluir, cwd);
   return {
     incluidos,
     excluidos,
@@ -332,6 +326,26 @@ export function diffParaRevision(
             cwd
           ),
   };
+}
+
+/**
+ * Solo los nombres de `diffParaRevision` (incluidos y excluidos), sin el
+ * diff: lo que necesita quien solo quiere saber que revisoras tocan
+ * (TASK-082, `taskctl siguiente`), sin pagar el `git diff` entero.
+ */
+export function ficherosParaRevision(
+  desde: string,
+  hasta: string,
+  excluir: readonly string[],
+  cwd: string
+): Pick<DiffParaRevision, 'incluidos' | 'excluidos'> {
+  const rango = `${desde}..${hasta}`;
+  const nombres = (args: readonly string[]): string[] =>
+    partirNul(runGit([...SIN_COMILLAS, 'diff', '--name-only', '-z', rango, ...args], cwd));
+  const todos = nombres([]);
+  const incluidos = excluir.length === 0 ? todos : nombres(pathspecSinExcluidos(excluir));
+  const enIncluidos = new Set(incluidos);
+  return { incluidos, excluidos: todos.filter((f) => !enIncluidos.has(f)) };
 }
 
 /**

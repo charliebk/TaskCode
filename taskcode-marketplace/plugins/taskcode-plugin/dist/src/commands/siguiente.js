@@ -22,7 +22,8 @@ import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
 import { commitRevisadoDe, veredictoDeRonda } from '../core/informe-revision.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
-import { currentBranch, isAncestor, localBranchExists, lsTreeNames, runGit, showFileAtRef, } from '../fs/git.js';
+import { currentBranch, isAncestor, localBranchExists, lsTreeNames, mergeBase, resolveBaseBranchForTipo, runGit, showFileAtRef, } from '../fs/git.js';
+import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import { REVISION_DIRNAME } from './review.js';
 import { planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
@@ -154,13 +155,37 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
             informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, revisados, deps.repoCwd),
     };
     const modo = modoDeTarea(body, modoConfig);
-    return {
+    const paso = siguienteFase(task, ctx, modo);
+    const resultado = {
         id: task.id,
         estado: task.estado,
         modo,
         cierre: config.cierre_por_defecto,
         leidaDe: enOtraRama ? 'rama' : 'working-tree',
         json,
-        ...siguienteFase(task, ctx, modo),
+        ...paso,
     };
+    if (paso.fase === 'review') {
+        const ref = enOtraRama ? rama : currentBranch(deps.repoCwd) === rama ? 'HEAD' : null;
+        const revisores = ref === null ? null : revisoresDeLaTarea(task, ref, config.excluir_de_revision, deps.repoCwd);
+        if (revisores !== null)
+            resultado.revisores = revisores;
+    }
+    return resultado;
+}
+/**
+ * TASK-082: revisoras de toda la tarea, desde la merge base con su rama base
+ * hasta `ref`. La merge base y no la punta de la base: antes de `review` la
+ * base aun no esta integrada y `base..ref` meteria lo que la base trajo
+ * despues. null si Git no puede calcularlo: `siguiente` decide el paso y no
+ * debe caerse por un dato auxiliar.
+ */
+function revisoresDeLaTarea(task, ref, excluirConfig, cwd) {
+    try {
+        const desde = mergeBase(resolveBaseBranchForTipo(task.tipo, cwd), ref, cwd);
+        return revisoresDelRango(desde, ref, excluirDeRevision(excluirConfig), cwd);
+    }
+    catch {
+        return null;
+    }
 }
