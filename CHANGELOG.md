@@ -1,9 +1,5 @@
 # Changelog
 
-## Sin publicar
-
-- TASK-082 (feature) — Autorrevision del implementador antes de pedir revision (2026-11-07)
-
 ## 0.12.0 — sin publicar
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
@@ -28,6 +24,15 @@ y CRITICO/IMPORTANTE. La peticion de revision trae `## Contexto permitido`
 leer fuera de ella salvo justificandolo, y en la ronda 2 o posterior se sugiere
 un modelo un escalon mas barato si la ronda anterior no dejo ningun CRITICO.
 Las filas de `## Coste` de 11 columnas no las lee un taskctl anterior.
+
+Autorrevision del implementador (TASK-082). Antes de `taskctl review`, la skill
+`review` manda pasar la seccion `## Que se revisa` de cada revisora que toca,
+corregir lo evidente y anotar en `tarea.md` `## Autorrevision`, una linea
+`- <revisora> — <commit>` por revisora. `taskctl review` avisa, sin bloquear,
+si falta esa seccion con contenido. `taskctl siguiente --json` devuelve en la
+fase review el campo `revisores`, con el mismo clasificador que `review`. La
+lista vive solo en cada revisora; `csharp-autocad-ifc-reviewer` unifica el
+titulo de esa seccion.
 
 ## 0.11.0 — 2026-11-06
 

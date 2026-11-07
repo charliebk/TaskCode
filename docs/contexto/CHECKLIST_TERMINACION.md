@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 92 / 99 items terminados (93%)** · última actualización: 2026-11-07
+**Progreso global: 93 / 99 items terminados (94%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **2** | — |
-| **Total pendiente** | **7** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **3** | — |
+| **Total pendiente** | **6** | — | — |
 
 ---
 
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (2/9)
+## N — Mejoras tras las métricas de la 0.8 (3/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1023,7 +1023,16 @@ dependencias en `docs/ROADMAP.md`.
       acotada) 1,97 M: el exceso viene del contexto que acumula el revisor, no de
       leer ficheros. 2 rondas: MEN-1, 2 y 4 corregidos; MEN-3, MEN-5 y dos MENOR
       de r2 (mayúsculas y `..` en `contexto_revision`) aceptados.*
-- [ ] TASK-082 — Autorrevisión del implementador antes de pedir revisión
+- [x] TASK-082 — Autorrevisión del implementador antes de pedir revisión — cerrada el 2026-11-07
+      *La skill `review` manda, antes de `taskctl review` y sin lanzar agente,
+      pasar la `## Que se revisa` de cada revisora, corregir lo evidente y anotar
+      `## Autorrevision` en `tarea.md` (`- <revisora> — <commit>`, sin juicios).
+      `review` avisa sin bloquear si falta con contenido (`core/autorrevision.ts`),
+      y `siguiente --json` da `revisores` en la fase review con el mismo
+      clasificador, desde la merge base (`fs/revisores-rango.ts`). La lista vive
+      solo en cada revisora (ancla unificada en la de C#). Dogfooding: la propia
+      autorrevisión sacó un test que faltaba. 1 ronda, aprobada (9 de 10
+      mutantes muertos): MEN-1 (el `catch` de `siguiente` sin test) aceptado.*
 - [ ] TASK-083 — Cierre sin ronda 2 completa cuando solo quedan MENORES
 - [x] TASK-084 — Versión del plugin en cada tarea y métricas por versión — cerrada el 2026-11-07
       *Cada fila de `## Transiciones` lleva como quinta columna la versión de
