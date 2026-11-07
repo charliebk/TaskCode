@@ -33,7 +33,8 @@ function leerAcotado(cwd: string, ficheros: readonly string[], nombre: string): 
   try {
     const ruta = path.join(cwd, real);
     if (statSync(ruta).size > MAX_BYTES_MARCADOR_APLICACION) return null;
-    return readFileSync(ruta, 'utf8');
+    // Sin el BOM: `JSON.parse` lo rechaza y en Windows es habitual (Out-File de PowerShell 5.1).
+    return readFileSync(ruta, 'utf8').replace(/^﻿/, '');
   } catch {
     return null;
   }

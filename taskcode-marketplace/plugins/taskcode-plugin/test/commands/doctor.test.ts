@@ -339,26 +339,37 @@ async function ficheros(repoRoot: string, fs: Record<string, string>): Promise<v
 const PKG_CON_TEST = JSON.stringify({ name: 'x', scripts: { test: 'node --test' } });
 const WIN = process.platform === 'win32';
 
-const CASOS_TASK_088: { tipo: string; fs: Record<string, string>; comando: string }[] = [
-  { tipo: 'Node con npm', fs: { 'package.json': PKG_CON_TEST }, comando: 'npm test' },
-  { tipo: 'Node con pnpm', fs: { 'package.json': PKG_CON_TEST, 'pnpm-lock.yaml': '' }, comando: 'pnpm test' },
-  { tipo: 'Node con yarn', fs: { 'package.json': PKG_CON_TEST, 'yarn.lock': '' }, comando: 'yarn test' },
-  { tipo: 'Rust', fs: { 'Cargo.toml': '[package]\nname = "x"\n' }, comando: 'cargo test' },
-  { tipo: 'Maven', fs: { 'pom.xml': '<project/>\n' }, comando: 'mvn test' },
+const PKG = 'package.json con script "test"';
+
+const CASOS_TASK_088: { tipo: string; fs: Record<string, string>; comando: string; motivo: string }[] = [
+  { tipo: 'Node con npm', fs: { 'package.json': PKG_CON_TEST }, comando: 'npm test', motivo: PKG },
+  { tipo: 'Node con pnpm', fs: { 'package.json': PKG_CON_TEST, 'pnpm-lock.yaml': '' }, comando: 'pnpm test', motivo: PKG },
+  { tipo: 'Node con yarn', fs: { 'package.json': PKG_CON_TEST, 'yarn.lock': '' }, comando: 'yarn test', motivo: PKG },
+  // MEN-1 de la ronda 1: el BOM de PowerShell 5.1 no impide detectarlo.
+  { tipo: 'Node con BOM', fs: { 'package.json': `﻿${PKG_CON_TEST}` }, comando: 'npm test', motivo: PKG },
+  { tipo: 'Rust', fs: { 'Cargo.toml': '[package]\nname = "x"\n' }, comando: 'cargo test', motivo: 'Cargo.toml' },
+  { tipo: 'Maven', fs: { 'pom.xml': '<project/>\n' }, comando: 'mvn test', motivo: 'pom.xml' },
   {
     tipo: 'Maven con wrapper',
     fs: { 'pom.xml': '<project/>\n', mvnw: '#!/bin/sh\n', 'mvnw.cmd': '@echo off\n' },
     comando: WIN ? 'mvnw test' : './mvnw test',
+    motivo: 'pom.xml',
   },
-  { tipo: 'Gradle', fs: { 'build.gradle.kts': '\n' }, comando: 'gradle test' },
-  { tipo: '.NET con .csproj', fs: { 'App.csproj': '<Project/>\n' }, comando: 'dotnet test' },
-  { tipo: '.NET con .sln', fs: { 'App.sln': '\n' }, comando: 'dotnet test' },
-  { tipo: 'Go', fs: { 'go.mod': 'module x\n' }, comando: 'go test ./...' },
-  { tipo: 'Python con pytest', fs: { 'pyproject.toml': '[tool.pytest.ini_options]\n' }, comando: 'python -m pytest' },
+  { tipo: 'Gradle', fs: { 'build.gradle.kts': '\n' }, comando: 'gradle test', motivo: 'build.gradle.kts' },
+  { tipo: '.NET con .csproj', fs: { 'App.csproj': '<Project/>\n' }, comando: 'dotnet test', motivo: 'proyecto .csproj' },
+  { tipo: '.NET con .sln', fs: { 'App.sln': '\n' }, comando: 'dotnet test', motivo: 'solucion .sln' },
+  { tipo: 'Go', fs: { 'go.mod': 'module x\n' }, comando: 'go test ./...', motivo: 'go.mod' },
+  {
+    tipo: 'Python con pytest',
+    fs: { 'pyproject.toml': '﻿[tool.pytest.ini_options]\n' },
+    comando: 'python -m pytest',
+    motivo: 'pyproject.toml con pytest',
+  },
   {
     tipo: 'Tauri (Node + Rust)',
     fs: { 'package.json': PKG_CON_TEST, 'Cargo.toml': '[package]\n' },
     comando: 'npm test && cargo test',
+    motivo: `${PKG}, Cargo.toml`,
   },
 ];
 
@@ -370,6 +381,8 @@ for (const caso of CASOS_TASK_088) {
       const c = por(r.comprobaciones, 'verificacion');
       assert.equal(c.nivel, 'aviso', niveles(r.comprobaciones));
       assert.match(c.mensaje, /sin comando_verificacion y el proyecto tiene tests/);
+      // MEN-2 de la ronda 1: el mensaje dice que se detecto.
+      assert.ok(c.mensaje.includes(`(${caso.motivo})`), c.mensaje);
       assert.equal(c.arreglo, `Declara en .taskcode/config.yml: comando_verificacion: "${caso.comando}"`);
       assert.equal(r.codigo, 0, niveles(r.comprobaciones));
     });
