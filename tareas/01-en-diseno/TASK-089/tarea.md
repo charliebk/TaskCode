@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 505513
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-07
@@ -37,3 +37,9 @@ La proteccion de GitHub bloqueo el push de 0.11.0 por una clave de Stripe falsa 
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T19:37:59Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-07T19:43:18Z | diseno | agente:adfbb640fa14fb660 | 30 | 45623 | 446261 | 13599 | 25 | 505513 |
