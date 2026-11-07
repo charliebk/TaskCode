@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 531150
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-07
@@ -37,3 +37,9 @@ Un equipo estuvo en 0.8.0 mientras el repo iba por 0.10.0 sin saberlo. doctor co
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T16:26:24Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-07T16:32:39Z | diseno | agente:ac40879d5137660c8 | 24 | 62094 | 457695 | 11337 | 22 | 531150 |
