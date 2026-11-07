@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, coste, metricas]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-081-revision-mas-barata-medir-y-acotar-las-l
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Con la 0.8 los tokens de revision de una tarea media pasaron de 3.3 M a 6.8 M de
 |---|---|---|---|
 | 2026-11-07T01:11:38Z | plan | automatico | persona |
 | 2026-11-07T01:25:45Z | approve | automatico | persona |
+| 2026-11-07T01:25:58Z | start | automatico | persona |
 
 ## Coste
 
