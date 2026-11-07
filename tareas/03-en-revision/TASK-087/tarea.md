@@ -40,6 +40,7 @@ Un equipo estuvo en 0.8.0 mientras el repo iba por 0.10.0 sin saberlo. doctor co
 | 2026-11-07T16:48:32Z | approve | automatico | persona |
 | 2026-11-07T16:48:47Z | start | automatico | persona |
 | 2026-11-07T17:11:35Z | review | automatico | persona |
+| 2026-11-07T17:37:44Z | review | automatico | persona |
 
 ## Coste
 
