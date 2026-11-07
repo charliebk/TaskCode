@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [metricas, transiciones]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-084-version-del-plugin-en-cada-tarea-y-metri
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Para comparar versiones del plugin hubo que deducir la version por la fecha de c
 - [ ] taskctl metricas --por-version agrupa las tareas terminadas por la version de su cierre con rondas, aprobadas a la primera, hallazgos por severidad y origen y tokens por fase, y acepta --json
 - [ ] Tests con repos Git temporales cubren tareas con y sin version anotada
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-07T00:17:31Z | plan | automatico | persona |
