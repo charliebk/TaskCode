@@ -35,12 +35,13 @@ Con la 0.8 los tokens de revision de una tarea media pasaron de 3.3 M a 6.8 M de
 
 ## Transiciones
 
-| fecha | fase | modo | decidido_por |
-|---|---|---|---|
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
 | 2026-11-07T01:11:38Z | plan | automatico | persona |
 | 2026-11-07T01:25:45Z | approve | automatico | persona |
 | 2026-11-07T01:25:58Z | start | automatico | persona |
 | 2026-11-07T02:02:20Z | review | automatico | persona |
+| 2026-11-07T02:50:37Z | review | automatico | persona | 0.12.0 |
 
 ## Coste
 
