@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 709642
 tokens_implementacion: null
-tokens_revision: null
+tokens_revision: 3822549
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -46,3 +46,4 @@ Para comparar versiones del plugin hubo que deducir la version por la fecha de c
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T00:22:37Z | diseno | agente:a66679d6288860bb7,a891ec8ffae0220da,acb47bbb54691a1c7 | 44 | 135632 | 552551 | 21415 | 31 | 709642 |
+| 2026-11-07T01:06:09Z | revision | agente:a5fbce3adfd46a18a | 54 | 156190 | 3651174 | 15131 | 5 | 3822549 |
