@@ -90,7 +90,7 @@ Uso:
   taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]
   taskctl pausa TASK-NNN [--push]
   taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
-                          (--agente <id>... | --tokens N) [--push]
+                          (--agente <id>... | --tokens N) [--ronda N [--revisor <skill>]] [--push]
   taskctl cadena abrir TASK-NNN | comprobar <testigo> | cerrar <testigo> | cerrar --forzar
   taskctl diagnose
   taskctl pause [--push]
@@ -122,6 +122,10 @@ herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza.
 llamada deja ademas una fila en la tabla "## Coste" de tarea.md: con --agente, el desglose
 (entrada, cache_escritura, cache_lectura, salida, lecturas); con --tokens, solo el total.
 Un --agente ya anotado en esa fase (agente reanudado) suma solo lo que crecio su transcripcion.
+En --fase revision cada --agente va en su propia fila, con la ronda y el revisor que se
+deducen de su transcripcion (la peticion-revision-N[-skill].md de su prompt); con un unico
+--agente, --ronda N [--revisor <skill>] los declara a mano. metricas --tokens muestra las
+lecturas y los CRITICO/IMPORTANTE de cada ronda y revisor.
 finish cierra con merge normal (lo de siempre). --tag <nombre> pone un tag anotado (titulo de
 la tarea) sobre el commit de merge; solo se sube con --push. --merge-request sube la rama
 y abre un PR (github.com, gh) o un MR (host con "gitlab", glab) contra la rama base en lugar
