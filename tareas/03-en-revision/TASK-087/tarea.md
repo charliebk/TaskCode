@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 531150
 tokens_implementacion: null
-tokens_revision: 625757
+tokens_revision: 1690057
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -48,3 +48,4 @@ Un equipo estuvo en 0.8.0 mientras el repo iba por 0.10.0 sin saberlo. doctor co
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T16:32:39Z | diseno | agente:ac40879d5137660c8 | 24 | 62094 | 457695 | 11337 | 22 | 531150 |
 | 2026-11-07T17:18:07Z | revision | agente:aeaea94fe71251e2b | 12 | 111995 | 507942 | 5808 | 1 | 625757 |
+| 2026-11-07T17:42:21Z | revision | agente:abaaaf40e75fe993c | 22 | 102097 | 956062 | 6119 | 2 | 1064300 |
