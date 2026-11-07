@@ -24,44 +24,10 @@
  */
 import { media, tablaDeTexto } from './metricas.js';
 import { resumirGrupo } from './grupos-metricas.js';
-const VERSION_PARTES_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
-function compararIdentificador(a, b) {
-    const na = /^\d+$/.test(a);
-    const nb = /^\d+$/.test(b);
-    if (na && nb)
-        return Number(a) - Number(b);
-    if (na !== nb)
-        return na ? -1 : 1; // numerico antes que alfanumerico (semver)
-    return a < b ? -1 : a > b ? 1 : 0;
-}
-/**
- * Orden semver: mayor, menor y parche como numeros; sin pre-release va
- * despues de con ella; dos pre-releases por identificadores. Lo que no es
- * una version (no deberia llegar: el registro ya la valida) va al final.
- */
-export function compararVersiones(a, b) {
-    const ma = VERSION_PARTES_RE.exec(a);
-    const mb = VERSION_PARTES_RE.exec(b);
-    if (ma === null || mb === null)
-        return ma === null ? (mb === null ? (a < b ? -1 : a > b ? 1 : 0) : 1) : -1;
-    for (let i = 1; i <= 3; i++) {
-        const d = Number(ma[i]) - Number(mb[i]);
-        if (d !== 0)
-            return d;
-    }
-    const pa = ma[4];
-    const pb = mb[4];
-    if (pa === undefined || pb === undefined)
-        return pa === pb ? 0 : pa === undefined ? 1 : -1;
-    const ia = pa.split('.');
-    const ib = pb.split('.');
-    for (let i = 0; i < Math.min(ia.length, ib.length); i++) {
-        const d = compararIdentificador(ia[i], ib[i]);
-        if (d !== 0)
-            return d;
-    }
-    return ia.length - ib.length;
-}
+import { compararVersiones } from './version.js';
+// El orden semver vive en `version.ts` desde TASK-087 (doctor lo usa tambien);
+// se reexporta para no cambiar los imports existentes.
+export { compararVersiones };
 function cifraTokens(valores) {
     const con = valores.filter((v) => v !== null);
     return { suma: con.reduce((a, b) => a + b, 0), conDato: con.length, media: media(con, 0) };

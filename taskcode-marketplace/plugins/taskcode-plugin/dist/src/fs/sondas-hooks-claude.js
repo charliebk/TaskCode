@@ -13,27 +13,9 @@
  * roto se anota en `ilegibles`. Son ficheros de terceros; doctor no los
  * convierte en un error.
  */
-import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { hooksQueAlcanzanSubagente, pluginHabilitado } from '../core/hooks-subagente.js';
-function leerJson(ruta) {
-    if (!existsSync(ruta))
-        return { estado: 'ausente' };
-    try {
-        return { estado: 'ok', json: JSON.parse(readFileSync(ruta, 'utf8').replace(/^﻿/, '')) };
-    }
-    catch (e) {
-        return { estado: 'ilegible', motivo: (e instanceof Error ? e.message : String(e)).replace(/\s+/g, ' ').trim() };
-    }
-}
-const esObjeto = (x) => typeof x === 'object' && x !== null && !Array.isArray(x);
-function mismaRuta(a, b) {
-    const n = (p) => {
-        const r = path.resolve(p).replace(/[\\/]+$/, '');
-        return process.platform === 'win32' ? r.toLowerCase() : r;
-    };
-    return n(a) === n(b);
-}
+import { entradaQueAplica, esObjeto, leerJson, mismaRuta } from './json-claude.js';
 export function sondearHooksClaude(configDir, repoCwd) {
     const r = { hallazgos: [], leidos: 0, ilegibles: [], hooksDesactivadosEn: null };
     const leer = (ruta) => {
@@ -80,9 +62,7 @@ export function sondearHooksClaude(configDir, repoCwd) {
         if (!Array.isArray(entradas) || !pluginHabilitado(clave, settings))
             continue;
         // La instalacion que aplica aqui: la de usuario o la de este proyecto.
-        const entrada = entradas.find((e) => esObjeto(e) &&
-            typeof e['installPath'] === 'string' &&
-            (typeof e['projectPath'] !== 'string' || mismaRuta(e['projectPath'], repoCwd)));
+        const entrada = entradaQueAplica(entradas, repoCwd);
         if (entrada === undefined)
             continue;
         const dir = entrada['installPath'];

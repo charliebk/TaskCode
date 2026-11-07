@@ -115,7 +115,9 @@ taskctl finish TASK-NNN [--tag <nombre>] la cierra (el estado lo da la plataform
 tag que ya ponia el script.
 doctor comprueba que el proyecto esta listo (Node, git, bash para los scripts de Git-Flow, tareas/,
 ramas develop y main/master, origin, workspace, .taskcode/config.yml, coherencia de las tareas y, si la
-config pide merge request o declara plataforma, gh/glab y su sesion). Una linea por comprobacion
+config pide merge request o declara plataforma, gh/glab y su sesion), hooks que alcanzan a los
+subagentes y si el plugin instalado esta por detras de la copia local de su marketplace (aviso, sin
+red). Una linea por comprobacion
 (ok, aviso, error u omitida) y, en cada aviso o error, el comando que lo arregla; sale con 1 si hay
 algun error. Solo lee. --json da lo mismo en una linea de JSON.
 doctor-deploy comprueba, antes de publicar, que la aplicacion no deja agujeros conocidos: detecta el tipo (Node,
