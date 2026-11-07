@@ -272,6 +272,11 @@ export function logOneline(desde: string, hasta: string, cwd: string): string {
   return runGit(['log', '--oneline', `${desde}..${hasta}`], cwd);
 }
 
+/** TASK-083: true si entre `desde` (excluido) y `hasta` hay algun commit de merge. */
+export function hayMergesEntre(desde: string, hasta: string, cwd: string): boolean {
+  return runGit(['rev-list', '--merges', '--count', `${desde}..${hasta}`], cwd).trim() !== '0';
+}
+
 /** `git diff <desde>..<hasta>` (vacio si no hay diferencias). */
 export function diffRange(desde: string, hasta: string, cwd: string): string {
   return runGit(['diff', `${desde}..${hasta}`], cwd);

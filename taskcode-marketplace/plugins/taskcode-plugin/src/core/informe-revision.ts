@@ -265,6 +265,131 @@ export function hallazgosNoCerrados(informe: string): LecturaHallazgos {
   return { tabla, abiertos };
 }
 
+// --- Alcance de la ronda siguiente (TASK-081, TASK-083) ----------------------
+
+/** El informe sigue siendo la plantilla: sin filas reales y con la fila de ejemplo, o con el veredicto PENDIENTE. */
+function esPlantilla(texto: string, lectura: LecturaTodosHallazgos): boolean {
+  return lectura.hallazgos.length === 0 && (/^\|\s*\(ej\./im.test(texto) || veredictoDe(texto) === 'pendiente');
+}
+
+/**
+ * Regla ESTRICTA (decision de la persona, TASK-081) para que la ronda de
+ * verificacion use un modelo mas barato. Se cumple solo si, en TODOS los
+ * informes de la ronda anterior: la tabla de hallazgos se lee, no hay ningun
+ * CRITICO en ningun estado (tampoco uno `corregido`), no hay severidades
+ * fuera del vocabulario, y el informe no sigue siendo la plantilla.
+ * Vive aqui desde TASK-083, junto a la regla del alcance; review.ts la reexporta.
+ */
+export function modeloBaratoPermitido(informes: readonly string[]): boolean {
+  if (informes.length === 0) return false;
+  for (const texto of informes) {
+    const lectura = leerHallazgos(texto);
+    if (!lectura.tabla) return false;
+    if (lectura.hallazgos.some((h) => h.severidadReconocida === null || h.severidadReconocida === 'CRITICO')) {
+      return false;
+    }
+    if (esPlantilla(texto, lectura)) return false;
+  }
+  return true;
+}
+
+/** Lo que la ronda anterior permite para la siguiente, decidido solo con sus informes. */
+export interface AlcanceRonda {
+  /**
+   * TASK-083: la ronda siguiente PUEDE ser una verificacion acotada al diff de
+   * las correcciones. Es condicion necesaria, no suficiente: `review` la
+   * convierte en completa si no hay diff de correcciones, si hay un merge en
+   * el delta o si el delta toca ficheros que ningun hallazgo nombraba.
+   */
+  acotada: boolean;
+  /** TASK-081: la ronda siguiente puede usar un modelo mas barato. */
+  modeloBarato: boolean;
+  /** Por que `acotada` es lo que es, para la linea `- Alcance:` de la peticion. */
+  motivo: string;
+  /** Rutas de la columna `Fichero` de todos los hallazgos, sin `:linea`. */
+  ficherosNombrados: string[];
+}
+
+/**
+ * Rutas de una celda `Fichero`: `src/a.ts:12`, `` `b.vue:191` ``,
+ * `a.ts:1-3, b.ts:7` o `c.ts#L4`. Sin la linea, con `/` y sin `./` delante.
+ */
+export function rutasDeCeldaFichero(celda: string): string[] {
+  return celda
+    .split(/[\s,;]+/)
+    .map((t) =>
+      t
+        .replace(/^[*_`(]+|[*_`)]+$/g, '')
+        .replace(/#L\d+(?:-L?\d+)?$/i, '')
+        .replace(/:\d+(?:[-–:]\d+)*$/, '')
+        .replace(/\\/g, '/')
+        .replace(/^\.\//, '')
+    )
+    .filter((t) => t !== '' && !SOLO_GUION_RE.test(t));
+}
+
+/**
+ * true si `ruta` (relativa a la raiz del repo) es una de las nombradas: igual,
+ * o la nombrada es su final (`Armazon.vue` nombra `src/ui/Armazon.vue`), o la
+ * nombrada es un directorio que la contiene (`src/core/`).
+ */
+export function ficheroNombrado(ruta: string, nombrados: readonly string[]): boolean {
+  const r = ruta.replace(/\\/g, '/');
+  return nombrados.some((n) => r === n || r.endsWith(`/${n}`) || (n.endsWith('/') && r.startsWith(n)));
+}
+
+/**
+ * Alcance de la ronda N+1 a partir de los informes de la ronda N (todos sus
+ * fragmentos a la vez: decidir por fragmento deja pasar un IMPORTANTE de otro
+ * dominio). Fail-closed (TASK-083, decision de la persona): la ronda solo
+ * puede ser acotada si la ronda N pidio cambios, todos sus informes tienen
+ * tabla legible, ninguno es la plantilla, ninguna severidad cae fuera del
+ * vocabulario, hay al menos un hallazgo y TODOS son MENOR. Un CRITICO o
+ * IMPORTANTE en CUALQUIER estado (tambien `corregido` o `aceptado`) obliga a
+ * la ronda completa: un IMPORTANTE marcado como corregido es justo la
+ * correccion que mas falta hace verificar.
+ */
+export function alcanceRondaSiguiente(informes: readonly string[]): AlcanceRonda {
+  const modeloBarato = modeloBaratoPermitido(informes);
+  const completa = (motivo: string): AlcanceRonda => ({ acotada: false, modeloBarato, motivo, ficherosNombrados: [] });
+  if (informes.length === 0) return completa('la ronda anterior no tiene informes');
+  const veredicto = veredictoDeRonda(informes);
+  if (veredicto !== 'cambios-solicitados') return completa(`el veredicto de la ronda anterior es "${veredicto}"`);
+  const nombrados = new Set<string>();
+  let menores = 0;
+  for (const texto of informes) {
+    const lectura = leerHallazgos(texto);
+    if (!lectura.tabla) return completa('un informe de la ronda anterior no tiene tabla de hallazgos legible');
+    if (esPlantilla(texto, lectura)) return completa('un informe de la ronda anterior sigue siendo la plantilla');
+    for (const h of lectura.hallazgos) {
+      if (h.severidadReconocida === null) {
+        return completa(`la severidad "${h.severidad}" de ${h.id} no es CRITICO, IMPORTANTE ni MENOR`);
+      }
+      if (h.severidadReconocida !== 'MENOR') {
+        return completa(`la ronda anterior tiene un ${h.severidadReconocida} (${h.id}, ${h.estado || 'sin estado'})`);
+      }
+      menores++;
+      for (const r of rutasDeCeldaFichero(h.fichero)) nombrados.add(r);
+    }
+  }
+  if (menores === 0) return completa('la ronda anterior pidio cambios sin anotar ningun hallazgo');
+  return {
+    acotada: true,
+    modeloBarato,
+    motivo: `la ronda anterior solo dejo MENORES (${menores})`,
+    ficherosNombrados: [...nombrados],
+  };
+}
+
+/**
+ * TASK-083: true si el informe tiene tabla, al menos un hallazgo, y todos son
+ * MENOR. Es lo que `taskctl veredicto` avisa al registrar `cambios-solicitados`.
+ */
+export function soloMenores(informe: string): boolean {
+  const lectura = leerHallazgos(informe);
+  return lectura.tabla && lectura.hallazgos.length > 0 && lectura.hallazgos.every((h) => h.severidadReconocida === 'MENOR');
+}
+
 // --- Hallazgos de una tarea, para las metricas (TASK-064) --------------------
 
 /** Un informe de revision ya leido, con la ronda y el revisor que da su nombre. */

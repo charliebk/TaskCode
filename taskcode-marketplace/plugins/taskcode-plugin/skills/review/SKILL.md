@@ -49,6 +49,9 @@ punto, no un formalismo.
    su `## Contexto permitido`. Si la peticion trae la linea
    `- Modelo sugerido para esta ronda: <modelo> (...)`, lanza el revisor con
    ESE modelo; si no, con el `modelo sugerido` de la linea `Agente a lanzar`.
+   Si la peticion dice `- Alcance: verificacion acotada ...`, el revisor
+   sigue SUS instrucciones (verificar cada hallazgo, ejecutar la suite y
+   buscar el fallo que abre la correccion), no las de una revision completa.
    Que reproduzca empiricamente (clon
    temporal, suite una vez, mutantes) y devuelva su informe con la tabla de
    hallazgos, con la columna `Origen` rellena en cada fila

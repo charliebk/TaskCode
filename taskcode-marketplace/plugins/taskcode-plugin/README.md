@@ -67,6 +67,23 @@ En una ronda de verificación (la 2 o posterior), la petición añade la línea
 
 En cualquier otro caso, el revisor usa el modelo de la tarea.
 
+Además, la ronda de verificación puede ser **acotada**. La petición lo dice
+en la línea `- Alcance:`, con su motivo, y lo dice también la salida de
+`taskctl review`. Una ronda acotada tiene un solo revisor (el genérico), no
+se fragmenta por dominio y lleva instrucciones de verificación: comprobar
+cada hallazgo, ejecutar la suite y buscar el fallo que abre la corrección.
+Solo es acotada si se cumple todo esto:
+- la ronda anterior pidió cambios y en todos sus informes solo hay MENOR;
+- el diff sale del commit revisado en la ronda anterior;
+- el diff no trae merges;
+- el diff solo toca ficheros que nombra algún hallazgo en su columna
+  `Fichero`.
+
+Un CRÍTICO o IMPORTANTE en cualquier estado obliga a la ronda completa, y la
+ronda completa que sigue a una acotada revisa desde la rama base.
+`taskctl review TASK-NNN --completa` la fuerza. `taskctl veredicto` avisa,
+sin bloquear, si se piden cambios con una tabla que solo tiene MENORES.
+
 ## Roles del brainstorm de diseño
 
 `taskctl plan` lanza roles de `agents/` según la complejidad, por este orden de

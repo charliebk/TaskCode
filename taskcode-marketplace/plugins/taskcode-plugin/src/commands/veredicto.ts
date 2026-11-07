@@ -32,6 +32,7 @@ import {
   type AutoCommitResult,
 } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
+import { soloMenores } from '../core/informe-revision.js';
 
 export class VeredictoCommandError extends Error {}
 
@@ -57,6 +58,8 @@ export interface VeredictoCommandResult {
   ronda: number;
   informePath: string;
   linea: string;
+  /** TASK-083: avisos no fatales (p. ej. `cambios-solicitados` con solo MENORES). */
+  avisos: string[];
   autoCommit: AutoCommitResult;
 }
 
@@ -175,11 +178,22 @@ export async function runVeredictoCommand(
   }
   if (nuevo !== contenido) await writeFile(informePath, nuevo, 'utf8');
 
+  // TASK-083: aviso, sin bloquear ni cambiar el veredicto (el contrato de
+  // TASK-036 sigue igual): pedir cambios con solo MENORES abre otra ronda.
+  const avisos: string[] = [];
+  if (valor === 'cambios-solicitados' && soloMenores(nuevo)) {
+    avisos.push(
+      `${task.id}: ${nombre} pide cambios y su tabla solo tiene MENORES. Una ronda sin CRITICO ni ` +
+        'IMPORTANTE puede cerrar con "aprobada-con-correcciones"; si se piden cambios, la ronda ' +
+        'siguiente podra ser una verificacion acotada al diff de las correcciones.'
+    );
+  }
+
   const commitResult = autoCommit({
     cwd: deps.repoCwd,
     rutas: [informePath],
     mensaje: mensajeChore(task.id, `veredicto ronda ${ronda} (${valor})`),
     push,
   });
-  return { id: task.id, ronda, informePath, linea, autoCommit: commitResult };
+  return { id: task.id, ronda, informePath, linea, avisos, autoCommit: commitResult };
 }
