@@ -65,19 +65,29 @@ function sondear(configDir: string, repoCwd: string, nombrePlugin: string): Sond
   const plugins = instalados['plugins'];
   if (!esObjeto(plugins)) return noComprobable(`la lista de plugins instalados no tiene "plugins" (${rutaInstalados})`);
   const prefijo = `${nombrePlugin}@`;
-  let marketplace: string | null = null;
-  let instalada: unknown;
+  // Puede estar instalado desde varios marketplaces: vale el primero que se
+  // pueda comparar; si ninguno, se dicen los motivos de todos (revision ronda 1, MEN-2).
+  const motivos: string[] = [];
   for (const [clave, entradas] of Object.entries(plugins)) {
     if (!clave.startsWith(prefijo)) continue;
     const e = entradaQueAplica(entradas, repoCwd);
     if (e === undefined) continue;
-    marketplace = clave.slice(prefijo.length);
-    instalada = e['version'];
-    break;
+    const s = compararConMarketplace(dirPlugins, clave.slice(prefijo.length), e['version'], nombrePlugin);
+    if (s.estado === 'comparable') return s;
+    motivos.push(s.motivo);
   }
-  if (marketplace === null) return noComprobable(`${nombrePlugin} no esta instalado como plugin de Claude Code para este proyecto`);
+  if (motivos.length === 0) return noComprobable(`${nombrePlugin} no esta instalado como plugin de Claude Code para este proyecto`);
+  return noComprobable(motivos.join('; '));
+}
+
+function compararConMarketplace(
+  dirPlugins: string,
+  marketplace: string,
+  instalada: unknown,
+  nombrePlugin: string
+): SondeoVersionPlugin {
   if (typeof instalada !== 'string' || !esVersionSemver(instalada)) {
-    return noComprobable(`la version instalada no es semver (${String(instalada)})`);
+    return noComprobable(`la version instalada desde ${marketplace} no es semver (${String(instalada)})`);
   }
 
   // 2. La copia local del marketplace.
@@ -102,15 +112,21 @@ function sondear(configDir: string, repoCwd: string, nombrePlugin: string): Sond
   let disponible: unknown = entrada['version'];
   let rutaDisponible = rutaMarketplace;
   const fuente = entrada['source'];
+  let problemaManifiesto = '';
   if (typeof fuente === 'string' && fuente.startsWith('.')) {
     const rutaManifiesto = path.join(dirMarketplace, fuente, '.claude-plugin', 'plugin.json');
     const l = leerJson(rutaManifiesto);
     if (l.estado === 'ok' && esObjeto(l.json) && typeof l.json['version'] === 'string') {
       disponible = l.json['version'];
       rutaDisponible = rutaManifiesto;
+    } else if (l.estado === 'ilegible') {
+      // Si el catalogo trae version, se usa; si no, el motivo nombra este fichero (revision ronda 1, MEN-1).
+      problemaManifiesto = `; ${rutaManifiesto} ilegible: ${l.motivo}`;
     }
   }
-  if (typeof disponible !== 'string') return noComprobable(`la copia local del marketplace no declara version (${rutaDisponible})`);
+  if (typeof disponible !== 'string') {
+    return noComprobable(`la copia local del marketplace ${marketplace} no declara version (${rutaDisponible}${problemaManifiesto})`);
+  }
   if (!esVersionSemver(disponible)) return noComprobable(`la version disponible no es semver (${disponible})`);
 
   return { estado: 'comparable', instalada, disponible, marketplace, rutaDisponible, marketplaceActualizadoEn: actualizadoEn };

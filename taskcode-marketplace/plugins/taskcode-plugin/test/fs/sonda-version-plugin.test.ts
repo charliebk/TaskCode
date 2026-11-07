@@ -156,7 +156,7 @@ test('no-comprobable con su motivo: sin config, sin el plugin, sin copia, JSON r
   });
   await conConfig(async (config) => {
     await montar(config, { instalada: '0412be76f50a' });
-    assert.match(motivo(config), /instalada no es semver/);
+    assert.match(motivo(config), /instalada desde mkt no es semver/);
   });
   await conConfig(async (config) => {
     await montar(config, { catalogo: 'latest' });
@@ -165,5 +165,41 @@ test('no-comprobable con su motivo: sin config, sin el plugin, sin copia, JSON r
   await conConfig(async (config) => {
     await montar(config, { catalogo: 7 });
     assert.match(motivo(config), /no declara version/);
+  });
+});
+
+test('plugin.json de la fuente relativa roto y catalogo sin version: el motivo nombra el plugin.json (revision ronda 1, MEN-1)', async () => {
+  await conConfig(async (config) => {
+    const copia = await montar(config, { catalogo: 7, manifiesto: '0.1.0' });
+    const roto = path.join(copia, 'plugins', 'taskcode-plugin', '.claude-plugin', 'plugin.json');
+    await writeFile(roto, '{ roto', 'utf8');
+    const s = sondearVersionPlugin(config, REPO);
+    assert.equal(s.estado, 'no-comprobable');
+    const m = s.estado === 'no-comprobable' ? s.motivo : '';
+    assert.ok(m.includes(`${roto} ilegible`), m);
+  });
+  await conConfig(async (config) => {
+    // Con version en el catalogo, el plugin.json roto no impide comparar.
+    const copia = await montar(config, { catalogo: '0.13.0', manifiesto: '0.1.0' });
+    await writeFile(path.join(copia, 'plugins', 'taskcode-plugin', '.claude-plugin', 'plugin.json'), '{ roto', 'utf8');
+    const s = sondearVersionPlugin(config, REPO);
+    assert.equal(s.estado === 'comparable' && s.disponible, '0.13.0');
+  });
+});
+
+test('instalado desde varios marketplaces: vale el primero comparable; si ninguno, todos los motivos (revision ronda 1, MEN-2)', async () => {
+  await conConfig(async (config) => {
+    await montar(config);
+    const ruta = path.join(config, 'plugins', 'installed_plugins.json');
+    const usuario = (v: string) => [{ scope: 'user', installPath: path.join(config, 'x'), version: v }];
+    // `otro` va primero y no tiene copia local; `mkt` si.
+    await escribirJson(ruta, { version: 2, plugins: { 'taskcode-plugin@otro': usuario('0.8.0'), 'taskcode-plugin@mkt': usuario('0.8.0') } });
+    const s = sondearVersionPlugin(config, REPO);
+    assert.equal(s.estado === 'comparable' && s.marketplace, 'mkt', JSON.stringify(s));
+    await escribirJson(ruta, { version: 2, plugins: { 'taskcode-plugin@otro': usuario('0.8.0'), 'taskcode-plugin@tercero': usuario('abc') } });
+    const n = sondearVersionPlugin(config, REPO);
+    assert.equal(n.estado, 'no-comprobable');
+    const m = n.estado === 'no-comprobable' ? n.motivo : '';
+    assert.match(m, /marketplace otro.*; .*instalada desde tercero no es semver/);
   });
 });
