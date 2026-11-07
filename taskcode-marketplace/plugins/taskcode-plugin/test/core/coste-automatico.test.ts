@@ -161,3 +161,11 @@ test('volcado: una transcripcion que encoge (otra o recortada) no resta ni suma'
   const v = filasDeVolcado(body, [{ tipo: 'sesion', id: 's-1', uso: uso(400) }], '2026-11-01T12:00:00Z');
   assert.deepEqual(v.filas, []);
 });
+
+test('volcado: crece el total pero algun campo baja (otra transcripcion con el mismo id): no se toca', () => {
+  const anotado: UsoTranscripcion = { tokens: 1000, llamadas: 1, entrada: 100, cacheEscritura: 0, cacheLectura: 800, salida: 100, lecturas: 1 };
+  const body = anadirCoste('## Objetivo\nx\n', fila('implementacion', 'sesion:s-1', anotado, 1000));
+  const medida: UsoTranscripcion = { tokens: 1500, llamadas: 2, entrada: 100, cacheEscritura: 0, cacheLectura: 1390, salida: 10, lecturas: 1 };
+  const v = filasDeVolcado(body, [{ tipo: 'sesion', id: 's-1', uso: medida }], '2026-11-01T12:00:00Z');
+  assert.deepEqual(v.filas, [], 'una fila dif: con salida negativa falsearia el desglose');
+});

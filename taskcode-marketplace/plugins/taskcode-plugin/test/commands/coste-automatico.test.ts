@@ -224,7 +224,11 @@ function taskctl(cwd: string, args: string[], env: NodeJS.ProcessEnv): { status:
   return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 }
 
-test('ciclo por CLI: hook como proceso, review lo suma y metricas deja de listar la tarea sin coste de implementacion', async () => {
+/**
+ * Ciclo completo por CLI. `redEnFinish`: la review corre con COSTE_AUTOMATICO=0
+ * (como si su volcado no hubiera podido) y lo suma la red de finish.
+ */
+async function cicloPorCli(redEnFinish: boolean): Promise<void> {
   await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
     const config = await mkdtemp(path.join(tmpdir(), 'coste-config-'));
     try {
@@ -260,7 +264,18 @@ test('ciclo por CLI: hook como proceso, review lo suma y metricas deja de listar
       // La review tiene que caer al menos un segundo despues del start (filas al segundo).
       const espera = Date.parse(start.fecha) + 1100 - Date.now();
       if (espera > 0) await new Promise((res) => setTimeout(res, espera));
-      assert.match(ok(['review', ID]), /Coste de implementacion registrado automaticamente: \+500 tokens/);
+      const libro = rutaLibro(repoRoot) as string;
+      if (redEnFinish) {
+        const r = taskctl(repoRoot, ['review', ID], { ...env, COSTE_AUTOMATICO: '0' });
+        assert.equal(r.status, 0, r.stderr);
+        assert.doesNotMatch(r.stdout, /Coste de implementacion registrado/);
+        const enRevision = await readTareaFile(tareasRoot, ID);
+        assert.equal(enRevision?.task.tokens_implementacion, null, 'apagado, review no suma');
+        assert.equal(existsSync(libro), true, 'y el libro sigue ahi para finish');
+      } else {
+        assert.match(ok(['review', ID]), /Coste de implementacion registrado automaticamente: \+500 tokens/);
+        assert.equal(existsSync(libro), false);
+      }
 
       await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot), 'informe-revision-1.md'));
       ok(['veredicto', ID, 'aprobada']);
@@ -268,7 +283,13 @@ test('ciclo por CLI: hook como proceso, review lo suma y metricas deja de listar
 
       const terminada = await readTareaFile(tareasRoot, ID);
       assert.equal(terminada?.task.estado, 'terminada');
-      assert.equal(terminada?.task.tokens_implementacion, 500, 'finish no lo vuelve a sumar');
+      assert.equal(terminada?.task.tokens_implementacion, 500, redEnFinish ? 'lo suma finish' : 'finish no lo vuelve a sumar');
+      assert.equal(leerCostes(terminada?.body ?? '').filter((f) => f.fase === 'implementacion').length, 1);
+      assert.equal(existsSync(libro), false, 'tras el commit de cierre, el libro se vacia');
+      assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
+      if (redEnFinish) {
+        assert.match(git(['show', '--format=%s', 'HEAD', '--', terminada?.filePath ?? ''], repoRoot), /\| implementacion \| sesion:/);
+      }
 
       const json = JSON.parse(ok(['metricas', '--json'])) as {
         sinCoste: { tareas: { id: string; fases: string[] }[] };
@@ -280,6 +301,14 @@ test('ciclo por CLI: hook como proceso, review lo suma y metricas deja de listar
       await rm(config, { recursive: true, force: true });
     }
   });
+}
+
+test('ciclo por CLI: hook como proceso, review lo suma y metricas deja de listar la tarea sin coste de implementacion', async () => {
+  await cicloPorCli(false);
+});
+
+test('ciclo por CLI: si review no lo vuelca, la red de finish lo suma una vez y vacia el libro', async () => {
+  await cicloPorCli(true);
 });
 
 test('review: un libro corrupto no rompe la transicion', async () => {
