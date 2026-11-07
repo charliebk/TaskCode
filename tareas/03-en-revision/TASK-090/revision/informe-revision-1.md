@@ -2,7 +2,7 @@
 
 - Commit revisado: ea19af99efc36bbd47e79c3245e94d7bd4d66a5e
 - Revisor: code-quality-reviewer (agente general-purpose independiente, modelo sonnet)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-090 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada
 
 ## Hallazgos
 
