@@ -190,3 +190,17 @@ Todas con repos Git temporales salvo la regla pura; sin mocks.
   salvo que se decida.
 - **La aprobación del plan entero** con `taskctl approve`, incluidas las
   elecciones de los desacuerdos 1, 4 y 5.
+
+## Decisiones de la persona (2026-11-07, Carlos)
+
+- **Umbral**: el modo acotado se implementa si al menos el **20 %** de las
+  rondas 2 medidas partian de una ronda 1 sin CRITICO ni IMPORTANTE y, de esas,
+  **como mucho el 10 %** encontro un CRITICO o IMPORTANTE nuevo. Si no se
+  cumple, se documenta y el criterio 2 queda no aplicable.
+- **Ficheros fuera de la columna `Fichero`**: si el diff de las correcciones
+  toca algun fichero que no aparece en la columna `Fichero` de ningun hallazgo
+  de la ronda anterior, la ronda es **completa** (gana riesgos).
+- **Aviso en `taskctl veredicto`**: se anade un **aviso, sin bloqueo**, al
+  registrar `cambios-solicitados` con una tabla que solo tiene MENORES. No
+  cambia el contrato de TASK-036.
+- Desacuerdos 1, 4 y 5: se aceptan como los resuelve el plan.
