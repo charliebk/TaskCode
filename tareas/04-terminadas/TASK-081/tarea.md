@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, coste, metricas]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-081-revision-mas-barata-medir-y-acotar-las-l
 asignado_a: charlie.bk@gmail.com
@@ -110,6 +110,7 @@ ejecuta en su sesion.
 | 2026-11-07T01:25:58Z | start | automatico | persona |
 | 2026-11-07T02:02:20Z | review | automatico | persona |
 | 2026-11-07T02:50:37Z | review | automatico | persona | 0.12.0 |
+| 2026-11-07T02:57:53Z | finish | automatico | persona |
 
 ## Coste
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-081 (feature) — Revision mas barata: medir y acotar las lecturas de los revisores (2026-11-07)
+
 ## 0.12.0 — sin publicar
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
