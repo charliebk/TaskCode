@@ -40,6 +40,7 @@ Sin comando_verificacion no funcionan los frenos de la 0.11 (hook Stop, puerta d
 | 2026-11-07T18:02:53Z | approve | automatico | persona |
 | 2026-11-07T18:03:06Z | start | automatico | persona |
 | 2026-11-07T18:28:14Z | review | automatico | persona |
+| 2026-11-07T19:24:42Z | review | automatico | persona |
 
 ## Coste
 
