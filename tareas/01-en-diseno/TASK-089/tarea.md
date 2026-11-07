@@ -7,7 +7,7 @@ etiquetas: [seguridad, distribucion, tests]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-089-evitar-literales-con-forma-de-secreto-en
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ La proteccion de GitHub bloqueo el push de 0.11.0 por una clave de Stripe falsa 
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T19:37:59Z | plan | automatico | persona |
+| 2026-11-07T19:45:01Z | approve | automatico | persona |
 
 ## Coste
 
