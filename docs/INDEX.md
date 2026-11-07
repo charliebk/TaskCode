@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-087 — taskctl doctor avisa si el plugin instalado esta desactualizado · etiquetas: doctor, distribucion · rama feature/task-087-taskctl-doctor-avisa-si-el-plugin-instal · terminada 2026-11-07 · tareas/04-terminadas/TASK-087/
 - TASK-086 — Descontar las pausas de las duraciones de las metricas · etiquetas: metricas · rama feature/task-086-descontar-las-pausas-de-las-duraciones-d · terminada 2026-11-07 · tareas/04-terminadas/TASK-086/
 - TASK-085 — Coste de implementacion registrado automaticamente · etiquetas: metricas, coste, hooks · rama feature/task-085-coste-de-implementacion-registrado-autom · terminada 2026-11-07 · tareas/04-terminadas/TASK-085/
 - TASK-083 — Cierre sin ronda 2 completa cuando solo quedan MENORES · etiquetas: revision, coste, flujo · rama feature/task-083-cierre-sin-ronda-2-completa-cuando-solo · terminada 2026-11-07 · tareas/04-terminadas/TASK-083/

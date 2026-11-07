@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-087 (feature) — taskctl doctor avisa si el plugin instalado esta desactualizado (2026-11-07)
 - TASK-086 (feature) — Descontar las pausas de las duraciones de las metricas (2026-11-07)
 
 ## 0.12.0 — sin publicar

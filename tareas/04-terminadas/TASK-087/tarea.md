@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [doctor, distribucion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-087-taskctl-doctor-avisa-si-el-plugin-instal
 asignado_a: charlie.bk@gmail.com
@@ -58,6 +58,7 @@ Ficheros: `src/fs/sonda-version-plugin.ts` (nuevo), `src/fs/json-claude.ts` (nue
 | 2026-11-07T16:48:47Z | start | automatico | persona |
 | 2026-11-07T17:11:35Z | review | automatico | persona |
 | 2026-11-07T17:37:44Z | review | automatico | persona |
+| 2026-11-07T17:42:58Z | finish | automatico | persona |
 
 ## Coste
 
