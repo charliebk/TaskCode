@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas, transiciones]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-084-version-del-plugin-en-cada-tarea-y-metri
 asignado_a: charlie.bk@gmail.com
@@ -38,6 +38,7 @@ Para comparar versiones del plugin hubo que deducir la version por la fecha de c
 |---|---|---|---|
 | 2026-11-07T00:17:31Z | plan | automatico | persona |
 | 2026-11-07T00:23:27Z | approve | automatico | persona |
+| 2026-11-07T00:23:35Z | start | automatico | persona |
 
 ## Coste
 
