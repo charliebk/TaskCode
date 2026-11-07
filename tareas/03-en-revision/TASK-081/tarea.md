@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 2267557
 tokens_implementacion: 13328064
-tokens_revision: 12542435
+tokens_revision: 12964337
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -49,3 +49,4 @@ Con la 0.8 los tokens de revision de una tarea media pasaron de 3.3 M a 6.8 M de
 | 2026-11-07T01:21:23Z | diseno | agente:a7026500409ebb476,a993ae855c1ae942f,a3a2a87a94737c00b,a805a8dd4beedf559 | 104 | 233859 | 1985007 | 48587 | 71 | 2267557 |
 | 2026-11-07T02:02:01Z | implementacion | agente:a2f5d354f183bfce6,a5eb1fc78af12a8e6 | 254 | 324390 | 12889392 | 114028 | 16 | 13328064 |
 | 2026-11-07T02:33:03Z | revision | agente:afccd6127689d0e5a | 148 | 204057 | 12305226 | 33004 | 14 | 12542435 | 1 | - |
+| 2026-11-07T02:50:35Z | revision | agente:dif:afccd6127689d0e5a | 8 | 209077 | 208973 | 3844 | 0 | 421902 | 1 | - |
