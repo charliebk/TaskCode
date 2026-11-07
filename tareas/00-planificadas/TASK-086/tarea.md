@@ -1,0 +1,33 @@
+---
+id: TASK-086
+titulo: "Descontar las pausas de las duraciones de las metricas"
+tipo: feature
+sprint: 0
+etiquetas: [metricas]
+complejidad: simple
+modelo_sugerido: sonnet
+estado: planificada
+plan_aprobado: false
+rama: feature/task-086-descontar-las-pausas-de-las-duraciones-d
+asignado_a: null
+agente_revisor: general-purpose
+skills_recomendados: []
+regla_seleccion_skill: null
+ultimo_commit_revisado: null
+revision_codex: false
+tokens_diseno: null
+tokens_implementacion: null
+tokens_revision: null
+creado: 2026-11-07
+actualizado: 2026-11-07
+dependencias: []
+---
+## Objetivo
+
+Las duraciones de taskctl metricas son de calendario y no descuentan pausas (un diseno de 20h 55m no dice nada). taskctl pausa ya guarda las marcas: restarlas.
+
+## Criterios de aceptacion
+- [ ] taskctl metricas calcula diseno, curso y revision restando los intervalos de pausa registrados en ## Transiciones
+- [ ] Las tareas sin pausas dan la misma duracion que hoy; lo cubren tests
+- [ ] La leyenda de la salida y docs/METRICAS.md explican el descuento
+- [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
