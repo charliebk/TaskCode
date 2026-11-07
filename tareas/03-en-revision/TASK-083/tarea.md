@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, coste, flujo]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-083-cierre-sin-ronda-2-completa-cuando-solo
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Muchas segundas rondas probablemente solo verifican MENORES. Primero confirmarlo
 | 2026-11-07T10:48:07Z | plan | automatico | persona |
 | 2026-11-07T10:54:59Z | approve | automatico | persona |
 | 2026-11-07T10:55:07Z | start | automatico | persona |
+| 2026-11-07T11:23:25Z | review | automatico | persona |
 
 ## Coste
 
