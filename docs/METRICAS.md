@@ -703,7 +703,9 @@ sola fila: es el «no» a pasar de fase, y no existe una transición de
 Lo descontado sale en `--json`, en la lista `pausas` (una entrada por tarea
 con alguna fila `pausa`: `proyecto`, `id`, `pausas` y `enPausa`). `enPausa` es
 `{ valor, precision }`
-en milisegundos, `valor: 0` si no hubo pausas cerradas y `null` si no se pudo
+en milisegundos; `valor: 0` si ninguna pausa cerrada cae dentro de lo medido (del
+primer `plan` a la última marca: una pausa en una tarea que aún no tiene
+`start` no tiene fase donde restarse) y `null` si no se pudo
 aplicar (sin marcas o con precisión de día). Una tarea sin pausas da
 exactamente la misma duración que antes de TASK-086.
 

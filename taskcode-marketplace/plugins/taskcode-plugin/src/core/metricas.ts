@@ -191,8 +191,8 @@ export interface FilaMetricas {
   total: Duracion | null;
   /**
    * TASK-086: lo descontado por pausas entre el primer `plan` y el ultimo
-   * `finish` (o la ultima marca medida si no hay `finish`); `valor: 0` si no
-   * hubo pausas cerradas. null = no se aplico: sin marcas de segundo que
+   * `finish` (o la ultima marca medida si no hay `finish`); `valor: 0` si
+   * ninguna pausa cerrada cae dentro de lo medido. null = no se aplico: sin marcas de segundo que
    * medir (origen «—» o precision de dia). Nunca un 0 por ausencia.
    */
   enPausa: Duracion | null;
@@ -374,8 +374,13 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     marcas = marcasDe(registro);
   } else if (e.eventosGit.length > 0) {
     origen = 'git';
+    // TASK-086 (MEN-1): git log va de lo mas nuevo a lo mas viejo. Se invierte
+    // antes del sort estable para que dos commits del mismo segundo queden en
+    // orden cronologico (una pausa delante de la transicion que la cierra).
     marcas = marcasDe(
-      e.eventosGit.map((g) => ({ fase: g.fase, marca: { ms: g.ms, precision: 'segundo' as const } }))
+      [...e.eventosGit]
+        .reverse()
+        .map((g) => ({ fase: g.fase, marca: { ms: g.ms, precision: 'segundo' as const } }))
     );
   } else {
     origen = '—';

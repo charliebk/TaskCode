@@ -212,7 +212,12 @@ export function calcularFila(e) {
     }
     else if (e.eventosGit.length > 0) {
         origen = 'git';
-        marcas = marcasDe(e.eventosGit.map((g) => ({ fase: g.fase, marca: { ms: g.ms, precision: 'segundo' } })));
+        // TASK-086 (MEN-1): git log va de lo mas nuevo a lo mas viejo. Se invierte
+        // antes del sort estable para que dos commits del mismo segundo queden en
+        // orden cronologico (una pausa delante de la transicion que la cierra).
+        marcas = marcasDe([...e.eventosGit]
+            .reverse()
+            .map((g) => ({ fase: g.fase, marca: { ms: g.ms, precision: 'segundo' } })));
     }
     else {
         origen = '—';

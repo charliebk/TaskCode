@@ -273,6 +273,25 @@ test('TASK-086: origen git, el commit "pausa registrada" se descuenta igual que 
   assert.deepEqual(f.enPausa, { valor: 90 * MIN, precision: 'segundo' });
 });
 
+test('TASK-086 (MEN-1): origen git con pausa y transicion en el mismo segundo no descuenta de mas', () => {
+  const ev = (fase: EventoGit['fase'], iso: string): EventoGit => ({ id: 'TASK-007', fase, ms: Date.parse(iso) });
+  // En orden de git log: la pausa (anterior) va DETRAS del review del mismo segundo.
+  const f = calcularFila(
+    entrada({
+      eventosGit: [
+        ev('finish', '2026-10-05T15:00:00Z'),
+        ev('review', '2026-10-05T14:00:00Z'),
+        ev('pausa', '2026-10-05T14:00:00Z'),
+        ev('start', '2026-10-05T12:00:00Z'),
+        ev('plan', '2026-10-05T10:00:00Z'),
+      ],
+      ronda: 1,
+    })
+  );
+  assert.deepEqual(f.enPausa, { valor: 0, precision: 'segundo' });
+  assert.deepEqual(f.revision, { valor: 60 * MIN, precision: 'segundo' });
+});
+
 test('TASK-086: una pausa que cruza el limite de dos fases reparte el descuento', () => {
   const pausa = [{ desde: seg('2026-10-05T11:00:00Z'), hasta: seg('2026-10-05T13:00:00Z') }];
   assert.deepEqual(duracionSinPausas(seg('2026-10-05T10:00:00Z'), seg('2026-10-05T12:00:00Z'), pausa), { valor: 60 * MIN, precision: 'segundo' });
