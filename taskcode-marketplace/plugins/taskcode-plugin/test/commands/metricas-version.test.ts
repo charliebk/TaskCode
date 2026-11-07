@@ -65,7 +65,7 @@ test('--por-version --json: clave porVersion con versiones y sinVersion; sin el 
     assert.equal(r.status, 0, r.stderr);
     assert.equal(r.stdout.trim().split('\n').length, 1, 'una sola linea');
     const o = JSON.parse(r.stdout) as SalidaJsonMetricas;
-    assert.deepEqual(Object.keys(o), ['proyectos', 'sinCoste', 'lecturasRevision', 'porVersion']);
+    assert.deepEqual(Object.keys(o), ['proyectos', 'sinCoste', 'lecturasRevision', 'pausas', 'porVersion']);
     assert.ok(o.porVersion);
     assert.equal(o.porVersion.terminadas, 4);
     assert.deepEqual(o.porVersion.versiones.map((g) => [g.version, g.n]), [['0.9.0', 1], ['0.10.0', 2]]);
@@ -75,7 +75,7 @@ test('--por-version --json: clave porVersion con versiones y sinVersion; sin el 
     assert.doesNotMatch(r.stdout, /NaN|Infinity/);
     // El contrato de siempre: sin --por-version no aparece la clave nueva.
     const sinFlag = JSON.parse(metricas(alfa, ['--json']).stdout) as Record<string, unknown>;
-    assert.deepEqual(Object.keys(sinFlag), ['proyectos', 'sinCoste', 'lecturasRevision']);
+    assert.deepEqual(Object.keys(sinFlag), ['proyectos', 'sinCoste', 'lecturasRevision', 'pausas']);
   });
 });
 
