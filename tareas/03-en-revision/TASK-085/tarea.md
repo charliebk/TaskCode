@@ -40,6 +40,7 @@ En ToolsaWeb falta el coste de implementacion en 97 de 119 tareas, asi que el co
 | 2026-11-07T12:34:16Z | approve | automatico | persona |
 | 2026-11-07T12:34:25Z | start | automatico | persona |
 | 2026-11-07T13:03:17Z | review | automatico | persona | 0.12.0 |
+| 2026-11-07T13:36:18Z | review | automatico | persona | 0.12.0 |
 
 ## Coste
 
