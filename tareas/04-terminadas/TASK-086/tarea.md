@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-086-descontar-las-pausas-de-las-duraciones-d
 asignado_a: charlie.bk@gmail.com
@@ -61,6 +61,7 @@ Las duraciones de taskctl metricas son de calendario y no descuentan pausas (un 
 | 2026-11-07T14:38:26Z | start | automatico | persona |
 | 2026-11-07T15:01:33Z | review | automatico | persona |
 | 2026-11-07T15:50:56Z | review | automatico | persona |
+| 2026-11-07T15:56:14Z | finish | automatico | persona |
 
 ## Coste
 
