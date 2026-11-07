@@ -1,9 +1,5 @@
 # Changelog
 
-## Sin publicar
-
-- TASK-083 (feature) — Cierre sin ronda 2 completa cuando solo quedan MENORES (2026-11-07)
-
 ## 0.12.0 — sin publicar
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
@@ -37,6 +33,19 @@ si falta esa seccion con contenido. `taskctl siguiente --json` devuelve en la
 fase review el campo `revisores`, con el mismo clasificador que `review`. La
 lista vive solo en cada revisora; `csharp-autocad-ifc-reviewer` unifica el
 titulo de esa seccion.
+
+Verificacion acotada de la ronda siguiente (TASK-083). Medido primero: de 138
+rondas 2 de dos proyectos, el 23,9 % partia de una ronda 1 sin CRITICO ni
+IMPORTANTE y ninguna encontro uno nuevo (`docs/METRICAS.md` §13). Si la ronda
+anterior pidio cambios y en todos sus informes solo hay MENOR, `taskctl review`
+genera la siguiente como verificacion acotada: un solo revisor (el generico),
+sin fragmentar, con instrucciones de verificacion (cada hallazgo, la suite, el
+fallo que abre la correccion). Es completa si hay un CRITICO o IMPORTANTE en
+cualquier estado, un informe ilegible, no hay diff de correcciones, el delta
+trae un merge o toca un fichero que ningun hallazgo nombraba; tras una acotada,
+la completa revisa desde la base. Cada peticion lleva `- Alcance:` con su
+motivo, `--completa` la fuerza y `taskctl veredicto` avisa si se piden cambios
+con solo MENORES.
 
 ## 0.11.0 — 2026-11-06
 

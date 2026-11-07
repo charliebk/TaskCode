@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 93 / 99 items terminados (94%)** · última actualización: 2026-11-07
+**Progreso global: 94 / 99 items terminados (95%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **3** | — |
-| **Total pendiente** | **6** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **4** | — |
+| **Total pendiente** | **5** | — | — |
 
 ---
 
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (3/9)
+## N — Mejoras tras las métricas de la 0.8 (4/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1033,7 +1033,17 @@ dependencias en `docs/ROADMAP.md`.
       solo en cada revisora (ancla unificada en la de C#). Dogfooding: la propia
       autorrevisión sacó un test que faltaba. 1 ronda, aprobada (9 de 10
       mutantes muertos): MEN-1 (el `catch` de `siguiente` sin test) aceptado.*
-- [ ] TASK-083 — Cierre sin ronda 2 completa cuando solo quedan MENORES
+- [x] TASK-083 — Cierre sin ronda 2 completa cuando solo quedan MENORES — cerrada el 2026-11-07
+      *Medido antes de implementar (`docs/METRICAS.md` §13): 33 de 138 rondas 2
+      (23,9 %) partían de una ronda 1 sin CRÍTICO ni IMPORTANTE y 0 encontraron
+      uno nuevo; por fragmento solo ToolsaWeb TASK-013, cuya ronda no era
+      elegible. `alcanceRondaSiguiente` (pura, fail-closed, junto a la regla de
+      modelo de TASK-081) y `review` la convierte en completa con `--completa`,
+      sin diff de correcciones, con merges o con ficheros no nombrados; la
+      acotada va a un solo revisor con instrucciones de verificación, y tras ella
+      la completa revisa desde la base. `veredicto` avisa de `cambios-solicitados`
+      con solo MENORES. Umbral y salvaguardas, decididos por Carlos. 1 ronda,
+      aprobada sin hallazgos (15 de 15 mutantes muertos).*
 - [x] TASK-084 — Versión del plugin en cada tarea y métricas por versión — cerrada el 2026-11-07
       *Cada fila de `## Transiciones` lleva como quinta columna la versión de
       taskctl (`src/core/version.ts`, con test de alineación con `package.json` y
