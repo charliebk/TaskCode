@@ -22,8 +22,15 @@
  *    ultimo: un plan repetido es parte del diseno, no lo reinicia.
  *  - curso: del primer `start` al primer `review`.
  *  - revision: del primer `review` al ultimo `finish`.
- * `pausa` no se descuenta: no existe una transicion de «reanudar», asi que
- * no hay con que cerrar el hueco. La salida lo dice.
+ * TASK-086: las PAUSAS SE DESCUENTAN de las tres y de `total`. No hay
+ * transicion de «reanudar»: la hace la fila siguiente. Cada racha de filas
+ * `pausa` seguidas es un intervalo que va de la primera de la racha a la
+ * siguiente fila que no sea `pausa` (`pausa` es el «no» a pasar de fase:
+ * hasta la siguiente transicion la tarea espera). Cada fase resta la parte
+ * del intervalo que cae dentro de sus limites. Una racha sin fila detras
+ * (tarea abierta) no tiene cierre y no descuenta. Con precision de dia no se
+ * descuenta nada: restar horas a dias enteros con medianoche implicita daria
+ * una precision que no hay. Lo descontado va en `enPausa`.
  *
  * Si alguna de las dos marcas es de dia, la duracion va en dias enteros: con
  * medianoche implicita, restar horas daria numeros que parecen precisos y
@@ -82,6 +89,12 @@ export interface EventoGit {
   id: string;
   fase: FaseMedida;
   ms: number;
+}
+
+/** TASK-086: un tramo de pausa, de la primera `pausa` de una racha a la fila siguiente. */
+export interface IntervaloPausa {
+  desde: Marca;
+  hasta: Marca;
 }
 
 export interface Duracion {
@@ -173,9 +186,16 @@ export interface FilaMetricas {
   kbPeticionPorRonda: PeticionRonda[];
   /**
    * TASK-065: del primer `plan` al ultimo `finish` (lo que suman diseno, curso
-   * y revision); null si falta una de las dos marcas.
+   * y revision); null si falta una de las dos marcas. TASK-086: sin pausas.
    */
   total: Duracion | null;
+  /**
+   * TASK-086: lo descontado por pausas entre el primer `plan` y el ultimo
+   * `finish` (o la ultima marca medida si no hay `finish`); `valor: 0` si no
+   * hubo pausas cerradas. null = no se aplico: sin marcas de segundo que
+   * medir (origen «—» o precision de dia). Nunca un 0 por ausencia.
+   */
+  enPausa: Duracion | null;
   /**
    * TASK-065: veredicto de la ronda 1 (`veredictoDeRonda` de sus informes:
    * `aprobada` cubre tambien `aprobada-con-correcciones`); null sin informes
@@ -257,6 +277,23 @@ interface Marcas {
   review: Marca | null;
   finish: Marca | null;
   pausas: number;
+  /** TASK-086: un intervalo por racha de pausas cerrada por una fila posterior. */
+  intervalosPausa: IntervaloPausa[];
+}
+
+/** TASK-086: cada racha de `pausa` seguidas, de su primera fila a la siguiente que no lo sea. */
+function intervalosDePausa(orden: readonly { fase: FaseMedida; marca: Marca }[]): IntervaloPausa[] {
+  const intervalos: IntervaloPausa[] = [];
+  let abierta: Marca | null = null;
+  for (const e of orden) {
+    if (e.fase === 'pausa') {
+      abierta ??= e.marca;
+    } else if (abierta !== null) {
+      intervalos.push({ desde: abierta, hasta: e.marca });
+      abierta = null;
+    }
+  }
+  return intervalos;
 }
 
 function marcasDe(eventos: readonly { fase: FaseMedida; marca: Marca }[]): Marcas {
@@ -270,6 +307,7 @@ function marcasDe(eventos: readonly { fase: FaseMedida; marca: Marca }[]): Marca
     review: primera('review'),
     finish: finishes.length === 0 ? null : (finishes[finishes.length - 1] as { marca: Marca }).marca,
     pausas: orden.filter((e) => e.fase === 'pausa').length,
+    intervalosPausa: intervalosDePausa(orden),
   };
 }
 
@@ -283,6 +321,44 @@ export function duracionEntre(desde: Marca | null, hasta: Marca | null): Duracio
   }
   const ms = hasta.ms - desde.ms;
   return ms < 0 ? null : { valor: ms, precision: 'segundo' };
+}
+
+/**
+ * TASK-086: milisegundos de pausa dentro de [desde, hasta], o null si no se
+ * puede medir (falta una marca, es de dia o el fin es anterior). Un intervalo
+ * con alguna marca de dia no cuenta.
+ */
+export function pausaEntre(desde: Marca | null, hasta: Marca | null, pausas: readonly IntervaloPausa[]): number | null {
+  const base = duracionEntre(desde, hasta);
+  if (base === null || base.precision === 'dia' || desde === null || hasta === null) return null;
+  let ms = 0;
+  for (const p of pausas) {
+    if (p.desde.precision === 'dia' || p.hasta.precision === 'dia') continue;
+    const ini = Math.max(p.desde.ms, desde.ms);
+    const fin = Math.min(p.hasta.ms, hasta.ms);
+    if (fin > ini) ms += fin - ini;
+  }
+  return ms;
+}
+
+/**
+ * TASK-086: `duracionEntre` menos la pausa que cae dentro. Sin intervalos, o
+ * con precision de dia, devuelve exactamente lo mismo que `duracionEntre`.
+ */
+export function duracionSinPausas(
+  desde: Marca | null,
+  hasta: Marca | null,
+  pausas: readonly IntervaloPausa[]
+): Duracion | null {
+  const base = duracionEntre(desde, hasta);
+  const enPausa = pausaEntre(desde, hasta, pausas);
+  if (base === null || enPausa === null || enPausa === 0) return base;
+  return { valor: base.valor - enPausa, precision: base.precision };
+}
+
+/** Ultima marca medida de la tarea: `finish`, o si no `review`, `start` o `plan`. */
+function ultimaMarca(m: Marcas): Marca | null {
+  return m.finish ?? m.review ?? m.start ?? m.plan;
 }
 
 /** Una fila por tarea, sin la parte de heuristica. */
@@ -303,7 +379,7 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     );
   } else {
     origen = '—';
-    marcas = { plan: null, start: null, review: null, finish: null, pausas: 0 };
+    marcas = { plan: null, start: null, review: null, finish: null, pausas: 0, intervalosPausa: [] };
   }
   return {
     proyecto: e.proyecto ?? '',
@@ -318,9 +394,9 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     },
     estado: e.task.estado,
     complejidad: e.task.complejidad,
-    diseno: duracionEntre(marcas.plan, marcas.start),
-    curso: duracionEntre(marcas.start, marcas.review),
-    revision: duracionEntre(marcas.review, marcas.finish),
+    diseno: duracionSinPausas(marcas.plan, marcas.start, marcas.intervalosPausa),
+    curso: duracionSinPausas(marcas.start, marcas.review, marcas.intervalosPausa),
+    revision: duracionSinPausas(marcas.review, marcas.finish, marcas.intervalosPausa),
     rondas: e.ronda > 0 ? e.ronda : null,
     cierre: marcas.finish === null ? null : new Date(marcas.finish.ms).toISOString().slice(0, 10),
     pausas: marcas.pausas,
@@ -333,10 +409,16 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     hallazgos: resumirHallazgos(e.informes ?? []),
     lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
-    total: duracionEntre(marcas.plan, marcas.finish),
+    total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
+    enPausa: enPausaDe(marcas),
     veredictoRonda1: veredictoRonda1(e.informes ?? []),
     versionCierre: versionDeCierre(e.body),
   };
+}
+
+function enPausaDe(m: Marcas): Duracion | null {
+  const ms = pausaEntre(m.plan, ultimaMarca(m), m.intervalosPausa);
+  return ms === null ? null : { valor: ms, precision: 'segundo' };
 }
 
 function lecturasRevisionDe(body: string, informes: readonly InformeLeido[]): LecturaRevisorFila[] {
@@ -937,4 +1019,20 @@ export interface LecturaRevisionJson extends LecturaRevisorFila {
 
 export function lecturasRevisionJson(filas: readonly FilaMetricas[]): LecturaRevisionJson[] {
   return filas.flatMap((f) => f.lecturasRevision.map((g) => ({ proyecto: f.proyecto, id: f.id, ...g })));
+}
+
+/** TASK-086: una entrada de `pausas` en `--json`, por tarea con alguna fila `pausa`. */
+export interface PausaJson {
+  proyecto: string;
+  id: string;
+  /** Filas `pausa` del registro (o commits `pausa registrada`). */
+  pausas: number;
+  /** Lo descontado (`FilaMetricas.enPausa`); null = no se pudo aplicar. */
+  enPausa: Duracion | null;
+}
+
+export function pausasJson(filas: readonly FilaMetricas[]): PausaJson[] {
+  return filas
+    .filter((f) => f.pausas > 0)
+    .map((f) => ({ proyecto: f.proyecto, id: f.id, pausas: f.pausas, enPausa: f.enPausa }));
 }

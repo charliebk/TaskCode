@@ -63,7 +63,9 @@ import {
   notasFilaEnriquecida,
   formatearLecturasRevision,
   lecturasRevisionJson,
+  pausasJson,
   type LecturaRevisionJson,
+  type PausaJson,
   BloqueTokensError,
   NOTA_TOKENS,
   renderBloqueTokens,
@@ -148,6 +150,8 @@ export interface SalidaJsonMetricas {
   sinCoste: ResumenSinCoste;
   /** TASK-081: lecturas por (tarea, ronda, revisor), con sus CRITICO/IMPORTANTE; siempre presente. */
   lecturasRevision: LecturaRevisionJson[];
+  /** TASK-086: tareas con alguna pausa y lo descontado de sus duraciones; siempre presente. */
+  pausas: PausaJson[];
   evolucion?: Evolucion;
   grupos?: Grupos;
   /** TASK-084: con `--por-version`. */
@@ -175,8 +179,11 @@ export interface MetricasCommandDeps {
 
 const NOTA_CALENDARIO =
   'Duraciones de calendario: diseno = plan->start, curso = start->primer review, ' +
-  'revision = primer review->finish. Las pausas no se descuentan. Con origen "registro" ' +
-  'de filas antiguas (solo el dia) o mezcladas, la duracion va en dias ("N d").';
+  'revision = primer review->finish. Se descuentan las pausas: cada "taskctl pausa" ' +
+  'cuenta hasta la siguiente transicion que no sea pausa (una pausa sin transicion ' +
+  'detras no descuenta; lo descontado va en "pausas" con --json). Con origen "registro" ' +
+  'de filas antiguas (solo el dia) o mezcladas, la duracion va en dias ("N d") y no se ' +
+  'descuenta nada.';
 
 interface FlagsMetricas {
   heuristica: boolean;
@@ -582,6 +589,7 @@ export async function runMetricasCommand(
       })),
       sinCoste: resumenSinCoste(filas),
       lecturasRevision: lecturasRevisionJson(filas),
+      pausas: pausasJson(filas),
       ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
       ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
       ...(conPorVersion ? { porVersion: calcularPorVersion(filas) } : {}),

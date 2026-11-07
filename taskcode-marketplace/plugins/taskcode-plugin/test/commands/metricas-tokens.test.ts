@@ -82,7 +82,7 @@ test('metricas --tokens: columnas por fase y total, la tarea sin datos en la tab
     assert.match(r.stdout, /\| 0 +\| 1\/2 +\| 1000 \(media 1000, 20\.0%\) +\| 3000 \(media 3000, 60\.0%\) +\| 1000 \(media 1000, 20\.0%\) +\| 5000 \(media 5000\) +\|/);
     assert.match(r.stdout, /Coste en tokens por complejidad declarada:\n\| complejidad +\| con dato\/total/);
     assert.match(r.stdout, /\| simple +\| 1\/2 /);
-    assert.match(r.stdout, /Las pausas no se descuentan/, 'sigue llevando la nota de calendario');
+    assert.match(r.stdout, /Se descuentan las pausas/, 'sigue llevando la nota de calendario');
     assert.doesNotMatch(r.stdout, /NaN|undefined/);
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '', 'solo lectura');
     assert.equal(await stat(METRICAS_MD(repoRoot)).then(() => true, () => false), false);

@@ -673,6 +673,44 @@ ronda siguiente.
   acotada tampoco lo hubiera encontrado. Mide lo que pasó con la revisión
   completa, no lo que pasará con la acotada.
 
+## 14. Duraciones de fase y pausas (TASK-086)
+
+`taskctl metricas` mide cada fase con las marcas de `## Transiciones` (o, sin
+ellas, con los commits automáticos `chore(TASK-NNN): ...`):
+
+| columna | desde | hasta |
+|---|---|---|
+| `diseno` | primer `plan` | primer `start` |
+| `curso` | primer `start` | primer `review` |
+| `revision` | primer `review` | último `finish` |
+| `total` (`--json`) | primer `plan` | último `finish` |
+
+Son duraciones de calendario **menos las pausas**. `taskctl pausa` deja una
+sola fila: es el «no» a pasar de fase, y no existe una transición de
+«reanudar». La hace la fila siguiente:
+
+- Cada racha de filas `pausa` seguidas es un intervalo que va de la primera
+  de la racha a la siguiente fila que no sea `pausa`.
+- Cada fase resta la parte del intervalo que cae dentro de sus límites;
+  `total` resta todo lo que cae entre el primer `plan` y el último `finish`,
+  así que sigue siendo la suma de las tres.
+- Una pausa sin fila detrás (tarea abierta, aún en pausa) no tiene cierre y
+  no descuenta nada hasta la siguiente transición.
+- Con precisión de día (filas antiguas, solo la fecha) no se descuenta: la
+  duración va en días enteros con medianoche implícita, y restarle horas le
+  daría una precisión que no tiene.
+
+Lo descontado sale en `--json`, en la lista `pausas` (una entrada por tarea
+con alguna fila `pausa`: `proyecto`, `id`, `pausas` y `enPausa`). `enPausa` es
+`{ valor, precision }`
+en milisegundos, `valor: 0` si no hubo pausas cerradas y `null` si no se pudo
+aplicar (sin marcas o con precisión de día). Una tarea sin pausas da
+exactamente la misma duración que antes de TASK-086.
+
+**Qué no dice.** La regla supone que entre la pausa y la transición
+siguiente no se trabaja. Si alguien rehace el plan después de decir «no» y
+antes de aprobarlo, ese trabajo también se descuenta.
+
 <!-- taskctl metricas --tokens: inicio -->
 ## Coste en tokens por tarea (generado)
 
