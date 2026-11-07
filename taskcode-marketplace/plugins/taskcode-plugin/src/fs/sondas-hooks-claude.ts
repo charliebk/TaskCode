@@ -13,9 +13,9 @@
  * roto se anota en `ilegibles`. Son ficheros de terceros; doctor no los
  * convierte en un error.
  */
-import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { hooksQueAlcanzanSubagente, pluginHabilitado, type HallazgoHook } from '../core/hooks-subagente.js';
+import { entradaQueAplica, esObjeto, leerJson, mismaRuta } from './json-claude.js';
 
 export interface SondeoHooks {
   hallazgos: HallazgoHook[];
@@ -25,27 +25,6 @@ export interface SondeoHooks {
   ilegibles: string[];
   /** Settings con `"disableAllHooks": true`: ningun hook corre, no hay hallazgos. */
   hooksDesactivadosEn: string | null;
-}
-
-type Lectura = { estado: 'ausente' } | { estado: 'ok'; json: unknown } | { estado: 'ilegible'; motivo: string };
-
-function leerJson(ruta: string): Lectura {
-  if (!existsSync(ruta)) return { estado: 'ausente' };
-  try {
-    return { estado: 'ok', json: JSON.parse(readFileSync(ruta, 'utf8').replace(/^﻿/, '')) as unknown };
-  } catch (e: unknown) {
-    return { estado: 'ilegible', motivo: (e instanceof Error ? e.message : String(e)).replace(/\s+/g, ' ').trim() };
-  }
-}
-
-const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
-
-function mismaRuta(a: string, b: string): boolean {
-  const n = (p: string): string => {
-    const r = path.resolve(p).replace(/[\\/]+$/, '');
-    return process.platform === 'win32' ? r.toLowerCase() : r;
-  };
-  return n(a) === n(b);
 }
 
 export function sondearHooksClaude(configDir: string, repoCwd: string): SondeoHooks {
@@ -95,12 +74,7 @@ export function sondearHooksClaude(configDir: string, repoCwd: string): SondeoHo
   for (const [clave, entradas] of Object.entries(instalados['plugins'])) {
     if (!Array.isArray(entradas) || !pluginHabilitado(clave, settings)) continue;
     // La instalacion que aplica aqui: la de usuario o la de este proyecto.
-    const entrada = entradas.find(
-      (e): e is Record<string, unknown> =>
-        esObjeto(e) &&
-        typeof e['installPath'] === 'string' &&
-        (typeof e['projectPath'] !== 'string' || mismaRuta(e['projectPath'], repoCwd))
-    );
+    const entrada = entradaQueAplica(entradas, repoCwd);
     if (entrada === undefined) continue;
     const dir = entrada['installPath'] as string;
     const origen = `plugin ${clave}`;

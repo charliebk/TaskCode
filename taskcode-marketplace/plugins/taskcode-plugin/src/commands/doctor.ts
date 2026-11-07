@@ -53,6 +53,8 @@ import { sondearCli } from '../fs/merge-request.js';
 import { resolverRemotoDeOrigin } from './finish-opciones.js';
 import { directorioConfigClaude } from '../fs/config-claude.js';
 import { sondearHooksClaude } from '../fs/sondas-hooks-claude.js';
+import { sondearVersionPlugin } from '../fs/sonda-version-plugin.js';
+import { compararVersiones, NOMBRE_PLUGIN } from '../core/version.js';
 
 export class DoctorCommandError extends Error {}
 
@@ -580,6 +582,44 @@ export function comprobarHooksSubagente(deps: DoctorCommandDeps): Comprobacion[]
 }
 
 // ---------------------------------------------------------------------
+// Version del plugin instalado (TASK-087)
+// ---------------------------------------------------------------------
+
+/**
+ * Aviso como maximo, nunca error: no cambia el codigo de salida. Lo que no se
+ * puede comprobar (plugin no instalado por Claude Code, sin copia local del
+ * marketplace, JSON roto, version no semver) es `omitida`. Sin red: compara
+ * con la copia local del marketplace, y el mensaje dice de cuando es.
+ */
+export function comprobarVersionPlugin(deps: DoctorCommandDeps): Comprobacion {
+  const id = 'version-plugin';
+  try {
+    const s = sondearVersionPlugin(deps.configClaudeDir ?? directorioConfigClaude(), deps.repoCwd);
+    if (s.estado === 'no-comprobable') return omitida(id, una(`no se pudo comprobar: ${s.motivo}`));
+    const copia = `la copia local del marketplace ${s.marketplace}` +
+      (s.marketplaceActualizadoEn === null ? '' : ` (actualizada el ${s.marketplaceActualizadoEn})`);
+    const d = compararVersiones(s.disponible, s.instalada);
+    if (d > 0) {
+      const clave = `${NOMBRE_PLUGIN}@${s.marketplace}`;
+      return aviso(
+        id,
+        una(`plugin instalado ${s.instalada}, disponible ${s.disponible} en ${copia}`),
+        `claude plugin marketplace update ${s.marketplace}\n` +
+          `claude plugin update ${clave}\n` +
+          'y reinicia Claude Code (dentro de una sesion: /plugin marketplace update y /plugin update).'
+      );
+    }
+    if (d < 0) {
+      return ok(id, una(`plugin instalado ${s.instalada}, mas nuevo que ${s.disponible} de ${copia}: esa copia esta desfasada`));
+    }
+    return ok(id, una(`plugin instalado ${s.instalada}, al dia con ${copia}`));
+  } catch (e: unknown) {
+    // Una excepcion en `envolver` seria `error` y cambiaria el codigo de salida.
+    return omitida(id, una(`no se pudo comprobar: ${e instanceof Error ? e.message : String(e)}`));
+  }
+}
+
+// ---------------------------------------------------------------------
 // Orquestacion
 // ---------------------------------------------------------------------
 
@@ -639,6 +679,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
     )
   );
   cs.push(...envolver('hooks-subagente', () => comprobarHooksSubagente(deps)));
+  cs.push(...envolver('version-plugin', () => comprobarVersionPlugin(deps)));
 
   return {
     comprobaciones: cs,

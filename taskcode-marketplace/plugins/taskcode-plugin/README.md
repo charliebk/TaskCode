@@ -662,6 +662,17 @@ algún error (los avisos no cuentan). Comprueba:
   como máximo 10 s). CLI no instalado o sesión rechazada es error; no poder
   verificarlo (timeout, sin red) es aviso; si no aplica, `omitida`. Nunca imprime
   la URL de `origin` con credenciales.
+- **Hooks** (`hooks-subagente`): los hooks `PreToolUse` que alcanzan a los
+  subagentes (ver «Problemas conocidos»). Como mucho, aviso.
+- **Versión del plugin** (`version-plugin`): compara la versión del plugin que
+  tiene instalada Claude Code (`installed_plugins.json`) con la de la copia local
+  de su marketplace. Si la del marketplace es mayor, aviso con las dos versiones,
+  la fecha de esa copia y los comandos para actualizar (`claude plugin marketplace
+  update <marketplace>`, `claude plugin update taskcode-plugin@<marketplace>` y
+  reiniciar Claude Code). No sale a la red: si la copia local no se ha refrescado,
+  no ve versiones más nuevas. Si no puede comprobarlo (plugin no instalado por
+  Claude Code, sin copia del marketplace, un JSON roto), `omitida` con el motivo.
+  Nunca es error: no cambia el código de salida.
 
 `--json` escribe en stdout **solo** una línea de JSON
 (`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`), para que
