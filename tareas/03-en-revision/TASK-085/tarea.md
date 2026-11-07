@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 1444672
 tokens_implementacion: 14336319
-tokens_revision: null
+tokens_revision: 1838682
 creado: 2026-11-07
 actualizado: 2026-11-07
 dependencias: []
@@ -47,3 +47,4 @@ En ToolsaWeb falta el coste de implementacion en 97 de 119 tareas, asi que el co
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-07T12:05:43Z | diseno | agente:a65224b999240bfbb,aa5ddc57d52c649a3,a199d2b1441f10c5d | 62 | 161568 | 1252929 | 30113 | 44 | 1444672 |
 | 2026-11-07T13:03:17Z | implementacion | sesion:aa9a2319-7c42-41b4-86ee-0101f7ccd03a | 126 | 154281 | 14114110 | 67802 | 26 | 14336319 | - | - |
+| 2026-11-07T13:16:30Z | revision | agente:a960f1bdda2957fdf | 32 | 126378 | 1701668 | 10604 | 2 | 1838682 | 1 | - |
