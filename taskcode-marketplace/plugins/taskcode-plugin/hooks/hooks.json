@@ -1,5 +1,5 @@
 {
-  "description": "Frenos de verificacion. Stop: con una tarea en curso en la rama y comando_verificacion declarado, el agente no da el turno por terminado con la verificacion en rojo (FRENO_VERIFICACION=0 lo apaga). PreToolUse: un merge o un script de cierre hacia la rama de integracion o la principal se bloquea si no consta una verificacion en verde del commit que entra; y en la rama de una tarea, leer, buscar o editar la carpeta aceptacion/ de esa tarea (sus tests held-out) se bloquea, con herramientas de fichero o con un comando que la nombre.",
+  "description": "Frenos de verificacion. Stop: con una tarea en curso en la rama y comando_verificacion declarado, el agente no da el turno por terminado con la verificacion en rojo (FRENO_VERIFICACION=0 lo apaga). PreToolUse: un merge o un script de cierre hacia la rama de integracion o la principal se bloquea si no consta una verificacion en verde del commit que entra; y en la rama de una tarea, leer, buscar o editar la carpeta aceptacion/ de esa tarea (sus tests held-out) se bloquea, con herramientas de fichero o con un comando que la nombre. Coste: al terminar cada turno (Stop) o subagente (SubagentStop) con una tarea en curso en la rama, anota que transcripcion trabajo en ella para sumar su coste de implementacion al pasar la tarea a revision; nunca bloquea (COSTE_AUTOMATICO=0 lo apaga).",
   "hooks": {
     "Stop": [
       {
@@ -11,6 +11,32 @@
               "${CLAUDE_PLUGIN_ROOT}/dist/src/hooks/stop-verificacion.js"
             ],
             "timeout": 3600
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/dist/src/hooks/coste-turno.js"
+            ],
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/dist/src/hooks/coste-turno.js"
+            ],
+            "timeout": 30
           }
         ]
       }

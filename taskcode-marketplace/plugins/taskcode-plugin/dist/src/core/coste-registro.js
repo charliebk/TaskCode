@@ -20,8 +20,10 @@
  * sus filas).
  *
  * Columnas:
- *  - `fuente`: `agente:<id>[,<id>...]` (lo leido de las transcripciones) o
- *    `manual` (`--tokens N`, una cifra sin desglose).
+ *  - `fuente`: `agente:<id>[,<id>...]` (lo leido de las transcripciones),
+ *    `manual` (`--tokens N`, una cifra sin desglose) o, desde TASK-085,
+ *    `sesion:<id>` (el hilo principal de una sesion, del registro automatico
+ *    de `core/coste-automatico.ts`). `dif:` delante de un id = diferencia.
  *  - `entrada` .. `salida`: los cuatro campos del `usage`; `lecturas`, los
  *    `tool_use` de lectura (`core/coste-transcripcion.ts`). `-` = sin dato,
  *    que no es 0: una fila `manual` solo tiene `total`.
@@ -209,12 +211,19 @@ function conDesglose(f) {
  * anotado para ese id, y esa fila no es una repeticion.
  */
 export const PREFIJO_DIFERENCIA = 'dif:';
-/** Ids de una fuente `agente:a,dif:b`; cualquier otra fuente cuenta entera. */
+/**
+ * Fuentes con ids: `agente:` (subagentes) y, desde TASK-085, `sesion:` (el
+ * hilo principal de una sesion, que vuelca el registro automatico). Las dos
+ * admiten varios ids y el prefijo de diferencia.
+ */
+export const PREFIJOS_CON_ID = ['agente:', 'sesion:'];
+/** Ids de una fuente `agente:a,dif:b` o `sesion:<id>`; cualquier otra fuente cuenta entera. */
 export function idsDeFuente(fuente) {
-    if (!fuente.startsWith('agente:'))
+    const prefijo = PREFIJOS_CON_ID.find((p) => fuente.startsWith(p));
+    if (prefijo === undefined)
         return [{ id: fuente, diferencia: false }];
     return fuente
-        .slice('agente:'.length)
+        .slice(prefijo.length)
         .split(',')
         .map((s) => s.trim())
         .filter((s) => s !== '')

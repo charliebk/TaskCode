@@ -76,7 +76,7 @@ export function timeoutEfectivoS(timeoutVerificacion: number): { timeoutS: numbe
 }
 
 /** El directorio de tareas en curso, si existe. Sin procesos. */
-function carpetaEnCurso(raiz: string): string | null {
+export function carpetaEnCurso(raiz: string): string | null {
   const dir = path.join(raiz, 'tareas', '02-en-curso');
   try {
     return statSync(dir).isDirectory() ? dir : null;
@@ -85,7 +85,7 @@ function carpetaEnCurso(raiz: string): string | null {
   }
 }
 
-function ramaActual(raiz: string): string | null {
+export function ramaActual(raiz: string): string | null {
   const r = spawnSync('git', ['branch', '--show-current'], { cwd: raiz, encoding: 'utf8', windowsHide: true });
   if (r.error !== undefined || r.status !== 0) return null;
   const rama = (r.stdout ?? '').trim();

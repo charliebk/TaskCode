@@ -97,8 +97,14 @@ function esLectura(bloque) {
     const input = bloque['input'];
     return esObjeto(input) && typeof input['command'] === 'string' && esComandoBashDeLectura(input['command']);
 }
-/** null si la transcripcion no tiene ninguna linea de asistente con usage (formato desconocido). */
-export function sumarUsoTranscripcion(texto) {
+/**
+ * null si la transcripcion no tiene ninguna linea de asistente con usage (formato desconocido).
+ *
+ * TASK-085: `incluir`, si se da, decide con la linea entera (su `timestamp`,
+ * `gitBranch`, `cwd`) si una linea de asistente cuenta; las que no, se
+ * ignoran como si no estuvieran. Sin lineas que cuenten, tambien null.
+ */
+export function sumarUsoTranscripcion(texto, incluir) {
     const porId = new Map();
     const sinId = [];
     const lecturasPorId = new Set();
@@ -114,6 +120,8 @@ export function sumarUsoTranscripcion(texto) {
             continue;
         }
         if (!esObjeto(obj) || obj['type'] !== 'assistant')
+            continue;
+        if (incluir !== undefined && !incluir(obj))
             continue;
         const mensaje = obj['message'];
         if (!esObjeto(mensaje))

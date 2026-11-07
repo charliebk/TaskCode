@@ -732,6 +732,35 @@ caso sale 0 sin lanzar ningún proceso (ni `git`). Cuando actúa:
 - Los subagentes no disparan `Stop` (disparan `SubagentStop`), así que el freno
   no los frena; y no actúa si la persona interrumpe el turno (Esc).
 
+#### Coste de implementación automático (hooks `Stop` y `SubagentStop`)
+
+Con una tarea en curso en la rama actual, el plugin anota al terminar cada
+turno y cada subagente qué transcripción ha trabajado en ella. Solo guarda
+rutas, en `.git/coste-pendiente.jsonl` (`git rev-parse --git-path`): no lee
+transcripciones, no toca `tarea.md`, no cambia la huella del freno de arriba
+y sale siempre con 0. Sin tarea en curso en la rama sale antes de lanzar
+ningún proceso (las mismas guardas baratas que el freno).
+
+`taskctl review` suma ese coste a `tokens_implementacion` en su propio commit,
+con una fila en `## Coste` por fuente: `sesion:<id>` (el hilo principal) y
+`agente:<id>` (cada subagente; también los de la sesión aunque el hook no los
+viera). Cuenta solo las llamadas cuyo `timestamp` cae entre el `start` y el
+`review` de `## Transiciones`, cuyo `gitBranch` es la rama de la tarea y cuyo
+`cwd` está dentro del repo: el diseño, otras tareas de la misma sesión y la
+revisión no entran. Lo ya anotado para un id se descuenta (de uno anotado en
+implementación solo se suma lo que creció, `dif:`; uno anotado en otra fase o
+junto a otros no se toca), así que un `registrar-coste --fase implementacion`
+hecho antes no se duplica. `taskctl finish` repite el volcado como red. Si
+todo el ciclo cabe en un turno, el hook aún no ha corrido al llegar a
+`review`: entonces se usa la sesión que nombra `CLAUDE_CODE_SESSION_ID`, si
+Claude Code la define. Un fallo del volcado nunca rompe `review` ni `finish`:
+deja la tarea como estaba y avisa.
+
+Lo que se acepta: el fichero de `.git/` no viaja con el clon (una tarea
+trabajada en otro clon se registra a mano) y las correcciones de la ronda 2,
+que se hacen con la tarea en revisión, no cuentan como implementación.
+`COSTE_AUTOMATICO=0` en el entorno lo apaga todo.
+
 #### Puerta de verificación en `finish`
 
 Con `comando_verificacion` declarado, `taskctl finish` lo ejecuta **siempre**
@@ -1266,7 +1295,10 @@ en más de una sesión o la transcripción no trae `usage`, aborta diciendo qué
 (`--tokens N` como salida). Funciona en cualquier estado, también `terminada`;
 escribe y commitea solo ese `tarea.md` (aborta si tiene cambios sin commitear o si
 la copia al día de la tarea está en su rama) y rechaza cifras de 0. `taskctl finish`
-avisa, sin bloquear, si falta el coste de diseño o de revisión.
+avisa, sin bloquear, si falta el coste de diseño o de revisión. El de
+implementación ya no hace falta registrarlo a mano: lo suma `review` (ver
+«Coste de implementación automático»); `registrar-coste --fase implementacion`
+queda como respaldo.
 
 `taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]` cierra la
 tarea. Sin los flags nuevos hace lo de siempre: merge `--no-ff` con el script de

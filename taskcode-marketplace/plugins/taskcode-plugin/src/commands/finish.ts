@@ -52,6 +52,7 @@ import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
 import { registrarTransicion } from '../core/transiciones.js';
+import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { resolverConfig } from '../core/config.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, ultimaRondaAprobada } from '../fs/rondas.js';
 import { casillasSinMarcar } from '../core/validacion-tarea.js';
@@ -260,6 +261,10 @@ export interface FinishCommandDeps {
   ahora?: string;
   /** Solo para tests: timeout de la puerta de verificacion (TASK-072), en ms. */
   verificacionTimeoutMs?: number;
+  /** TASK-085: entorno del volcado de coste automatico (tests); por defecto el del proceso. */
+  env?: NodeJS.ProcessEnv;
+  /** TASK-085: directorio de configuracion de Claude Code (tests); por defecto CLAUDE_CONFIG_DIR o ~/.claude. */
+  configDir?: string;
 }
 
 export interface FinishCommandResult {
@@ -633,8 +638,21 @@ export async function runFinishCommand(
   assertTransitionAllowed('finish', existing ? existing.task : null, ctx);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
-  const updated: Task = { ...task, estado: 'terminada', actualizado: today };
-  const conRegistro = registrarTransicion(body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
+  // TASK-085: red del volcado de review. Si alli no se pudo, lo que quede
+  // anotado para la tarea se suma aqui; si ya se sumo, no hay nada nuevo.
+  const volcado = await volcarCosteAutomatico(
+    { ...task, estado: 'terminada', actualizado: today },
+    body,
+    instanteDelVolcado(deps.ahora),
+    {
+      raiz: deps.repoCwd,
+      ...(deps.env === undefined ? {} : { env: deps.env }),
+      ...(deps.configDir === undefined ? {} : { configDir: deps.configDir }),
+    }
+  );
+  for (const aviso of volcado.avisos) deps.onAviso?.(`${id}: ${aviso}`);
+  const updated: Task = volcado.task;
+  const conRegistro = registrarTransicion(volcado.body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
 
   // Renderizado de cierre (criterio 3): plantillas desde el
@@ -680,6 +698,7 @@ export async function runFinishCommand(
     mensaje: mensajeChore(task.id, 'tarea terminada y artefactos de cierre'),
     push,
   });
+  if (commitResult.commiteado) volcado.olvidar();
 
   // El tag se sube DESPUES del commit y del push de la rama: asi la rama
   // destino ya esta en origin cuando se comprueba (subirTag lo verifica).

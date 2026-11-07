@@ -20,8 +20,10 @@
  * sus filas).
  *
  * Columnas:
- *  - `fuente`: `agente:<id>[,<id>...]` (lo leido de las transcripciones) o
- *    `manual` (`--tokens N`, una cifra sin desglose).
+ *  - `fuente`: `agente:<id>[,<id>...]` (lo leido de las transcripciones),
+ *    `manual` (`--tokens N`, una cifra sin desglose) o, desde TASK-085,
+ *    `sesion:<id>` (el hilo principal de una sesion, del registro automatico
+ *    de `core/coste-automatico.ts`). `dif:` delante de un id = diferencia.
  *  - `entrada` .. `salida`: los cuatro campos del `usage`; `lecturas`, los
  *    `tool_use` de lectura (`core/coste-transcripcion.ts`). `-` = sin dato,
  *    que no es 0: una fila `manual` solo tiene `total`.
@@ -57,7 +59,7 @@ export interface FilaCoste {
   /** `YYYY-MM-DDTHH:MM:SSZ` (o `YYYY-MM-DD`, que tambien se lee). */
   fecha: string;
   fase: FaseCoste;
-  /** `agente:<id>[,<id>...]` o `manual`. */
+  /** `agente:<id>[,<id>...]`, `sesion:<id>` (TASK-085) o `manual`. */
   fuente: string;
   entrada: number | null;
   cacheEscritura: number | null;
@@ -301,11 +303,19 @@ export interface IdDeFuente {
   diferencia: boolean;
 }
 
-/** Ids de una fuente `agente:a,dif:b`; cualquier otra fuente cuenta entera. */
+/**
+ * Fuentes con ids: `agente:` (subagentes) y, desde TASK-085, `sesion:` (el
+ * hilo principal de una sesion, que vuelca el registro automatico). Las dos
+ * admiten varios ids y el prefijo de diferencia.
+ */
+export const PREFIJOS_CON_ID = ['agente:', 'sesion:'] as const;
+
+/** Ids de una fuente `agente:a,dif:b` o `sesion:<id>`; cualquier otra fuente cuenta entera. */
 export function idsDeFuente(fuente: string): IdDeFuente[] {
-  if (!fuente.startsWith('agente:')) return [{ id: fuente, diferencia: false }];
+  const prefijo = PREFIJOS_CON_ID.find((p) => fuente.startsWith(p));
+  if (prefijo === undefined) return [{ id: fuente, diferencia: false }];
   return fuente
-    .slice('agente:'.length)
+    .slice(prefijo.length)
     .split(',')
     .map((s) => s.trim())
     .filter((s) => s !== '')

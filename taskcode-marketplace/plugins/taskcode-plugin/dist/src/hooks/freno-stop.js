@@ -54,7 +54,7 @@ export function timeoutEfectivoS(timeoutVerificacion) {
         : { timeoutS: timeoutVerificacion, recortado: false };
 }
 /** El directorio de tareas en curso, si existe. Sin procesos. */
-function carpetaEnCurso(raiz) {
+export function carpetaEnCurso(raiz) {
     const dir = path.join(raiz, 'tareas', '02-en-curso');
     try {
         return statSync(dir).isDirectory() ? dir : null;
@@ -63,7 +63,7 @@ function carpetaEnCurso(raiz) {
         return null;
     }
 }
-function ramaActual(raiz) {
+export function ramaActual(raiz) {
     const r = spawnSync('git', ['branch', '--show-current'], { cwd: raiz, encoding: 'utf8', windowsHide: true });
     if (r.error !== undefined || r.status !== 0)
         return null;

@@ -33,6 +33,7 @@ import { STATE_FOLDER, type Task } from '../core/task.js';
 import { raizDelRepo, resolverConfig } from '../core/config.js';
 import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertura.js';
 import { registrarTransicion } from '../core/transiciones.js';
+import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
 import {
@@ -109,6 +110,10 @@ export interface ReviewCommandDeps {
   scriptsDir: string;
   /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
   ahora?: string;
+  /** TASK-085: entorno del volcado de coste automatico (tests); por defecto el del proceso. */
+  env?: NodeJS.ProcessEnv;
+  /** TASK-085: directorio de configuracion de Claude Code (tests); por defecto CLAUDE_CONFIG_DIR o ~/.claude. */
+  configDir?: string;
 }
 
 /**
@@ -132,6 +137,8 @@ export interface ReviewCommandResult {
   desde: string;
   /** Avisos no fatales (p. ej. el commit de la ronda anterior ya no es antepasado). */
   avisos: string[];
+  /** TASK-085: lo que el volcado automatico sumo a `tokens_implementacion` (0 filas = nada). */
+  costeImplementacion: { sumado: number; filas: number };
   id: string;
   rama: string;
   baseBranch: string;
@@ -800,8 +807,16 @@ export async function runReviewCommand(
     );
   }
 
-  const conRegistro = registrarTransicion(body, 'review', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
+  // TASK-085: el coste de implementacion que el hook fue anotando se suma
+  // aqui, en el mismo fichero y commit que la transicion. Nunca aborta.
+  const volcado = await volcarCosteAutomatico(updated, body, instanteDelVolcado(deps.ahora), {
+    raiz: deps.repoCwd,
+    ...(deps.env === undefined ? {} : { env: deps.env }),
+    ...(deps.configDir === undefined ? {} : { configDir: deps.configDir }),
+  });
+  avisos.push(...volcado.avisos);
+  const conRegistro = registrarTransicion(volcado.body, 'review', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, volcado.task, conRegistro);
   const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
   const informes: RevisionGrupo[] = escrituras.map((escritura) => ({
     revisor: escritura.revisor,
@@ -822,12 +837,14 @@ export async function runReviewCommand(
     mensaje: mensajeChore(task.id, `peticion de revision ronda ${ronda}`),
     push,
   });
+  if (commitResult.commiteado) volcado.olvidar();
 
   return {
     autoCommit: commitResult,
     incremental,
     desde,
     avisos,
+    costeImplementacion: { sumado: volcado.sumado, filas: volcado.filas },
     id: task.id,
     rama,
     baseBranch,
