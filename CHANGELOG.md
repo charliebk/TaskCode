@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-082 (feature) — Autorrevision del implementador antes de pedir revision (2026-11-07)
+
 ## 0.12.0 — sin publicar
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`

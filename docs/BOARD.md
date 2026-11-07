@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-07. No editar a mano.
 
-## Planificadas (00-planificadas) — 21
+## Planificadas (00-planificadas) — 20
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,7 +21,6 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-082  Autorrevision del implementador antes de pedir revision                                     (sin asignar)
 TASK-083  Cierre sin ronda 2 completa cuando solo quedan MENORES                                      (sin asignar)
 TASK-085  Coste de implementacion registrado automaticamente                                          (sin asignar)
 TASK-086  Descontar las pausas de las duraciones de las metricas                                      (sin asignar)
@@ -30,7 +29,7 @@ TASK-088  taskctl doctor avisa si falta comando_verificacion con tests detectabl
 TASK-089  Evitar literales con forma de secreto en el repo y tags de version que faltan               (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 68
+## Terminadas (04-terminadas) — 69
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -102,5 +101,6 @@ TASK-078  Hook que impide leer y editar los held-out de la tarea en curso       
 TASK-079  Revisor por pares de dominio para Rust y WASM                                                charlie.bk@gmail.com
 TASK-080  Accesibilidad en angular-vue-reviewer y roles de arquitectura y rendimiento en plan          charlie.bk@gmail.com
 TASK-081  Revision mas barata: medir y acotar las lecturas de los revisores                            charlie.bk@gmail.com
+TASK-082  Autorrevision del implementador antes de pedir revision                                      charlie.bk@gmail.com
 TASK-084  Version del plugin en cada tarea y metricas por version                                      charlie.bk@gmail.com
 ```
