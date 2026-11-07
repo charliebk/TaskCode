@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [metricas, coste, hooks]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-085-coste-de-implementacion-registrado-autom
 asignado_a: charlie.bk@gmail.com
@@ -38,6 +38,7 @@ En ToolsaWeb falta el coste de implementacion en 97 de 119 tareas, asi que el co
 |---|---|---|---|
 | 2026-11-07T11:58:23Z | plan | automatico | persona |
 | 2026-11-07T12:34:16Z | approve | automatico | persona |
+| 2026-11-07T12:34:25Z | start | automatico | persona |
 
 ## Coste
 
