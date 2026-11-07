@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 380039
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-07
@@ -37,3 +37,9 @@ Sin comando_verificacion no funcionan los frenos de la 0.11 (hook Stop, puerta d
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T17:56:07Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-07T18:01:59Z | diseno | agente:a8affc352f2ef1cc3 | 18 | 56486 | 314760 | 8775 | 16 | 380039 |
