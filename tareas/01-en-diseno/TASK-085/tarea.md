@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [metricas, coste, hooks]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-085-coste-de-implementacion-registrado-autom
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ En ToolsaWeb falta el coste de implementacion en 97 de 119 tareas, asi que el co
 - [ ] Sin tarea en curso en la rama el hook sale sin hacer nada y sin lanzar procesos pesados
 - [ ] taskctl metricas deja de listar como sin coste de implementacion las tareas registradas asi; lo cubren tests con repos Git temporales
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-07T11:58:23Z | plan | automatico | persona |
