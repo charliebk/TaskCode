@@ -7,7 +7,7 @@ etiquetas: [doctor, verificacion]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-088-taskctl-doctor-avisa-si-falta-comando-ve
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Sin comando_verificacion no funcionan los frenos de la 0.11 (hook Stop, puerta d
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T17:56:07Z | plan | automatico | persona |
+| 2026-11-07T18:02:53Z | approve | automatico | persona |
 
 ## Coste
 
