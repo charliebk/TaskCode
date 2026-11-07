@@ -21,6 +21,8 @@ import {
   COLUMNAS_METRICAS,
   calcularFila,
   duracionEntre,
+  duracionSinPausas,
+  pausasJson,
   enMuestraHeuristica,
   formatearDuracion,
   formatearTabla,
@@ -153,7 +155,10 @@ test('dos pares review/finish: revision llega al ULTIMO finish y el cierre es el
   assert.equal(f.cierre, '2026-10-07');
 });
 
-test('pausa se cuenta pero no se descuenta: la duracion es de calendario', () => {
+const MIN = 60_000;
+const seg = (iso: string): { ms: number; precision: 'segundo' } => ({ ms: Date.parse(iso), precision: 'segundo' });
+
+test('TASK-086: la pausa dura hasta la siguiente transicion y se descuenta de su fase', () => {
   const f = calcularFila(
     entrada({
       body: cuerpoCon([
@@ -164,7 +169,134 @@ test('pausa se cuenta pero no se descuenta: la duracion es de calendario', () =>
     })
   );
   assert.equal(f.pausas, 1);
-  assert.equal(formatearDuracion(f.diseno), '8h 00m');
+  // De 10:05 a 18:00 la tarea espera: de las 8h de calendario quedan 5 min.
+  assert.deepEqual(f.diseno, { valor: 5 * MIN, precision: 'segundo' });
+  assert.equal(formatearDuracion(f.diseno), '5m');
+  assert.deepEqual(f.enPausa, { valor: (7 * 60 + 55) * MIN, precision: 'segundo' });
+});
+
+test('TASK-086: pausas en varias fases, rachas seguidas y total = suma de las tres', () => {
+  const f = calcularFila(
+    entrada({
+      body: cuerpoCon([
+        ['2026-10-05T10:00:00Z', 'plan'],
+        ['2026-10-05T11:00:00Z', 'pausa'], // racha de dos: cuenta desde la primera
+        ['2026-10-05T12:00:00Z', 'pausa'],
+        ['2026-10-05T13:00:00Z', 'approve'],
+        ['2026-10-05T13:30:00Z', 'start'],
+        ['2026-10-05T14:00:00Z', 'pausa'], // en curso, cerrada por review
+        ['2026-10-05T16:00:00Z', 'review'],
+        ['2026-10-05T16:20:00Z', 'pausa'], // en revision, cerrada por el segundo review
+        ['2026-10-05T17:20:00Z', 'review'],
+        ['2026-10-05T18:00:00Z', 'finish'],
+      ]),
+      ronda: 2,
+    })
+  );
+  assert.equal(f.pausas, 4);
+  assert.deepEqual(f.diseno, { valor: 90 * MIN, precision: 'segundo' }); // 3h30 - 2h
+  assert.deepEqual(f.curso, { valor: 30 * MIN, precision: 'segundo' }); // 2h30 - 2h
+  assert.deepEqual(f.revision, { valor: 60 * MIN, precision: 'segundo' }); // 2h - 1h
+  assert.deepEqual(f.enPausa, { valor: 5 * 60 * MIN, precision: 'segundo' });
+  assert.deepEqual(f.total, { valor: 180 * MIN, precision: 'segundo' }, 'total = suma de las tres');
+  assert.equal((f.total?.valor ?? 0) + (f.enPausa?.valor ?? 0), 8 * 60 * MIN, 'total + pausa = calendario');
+});
+
+test('TASK-086: una pausa sin transicion detras (tarea abierta) no descuenta', () => {
+  const f = calcularFila(
+    entrada({
+      task: tarea({ estado: 'en-curso' }),
+      body: cuerpoCon([
+        ['2026-10-05T10:00:00Z', 'plan'],
+        ['2026-10-05T11:00:00Z', 'start'],
+        ['2026-10-05T11:30:00Z', 'pausa'],
+      ]),
+    })
+  );
+  assert.equal(f.pausas, 1);
+  assert.deepEqual(f.diseno, { valor: 60 * MIN, precision: 'segundo' });
+  assert.equal(f.curso, null);
+  assert.deepEqual(f.enPausa, { valor: 0, precision: 'segundo' });
+});
+
+test('TASK-086: sin pausas las duraciones son las de calendario de siempre y enPausa vale 0', () => {
+  const f = calcularFila(entrada({ body: cuerpoCon(CICLO_CON_HORA), ronda: 1 }));
+  assert.equal(f.pausas, 0);
+  assert.deepEqual(f.diseno, duracionEntre(seg('2026-10-05T10:00:00Z'), seg('2026-10-05T10:45:00Z')));
+  assert.deepEqual(f.total, duracionEntre(seg('2026-10-05T10:00:00Z'), seg('2026-10-06T13:00:00Z')));
+  assert.deepEqual(f.enPausa, { valor: 0, precision: 'segundo' });
+  assert.deepEqual(pausasJson([f]), [], 'sin pausas no entra en la lista de --json');
+  const desde = { ms: 0, precision: 'segundo' as const };
+  const hasta = { ms: 90 * MIN, precision: 'segundo' as const };
+  assert.deepEqual(duracionSinPausas(desde, hasta, []), duracionEntre(desde, hasta));
+});
+
+test('TASK-086: con precision de dia no se descuenta nada y enPausa es null', () => {
+  const f = calcularFila(
+    entrada({
+      body: cuerpoCon([
+        ['2026-10-01', 'plan'],
+        ['2026-10-02', 'pausa'],
+        ['2026-10-04', 'start'],
+      ]),
+    })
+  );
+  assert.deepEqual(f.diseno, { valor: 3, precision: 'dia' });
+  assert.equal(f.enPausa, null);
+  // Fase de segundos con un intervalo de pausa de dia: tampoco se descuenta.
+  const pausaDia = { desde: { ms: Date.parse('2026-10-05T00:00:00Z'), precision: 'dia' as const }, hasta: seg('2026-10-05T12:00:00Z') };
+  assert.deepEqual(duracionSinPausas(seg('2026-10-05T10:00:00Z'), seg('2026-10-05T14:00:00Z'), [pausaDia]), {
+    valor: 4 * 60 * MIN,
+    precision: 'segundo',
+  });
+  assert.deepEqual(pausasJson([f]), [{ proyecto: '', id: 'TASK-007', pausas: 1, enPausa: null }]);
+});
+
+test('TASK-086: origen git, el commit "pausa registrada" se descuenta igual que la fila', () => {
+  const ev = (fase: EventoGit['fase'], iso: string): EventoGit => ({ id: 'TASK-007', fase, ms: Date.parse(iso) });
+  // git log va de lo mas nuevo a lo mas viejo.
+  const f = calcularFila(
+    entrada({
+      eventosGit: [
+        ev('finish', '2026-10-05T15:00:00Z'),
+        ev('review', '2026-10-05T14:00:00Z'),
+        ev('start', '2026-10-05T12:00:00Z'),
+        ev('pausa', '2026-10-05T10:30:00Z'),
+        ev('plan', '2026-10-05T10:00:00Z'),
+      ],
+      ronda: 1,
+    })
+  );
+  assert.equal(f.origen, 'git');
+  assert.deepEqual(f.diseno, { valor: 30 * MIN, precision: 'segundo' });
+  assert.deepEqual(f.curso, { valor: 2 * 60 * MIN, precision: 'segundo' });
+  assert.deepEqual(f.enPausa, { valor: 90 * MIN, precision: 'segundo' });
+});
+
+test('TASK-086 (MEN-1): origen git con pausa y transicion en el mismo segundo no descuenta de mas', () => {
+  const ev = (fase: EventoGit['fase'], iso: string): EventoGit => ({ id: 'TASK-007', fase, ms: Date.parse(iso) });
+  // En orden de git log: la pausa (anterior) va DETRAS del review del mismo segundo.
+  const f = calcularFila(
+    entrada({
+      eventosGit: [
+        ev('finish', '2026-10-05T15:00:00Z'),
+        ev('review', '2026-10-05T14:00:00Z'),
+        ev('pausa', '2026-10-05T14:00:00Z'),
+        ev('start', '2026-10-05T12:00:00Z'),
+        ev('plan', '2026-10-05T10:00:00Z'),
+      ],
+      ronda: 1,
+    })
+  );
+  assert.deepEqual(f.enPausa, { valor: 0, precision: 'segundo' });
+  assert.deepEqual(f.revision, { valor: 60 * MIN, precision: 'segundo' });
+});
+
+test('TASK-086: una pausa que cruza el limite de dos fases reparte el descuento', () => {
+  const pausa = [{ desde: seg('2026-10-05T11:00:00Z'), hasta: seg('2026-10-05T13:00:00Z') }];
+  assert.deepEqual(duracionSinPausas(seg('2026-10-05T10:00:00Z'), seg('2026-10-05T12:00:00Z'), pausa), { valor: 60 * MIN, precision: 'segundo' });
+  assert.deepEqual(duracionSinPausas(seg('2026-10-05T12:00:00Z'), seg('2026-10-05T14:00:00Z'), pausa), { valor: 60 * MIN, precision: 'segundo' });
+  assert.equal(duracionSinPausas(seg('2026-10-05T12:00:00Z'), seg('2026-10-05T11:00:00Z'), pausa), null, 'fin anterior: null, como duracionEntre');
 });
 
 test('sin finish ni review: las columnas que faltan salen "—", nunca 0 ni NaN', () => {

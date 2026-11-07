@@ -87,7 +87,7 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     assert.match(r.stdout, /Terminadas sin coste en alguna fase: 1 de 1 \(diseno 1, implementacion 1, revision 1\): TASK-001 \(diseno, implementacion, revision\)/);
     assert.equal(cierre, (filas[4] as { fecha: string }).fecha.slice(0, 10));
     assert.equal(origen, 'registro');
-    assert.match(r.stdout, /Las pausas no se descuentan/);
+    assert.match(r.stdout, /Se descuentan las pausas/);
     assert.doesNotMatch(r.stdout, /NaN|undefined/);
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '', 'metricas no escribe nada');
 
@@ -120,6 +120,31 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     const pvGit = JSON.parse(cliOk(repoRoot, ['metricas', '--por-version', '--json']).stdout) as SalidaJsonMetricas;
     assert.deepEqual(pvGit.porVersion?.versiones, []);
     assert.equal(pvGit.porVersion?.sinVersion.n, 1);
+  });
+});
+
+test('TASK-086: una pausa real por CLI se descuenta y sale en "pausas" de --json', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await hastaCodigo(repoRoot, tareasRoot);
+    cliOk(repoRoot, ['pausa', ID]);
+    cliOk(repoRoot, ['review', ID]);
+    await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot), 'informe-revision-1.md'));
+    cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
+    cliOk(repoRoot, ['finish', ID]);
+
+    const t = await readTareaFile(tareasRoot, ID);
+    assert.ok(t);
+    const filas = leerTransiciones(t.body);
+    assert.deepEqual(filas.map((f) => f.fase), ['plan', 'approve', 'start', 'pausa', 'review', 'finish']);
+    const ms = (fase: string): number => Date.parse((filas.find((f) => f.fase === fase) as { fecha: string }).fecha);
+
+    const o = JSON.parse(cliOk(repoRoot, ['metricas', '--json']).stdout) as SalidaJsonMetricas;
+    assert.equal(o.pausas.length, 1);
+    const p = o.pausas[0];
+    assert.equal(p?.id, ID);
+    assert.equal(p?.pausas, 1);
+    assert.deepEqual(p?.enPausa, { valor: ms('review') - ms('pausa'), precision: 'segundo' });
+    assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '', 'metricas no escribe nada');
   });
 });
 

@@ -144,7 +144,7 @@ test('--json con --evolucion y --grupos: un unico objeto que pasa JSON.parse, si
     assert.equal(r.status, 0, r.stderr);
     assert.equal(r.stdout.trim().split('\n').length, 1, 'una sola linea');
     const o = JSON.parse(r.stdout) as Record<string, any>;
-    assert.deepEqual(Object.keys(o), ['proyectos', 'sinCoste', 'lecturasRevision', 'evolucion', 'grupos']);
+    assert.deepEqual(Object.keys(o), ['proyectos', 'sinCoste', 'lecturasRevision', 'pausas', 'evolucion', 'grupos']);
     assert.deepEqual(
       o.proyectos.map((p: Record<string, unknown>) => [p.proyecto, p.tareas]),
       [['alfa', 5], ['beta', 2]]

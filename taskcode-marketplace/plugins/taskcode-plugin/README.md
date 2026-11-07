@@ -1147,7 +1147,12 @@ revisión, el día de cierre y el origen del dato: la tabla `## Transiciones`
 del `tarea.md` (cuya columna `fecha` lleva el instante UTC al segundo desde
 la 0.5.0; las filas antiguas, solo el día, dan la duración en días), o, si
 la tarea no la tiene, los commits automáticos `chore(TASK-NNN): ...` con un
-único `git log`; si tampoco, «—». Las pausas no se descuentan.
+único `git log`; si tampoco, «—». Las pausas se descuentan: cada `taskctl
+pausa` cuenta desde su fila hasta la siguiente transición que no sea otra
+pausa, y se resta de la fase (y del total) en la que cae. Una pausa sin
+transición detrás (tarea abierta) no descuenta, y con duraciones en días
+tampoco. Lo descontado sale, por tarea, en la lista `pausas` de `--json`
+(`enPausa`).
 `--heuristica` añade a las tareas terminadas con informes de revisión la
 puntuación y el nivel de la heurística de complejidad vigente, más un
 resumen de rondas medias por nivel declarado y heurístico: es la tabla con

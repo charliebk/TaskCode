@@ -48,7 +48,7 @@ import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, TASK_COMPLEXITIES } from '../core/task.js';
 import { cargarHeuristica, nivelHeuristico, puntuarTarea } from '../core/heuristica.js';
 import { leerTransiciones } from '../core/transiciones.js';
-import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, COLUMNA_PROYECTO, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, etiquetaTarea, notasFilaEnriquecida, formatearLecturasRevision, lecturasRevisionJson, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, resumenSinCoste, } from '../core/metricas.js';
+import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, COLUMNA_PROYECTO, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, etiquetaTarea, notasFilaEnriquecida, formatearLecturasRevision, lecturasRevisionJson, pausasJson, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, resumenSinCoste, } from '../core/metricas.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme, } from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
@@ -83,8 +83,11 @@ export function metricasFilePath(repoCwd) {
 export const MUESTRA_HEURISTICA_VACIA = 'n=0: ninguna tarea terminada con informes de revision; no hay muestra con la que ' +
     'comparar la heuristica. Sin --heuristica salen todas las tareas.';
 const NOTA_CALENDARIO = 'Duraciones de calendario: diseno = plan->start, curso = start->primer review, ' +
-    'revision = primer review->finish. Las pausas no se descuentan. Con origen "registro" ' +
-    'de filas antiguas (solo el dia) o mezcladas, la duracion va en dias ("N d").';
+    'revision = primer review->finish. Se descuentan las pausas: cada "taskctl pausa" ' +
+    'cuenta hasta la siguiente transicion que no sea pausa (una pausa sin transicion ' +
+    'detras no descuenta; lo descontado va en "pausas" con --json). Con origen "registro" ' +
+    'de filas antiguas (solo el dia) o mezcladas, la duracion va en dias ("N d") y no se ' +
+    'descuenta nada.';
 /** `--tramo N`: entero >= 1 (por defecto 20); cualquier otra cosa aborta. */
 function leerTramo(raw, conEvolucion) {
     if (raw === undefined)
@@ -404,6 +407,7 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
             })),
             sinCoste: resumenSinCoste(filas),
             lecturasRevision: lecturasRevisionJson(filas),
+            pausas: pausasJson(filas),
             ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
             ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
             ...(conPorVersion ? { porVersion: calcularPorVersion(filas) } : {}),

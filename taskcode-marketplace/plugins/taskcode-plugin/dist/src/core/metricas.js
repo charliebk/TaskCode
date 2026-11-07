@@ -22,8 +22,15 @@
  *    ultimo: un plan repetido es parte del diseno, no lo reinicia.
  *  - curso: del primer `start` al primer `review`.
  *  - revision: del primer `review` al ultimo `finish`.
- * `pausa` no se descuenta: no existe una transicion de «reanudar», asi que
- * no hay con que cerrar el hueco. La salida lo dice.
+ * TASK-086: las PAUSAS SE DESCUENTAN de las tres y de `total`. No hay
+ * transicion de «reanudar»: la hace la fila siguiente. Cada racha de filas
+ * `pausa` seguidas es un intervalo que va de la primera de la racha a la
+ * siguiente fila que no sea `pausa` (`pausa` es el «no» a pasar de fase:
+ * hasta la siguiente transicion la tarea espera). Cada fase resta la parte
+ * del intervalo que cae dentro de sus limites. Una racha sin fila detras
+ * (tarea abierta) no tiene cierre y no descuenta. Con precision de dia no se
+ * descuenta nada: restar horas a dias enteros con medianoche implicita daria
+ * una precision que no hay. Lo descontado va en `enPausa`.
  *
  * Si alguna de las dos marcas es de dia, la duracion va en dias enteros: con
  * medianoche implicita, restar horas daria numeros que parecen precisos y
@@ -115,6 +122,21 @@ export function parsearLogGit(salida) {
     }
     return eventos;
 }
+/** TASK-086: cada racha de `pausa` seguidas, de su primera fila a la siguiente que no lo sea. */
+function intervalosDePausa(orden) {
+    const intervalos = [];
+    let abierta = null;
+    for (const e of orden) {
+        if (e.fase === 'pausa') {
+            abierta ??= e.marca;
+        }
+        else if (abierta !== null) {
+            intervalos.push({ desde: abierta, hasta: e.marca });
+            abierta = null;
+        }
+    }
+    return intervalos;
+}
 function marcasDe(eventos) {
     // Orden cronologico: el registro ya lo esta, git log va al reves.
     const orden = [...eventos].sort((a, b) => a.marca.ms - b.marca.ms);
@@ -126,6 +148,7 @@ function marcasDe(eventos) {
         review: primera('review'),
         finish: finishes.length === 0 ? null : finishes[finishes.length - 1].marca,
         pausas: orden.filter((e) => e.fase === 'pausa').length,
+        intervalosPausa: intervalosDePausa(orden),
     };
 }
 /** Duracion entre dos marcas; null si falta una o la de fin es anterior. */
@@ -139,6 +162,41 @@ export function duracionEntre(desde, hasta) {
     }
     const ms = hasta.ms - desde.ms;
     return ms < 0 ? null : { valor: ms, precision: 'segundo' };
+}
+/**
+ * TASK-086: milisegundos de pausa dentro de [desde, hasta], o null si no se
+ * puede medir (falta una marca, es de dia o el fin es anterior). Un intervalo
+ * con alguna marca de dia no cuenta.
+ */
+export function pausaEntre(desde, hasta, pausas) {
+    const base = duracionEntre(desde, hasta);
+    if (base === null || base.precision === 'dia' || desde === null || hasta === null)
+        return null;
+    let ms = 0;
+    for (const p of pausas) {
+        if (p.desde.precision === 'dia' || p.hasta.precision === 'dia')
+            continue;
+        const ini = Math.max(p.desde.ms, desde.ms);
+        const fin = Math.min(p.hasta.ms, hasta.ms);
+        if (fin > ini)
+            ms += fin - ini;
+    }
+    return ms;
+}
+/**
+ * TASK-086: `duracionEntre` menos la pausa que cae dentro. Sin intervalos, o
+ * con precision de dia, devuelve exactamente lo mismo que `duracionEntre`.
+ */
+export function duracionSinPausas(desde, hasta, pausas) {
+    const base = duracionEntre(desde, hasta);
+    const enPausa = pausaEntre(desde, hasta, pausas);
+    if (base === null || enPausa === null || enPausa === 0)
+        return base;
+    return { valor: base.valor - enPausa, precision: base.precision };
+}
+/** Ultima marca medida de la tarea: `finish`, o si no `review`, `start` o `plan`. */
+function ultimaMarca(m) {
+    return m.finish ?? m.review ?? m.start ?? m.plan;
 }
 /** Una fila por tarea, sin la parte de heuristica. */
 export function calcularFila(e) {
@@ -154,11 +212,16 @@ export function calcularFila(e) {
     }
     else if (e.eventosGit.length > 0) {
         origen = 'git';
-        marcas = marcasDe(e.eventosGit.map((g) => ({ fase: g.fase, marca: { ms: g.ms, precision: 'segundo' } })));
+        // TASK-086 (MEN-1): git log va de lo mas nuevo a lo mas viejo. Se invierte
+        // antes del sort estable para que dos commits del mismo segundo queden en
+        // orden cronologico (una pausa delante de la transicion que la cierra).
+        marcas = marcasDe([...e.eventosGit]
+            .reverse()
+            .map((g) => ({ fase: g.fase, marca: { ms: g.ms, precision: 'segundo' } })));
     }
     else {
         origen = '—';
-        marcas = { plan: null, start: null, review: null, finish: null, pausas: 0 };
+        marcas = { plan: null, start: null, review: null, finish: null, pausas: 0, intervalosPausa: [] };
     }
     return {
         proyecto: e.proyecto ?? '',
@@ -173,9 +236,9 @@ export function calcularFila(e) {
         },
         estado: e.task.estado,
         complejidad: e.task.complejidad,
-        diseno: duracionEntre(marcas.plan, marcas.start),
-        curso: duracionEntre(marcas.start, marcas.review),
-        revision: duracionEntre(marcas.review, marcas.finish),
+        diseno: duracionSinPausas(marcas.plan, marcas.start, marcas.intervalosPausa),
+        curso: duracionSinPausas(marcas.start, marcas.review, marcas.intervalosPausa),
+        revision: duracionSinPausas(marcas.review, marcas.finish, marcas.intervalosPausa),
         rondas: e.ronda > 0 ? e.ronda : null,
         cierre: marcas.finish === null ? null : new Date(marcas.finish.ms).toISOString().slice(0, 10),
         pausas: marcas.pausas,
@@ -188,10 +251,15 @@ export function calcularFila(e) {
         hallazgos: resumirHallazgos(e.informes ?? []),
         lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
-        total: duracionEntre(marcas.plan, marcas.finish),
+        total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
+        enPausa: enPausaDe(marcas),
         veredictoRonda1: veredictoRonda1(e.informes ?? []),
         versionCierre: versionDeCierre(e.body),
     };
+}
+function enPausaDe(m) {
+    const ms = pausaEntre(m.plan, ultimaMarca(m), m.intervalosPausa);
+    return ms === null ? null : { valor: ms, precision: 'segundo' };
 }
 function lecturasRevisionDe(body, informes) {
     return lecturasDeRevision(leerCostes(body)).map((g) => {
@@ -658,4 +726,9 @@ export function formatearLecturasRevision(filas, varios = false) {
 }
 export function lecturasRevisionJson(filas) {
     return filas.flatMap((f) => f.lecturasRevision.map((g) => ({ proyecto: f.proyecto, id: f.id, ...g })));
+}
+export function pausasJson(filas) {
+    return filas
+        .filter((f) => f.pausas > 0)
+        .map((f) => ({ proyecto: f.proyecto, id: f.id, pausas: f.pausas, enPausa: f.enPausa }));
 }
