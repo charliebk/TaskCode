@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [revision, coste, flujo]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-083-cierre-sin-ronda-2-completa-cuando-solo
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Muchas segundas rondas probablemente solo verifican MENORES. Primero confirmarlo
 - [ ] Si la medida lo justifica, taskctl review ofrece una verificacion acotada al diff de las correcciones cuando la ronda anterior solo dejo MENORES, y lo cubren tests con repos Git temporales
 - [ ] Un CRITICO o IMPORTANTE abierto obliga siempre a la ronda completa; lo cubre un test
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-07T10:48:07Z | plan | automatico | persona |
