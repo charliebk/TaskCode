@@ -606,6 +606,73 @@ aunque Claude Code purgue las transcripciones).
 - Un agente lanzado sin la ruta de su petición en el prompt sale «sin
   atribuir», y sus lecturas no se reparten entre revisores.
 
+## 13. Rondas 2 que solo verificaban MENORES (TASK-083)
+
+**Pregunta.** ¿Cuántas segundas rondas de revisión partían de una ronda 1 que
+no dejó ningún CRÍTICO ni IMPORTANTE? Y la contrapartida: de esas, ¿cuántas
+encontraron en la ronda 2 un CRÍTICO o IMPORTANTE nuevo? Si la primera cifra es
+alta y la segunda baja, una revisión completa en la ronda 2 es gasto.
+
+**Método.** Script de un solo uso (fuera del repo) sobre el parser de la tabla
+de hallazgos, `leerHallazgos`, y `veredictoDeRonda` del propio CLI, contra
+`tareas/04-terminadas/*/revision/informe-revision-<N>[-<skill>].md` de los dos
+repos, a 2026-11-07. La ronda 1 se juzga **entera** (todos sus fragmentos de
+dominio a la vez) y con la regla estricta del plan: un CRÍTICO o IMPORTANTE
+**en cualquier estado** (abierto, corregido, aceptado...) la descalifica, y
+una ronda 1 sin tabla o con una severidad fuera del vocabulario cuenta como
+«sin dato», nunca como «solo MENORES». Como la ronda 1 elegible no tiene
+ningún CRÍTICO ni IMPORTANTE, todo CRÍTICO o IMPORTANTE de su ronda 2 es nuevo.
+
+| | ToolsaWeb | TaskCode | Total |
+|---|---|---|---|
+| Tareas terminadas con revisión | 122 | 69 | 191 |
+| Cerradas en la ronda 1 | 11 | 30 | 41 |
+| Con ronda 2 | 111 | 39 | 150 |
+| Ronda 1 sin dato (sin tabla: anteriores a TASK-036) | 0 | 12 | 12 |
+| Con ronda 2 y ronda 1 legible | 111 | 27 | 138 |
+| **Ronda 1 sin CRÍTICO ni IMPORTANTE** | **25 (22,5 %)** | **8 (29,6 %)** | **33 (23,9 %)** |
+| **De esas, ronda 2 con un CRÍTICO o IMPORTANTE nuevo** | **0** | **0** | **0 (0 %)** |
+
+- ToolsaWeb: TASK-003, 008, 014, 017, 019, 070, 071, 076, 083, 085, 086, 094,
+  096, 098, 102, 124, 136, 147, 155, 173, 177, 179, 180, 181 y 187.
+- TaskCode: TASK-067, 072, 075, 076, 077, 078, 079 y 081.
+
+**La misma cuenta por fragmento de dominio** (solo ToolsaWeb fragmenta: 58
+pares de informes `-<skill>` con ronda 1 y ronda 2 del mismo revisor). En 19
+la ronda 1 de ese revisor solo tenía MENORES, y en 2 su ronda 2 trae un
+IMPORTANTE:
+
+- **TASK-013 / code-quality-reviewer, IMP-R2-1**: nuevo de verdad. Lo metió
+  la corrección de un MENOR y se encontró reproduciendo y mutando. Pero el
+  otro fragmento de esa ronda 1 (angular-vue) tenía IMP-1, así que **la ronda
+  entera no era elegible**.
+- **TASK-146 / code-quality-reviewer, «IMP-1 (r1, Vue)»**: no es nuevo. Es el
+  IMPORTANTE del fragmento de Vue de la ronda 1, arrastrado. Esa ronda tampoco
+  era elegible.
+
+Es decir: decidir **por ronda entera** deja fuera los dos casos, y decidir por
+fragmento habría dejado pasar TASK-013. Por eso la regla de TASK-083 mira
+todos los informes de la ronda a la vez.
+
+**Decisión.** El umbral que fijó la persona en el plan (al menos un 20 % de
+rondas 2 elegibles y como mucho un 10 % de ellas con un CRÍTICO o IMPORTANTE
+nuevo) se cumple: 23,9 % y 0 %. Se implementa la verificación acotada de la
+ronda siguiente.
+
+**Qué no dice.**
+
+- No mide los tokens que se ahorran: el coste registrado es por fase, no por
+  ronda, y la mayoría de esas tareas son anteriores al registro por ronda de
+  TASK-081. El efecto se verá con `taskctl metricas --tokens` en las tareas que
+  se cierren con la 0.12.
+- 0 de 33 no prueba que el riesgo sea cero: con esa muestra, el intervalo de
+  confianza del 95 % llega hasta el 10 % aproximadamente. Por eso la ronda
+  acotada sigue ejecutando los tests y buscando fallos nuevos en el delta, y
+  pasa a completa si el delta toca ficheros que ningún hallazgo nombraba.
+- Que una ronda 2 completa no encontrase nada nuevo no garantiza que una
+  acotada tampoco lo hubiera encontrado. Mide lo que pasó con la revisión
+  completa, no lo que pasará con la acotada.
+
 <!-- taskctl metricas --tokens: inicio -->
 ## Coste en tokens por tarea (generado)
 
