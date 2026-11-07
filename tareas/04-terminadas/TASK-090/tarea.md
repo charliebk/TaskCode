@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [seguridad, tests]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-090-el-guardian-de-secretos-tolera-excepcion
 asignado_a: charlie.bk@gmail.com
@@ -71,6 +71,7 @@ mutantes, todos en rojo. Dos MENOR, aceptados sin corregir:
 | 2026-11-07T21:34:23Z | approve | automatico | persona |
 | 2026-11-07T21:34:24Z | start | automatico | persona |
 | 2026-11-07T21:59:21Z | review | automatico | persona |
+| 2026-11-07T22:04:51Z | finish | automatico | persona |
 
 ## Coste
 

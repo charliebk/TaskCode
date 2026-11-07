@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-090 — El guardian de secretos tolera excepciones solo en su fichero historico · etiquetas: seguridad, tests · rama fix/task-090-el-guardian-de-secretos-tolera-excepcion · terminada 2026-11-07 · tareas/04-terminadas/TASK-090/
 - TASK-089 — Evitar literales con forma de secreto en el repo y tags de version que faltan · etiquetas: seguridad, distribucion, tests · rama feature/task-089-evitar-literales-con-forma-de-secreto-en · terminada 2026-11-07 · tareas/04-terminadas/TASK-089/
 - TASK-088 — taskctl doctor avisa si falta comando_verificacion con tests detectables · etiquetas: doctor, verificacion · rama feature/task-088-taskctl-doctor-avisa-si-falta-comando-ve · terminada 2026-11-07 · tareas/04-terminadas/TASK-088/
 - TASK-087 — taskctl doctor avisa si el plugin instalado esta desactualizado · etiquetas: doctor, distribucion · rama feature/task-087-taskctl-doctor-avisa-si-el-plugin-instal · terminada 2026-11-07 · tareas/04-terminadas/TASK-087/

@@ -23,7 +23,7 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 75
+## Terminadas (04-terminadas) — 76
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -103,4 +103,5 @@ TASK-086  Descontar las pausas de las duraciones de las metricas                
 TASK-087  taskctl doctor avisa si el plugin instalado esta desactualizado                              charlie.bk@gmail.com
 TASK-088  taskctl doctor avisa si falta comando_verificacion con tests detectables                     charlie.bk@gmail.com
 TASK-089  Evitar literales con forma de secreto en el repo y tags de version que faltan                charlie.bk@gmail.com
+TASK-090  El guardian de secretos tolera excepciones solo en su fichero historico                      charlie.bk@gmail.com
 ```
