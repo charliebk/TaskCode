@@ -13,11 +13,39 @@ transcripcion del subagente. Por eso no se apunta la cifra de la notificacion:
 se apunta el **id del agente** (`agentId`, hexadecimal), que devuelve la
 herramienta Agent al lanzarlo.
 
-## Como se registra
+## Implementacion: se registra sola
+
+Mientras la tarea esta en curso, un hook del plugin anota al terminar cada
+turno (`Stop`) y cada subagente (`SubagentStop`) que transcripcion trabajo en
+la rama de la tarea. Solo anota rutas, en un fichero bajo `.git/`
+(`coste-pendiente.jsonl`): no lee nada pesado, no toca `tarea.md`, no ensucia
+el arbol y nunca bloquea. Sin una tarea en curso en la rama actual sale sin
+hacer nada.
+
+`taskctl review` suma ese coste en su propio commit: `tokens_implementacion`
+y una fila de `## Coste` por fuente (`sesion:<id>` para el hilo principal,
+`agente:<id>` para cada subagente). Cuenta solo lo que paso con la tarea en
+curso: las llamadas cuyo instante cae entre el `start` y el `review` de
+`## Transiciones`, en la rama de la tarea y dentro del repo. El diseno, otras
+tareas de la misma sesion y la revision no entran. Si `review` no pudo,
+`taskctl finish` lo intenta otra vez; lo ya sumado no se suma dos veces.
+
+Lo que ya estuviera anotado a mano para el mismo id se descuenta: de un agente
+registrado en implementacion solo se suma lo que haya crecido (`dif:`), y uno
+registrado en otra fase, o junto a otros agentes en una misma fila, no se
+toca. Por eso **en implementacion no hace falta `registrar-coste`**. Queda como
+respaldo: el fichero de `.git/` no viaja con el repo, asi que una tarea
+trabajada desde otro clon, o una sesion sin el hook, se registra a mano como
+antes. Cuando todo el ciclo cabe en un solo turno, `review` encuentra la sesion
+que lo ejecuta por `CLAUDE_CODE_SESSION_ID` si Claude Code la define.
+
+`COSTE_AUTOMATICO=0` en el entorno apaga el hook y el volcado.
+
+## Como se registra a mano
 
 Al terminar cada subagente de la fase (diseno = la ronda de roles y el
-unificador; implementacion = los agentes del curso de la tarea; revision =
-revisores y segunda opinion), con su id:
+unificador; revision = revisores y segunda opinion; implementacion, solo como
+respaldo del registro automatico), con su id:
 
 ```bash
 taskctl registrar-coste TASK-NNN --fase diseno|implementacion|revision --agente <id>
@@ -48,7 +76,9 @@ dilo como estimacion en el `## Resultado`.
 ## Cuando
 
 - **diseno**: al terminar la ronda de diseno, antes de `taskctl approve`.
-- **implementacion**: al terminar de implementar, antes de pedir la revision.
+- **implementacion**: lo suma `taskctl review` (ver arriba). A mano, solo si
+  el registro automatico no pudo: al terminar de implementar, antes de pedir
+  la revision.
 - **revision**: cuando terminan los revisores de la ronda; si hay varias
   rondas, se va sumando. Funciona tambien con la tarea ya `terminada`.
 

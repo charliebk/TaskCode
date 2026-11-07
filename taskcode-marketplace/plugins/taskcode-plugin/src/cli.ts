@@ -712,6 +712,11 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
                 `Una revision completa se pide de antemano con: taskctl review ${result.id} --completa.\n`
               : `Alcance: revision completa (${result.motivoAlcance}).\n`
             : '') +
+          // TASK-085: lo que el registro automatico sumo al coste de implementacion.
+          (result.costeImplementacion.filas > 0
+            ? `Coste de implementacion registrado automaticamente: +${String(result.costeImplementacion.sumado)} ` +
+              `tokens (${String(result.costeImplementacion.filas)} fila(s) en "## Coste").\n`
+            : '') +
           lineasInformes
       );
       printAutoCommit(result.autoCommit);

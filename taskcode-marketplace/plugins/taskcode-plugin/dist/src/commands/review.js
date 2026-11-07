@@ -33,6 +33,7 @@ import { STATE_FOLDER } from '../core/task.js';
 import { raizDelRepo, resolverConfig } from '../core/config.js';
 import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertura.js';
 import { registrarTransicion } from '../core/transiciones.js';
+import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
 import { alcanceRondaSiguiente, commitRevisadoDe, ficheroNombrado, hallazgosNoCerrados, veredictoDeRonda, } from '../core/informe-revision.js';
@@ -572,8 +573,16 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
             '(¿restos con otro case en un filesystem case-insensitive?). La tarea NO se ha ' +
             'movido; limpia o renombra esos ficheros y reintenta.');
     }
-    const conRegistro = registrarTransicion(body, 'review', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
-    const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
+    // TASK-085: el coste de implementacion que el hook fue anotando se suma
+    // aqui, en el mismo fichero y commit que la transicion. Nunca aborta.
+    const volcado = await volcarCosteAutomatico(updated, body, instanteDelVolcado(deps.ahora), {
+        raiz: deps.repoCwd,
+        ...(deps.env === undefined ? {} : { env: deps.env }),
+        ...(deps.configDir === undefined ? {} : { configDir: deps.configDir }),
+    });
+    avisos.push(...volcado.avisos);
+    const conRegistro = registrarTransicion(volcado.body, 'review', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
+    const newFilePath = await moveTareaFile(tareasRoot, filePath, volcado.task, conRegistro);
     const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
     const informes = escrituras.map((escritura) => ({
         revisor: escritura.revisor,
@@ -593,11 +602,14 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
         mensaje: mensajeChore(task.id, `peticion de revision ronda ${ronda}`),
         push,
     });
+    if (commitResult.commiteado)
+        volcado.olvidar();
     return {
         autoCommit: commitResult,
         incremental,
         desde,
         avisos,
+        costeImplementacion: { sumado: volcado.sumado, filas: volcado.filas },
         id: task.id,
         rama,
         baseBranch,

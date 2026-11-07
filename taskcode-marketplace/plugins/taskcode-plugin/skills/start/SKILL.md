@@ -23,15 +23,19 @@ Abre la rama de la tarea con Git-Flow y la pasa a `en-curso`.
    `fase: review` con `accion: continuar`):
    implementa el plan en esta rama, con sus tests y con los skills
    recomendados; commitea; ejecuta la suite del proyecto y no sigas hasta que
-   este en verde. Registra el coste (paso 5) y despues encadena `/taskcode-plugin:review` (seccion de
+   este en verde. Despues encadena `/taskcode-plugin:review` (seccion de
    avance). Si no consigues dejar la suite en verde, para y dilo: no se revisa
    codigo roto.
-5. Al terminar la implementacion (con o sin subagentes) y antes de la revision, registra su coste
-   (`task-workflow/coste.md`): con el id que devolvio la herramienta Agent de
-   cada subagente, `taskctl registrar-coste TASK-NNN --fase implementacion
-   --agente <id> [--agente <id2>...]`. La cifra que muestra Claude Code al
-   terminar un agente NO es su coste (es su contexto final). Tu parte, si
-   quieres, estimada y aparte con `--tokens N`. Sin subagentes, no registres nada.
+5. El coste de la implementacion se registra solo (`task-workflow/coste.md`):
+   un hook anota que sesion y que subagentes trabajan con la tarea en curso, y
+   `taskctl review` suma su uso a `tokens_implementacion` en su commit. **No
+   ejecutes `registrar-coste --fase implementacion`**: si `review` dice que lo
+   ha registrado, ya esta. Solo si no lo dice (tarea trabajada en otro clon,
+   sesion sin el hook, `COSTE_AUTOMATICO=0`), registralo a mano como respaldo:
+   `taskctl registrar-coste TASK-NNN --fase implementacion --agente <id>
+   [--agente <id2>...]`, con el id que devolvio la herramienta Agent de cada
+   subagente (la cifra que muestra Claude Code al terminar un agente NO es su
+   coste: es su contexto final).
 6. En el resto de casos, sigue la seccion de avance (`task-workflow/avance.md`):
    `taskctl siguiente TASK-NNN --json`. Tras `start` la fase es `review`,
    que significa: primero implementar el plan en esta rama, con tests,
