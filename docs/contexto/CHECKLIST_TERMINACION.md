@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 97 / 99 items terminados (98%)** · última actualización: 2026-11-07
+**Progreso global: 98 / 99 items terminados (99%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **7** | — |
-| **Total pendiente** | **2** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **8** | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (7/9)
+## N — Mejoras tras las métricas de la 0.8 (8/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1077,5 +1077,9 @@ dependencias en `docs/ROADMAP.md`.
       update` y `claude plugin update`; lo no comprobable es `omitida`; nunca
       error, así que el código de salida no cambia. Dos rondas (MEN-1 y MEN-2
       corregidos, MEN-3 aceptado).*
-- [ ] TASK-088 — `taskctl doctor` avisa si falta `comando_verificacion` con tests detectables
+- [x] TASK-088 — `taskctl doctor` avisa si falta `comando_verificacion` con tests detectables — cerrada el 2026-11-07
+      *Sin la clave, `verificacion` da AVISO si la raíz tiene tests detectables
+      (`package.json` con `test` propio, Cargo, Maven, Gradle, .NET, Go, pytest) y
+      propone el comando (gestor según el lock, wrappers, varios con `&&`); sin
+      tests sigue `omitida`. Revisión: 2 rondas, 3 MENOR corregidos, aprobada.*
 - [ ] TASK-089 — Evitar literales con forma de secreto en el repo y tags de versión que faltan
