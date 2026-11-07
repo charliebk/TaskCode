@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, skills, flujo]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-082-autorrevision-del-implementador-antes-de
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Con la 0.8 ninguna tarea de ToolsaWeb salio en una sola ronda y el 86% de los ha
 | 2026-11-07T03:03:48Z | plan | automatico | persona |
 | 2026-11-07T09:50:16Z | approve | automatico | automatico |
 | 2026-11-07T09:50:32Z | start | automatico | persona |
+| 2026-11-07T10:13:01Z | review | automatico | persona |
 
 ## Coste
 
