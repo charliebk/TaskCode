@@ -12,6 +12,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { readTareaFile } from '../../src/fs/task-store.js';
 import { leerTransiciones, precisionDeFecha } from '../../src/core/transiciones.js';
+import { VERSION_TASKCTL } from '../../src/core/version.js';
+import type { SalidaJsonMetricas } from '../../src/commands/metricas.js';
 import {
   ID,
   CONFIG_AUTO,
@@ -63,7 +65,10 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     assert.deepEqual(filas.map((f) => f.fase), ['plan', 'approve', 'start', 'review', 'finish']);
     for (const f of filas) {
       assert.equal(precisionDeFecha(f.fecha), 'segundo', `la fila ${f.fase} no lleva instante: ${f.fecha}`);
+      // TASK-084: cada fila lleva la version del taskctl que la escribio.
+      assert.equal(f.version, VERSION_TASKCTL, `la fila ${f.fase} no lleva version`);
     }
+    assert.ok(t.body.includes('| fecha | fase | modo | decidido_por | version |\n|---|---|---|---|---|\n'), t.body);
     // `actualizado` sigue siendo un dia, y es el de la ultima fila.
     assert.equal(t.task.actualizado, (filas[4] as { fecha: string }).fecha.slice(0, 10));
 
@@ -86,6 +91,12 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     assert.doesNotMatch(r.stdout, /NaN|undefined/);
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '', 'metricas no escribe nada');
 
+    // TASK-084: --por-version la agrupa bajo la version de su finish.
+    const pv = JSON.parse(cliOk(repoRoot, ['metricas', '--por-version', '--json']).stdout) as SalidaJsonMetricas;
+    assert.ok(pv.porVersion);
+    assert.deepEqual(pv.porVersion.versiones.map((g) => [g.version, g.n, g.conRevision]), [[VERSION_TASKCTL, 1, 1]]);
+    assert.equal(pv.porVersion.sinVersion.n, 0);
+
     // --heuristica: la tarea terminada con informe entra en la muestra.
     const h = cliOk(repoRoot, ['metricas', '--heuristica']);
     assert.deepEqual(cabecera(h.stdout).slice(-2), ['puntos', 'nivel_heuristico']);
@@ -105,6 +116,10 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     assert.equal(filaGit[11], 'git');
     for (const d of filaGit.slice(2, 5)) assert.match(d, DURACION_SEGUNDOS);
     assert.equal(filaGit[10], cierre);
+    // TASK-084: con origen git no hay version: va a «sin version», no se deduce por la fecha.
+    const pvGit = JSON.parse(cliOk(repoRoot, ['metricas', '--por-version', '--json']).stdout) as SalidaJsonMetricas;
+    assert.deepEqual(pvGit.porVersion?.versiones, []);
+    assert.equal(pvGit.porVersion?.sinVersion.n, 1);
   });
 });
 
