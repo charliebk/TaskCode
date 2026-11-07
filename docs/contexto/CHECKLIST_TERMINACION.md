@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 95 / 99 items terminados (96%)** · última actualización: 2026-11-07
+**Progreso global: 96 / 99 items terminados (97%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **5** | — |
-| **Total pendiente** | **4** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **6** | — |
+| **Total pendiente** | **3** | — | — |
 
 ---
 
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (5/9)
+## N — Mejoras tras las métricas de la 0.8 (6/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1064,7 +1064,12 @@ dependencias en `docs/ROADMAP.md`.
       volcado en review/finish, las 97 tareas viejas de ToolsaWeb fuera. Probado
       en la propia tarea (+14,3 M de implementación). 2 rondas: MEN-1 y MEN-2
       (tests de la red de finish y del guard de campos negativos) corregidos.*
-- [ ] TASK-086 — Descontar las pausas de las duraciones de las métricas
+- [x] TASK-086 — Descontar las pausas de las duraciones de las métricas — cerrada el 2026-11-07
+      *Cada racha de `pausa` dura hasta la siguiente transición que no sea
+      pausa y se resta de diseño, curso, revisión y `total`; una pausa abierta
+      no descuenta y con precisión de día tampoco. `--json` gana la lista
+      `pausas` con `enPausa` por tarea; §14 de `docs/METRICAS.md`. Revisión: 2
+      rondas (MEN-1, empate de segundo con origen git, y MEN-2, doc, corregidos).*
 - [ ] TASK-087 — `taskctl doctor` avisa si el plugin instalado está desactualizado
 - [ ] TASK-088 — `taskctl doctor` avisa si falta `comando_verificacion` con tests detectables
 - [ ] TASK-089 — Evitar literales con forma de secreto en el repo y tags de versión que faltan

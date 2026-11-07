@@ -1,7 +1,7 @@
 # Roadmap de TaskCode
 
 > Qué falta por hacer y qué está hecho, en un solo sitio. Última actualización:
-> **2026-11-07** (TASK-085 cerrada, en la 0.12.0).
+> **2026-11-07** (TASK-086 cerrada, en la 0.12.0).
 >
 > **Cómo se mantiene**: al crear una tarea se añade a «Pendiente»; al cerrarla
 > con `taskctl finish` se pasa a «Terminado», bajo la versión con la que sale.
@@ -12,16 +12,16 @@
 
 | | Tareas |
 |---|---|
-| Terminadas | **84** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-085) |
+| Terminadas | **85** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-086) |
 | Descartadas | 1 (TASK-019) |
-| **Pendientes** | **4** (TASK-086 a TASK-089) |
+| **Pendientes** | **3** (TASK-087 a TASK-089) |
 | Versión publicada | **0.11.0** (2026-11-06); en desarrollo, **0.12.0** |
 
 ---
 
 ## Pendiente
 
-### Fase N — Mejoras tras las métricas de la 0.8 (5/9)
+### Fase N — Mejoras tras las métricas de la 0.8 (6/9)
 
 Salen de medir ToolsaWeb con `taskctl metricas` (119 tareas terminadas, 51 de
 ellas con la 0.8). Con la 0.8 la calidad se mantuvo (0 CRÍTICOS), pero los
@@ -33,7 +33,6 @@ Orden recomendado (la columna «Orden» manda; los IDs son de alta):
 
 | Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
 |---|---|---|---|---|---|
-| 6 | TASK-086 | Descontar las pausas de las duraciones de las métricas | simple | media | — |
 | 7 | TASK-087 | `taskctl doctor` avisa si el plugin instalado está desactualizado | simple | baja | — |
 | 8 | TASK-088 | `taskctl doctor` avisa si falta `comando_verificacion` con tests detectables | simple | baja | — |
 | 9 | TASK-089 | Evitar literales con forma de secreto en el repo y tags de versión que faltan | simple | baja | — |
@@ -63,16 +62,17 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
 
 ## Terminado
 
-84 tareas, agrupadas por la versión con la que salieron (la más reciente
+85 tareas, agrupadas por la versión con la que salieron (la más reciente
 primero). TASK-021 (publicar el marketplace) se adelantó al Sprint 1 como
 item A1. Las carpetas de TASK-001 a TASK-012 y TASK-021 siguen en
 `tareas/00-planificadas/` porque se hicieron antes de que existiera el ciclo
 de `taskctl`; su cierre consta en el checklist, no en la carpeta.
 
-### v0.12.0 (sin publicar) — 5 tareas
+### v0.12.0 (sin publicar) — 6 tareas
 
 | Tarea | Título | Cierre |
 |---|---|---|
+| TASK-086 | Descontar las pausas de las duraciones de las métricas | 2026-11-07 |
 | TASK-085 | Coste de implementación registrado automáticamente | 2026-11-07 |
 | TASK-083 | Cierre sin ronda 2 completa cuando solo quedan MENORES | 2026-11-07 |
 | TASK-082 | Autorrevisión del implementador antes de pedir revisión | 2026-11-07 |
