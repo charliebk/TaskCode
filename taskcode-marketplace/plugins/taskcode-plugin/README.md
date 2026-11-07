@@ -650,9 +650,20 @@ algún error (los avisos no cuentan). Comprueba:
 - **Config**: `.taskcode/config.yml` con el mismo validador que el resto de comandos
   (un valor inválido es error con su mensaje; una clave desconocida, aviso).
 - **Verificación**: si la config declara `comando_verificacion` (ver abajo), `ok`
-  con el comando y su timeout; sin él, `omitida` con el arreglo en la misma línea.
-  No es un aviso: un proyecto sin frenos de verificación no está mal configurado.
-  `doctor` no ejecuta el comando.
+  con el comando y su timeout. Sin él, depende de si el proyecto tiene tests en
+  su raíz:
+  - **Con tests detectables**: `aviso`, con el comando propuesto listo para pegar
+    en la config. Los frenos no actúan aunque haya con qué verificar. Detecta
+    `package.json` con script `test` propio (`pnpm`, `yarn` o `npm` según el
+    fichero de bloqueo; el `test` que deja `npm init` no cuenta), `Cargo.toml`,
+    `pom.xml` y `build.gradle(.kts)` (con `mvnw`/`gradlew` si existen),
+    `*.csproj`/`*.sln`, `go.mod` y `pyproject.toml` que mencione pytest. Si hay
+    varios, propone sus comandos encadenados con `&&`.
+  - **Sin tests detectables**: `omitida`, con el arreglo en la misma línea. Un
+    proyecto sin tests no está mal configurado.
+
+  Solo mira la raíz (desde ahí se ejecuta el comando): un manifiesto en una
+  subcarpeta no cuenta. `doctor` no ejecuta el comando ni escribe la config.
 - **Tareas**: cada `tarea.md` se lee y valida, y su `estado` tiene que ser el de
   su carpeta. Son errores, con el ID: un ID en dos carpetas, un `tarea.md` ilegible
   (con la ruta y la causa), una carpeta de tarea sin `tarea.md`, un estado distinto

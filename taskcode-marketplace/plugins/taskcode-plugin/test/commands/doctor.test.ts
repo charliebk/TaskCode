@@ -327,6 +327,100 @@ test('verificacion (TASK-070): con comando_verificacion, ok con el comando y el 
   });
 });
 
+/** Escribe ficheros en el repo y los commitea (el workspace queda limpio). */
+async function ficheros(repoRoot: string, fs: Record<string, string>): Promise<void> {
+  for (const [rel, contenido] of Object.entries(fs)) {
+    await mkdir(path.dirname(path.join(repoRoot, rel)), { recursive: true });
+    await writeFile(path.join(repoRoot, rel), contenido, 'utf8');
+  }
+  commitAll(repoRoot, 'manifiestos');
+}
+
+const PKG_CON_TEST = JSON.stringify({ name: 'x', scripts: { test: 'node --test' } });
+const WIN = process.platform === 'win32';
+
+const CASOS_TASK_088: { tipo: string; fs: Record<string, string>; comando: string }[] = [
+  { tipo: 'Node con npm', fs: { 'package.json': PKG_CON_TEST }, comando: 'npm test' },
+  { tipo: 'Node con pnpm', fs: { 'package.json': PKG_CON_TEST, 'pnpm-lock.yaml': '' }, comando: 'pnpm test' },
+  { tipo: 'Node con yarn', fs: { 'package.json': PKG_CON_TEST, 'yarn.lock': '' }, comando: 'yarn test' },
+  { tipo: 'Rust', fs: { 'Cargo.toml': '[package]\nname = "x"\n' }, comando: 'cargo test' },
+  { tipo: 'Maven', fs: { 'pom.xml': '<project/>\n' }, comando: 'mvn test' },
+  {
+    tipo: 'Maven con wrapper',
+    fs: { 'pom.xml': '<project/>\n', mvnw: '#!/bin/sh\n', 'mvnw.cmd': '@echo off\n' },
+    comando: WIN ? 'mvnw test' : './mvnw test',
+  },
+  { tipo: 'Gradle', fs: { 'build.gradle.kts': '\n' }, comando: 'gradle test' },
+  { tipo: '.NET con .csproj', fs: { 'App.csproj': '<Project/>\n' }, comando: 'dotnet test' },
+  { tipo: '.NET con .sln', fs: { 'App.sln': '\n' }, comando: 'dotnet test' },
+  { tipo: 'Go', fs: { 'go.mod': 'module x\n' }, comando: 'go test ./...' },
+  { tipo: 'Python con pytest', fs: { 'pyproject.toml': '[tool.pytest.ini_options]\n' }, comando: 'python -m pytest' },
+  {
+    tipo: 'Tauri (Node + Rust)',
+    fs: { 'package.json': PKG_CON_TEST, 'Cargo.toml': '[package]\n' },
+    comando: 'npm test && cargo test',
+  },
+];
+
+for (const caso of CASOS_TASK_088) {
+  test(`verificacion (TASK-088): sin comando_verificacion y con tests (${caso.tipo}), aviso con el comando propuesto`, async () => {
+    await conRepo(async (repoRoot) => {
+      await ficheros(repoRoot, caso.fs);
+      const r = doctor(repoRoot);
+      const c = por(r.comprobaciones, 'verificacion');
+      assert.equal(c.nivel, 'aviso', niveles(r.comprobaciones));
+      assert.match(c.mensaje, /sin comando_verificacion y el proyecto tiene tests/);
+      assert.equal(c.arreglo, `Declara en .taskcode/config.yml: comando_verificacion: "${caso.comando}"`);
+      assert.equal(r.codigo, 0, niveles(r.comprobaciones));
+    });
+  });
+}
+
+test('verificacion (TASK-088): manifiestos que no son tests, o en una subcarpeta, siguen en omitida', async () => {
+  await conRepo(async (repoRoot) => {
+    await ficheros(repoRoot, {
+      'package.json': JSON.stringify({ scripts: { test: 'echo "Error: no test specified" && exit 1' } }),
+      'pyproject.toml': '[project]\nname = "x"\n',
+      'sub/Cargo.toml': '[package]\n',
+      'otro/pom.xml': '<project/>\n',
+    });
+    const r = doctor(repoRoot);
+    const c = por(r.comprobaciones, 'verificacion');
+    assert.equal(c.nivel, 'omitida', c.mensaje);
+    assert.match(c.mensaje, /declara en \.taskcode\/config\.yml: comando_verificacion: "<tu comando de tests>"/);
+  });
+});
+
+test('verificacion (TASK-088): con la clave declarada, ok aunque haya manifiestos', async () => {
+  await conRepo(async (repoRoot) => {
+    await ficheros(repoRoot, { 'Cargo.toml': '[package]\n' });
+    await config(repoRoot, 'comando_verificacion: "cargo test --all"\n');
+    const c = por(doctor(repoRoot).comprobaciones, 'verificacion');
+    assert.equal(c.nivel, 'ok');
+    assert.match(c.mensaje, /cargo test --all/);
+  });
+});
+
+test('verificacion (TASK-088): con la config rota, omitida aunque haya manifiestos', async () => {
+  await conRepo(async (repoRoot) => {
+    await ficheros(repoRoot, { 'Cargo.toml': '[package]\n' });
+    await config(repoRoot, 'timeout_verificacion: 0\n');
+    assert.equal(por(doctor(repoRoot).comprobaciones, 'verificacion').nivel, 'omitida');
+  });
+});
+
+test('verificacion (TASK-088): por el CLI con --json, el aviso sale con su arreglo y codigo 0', async () => {
+  await conRepo(async (repoRoot) => {
+    await ficheros(repoRoot, { 'go.mod': 'module x\n' });
+    const r = cli(repoRoot, ['doctor', '--json']);
+    const json = JSON.parse(r.stdout) as { comprobaciones: Comprobacion[] };
+    const c = por(json.comprobaciones, 'verificacion');
+    assert.equal(c.nivel, 'aviso');
+    assert.equal(c.arreglo, 'Declara en .taskcode/config.yml: comando_verificacion: "go test ./..."');
+    assert.equal(r.status, 0, r.stdout);
+  });
+});
+
 test('verificacion (TASK-070): con la config rota, omitida; un timeout invalido es error de config', async () => {
   await conRepo(async (repoRoot) => {
     await config(repoRoot, 'comando_verificacion: npm test\ntimeout_verificacion: 0\n');

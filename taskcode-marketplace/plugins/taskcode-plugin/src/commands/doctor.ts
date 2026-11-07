@@ -44,6 +44,8 @@ import {
   type Comprobacion,
 } from '../core/doctor.js';
 import { resolverConfigConAvisos, CONFIG_DEFAULTS, type TaskcodeConfig } from '../core/config.js';
+import { comandoPropuesto, type ComandoTests } from '../core/comando-tests.js';
+import { detectarComandosTests } from '../fs/deteccion-tests.js';
 import { hostDeRemoto, ocultarCredenciales, CLI_PLATAFORMA } from '../core/plataforma-remota.js';
 import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
@@ -395,13 +397,36 @@ function comprobarConfig(cwd: string): { cs: Comprobacion[]; cfg: TaskcodeConfig
 
 /**
  * TASK-070: si el proyecto declara como se verifica. Solo informa: no ejecuta
- * el comando (eso es de los frenos). Sin la clave es `omitida` y no `aviso`:
- * un proyecto sin frenos no esta mal configurado, y un aviso permanente en
- * cada repo que no los use dejaria de leerse. El arreglo va en el mensaje.
+ * el comando (eso es de los frenos).
+ *
+ * Sin la clave, depende de si el proyecto tiene tests (TASK-088, que matiza a
+ * proposito la decision de TASK-070):
+ * - Sin tests detectables en la raiz: `omitida`, como en TASK-070. Un proyecto
+ *   sin tests no esta mal configurado, y un aviso permanente en cada repo que
+ *   no los use dejaria de leerse. El arreglo va en el mensaje.
+ * - Con tests detectables: `aviso` con el comando propuesto. Ahi si esta mal
+ *   configurado: los frenos (hook Stop, puerta de finish, guardian de merges)
+ *   no actuan aunque haya con que verificar.
+ *
+ * `detectar` solo se llama cuando falta la clave: la lectura de disco no se
+ * paga en los proyectos ya configurados.
  */
-export function comprobarVerificacion(cfg: TaskcodeConfig | null): Comprobacion {
+export function comprobarVerificacion(
+  cfg: TaskcodeConfig | null,
+  detectar: () => readonly ComandoTests[] = () => []
+): Comprobacion {
   if (cfg === null) return omitida('verificacion', 'config invalida: no se sabe como se verifica el proyecto (ver config)');
   if (cfg.comando_verificacion === null) {
+    const detectados = detectar();
+    const propuesto = comandoPropuesto(detectados);
+    if (propuesto !== null) {
+      return aviso(
+        'verificacion',
+        `sin comando_verificacion y el proyecto tiene tests (${detectados.map((d) => d.motivo).join(', ')}): ` +
+          'los frenos de verificacion no actuan',
+        `Declara en .taskcode/config.yml: comando_verificacion: "${propuesto}"`
+      );
+    }
     return omitida(
       'verificacion',
       'sin comando_verificacion: los frenos de verificacion no actuan. Para activarlos, declara en ' +
@@ -671,7 +696,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo, deps.timeoutGitMs ?? TIMEOUT_GIT_MS)));
 
   cs.push(...csConfig);
-  cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg)));
+  cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg, () => detectarComandosTests(cwd))));
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
   cs.push(
     ...envolver('plataforma', () =>
