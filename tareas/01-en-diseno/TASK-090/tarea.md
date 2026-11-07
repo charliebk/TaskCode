@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 84782
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-07
@@ -37,3 +37,9 @@ El test sin-literales-secretos de TASK-089 tolera por valor la clave de ejemplo 
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T21:10:36Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-07T21:12:41Z | diseno | agente:a269401a4a2993ca0 | 8 | 23575 | 55275 | 5924 | 6 | 84782 |
