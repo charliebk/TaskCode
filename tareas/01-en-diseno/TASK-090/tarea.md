@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [seguridad, tests]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-090-el-guardian-de-secretos-tolera-excepcion
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ El test sin-literales-secretos de TASK-089 tolera por valor la clave de ejemplo 
 - [ ] Una contraprueba del test demuestra que un valor permitido en un fichero historico sigue en rojo en otro fichero
 - [ ] El test pasa sobre el arbol actual, incluidos los ficheros de TASK-066 y TASK-089 ya publicados en origin
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por |
+|---|---|---|---|
+| 2026-11-07T21:10:36Z | plan | automatico | persona |
