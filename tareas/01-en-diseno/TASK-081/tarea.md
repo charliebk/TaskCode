@@ -28,7 +28,7 @@ Con la 0.8 los tokens de revision de una tarea media pasaron de 3.3 M a 6.8 M de
 
 ## Criterios de aceptacion
 - [ ] taskctl metricas --tokens muestra por tarea las lecturas de cada revisor y ronda, sacadas de la transcripcion del subagente, y lo cubren tests con repos Git temporales
-- [ ] La peticion de revision declara una lista de ficheros de contexto permitidos y la skill revisora comun manda no leer fuera de ella salvo justificandolo en el informe
+- [ ] `peticion-revision-N[-skill].md` trae `## Contexto permitido` (carpeta de la tarea y ficheros del diff, sin ficheros fuera del diff ni tests reservados), `skills/task-workflow/revision.md` tiene la seccion `Lo que lees` que manda no leer fuera de ella salvo justificandolo, y el informe trae `## Lecturas fuera del contexto permitido`; lo cubren tests de `review` y de las skills
 - [ ] taskctl review en ronda 2 sugiere un modelo mas barato cuando la ronda 1 no dejo CRITICOS abiertos, y la sugerencia queda en la peticion
 - [ ] docs/METRICAS.md documenta las lecturas por revisor y el objetivo de volver a 3-4 M de tokens de revision en tareas medias
 - [ ] npm test en verde (salvo los tres rojos conocidos de Windows)
