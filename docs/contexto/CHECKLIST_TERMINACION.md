@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 98 / 99 items terminados (99%)** · última actualización: 2026-11-07
+**Progreso global: 99 / 99 items terminados (100%)** · última actualización: 2026-11-07
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -38,8 +38,8 @@ tomada y documentada, no aplazada.
 | ✅ K — Frenos de verificación con hooks | 8 | **8** | — |
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
-| N — Mejoras tras las métricas de la 0.8 | 9 | **8** | — |
-| **Total pendiente** | **1** | — | — |
+| N — Mejoras tras las métricas de la 0.8 | 9 | **9** | — |
+| **Total pendiente** | **0** | — | — |
 
 ---
 
@@ -1004,7 +1004,7 @@ Revisores por pares y roles del brainstorm para dominios que el plugin no cubria
 
 ---
 
-## N — Mejoras tras las métricas de la 0.8 (8/9)
+## N — Mejoras tras las métricas de la 0.8 (9/9)
 
 Abierta el 2026-11-07 tras medir ToolsaWeb con `taskctl metricas` (51 tareas
 con la 0.8): calidad estable, pero tokens de revisión casi el doble, ninguna
@@ -1082,4 +1082,10 @@ dependencias en `docs/ROADMAP.md`.
       (`package.json` con `test` propio, Cargo, Maven, Gradle, .NET, Go, pytest) y
       propone el comando (gestor según el lock, wrappers, varios con `&&`); sin
       tests sigue `omitida`. Revisión: 2 rondas, 3 MENOR corregidos, aprobada.*
-- [ ] TASK-089 — Evitar literales con forma de secreto en el repo y tags de versión que faltan
+- [x] TASK-089 — Evitar literales con forma de secreto en el repo y tags de versión que faltan — cerrada el 2026-11-07
+      *Las claves falsas de los tests viven troceadas en `test/helpers/claves-falsas.ts`, y
+      `test/empaquetado/sin-literales-secretos.test.ts` recorre `git ls-files` con los patrones de
+      push protection (sin `\b` delante: una clave tras un `\n` escrito como texto también casa) y
+      una lista blanca de tres valores exactos de informes históricos. Tags anotados v0.9.0
+      (`df59da2`) y v0.10.0 (`b85f37e`) creados y en origin. Revisión: aprobada en ronda 1, dos
+      MENOR aceptados (solo mira lo rastreado; los patrones son un subconjunto de los de GitHub).*

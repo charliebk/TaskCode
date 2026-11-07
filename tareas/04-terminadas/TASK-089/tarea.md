@@ -29,7 +29,7 @@ La proteccion de GitHub bloqueo el push de 0.11.0 por una clave de Stripe falsa 
 ## Criterios de aceptacion
 - [x] Un test de la suite falla si algun fichero versionado contiene un literal que case con los patrones de clave de GitHub (Stripe, AWS, GitHub...) sin trocear
 - [x] Los fixtures de doctor-deploy construyen sus claves troceadas y siguen detectandose; sus tests en verde
-- [ ] Existen los tags anotados v0.9.0 y v0.10.0 en los commits de esas versiones y estan en origin
+- [x] Existen los tags anotados v0.9.0 y v0.10.0 en los commits de esas versiones y estan en origin
 - [x] npm test en verde (salvo los tres rojos conocidos de Windows)
 
 ## Resultado
@@ -65,7 +65,8 @@ codificaciones UTF-16/URL. Dos MENOR, aceptados sin corregir:
   Face...). Se acepta: hoy no hay ninguno en el repo y la lista es local y facil de ampliar.
 
 **Tags.** v0.9.0 (`df59da2`) y v0.10.0 (`b85f37e`), anotados sobre el commit del cambio de
-version como v0.8.0 y v0.11.0; se crean y empujan tras el merge (CA3).
+version como v0.8.0 y v0.11.0; creados y empujados tras el merge. `git cat-file -t` da `tag` en los dos, y
+`git ls-remote --tags origin` lista `v0.9.0^{}` → `df59da2` y `v0.10.0^{}` → `b85f37e`.
 
 ## Transiciones
 
