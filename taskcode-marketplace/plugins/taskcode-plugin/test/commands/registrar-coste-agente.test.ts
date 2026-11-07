@@ -183,6 +183,8 @@ test('TASK-063 --agente: deja la fila con el desglose y las lecturas del .jsonl,
           salida: USO_EJEMPLO.salida,
           lecturas: 9,
           total: USO_EJEMPLO.tokens,
+          ronda: null,
+          revisor: null,
         }
       );
       // Un solo commit, con solo tarea.md, que lleva a la vez la fila y el total.
@@ -191,7 +193,7 @@ test('TASK-063 --agente: deja la fila con el desglose y las lecturas del .jsonl,
       assert.deepEqual(git(['show', '--name-only', '--format=', 'HEAD'], repo).trim().split('\n'), [rel]);
       const diff = git(['show', '--format=', 'HEAD'], repo);
       assert.match(diff, /^\+tokens_implementacion: 602$/m);
-      assert.match(diff, /^\+\| \S+ \| implementacion \| agente:a1b2c3d4e5f60718 \| 33 \| 50 \| 500 \| 19 \| 9 \| 602 \|$/m);
+      assert.match(diff, /^\+\| \S+ \| implementacion \| agente:a1b2c3d4e5f60718 \| 33 \| 50 \| 500 \| 19 \| 9 \| 602 \| - \| - \|$/m);
       assert.equal(git(['status', '--porcelain'], repo).trim(), '');
     });
   });
@@ -203,15 +205,15 @@ test('TASK-063: varios --agente suman el desglose en UNA fila; --tokens deja otr
       await hastaCodigo(repo, tareasRoot);
       await transcripcion(config, 'proy-1', 'sesion-1', A, TRANSCRIPCION_EJEMPLO.split('\n'));
       await transcripcion(config, 'proy-2', 'sesion-2', B, [linea('m1', 40, 10)]);
-      assert.equal(coste(repo, config, [ID, '--fase', 'revision', '--agente', A, '--agente', B]).status, 0);
-      assert.equal(coste(repo, config, [ID, '--fase', 'revision', '--tokens', '1000']).status, 0);
+      assert.equal(coste(repo, config, [ID, '--fase', 'diseno', '--agente', A, '--agente', B]).status, 0);
+      assert.equal(coste(repo, config, [ID, '--fase', 'diseno', '--tokens', '1000']).status, 0);
 
-      assert.deepEqual(await valor(tareasRoot), [null, null, USO_EJEMPLO.tokens + 50 + 1000]);
+      assert.deepEqual(await valor(tareasRoot), [USO_EJEMPLO.tokens + 50 + 1000, null, null]);
       const filas = leerCostes((await cuerpo(tareasRoot)).body).map((f) => ({ ...f, fecha: '' }));
       assert.deepEqual(filas, [
         {
           fecha: '',
-          fase: 'revision',
+          fase: 'diseno',
           fuente: `agente:${A},${B}`,
           entrada: USO_EJEMPLO.entrada + 40,
           cacheEscritura: USO_EJEMPLO.cacheEscritura,
@@ -219,10 +221,12 @@ test('TASK-063: varios --agente suman el desglose en UNA fila; --tokens deja otr
           salida: USO_EJEMPLO.salida + 10,
           lecturas: USO_EJEMPLO.lecturas,
           total: USO_EJEMPLO.tokens + 50,
+          ronda: null,
+          revisor: null,
         },
         {
           fecha: '',
-          fase: 'revision',
+          fase: 'diseno',
           fuente: 'manual',
           entrada: null,
           cacheEscritura: null,
@@ -230,12 +234,14 @@ test('TASK-063: varios --agente suman el desglose en UNA fila; --tokens deja otr
           salida: null,
           lecturas: null,
           total: 1000,
+          ronda: null,
+          revisor: null,
         },
       ]);
       // La suma de las filas cuadra con el total del frontmatter.
       assert.equal(
         filas.reduce((s, f) => s + f.total, 0),
-        (await valor(tareasRoot))[2]
+        (await valor(tareasRoot))[0]
       );
     });
   });

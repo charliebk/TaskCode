@@ -30,6 +30,7 @@
  * que importa es la tendencia entre tareas, no la cifra exacta. Sin ningun
  * `tool_use`, `lecturas` es 0.
  */
+import { PETICION_REVISION_EN_TEXTO_RE } from '../fs/rondas.js';
 /** agentId que devuelve la herramienta Agent: hexadecimal. Se valida antes de componer rutas. */
 const AGENT_ID_RE = /^[0-9a-f]{6,64}$/i;
 export function esAgentIdValido(id) {
@@ -152,4 +153,51 @@ export function sumarUsoTranscripcion(texto) {
     }
     const tokens = suma.entrada + suma.cacheEscritura + suma.cacheLectura + suma.salida;
     return { tokens, llamadas, ...suma, lecturas: lecturasPorId.size + lecturasSinId };
+}
+// --- Ronda y revisor de un subagente de revision (TASK-081) ------------------
+/** Texto de un `message.content`: un string, o los bloques `{type:"text",text}` de un array. */
+function textoDeContenido(contenido) {
+    if (typeof contenido === 'string')
+        return contenido;
+    if (!Array.isArray(contenido))
+        return '';
+    return contenido
+        .map((b) => (esObjeto(b) && b['type'] === 'text' && typeof b['text'] === 'string' ? b['text'] : ''))
+        .join('\n');
+}
+/**
+ * A que ronda y a que revisor pertenece un subagente de revision, deducido de
+ * su transcripcion: el PRIMER mensaje `type: "user"` es el prompt con el que se
+ * lo lanzo, y `skills/review` exige que lleve la ruta de su peticion
+ * (`.../revision/peticion-revision-<N>[-<skill>].md`). El revisor es el sufijo
+ * ('' si la ronda no se fragmento: la misma clave que `InformeLeido.revisor`).
+ * Solo se mira ese primer mensaje: los siguientes citan peticiones de otras
+ * rondas. null si no hay mensaje de usuario o no nombra una peticion; quien
+ * llama lo trata como «sin atribuir», nunca como la ronda 1.
+ *
+ * El formato de la transcripcion es de Claude Code, no nuestro: se acepta el
+ * contenido como string (lo que hay hoy) o como bloques de texto.
+ */
+export function rondaYRevisorDeTranscripcion(texto) {
+    for (const linea of texto.split(/\r?\n/)) {
+        if (linea.trim() === '')
+            continue;
+        let obj;
+        try {
+            obj = JSON.parse(linea);
+        }
+        catch {
+            continue;
+        }
+        if (!esObjeto(obj) || obj['type'] !== 'user')
+            continue;
+        const mensaje = obj['message'];
+        const prompt = textoDeContenido(esObjeto(mensaje) ? mensaje['content'] : undefined);
+        const m = PETICION_REVISION_EN_TEXTO_RE.exec(prompt);
+        if (m === null)
+            return null;
+        const ronda = Number(m[1]);
+        return Number.isSafeInteger(ronda) ? { ronda, revisor: m[2] ?? '' } : null;
+    }
+    return null;
 }

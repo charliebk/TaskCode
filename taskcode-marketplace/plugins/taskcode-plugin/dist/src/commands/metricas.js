@@ -35,6 +35,11 @@
  * TASK-084: `--por-version` agrupa las terminadas por la version de taskctl
  * de su ultimo `finish` (`core/versiones-metricas.ts`). Es otro agregado,
  * como `--evolucion` y `--grupos`: se combina con ellos y con `--json`.
+ *
+ * TASK-081: con `--tokens`, bajo la tabla y APARTE de ella, un bloque con las
+ * lecturas, la entrada y la cache_lectura de cada (ronda, revisor) de `## Coste`
+ * y los CRITICO/IMPORTANTE de su informe; `--json` lo lleva en `lecturasRevision`.
+ * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -43,7 +48,7 @@ import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, TASK_COMPLEXITIES } from '../core/task.js';
 import { cargarHeuristica, nivelHeuristico, puntuarTarea } from '../core/heuristica.js';
 import { leerTransiciones } from '../core/transiciones.js';
-import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, COLUMNA_PROYECTO, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, etiquetaTarea, notasFilaEnriquecida, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, resumenSinCoste, } from '../core/metricas.js';
+import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, COLUMNA_PROYECTO, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, etiquetaTarea, notasFilaEnriquecida, formatearLecturasRevision, lecturasRevisionJson, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, resumenSinCoste, } from '../core/metricas.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme, } from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
@@ -398,6 +403,7 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
                 tareas: filas.filter((f) => f.proyecto === r.proyecto).length,
             })),
             sinCoste: resumenSinCoste(filas),
+            lecturasRevision: lecturasRevisionJson(filas),
             ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
             ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
             ...(conPorVersion ? { porVersion: calcularPorVersion(filas) } : {}),
@@ -455,6 +461,7 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
             NOTA_TOKENS,
             NOTA_DESGLOSE_TOKENS,
             '',
+            ...formatearLecturasRevision(f, varios),
         ];
     };
     let metricasPath = null;

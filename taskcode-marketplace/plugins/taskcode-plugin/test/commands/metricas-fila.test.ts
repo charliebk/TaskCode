@@ -55,6 +55,8 @@ function agente(fase: FilaCoste['fase'], id: string, lecturas: number): FilaCost
     salida: 40,
     lecturas,
     total: 370,
+    ronda: null,
+    revisor: null,
   };
 }
 

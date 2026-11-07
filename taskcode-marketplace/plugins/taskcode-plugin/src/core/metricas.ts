@@ -48,8 +48,17 @@
  */
 import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre, type PrecisionFecha } from './transiciones.js';
 import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState, type TaskType } from './task.js';
-import { FASES_COSTE, leerCostes, resumirCostes, type FaseCoste, type ResumenCostes } from './coste-registro.js';
 import {
+  FASES_COSTE,
+  leerCostes,
+  lecturasDeRevision,
+  resumirCostes,
+  type FaseCoste,
+  type LecturasDeRevisor,
+  type ResumenCostes,
+} from './coste-registro.js';
+import {
+  leerHallazgos,
   resumirHallazgos,
   veredictoDeRonda,
   type InformeLeido,
@@ -118,6 +127,18 @@ export function etiquetaTarea(f: { proyecto: string; id: string }, varios: boole
   return varios ? `${f.proyecto}/${f.id}` : f.id;
 }
 
+/**
+ * Un (ronda, revisor) de una tarea (TASK-081): lo que costo y leyo, junto a lo
+ * que encontro. `critico` e `importante` son null si no hay informe de ese
+ * revisor y ronda, o su informe no tiene tabla de hallazgos legible; 0 solo
+ * cuando la tabla existe y no tiene ninguno. El grupo «sin atribuir»
+ * (`ronda` null) nunca tiene hallazgos: no se sabe de que informe es.
+ */
+export interface LecturaRevisorFila extends LecturasDeRevisor {
+  critico: number | null;
+  importante: number | null;
+}
+
 export interface FilaMetricas {
   /** Nombre del proyecto (la carpeta del repo); '' si quien llama no lo da. */
   proyecto: string;
@@ -142,6 +163,12 @@ export interface FilaMetricas {
   coste: ResumenCostes;
   /** Hallazgos de todas las rondas, una vez por revisor + ID; ver los null en `ResumenHallazgos`. */
   hallazgos: ResumenHallazgos;
+  /**
+   * TASK-081: lecturas, entrada y cache_lectura de cada (ronda, revisor) de
+   * `## Coste`, con los CRITICO/IMPORTANTE de su informe. Vacio = ninguna fila
+   * de revision. Los null son «sin dato», nunca 0 (ver `LecturaRevisorFila`).
+   */
+  lecturasRevision: LecturaRevisorFila[];
   /** Una entrada por ronda con peticion; vacio = sin peticiones de revision (no medido). */
   kbPeticionPorRonda: PeticionRonda[];
   /**
@@ -304,11 +331,23 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
       revision: e.task.tokens_revision,
     }),
     hallazgos: resumirHallazgos(e.informes ?? []),
+    lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
     total: duracionEntre(marcas.plan, marcas.finish),
     veredictoRonda1: veredictoRonda1(e.informes ?? []),
     versionCierre: versionDeCierre(e.body),
   };
+}
+
+function lecturasRevisionDe(body: string, informes: readonly InformeLeido[]): LecturaRevisorFila[] {
+  return lecturasDeRevision(leerCostes(body)).map((g) => {
+    const deEse = g.ronda === null ? [] : informes.filter((i) => i.ronda === g.ronda && i.revisor === g.revisor);
+    const lecturas = deEse.map((i) => leerHallazgos(i.texto));
+    if (lecturas.length === 0 || lecturas.some((l) => !l.tabla)) return { ...g, critico: null, importante: null };
+    const cuenta = (sev: 'CRITICO' | 'IMPORTANTE'): number =>
+      lecturas.reduce((a, l) => a + l.hallazgos.filter((h) => h.severidadReconocida === sev).length, 0);
+    return { ...g, critico: cuenta('CRITICO'), importante: cuenta('IMPORTANTE') };
+  });
 }
 
 function veredictoRonda1(informes: readonly InformeLeido[]): VeredictoInforme | null {
@@ -850,4 +889,52 @@ export function lineaSinCoste(r: ResumenSinCoste, varios = false): string {
     `(${FASES_COSTE.map((k) => `${k} ${String(r.porFase[k])}`).join(', ')}): ${primeras}` +
     (resto > 0 ? ` y ${String(resto)} mas (lista completa con --json).` : '.')
   );
+}
+
+// --- Lecturas por revisor y ronda (TASK-081) ---------------------------------
+
+function celdaOAusente(n: number | null): string {
+  return n === null ? '—' : String(n);
+}
+
+export const NOTA_LECTURAS_REVISION =
+  'Lecturas de revision por tarea, ronda y revisor (de "## Coste", fase revision, una fila por agente): ' +
+  'lecturas = LLAMADAS de lectura del revisor, no bytes ni causa de los tokens (no ve "cd x && cat y"); ' +
+  'entrada y cache_lect, sus tokens de esas filas; crit e imp, los CRITICO e IMPORTANTE de su informe. ' +
+  '«—» = sin dato (no es 0): ronda y revisor «—» = fila sin atribuir (anterior a TASK-081 o su ' +
+  'transcripcion no nombra la peticion); crit e imp «—» = sin informe de ese revisor o sin tabla legible. ' +
+  'Revisor "(sin fragmentar)" = ronda sin sufijo.';
+
+/** Bloque aparte bajo la tabla de `--tokens`: una linea por (tarea, ronda, revisor). Vacio si ninguna tarea tiene filas de revision. */
+export function formatearLecturasRevision(filas: readonly FilaMetricas[], varios = false): string[] {
+  const celdas = filas.flatMap((f) =>
+    f.lecturasRevision.map((g) => [
+      etiquetaTarea(f, varios),
+      g.ronda === null ? '—' : String(g.ronda),
+      g.revisor === null ? '—' : g.revisor === '' ? '(sin fragmentar)' : g.revisor,
+      celdaOAusente(g.lecturas),
+      celdaOAusente(g.entrada),
+      celdaOAusente(g.cacheLectura),
+      celdaOAusente(g.critico),
+      celdaOAusente(g.importante),
+    ])
+  );
+  if (celdas.length === 0) return [];
+  return [
+    'Lecturas de revision por revisor y ronda:',
+    tablaDeTexto(['tarea', 'ronda', 'revisor', 'lecturas', 'entrada', 'cache_lect', 'crit', 'imp'], celdas),
+    '',
+    NOTA_LECTURAS_REVISION,
+    '',
+  ];
+}
+
+/** Forma de `--json` (TASK-081): una entrada por (tarea, ronda, revisor); los null son «sin dato». */
+export interface LecturaRevisionJson extends LecturaRevisorFila {
+  proyecto: string;
+  id: string;
+}
+
+export function lecturasRevisionJson(filas: readonly FilaMetricas[]): LecturaRevisionJson[] {
+  return filas.flatMap((f) => f.lecturasRevision.map((g) => ({ proyecto: f.proyecto, id: f.id, ...g })));
 }
