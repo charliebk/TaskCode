@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 1444672
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-07
@@ -37,3 +37,9 @@ En ToolsaWeb falta el coste de implementacion en 97 de 119 tareas, asi que el co
 | fecha | fase | modo | decidido_por |
 |---|---|---|---|
 | 2026-11-07T11:58:23Z | plan | automatico | persona |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-07T12:05:43Z | diseno | agente:a65224b999240bfbb,aa5ddc57d52c649a3,a199d2b1441f10c5d | 62 | 161568 | 1252929 | 30113 | 44 | 1444672 |
