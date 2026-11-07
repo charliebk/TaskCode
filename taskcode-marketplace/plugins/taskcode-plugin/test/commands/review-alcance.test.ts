@@ -199,6 +199,15 @@ test('alcance (TASK-083): el delta toca un fichero que ningun hallazgo nombraba 
   });
 });
 
+test('alcance (TASK-083): con mas de cinco ficheros no nombrados, el motivo nombra cinco y cuenta el resto', async () => {
+  await conRonda1([JAVA], async (ctx, r1) => {
+    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
+    await ctx.corregir([JAVA, ...['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => `extra/${x}.txt`)]);
+    const r2 = await ctx.review();
+    esCompleta(r2, /: extra\/a\.txt, extra\/b\.txt, extra\/c\.txt, extra\/d\.txt, extra\/e\.txt \(y 2 mas\)$/);
+  });
+});
+
 test('alcance (TASK-083): un merge de develop dentro del delta -> completa', async () => {
   await conRonda1([JAVA], async (ctx, r1) => {
     await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);

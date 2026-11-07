@@ -611,7 +611,9 @@ export async function runReviewCommand(
     else if (desde === baseBranch) motivoAlcance = 'no hay diff de correcciones: el diff va desde la rama base';
     else if (hayMergesEntre(desde, 'HEAD', deps.repoCwd)) motivoAlcance = `hay commits de merge entre ${desde} y HEAD`;
     else if (fuera.length > 0) {
-      motivoAlcance = `el diff toca ficheros que ningun hallazgo nombraba: ${fuera.join(', ')}`;
+      // Cinco bastan para el motivo: es una linea de cabecera, no la lista.
+      const resto = fuera.length > 5 ? ` (y ${fuera.length - 5} mas)` : '';
+      motivoAlcance = `el diff toca ficheros que ningun hallazgo nombraba: ${fuera.slice(0, 5).join(', ')}${resto}`;
     } else {
       acotada = true;
       motivoAlcance = `${previa.alcance.motivo} y el diff solo toca sus ficheros`;

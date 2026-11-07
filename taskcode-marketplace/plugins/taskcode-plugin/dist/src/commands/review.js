@@ -418,7 +418,9 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
         else if (hayMergesEntre(desde, 'HEAD', deps.repoCwd))
             motivoAlcance = `hay commits de merge entre ${desde} y HEAD`;
         else if (fuera.length > 0) {
-            motivoAlcance = `el diff toca ficheros que ningun hallazgo nombraba: ${fuera.join(', ')}`;
+            // Cinco bastan para el motivo: es una linea de cabecera, no la lista.
+            const resto = fuera.length > 5 ? ` (y ${fuera.length - 5} mas)` : '';
+            motivoAlcance = `el diff toca ficheros que ningun hallazgo nombraba: ${fuera.slice(0, 5).join(', ')}${resto}`;
         }
         else {
             acotada = true;
