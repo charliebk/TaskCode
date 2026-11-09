@@ -1,0 +1,40 @@
+---
+id: TASK-091
+titulo: "Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar"
+tipo: feature
+sprint: 0
+etiquetas: [verificacion, review, finish]
+complejidad: media
+modelo_sugerido: sonnet
+estado: planificada
+plan_aprobado: false
+rama: feature/task-091-verificacion-selectiva-por-impacto-en-la
+asignado_a: null
+agente_revisor: general-purpose
+skills_recomendados: []
+regla_seleccion_skill: null
+ultimo_commit_revisado: null
+revision_codex: false
+tokens_diseno: null
+tokens_implementacion: null
+tokens_revision: null
+creado: 2026-11-09
+actualizado: 2026-11-09
+dependencias: []
+---
+## Objetivo
+
+Urgente (pedido por Carlos el 2026-11-09, desde ToolsaWeb). La verificacion completa de un proyecto crece con cada tarea (en ToolsaWeb, `scripts\verificar.bat` ya tarda unos 40 minutos) y hoy se repite en cada ronda de revision aunque la tarea no haya tocado la capa de datos ni el frontend. TaskCode tiene que separar dos verificaciones: una **selectiva por impacto**, rapida, para la implementacion y las rondas de revision, y la **completa**, obligatoria antes de integrar, para que ninguna rama pase a otra sin comprobarlo todo. Todas las aplicaciones que usan el plugin la adoptan y sustituyen su verificador por este encaje.
+
+Encaje propuesto (sobre TASK-070 y TASK-088):
+- `comando_verificacion` sigue siendo la completa y la puerta de `finish` y del guardian de merges.
+- Nueva clave opcional `comando_verificacion_selectiva`, que recibe la rama base (`develop`) para que el proyecto decida que corre segun lo cambiado. La usan el hook `Stop` y las rondas de `review`. El mapa de capas es de cada proyecto; TaskCode solo orquesta.
+- Sin la clave nueva, todo se comporta como hoy.
+
+## Criterios de aceptacion
+- [ ] Nueva clave opcional `comando_verificacion_selectiva` en `resolverConfig` (con su timeout), con fallo cerrado ante valor invalido y defecto null; sin ella, el comportamiento de todos los comandos es identico al actual y los tests existentes pasan sin tocarlos
+- [ ] Con la clave, el hook `Stop` y `taskctl review` ejecutan la selectiva (pasandole la rama base) y la peticion de revision dice que verificacion se corrio, con su salida y si fue selectiva o completa
+- [ ] `taskctl finish` exige la completa (`comando_verificacion`) en verde sobre el commit que va a integrar, aunque las rondas usaran la selectiva; si falla o no se ha corrido, no integra y dice como correrla
+- [ ] `taskctl doctor` avisa cuando un proyecto tiene `comando_verificacion` pero no `comando_verificacion_selectiva`, con el arreglo en la misma linea
+- [ ] Tests contra repos Git temporales reales (sin mocks): selectiva en review, completa obligatoria en finish, sin clave igual que antes
+- [ ] Guia de migracion para los proyectos que usan el plugin (como escribir el clasificador por impacto, que cambios fuerzan la completa y como declarar las dos claves), y tabla de claves de config, README, CHANGELOG y ROADMAP al dia
