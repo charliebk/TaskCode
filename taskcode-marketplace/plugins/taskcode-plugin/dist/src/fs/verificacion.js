@@ -15,6 +15,15 @@
  * El memo vive bajo `.git/` (`git rev-parse --git-path`), nunca en el
  * workspace: alli ensuciaria el arbol y cambiaria su propia huella. Tampoco
  * bajo la carpeta del plugin, que cambia al actualizarlo.
+ *
+ * DOS TIPOS, DOS MEMOS (TASK-091): la verificacion completa
+ * (`comando_verificacion`) y la selectiva por impacto
+ * (`comando_verificacion_selectiva`) guardan su resultado en ficheros
+ * distintos. El guardian de merges solo lee el de la completa, asi que un
+ * verde de la selectiva nunca abre la puerta, ni aunque los dos comandos
+ * tengan el mismo texto; y la selectiva del Stop tampoco pisa el verde de la
+ * completa que dejo `finish`. La huella de la selectiva lleva ademas la rama
+ * base y su commit: su resultado depende de lo cambiado respecto a ella.
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -23,8 +32,18 @@ import { spawnSync } from 'node:child_process';
 import { ejecutarAcotado, fotoDelArbol, fueCortado, MARCA_TIMEOUT } from './ejecucion-acotada.js';
 /** Bytes del final de la salida que se leen (el informe muestra menos: ver informe-verificacion). */
 const BYTES_COLA_LEIDOS = 16 * 1024;
-const FICHERO_MEMO = 'freno-verificacion.json';
+const FICHEROS_MEMO = Object.freeze({
+    completa: 'freno-verificacion.json',
+    selectiva: 'freno-verificacion-selectiva.json',
+});
 const VERSION_MEMO = 1;
+/**
+ * Variable de entorno con la que la verificacion selectiva recibe la rama
+ * base (TASK-091). Por entorno y no como argumento: el comando es entero del
+ * proyecto y no se le interpola nada (ver ejecucion-acotada). Nombre neutro:
+ * la leen proyectos ajenos.
+ */
+export const VARIABLE_RAMA_BASE = 'RAMA_BASE';
 /** Ejecuta `comando` en `raiz` con un tope de `timeoutS` segundos. Nunca lanza. */
 export function ejecutarVerificacion(raiz, comando, timeoutS, opciones = {}) {
     const timeoutMs = opciones.timeoutMs ?? timeoutS * 1000;
@@ -69,7 +88,7 @@ function git(args, cwd) {
  * trackeados). null si no se puede calcular (sin commits, git roto): sin
  * huella no hay memo, y se ejecuta siempre.
  */
-export function huellaDelArbol(raiz, comando, timeoutS) {
+export function huellaDelArbol(raiz, comando, timeoutS, contexto) {
     const head = git(['rev-parse', 'HEAD'], raiz);
     if (head === null)
         return null;
@@ -82,6 +101,9 @@ export function huellaDelArbol(raiz, comando, timeoutS) {
     }
     const h = createHash('sha1');
     h.update(`v${String(VERSION_MEMO)}\0${head}\0${comando}\0${String(timeoutS)}\0`);
+    // TASK-091: solo la selectiva trae contexto; la formula de la completa no cambia.
+    if (contexto !== undefined)
+        h.update(`ctx\0${contexto}\0`);
     for (const ruta of [...foto.keys()].sort())
         h.update(`${ruta}\0${foto.get(ruta)}\0`);
     return h.digest('hex');
@@ -102,15 +124,15 @@ export function huellaDeCommit(raiz, ref, comando, timeoutS) {
     h.update(`v${String(VERSION_MEMO)}\0${sha}\0${comando}\0${String(timeoutS)}\0`);
     return h.digest('hex');
 }
-function rutaMemo(raiz) {
-    const p = git(['rev-parse', '--git-path', FICHERO_MEMO], raiz);
+function rutaMemo(raiz, tipo) {
+    const p = git(['rev-parse', '--git-path', FICHEROS_MEMO[tipo]], raiz);
     if (p === null || p === '')
         return null;
     return path.resolve(raiz, p);
 }
 /** El resultado guardado para esa huella, o null. Un memo ilegible es como no tenerlo. */
-export function leerMemo(raiz, huella) {
-    const ruta = rutaMemo(raiz);
+export function leerMemo(raiz, huella, tipo = 'completa') {
+    const ruta = rutaMemo(raiz, tipo);
     if (ruta === null)
         return null;
     try {
@@ -125,8 +147,8 @@ export function leerMemo(raiz, huella) {
     }
 }
 /** Guarda el resultado de la ultima verificacion. Un fallo al guardar no es un fallo de la verificacion. */
-export function guardarMemo(raiz, huella, resultado) {
-    const ruta = rutaMemo(raiz);
+export function guardarMemo(raiz, huella, resultado, tipo = 'completa') {
+    const ruta = rutaMemo(raiz, tipo);
     if (ruta === null)
         return;
     const memo = { version: VERSION_MEMO, huella, resultado, fecha: new Date().toISOString() };
@@ -137,4 +159,39 @@ export function guardarMemo(raiz, huella, resultado) {
     catch {
         /* sin memo: la proxima vez se ejecuta */
     }
+}
+/**
+ * El contexto de la huella de la selectiva: la base por su nombre y por su
+ * commit (si la base avanza, lo cambiado respecto a ella tambien). Una base
+ * que no resuelve entra vacia: el script del proyecto decidira que hacer.
+ */
+function contextoSelectiva(raiz, base) {
+    const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`], raiz) ?? '';
+    return `selectiva\0${base}\0${sha}`;
+}
+/**
+ * Ejecuta la verificacion pedida, salvo que la ultima con la misma huella
+ * este guardada: entonces devuelve esa. Guarda el resultado en el memo de su
+ * tipo. No lanza por el comando (ejecutarVerificacion no lanza).
+ */
+export function verificarConMemo(raiz, p, opciones = {}) {
+    if (p.tipo === 'selectiva' && (p.base === undefined || p.base === '')) {
+        throw new Error('la verificacion selectiva necesita la rama base');
+    }
+    const contexto = p.tipo === 'selectiva' ? contextoSelectiva(raiz, p.base) : undefined;
+    const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
+    const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
+    if (guardado !== null)
+        return { resultado: guardado, deMemo: true, cambioElArbol: false };
+    const env = p.tipo === 'selectiva'
+        ? { ...(opciones.env ?? process.env), [VARIABLE_RAMA_BASE]: p.base }
+        : opciones.env;
+    const resultado = ejecutarVerificacion(raiz, p.comando, p.timeoutS, {
+        ...(opciones.timeoutMs === undefined ? {} : { timeoutMs: opciones.timeoutMs }),
+        ...(env === undefined ? {} : { env }),
+    });
+    const despues = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
+    if (despues !== null)
+        guardarMemo(raiz, despues, resultado, p.tipo);
+    return { resultado, deMemo: false, cambioElArbol: huella !== null && despues !== null && huella !== despues };
 }

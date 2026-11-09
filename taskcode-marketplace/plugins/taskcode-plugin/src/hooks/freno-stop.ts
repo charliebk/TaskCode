@@ -19,6 +19,11 @@
  *   8. Memo: misma huella del arbol que la ultima verificacion -> su resultado.
  *   9. Ejecutar. Verde -> 0. Cualquier otra cosa -> 2 con el informe.
  *
+ * Que verificacion (TASK-091): con `comando_verificacion_selectiva`, la
+ * selectiva, con la base de la tarea (la de su tipo: un hotfix va contra la
+ * principal) en RAMA_BASE y su propio memo; sin ella, la completa, como
+ * siempre. La puerta de integracion sigue siendo la completa de `finish`.
+ *
  * Contrato con Claude Code (spike TASK-069 y documentacion oficial): exit 0
  * deja parar; exit 2 bloquea y el stderr le llega al agente; exit 1 NO
  * bloquea, asi que nunca se sale con 1 por accidente: decidirStop no lanza.
@@ -29,8 +34,10 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ConfigError, raizDelRepo, resolverConfigConAvisos, type TaskcodeConfig } from '../core/config.js';
 import { formatearVerificacionRoja, type ResultadoVerificacion } from '../core/informe-verificacion.js';
+import type { Task } from '../core/task.js';
+import { resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
-import { ejecutarVerificacion, guardarMemo, huellaDelArbol, leerMemo } from '../fs/verificacion.js';
+import { verificarConMemo, type PeticionVerificacion } from '../fs/verificacion.js';
 
 /**
  * `timeout` del hook Stop en hooks/hooks.json, en segundos. Claude Code cancela
@@ -104,6 +111,7 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
   let config: TaskcodeConfig | null = null;
   let errorConfig: string | null = null;
   let rama: string | null;
+  let tipo: Task['tipo'] | null = null;
   try {
     // 3 y 4: stat y lectura de una carpeta.
     raiz = raizDelRepo(entrada.cwd);
@@ -137,7 +145,9 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
     // 6: el unico git hasta aqui.
     rama = ramaActual(raiz);
     if (rama === null || !ramas.has(rama)) return sinLeer;
-    ids = tareas.filter((t) => t.task.rama === rama).map((t) => t.task.id);
+    const deEstaRama = tareas.filter((t) => t.task.rama === rama);
+    ids = deEstaRama.map((t) => t.task.id);
+    tipo = deEstaRama[0]?.task.tipo ?? null;
   } catch {
     // Algo inesperado ANTES de saber si el freno aplica (tareas ilegibles,
     // permisos): no se puede afirmar que haya una tarea en curso aqui.
@@ -156,35 +166,44 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
           'Corrige .taskcode/config.yml y vuelve a verificar antes de dar la tarea por terminada.',
       };
     }
-    const comando = config.comando_verificacion as string;
-    const { timeoutS, recortado } = timeoutEfectivoS(config.timeout_verificacion);
+    const selectiva = config.comando_verificacion_selectiva;
+    const clave = selectiva === null ? 'timeout_verificacion' : 'timeout_verificacion_selectiva';
+    const pedido = selectiva === null ? config.timeout_verificacion : config.timeout_verificacion_selectiva;
+    const { timeoutS, recortado } = timeoutEfectivoS(pedido);
     const avisos: string[] = [];
     if (recortado) {
       avisos.push(
-        `timeout_verificacion pide ${String(config.timeout_verificacion)} s, pero este freno tiene un tope de ` +
+        `${clave} pide ${String(pedido)} s, pero este freno tiene un tope de ` +
           `${String(timeoutS)} s: se ha usado el tope.`
       );
     }
+    const peticion: PeticionVerificacion =
+      selectiva === null
+        ? { tipo: 'completa', comando: config.comando_verificacion as string, timeoutS }
+        : {
+            tipo: 'selectiva',
+            comando: selectiva,
+            timeoutS,
+            base: tipo === null ? config.rama_base : resolveBaseBranchForTipo(tipo, raiz),
+          };
 
-    // 8
-    const huella = huellaDelArbol(raiz, comando, timeoutS);
-    const guardado = huella === null ? null : leerMemo(raiz, huella);
-    if (guardado !== null) {
-      if (guardado.estado === 'verde') return DEJAR_PARAR;
+    // 8 y 9
+    const deOpciones = deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs };
+    const { resultado: r, deMemo, cambioElArbol } = verificarConMemo(raiz, peticion, deOpciones);
+    if (r.estado === 'verde') return DEJAR_PARAR;
+    if (peticion.tipo === 'selectiva') {
+      avisos.push(
+        `Es la verificacion selectiva (por impacto respecto a ${peticion.base as string}); antes de integrar ` +
+          'se exige ademas la completa.'
+      );
+    }
+    if (deMemo) {
       avisos.push(
         'Es el resultado guardado de la ultima verificacion: el arbol no ha cambiado desde entonces y no ' +
           'se ha vuelto a ejecutar. Si crees que el fallo es intermitente, cambia algo o ejecuta el comando a mano.'
       );
-      return bloquear(tarea, guardado, avisos);
     }
-
-    // 9
-    const deOpciones = deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs };
-    const r = ejecutarVerificacion(raiz, comando, timeoutS, deOpciones);
-    const despues = huellaDelArbol(raiz, comando, timeoutS);
-    if (despues !== null) guardarMemo(raiz, despues, r);
-    if (r.estado === 'verde') return DEJAR_PARAR;
-    if (huella !== null && despues !== null && huella !== despues) {
+    if (cambioElArbol) {
       avisos.push(
         'La propia verificacion ha cambiado ficheros del arbol de trabajo (git status): revisalos antes del ' +
           'siguiente comando, que puede abortar por workspace sucio.'

@@ -321,11 +321,11 @@ ejecución aplicado:
 
 ```
 $ node bin/taskctl --help
-taskctl 0.12.0 — TaskCode
+taskctl 0.13.0 — TaskCode
 [...]
 
 $ ./bin/taskctl --help          # ejecución directa vía shebang + bit +x
-taskctl 0.12.0 — TaskCode
+taskctl 0.13.0 — TaskCode
 [...]                            # salida idéntica
 
 $ PATH="$(pwd)/bin:$PATH" taskctl --version   # simula resolución por PATH
@@ -649,6 +649,9 @@ algún error (los avisos no cuentan). Comprueba:
   `GIT_OPTIONAL_LOCKS=0`, así que no toma `index.lock`; un fallo por bloqueo es aviso.
 - **Config**: `.taskcode/config.yml` con el mismo validador que el resto de comandos
   (un valor inválido es error con su mensaje; una clave desconocida, aviso).
+- **Verificación selectiva** (`verificacion-selectiva`): con `comando_verificacion`
+  y sin `comando_verificacion_selectiva`, `aviso` con el arreglo en la misma
+  línea; con las dos, `ok`. Sin completa no dice nada.
 - **Verificación**: si la config declara `comando_verificacion` (ver abajo), `ok`
   con el comando y su timeout. Sin él, depende de si el proyecto tiene tests en
   su raíz:
@@ -709,6 +712,42 @@ timeout_verificacion: 900          # opcional, en segundos (por defecto 600)
   valor por defecto en silencio.
 - La ejecutan el **freno de fin de turno** (hook `Stop`), la **puerta de
   `finish`** y la consulta el **guardián de merges** (hook `PreToolUse`), abajo.
+
+#### Verificación selectiva por impacto: `comando_verificacion_selectiva`
+
+Cuando la completa tarda mucho, el proyecto puede declarar además una
+verificación **selectiva**, que corre solo lo afectado por los cambios. La usan
+el freno de fin de turno y las rondas de `taskctl review`; la completa sigue
+siendo la puerta de `finish` y del guardián de merges.
+
+```yaml
+comando_verificacion: "npm test"                                    # la completa
+comando_verificacion_selectiva: "node scripts/verificar-selectiva.js"
+timeout_verificacion_selectiva: 600                                 # opcional (por defecto 600)
+```
+
+- Recibe la rama base de la tarea en la variable de entorno `RAMA_BASE` (la de
+  integración, o la principal en un hotfix); no se añade nada al comando. El
+  mapa de capas es del proyecto: el script decide qué correr.
+- Exige `comando_verificacion`: la selectiva sin la completa aborta, porque
+  dejaría `finish` sin puerta. El timeout sin su comando también aborta.
+- **Hook `Stop`**: con la clave corre la selectiva en vez de la completa, con su
+  propio memo (`.git/freno-verificacion-selectiva.json`, con la base y su commit
+  en la huella). El guardián solo lee el memo de la completa: un verde de la
+  selectiva nunca deja pasar un merge, aunque los dos comandos sean iguales.
+- **`taskctl review`**: la corre antes de escribir la ronda (en la primera,
+  después de integrar la base en la rama; las incrementales no la integran). En
+  rojo, o si deja el árbol sucio, aborta: no abre ronda y la tarea sigue en
+  curso; el mensaje dice si la base quedó integrada. En verde, la
+  petición lleva la sección «Verificación de esta ronda» (tipo, comando,
+  resultado y final de la salida) y omite la de cobertura, porque el informe
+  podría ser parcial.
+- **`taskctl finish`**: ejecuta la completa como siempre; en rojo, el mensaje
+  recuerda que se exige aunque las rondas usaran la selectiva.
+- **Sin la clave**, todo funciona como antes: el `Stop` corre la completa y
+  `review` no verifica.
+- Cómo escribir el clasificador y qué cambios obligan a correr todo: guía
+  instalada con el plugin, `skills/task-workflow/verificacion-selectiva.md`.
 
 #### Freno de fin de turno (hook `Stop`)
 

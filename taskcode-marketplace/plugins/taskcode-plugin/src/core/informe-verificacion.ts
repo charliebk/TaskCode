@@ -9,6 +9,7 @@
  * ANSI (colores de los test runners), sin CRLF, sin credenciales en URLs, y
  * cortada sin partir caracteres UTF-8.
  */
+import { fenceFor } from './markdown.js';
 import { ocultarCredenciales } from './plataforma-remota.js';
 
 export type EstadoVerificacion = 'verde' | 'roja' | 'cortada' | 'no-lanzable';
@@ -114,4 +115,56 @@ export function formatearVerificacionRoja(
       'tests para pasar este freno: si el rojo no es de tu cambio, dilo explicitamente.'
   );
   return lineas.join('\n');
+}
+
+export interface VerificacionDeRonda {
+  resultado: ResultadoVerificacion;
+  /** Rama base que recibio en RAMA_BASE. */
+  base: string;
+  /** true si es el resultado guardado de una ejecucion anterior con la misma huella. */
+  deMemo: boolean;
+  /** true si el proyecto declara un informe de cobertura (que esta ronda no muestra). */
+  conCobertura: boolean;
+}
+
+/**
+ * TASK-091: la seccion de la peticion de revision que dice que verificacion
+ * se corrio en la ronda (hoy solo la selectiva: sin ella `review` no verifica),
+ * con su resultado y su salida. Va al final, despues de la cabecera con el
+ * commit revisado, y la salida en una valla que no colisiona con ella.
+ */
+export function seccionVerificacionRevision(v: VerificacionDeRonda): string {
+  const r = v.resultado;
+  const { texto, recortada } = recortarCola(r.cola);
+  const truncada = recortada || r.bytesTotales > Buffer.byteLength(r.cola, 'utf8');
+  const lineas = [
+    '## Verificacion de esta ronda',
+    '',
+    `- Tipo: selectiva (por impacto respecto a \`${v.base}\`, que recibe en la variable RAMA_BASE). ` +
+      'No sustituye a la completa: el cierre la exige sobre el commit que se integra.',
+    `- Comando: \`${r.comando}\``,
+    `- Resultado: ${describirResultado(r)}${v.deMemo ? ' (resultado guardado: el arbol no ha cambiado desde la ultima ejecucion)' : ''}`,
+    `- Duracion: ${segundos(r.duracionMs)}`,
+  ];
+  if (v.conCobertura) {
+    lineas.push(
+      '- Cobertura: no se muestra en esta ronda. La selectiva solo corre parte de los tests y el informe ' +
+        'puede ser parcial; la completa la mide en el cierre.'
+    );
+  }
+  lineas.push('');
+  if (texto === '') {
+    lineas.push('Salida: (vacia)', '');
+  } else {
+    const fence = fenceFor(texto);
+    lineas.push(
+      truncada ? `Final de la salida (truncada: ${String(r.bytesTotales)} bytes en total):` : 'Salida:',
+      '',
+      fence,
+      texto,
+      fence,
+      ''
+    );
+  }
+  return `\n${lineas.join('\n')}`;
 }

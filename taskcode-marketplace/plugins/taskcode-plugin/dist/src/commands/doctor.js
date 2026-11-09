@@ -321,6 +321,31 @@ export function comprobarVerificacion(cfg, detectar = () => []) {
     }
     return ok('verificacion', `comando_verificacion: "${una(cfg.comando_verificacion)}" (timeout ${cfg.timeout_verificacion} s)`);
 }
+/**
+ * TASK-091: la verificacion selectiva por impacto. Solo dice algo cuando hay
+ * completa (sin ella la comprobacion `verificacion` ya cuenta lo que falta,
+ * y la config no admite selectiva sin completa):
+ * - Completa sin selectiva: `aviso`, con el arreglo en la misma linea. Cada
+ *   fin de turno y cada ronda corren entonces la suite entera.
+ * - Las dos: `ok` con el comando y su timeout.
+ * Es una comprobacion aparte para que `verificacion` no cambie de nivel.
+ */
+export function comprobarVerificacionSelectiva(cfg) {
+    if (cfg === null || cfg.comando_verificacion === null)
+        return [];
+    if (cfg.comando_verificacion_selectiva === null) {
+        const arreglo = 'declara en .taskcode/config.yml comando_verificacion_selectiva: "<script que corre solo lo afectado ' +
+            'respecto a $RAMA_BASE>" (guia: skill task-workflow, verificacion-selectiva.md)';
+        return [
+            aviso('verificacion-selectiva', 'sin comando_verificacion_selectiva: cada fin de turno corre la verificacion completa; para ' +
+                `acelerarlo, ${arreglo}`, arreglo.charAt(0).toUpperCase() + arreglo.slice(1)),
+        ];
+    }
+    return [
+        ok('verificacion-selectiva', `comando_verificacion_selectiva: "${una(cfg.comando_verificacion_selectiva)}" ` +
+            `(timeout ${cfg.timeout_verificacion_selectiva} s); la completa sigue siendo la puerta de finish`),
+    ];
+}
 // ---------------------------------------------------------------------
 // Tareas
 // ---------------------------------------------------------------------
@@ -525,6 +550,7 @@ export function runDoctorCommand(argv, deps) {
     cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo, deps.timeoutGitMs ?? TIMEOUT_GIT_MS)));
     cs.push(...csConfig);
     cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg, () => detectarComandosTests(cwd))));
+    cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
     cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
     cs.push(...envolver('plataforma', () => comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)));
     cs.push(...envolver('hooks-subagente', () => comprobarHooksSubagente(deps)));

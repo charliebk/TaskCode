@@ -13,6 +13,10 @@
  * y el rastro sobrevive aunque el proceso muera despues del script. Escribirla
  * sin commitear ensuciaria el workspace y el script de Git-Flow abortaria.
  *
+ * TASK-091: la verificacion selectiva no cuenta aqui. Aunque las rondas de
+ * revision corrieran la selectiva, `finish` ejecuta la COMPLETA sobre el
+ * commit que va a integrar, y el guardian solo lee el memo de la completa.
+ *
  * Tras un verde se guarda el memo con la huella del arbol (limpio, igual que
  * `huellaDeCommit` del commit de la rama): es lo que consulta el guardian de
  * merges (hooks/guardia-merge) para no bloquear un merge ya verificado.
@@ -88,6 +92,12 @@ export async function puertaVerificacion(o) {
     if (r.estado !== 'verde') {
         throw new FinishCommandError(`[ERROR] ${o.id}: no se mergea con la verificacion en rojo. No se ha tocado nada.\n` +
             `${formatearVerificacionRoja(r)}\n` +
+            // TASK-091: con selectiva, que quede claro por que se corre la completa aunque las rondas pasaran.
+            (config.comando_verificacion_selectiva === null
+                ? ''
+                : 'Es la verificacion completa (comando_verificacion): se exige en verde sobre el commit que se ' +
+                    'integra aunque las rondas usaran la selectiva. Correla a mano con ese comando en la rama de la ' +
+                    'tarea hasta que salga en verde, commitea los arreglos y reintenta.\n') +
             `Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y ` +
             'lo deja anotado en la tarea.');
     }

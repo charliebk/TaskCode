@@ -19,6 +19,8 @@
  * | url_base_remoto              | null              | commands/finish-opciones.ts (--merge-request) |
  * | comando_verificacion         | null (sin freno)  | commands/doctor.ts (y los frenos, TASK-071/072) |
  * | timeout_verificacion         | 600 (segundos)    | los frenos (TASK-071/072)  |
+ * | comando_verificacion_selectiva | null (sin selectiva) | hooks/freno-stop.ts, commands/review.ts (TASK-091) |
+ * | timeout_verificacion_selectiva | 600 (segundos)  | hooks/freno-stop.ts, commands/review.ts (TASK-091) |
  * | comando_heldout              | null (sin held-out) | commands/finish-heldout.ts (TASK-073) |
  * | informe_cobertura            | null (sin freno)  | commands/review.ts, finish-cobertura.ts (TASK-074) |
  * | umbral_cobertura             | null (solo informa) | commands/finish-cobertura.ts (TASK-074) |
@@ -28,6 +30,13 @@
  * frenos de verificacion ejecuten ESE comando y nunca uno inventado. Mismo
  * patron que la pareja de sincronizacion: el timeout solo con el comando. Sin
  * la clave no hay freno y todo se comporta como antes.
+ *
+ * `comando_verificacion_selectiva` y su timeout las anadio TASK-091: una
+ * verificacion rapida, por impacto, que deciden el hook Stop y las rondas de
+ * `review`; recibe la rama base en la variable RAMA_BASE. La completa
+ * (`comando_verificacion`) sigue siendo la puerta de `finish` y del guardian
+ * de merges, asi que la selectiva sin la completa ABORTA: dejaria el proyecto
+ * sin puerta y sin que nadie lo viera.
  *
  * `excluir_de_revision` la anadio TASK-034: la peticion de revision
  * embebia el diff entero, y el JS compilado, los lockfiles y la propia
@@ -126,6 +135,8 @@ export const CONFIG_DEFAULTS = Object.freeze({
     url_base_remoto: null,
     comando_verificacion: null,
     timeout_verificacion: 600,
+    comando_verificacion_selectiva: null,
+    timeout_verificacion_selectiva: 600,
     comando_heldout: null,
     informe_cobertura: null,
     umbral_cobertura: null,
@@ -146,6 +157,8 @@ export const CLAVES_CONFIG = [
     'url_base_remoto',
     'comando_verificacion',
     'timeout_verificacion',
+    'comando_verificacion_selectiva',
+    'timeout_verificacion_selectiva',
     'comando_heldout',
     'informe_cobertura',
     'umbral_cobertura',
@@ -386,6 +399,12 @@ export function parsearConfigConAvisos(contenido, ruta) {
             case 'timeout_verificacion':
                 config.timeout_verificacion = validarEnteroPositivo(donde, par.clave, par.valor);
                 break;
+            case 'comando_verificacion_selectiva':
+                config.comando_verificacion_selectiva = validarComando(donde, par.clave, par.valor, 'comando_verificacion_selectiva: "node scripts/verificar-selectiva.js"');
+                break;
+            case 'timeout_verificacion_selectiva':
+                config.timeout_verificacion_selectiva = validarEnteroPositivo(donde, par.clave, par.valor);
+                break;
             case 'comando_heldout':
                 config.comando_heldout = validarComando(donde, par.clave, par.valor, 'comando_heldout: "node --test $HELDOUT_DIR"');
                 break;
@@ -485,6 +504,19 @@ function validarVerificacionCompleta(ruta, vistas) {
         throw new ConfigError(`[ERROR] ${ruta}: "timeout_verificacion" sin "comando_verificacion" ni "comando_heldout" no hace nada.
 ` +
             '        Borrala, o declara tambien el comando (por ejemplo comando_verificacion: "npm test").');
+    }
+    // TASK-091: la selectiva es para las rondas; la puerta de integracion es la
+    // completa. Sin ella, finish y el guardian de merges no verificarian nada.
+    if (vistas.has('comando_verificacion_selectiva') && !vistas.has('comando_verificacion')) {
+        throw new ConfigError(`[ERROR] ${ruta}: "comando_verificacion_selectiva" necesita tambien "comando_verificacion".
+` +
+            '        La selectiva solo acelera las rondas; antes de integrar se exige la completa. Declara la ' +
+            'completa (por ejemplo comando_verificacion: "npm test"), o borra la selectiva.');
+    }
+    if (vistas.has('timeout_verificacion_selectiva') && !vistas.has('comando_verificacion_selectiva')) {
+        throw new ConfigError(`[ERROR] ${ruta}: "timeout_verificacion_selectiva" sin "comando_verificacion_selectiva" no hace nada.
+` +
+            '        Borrala, o declara tambien el comando de la verificacion selectiva.');
     }
 }
 /**
