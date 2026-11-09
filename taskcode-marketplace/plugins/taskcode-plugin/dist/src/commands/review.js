@@ -441,11 +441,11 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const commits = logOneline(desde, 'HEAD', deps.repoCwd);
     const diff = paraRevision.diff;
     // TASK-091: con `comando_verificacion_selectiva`, la ronda la corre (con la
-    // base en RAMA_BASE) sobre la rama ya actualizada con la base y ANTES de
-    // escribir la ronda: un rojo aborta con la tarea en curso y sin ronda a
-    // medias (decision de Carlos); el merge de la base queda hecho, como cuando
-    // review aborta por otra causa. Sin la clave, nada.
-    const selectiva = verificacionSelectivaDeRonda(id, configRama, baseBranch, deps);
+    // base en RAMA_BASE) ANTES de escribir la ronda: un rojo aborta con la tarea
+    // en curso y sin ronda a medias (decision de Carlos). En la primera ronda el
+    // update de Git-Flow ya integro la base (y ese merge queda hecho); en una
+    // incremental la rama no se actualiza (TASK-040). Sin la clave, nada.
+    const selectiva = verificacionSelectivaDeRonda(id, configRama, baseBranch, incremental, deps);
     // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
     // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
     // nadie arreglo sigue ahi). Una vez por ronda y antes de escribir nada;
@@ -652,16 +652,20 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
  * deja el arbol sucio: el autocommit de la ronda se llevaria esos ficheros o
  * el siguiente comando abortaria por workspace sucio.
  */
-function verificacionSelectivaDeRonda(id, config, base, deps) {
+function verificacionSelectivaDeRonda(id, config, base, incremental, deps) {
     const comando = config.comando_verificacion_selectiva;
     if (comando === null)
         return null;
     const raiz = raizDelRepo(deps.repoCwd);
     const v = verificarConMemo(raiz, { tipo: 'selectiva', comando, timeoutS: config.timeout_verificacion_selectiva, base }, deps.env === undefined ? {} : { env: deps.env });
+    // Lo que ya paso con la base antes de verificar: solo la primera ronda la integra.
+    const estadoBase = incremental
+        ? `en una ronda incremental la rama no se actualiza con "${base}"`
+        : `"${base}" ya se ha integrado en la rama, como en cualquier review; reintentar no repite el merge`;
     if (v.resultado.estado !== 'verde') {
         throw new ReviewCommandError(`[ERROR] ${id}: la verificacion selectiva (por impacto respecto a "${base}", en RAMA_BASE) no esta en ` +
             'verde, asi que no se abre ronda de revision: la tarea sigue en curso y no se ha escrito peticion ni ' +
-            'informe (la base ya se ha integrado en la rama, como en cualquier review; reintentar no la repite).\n' +
+            `informe (${estadoBase}).\n` +
             `${formatearVerificacionRoja(v.resultado)}\n` +
             (v.deMemo
                 ? 'Es el resultado guardado: el arbol no ha cambiado desde la ultima ejecucion. Cambia algo o ejecuta el comando a mano.\n'
@@ -671,7 +675,7 @@ function verificacionSelectivaDeRonda(id, config, base, deps) {
     if (v.cambioElArbol) {
         throw new ReviewCommandError(`[ERROR] ${id}: la verificacion selectiva salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
             `("${comando}" escribe ficheros versionados o no ignorados: mira git status). Ignoralos en .gitignore, ` +
-            'o descartalos, y reintenta. No se ha abierto ronda (la base ya se ha integrado en la rama).');
+            `o descartalos, y reintenta. No se ha abierto ronda (${estadoBase}).`);
     }
     return v;
 }

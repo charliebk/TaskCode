@@ -77,9 +77,10 @@ El clasificador falla cerrado: ante la duda, corre todo. Como minimo:
 - **Fin de turno (`Stop`)**: con tarea en curso en la rama, corre la
   selectiva; en rojo devuelve el turno con su salida. Guarda el resultado
   aparte del de la completa: un verde de la selectiva nunca abre un merge.
-- **`taskctl review`**: corre la selectiva sobre la rama ya actualizada con la
-  base, antes de escribir la ronda. En rojo aborta: no abre ronda y la tarea
-  sigue en curso (la base ya queda integrada en la rama). En verde, la peticion de
+- **`taskctl review`**: corre la selectiva antes de escribir la ronda (en la
+  primera ronda, despues de integrar la base en la rama; las rondas
+  incrementales no la integran). En rojo aborta: no abre ronda y la tarea sigue
+  en curso; el mensaje dice si la base quedo integrada. En verde, la peticion de
   revision lleva una seccion con el tipo (selectiva), el comando, el
   resultado y su salida.
 - **`taskctl finish`**: corre la completa; en rojo no integra y dice como

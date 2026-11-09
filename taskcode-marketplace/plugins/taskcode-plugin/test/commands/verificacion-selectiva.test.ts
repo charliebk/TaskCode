@@ -15,6 +15,7 @@ import { CONFIG_DEFAULTS, CLAVES_CONFIG, parsearConfig } from '../../src/core/co
 import { comprobarVerificacionSelectiva } from '../../src/commands/doctor.js';
 import { runFinishCommand, FinishCommandError } from '../../src/commands/finish.js';
 import { runReviewCommand, ReviewCommandError } from '../../src/commands/review.js';
+import { runVeredictoCommand } from '../../src/commands/veredicto.js';
 import { decidirStop } from '../../src/hooks/freno-stop.js';
 import { decidirPreToolUse } from '../../src/hooks/guardia-merge.js';
 import { readTareaFile, writeTareaFile } from '../../src/fs/task-store.js';
@@ -317,7 +318,7 @@ test('review (TASK-091): selectiva en rojo aborta sin ronda; la tarea sigue en c
           assert.ok(e instanceof ReviewCommandError);
           assert.match(e.message, /verificacion selectiva .* no esta en verde, asi que no se abre ronda/);
           assert.match(e.message, /la tarea sigue en curso/);
-          assert.match(e.message, /la base ya se ha integrado en la rama/);
+          assert.match(e.message, /"develop" ya se ha integrado en la rama/);
           assert.match(e.message, /selectiva: ERROR, 2 tests fallan/);
           assert.match(e.message, /con la variable de entorno RAMA_BASE=develop/);
           return true;
@@ -328,6 +329,46 @@ test('review (TASK-091): selectiva en rojo aborta sin ronda; la tarea sigue en c
       const revision = path.join(carpeta, 'revision');
       assert.ok(!existsSync(revision) || (await readdir(revision)).length === 0, 'no queda ninguna ronda a medias');
       assert.equal(git(['status', '--porcelain'], repoRoot), '');
+    });
+  });
+});
+
+test('review (TASK-091): en una ronda incremental, el rojo no dice que la base se haya integrado (no se integra)', async () => {
+  await conScripts(async (v) => {
+    await conTareaParaReview(dosClaves(v), async (repoRoot, tareasRoot) => {
+      const r1 = await review(repoRoot, tareasRoot);
+      const informe = (r1.informes[0] as { informePath: string }).informePath;
+      await writeFile(
+        informe,
+        '# Informe de revision — TASK-600 (ronda 1)\n\n- Commit revisado: x\n- Veredicto: PENDIENTE\n\n' +
+          '## Hallazgos\n\n| ID | Severidad | Estado | Fichero |\n|---|---|---|---|\n| IMP-1 | IMPORTANTE | abierto | trabajo.txt:1 |\n',
+        'utf8'
+      );
+      commitReview(repoRoot, 'informe ronda 1');
+      await runVeredictoCommand(tareasRoot, ['TASK-600', 'cambios-solicitados'], { repoCwd: repoRoot });
+      // develop avanza; la correccion llega a la rama; la selectiva falla en la ronda 2.
+      const rama = git(['branch', '--show-current'], repoRoot).trim();
+      git(['checkout', '-q', 'develop'], repoRoot);
+      await writeFile(path.join(repoRoot, 'otra-tarea.txt'), 'ajeno\n', 'utf8');
+      commitReview(repoRoot, 'otra tarea en develop');
+      git(['checkout', '-q', rama], repoRoot);
+      await writeFile(path.join(repoRoot, 'trabajo.txt'), 'corregido\n', 'utf8');
+      commitReview(repoRoot, 'correccion');
+      await v.desenlace('selectiva', 'ko');
+      const headAntes = git(['rev-parse', 'HEAD'], repoRoot).trim();
+      await assert.rejects(
+        () => review(repoRoot, tareasRoot),
+        (e: unknown) => {
+          assert.ok(e instanceof ReviewCommandError);
+          assert.match(e.message, /no se abre ronda de revision/);
+          assert.match(e.message, /en una ronda incremental la rama no se actualiza con "develop"/);
+          assert.doesNotMatch(e.message, /ya se ha integrado/);
+          return true;
+        }
+      );
+      assert.equal(git(['rev-parse', 'HEAD'], repoRoot).trim(), headAntes, 'la ronda incremental no integra develop');
+      assert.ok(!existsSync(path.join(repoRoot, 'otra-tarea.txt')));
+      assert.ok(!existsSync(path.join(path.dirname(informe), 'peticion-revision-2.md')));
     });
   });
 });
