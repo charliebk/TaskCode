@@ -2,7 +2,7 @@
 
 - Commit revisado: d221a9d11e52fc4008fffad80bcbb1883cdd8331
 - Revisor: code-quality-reviewer (revisor independiente, pase generico; el diff cae en TypeScript/Markdown/config sin revisor de dominio)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-091 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
