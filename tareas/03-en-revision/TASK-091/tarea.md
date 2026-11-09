@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 1580230
 tokens_implementacion: 13329517
-tokens_revision: null
+tokens_revision: 4728908
 creado: 2026-11-09
 actualizado: 2026-11-09
 dependencias: []
@@ -54,6 +54,7 @@ Encaje propuesto (sobre TASK-070 y TASK-088):
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-09T15:07:47Z | diseno | agente:a2f6ff30c44527281,a74b4eeb30e197fb6,ae0270642a1c2d5e9 | 76 | 158146 | 1389127 | 32881 | 49 | 1580230 | - | - |
 | 2026-11-09T15:44:25Z | implementacion | sesion:1828033b-de70-4233-a119-a808c10ec4fe | 118 | 124552 | 13153609 | 51238 | 35 | 13329517 | - | - |
+| 2026-11-09T16:00:59Z | revision | agente:a2912c053ac824e02 | 70 | 148540 | 4565908 | 14390 | 12 | 4728908 | 1 | - |
 
 ## Autorrevision
 
