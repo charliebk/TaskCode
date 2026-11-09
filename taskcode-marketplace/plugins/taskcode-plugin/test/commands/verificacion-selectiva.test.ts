@@ -318,9 +318,9 @@ test('review (TASK-091): selectiva en rojo aborta sin ronda; la tarea sigue en c
           assert.ok(e instanceof ReviewCommandError);
           assert.match(e.message, /verificacion selectiva .* no esta en verde, asi que no se abre ronda/);
           assert.match(e.message, /la tarea sigue en curso/);
-          assert.match(e.message, /"develop" se ha integrado en la rama en este intento/);
-          assert.match(e.message, /el reintento integra tambien lo nuevo/);
-          assert.doesNotMatch(e.message, /no repite/);
+          assert.match(e.message, /la rama ya incluye "develop" tal como estaba al empezar este review/);
+          assert.match(e.message, /si "develop" avanza, el siguiente review lo integra/);
+          assert.doesNotMatch(e.message, /no repite|en este intento/);
           assert.match(e.message, /selectiva: ERROR, 2 tests fallan/);
           assert.match(e.message, /con la variable de entorno RAMA_BASE=develop/);
           return true;
@@ -339,7 +339,19 @@ test('review (TASK-091): primera ronda en rojo, develop avanza y el reintento in
   await conScripts(async (v) => {
     await v.desenlace('selectiva', 'ko');
     await conTareaParaReview(dosClaves(v), async (repoRoot, tareasRoot) => {
-      await assert.rejects(() => review(repoRoot, tareasRoot), /el reintento integra tambien lo nuevo/);
+      await assert.rejects(() => review(repoRoot, tareasRoot), /si "develop" avanza, el siguiente review lo integra/);
+      // Reintento SIN avance de develop: no integra nada y el mensaje sigue siendo cierto (habla del estado).
+      const headTrasPrimero = git(['rev-parse', 'HEAD'], repoRoot).trim();
+      await assert.rejects(
+        () => review(repoRoot, tareasRoot),
+        (e: unknown) => {
+          assert.ok(e instanceof ReviewCommandError);
+          assert.match(e.message, /la rama ya incluye "develop" tal como estaba al empezar este review/);
+          assert.doesNotMatch(e.message, /en este intento|se ha integrado/);
+          return true;
+        }
+      );
+      assert.equal(git(['rev-parse', 'HEAD'], repoRoot).trim(), headTrasPrimero, 'sin avance, el reintento no integra nada');
       const rama = git(['branch', '--show-current'], repoRoot).trim();
       git(['checkout', '-q', 'develop'], repoRoot);
       await writeFile(path.join(repoRoot, 'nuevo-en-develop.txt'), 'x\n', 'utf8');
