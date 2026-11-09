@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 1580230
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-09
@@ -44,3 +44,9 @@ Encaje propuesto (sobre TASK-070 y TASK-088):
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-09T14:57:33Z | plan | automatico | persona | 0.12.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-09T15:07:47Z | diseno | agente:a2f6ff30c44527281,a74b4eeb30e197fb6,ae0270642a1c2d5e9 | 76 | 158146 | 1389127 | 32881 | 49 | 1580230 | - | - |
