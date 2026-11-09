@@ -6,8 +6,8 @@ Verificacion selectiva por impacto (TASK-091). Clave nueva opcional
 `comando_verificacion_selectiva` (con `timeout_verificacion_selectiva`, 600 s
 por defecto): una verificacion rapida que corre solo lo afectado por los
 cambios y recibe la rama base de la tarea en la variable `RAMA_BASE`. La usan el
-hook `Stop` (en vez de la completa) y `taskctl review`, que la corre antes de
-escribir nada: en rojo, o si deja el arbol sucio, aborta sin abrir ronda y la
+hook `Stop` (en vez de la completa) y `taskctl review`, que la corre sobre la
+rama ya actualizada con la base y antes de escribir la ronda: en rojo, o si deja el arbol sucio, aborta sin abrir ronda y la
 tarea sigue en curso; en verde, la peticion lleva la seccion «Verificacion de
 esta ronda» con el tipo, el comando, el resultado y su salida, y omite la de
 cobertura (el informe podria ser parcial). `comando_verificacion` sigue siendo

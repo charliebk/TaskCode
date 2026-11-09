@@ -735,8 +735,9 @@ timeout_verificacion_selectiva: 600                                 # opcional (
   propio memo (`.git/freno-verificacion-selectiva.json`, con la base y su commit
   en la huella). El guardián solo lee el memo de la completa: un verde de la
   selectiva nunca deja pasar un merge, aunque los dos comandos sean iguales.
-- **`taskctl review`**: la corre antes de escribir nada. En rojo, o si deja el
-  árbol sucio, aborta: no abre ronda y la tarea sigue en curso. En verde, la
+- **`taskctl review`**: la corre sobre la rama ya actualizada con la base y
+  antes de escribir la ronda. En rojo, o si deja el árbol sucio, aborta: no abre
+  ronda y la tarea sigue en curso (el merge de la base queda hecho). En verde, la
   petición lleva la sección «Verificación de esta ronda» (tipo, comando,
   resultado y final de la salida) y omite la de cobertura, porque el informe
   podría ser parcial.

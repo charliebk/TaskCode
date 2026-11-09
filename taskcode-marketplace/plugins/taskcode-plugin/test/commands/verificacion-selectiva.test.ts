@@ -232,6 +232,9 @@ test('guardian (TASK-091): un verde de la selectiva no abre la puerta aunque los
       async (raiz) => {
         assert.equal((await stop(raiz)).codigo, 0);
         assert.equal(v.ejecuciones('completa'), 1);
+        // Por si sola, sin contar con la huella: la selectiva no escribe el memo que lee el guardian.
+        assert.ok(!existsSync(path.join(raiz, '.git', 'freno-verificacion.json')), 'la selectiva no toca el memo de la completa');
+        assert.ok(existsSync(path.join(raiz, '.git', 'freno-verificacion-selectiva.json')));
         assert.equal(decidirPreToolUse({ cwd: raiz, tool_input: { command: merge } }).codigo, 2);
       }
     );
@@ -314,6 +317,7 @@ test('review (TASK-091): selectiva en rojo aborta sin ronda; la tarea sigue en c
           assert.ok(e instanceof ReviewCommandError);
           assert.match(e.message, /verificacion selectiva .* no esta en verde, asi que no se abre ronda/);
           assert.match(e.message, /la tarea sigue en curso/);
+          assert.match(e.message, /la base ya se ha integrado en la rama/);
           assert.match(e.message, /selectiva: ERROR, 2 tests fallan/);
           assert.match(e.message, /con la variable de entorno RAMA_BASE=develop/);
           return true;

@@ -641,8 +641,10 @@ export async function runReviewCommand(
   const commits = logOneline(desde, 'HEAD', deps.repoCwd);
   const diff = paraRevision.diff;
   // TASK-091: con `comando_verificacion_selectiva`, la ronda la corre (con la
-  // base en RAMA_BASE) ANTES de escribir nada: un rojo aborta con la tarea en
-  // curso y sin ronda a medias (decision de Carlos). Sin la clave, nada.
+  // base en RAMA_BASE) sobre la rama ya actualizada con la base y ANTES de
+  // escribir la ronda: un rojo aborta con la tarea en curso y sin ronda a
+  // medias (decision de Carlos); el merge de la base queda hecho, como cuando
+  // review aborta por otra causa. Sin la clave, nada.
   const selectiva = verificacionSelectivaDeRonda(id, configRama, baseBranch, deps);
   // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
   // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
@@ -905,7 +907,8 @@ function verificacionSelectivaDeRonda(
   if (v.resultado.estado !== 'verde') {
     throw new ReviewCommandError(
       `[ERROR] ${id}: la verificacion selectiva (por impacto respecto a "${base}", en RAMA_BASE) no esta en ` +
-        'verde, asi que no se abre ronda de revision: la tarea sigue en curso y no se ha escrito nada.\n' +
+        'verde, asi que no se abre ronda de revision: la tarea sigue en curso y no se ha escrito peticion ni ' +
+        'informe (la base ya se ha integrado en la rama, como en cualquier review; reintentar no la repite).\n' +
         `${formatearVerificacionRoja(v.resultado)}\n` +
         (v.deMemo
           ? 'Es el resultado guardado: el arbol no ha cambiado desde la ultima ejecucion. Cambia algo o ejecuta el comando a mano.\n'
@@ -917,7 +920,7 @@ function verificacionSelectivaDeRonda(
     throw new ReviewCommandError(
       `[ERROR] ${id}: la verificacion selectiva salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
         `("${comando}" escribe ficheros versionados o no ignorados: mira git status). Ignoralos en .gitignore, ` +
-        'o descartalos, y reintenta. No se ha abierto ronda.'
+        'o descartalos, y reintenta. No se ha abierto ronda (la base ya se ha integrado en la rama).'
     );
   }
   return v;
