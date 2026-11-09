@@ -12,7 +12,7 @@
  * una version se cierran con su numero y `taskctl metricas --por-version`
  * no las mezcla con la anterior.
  */
-export const VERSION_TASKCTL = '0.12.0';
+export const VERSION_TASKCTL = '0.13.0';
 
 /** Nombre del plugin en los marketplaces de Claude Code (`<nombre>@<marketplace>`). */
 export const NOMBRE_PLUGIN = 'taskcode-plugin';

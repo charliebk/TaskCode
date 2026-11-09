@@ -193,12 +193,13 @@ invalido de una clave conocida aborta todos los comandos, y una clave
 desconocida avisa y se ignora. La sincronizacion (y sus trampas: no usar un
 hook de pre-commit, codigo de salida 3) esta en [sincronizacion.md](sincronizacion.md).
 
-**Freno de fin de turno.** Con `comando_verificacion` declarado y una tarea en
-curso en la rama actual, el hook `Stop` del plugin ejecuta ese comando al
-terminar cada turno y, si no sale en verde, devuelve el turno con un informe
-(comando, codigo, duracion y final de la salida). Arregla la causa; no borres,
+**Freno de fin de turno.** Con `comando_verificacion` y una tarea en curso en
+la rama actual, el hook `Stop` lo ejecuta al terminar cada turno y, si no sale
+en verde, devuelve el turno con un informe. Arregla la causa; no borres,
 saltes ni debilites tests para pasarlo. Si el rojo no es de tu cambio, dilo
-explicitamente al terminar: el freno solo bloquea una vez por turno.
+al terminar: el freno solo bloquea una vez por turno. Con
+`comando_verificacion_selectiva`, el `Stop` y `review` corren esa, por
+impacto: [verificacion-selectiva.md](verificacion-selectiva.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
 `taskctl finish` (lanzado desde la rama de la tarea) ejecuta la verificacion

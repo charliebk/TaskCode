@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.13.0 — sin publicar
+
+Verificacion selectiva por impacto (TASK-091). Clave nueva opcional
+`comando_verificacion_selectiva` (con `timeout_verificacion_selectiva`, 600 s
+por defecto): una verificacion rapida que corre solo lo afectado por los
+cambios y recibe la rama base de la tarea en la variable `RAMA_BASE`. La usan el
+hook `Stop` (en vez de la completa) y `taskctl review`, que la corre antes de
+escribir nada: en rojo, o si deja el arbol sucio, aborta sin abrir ronda y la
+tarea sigue en curso; en verde, la peticion lleva la seccion «Verificacion de
+esta ronda» con el tipo, el comando, el resultado y su salida, y omite la de
+cobertura (el informe podria ser parcial). `comando_verificacion` sigue siendo
+la puerta de `finish` y del guardian de merges: la selectiva sin la completa
+aborta al leer la config, y su resultado se guarda aparte
+(`.git/freno-verificacion-selectiva.json`, con la base y su commit en la
+huella), asi que un verde de la selectiva nunca abre un merge aunque los dos
+comandos tengan el mismo texto. `taskctl doctor` gana la comprobacion
+`verificacion-selectiva`, que avisa si hay completa sin selectiva. Guia para
+los proyectos en la skill `task-workflow` (`verificacion-selectiva.md`): como
+escribir el clasificador, que incluya el arbol de trabajo y que cambios obligan
+a correr todo.
+
+Cambio de comportamiento con la clave: el `Stop` deja de escribir el memo de la
+completa, asi que un `git merge` manual ya no se apoya en el verde de un fin de
+turno; cierra con `taskctl finish`, que corre la completa. Sin la clave, nada
+cambia.
+
+Actualizar como en 0.9.0; despues, en cada proyecto con verificaciones largas,
+escribir el clasificador y declarar la clave (`taskctl doctor` lo recuerda).
+
 ## 0.12.0 — 2026-11-07
 
 Version del plugin en cada tarea (TASK-084). Cada fila de `## Transiciones`
