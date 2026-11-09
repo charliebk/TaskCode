@@ -59,3 +59,4 @@ Encaje propuesto (sobre TASK-070 y TASK-088):
 ## Autorrevision
 
 - code-quality-reviewer — cc5adfa
+- code-quality-reviewer — f0affb1
