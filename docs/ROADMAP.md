@@ -1,7 +1,7 @@
 # Roadmap de TaskCode
 
 > Qué falta por hacer y qué está hecho, en un solo sitio. Última actualización:
-> **2026-11-09** (TASK-091 dada de alta, urgente; 0.12.0 publicada).
+> **2026-11-09** (TASK-091 cerrada; 0.13.0 publicada).
 >
 > **Cómo se mantiene**: al crear una tarea se añade a «Pendiente»; al cerrarla
 > con `taskctl finish` se pasa a «Terminado», bajo la versión con la que sale.
@@ -12,26 +12,14 @@
 
 | | Tareas |
 |---|---|
-| Terminadas | **89** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-090) |
+| Terminadas | **90** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-091) |
 | Descartadas | 1 (TASK-019) |
-| **Pendientes** | **1** (TASK-091, urgente) |
-| Versión publicada | **0.12.0** (2026-11-07) |
+| **Pendientes** | **0** |
+| Versión publicada | **0.13.0** (2026-11-09) |
 
 ---
 
 ## Pendiente
-
-### Urgente — Verificación selectiva por impacto
-
-Pedido por Carlos el 2026-11-09 desde ToolsaWeb, donde la verificación completa
-ya tarda unos 40 minutos y se repite en cada ronda de revisión. Las rondas pasan
-a una verificación selectiva por impacto y la completa queda obligatoria antes
-de integrar. ToolsaWeb lo adelanta en su propio verificador (su TASK-297) y lo
-cambia a este encaje cuando salga la versión.
-
-| Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
-|---|---|---|---|---|---|
-| 1 | TASK-091 | Verificación selectiva por impacto en las rondas y completa obligatoria antes de integrar | media | urgente | — |
 
 ### Fase N — Mejoras tras las métricas de la 0.8 (9/9)
 
@@ -55,6 +43,10 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
 
 - [ ] **Smoke del flujo guiado** dentro de una sesión real de Claude Code (lo
       hace Carlos; pendiente desde la fase G).
+- [ ] **ToolsaWeb**: pasar su verificador por impacto (su TASK-297) al encaje de
+      la 0.13.0: clasificador como `comando_verificacion_selectiva` (lee
+      `RAMA_BASE`) y `scripts\verificar.bat` completo como `comando_verificacion`.
+      Guía: `skills/task-workflow/verificacion-selectiva.md`.
 - [ ] **ToolsaWeb**: declarar `comando_verificacion` (y `comando_heldout` si se
       usan held-out) en su `.taskcode/config.yml`. Sin eso no actúan los frenos
       de verificación de la 0.11 (hook `Stop`, puerta de `finish`, guardián de
@@ -71,11 +63,17 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
 
 ## Terminado
 
-89 tareas, agrupadas por la versión con la que salieron (la más reciente
+90 tareas, agrupadas por la versión con la que salieron (la más reciente
 primero). TASK-021 (publicar el marketplace) se adelantó al Sprint 1 como
 item A1. Las carpetas de TASK-001 a TASK-012 y TASK-021 siguen en
 `tareas/00-planificadas/` porque se hicieron antes de que existiera el ciclo
 de `taskctl`; su cierre consta en el checklist, no en la carpeta.
+
+### v0.13.0 — 2026-11-09 — 1 tarea
+
+| Tarea | Título | Cierre |
+|---|---|---|
+| TASK-091 | Verificación selectiva por impacto en las rondas y completa obligatoria antes de integrar | 2026-11-09 |
 
 ### v0.12.0 — 2026-11-07 — 10 tareas
 

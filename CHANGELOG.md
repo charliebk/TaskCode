@@ -1,10 +1,6 @@
 # Changelog
 
-## Sin publicar
-
-- TASK-091 (feature) — Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar (2026-11-09)
-
-## 0.13.0 — sin publicar
+## 0.13.0 — 2026-11-09
 
 Verificacion selectiva por impacto (TASK-091). Clave nueva opcional
 `comando_verificacion_selectiva` (con `timeout_verificacion_selectiva`, 600 s
@@ -34,6 +30,8 @@ cambia.
 
 Actualizar como en 0.9.0; despues, en cada proyecto con verificaciones largas,
 escribir el clasificador y declarar la clave (`taskctl doctor` lo recuerda).
+
+- TASK-091 (feature) — Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar (2026-11-09)
 
 ## 0.12.0 — 2026-11-07
 

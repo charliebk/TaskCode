@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 100 / 100 items terminados (100%)** · última actualización: 2026-11-07
+**Progreso global: 101 / 101 items terminados (100%)** · última actualización: 2026-11-09
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -39,6 +39,7 @@ tomada y documentada, no aplazada.
 | ✅ L — Mantenimiento | 2 | **2** | — |
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
+| ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | **Total pendiente** | **0** | — | — |
 
 ---
@@ -1097,3 +1098,18 @@ dependencias en `docs/ROADMAP.md`.
       fichero+valor de los informes históricos de TASK-066 y TASK-089, y una pareja
       sin uso es rojo. 1 ronda, aprobada, 8 mutantes en rojo; MEN-1 (apariciones sin
       límite en su fichero) y MEN-2 (AWS por valor) aceptados. Publicada en 0.12.0.*
+
+## ✅ O — Verificación selectiva por impacto (1/1)
+
+Pedida por Carlos el 2026-11-09 desde ToolsaWeb, donde la verificación completa ya
+tarda unos 40 minutos y se repetía en cada ronda de revisión.
+
+- [x] TASK-091 — Verificación selectiva por impacto en las rondas y completa obligatoria antes de integrar — cerrada el 2026-11-09
+      *Clave `comando_verificacion_selectiva` (+ timeout) que recibe la base en
+      `RAMA_BASE`; la usan el hook `Stop` y `review`, que la corre antes de escribir
+      la ronda (rojo o árbol sucio abortan sin ronda; la petición la cuenta y omite
+      la cobertura). La completa sigue siendo la puerta de `finish` y del guardián:
+      selectiva sin completa aborta y su memo va aparte. `doctor` avisa si falta.
+      Guía `skills/task-workflow/verificacion-selectiva.md`. 5 rondas: las 2 a 4
+      por la misma frase del mensaje de `review` (describía un momento, no un
+      estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
