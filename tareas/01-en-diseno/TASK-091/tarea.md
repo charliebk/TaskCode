@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, review, finish]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-091-verificacion-selectiva-por-impacto-en-la
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -38,3 +38,9 @@ Encaje propuesto (sobre TASK-070 y TASK-088):
 - [ ] `taskctl doctor` avisa cuando un proyecto tiene `comando_verificacion` pero no `comando_verificacion_selectiva`, con el arreglo en la misma linea
 - [ ] Tests contra repos Git temporales reales (sin mocks): selectiva en review, completa obligatoria en finish, sin clave igual que antes
 - [ ] Guia de migracion para los proyectos que usan el plugin (como escribir el clasificador por impacto, que cambios fuerzan la completa y como declarar las dos claves), y tabla de claves de config, README, CHANGELOG y ROADMAP al dia
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-09T14:57:33Z | plan | automatico | persona | 0.12.0 |
