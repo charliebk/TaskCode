@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, review, finish]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-091-verificacion-selectiva-por-impacto-en-la
 asignado_a: charlie.bk@gmail.com
@@ -45,6 +45,7 @@ Encaje propuesto (sobre TASK-070 y TASK-088):
 |---|---|---|---|---|
 | 2026-11-09T14:57:33Z | plan | automatico | persona | 0.12.0 |
 | 2026-11-09T15:08:11Z | approve | automatico | persona | 0.12.0 |
+| 2026-11-09T15:08:12Z | start | automatico | persona | 0.12.0 |
 
 ## Coste
 
