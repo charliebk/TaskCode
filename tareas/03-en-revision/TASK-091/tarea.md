@@ -68,3 +68,4 @@ Encaje propuesto (sobre TASK-070 y TASK-088):
 - code-quality-reviewer — f0affb1
 - code-quality-reviewer — 0546cb9
 - code-quality-reviewer — 792803c
+- code-quality-reviewer — e184e34
