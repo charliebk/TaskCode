@@ -661,7 +661,8 @@ function verificacionSelectivaDeRonda(id, config, base, incremental, deps) {
     // Lo que ya paso con la base antes de verificar: solo la primera ronda la integra.
     const estadoBase = incremental
         ? `en una ronda incremental la rama no se actualiza con "${base}"`
-        : `"${base}" ya se ha integrado en la rama, como en cualquier review; reintentar no repite el merge`;
+        : `"${base}" se ha integrado en la rama en este intento, como en cualquier review; si "${base}" avanza ` +
+            'antes de reintentar, el reintento integra tambien lo nuevo';
     if (v.resultado.estado !== 'verde') {
         throw new ReviewCommandError(`[ERROR] ${id}: la verificacion selectiva (por impacto respecto a "${base}", en RAMA_BASE) no esta en ` +
             'verde, asi que no se abre ronda de revision: la tarea sigue en curso y no se ha escrito peticion ni ' +
