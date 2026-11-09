@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, review, finish]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-091-verificacion-selectiva-por-impacto-en-la
 asignado_a: charlie.bk@gmail.com
@@ -104,6 +104,7 @@ en todos los caminos que llegan a el (primera ronda, reintento, incremental) ant
 | 2026-11-09T16:56:40Z | review | automatico | persona | 0.12.0 |
 | 2026-11-09T18:00:52Z | review | automatico | persona | 0.12.0 |
 | 2026-11-09T18:37:07Z | review | automatico | persona | 0.12.0 |
+| 2026-11-09T18:48:33Z | finish | automatico | persona | 0.12.0 |
 
 ## Coste
 

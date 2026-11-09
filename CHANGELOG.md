@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-091 (feature) — Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar (2026-11-09)
+
 ## 0.13.0 — sin publicar
 
 Verificacion selectiva por impacto (TASK-091). Clave nueva opcional
