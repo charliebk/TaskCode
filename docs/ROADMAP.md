@@ -1,7 +1,7 @@
 # Roadmap de TaskCode
 
 > Qué falta por hacer y qué está hecho, en un solo sitio. Última actualización:
-> **2026-11-07** (TASK-090 cerrada; 0.12.0 publicada).
+> **2026-11-09** (TASK-091 dada de alta, urgente; 0.12.0 publicada).
 >
 > **Cómo se mantiene**: al crear una tarea se añade a «Pendiente»; al cerrarla
 > con `taskctl finish` se pasa a «Terminado», bajo la versión con la que sale.
@@ -14,12 +14,24 @@
 |---|---|
 | Terminadas | **89** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-090) |
 | Descartadas | 1 (TASK-019) |
-| **Pendientes** | **0** |
+| **Pendientes** | **1** (TASK-091, urgente) |
 | Versión publicada | **0.12.0** (2026-11-07) |
 
 ---
 
 ## Pendiente
+
+### Urgente — Verificación selectiva por impacto
+
+Pedido por Carlos el 2026-11-09 desde ToolsaWeb, donde la verificación completa
+ya tarda unos 40 minutos y se repite en cada ronda de revisión. Las rondas pasan
+a una verificación selectiva por impacto y la completa queda obligatoria antes
+de integrar. ToolsaWeb lo adelanta en su propio verificador (su TASK-297) y lo
+cambia a este encaje cuando salga la versión.
+
+| Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
+|---|---|---|---|---|---|
+| 1 | TASK-091 | Verificación selectiva por impacto en las rondas y completa obligatoria antes de integrar | media | urgente | — |
 
 ### Fase N — Mejoras tras las métricas de la 0.8 (9/9)
 
