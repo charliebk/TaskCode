@@ -39,3 +39,12 @@ de saber como hacerlo, eso va primero en su propia tarea corta.
 - Cada tarea nueva lleva sus propios criterios comprobables y sus
   dependencias (`dependencias` en el frontmatter), para que el orden quede
   claro.
+
+## Limites de la medida
+
+- La cifra es un **entero de minutos** (`Duracion estimada: 90 min`). «2 horas»,
+  «1 h 30» o «90-120» no se adivinan: cuentan como no entendidas y se pregunta.
+- La duracion real descuenta solo las pausas registradas con `taskctl pausa`.
+  Los wrappers `pause` y `resume` de Git-Flow no escriben fila: una noche de
+  pausa hecha con ellos cuenta como trabajo y sesga la calibracion. Para parar
+  una tarea, usa `taskctl pausa`.

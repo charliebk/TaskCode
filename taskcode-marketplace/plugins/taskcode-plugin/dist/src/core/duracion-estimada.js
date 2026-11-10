@@ -10,8 +10,14 @@
 export const UMBRAL_MINUTOS = 60;
 /** Linea que lleva la plantilla del plan; sin cifra cuenta como ausente. */
 export const LINEA_PLANTILLA_DURACION = 'Duracion estimada:  min (de la rama abierta al cierre con merge; senales: ficheros de codigo previstos, capas, criterios)';
-const LINEA_RE = /^\s*[*_]*\s*duraci[oó]n estimada\s*[*_]*\s*:\s*[*_]*\s*(.*)$/i;
-const CIFRA_RE = /^(\d+)\s*(?:min|minutos?)?(?![\d.,:h-])/i;
+// Admite delante viñeta, cita, encabezado, enfasis y acentos graves (H4 de la
+// revision): `- Duracion estimada:`, `> ...`, `## ...`, `**...**`, `` `...` ``.
+const LINEA_RE = /^\s*(?:[-*+>#]\s*)*[*_`]*\s*duraci[oó]n estimada\s*[*_`]*\s*:\s*[*_`]*\s*(.*?)[`]*\s*$/i;
+// Una cifra entera de minutos y NADA mas que pueda cambiar su sentido: tras la
+// cifra y la unidad opcional solo cabe el fin, un parentesis con las senales o
+// un punto final (H1 de la revision: con `\s*` y un lookahead, «2 horas»,
+// «1 h 30» o «90 - 120» se leian como 2, 1 y 90 minutos).
+const CIFRA_RE = /^(\d+)\s*(?:min(?:utos?)?\.?)?\s*(?:\(.*\))?\s*\.?$/i;
 /**
  * La duracion estimada del plan. Se ignoran los bloques de codigo (un ejemplo
  * dentro de ``` no es la estimacion). Sin la linea, o con la linea sin cifra
@@ -31,8 +37,10 @@ export function leerDuracionEstimada(texto) {
         if (m === null)
             continue;
         const valor = m[1].trim();
+        // Sin digitos (la linea de la plantilla sin rellenar): se sigue buscando,
+        // por si la estimacion real va mas abajo (H4 de la revision).
         if (!/\d/.test(valor))
-            return { tipo: 'ausente' };
+            continue;
         const c = CIFRA_RE.exec(valor);
         if (c === null)
             return { tipo: 'ilegible', valor };
