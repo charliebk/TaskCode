@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-101-verificacion-proporcional-a2-el-guardian
 asignado_a: charlie.bk@gmail.com
@@ -43,6 +43,7 @@ Segunda parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 |---|---|---|---|---|
 | 2026-11-10T21:54:14Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-10T22:17:55Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-10T22:17:58Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
