@@ -31,17 +31,8 @@ procesan).
 4. **Al cerrar cualquier item**: marcar su casilla en
    `docs/contexto/CHECKLIST_TERMINACION.md`, actualizar los contadores de la
    tabla de cabecera, y **mostrar el checklist actualizado en la respuesta**.
-5. **Protocolo de arranque (temporal, hasta tener instalada la 0.14.0, que trae TASK-095).**
-   La regla de alcance de TASK-083 relanza rondas completas sin fin (ver
-   `docs/auditoria/INVENTARIO-AGILIDAD-2026-11-10.md`). Mientras tanto, en
-   este repo: se sigue usando `taskctl` con rama, revisor independiente,
-   tests reales y registro en `tarea.md`, pero **la ronda 2 solo verifica las
-   correcciones** (el prompt del revisor lo dice: verificar cada hallazgo
-   abierto y el diff de la corrección, y abrir hallazgos nuevos solo si son
-   CRÍTICOS o los causa la corrección), **como máximo 2 rondas** y lo que
-   quede lo decide Carlos (aceptado en `Resultado` o tarea nueva). Mientras
-   se itera, `npm run test:rapido`; la suite completa, una sola vez antes de
-   pedir la revisión y no en cada ronda.
+5. **Ritmo de tests.** Mientras se itera, `npm run test:rapido`; la suite
+   completa, una sola vez antes de pedir la revisión y no en cada ronda.
 6. **Cero dependencias de runtime.** El parser de YAML-frontmatter y el de
    argumentos están hechos a mano, a propósito. No añadas librerías sin una
    razón discutida.

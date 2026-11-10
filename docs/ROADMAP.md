@@ -62,8 +62,6 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
       taskctl (`taskctl roadmap --comparar`, corregir, `--escribir`; guía en
       `skills/task-workflow/roadmap.md`). En OpenDockTrading sustituye su TASK-068.
 - [ ] **ToolsaWeb**: retomar o descartar su TASK-298, parada hasta tener la 0.14.0.
-- [ ] **Retirar el protocolo de arranque** (punto 5 de `CLAUDE.md`) cuando la
-      0.14.0 esté instalada en esta máquina.
 - [ ] **Smoke del flujo guiado** dentro de una sesión real de Claude Code (lo
       hace Carlos; pendiente desde la fase G).
 - [ ] **ToolsaWeb**: pasar su verificador por impacto (su TASK-297) al encaje de
