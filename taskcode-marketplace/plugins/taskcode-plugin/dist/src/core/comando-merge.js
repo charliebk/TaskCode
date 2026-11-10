@@ -261,3 +261,56 @@ function ramaDeCambio(args) {
     const pos = posicionales(args, CAMBIO_CON_VALOR);
     return pos.length === 1 ? pos[0] : null;
 }
+/**
+ * TASK-101: programas que no pueden cambiar ningun commit de ninguna rama.
+ * Lectura, cambio de carpeta y salida por pantalla.
+ */
+const SIN_EFECTO_EN_RAMAS = new Set(['cd', 'pushd', 'popd', 'echo', 'pwd', 'true', 'set-location', 'sl', 'tee', 'cat', 'head', 'tail', 'grep']);
+/** Subcomandos de git que no mueven ninguna rama (checkout/switch y branch, aparte). */
+const GIT_SIN_EFECTO = new Set(['merge', 'status', 'log', 'diff', 'show', 'rev-parse']);
+/** `git branch` sin mas, o solo con estas opciones, solo lista. */
+const BRANCH_SOLO_LISTA = new Set(['--show-current', '-a', '-r', '--list', '-v', '-vv', '--all', '--remotes']);
+/**
+ * TASK-101: true si, aparte de los merges y scripts de cierre, el comando solo
+ * cambia de carpeta o de rama, consulta o escribe por pantalla. El guardian de
+ * merges evalua la rama que entra ANTES de ejecutar el comando: si el comando
+ * puede crear o mover commits antes del merge (`git commit`, `reset`, `rebase`,
+ * `pull`, `cherry-pick`, un script, `taskctl`...), lo evaluado no es lo que
+ * entra, y no se aplica la exencion de solo documentacion. Ante la duda, false.
+ */
+export function comandoSoloIntegra(texto) {
+    for (const bruto of segmentar(texto)) {
+        const seg = sinPrefijos(bruto);
+        if (seg.length === 0)
+            continue;
+        const prog = programa(seg[0]);
+        if (SIN_EFECTO_EN_RAMAS.has(prog))
+            continue;
+        if (prog === 'git') {
+            let i = 1;
+            while (i < seg.length && seg[i].startsWith('-'))
+                i += GLOBALES_CON_VALOR.has(seg[i]) ? 2 : 1;
+            const sub = (seg[i] ?? '').toLowerCase();
+            const args = seg.slice(i + 1);
+            if (GIT_SIN_EFECTO.has(sub))
+                continue;
+            if ((sub === 'checkout' || sub === 'switch') && !args.some((a) => CREAN_RAMA.has(a) || a === '-f' || a === '--force'))
+                continue;
+            if (sub === 'branch' && args.every((a) => BRANCH_SOLO_LISTA.has(a)))
+                continue;
+            return false;
+        }
+        const interior = textoDeShell(prog, seg);
+        if (interior !== null) {
+            if (!comandoSoloIntegra(interior))
+                return false;
+            continue;
+        }
+        const iScript = SHELLS.has(prog) ? opcionesDeShell(seg).fin : 0;
+        const nombre = (seg[iScript] ?? '').split(/[\/]/).pop() ?? '';
+        if (SCRIPT_CIERRE.test(nombre))
+            continue;
+        return false;
+    }
+    return true;
+}

@@ -890,8 +890,14 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   que se ejecuta. La guía `verificacion-selectiva.md` trae la lista.
 - Exige `comando_verificacion`; el comando de documentación exige las rutas.
   Sin `rutas_documentacion`, todo funciona como antes.
-- De momento solo lo aplica `finish`; el freno de fin de turno, `review` y el
-  guardián de merges siguen corriendo o exigiendo la completa.
+- Lo aplican `finish` y el **guardián de merges**, con la misma decisión (la
+  config de la rama destino): un merge a mano de una tarea de solo
+  documentación pasa sin el verde de la completa, o con el verde de su
+  comprobación de documentación si la hay. El guardián no aplica la exención si
+  el comando crea o mueve commits antes del merge (`git commit && git merge`),
+  en un release, ni si cambian los held-out (`tareas/.../aceptacion/`), y la
+  calcula solo cuando ya iba a bloquear, con un presupuesto de 20 s.
+- El freno de fin de turno y `review` siguen corriendo la completa o la selectiva.
 
 #### Freno de fin de turno (hook `Stop`)
 

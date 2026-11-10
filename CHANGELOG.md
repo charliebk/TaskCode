@@ -20,6 +20,17 @@ de la tarea; la puerta de cobertura no mide una tarea de solo documentacion.
 Sin las claves, todo como en la 0.14.0. El guardian de merges (TASK-101) y el
 freno Stop y `review` (TASK-102) siguen exigiendo o corriendo la completa.
 
+Verificacion proporcional, parte A2 (TASK-101): el guardian de merges aplica
+la misma decision que `finish` (`fs/decision-documentacion.ts`, compartida),
+con la config de la rama DESTINO y solo cuando ya iba a bloquear. Un merge a
+mano de solo documentacion pasa sin el verde de la completa (o con el verde
+de su comprobacion de documentacion). No se aplica si el comando crea o mueve
+commits antes del merge (`comandoSoloIntegra`), en un release, si cambian los
+held-out (`tareas/.../aceptacion/`, que en el guardian cuentan como codigo),
+con la config del destino invalida o pasado un presupuesto de 20 s. El
+mensaje de bloqueo dice por que no se aplico. Sin `rutas_documentacion`, el
+guardian se comporta y escribe igual que en la 0.14.0.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).

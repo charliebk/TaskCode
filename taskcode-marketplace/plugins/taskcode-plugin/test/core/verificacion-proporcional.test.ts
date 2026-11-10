@@ -139,7 +139,7 @@ test('config (TASK-100): un patron que casa con todo se rechaza', () => {
   for (const p of ['"*"', '"**"', '"**/*"', '"**/**"', '"**/"']) {
     assert.throws(
       () => parsearConfig(`comando_verificacion: "npm test"\nrutas_documentacion: [docs/**, ${p}]\n`, 'c.yml'),
-      /casa con cualquier fichero/,
+      /es demasiado amplio/,
       p
     );
   }

@@ -104,8 +104,8 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   no puede ampliarlas para eximirse. Si la tarea cambia `.taskcode/config.yml`,
   corre la completa.
 - **Sin anclar**: `*.md` es solo la raiz del repo; `docs/**` es esa carpeta.
-  Los comodines distinguen mayusculas; el nombre literal de una carpeta, segun
-  `core.ignorecase` (en Windows y macOS `Docs/` y `docs/` son la misma).
+  Las mayusculas cuentan siempre, tambien con `core.ignorecase`: un cambio en
+  `Docs/` no casa con `docs/**` y esa tarea corre la completa (el lado seguro).
 - **La carpeta `tareas/` cuenta siempre** como documentacion: la cambia toda
   tarea. Sus tests held-out los sigue corriendo su propia puerta.
 - **Ante la duda, la completa**: si no se puede calcular el diff, si sale
@@ -118,8 +118,14 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   (seccion `## Verificacion de documentacion`).
 - Un `release` corre siempre la completa: lleva a la principal todo lo
   acumulado, aunque su diff propio sea solo el CHANGELOG.
-- De momento solo lo aplica `finish`. El fin de turno, `review` y el guardian
-  de merges siguen como antes (mas estrictos, nunca mas laxos).
+- Lo aplican `finish` y el **guardian de merges**, con la misma decision: un
+  merge a mano de una tarea de solo documentacion pasa sin el verde de la
+  completa (con comprobacion de documentacion, con su verde guardado). El
+  guardian lee las rutas de la config de la rama destino y no aplica la
+  exencion si el comando crea o mueve commits antes del merge (`git commit &&
+  git merge ...`: haz el commit en otro comando), en un release, ni si cambian
+  los tests held-out (`tareas/.../aceptacion/`), que alli cuentan como codigo.
+- El fin de turno y `review` siguen como antes (mas estrictos, nunca mas laxos).
 
 ### Que `.md` NO son documentacion
 

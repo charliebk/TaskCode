@@ -16,6 +16,12 @@
  *      (el backmerge de recuperacion que pide `finish`) o de origin/<destino>.
  *   6. Hay un VERDE guardado para el commit fuente (huella de commit, la que
  *      deja `finish` o el freno Stop con el arbol limpio): deja pasar.
+ *   6b. TASK-101: el destino declara `rutas_documentacion` y lo que entra es
+ *      solo documentacion (la misma decision que `finish`, con la config del
+ *      DESTINO): deja pasar sin comprobacion de documentacion declarada, o con
+ *      su verde guardado. Nunca si el comando puede crear o mover commits antes
+ *      del merge, en un release, con un held-out cambiado, o pasado el
+ *      presupuesto de tiempo. Solo se calcula si el paso 6 no dejo pasar.
  *   7. Cualquier otra cosa BLOQUEA (exit 2): «sin verde» cuenta como no verde
  *      (decision de Carlos) y remite a `taskctl finish`, que si verifica.
  *
@@ -29,6 +35,8 @@ import { spawnSync } from 'node:child_process';
 import { analizarComando } from '../core/comando-merge.js';
 import { raizDelRepo, resolverConfigConAvisos } from '../core/config.js';
 import { huellaDeCommit, leerMemo } from '../fs/verificacion.js';
+import { comandoSoloIntegra } from '../core/comando-merge.js';
+import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
 import { timeoutEfectivoS } from './freno-stop.js';
 import { PASAR } from './entrada-pretooluse.js';
 export { parsearEntradaPreToolUse } from './entrada-pretooluse.js';
@@ -60,6 +68,12 @@ function ramaPrincipal(cwd) {
 function esAncestro(a, b, cwd) {
     return git(['merge-base', '--is-ancestor', '--end-of-options', a, b], cwd).ok;
 }
+/**
+ * TASK-101: margen del paso 6b dentro de los 30 s del hook. Pasado, no se
+ * calcula la exencion: se bloquea como siempre (un hook que muere por tiempo
+ * podria dejar pasar el merge).
+ */
+export const PRESUPUESTO_EXENCION_MS = 20_000;
 export function decidirPreToolUse(entrada) {
     const comando = comandoCandidato(entrada);
     if (comando === null)
@@ -70,6 +84,7 @@ export function decidirPreToolUse(entrada) {
     if (typeof entrada.cwd !== 'string' || entrada.cwd === '' || !existsSync(entrada.cwd))
         return PASAR;
     const cwd = entrada.cwd;
+    const contexto = { soloIntegra: comandoSoloIntegra(comando), inicioMs: Date.now() };
     // 3 y 4: hasta saber que algo entra en develop/main, cualquier fallo deja pasar.
     const pendientes = [];
     try {
@@ -102,7 +117,7 @@ export function decidirPreToolUse(entrada) {
     // 5 a 7: ya se sabe que el comando integra en una rama protegida.
     try {
         for (const { integ, config } of pendientes) {
-            const motivo = motivoDeBloqueo(integ, config);
+            const motivo = motivoDeBloqueo(integ, config, contexto);
             if (motivo !== null)
                 return { codigo: 2, stderr: motivo };
         }
@@ -123,16 +138,17 @@ function integraciones(op, raiz, integracion, principal) {
         if (op.fuente === null)
             return [];
         const destinos = op.destinos.map((d) => (d === 'main' ? principal : integracion)).filter((d) => d !== null);
-        return destinos.map((destino) => ({ fuente: op.fuente, destino, raiz }));
+        const release = op.script.includes('release') || /^release\//.test(op.fuente);
+        return destinos.map((destino) => ({ fuente: op.fuente, destino, raiz, release }));
     }
     const destino = op.destino ?? git(['branch', '--show-current'], raiz).out;
     if (destino === '')
         return [];
     const fuentes = op.fuentes.length > 0 ? op.fuentes : [`${destino}@{upstream}`];
-    return fuentes.map((fuente) => ({ fuente, destino, raiz }));
+    return fuentes.map((fuente) => ({ fuente, destino, raiz, release: /^(?:refs\/heads\/)?release\//.test(fuente) }));
 }
 /** null si el merge puede pasar; si no, el texto para el agente. */
-function motivoDeBloqueo(integ, config) {
+function motivoDeBloqueo(integ, config, contexto) {
     const { fuente, destino, raiz } = integ;
     const comando = config.comando_verificacion;
     const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${fuente}^{commit}`], raiz);
@@ -159,12 +175,60 @@ function motivoDeBloqueo(integ, config) {
         if (r !== null)
             rojo = true;
     }
-    return mensaje(fuente, sha.out, destino, comando, rojo ? 'la ultima verificacion de ese commit NO salio en verde' : 'no consta una verificacion en verde de ese commit');
+    // 6b (TASK-101): solo documentacion, con la misma decision que finish.
+    const exencion = exencionDocumentacion(integ, sha.out, contexto);
+    if (exencion.pasa)
+        return null;
+    return mensaje(fuente, sha.out, destino, comando, rojo ? 'la ultima verificacion de ese commit NO salio en verde' : 'no consta una verificacion en verde de ese commit', exencion.detalle);
 }
-function mensaje(fuente, sha, destino, comando, motivo) {
+/**
+ * TASK-101: si lo que entra es solo documentacion segun la config del destino.
+ * `detalle` explica por que no se aplica cuando el destino si la declara; null
+ * cuando no la declara (el mensaje queda como en la 0.14.0).
+ */
+function exencionDocumentacion(integ, sha, contexto) {
+    const { destino, raiz } = integ;
+    if (Date.now() - contexto.inicioMs > PRESUPUESTO_EXENCION_MS)
+        return { pasa: false, detalle: null };
+    const r = decidirVerificacionEntre(destino, sha, raiz, { heldoutComoCodigo: true });
+    if (r === null)
+        return { pasa: false, detalle: null };
+    if (r.tipo === 'config-invalida') {
+        return {
+            pasa: false,
+            detalle: `La configuracion de "${destino}" no es valida, asi que no se aplica la exencion de solo documentacion: ${r.error.message.replace(/^\[ERROR\]\s*/, '')}`,
+        };
+    }
+    const d = r.decision;
+    if (d.tipo === 'completa')
+        return { pasa: false, detalle: `No es solo documentacion: ${d.motivo}.` };
+    if (integ.release) {
+        return { pasa: false, detalle: 'Un release lleva a la principal todo lo acumulado: siempre exige la verificacion completa.' };
+    }
+    if (!contexto.soloIntegra) {
+        return {
+            pasa: false,
+            detalle: `${d.motivo}, pero este comando puede crear o mover commits antes del merge (commit, reset, rebase, pull, ` +
+                'un script...): lo comprobado no seria lo que entra. Haz el commit en un comando y el merge en otro.',
+        };
+    }
+    if (d.comando === null)
+        return { pasa: true, detalle: null };
+    const huella = huellaDeCommit(raiz, sha, d.comando, r.timeoutS);
+    const memo = huella === null ? null : leerMemo(raiz, huella, 'documentacion');
+    if (memo?.estado === 'verde')
+        return { pasa: true, detalle: null };
+    return {
+        pasa: false,
+        detalle: `${d.motivo}, pero no consta en verde su comprobacion de documentacion (${d.comando}) para ese commit: ` +
+            'taskctl finish la ejecuta.',
+    };
+}
+function mensaje(fuente, sha, destino, comando, motivo, detalle = null) {
     const quien = sha === null ? `"${fuente}"` : `"${fuente}" (${sha.slice(0, 10)})`;
     return [
         `Merge bloqueado: ${quien} entraria en "${destino}" y ${motivo} (comando de verificacion: ${comando}).`,
+        ...(detalle === null ? [] : [detalle]),
         'Cierra la tarea con taskctl finish TASK-NNN: ejecuta la verificacion y mergea con el flujo de la tarea.',
         'Si la persona decide integrar sin verificar, es taskctl finish TASK-NNN --sin-verificacion, que lo deja',
         'anotado en la tarea. No integres por otra via para saltarte esta comprobacion.',
