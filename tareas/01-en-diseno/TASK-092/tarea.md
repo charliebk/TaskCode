@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [config, sincronizacion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-092-sincronizacion-de-ficheros-sueltos-de-la
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ Que un proyecto pueda regenerar en cada transición un fichero derivado que vive
 - [ ] Las tres salvaguardas de sincronizacion.md (ruta con cambios previos, comando que falla, fichero no declarado) funcionan igual con una ruta de la raíz de tareas/, con un test por caso
 - [ ] skills/task-workflow/sincronizacion.md y el README describen la nueva regla y su motivo, y CHANGELOG.md la anota en la versión siguiente
 - [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ni borrar ningún test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-10T12:44:55Z | plan | automatico | persona | 0.13.0 |
