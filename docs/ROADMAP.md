@@ -1,7 +1,7 @@
 # Roadmap de TaskCode
 
 > Qué falta por hacer y qué está hecho, en un solo sitio. Última actualización:
-> **2026-11-09** (TASK-091 cerrada; 0.13.0 publicada).
+> **2026-11-10** (TASK-092, 095, 097 y 098 cerradas; 0.14.0 publicada).
 >
 > **Cómo se mantiene**: al crear una tarea se añade a «Pendiente»; al cerrarla
 > con `taskctl finish` se pasa a «Terminado», bajo la versión con la que sale.
@@ -12,14 +12,25 @@
 
 | | Tareas |
 |---|---|
-| Terminadas | **90** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-091) |
-| Descartadas | 1 (TASK-019) |
-| **Pendientes** | **0** |
-| Versión publicada | **0.13.0** (2026-11-09) |
+| Terminadas | **94** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-092, TASK-095, TASK-097, TASK-098) |
+| Descartadas | 3 (TASK-019, TASK-093, TASK-094) |
+| **Pendientes** | **1** (TASK-096) |
+| Versión publicada | **0.14.0** (2026-11-10) |
 
 ---
 
 ## Pendiente
+
+### Fase P — Agilidad sin perder calidad (4/5)
+
+Sale de la auditoría de agilidad de la 0.8 a la 0.13 (`docs/auditoria/INVENTARIO-AGILIDAD-2026-11-10.md`):
+las tareas de ToolsaWeb pasaron de 103 a 192 min de mediana de punta a punta y
+las revisiones de 2,3 a 3,8 rondas. La 0.14.0 trae la revisión que converge
+(TASK-095), la regla de una hora (TASK-097) y el ROADMAP generado (TASK-098).
+
+| Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
+|---|---|---|---|---|---|
+| 1 | TASK-096 | Verificación proporcional al cambio: una tarea sin código no corre la suite de tests | alta | alta | — |
 
 ### Fase N — Mejoras tras las métricas de la 0.8 (9/9)
 
@@ -41,6 +52,12 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
 
 ### Pendiente fuera de tareas
 
+- [ ] **ToolsaWeb y OpenDockTrading**: tarea de migración de su ROADMAP al de
+      taskctl (`taskctl roadmap --comparar`, corregir, `--escribir`; guía en
+      `skills/task-workflow/roadmap.md`). En OpenDockTrading sustituye su TASK-068.
+- [ ] **ToolsaWeb**: retomar o descartar su TASK-298, parada hasta tener la 0.14.0.
+- [ ] **Retirar el protocolo de arranque** (punto 5 de `CLAUDE.md`) cuando la
+      0.14.0 esté instalada en esta máquina.
 - [ ] **Smoke del flujo guiado** dentro de una sesión real de Claude Code (lo
       hace Carlos; pendiente desde la fase G).
 - [ ] **ToolsaWeb**: pasar su verificador por impacto (su TASK-297) al encaje de
@@ -58,16 +75,29 @@ de implementación y los tokens de revisión de vuelta a 3-4 M por tarea media.
 
 - **TASK-019** — Revisión ligera sin agente para tareas triviales. Decisión D4
   del checklist: no se hace, con los datos delante.
+- **TASK-093** — `finish` reutiliza la completa en verde del mismo árbol: poco
+  valor medido.
+- **TASK-094** — Cerrojo de verificación: síntoma de lanzar demasiadas
+  verificaciones; TASK-096 ataca la causa.
 
 ---
 
 ## Terminado
 
-90 tareas, agrupadas por la versión con la que salieron (la más reciente
+94 tareas, agrupadas por la versión con la que salieron (la más reciente
 primero). TASK-021 (publicar el marketplace) se adelantó al Sprint 1 como
 item A1. Las carpetas de TASK-001 a TASK-012 y TASK-021 siguen en
 `tareas/00-planificadas/` porque se hicieron antes de que existiera el ciclo
 de `taskctl`; su cierre consta en el checklist, no en la carpeta.
+
+### v0.14.0 — 2026-11-10 — 4 tareas
+
+| Tarea | Título | Cierre |
+|---|---|---|
+| TASK-092 | Sincronización de ficheros sueltos de la raíz de tareas/ | 2026-11-10 |
+| TASK-095 | Revisión que converge: desde la ronda 2 solo se verifican las correcciones | 2026-11-10 |
+| TASK-097 | Regla de una hora: plan estima la duración de punta a punta y propone trocear | 2026-11-10 |
+| TASK-098 | ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes | 2026-11-10 |
 
 ### v0.13.0 — 2026-11-09 — 1 tarea
 

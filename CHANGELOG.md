@@ -1,13 +1,6 @@
 # Changelog
 
-## Sin publicar
-- TASK-098 (feature) — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes (2026-11-10)
-- TASK-097 (feature) — Regla de una hora: plan estima la duracion de punta a punta y propone trocear (2026-11-10)
-- TASK-095 (feature) — Revision que converge: desde la ronda 2 solo se verifican las correcciones (2026-11-10)
-
-- TASK-092 (feature) — Sincronización de ficheros sueltos de la raíz de tareas/ (2026-11-10)
-
-## 0.14.0 — sin publicar
+## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).
 `new`, `plan`, `approve` y `finish` (tras el merge) regeneran
@@ -102,6 +95,11 @@ distingue mayusculas. `Tareas/01-en-diseno/x.md`, `.GIT/HEAD` o
 `.TaskCode/config.yml` pasaban antes la validacion (en Windows y macOS son las
 mismas carpetas) y ahora abortan al leer la config, en `rutas_sincronizacion` y
 en `informe_cobertura`.
+
+- TASK-098 (feature) — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes (2026-11-10)
+- TASK-097 (feature) — Regla de una hora: plan estima la duracion de punta a punta y propone trocear (2026-11-10)
+- TASK-095 (feature) — Revision que converge: desde la ronda 2 solo se verifican las correcciones (2026-11-10)
+- TASK-092 (feature) — Sincronización de ficheros sueltos de la raíz de tareas/ (2026-11-10)
 
 ## 0.13.0 — 2026-11-09
 
