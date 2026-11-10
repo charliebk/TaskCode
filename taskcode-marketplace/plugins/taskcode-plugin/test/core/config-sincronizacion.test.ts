@@ -75,6 +75,11 @@ test('config sincronizacion: rutas invalidas abortan al cargar', () => {
     ['[TAREAS/02-En-Curso/x.md]', /es una carpeta de estado/],
     ['[.GIT/HEAD]', /esta bajo \.GIT\//],
     ['[.TaskCode/config.yml]', /esta bajo \.TaskCode\//],
+    // Windows ignora los puntos y espacios finales de cada segmento.
+    ['[tareas/01-en-diseno./x.md]', /es una carpeta de estado/],
+    ['["tareas/02-en-curso /x.md"]', /es una carpeta de estado/],
+    ['[tareas./01-en-diseno/x.md]', /es una carpeta de estado/],
+    ['[.git./HEAD]', /esta bajo \.git\.\//],
     ['[]', /lista no vacia/],
     ['docs/PLAN.md', /lista no vacia entre corchetes/],
   ];

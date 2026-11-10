@@ -846,6 +846,15 @@ function validarRutasSincronizacion(donde: string, valor: unknown): readonly str
 }
 
 /**
+ * Un segmento de ruta tal como lo resuelve el sistema de ficheros mas
+ * permisivo: sin distinguir mayusculas y sin los puntos y espacios finales,
+ * que Windows ignora (`tareas/01-en-diseno./x.md` es `tareas/01-en-diseno/x.md`).
+ */
+function nombreComparable(segmento: string): string {
+  return segmento.toLowerCase().replace(/[. ]+$/, '');
+}
+
+/**
  * null si la ruta es aceptable; si no, el motivo en palabras de persona.
  *
  * `ficheroEnRaizDeTareas` abre la excepcion de TASK-092 (un fichero suelto
@@ -864,12 +873,12 @@ function motivoRutaInvalida(
   if (normalizada === '..' || normalizada.startsWith('../')) return 'se sale del repo';
   const segmentos = normalizada.split('/');
   const primera = segmentos[0] as string;
-  const primeraMin = primera.toLowerCase();
+  const primeraMin = nombreComparable(primera);
   if (!(RAICES_PROHIBIDAS_SINCRONIZACION as readonly string[]).includes(primeraMin)) return null;
   if (primeraMin === 'tareas' && opciones.ficheroEnRaizDeTareas === true) {
     if (segmentos.length === 1) return `es la carpeta ${primera}/, no un fichero`;
     const segunda = segmentos[1] as string;
-    if (CARPETAS_DE_ESTADO.includes(segunda.toLowerCase())) {
+    if (CARPETAS_DE_ESTADO.includes(nombreComparable(segunda))) {
       return (
         `${primera}/${segunda} es una carpeta de estado, y lo que hay en ella ` +
         'lo escribe taskctl'
