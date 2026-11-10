@@ -25,6 +25,7 @@ import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { planTemplate, resolverPlanFinal, BRAINSTORM_DIRNAME, PLANIFICACION_DIRNAME, } from './plan.js';
 import { readFile, readdir } from 'node:fs/promises';
+import { describirExceso, leerDuracionEstimada, superaUmbral, UMBRAL_MINUTOS } from '../core/duracion-estimada.js';
 import { ROLES_BRAINSTORM, TODOS_LOS_ROLES, seleccionarRoles, seleccionarRolesDeTarea, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol } from '../core/plan-brainstorm.js';
 import { planEsEsqueleto } from '../core/validacion-tarea.js';
@@ -130,6 +131,20 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
                 `persona: taskctl approve ${task.id} (sin --decidido-por automatico).`);
         }
     }
+    // TASK-097: regla de una hora. Sin la linea, solo aviso (los planes
+    // anteriores a la regla no se atascan). Con mas de una hora, o con una
+    // cifra que no se entiende, la aprobacion automatica se rechaza: lo
+    // decide una persona (trocear o aprobar entera con el motivo).
+    const avisos = [];
+    const duracion = leerDuracionEstimada(await readFile(rutaPlan, 'utf8'));
+    if (duracion.tipo === 'ausente') {
+        avisos.push(`${task.id}: el plan no dice su duracion estimada (linea "Duracion estimada: N min"). ` +
+            `La regla de una hora pide trocear las tareas de mas de ${String(UMBRAL_MINUTOS)} min de punta a punta.`);
+    }
+    if (decididoPor === 'automatico' && superaUmbral(duracion)) {
+        throw new ApproveCommandError(`[ERROR] ${task.id}: no se aprueba como automatico: ${describirExceso(duracion)}: ` +
+            `taskctl approve ${task.id} (sin --decidido-por automatico).`);
+    }
     const updated = { ...task, plan_aprobado: true, actualizado: today };
     // Reaprobar un plan ya aprobado no es una transicion: sin fila nueva, y
     // asi la segunda vez sigue sin crear commit (es idempotente).
@@ -147,7 +162,7 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
         mensaje: mensajeChore(task.id, 'plan aprobado'),
         push,
     });
-    return { id: task.id, filePath: newFilePath, baseBranchGuard, autoCommit: commitResult };
+    return { id: task.id, filePath: newFilePath, baseBranchGuard, autoCommit: commitResult, avisos };
 }
 /**
  * `--decidido-por persona|automatico` (TASK-056), en cualquier posicion
@@ -231,6 +246,13 @@ export async function planEsPlantilla(task, rutaPlan) {
     return planEsEsqueleto(await readFile(rutaPlan, 'utf8'), plantillas);
 }
 /** ¿La tarea tiene un plan-final.md redactado (existe y no es la plantilla)? */
+/** TASK-097: la duracion estimada del plan-final.md de la tarea (ausente si no hay plan). */
+export async function duracionDelPlan(taskDir) {
+    const u = await resolverPlanFinal(taskDir);
+    if (!planFinalExisteEn(u))
+        return { tipo: 'ausente' };
+    return leerDuracionEstimada(await readFile(u.canonicaExiste ? u.canonica : u.legada, 'utf8'));
+}
 export async function planRedactado(task, taskDir) {
     const u = await resolverPlanFinal(taskDir);
     if (!planFinalExisteEn(u))

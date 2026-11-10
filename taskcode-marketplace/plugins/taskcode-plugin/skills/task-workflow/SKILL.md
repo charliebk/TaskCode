@@ -209,8 +209,8 @@ verde del commit que entra: cierra siempre con `taskctl finish`. Saltarse la
 verificacion (`--sin-verificacion`) lo decide la persona, no tu.
 
 **Tests held-out (`aceptacion/`).** Son de la persona: si implementas, no los
-leas ni los edites (un hook lo frena en la rama de la tarea). Detalle en
-[heldout.md](heldout.md).
+leas ni los edites. Detalle en [heldout.md](heldout.md).
+Regla de 1 h: [duracion.md](duracion.md).
 
 ## Cerrar una tarea
 

@@ -25,7 +25,7 @@ import { INFORME_CODEX_RE, INFORME_REVISION_RE, PETICION_REVISION_RE, informesDe
 import { currentBranch, isAncestor, localBranchExists, lsTreeNames, mergeBase, resolveBaseBranchForTipo, runGit, showFileAtRef, } from '../fs/git.js';
 import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import { REVISION_DIRNAME } from './review.js';
-import { planRedactado } from './approve.js';
+import { duracionDelPlan, planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
 }
 /** Flags de `taskctl siguiente`: solo --json. */
@@ -94,6 +94,8 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
     let task;
     let body;
     let planEstaRedactado = true;
+    // TASK-097: la duracion estimada del plan (solo en-diseno con plan redactado).
+    let duracionEstimada;
     // Informes de la ultima ronda (primaria y de Codex), con el MISMO criterio
     // de ronda en los dos caminos (nombresDeUltimaRonda), leidos de la rama o
     // del disco.
@@ -140,11 +142,15 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         primarios = await Promise.all(ultima.nombres.map(leer));
         revisados = (await Promise.all((await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE)).nombres.map(leer))).map((t) => commitRevisadoDe(t));
         codex = await Promise.all((await informesDeUltimaRonda(revisionDir, INFORME_CODEX_RE)).nombres.map(leer));
-        if (task.estado === 'en-diseno')
+        if (task.estado === 'en-diseno') {
             planEstaRedactado = await planRedactado(task, taskDir);
+            if (planEstaRedactado)
+                duracionEstimada = await duracionDelPlan(taskDir);
+        }
     }
     const ctx = {
         planRedactado: planEstaRedactado,
+        ...(duracionEstimada === undefined ? {} : { duracionEstimada }),
         veredicto: veredictoDe(primarios),
         veredictoCodex: veredictoDe(codex),
         modoCongelado: modoCongelado(body) !== null,

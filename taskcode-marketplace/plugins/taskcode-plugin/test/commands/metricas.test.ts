@@ -74,9 +74,14 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
 
     const r = cliOk(repoRoot, ['metricas']);
     assert.deepEqual(cabecera(r.stdout), [
+      // TASK-097: estimada y punta_a_punta (regla de una hora) al final.
       'id', 'complejidad', 'diseno', 'curso', 'revision', 'rondas', 'crit', 'imp', 'men', 'hall_origen', 'cierre', 'origen',
+      'estimada', 'punta_a_punta',
     ]);
-    const [id, complejidad, diseno, curso, revision, rondas, crit, imp, men, hallOrigen, cierre, origen] = filaDe(r.stdout);
+    const [id, complejidad, diseno, curso, revision, rondas, crit, imp, men, hallOrigen, cierre, origen, estimada, puntaAPunta] = filaDe(r.stdout);
+    // TASK-097: finish anoto la duracion; el plan del escenario no la dice, asi que «—».
+    assert.equal(estimada, '—');
+    assert.match(puntaAPunta as string, DURACION_SEGUNDOS);
     assert.equal(id, ID);
     assert.equal(complejidad, 'simple');
     for (const d of [diseno, curso, revision]) assert.match(d as string, DURACION_SEGUNDOS);
@@ -101,8 +106,8 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     const h = cliOk(repoRoot, ['metricas', '--heuristica']);
     assert.deepEqual(cabecera(h.stdout).slice(-2), ['puntos', 'nivel_heuristico']);
     const fila = filaDe(h.stdout);
-    assert.match(fila[12] as string, /^\d+$/);
-    assert.match(fila[13] as string, /^(trivial|simple|media|alta|critica)$/);
+    assert.match(fila[14] as string, /^\d+$/);
+    assert.match(fila[15] as string, /^(trivial|simple|media|alta|critica)$/);
     assert.match(h.stdout, /Muestra: 1 tareas terminadas/);
     assert.match(h.stdout, /Por complejidad declarada:\n {2}simple +n= {2}1 +rondas medias=1\.00/);
 
@@ -198,7 +203,7 @@ test('metricas fuera de un repo Git: las tareas sin registro salen con "—" y u
       await writeFile(copia, sinRegistro, 'utf8');
       const r = cliOk(fuera, ['metricas']);
       assert.match(r.stderr, /\[AVISO\] No se pudo consultar git log/);
-      assert.deepEqual(filaDe(r.stdout).slice(2), ['—', '—', '—', '1', '0', '0', '1', '0/0/0/1', '—', '—']);
+      assert.deepEqual(filaDe(r.stdout).slice(2), ['—', '—', '—', '1', '0', '0', '1', '0/0/0/1', '—', '—', '—', '—']);
     } finally {
       await rm(fuera, { recursive: true, force: true });
     }

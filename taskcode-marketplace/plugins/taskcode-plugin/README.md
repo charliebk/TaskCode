@@ -100,6 +100,25 @@ estado, también corregido, obligaba a una ronda completa; los revisores
 vuelven a listar los corregidos, así que cada ronda relanzaba una revisión
 entera que encontraba otra tanda (hasta 14 rondas en una tarea).
 
+## Regla de una hora
+
+Una tarea prevista de más de **una hora de punta a punta** (de la rama abierta
+al cierre con merge) se parte en varias.
+
+- **Plan:** `plan-final.md` lleva `Duracion estimada: N min` bajo «Enfoque
+  propuesto», con sus señales: ficheros de código previstos (la mejor señal
+  medida), capas y criterios.
+- **Approve:** con más de 60 min, o con una cifra que no se entiende,
+  `taskctl siguiente` pregunta en cualquier modo y `taskctl approve
+  --decidido-por automatico` se rechaza: decide una persona (trocear o aprobar
+  entera con el motivo). Sin la línea, `approve` solo avisa.
+- **Finish:** `tarea.md` gana `## Duracion` con la estimada y la real de punta
+  a punta (sin pausas), y `taskctl metricas` las muestra en las columnas
+  `estimada` y `punta_a_punta`, para calibrar.
+
+Cómo trocear (porción vertical pequeña frente a capas) y las señales, en la
+skill `task-workflow`, `duracion.md`.
+
 ## Roles del brainstorm de diseño
 
 `taskctl plan` lanza roles de `agents/` según la complejidad, por este orden de

@@ -45,6 +45,9 @@ import { extraerSinVerificacion, puertaVerificacion } from './finish-verificacio
 import { puertaHeldout } from './finish-heldout.js';
 import { puertaCobertura } from './finish-cobertura.js';
 import { runBoardCommand, boardFilePath } from './board.js';
+import { duracionDelPlan } from './approve.js';
+import { anotarDuracion } from '../core/duracion-estimada.js';
+import { minutosPuntaAPunta } from '../core/metricas.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
 // Definidos en finish-opciones.ts (el error lo comparten las dos); se reexportan
@@ -480,7 +483,17 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     for (const aviso of volcado.avisos)
         deps.onAviso?.(`${id}: ${aviso}`);
     const updated = volcado.task;
-    const conRegistro = registrarTransicion(volcado.body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
+    const conFila = registrarTransicion(volcado.body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
+    // TASK-097: regla de una hora. Estimada (del plan) y real de punta a punta,
+    // para calibrar. Nunca lanza: estamos despues del merge y un fallo aqui
+    // dejaria la tarea mergeada sin cerrar. Un dato que falta va como «—».
+    let conRegistro = conFila;
+    try {
+        conRegistro = anotarDuracion(conFila, await duracionDelPlan(path.dirname(filePath)), minutosPuntaAPunta(conFila));
+    }
+    catch (e) {
+        deps.onAviso?.(`${id}: no se pudo anotar la duracion (${e instanceof Error ? e.message : String(e)}); el cierre sigue.`);
+    }
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     // Renderizado de cierre (criterio 3): plantillas desde el
     // frontmatter. BOARD.md se regenera entero reutilizando el mismo

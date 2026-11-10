@@ -15,6 +15,7 @@
 import type { Task } from './task.js';
 import type { ModoFlujo } from './config.js';
 import type { VeredictoInforme } from './informe-revision.js';
+import { describirExceso, superaUmbral, type LecturaDuracion } from './duracion-estimada.js';
 
 /**
  * Todas las fases que puede devolver siguienteFase. Lista en tiempo de
@@ -40,6 +41,8 @@ export type AccionFlujo = 'detener' | 'preguntar' | 'continuar';
 export interface ContextoFlujo {
   /** en-diseno: ¿hay un plan-final.md redactado (no la plantilla)? */
   planRedactado: boolean;
+  /** TASK-097: en-diseno, la duracion estimada que dice el plan (ausente si no la dice). */
+  duracionEstimada?: LecturaDuracion;
   /** en-revision: veredicto de la ultima ronda. */
   veredicto: VeredictoInforme | null;
   /**
@@ -142,6 +145,17 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
         // No `taskctl plan`: abriria otra ronda de diseno. Lo que falta es
         // trabajo de agente (roles, unificador) sobre la ronda ya abierta.
         return paso('plan', false, 'falta redactar planificacion/plan-final.md', null);
+      }
+      // TASK-097: regla de una hora. Mas de una hora (o una cifra que no se
+      // entiende) se pregunta en CUALQUIER modo, tambien en manual: trocear o
+      // aprobar entera es decision de una persona. Sin la linea, como hoy.
+      if (ctx.duracionEstimada !== undefined && superaUmbral(ctx.duracionEstimada)) {
+        return {
+          fase: 'approve',
+          comando: `taskctl approve ${task.id}`,
+          accion: 'preguntar',
+          motivo: describirExceso(ctx.duracionEstimada),
+        };
       }
       if (!ctx.modoCongelado) {
         // Tarea sin fila plan (anterior al registro): approve

@@ -1,3 +1,4 @@
+import { describirExceso, superaUmbral } from './duracion-estimada.js';
 /**
  * Todas las fases que puede devolver siguienteFase. Lista en tiempo de
  * ejecucion (no solo tipo) para que el test de las skills de fase compruebe
@@ -67,6 +68,17 @@ export function siguienteFase(task, ctx, modo) {
                 // No `taskctl plan`: abriria otra ronda de diseno. Lo que falta es
                 // trabajo de agente (roles, unificador) sobre la ronda ya abierta.
                 return paso('plan', false, 'falta redactar planificacion/plan-final.md', null);
+            }
+            // TASK-097: regla de una hora. Mas de una hora (o una cifra que no se
+            // entiende) se pregunta en CUALQUIER modo, tambien en manual: trocear o
+            // aprobar entera es decision de una persona. Sin la linea, como hoy.
+            if (ctx.duracionEstimada !== undefined && superaUmbral(ctx.duracionEstimada)) {
+                return {
+                    fase: 'approve',
+                    comando: `taskctl approve ${task.id}`,
+                    accion: 'preguntar',
+                    motivo: describirExceso(ctx.duracionEstimada),
+                };
             }
             if (!ctx.modoCongelado) {
                 // Tarea sin fila plan (anterior al registro): approve

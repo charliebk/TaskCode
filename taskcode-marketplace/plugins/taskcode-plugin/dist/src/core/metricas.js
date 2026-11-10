@@ -53,6 +53,7 @@
  * (`ResumenCostes`, `ResumenHallazgos`), para que quien agregue no tenga que
  * adivinar si un 0 es un cero o una ausencia.
  */
+import { estimadaAnotada } from './duracion-estimada.js';
 import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, lecturasDeRevision, resumirCostes, } from './coste-registro.js';
@@ -198,6 +199,22 @@ export function duracionSinPausas(desde, hasta, pausas) {
 function ultimaMarca(m) {
     return m.finish ?? m.review ?? m.start ?? m.plan;
 }
+/**
+ * TASK-097: minutos de punta a punta (de la fila start a la ultima finish, sin
+ * pausas) del registro de una tarea; null si falta una marca o alguna es de
+ * dia (nunca se inventa una cifra).
+ */
+export function minutosPuntaAPunta(body) {
+    const registro = leerTransiciones(body).map((f) => ({
+        fase: f.fase,
+        marca: { ms: instanteDe(f.fecha), precision: precisionDeFecha(f.fecha) },
+    }));
+    if (registro.length === 0)
+        return null;
+    const m = marcasDe(registro);
+    const d = duracionSinPausas(m.start, m.finish, m.intervalosPausa);
+    return d === null || d.precision === 'dia' ? null : Math.round(d.valor / 60_000);
+}
 /** Una fila por tarea, sin la parte de heuristica. */
 export function calcularFila(e) {
     const registro = leerTransiciones(e.body).map((f) => ({
@@ -252,6 +269,8 @@ export function calcularFila(e) {
         lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
         total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
+        puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
+        estimadaMin: estimadaAnotada(e.body),
         enPausa: enPausaDe(marcas),
         veredictoRonda1: veredictoRonda1(e.informes ?? []),
         versionCierre: versionDeCierre(e.body),
@@ -318,6 +337,10 @@ export const COLUMNAS_METRICAS = [
     },
     { cabecera: 'cierre', valor: (f) => f.cierre ?? '—' },
     { cabecera: 'origen', valor: (f) => f.origen },
+    // TASK-097: regla de una hora. Estimada (la que finish anoto del plan) y
+    // real de punta a punta (de start a finish, sin pausas).
+    { cabecera: 'estimada', valor: (f) => (f.estimadaMin === null ? '—' : `${String(f.estimadaMin)}m`) },
+    { cabecera: 'punta_a_punta', valor: (f) => formatearDuracion(f.puntaAPunta) },
 ];
 /** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
 export const COLUMNA_PROYECTO = { cabecera: 'proyecto', valor: (f) => f.proyecto };

@@ -7,6 +7,24 @@
 
 ## 0.14.0 — sin publicar
 
+Regla de una hora (TASK-097). Una tarea prevista de mas de una hora de punta a
+punta (de la rama abierta al cierre con merge) se trocea. La plantilla de
+`plan-final.md` gana la linea `Duracion estimada: N min` con sus senales
+(ficheros de codigo previstos, capas, criterios; los ficheros de codigo son la
+mejor senal medida en 147 tareas de dos proyectos). Con mas de 60 min, o con una
+cifra que no se entiende, `taskctl siguiente` devuelve `preguntar` en cualquier
+modo y `taskctl approve --decidido-por automatico` se rechaza: decide una
+persona. Sin la linea, `approve` solo avisa (los planes anteriores no se
+atascan). `taskctl finish` anota en `tarea.md` la seccion `## Duracion` con la
+estimada y la real de punta a punta (sin pausas), sin lanzar nunca tras el
+merge, y `taskctl metricas` gana las columnas `estimada` y `punta_a_punta`.
+Guia en la skill `task-workflow` (`duracion.md`): senales y como trocear
+(porcion vertical frente a capas).
+
+Cambios de comportamiento: dos columnas nuevas al final de la tabla de
+`taskctl metricas` (antes de las de `--tokens` y `--heuristica`); el resultado
+de `approve` gana `avisos`.
+
 Revision que converge (TASK-095). Corrige la regla de alcance de la 0.12
 (TASK-083), que exigia que la ronda anterior dejara solo MENORES: un CRITICO o
 IMPORTANTE en cualquier estado, tambien `corregido`, obligaba a una ronda

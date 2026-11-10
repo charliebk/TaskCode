@@ -661,6 +661,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         `Tarea ${result.id} aprobada (plan_aprobado: true): ${result.filePath}.\n`
       );
       printAutoCommit(result.autoCommit);
+      for (const aviso of result.avisos) process.stderr.write(`[AVISO] ${aviso}\n`);
       return 0;
     } catch (e) {
       if (

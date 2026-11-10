@@ -64,7 +64,12 @@ no deberian necesitar volver a preguntar.
      reescribe tu el plan incorporando los cambios pedidos.
    El plan nuevo conserva los cambios pedidos con el encabezado
    `## Cambios pedidos por la persona (incorporados en la ronda K)`.
-5. Si el plan deja decisiones abiertas para una persona, preguntalas ahora y
+5. **Regla de una hora** (`task-workflow/duracion.md`): el plan tiene que
+   llevar la linea `Duracion estimada: N min`, de punta a punta (de la rama
+   abierta al cierre con merge), con sus senales (ficheros de codigo
+   previstos, capas, criterios). Si pasa de 60, propon en el plan como
+   trocear la tarea y preguntaselo a la persona: decide ella, en approve.
+   Si el plan deja decisiones abiertas para una persona, preguntalas ahora y
    anota las respuestas en el propio plan. Si la salida de `taskctl plan`
    nombro `skills_recomendados`, dejalos anotados para la implementacion.
 6. Registra el coste del diseno (`task-workflow/coste.md`): con el id que
