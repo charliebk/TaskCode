@@ -27,11 +27,23 @@ dependencias: []
 Que un proyecto pueda regenerar en cada transición un fichero derivado que vive en la raíz de tareas/ (p. ej. tareas/ROADMAP.md de ToolsaWeb). Hoy rutas_sincronizacion rechaza todo lo que cuelga de tareas/, así que el ROADMAP se queda atrasado tras plan/start/review/finish y la verificación del proyecto sale en rojo (medido en ToolsaWeb TASK-295 el 2026-11-10: una completa de 20 min repetida por dos líneas). taskctl solo escribe dentro de las carpetas de estado (tareas/0N-*/), así que un fichero suelto en la raíz de tareas/ no choca con lo que escribe el CLI.
 
 ## Criterios de aceptacion
-- [ ] rutas_sincronizacion admite un fichero directamente en la raíz de tareas/ (tareas/ROADMAP.md) y sigue rechazando tareas/<carpeta de estado>/..., tareas/ como carpeta, .taskcode/ y .git/, con tests de config para cada caso
-- [ ] En un repo temporal con comando_sincronizacion que reescribe tareas/ROADMAP.md, cada uno de new, plan, approve, start, review y finish deja ROADMAP.md regenerado dentro del mismo commit de la transición (test de integración)
-- [ ] Las tres salvaguardas de sincronizacion.md (ruta con cambios previos, comando que falla, fichero no declarado) funcionan igual con una ruta de la raíz de tareas/, con un test por caso
-- [ ] skills/task-workflow/sincronizacion.md y el README describen la nueva regla y su motivo, y CHANGELOG.md la anota en la versión siguiente
-- [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ni borrar ningún test
+- [x] rutas_sincronizacion admite un fichero directamente en la raíz de tareas/ (tareas/ROADMAP.md) y sigue rechazando tareas/<carpeta de estado>/..., tareas/ como carpeta, .taskcode/ y .git/, con tests de config para cada caso
+- [x] En un repo temporal con comando_sincronizacion que reescribe tareas/ROADMAP.md, cada uno de new, plan, approve, start, review y finish deja ROADMAP.md regenerado dentro del mismo commit de la transición (test de integración)
+- [x] Las tres salvaguardas de sincronizacion.md (ruta con cambios previos, comando que falla, fichero no declarado) funcionan igual con una ruta de la raíz de tareas/, con un test por caso
+- [x] skills/task-workflow/sincronizacion.md y el README describen la nueva regla y su motivo, y CHANGELOG.md la anota en la versión siguiente
+- [x] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ni borrar ningún test
+
+## Resultado
+
+**Implementado.** Un único cambio de código, en `motivoRutaInvalida` (`src/core/config.ts`), con una opción `ficheroEnRaizDeTareas` que solo pasa `rutas_sincronizacion`: se acepta una ruta de exactamente dos segmentos cuyo primero es `tareas` y cuyo segundo no es una carpeta de estado (la lista sale de `STATE_FOLDER`). La sincronización, `autoCommit` y las salvaguardas no cambian. Las raíces prohibidas y los nombres de estado se comparan sin distinguir mayúsculas y sin puntos ni espacios finales (Windows los ignora). `informe_cobertura` sigue rechazando todo lo que cuelga de `tareas/`. Tests: casos de config (aceptación normalizada, rechazos de cada carpeta de estado, subcarpetas, `tareas`, `tareas/`, mayúsculas, puntos/espacios finales, no regresión de `informe_cobertura`), un `resolverConfig` en disco, el integral new → plan → approve → start → review → finish con `tareas/ROADMAP.md` y uno por salvaguarda en `test/commands/sincronizacion-raiz-tareas.test.ts`. Documentación en `sincronizacion.md` (que además ya no omite `.git/`), una sección nueva del README del plugin y la entrada 0.14.0 del CHANGELOG.
+
+**Decisiones de la persona (plan).** Se cambió la expectativa del antiguo caso `'[tareas/x.md]'` de `config-sincronizacion.test.ts`: el criterio 1 obliga a aceptar esa forma, así que pasó al test de aceptación y se sustituyó por rechazos más estrictos dentro de `tareas/`; no es un test debilitado (el revisor lo confirmó). Se cerró en esta tarea el hueco de mayúsculas, se aceptan los ficheros ocultos (`tareas/.x`) y `informe_cobertura` no se abre.
+
+**Autorrevisión.** Encontró que `tareas/01-en-diseno./x.md` o `.git./HEAD` pasaban la validación; corregido con `nombreComparable` y tests antes de pedir la revisión.
+
+**Revisión por pares (ronda 1, code-quality-reviewer): aprobada, sin hallazgos.** Reprodujo en clon temporal: 46/46 en los tests afectados, `test:rapido` 682/682 y 7 mutantes de `motivoRutaInvalida`, todos detectados. Observación sin severidad, no corregida a propósito: los alias de ruta de Windows (nombres cortos 8.3, flujos `::$DATA`) no se contemplan; es endurecimiento fuera del alcance.
+
+**Suite completa.** 2087 tests, 2079 en verde. Rojos: los 3 conocidos de Windows (symlink `EPERM`, `chmod` en NTFS, CRLF) y 4 que dependen de tiempos y expiraron bajo carga de la máquina (3 de sincronización con el timeout de 60/20 s del script y `origin-deteccion`); repetidos solos pasan (15/15 y 3 de 3), y `origin-deteccion` pasa con y sin el cambio.
 
 ## Transiciones
 
