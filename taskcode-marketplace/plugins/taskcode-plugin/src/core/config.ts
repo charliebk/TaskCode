@@ -100,6 +100,7 @@ import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
 import { distanciaEdicion, masParecida } from './sugerencia.js';
 import { normalizarBase, type Plataforma } from './plataforma-remota.js';
+import { STATE_FOLDER } from './task.js';
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -276,8 +277,17 @@ export const CLAVES_CONFIG = [
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
  * gestiona taskctl (tareas/, .taskcode/) o Git (.git/). Declarar algo
  * ahi haria que el comando del proyecto y el CLI escribieran lo mismo.
+ *
+ * Excepcion (TASK-092): un fichero suelto directamente en la raiz de
+ * tareas/ (p. ej. tareas/ROADMAP.md). taskctl solo escribe dentro de las
+ * carpetas de estado (tareas/0N-*), asi que ahi no hay choque posible.
+ * La comparacion no distingue mayusculas: en Windows y macOS `Tareas/` y
+ * `.GIT/` son las mismas carpetas.
  */
 const RAICES_PROHIBIDAS_SINCRONIZACION = ['tareas', '.taskcode', '.git'] as const;
+
+/** Nombres de las carpetas de estado, en minusculas, para compararlos sin distinguir mayusculas. */
+const CARPETAS_DE_ESTADO = Object.values(STATE_FOLDER).map((c) => c.toLowerCase());
 
 export const CONFIG_DIR = '.taskcode';
 export const CONFIG_FILE = 'config.yml';
@@ -820,12 +830,13 @@ function validarRutasSincronizacion(donde: string, valor: unknown): readonly str
       );
     }
     const original = elemento.trim();
-    const motivo = motivoRutaInvalida(original);
+    const motivo = motivoRutaInvalida(original, { ficheroEnRaizDeTareas: true });
     if (motivo !== null) {
       throw new ConfigError(
         `[ERROR] ${donde}: la ruta de sincronizacion "${original}" no vale: ${motivo}.\n` +
-          '        Solo ficheros, relativos a la raiz del repo, fuera de tareas/, .taskcode/ ' +
-          'y .git/.'
+          '        Solo ficheros, relativos a la raiz del repo, fuera de .taskcode/ y .git/; ' +
+          'de tareas/ solo un fichero suelto en su raiz (p. ej. tareas/ROADMAP.md), ' +
+          'nunca dentro de una carpeta de estado.'
       );
     }
     const normalizada = path.posix.normalize(original.replace(/\\/g, '/'));
@@ -834,19 +845,43 @@ function validarRutasSincronizacion(donde: string, valor: unknown): readonly str
   return rutas;
 }
 
-/** null si la ruta es aceptable; si no, el motivo en palabras de persona. */
-function motivoRutaInvalida(original: string): string | null {
+/**
+ * null si la ruta es aceptable; si no, el motivo en palabras de persona.
+ *
+ * `ficheroEnRaizDeTareas` abre la excepcion de TASK-092 (un fichero suelto
+ * en tareas/). Solo la pide rutas_sincronizacion: informe_cobertura sigue
+ * rechazando todo lo que cuelga de tareas/.
+ */
+function motivoRutaInvalida(
+  original: string,
+  opciones: { ficheroEnRaizDeTareas?: boolean } = {}
+): string | null {
   const conBarras = original.replace(/\\/g, '/');
   if (conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras)) return 'es absoluta';
   if (conBarras.endsWith('/')) return 'es una carpeta';
   const normalizada = path.posix.normalize(conBarras);
   if (normalizada === '.' || normalizada === '') return 'es la raiz del repo';
   if (normalizada === '..' || normalizada.startsWith('../')) return 'se sale del repo';
-  const primera = normalizada.split('/')[0] as string;
-  if ((RAICES_PROHIBIDAS_SINCRONIZACION as readonly string[]).includes(primera)) {
-    return `esta bajo ${primera}/, que no es del proyecto sino de la herramienta`;
+  const segmentos = normalizada.split('/');
+  const primera = segmentos[0] as string;
+  const primeraMin = primera.toLowerCase();
+  if (!(RAICES_PROHIBIDAS_SINCRONIZACION as readonly string[]).includes(primeraMin)) return null;
+  if (primeraMin === 'tareas' && opciones.ficheroEnRaizDeTareas === true) {
+    if (segmentos.length === 1) return `es la carpeta ${primera}/, no un fichero`;
+    const segunda = segmentos[1] as string;
+    if (CARPETAS_DE_ESTADO.includes(segunda.toLowerCase())) {
+      return (
+        `${primera}/${segunda} es una carpeta de estado, y lo que hay en ella ` +
+        'lo escribe taskctl'
+      );
+    }
+    if (segmentos.length === 2) return null;
+    return (
+      `esta en una subcarpeta de ${primera}/; de ${primera}/ solo se admite un fichero ` +
+      'suelto en su raiz'
+    );
   }
-  return null;
+  return `esta bajo ${primera}/, que no es del proyecto sino de la herramienta`;
 }
 
 /**

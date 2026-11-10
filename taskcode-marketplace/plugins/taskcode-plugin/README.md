@@ -559,6 +559,31 @@ no porque no fuera técnicamente posible — se deja anotado como opción más
 barata que esperar a una sesión nativa, por si alguien quiere intentarlo
 antes.
 
+## Sincronización de ficheros derivados
+
+Un proyecto puede regenerar en cada transición los ficheros que derivan del
+estado de las tareas (un plan, un tablero, un roadmap) con
+`comando_sincronizacion` y `rutas_sincronizacion` en `.taskcode/config.yml`;
+lo que el comando reescribe entra en el mismo commit de la transición. La guía
+completa (claves, salvaguardas, conflictos de merge) está en la skill
+`task-workflow`, en `sincronizacion.md`.
+
+Las rutas son ficheros relativos a la raíz del repo, fuera de `.taskcode/` y
+`.git/`. De `tareas/` solo se admite un fichero suelto en su raíz:
+
+```yaml
+comando_sincronizacion: "node scripts/roadmap.mjs"
+rutas_sincronizacion: [tareas/ROADMAP.md, docs/PLAN.md]
+```
+
+El motivo: `taskctl` solo escribe dentro de las carpetas de estado
+(`tareas/00-planificadas/` … `tareas/04-terminadas/`), así que un fichero suelto
+en la raíz de `tareas/` no choca con lo que escribe la herramienta, y sin esa
+excepción un roadmap que vive ahí se quedaba atrasado tras cada transición.
+`tareas/01-en-diseno/x.md`, `tareas/otra/x.md` y `tareas` (la carpeta) se
+siguen rechazando, sin distinguir mayúsculas. `informe_cobertura` no tiene esta
+excepción.
+
 ## Problemas conocidos
 
 ### Un subagente se deniega con «Auto-Mode Bypass»

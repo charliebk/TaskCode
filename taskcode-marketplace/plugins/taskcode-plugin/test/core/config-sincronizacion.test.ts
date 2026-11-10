@@ -59,14 +59,66 @@ test('config sincronizacion: rutas invalidas abortan al cargar', () => {
     ['[docs/../../x.md]', /se sale del repo/],
     ['[/etc/passwd]', /es absoluta/],
     ['[C:/x.md]', /es absoluta/],
-    ['[tareas/x.md]', /esta bajo tareas\//],
+    // TASK-092: '[tareas/x.md]' salio de esta lista (ahora se acepta, ver el
+    // test de la raiz de tareas/); en su lugar, los rechazos de dentro de tareas/.
+    ['[tareas]', /es la carpeta tareas\/, no un fichero/],
+    ['[tareas/]', /es una carpeta/],
+    ['[tareas/01-en-diseno]', /tareas\/01-en-diseno es una carpeta de estado/],
+    ['[tareas/01-en-diseno/x.md]', /es una carpeta de estado/],
+    ['[tareas/04-terminadas/TASK-1/tarea.md]', /es una carpeta de estado/],
+    ['[tareas/otra/x.md]', /esta en una subcarpeta de tareas\//],
+    ['[docs/../tareas/02-en-curso/x.md]', /es una carpeta de estado/],
     ['[.taskcode/config.yml]', /esta bajo \.taskcode\//],
     ['[.git/HEAD]', /esta bajo \.git\//],
+    // Sin distinguir mayusculas: en Windows y macOS son las mismas carpetas.
+    ['[Tareas/01-en-diseno/x.md]', /Tareas\/01-en-diseno es una carpeta de estado/],
+    ['[TAREAS/02-En-Curso/x.md]', /es una carpeta de estado/],
+    ['[.GIT/HEAD]', /esta bajo \.GIT\//],
+    ['[.TaskCode/config.yml]', /esta bajo \.TaskCode\//],
     ['[]', /lista no vacia/],
     ['docs/PLAN.md', /lista no vacia entre corchetes/],
   ];
   for (const [valor, patron] of casos) {
     rechaza(BASE + `rutas_sincronizacion: ${valor}\n`, patron);
+  }
+});
+
+test('config sincronizacion: un fichero suelto en la raiz de tareas/ se acepta y se normaliza (TASK-092)', () => {
+  const c = parsearConfig(
+    BASE +
+      'rutas_sincronizacion: [tareas/ROADMAP.md, "./tareas/ROADMAP.md", tareas\\ROADMAP.md, ' +
+      'tareas/01-en-diseno/../ROADMAP.md, tareas/.oculto, docs/PLAN.md]\n',
+    RUTA
+  );
+  assert.deepEqual(c.rutas_sincronizacion, ['tareas/ROADMAP.md', 'tareas/.oculto', 'docs/PLAN.md']);
+  // Cada carpeta de estado sigue cerrada, tambien con un solo fichero debajo.
+  for (const carpeta of ['00-planificadas', '01-en-diseno', '02-en-curso', '03-en-revision', '04-terminadas']) {
+    rechaza(BASE + `rutas_sincronizacion: [tareas/${carpeta}/x.md]\n`, /es una carpeta de estado/);
+  }
+});
+
+test('config sincronizacion: informe_cobertura sigue sin admitir nada bajo tareas/ (TASK-092)', () => {
+  rechaza('informe_cobertura: tareas/x.lcov\n', /esta bajo tareas\//);
+  rechaza('informe_cobertura: Tareas/x.lcov\n', /esta bajo Tareas\//);
+});
+
+test('resolverConfig: tareas/ROADMAP.md se acepta; si en disco es una carpeta, aborta (TASK-092)', async () => {
+  const repo = await mkdtemp(path.join(tmpdir(), 'taskctl-cfgsync-'));
+  try {
+    await mkdir(path.join(repo, '.git'));
+    await mkdir(path.join(repo, 'tareas', 'ROADMAP.md'), { recursive: true });
+    await mkdir(path.join(repo, '.taskcode'));
+    await writeFile(
+      path.join(repo, '.taskcode', 'config.yml'),
+      BASE + 'rutas_sincronizacion: [tareas/ROADMAP.md]\n',
+      'utf8'
+    );
+    assert.throws(() => resolverConfig(repo), /"tareas\/ROADMAP\.md" es una carpeta/);
+    await rm(path.join(repo, 'tareas', 'ROADMAP.md'), { recursive: true });
+    await writeFile(path.join(repo, 'tareas', 'ROADMAP.md'), '# roadmap\n', 'utf8');
+    assert.deepEqual(resolverConfig(repo).rutas_sincronizacion, ['tareas/ROADMAP.md']);
+  } finally {
+    await rm(repo, { recursive: true, force: true });
   }
 });
 

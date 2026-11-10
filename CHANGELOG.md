@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.14.0 — sin publicar
+
+Sincronizacion de un fichero suelto en la raiz de `tareas/` (TASK-092).
+`rutas_sincronizacion` admite ahora un fichero directamente en `tareas/` (p. ej.
+`tareas/ROADMAP.md`), que se regenera en cada transicion dentro del mismo commit
+como cualquier otra ruta sincronizada. Antes se rechazaba todo lo que colgaba de
+`tareas/`, y un roadmap que vivia ahi se quedaba atrasado tras `plan`, `start`,
+`review` o `finish`. `taskctl` solo escribe dentro de las carpetas de estado
+(`tareas/0N-*/`), asi que un fichero suelto no choca con lo que escribe el CLI.
+Se siguen rechazando las rutas dentro de una carpeta de estado o de cualquier
+otra subcarpeta de `tareas/`, la propia carpeta `tareas`, `.taskcode/` y `.git/`.
+Las tres salvaguardas (ruta con cambios previos, comando que falla, fichero no
+declarado) funcionan igual con estas rutas. `informe_cobertura` no cambia.
+
+Cambio de comportamiento: la comparacion de las carpetas prohibidas ya no
+distingue mayusculas. `Tareas/01-en-diseno/x.md`, `.GIT/HEAD` o
+`.TaskCode/config.yml` pasaban antes la validacion (en Windows y macOS son las
+mismas carpetas) y ahora abortan al leer la config, en `rutas_sincronizacion` y
+en `informe_cobertura`.
+
 ## 0.13.0 — 2026-11-09
 
 Verificacion selectiva por impacto (TASK-091). Clave nueva opcional
