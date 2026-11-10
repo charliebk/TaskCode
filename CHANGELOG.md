@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-097 (feature) — Regla de una hora: plan estima la duracion de punta a punta y propone trocear (2026-11-10)
 - TASK-095 (feature) — Revision que converge: desde la ronda 2 solo se verifican las correcciones (2026-11-10)
 
 - TASK-092 (feature) — Sincronización de ficheros sueltos de la raíz de tareas/ (2026-11-10)

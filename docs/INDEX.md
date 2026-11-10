@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-097 — Regla de una hora: plan estima la duracion de punta a punta y propone trocear · etiquetas: plan, agilidad · rama feature/task-097-regla-de-una-hora-plan-estima-la-duracio · terminada 2026-11-10 · tareas/04-terminadas/TASK-097/
 - TASK-095 — Revision que converge: desde la ronda 2 solo se verifican las correcciones · etiquetas: revision, agilidad · rama feature/task-095-revision-que-converge-desde-la-ronda-2-s · terminada 2026-11-10 · tareas/04-terminadas/TASK-095/
 - TASK-092 — Sincronización de ficheros sueltos de la raíz de tareas/ · etiquetas: config, sincronizacion · rama feature/task-092-sincronizacion-de-ficheros-sueltos-de-la · terminada 2026-11-10 · tareas/04-terminadas/TASK-092/
 - TASK-091 — Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar · etiquetas: verificacion, review, finish · rama feature/task-091-verificacion-selectiva-por-impacto-en-la · terminada 2026-11-09 · tareas/04-terminadas/TASK-091/
