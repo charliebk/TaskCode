@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-100-verificacion-proporcional-a-una-tarea-qu
 asignado_a: charlie.bk@gmail.com
@@ -58,6 +58,7 @@ Primera parte de TASK-096 (decision de Carlos, 2026-11-10: trocearla y empezar p
 | 2026-11-10T20:07:38Z | start | automatico | persona | 0.14.0 |
 | 2026-11-10T20:48:00Z | review | automatico | persona | 0.14.0 |
 | 2026-11-10T21:06:21Z | review | automatico | persona | 0.14.0 |
+| 2026-11-10T21:11:52Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -72,3 +73,9 @@ Primera parte de TASK-096 (decision de Carlos, 2026-11-10: trocearla y empezar p
 
 - code-quality-reviewer — 1996a91
 - code-quality-reviewer — 4140aef
+
+## Duracion
+
+- Estimada: 75 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 64 min
+- Paso de la hora: 64 min reales frente a 75 estimados

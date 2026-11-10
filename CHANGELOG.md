@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-100 (feature) — Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion (2026-11-10)
+
 ## Siguiente version — sin publicar
 
 Verificacion proporcional, parte A1 (TASK-100, primera de las tres en que se

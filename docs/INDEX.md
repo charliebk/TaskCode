@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-100 — Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion · etiquetas: verificacion, agilidad · rama feature/task-100-verificacion-proporcional-a-una-tarea-qu · terminada 2026-11-10 · tareas/04-terminadas/TASK-100/
 - TASK-098 — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes · etiquetas: roadmap, agilidad · rama feature/task-098-roadmap-de-tareas-generado-por-taskctl-e · terminada 2026-11-10 · tareas/04-terminadas/TASK-098/
 - TASK-097 — Regla de una hora: plan estima la duracion de punta a punta y propone trocear · etiquetas: plan, agilidad · rama feature/task-097-regla-de-una-hora-plan-estima-la-duracio · terminada 2026-11-10 · tareas/04-terminadas/TASK-097/
 - TASK-095 — Revision que converge: desde la ronda 2 solo se verifican las correcciones · etiquetas: revision, agilidad · rama feature/task-095-revision-que-converge-desde-la-ronda-2-s · terminada 2026-11-10 · tareas/04-terminadas/TASK-095/
