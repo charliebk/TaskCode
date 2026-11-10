@@ -24,15 +24,7 @@ TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin               
 TASK-096  Verificacion proporcional al cambio: una tarea sin codigo no corre la suite de tests        (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 1
-
-```text
-ID        Titulo                                                                                   Asignado
---------  ---------------------------------------------------------------------------------------  --------------------
-TASK-098  ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes  charlie.bk@gmail.com
-```
-
-## Terminadas (04-terminadas) — 80
+## Terminadas (04-terminadas) — 81
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -117,4 +109,5 @@ TASK-091  Verificacion selectiva por impacto en las rondas y completa obligatori
 TASK-092  Sincronización de ficheros sueltos de la raíz de tareas/                                     charlie.bk@gmail.com
 TASK-095  Revision que converge: desde la ronda 2 solo se verifican las correcciones                   charlie.bk@gmail.com
 TASK-097  Regla de una hora: plan estima la duracion de punta a punta y propone trocear                charlie.bk@gmail.com
+TASK-098  ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes      charlie.bk@gmail.com
 ```

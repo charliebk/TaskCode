@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [roadmap, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-098-roadmap-de-tareas-generado-por-taskctl-e
 asignado_a: charlie.bk@gmail.com
@@ -57,6 +57,7 @@ Que todo proyecto tenga tareas/ROADMAP.md al dia sin escribir un script: hitos (
 | 2026-11-10T17:43:32Z | start | automatico | persona | 0.13.0 |
 | 2026-11-10T18:09:54Z | review | automatico | persona | 0.13.0 |
 | 2026-11-10T18:29:52Z | review | automatico | persona | 0.13.0 |
+| 2026-11-10T18:40:13Z | finish | automatico | persona | 0.13.0 |
 
 ## Coste
 
