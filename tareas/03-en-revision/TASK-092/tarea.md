@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 2076577
 tokens_implementacion: 9098827
-tokens_revision: null
+tokens_revision: 1158595
 creado: 2026-11-10
 actualizado: 2026-11-10
 dependencias: []
@@ -48,6 +48,7 @@ Que un proyecto pueda regenerar en cada transición un fichero derivado que vive
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-10T12:51:59Z | diseno | agente:a28a3c67e7f8c02fa | 68 | 90497 | 1968455 | 17557 | 42 | 2076577 | - | - |
 | 2026-11-10T13:42:48Z | implementacion | sesion:f5a75e93-b137-4945-9f2a-de03fa092974 | 114 | 82685 | 8982672 | 33356 | 14 | 9098827 | - | - |
+| 2026-11-10T13:49:24Z | revision | agente:ab70277f2a9217521 | 22 | 111887 | 1039767 | 6919 | 2 | 1158595 | 1 | - |
 
 ## Autorrevision
 
