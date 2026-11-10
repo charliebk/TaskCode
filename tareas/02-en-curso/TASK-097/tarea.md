@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [plan, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-097-regla-de-una-hora-plan-estima-la-duracio
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Ley de agilidad (decision de Carlos, 2026-11-10): una tarea prevista de mas de 1
 |---|---|---|---|---|
 | 2026-11-10T15:13:25Z | plan | automatico | persona | 0.13.0 |
 | 2026-11-10T15:21:51Z | approve | automatico | persona | 0.13.0 |
+| 2026-11-10T16:07:35Z | start | automatico | persona | 0.13.0 |
 
 ## Coste
 
