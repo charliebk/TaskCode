@@ -46,3 +46,7 @@ Que un proyecto pueda regenerar en cada transición un fichero derivado que vive
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-10T12:51:59Z | diseno | agente:a28a3c67e7f8c02fa | 68 | 90497 | 1968455 | 17557 | 42 | 2076577 | - | - |
+
+## Autorrevision
+
+- code-quality-reviewer — 4b8aec1
