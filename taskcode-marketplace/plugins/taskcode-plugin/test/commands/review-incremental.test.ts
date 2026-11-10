@@ -127,7 +127,10 @@ test('review incremental (TASK-040): ronda 1 -> cambios-solicitados -> correccio
     assert.doesNotMatch(peticion, /diff --git a\/src\/a\.ts/, 'lo ya revisado en la ronda 1 no entra');
     assert.doesNotMatch(peticion, /otra-tarea\.txt/, 'develop no se integra en la ronda 2');
     assert.match(peticion, /\| IMP-1 \| IMPORTANTE \| abierto \| src\/a\.ts:3 \| informe-revision-1\.md \|/);
-    assert.doesNotMatch(peticion, /\| MEN-1 \|/, 'un hallazgo corregido no se lista');
+    // TASK-095 (decision de la persona): un hallazgo corregido SI se lista,
+    // porque la ronda siguiente verifica justo las correcciones (antes,
+    // TASK-040, no se listaba).
+    assert.match(peticion, /\| MEN-1 \| MENOR \| corregido \|/, 'un hallazgo corregido se verifica');
     assert.equal(commitRevisadoDe(peticion), r2.commitRevisado);
     assert.ok(existsSync(path.join(revisionDir, 'informe-revision-2.md')));
     // Ni merge de develop ni nada pendiente en el arbol.
@@ -136,7 +139,7 @@ test('review incremental (TASK-040): ronda 1 -> cambios-solicitados -> correccio
   });
 });
 
-test('review incremental (TASK-040, MEN-2 de su revision): con la ronda anterior fragmentada lista los abiertos de TODOS sus informes', async () => {
+test('review incremental (TASK-040, MEN-2; TASK-095): con la ronda anterior fragmentada, cada revisor recibe los pendientes de SU informe', async () => {
   await withRonda1(INFORME_R1('cambios-solicitados'), async (repo, tareas, revisionDir) => {
     // Un segundo informe en la misma ronda (otro dominio), aprobado pero
     // con un MENOR abierto.
@@ -148,9 +151,14 @@ test('review incremental (TASK-040, MEN-2 de su revision): con la ronda anterior
     );
     commitAll(repo, 'docs: segundo informe de la ronda 1');
     await runReviewCommand(tareas, ['TASK-950'], '2026-10-04', DEPS(repo));
-    const peticion = await readFile(path.join(revisionDir, 'peticion-revision-2.md'), 'utf8');
-    assert.match(peticion, /\| IMP-1 \|.*\| informe-revision-1\.md \|/);
-    assert.match(peticion, /\| MEN-9 \|.*\| informe-revision-1-java-spring-reviewer\.md \|/);
+    // TASK-095: la ronda 2 es acotada y cada revisor verifica lo suyo: ningun
+    // pendiente se pierde, y cada uno va a quien lo encontro.
+    const generico = await readFile(path.join(revisionDir, 'peticion-revision-2-code-quality-reviewer.md'), 'utf8');
+    const java = await readFile(path.join(revisionDir, 'peticion-revision-2-java-spring-reviewer.md'), 'utf8');
+    assert.match(generico, /\| IMP-1 \|.*\| informe-revision-1\.md \|/);
+    assert.doesNotMatch(generico, /\| MEN-9 \|/);
+    assert.match(java, /\| MEN-9 \|.*\| informe-revision-1-java-spring-reviewer\.md \|/);
+    assert.doesNotMatch(java, /\| IMP-1 \|/);
   });
 });
 

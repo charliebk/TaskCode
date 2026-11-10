@@ -85,21 +85,35 @@ y comprueba **cada uno de esos hallazgos**: las correcciones son justo donde
 se cuelan los fallos nuevos. El revisor corre la suite completa una vez por
 ronda; los mutantes, con el fichero de test concreto.
 
-**Verificacion acotada.** Si la ronda anterior pidio cambios y en **todos**
-sus informes solo hay MENOR, `taskctl review` genera la ronda siguiente como
-verificacion acotada: un solo revisor (el generico), sin fragmentar por
-dominio, con la linea `- Alcance: verificacion acotada al diff de las
-correcciones` y sus propias instrucciones. Se verifica cada hallazgo, se
-ejecuta la suite y se busca el fallo que abre la correccion; no se vuelve a
-revisar la rama entera. Es **siempre completa** (`- Alcance: completa`, con
-su motivo) si: hay un CRITICO o IMPORTANTE en la ronda anterior **en
-cualquier estado**, tambien `corregido` o `aceptado`; algun informe no tiene
-tabla legible, sigue siendo la plantilla o trae una severidad fuera del
-vocabulario; no hay diff de correcciones (el commit anterior ya no existe);
-el delta trae un merge; o el delta toca un fichero que no nombraba ningun
-hallazgo (columna `Fichero`). Tras una acotada, una ronda completa revisa
-desde la rama base. `taskctl review TASK-NNN --completa` la fuerza de
-antemano.
+**Verificacion acotada: la revision converge.** El coste de revisar tiene que
+crecer con el tamano de la correccion, no con el del proyecto. Desde la ronda
+2, `taskctl review` genera la ronda como verificacion acotada, con la linea
+`- Alcance: verificacion acotada al diff de las correcciones`, tambien si la
+ronda anterior dejo CRITICOS o IMPORTANTES. Revisan los revisores que tienen
+hallazgos pendientes (todo lo que no esta `aceptado`, tambien lo `corregido`:
+la correccion es justo lo que se verifica), cada uno los suyos, y los de
+dominio cuyos ficheros toca la correccion; todos con el diff entero de la
+correccion. Se verifica cada hallazgo, se ejecuta la suite y se busca el
+fallo que abre la correccion, y solo se abre un hallazgo nuevo si es CRITICO
+o lo introduce la propia correccion; no se vuelve a revisar la rama entera.
+Un merge de la base entre rondas no la cambia: se nombra en el motivo y lo
+que entra va en el diff. Es **completa** (`- Alcance: completa`, con su
+motivo) solo si: se pide `taskctl review TASK-NNN --completa` (desde la rama
+base); algun informe no tiene tabla legible, sigue siendo la plantilla, trae
+una severidad fuera del vocabulario o pide cambios sin anotar ningun
+hallazgo; o no hay commit revisado fiable (el diff va desde la base). Tras
+una acotada, una ronda completa revisa desde la rama base.
+
+**Entre una ronda y otra se corrige todo**: los CRITICO e IMPORTANTE
+siempre; el MENOR que no compense se marca `aceptado` con su motivo o pasa a
+una tarea nueva. `taskctl review` avisa si se abre una ronda con hallazgos
+de la anterior sin marcar `corregido` ni `aceptado`.
+
+**Tope de rondas.** Tras la ronda 3 con cambios, `siguiente` pregunta en
+cualquier modo, y `taskctl review` no abre la ronda 4 sin `--ronda-extra`,
+que solo se pasa cuando lo decide una persona. Las salidas: aceptar lo
+abierto (IDs y motivo en el `## Resultado`) y cerrar, pasarlo a una tarea
+nueva, o corregir y abrir otra ronda.
 
 ## El informe
 

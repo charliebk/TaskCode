@@ -1,23 +1,20 @@
 /**
- * TASK-083: alcance de la ronda N+1. Si la ronda anterior solo dejo MENORES
- * (en TODOS sus informes) y el delta solo toca los ficheros que nombraban, la
- * ronda siguiente es una verificacion acotada: un solo revisor (el generico),
- * sin fragmentar, con instrucciones de verificacion y la linea `- Alcance:`.
- * Cualquier CRITICO o IMPORTANTE, en cualquier estado, obliga a la completa.
+ * Alcance de la ronda N+1. TASK-083 la hacia acotada solo si la ronda anterior
+ * dejaba MENORES; TASK-095 corrige esa regla, que no se cumplia nunca (los
+ * revisores relistan los IMPORTANTES corregidos y cada ronda relanzaba una
+ * completa desde la base): desde la ronda 2 la ronda es una verificacion
+ * acotada, cada revisor verifica SUS pendientes y los dominios que toca la
+ * correccion tambien la ven. Completa solo con --completa, sin commit revisado
+ * fiable o cuando los informes no se pueden leer (fail-closed).
  * Repos Git temporales reales: review -> informes -> veredicto -> correccion -> review.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { runReviewCommand, type ReviewCommandResult } from '../../src/commands/review.js';
+import { REGLA_HALLAZGOS_NUEVOS, runReviewCommand, type ReviewCommandResult } from '../../src/commands/review.js';
 import { runVeredictoCommand } from '../../src/commands/veredicto.js';
-import {
-  alcanceRondaSiguiente,
-  ficheroNombrado,
-  rutasDeCeldaFichero,
-  soloMenores,
-} from '../../src/core/informe-revision.js';
+import { alcanceRondaSiguiente, hallazgosPendientes } from '../../src/core/informe-revision.js';
 import {
   SCRIPTS_DIR,
   sampleTask,
@@ -31,7 +28,8 @@ import {
 
 const JAVA = 'src/main/java/com/acme/UserService.java';
 const ANGULAR = 'src/app/user-profile/user-profile.component.ts';
-const OTRO = 'src/main/java/com/acme/Otro.java';
+// Sin dominio: lo revisa el generico.
+const SCRIPT = 'scripts/arranque.sh';
 const ID = 'TASK-983';
 
 function informe(filas: string[], veredicto = 'PENDIENTE'): string {
@@ -44,28 +42,29 @@ function informe(filas: string[], veredicto = 'PENDIENTE'): string {
   );
 }
 const MEN_JAVA = `| MEN-1 | MENOR | abierto | ${JAVA}:3 | implementacion |`;
-// El nombre corto tambien nombra la ruta completa (asi lo anotan los revisores).
 const MEN_ANGULAR = '| MEN-2 | MENOR | abierto | `user-profile.component.ts:5` | implementacion |';
+const MEN_SCRIPT = `| MEN-3 | MENOR | abierto | ${SCRIPT}:2 | implementacion |`;
 const IMP_ABIERTO = `| IMP-1 | IMPORTANTE | abierto | ${JAVA}:9 | implementacion |`;
 const IMP_CORREGIDO = `| IMP-1 | IMPORTANTE | corregido | ${JAVA}:9 | implementacion |`;
+const CRIT_ABIERTO = `| CRIT-1 | CRITICO | abierto | ${JAVA}:9 | implementacion |`;
 const CRIT_ACEPTADO = `| CRIT-1 | CRITICO | aceptado | ${JAVA}:9 | implementacion |`;
 
 interface Ronda {
   r: ReviewCommandResult;
-  peticiones: string[];
+  /** Peticiones de la ronda por nombre de fichero. */
+  peticiones: Map<string, string>;
 }
 
 interface Ctx {
   repoRoot: string;
   tareasRoot: string;
-  /** Escribe los informes de la ultima ronda, los commitea y registra `cambios-solicitados` en cada uno. */
-  pedirCambios(r: ReviewCommandResult, informes: string[]): Promise<string[][]>;
+  /** Escribe los informes de la ultima ronda (en el orden de r.informes), los commitea y pide cambios en cada uno. */
+  pedirCambios(r: ReviewCommandResult, informes: string[]): Promise<void>;
   /** Modifica `ficheros` y commitea (la correccion). */
   corregir(ficheros: string[]): Promise<void>;
   review(extra?: string[]): Promise<Ronda>;
 }
 
-/** Ronda 1 sobre `ficheros` y el contexto para seguir; `cuerpo` recibe la ronda 1. */
 async function conRonda1(ficheros: string[], cuerpo: (ctx: Ctx, r1: Ronda) => Promise<void>): Promise<void> {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     const task = sampleTask({ id: ID, rama: 'feature/task-983-alcance' });
@@ -84,16 +83,13 @@ async function conRonda1(ficheros: string[], cuerpo: (ctx: Ctx, r1: Ronda) => Pr
           await writeFile((r.informes[i] as { informePath: string }).informePath, informes[i] as string, 'utf8');
         }
         commitAll(repoRoot, `informes ronda ${r.ronda}`);
-        const avisos: string[][] = [];
         for (const g of r.informes) {
-          const v = await runVeredictoCommand(
+          await runVeredictoCommand(
             tareasRoot,
             [ID, 'cambios-solicitados', ...(r.informes.length > 1 ? ['--informe', path.basename(g.informePath)] : [])],
             { repoCwd: repoRoot }
           );
-          avisos.push(v.avisos);
         }
-        return avisos;
       },
       async corregir(fs) {
         n++;
@@ -101,10 +97,11 @@ async function conRonda1(ficheros: string[], cuerpo: (ctx: Ctx, r1: Ronda) => Pr
         commitAll(repoRoot, `correccion ${n}`);
       },
       async review(extra = []) {
-        const r = await runReviewCommand(tareasRoot, [ID, ...extra], '2026-11-07', deps);
+        const r = await runReviewCommand(tareasRoot, [ID, ...extra], '2026-11-10', deps);
         const dir = path.dirname((r.informes[0] as { peticionPath: string }).peticionPath);
         const nombres = (await readdir(dir)).filter((x) => x.startsWith(`peticion-revision-${r.ronda}`)).sort();
-        const peticiones = await Promise.all(nombres.map((x) => readFile(path.join(dir, x), 'utf8')));
+        const peticiones = new Map<string, string>();
+        for (const x of nombres) peticiones.set(x, await readFile(path.join(dir, x), 'utf8'));
         return { r, peticiones };
       },
     };
@@ -117,98 +114,82 @@ function lineaAlcance(peticion: string): string | undefined {
   return peticion.split('\n').find((l) => l.startsWith('- Alcance:'));
 }
 
+/** Acotada de verdad: campo, linea de cabecera, instrucciones y diff desde el commit revisado. */
+function esAcotada(ronda: Ronda, desde: string): void {
+  assert.equal(ronda.r.alcance, 'acotada');
+  assert.equal(ronda.r.desde, desde, 'el diff va desde el ultimo commit revisado, no desde la base');
+  for (const [nombre, p] of ronda.peticiones) {
+    assert.match(lineaAlcance(p) ?? '', /^- Alcance: verificacion acotada al diff de las correcciones \(motivo: /, nombre);
+    assert.ok(p.includes('## Instrucciones para el agente revisor (verificacion acotada)'), nombre);
+    assert.ok(p.includes(REGLA_HALLAZGOS_NUEVOS), `${nombre}: limita los hallazgos nuevos`);
+    assert.ok(p.includes(`## Commits a revisar (git log ${desde}..HEAD)`), nombre);
+  }
+}
+
 function esCompleta(ronda: Ronda, motivo: RegExp): void {
   assert.equal(ronda.r.alcance, 'completa');
   assert.match(ronda.r.motivoAlcance, motivo);
-  for (const p of ronda.peticiones) {
+  for (const p of ronda.peticiones.values()) {
     assert.match(lineaAlcance(p) ?? '', /^- Alcance: completa \(motivo: /);
     assert.ok(!p.includes('(verificacion acotada)'), 'sin instrucciones acotadas');
     assert.ok(p.includes('clona el repo a un\ndirectorio temporal'), 'instrucciones de la revision completa');
   }
 }
 
-test('alcance (TASK-083): ronda 1 fragmentada solo con MENORES y correccion en sus ficheros -> verificacion acotada', async () => {
-  await conRonda1([JAVA, ANGULAR], async (ctx, r1) => {
-    assert.equal(r1.r.informes.length, 2, 'la ronda 1 se fragmenta por dominio');
-    assert.equal(r1.r.alcance, 'completa');
-    assert.match(lineaAlcance(r1.peticiones[0] as string) ?? '', /completa \(motivo: primera ronda de revision\)/);
-    const avisos = await ctx.pedirCambios(r1.r, [informe([MEN_JAVA]), informe([MEN_ANGULAR])]);
-    // El aviso de veredicto: pedir cambios con solo MENORES.
-    for (const a of avisos) assert.match(a.join('\n'), /solo tiene MENORES/);
-    await ctx.corregir([JAVA, ANGULAR]);
-    const r2 = await ctx.review();
-
-    assert.equal(r2.r.alcance, 'acotada');
-    assert.match(r2.r.motivoAlcance, /solo dejo MENORES \(2\) y el diff solo toca sus ficheros/);
-    // Un solo revisor, el generico, con el nombre de siempre (sin sufijo).
-    assert.equal(r2.r.informes.length, 1);
-    assert.equal(r2.r.informes[0]!.revisor, 'code-quality-reviewer');
-    assert.equal(path.basename(r2.r.informes[0]!.peticionPath), 'peticion-revision-2.md');
-    assert.deepEqual([...r2.r.informes[0]!.ficheros].sort(), [ANGULAR, JAVA].sort());
-    const p = r2.peticiones[0] as string;
-    assert.equal(
-      lineaAlcance(p),
-      '- Alcance: verificacion acotada al diff de las correcciones ' +
-        '(motivo: la ronda anterior solo dejo MENORES (2) y el diff solo toca sus ficheros)'
-    );
-    assert.ok(p.includes('## Instrucciones para el agente revisor (verificacion acotada)'));
-    // No es solo tachar la lista: tests y busqueda de fallos nuevos.
-    assert.ok(p.includes('Ejecuta la suite'));
-    assert.ok(p.includes('Busca en el diff de esta ronda el fallo que la correccion abre'));
-    assert.ok(p.includes('| MEN-1 | MENOR |') && p.includes('| MEN-2 | MENOR |'), 'lista los hallazgos a verificar');
-    assert.ok(p.includes(`- Revision incremental: solo los cambios desde ${r1.r.commitRevisado}`));
-    // El chore de commit no cambia: metricas lo sigue clasificando.
-    assert.match(git(['log', '-1', '--format=%s'], ctx.repoRoot), /peticion de revision ronda 2/);
-  });
-});
-
-test('alcance (TASK-083, criterio 3): un IMPORTANTE abierto, uno corregido o un CRITICO aceptado -> ronda completa', async () => {
-  for (const fila of [IMP_ABIERTO, IMP_CORREGIDO, CRIT_ACEPTADO]) {
+test('alcance (TASK-095): con un IMPORTANTE abierto, uno corregido, un CRITICO abierto o uno aceptado, la ronda 2 es acotada', async () => {
+  for (const fila of [IMP_ABIERTO, IMP_CORREGIDO, CRIT_ABIERTO, CRIT_ACEPTADO]) {
     await conRonda1([JAVA], async (ctx, r1) => {
-      const avisos = await ctx.pedirCambios(r1.r, [informe([MEN_JAVA, fila])]);
-      assert.deepEqual(avisos, [[]], 'sin aviso: no son solo MENORES');
+      await ctx.pedirCambios(r1.r, [informe([MEN_JAVA, fila])]);
       await ctx.corregir([JAVA]);
       const r2 = await ctx.review();
-      esCompleta(r2, /la ronda anterior tiene un (IMPORTANTE|CRITICO)/);
+      esAcotada(r2, r1.r.commitRevisado);
+      assert.match(r2.r.motivoAlcance, /la ronda anterior pidio cambios \(2 hallazgo\(s\)\)/);
+      const p = [...r2.peticiones.values()].join('\n');
+      assert.ok(p.includes('| MEN-1 | MENOR |'), 'lista el MENOR');
+      // Pendiente = todo lo que no esta aceptado: un corregido se verifica.
+      if (fila === CRIT_ACEPTADO) assert.ok(!p.includes('| CRIT-1 |'), 'lo aceptado no se vuelve a verificar');
+      else assert.ok(p.includes(fila.split('|')[1]!.trim()), `lista ${fila}`);
     });
   }
 });
 
-test('alcance (TASK-083): el IMPORTANTE esta en OTRO fragmento de la ronda 1 -> completa (se decide por ronda)', async () => {
+test('alcance (TASK-095): cada revisor de dominio verifica SUS pendientes, no el generico en su lugar', async () => {
+  await conRonda1([JAVA, SCRIPT], async (ctx, r1) => {
+    const nombres1 = r1.r.informes.map((g) => g.revisor);
+    assert.deepEqual([...nombres1].sort(), ['code-quality-reviewer', 'java-spring-reviewer'].sort());
+    const porRevisor = r1.r.informes.map((g) => (g.revisor === 'java-spring-reviewer' ? informe([IMP_ABIERTO]) : informe([MEN_SCRIPT])));
+    await ctx.pedirCambios(r1.r, porRevisor);
+    await ctx.corregir([JAVA, SCRIPT]);
+    const r2 = await ctx.review();
+    esAcotada(r2, r1.r.commitRevisado);
+    const java = r2.peticiones.get('peticion-revision-2-java-spring-reviewer.md');
+    const generico = r2.peticiones.get('peticion-revision-2-code-quality-reviewer.md');
+    assert.ok(java !== undefined, 'el revisor de dominio recibe su propia peticion');
+    assert.ok(generico !== undefined);
+    assert.ok(java.includes('| IMP-1 | IMPORTANTE |') && !java.includes('| MEN-3 |'), 'java ve solo lo suyo');
+    assert.ok(generico.includes('| MEN-3 | MENOR |') && !generico.includes('| IMP-1 |'), 'el generico no verifica lo de java');
+    // Cada uno recibe el delta entero de la correccion, no filtrado.
+    for (const p of [java, generico]) assert.ok(p.includes(JAVA) && p.includes(SCRIPT));
+  });
+});
+
+test('alcance (TASK-095): un dominio sin pendientes cuyo terreno toca la correccion tambien la revisa', async () => {
   await conRonda1([JAVA, ANGULAR], async (ctx, r1) => {
-    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA]), informe([MEN_ANGULAR.replace('MENOR', 'IMPORTANTE')])]);
-    await ctx.corregir([JAVA]);
+    const porRevisor = r1.r.informes.map((g) =>
+      g.revisor === 'java-spring-reviewer' ? informe([MEN_JAVA]) : informe(['| (ninguno) | — | sin hallazgos | — | — |'])
+    );
+    await ctx.pedirCambios(r1.r, porRevisor);
+    await ctx.corregir([JAVA, ANGULAR]);
     const r2 = await ctx.review();
-    esCompleta(r2, /IMPORTANTE \(MEN-2/);
+    esAcotada(r2, r1.r.commitRevisado);
+    const angular = r2.peticiones.get('peticion-revision-2-angular-vue-reviewer.md');
+    assert.ok(angular !== undefined, 'la correccion toca su dominio');
+    assert.match(angular, /No tienes hallazgos pendientes propios/);
+    assert.equal(r2.peticiones.size, 2, 'java (pendientes) y angular (terreno tocado); el generico no hace falta');
   });
 });
 
-test('alcance (TASK-083): --completa la fuerza aunque la regla permita la acotada', async () => {
-  await conRonda1([JAVA], async (ctx, r1) => {
-    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
-    await ctx.corregir([JAVA]);
-    esCompleta(await ctx.review(['--completa']), /pedida con --completa/);
-  });
-});
-
-test('alcance (TASK-083): el delta toca un fichero que ningun hallazgo nombraba -> completa', async () => {
-  await conRonda1([JAVA], async (ctx, r1) => {
-    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
-    await ctx.corregir([JAVA, OTRO]);
-    esCompleta(await ctx.review(), new RegExp(`ningun hallazgo nombraba: ${OTRO.replace(/\./g, '\\.')}$`));
-  });
-});
-
-test('alcance (TASK-083): con mas de cinco ficheros no nombrados, el motivo nombra cinco y cuenta el resto', async () => {
-  await conRonda1([JAVA], async (ctx, r1) => {
-    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
-    await ctx.corregir([JAVA, ...['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => `extra/${x}.txt`)]);
-    const r2 = await ctx.review();
-    esCompleta(r2, /: extra\/a\.txt, extra\/b\.txt, extra\/c\.txt, extra\/d\.txt, extra\/e\.txt \(y 2 mas\)$/);
-  });
-});
-
-test('alcance (TASK-083): un merge de develop dentro del delta -> completa', async () => {
+test('alcance (TASK-095): un merge de develop entre rondas no la hace completa; se nombra y su codigo esta en el diff', async () => {
   await conRonda1([JAVA], async (ctx, r1) => {
     await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
     await ctx.corregir([JAVA]);
@@ -218,60 +199,79 @@ test('alcance (TASK-083): un merge de develop dentro del delta -> completa', asy
     commitAll(ctx.repoRoot, 'mas develop');
     git(['checkout', '-q', rama], ctx.repoRoot);
     git(['merge', '-q', '--no-ff', '--no-edit', 'develop'], ctx.repoRoot);
-    esCompleta(await ctx.review(), /hay commits de merge entre/);
+    const r2 = await ctx.review();
+    esAcotada(r2, r1.r.commitRevisado);
+    assert.match(r2.r.motivoAlcance, /hay commits de merge entre .* lo que entra con ellos va en el diff/);
+    for (const p of r2.peticiones.values()) assert.ok(p.includes('otro-cambio-develop.txt'), 'lo que entra con el merge se revisa');
   });
 });
 
-test('alcance (TASK-083): sin diff de correcciones (el commit de la ronda 1 ya no existe) -> completa', async () => {
+test('alcance (TASK-095): sin commit revisado fiable, completa y desde la base', async () => {
   await conRonda1([JAVA], async (ctx, r1) => {
     const peticion = (r1.r.informes[0] as { peticionPath: string }).peticionPath;
     const texto = await readFile(peticion, 'utf8');
     await writeFile(peticion, texto.replace(/^- Commit revisado \(HEAD\): \w+/m, '- Commit revisado (HEAD): deadbeefcafe'), 'utf8');
-    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
+    await ctx.pedirCambios(r1.r, [informe([IMP_ABIERTO])]);
     await ctx.corregir([JAVA]);
     const r2 = await ctx.review();
-    esCompleta(r2, /no hay diff de correcciones/);
+    esCompleta(r2, /no hay commit revisado fiable/);
     assert.equal(r2.r.desde, r2.r.baseBranch);
   });
 });
 
-test('alcance (TASK-083): tras una acotada que encuentra un IMPORTANTE, la ronda 3 es completa y desde la base', async () => {
-  await conRonda1([JAVA], async (ctx, r1) => {
-    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
+test('alcance (TASK-095): --completa la fuerza, desde la base, aunque haya un IMPORTANTE abierto', async () => {
+  await conRonda1([JAVA, ANGULAR], async (ctx, r1) => {
+    await ctx.pedirCambios(r1.r, r1.r.informes.map(() => informe([IMP_ABIERTO])));
     await ctx.corregir([JAVA]);
-    const r2 = await ctx.review();
-    assert.equal(r2.r.alcance, 'acotada');
-    await ctx.pedirCambios(r2.r, [informe([`| IMP-R2-1 | IMPORTANTE | abierto | ${JAVA}:4 | implementacion |`])]);
-    await ctx.corregir([JAVA]);
-    const r3 = await ctx.review();
-    esCompleta(r3, /IMPORTANTE \(IMP-R2-1.*la ronda 2 fue acotada, asi que el diff va desde "develop"/);
-    assert.equal(r3.r.desde, 'develop');
-    assert.ok((r3.peticiones[0] as string).includes('## Commits a revisar (git log develop..HEAD)'));
+    const r2 = await ctx.review(['--completa']);
+    esCompleta(r2, /pedida con --completa/);
+    assert.equal(r2.r.desde, 'develop');
   });
 });
 
-test('alcance (TASK-083): tras una acotada con solo MENORES, la ronda 3 vuelve a ser acotada desde la ronda 2', async () => {
+test('alcance (TASK-095): el caso real que no convergia (IMPORTANTE relistado como corregido) converge y el tope frena en review', async () => {
   await conRonda1([JAVA], async (ctx, r1) => {
-    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
+    await ctx.pedirCambios(r1.r, [informe([`| IMP-46 | IMPORTANTE | abierto | ${JAVA}:4 | plan |`])]);
     await ctx.corregir([JAVA]);
     const r2 = await ctx.review();
-    await ctx.pedirCambios(r2.r, [informe([`| MEN-R2-1 | MENOR | abierto | ${JAVA}:5 | implementacion |`])]);
+    esAcotada(r2, r1.r.commitRevisado);
+    // El revisor de la ronda 2 relista el IMPORTANTE como corregido y deja un MENOR.
+    await ctx.pedirCambios(r2.r, [
+      informe([`| IMP-46 | IMPORTANTE | corregido | ${JAVA}:4 | plan |`, `| MEN-9 | MENOR | abierto | ${JAVA}:6 | plan |`]),
+    ]);
     await ctx.corregir([JAVA]);
     const r3 = await ctx.review();
-    assert.equal(r3.r.alcance, 'acotada');
-    assert.equal(r3.r.desde, r2.r.commitRevisado);
+    // Con la regla de TASK-083 esta ronda era completa desde la base
+    // ("tiene un IMPORTANTE (IMP-46, corregido)") y encontraba otra tanda.
+    esAcotada(r3, r2.r.commitRevisado);
+    await ctx.pedirCambios(r3.r, [informe([`| MEN-10 | MENOR | abierto | ${JAVA}:7 | plan |`])]);
+    await ctx.corregir([JAVA]);
+    await assert.rejects(ctx.review(), /tope de rondas \(3\).*--ronda-extra/s);
+    const r4 = await ctx.review(['--ronda-extra']);
+    esAcotada(r4, r3.r.commitRevisado);
+    assert.equal(r4.r.ronda, 4);
+  });
+});
+
+test('alcance (TASK-095): abrir una ronda con hallazgos de la anterior sin marcar corregido ni aceptado avisa', async () => {
+  await conRonda1([JAVA], async (ctx, r1) => {
+    await ctx.pedirCambios(r1.r, [informe([IMP_ABIERTO, `| MEN-1 | MENOR | aceptado | ${JAVA}:3 | plan |`])]);
+    await ctx.corregir([JAVA]);
+    const r2 = await ctx.review();
+    const aviso = r2.r.avisos.join('\n');
+    assert.match(aviso, /sin marcar como corregido ni aceptado: IMP-1 \(informe-revision-1[^)]*\.md\)/);
+    assert.ok(!/MEN-1 \(/.test(aviso), 'lo aceptado no se avisa');
   });
 });
 
 // --- La regla pura ------------------------------------------------------------
 
-test('alcanceRondaSiguiente (TASK-083): fail-closed ante lo que no se puede leer', () => {
+test('alcanceRondaSiguiente (TASK-095): la severidad ya no decide; las guardas fail-closed se conservan', () => {
   const pedida = (filas: string[]): string => informe(filas, 'cambios-solicitados');
-  assert.equal(alcanceRondaSiguiente([pedida([MEN_JAVA])]).acotada, true);
-  assert.deepEqual(alcanceRondaSiguiente([pedida([MEN_JAVA, MEN_ANGULAR])]).ficherosNombrados, [
-    JAVA,
-    'user-profile.component.ts',
-  ]);
+  for (const filas of [[MEN_JAVA], [MEN_JAVA, IMP_CORREGIDO], [IMP_ABIERTO], [CRIT_ABIERTO]]) {
+    assert.equal(alcanceRondaSiguiente([pedida(filas)]).acotada, true, filas.join(' '));
+  }
+  assert.equal(alcanceRondaSiguiente([pedida([MEN_JAVA]), pedida([CRIT_ACEPTADO])]).acotada, true);
   const casos: Array<[string, string[], RegExp]> = [
     ['sin informes', [], /no tiene informes/],
     ['veredicto aprobada', [informe([MEN_JAVA], 'aprobada')], /veredicto .* "aprobada"/],
@@ -279,8 +279,6 @@ test('alcanceRondaSiguiente (TASK-083): fail-closed ante lo que no se puede leer
     ['sin tabla', ['# I\n\n- Veredicto: cambios-solicitados\n\n## Hallazgos\n\nMEN-1 en prosa.\n'], /tabla/],
     ['severidad desconocida', [pedida(['| X-1 | Alta | abierto | a.ts:1 | plan |'])], /"Alta"/],
     ['sin hallazgos', [pedida(['| (ninguno) | — | sin hallazgos | — | — |'])], /sin anotar ningun hallazgo/],
-    ['IMPORTANTE corregido', [pedida([MEN_JAVA, IMP_CORREGIDO])], /IMPORTANTE \(IMP-1, corregido\)/],
-    ['un fragmento con CRITICO', [pedida([MEN_JAVA]), pedida([CRIT_ACEPTADO])], /CRITICO/],
   ];
   for (const [nombre, informes, motivo] of casos) {
     const a = alcanceRondaSiguiente(informes);
@@ -292,20 +290,9 @@ test('alcanceRondaSiguiente (TASK-083): fail-closed ante lo que no se puede leer
   assert.equal(alcanceRondaSiguiente([pedida([MEN_JAVA, CRIT_ACEPTADO])]).modeloBarato, false);
 });
 
-test('rutasDeCeldaFichero y ficheroNombrado (TASK-083)', () => {
-  assert.deepEqual(rutasDeCeldaFichero('src/a.ts:12'), ['src/a.ts']);
-  assert.deepEqual(rutasDeCeldaFichero('`b.vue:191`, src\\c.ts:1-3; ./d.ts#L4'), ['b.vue', 'src/c.ts', 'd.ts']);
-  assert.deepEqual(rutasDeCeldaFichero('—'), []);
-  assert.deepEqual(rutasDeCeldaFichero(''), []);
-  assert.equal(ficheroNombrado('src/ui/Armazon.vue', ['Armazon.vue']), true);
-  assert.equal(ficheroNombrado('src/ui/OtroArmazon.vue', ['Armazon.vue']), false);
-  assert.equal(ficheroNombrado('src/core/x.ts', ['src/core/']), true);
-  assert.equal(ficheroNombrado('src/core/x.ts', []), false);
-});
-
-test('soloMenores (TASK-083): tabla con al menos un hallazgo y todos MENOR', () => {
-  assert.equal(soloMenores(informe([MEN_JAVA, MEN_ANGULAR])), true);
-  assert.equal(soloMenores(informe([MEN_JAVA, IMP_CORREGIDO])), false);
-  assert.equal(soloMenores(informe(['| (ninguno) | — | sin hallazgos | — | — |'])), false);
-  assert.equal(soloMenores('# I\n\n## Hallazgos\n\nprosa\n'), false);
+test('hallazgosPendientes (TASK-095): todo menos lo aceptado, tambien lo corregido', () => {
+  const l = hallazgosPendientes(informe([MEN_JAVA, IMP_CORREGIDO, CRIT_ACEPTADO, '| X-2 | MENOR |  | a.ts:1 | plan |']));
+  assert.equal(l.tabla, true);
+  assert.deepEqual(l.abiertos.map((h) => h.id), ['MEN-1', 'IMP-1', 'X-2']);
+  assert.equal(hallazgosPendientes('# I\n\n## Hallazgos\n\nprosa\n').tabla, false);
 });

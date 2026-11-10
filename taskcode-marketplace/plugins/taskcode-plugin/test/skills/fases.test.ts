@@ -257,7 +257,14 @@ test('automatico (TASK-059): approve sin preguntar, start implementa, review cor
   assert.match(start, /\*\*Modo automatico\*\*[\s\S]*implementa el plan[\s\S]*suite[\s\S]*en verde/);
   const review = lf(await readFile(path.join(SKILLS_DIR, 'review', 'SKILL.md'), 'utf8'));
   assert.match(review, /commitealo \*\*solo, en un commit que no toque nada mas\*\*/);
-  assert.match(review, /corrige tu los CRITICO e IMPORTANTE/);
+  // TASK-095: antes "corrige tu los CRITICO e IMPORTANTE (y los MENOR
+  // baratos)"; ahora se corrige TODO lo de la ronda, en cualquier modo, y el
+  // MENOR que no compense se acepta o pasa a otra tarea. En automatico lo
+  // hace la skill.
+  assert.match(review, /\*\*Antes de abrir la ronda siguiente se corrige TODO lo de la ronda\*\*/);
+  assert.match(review, /los CRITICO e IMPORTANTE siempre; un MENOR que no compense/);
+  assert.match(review, /En modo\s+automatico, si `siguiente` da `fase: review` con `accion: continuar`, haz tu\s+todo eso/);
+  assert.match(review, /taskctl review TASK-NNN --ronda-extra/);
   for (const fase of Object.keys(FASES)) {
     const texto = await readFile(path.join(SKILLS_DIR, fase, 'SKILL.md'), 'utf8');
     assert.ok(texto.includes('taskctl cadena comprobar <testigo>'), `${fase}: no comprueba la cadena recibida`);

@@ -67,22 +67,38 @@ En una ronda de verificación (la 2 o posterior), la petición añade la línea
 
 En cualquier otro caso, el revisor usa el modelo de la tarea.
 
-Además, la ronda de verificación puede ser **acotada**. La petición lo dice
-en la línea `- Alcance:`, con su motivo, y lo dice también la salida de
-`taskctl review`. Una ronda acotada tiene un solo revisor (el genérico), no
-se fragmenta por dominio y lleva instrucciones de verificación: comprobar
-cada hallazgo, ejecutar la suite y buscar el fallo que abre la corrección.
-Solo es acotada si se cumple todo esto:
-- la ronda anterior pidió cambios y en todos sus informes solo hay MENOR;
-- el diff sale del commit revisado en la ronda anterior;
-- el diff no trae merges;
-- el diff solo toca ficheros que nombra algún hallazgo en su columna
-  `Fichero`.
+**La revisión converge.** El coste de revisar crece con el tamaño de la
+corrección, no con el del proyecto. Desde la ronda 2, la ronda es una
+verificación **acotada** (la línea `- Alcance:` de la petición y la salida
+de `taskctl review` lo dicen, con su motivo), también si la ronda anterior
+dejó CRÍTICOS o IMPORTANTES:
+- revisan los revisores que tienen hallazgos pendientes (todo lo que no está
+  `aceptado`; lo `corregido` también se verifica), cada uno los suyos, y los
+  de dominio cuyos ficheros toca la corrección; todos reciben el diff entero
+  de la corrección;
+- cada revisor comprueba sus hallazgos, ejecuta la suite y busca el fallo
+  que abre la corrección, y solo abre un hallazgo nuevo si es CRÍTICO o lo
+  introduce la propia corrección;
+- un merge de la base entre rondas no la cambia: se nombra en el motivo y lo
+  que entra con él va en el diff.
 
-Un CRÍTICO o IMPORTANTE en cualquier estado obliga a la ronda completa, y la
-ronda completa que sigue a una acotada revisa desde la rama base.
-`taskctl review TASK-NNN --completa` la fuerza. `taskctl veredicto` avisa,
-sin bloquear, si se piden cambios con una tabla que solo tiene MENORES.
+Es completa solo con `taskctl review TASK-NNN --completa` (desde la rama
+base), sin commit revisado fiable, o si un informe de la ronda anterior no se
+puede leer (sin tabla, plantilla sin rellenar, severidad desconocida o
+cambios pedidos sin ningún hallazgo). Una completa que sigue a una acotada
+revisa desde la rama base.
+
+Entre una ronda y otra se corrige **todo** lo de la ronda: los CRÍTICO e
+IMPORTANTE siempre; el MENOR que no compense se marca `aceptado` con su
+motivo o pasa a una tarea nueva. `taskctl review` avisa si se abre una ronda
+con hallazgos de la anterior sin marcar. Tras la ronda 3 con cambios,
+`taskctl siguiente` pregunta en cualquier modo y `taskctl review` no abre la
+ronda 4 sin `--ronda-extra`, que se pasa solo cuando lo decide una persona.
+
+El motivo, medido: con la regla anterior (0.12), un IMPORTANTE en cualquier
+estado, también corregido, obligaba a una ronda completa; los revisores
+vuelven a listar los corregidos, así que cada ronda relanzaba una revisión
+entera que encontraba otra tanda (hasta 14 rondas en una tarea).
 
 ## Roles del brainstorm de diseño
 
