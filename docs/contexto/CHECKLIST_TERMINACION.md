@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 103 / 106 items terminados (97%)** · última actualización: 2026-11-10
+**Progreso global: 105 / 106 items terminados (99%)** · última actualización: 2026-11-10
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 5 | **2** | — |
-| **Total pendiente** | **3** | — | — |
+| ⏳ P — Agilidad sin perder calidad | 5 | **4** | — |
+| **Total pendiente** | **1** | — | — |
 
 ---
 
@@ -1115,7 +1115,7 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
-## ⏳ P — Agilidad sin perder calidad (2/5)
+## ⏳ P — Agilidad sin perder calidad (4/5)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -1139,8 +1139,8 @@ del código.
       y review exige --ronda-extra para la ronda 4. No se retira ningún revisor. 2 rondas:
       6 MENOR en la 1 (MEN-4 y parte de MEN-5 aceptados), aprobada en la 2. Pendiente de
       publicar en 0.14.0.*
-- [ ] TASK-097 — Regla de una hora: plan estima la duración de punta a punta y propone trocear
-- [ ] TASK-098 — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes
+- [x] TASK-097 — Regla de una hora: plan estima la duración de punta a punta y propone trocear — cerrada el 2026-11-10
+- [x] TASK-098 — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes — cerrada el 2026-11-10
 - [ ] TASK-096 — Verificación proporcional al cambio: una tarea sin código no corre la suite de tests
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
