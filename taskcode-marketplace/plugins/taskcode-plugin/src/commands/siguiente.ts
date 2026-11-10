@@ -41,7 +41,8 @@ import {
 import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import type { Task } from '../core/task.js';
 import { REVISION_DIRNAME } from './review.js';
-import { planRedactado } from './approve.js';
+import { duracionDelPlan, planRedactado } from './approve.js';
+import type { LecturaDuracion } from '../core/duracion-estimada.js';
 
 export class SiguienteCommandError extends Error {}
 
@@ -157,6 +158,8 @@ export async function runSiguienteCommand(
   let task: Task;
   let body: string;
   let planEstaRedactado = true;
+  // TASK-097: la duracion estimada del plan (solo en-diseno con plan redactado).
+  let duracionEstimada: LecturaDuracion | undefined;
   // Informes de la ultima ronda (primaria y de Codex), con el MISMO criterio
   // de ronda en los dos caminos (nombresDeUltimaRonda), leidos de la rama o
   // del disco.
@@ -208,11 +211,15 @@ export async function runSiguienteCommand(
     codex = await Promise.all(
       (await informesDeUltimaRonda(revisionDir, INFORME_CODEX_RE)).nombres.map(leer)
     );
-    if (task.estado === 'en-diseno') planEstaRedactado = await planRedactado(task, taskDir);
+    if (task.estado === 'en-diseno') {
+      planEstaRedactado = await planRedactado(task, taskDir);
+      if (planEstaRedactado) duracionEstimada = await duracionDelPlan(taskDir);
+    }
   }
 
   const ctx: ContextoFlujo = {
     planRedactado: planEstaRedactado,
+    ...(duracionEstimada === undefined ? {} : { duracionEstimada }),
     veredicto: veredictoDe(primarios),
     veredictoCodex: veredictoDe(codex),
     modoCongelado: modoCongelado(body) !== null,

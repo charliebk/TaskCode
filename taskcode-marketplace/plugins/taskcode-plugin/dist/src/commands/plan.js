@@ -43,6 +43,7 @@ import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, nombrePet
 import { cargarCatalogoSkills, seleccionarSkill, FICHERO_CATALOGO_SKILLS, } from '../core/catalogo-skills.js';
 import { PETICION_DESEMPATE_SKILL_FILENAME, SALIDA_DESEMPATE_SKILL_FILENAME, peticionDesempateSkillTemplate, salidaDesempateSkillTemplate, leerGanadorDesempate, } from '../core/plan-desempate-skill.js';
 import { comprobarSkillInstalado } from '../core/plugin-instalado.js';
+import { LINEA_PLANTILLA_DURACION } from '../core/duracion-estimada.js';
 export class PlanCommandError extends Error {
 }
 /** Flags de `taskctl plan`: parseAsignadoAFlag (con su alias) y extraerPushFlag. */
@@ -203,7 +204,11 @@ export function planTemplate(task, roles) {
     }
     return (`# Plan — ${task.id}: ${task.titulo}\n\n` +
         origen +
-        '\n## Enfoque propuesto\n\n\n' +
+        // TASK-097: la estimacion de punta a punta (regla de una hora). Solo se
+        // ANADE una linea: el detector de plantilla compara por lineas y un
+        // esqueleto viejo sigue contando como esqueleto.
+        '\n## Enfoque propuesto\n\n' +
+        `${LINEA_PLANTILLA_DURACION}\n\n\n` +
         seccionRoles +
         '## Riesgos aceptados y que los contiene\n\n\n' +
         '## Plan de pruebas\n\n\n' +
