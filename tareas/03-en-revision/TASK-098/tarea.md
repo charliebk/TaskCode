@@ -57,3 +57,4 @@ Que todo proyecto tenga tareas/ROADMAP.md al dia sin escribir un script: hitos (
 
 - code-quality-reviewer — 3da7011
 - code-quality-reviewer — 63e925e
+- code-quality-reviewer — 8e2a900
