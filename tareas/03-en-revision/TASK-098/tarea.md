@@ -42,6 +42,7 @@ Que todo proyecto tenga tareas/ROADMAP.md al dia sin escribir un script: hitos (
 | 2026-11-10T15:21:53Z | approve | automatico | persona | 0.13.0 |
 | 2026-11-10T17:43:32Z | start | automatico | persona | 0.13.0 |
 | 2026-11-10T18:09:54Z | review | automatico | persona | 0.13.0 |
+| 2026-11-10T18:29:52Z | review | automatico | persona | 0.13.0 |
 
 ## Coste
 
