@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 1098106
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -39,3 +39,9 @@ Que taskctl finish no repita la verificación completa cuando ya hay un verde de
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-10T13:51:53Z | plan | automatico | persona | 0.13.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-10T13:57:56Z | diseno | agente:aa270245adbb57b7e,a56d946262c652027 | 60 | 104656 | 970038 | 23352 | 39 | 1098106 | - | - |
