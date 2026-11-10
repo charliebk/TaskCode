@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 2076577
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -38,3 +38,9 @@ Que un proyecto pueda regenerar en cada transición un fichero derivado que vive
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-10T12:44:55Z | plan | automatico | persona | 0.13.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-10T12:51:59Z | diseno | agente:a28a3c67e7f8c02fa | 68 | 90497 | 1968455 | 17557 | 42 | 2076577 | - | - |
