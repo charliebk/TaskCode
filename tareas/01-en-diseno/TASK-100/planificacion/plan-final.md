@@ -6,7 +6,7 @@ Los desacuerdos entre roles se senalan, no se promedian.)
 
 ## Enfoque propuesto
 
-Duracion estimada: 165 min (de la rama abierta al cierre con merge; senales: 8 ficheros de codigo previstos, 5 capas core/fs/commands/hooks/docs, 7 criterios con tests de integracion en 4 consumidores; rango de arquitectura 150-180, sin contar las mitigaciones de riesgos)
+Duracion estimada: 75 min (solo A1, tras trocear; de la rama abierta al cierre con merge; senales: 5 ficheros de codigo previstos (config, verificacion-proporcional, git, verificacion, finish-verificacion, mas finish-cobertura), 3 capas core/fs/commands, 5 criterios; los 60 de arquitectura mas las mitigaciones de riesgos y la documentacion. La tarea entera estimaba 165 min)
 - (arquitectura) Se crea `core/verificacion-proporcional.ts` puro: `decidirVerificacion(config, ambito, diff|null)` -> completa/selectiva/documentacion/ninguna + motivo; `null` -> decision de siempre. Lo llaman finish, Stop, review y guardian, que pierden su logica de decision propia.
 - (arquitectura) Se extienden `core/config.ts` (`rutas_documentacion` con semantica `:(glob)`, `comando_verificacion_documentacion`), `fs/git.ts` (`rutasDeTarea` contra merge-base, con 'arbol' para Stop) y `fs/verificacion.ts` (tipo y memo `'documentacion'` propios, patron de TASK-091).
 - (riesgos, CRITICAS, entran en el enfoque) rutas leidas de la config de la base; cambio en `.taskcode/config.yml` = codigo; `--no-renames`; diff vacio = verificacion de siempre; Stop clasifica tambien el arbol sucio; nunca memo de completa sin correrla; `puertaCobertura`/`puertaHeldout` tratan «solo documentacion» como `omitida`.
@@ -58,7 +58,14 @@ Todo contra repos Git temporales reales (convencion del proyecto); un test por c
 - Que el parser acepta claves de lista nuevas sin codigo extra, y si se reutiliza `timeout_verificacion` — arquitectura — precedente `rutas_sincronizacion`.
 - Que el pathspec de Git distingue mayusculas tambien en Windows (riesgos lo exige) — unificador lo deja como supuesto — test con `Docs/` vs `docs/`.
 
-## Lo que necesita decision de una persona
+## Decision de la persona (2026-11-10)
+
+- Carlos decide trocear en A1-A2-A3. Esta TASK-100 hace A1: `core/verificacion-proporcional.ts`, las dos claves de config (leidas de la base), `rutasDeTarea` (merge-base, `--no-renames`, `-z`), el memo `'documentacion'`, su uso en `finish-verificacion.ts` y `puertaCobertura`/`puertaHeldout` tratando «solo documentacion» como `omitida`; todas las mitigaciones criticas de riesgos que tocan finish entran aqui. Criterios: 1, 2, regresion de finish, docs de lo que hace A1 y suite.
+- A2 (guardian) es TASK-101 y A3 (Stop y review, con el arbol sucio) es TASK-102, las dos dependientes de esta. Hasta entonces el guardian, Stop y review se comportan como en la 0.14.0 (mas estrictos, nunca mas laxos).
+- A1 lleva su parte de documentacion y CHANGELOG para poder entregarse sola.
+- La estimacion de A1 pasa de 60 a 75 min por las mitigaciones y la documentacion; Carlos aprobo la particion sabiendolo.
+
+## Lo que necesita decision de una persona (antes de trocear)
 
 - Trocear o no (regla de una hora: 165 min > 60). Propuesta de arquitectura: A1 config+nucleo+finish+cobertura (~60 min, criterios 1, 2 y regresion de finish), A2 guardian (~40, criterio 4), A3 Stop+review (~50, criterio 3) + docs y suite. Si se trocea, esta TASK-100 hace A1 y A2/A3 son tareas nuevas — lo decide la persona, no este rol.
 - Si se trocea: redistribuir criterios 3, 4 y 6 y decidir si A1 lleva ya su parte de docs y CHANGELOG — cambia el enunciado aprobado.
