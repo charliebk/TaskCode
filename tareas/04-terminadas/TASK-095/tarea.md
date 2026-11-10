@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-095-revision-que-converge-desde-la-ronda-2-s
 asignado_a: charlie.bk@gmail.com
@@ -60,6 +60,7 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que la revision por
 | 2026-11-10T14:32:29Z | start | automatico | persona | 0.13.0 |
 | 2026-11-10T15:08:56Z | review | automatico | persona | 0.13.0 |
 | 2026-11-10T15:52:37Z | review | automatico | persona | 0.13.0 |
+| 2026-11-10T16:07:08Z | finish | automatico | persona | 0.13.0 |
 
 ## Coste
 

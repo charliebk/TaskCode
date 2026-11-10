@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-095 (feature) — Revision que converge: desde la ronda 2 solo se verifican las correcciones (2026-11-10)
 
 - TASK-092 (feature) — Sincronización de ficheros sueltos de la raíz de tareas/ (2026-11-10)
 
