@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [config, sincronizacion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-092-sincronizacion-de-ficheros-sueltos-de-la
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Que un proyecto pueda regenerar en cada transición un fichero derivado que vive
 |---|---|---|---|---|
 | 2026-11-10T12:44:55Z | plan | automatico | persona | 0.13.0 |
 | 2026-11-10T12:53:31Z | approve | automatico | persona | 0.13.0 |
+| 2026-11-10T12:53:38Z | start | automatico | persona | 0.13.0 |
 
 ## Coste
 
