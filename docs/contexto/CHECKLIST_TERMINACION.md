@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 101 / 101 items terminados (100%)** · última actualización: 2026-11-09
+**Progreso global: 102 / 104 items terminados (98%)** · última actualización: 2026-11-10
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| **Total pendiente** | **0** | — | — |
+| ⏳ P — Agilidad de la verificación tras la 0.13 | 3 | **1** | — |
+| **Total pendiente** | **2** | — | — |
 
 ---
 
@@ -1113,3 +1114,20 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       Guía `skills/task-workflow/verificacion-selectiva.md`. 5 rondas: las 2 a 4
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
+
+## ⏳ P — Agilidad de la verificación tras la 0.13 (1/3)
+
+Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
+hecho perder agilidad: la verificación completa se repite por causas que no son
+del código.
+
+- [x] TASK-092 — Sincronización de ficheros sueltos de la raíz de tareas/ — cerrada el 2026-11-10
+      *`rutas_sincronizacion` admite un fichero directamente en `tareas/` (p. ej.
+      `tareas/ROADMAP.md`), que se regenera en el commit de cada transición; siguen
+      cerradas las carpetas de estado, cualquier subcarpeta, `.taskcode/` y `.git/`,
+      ahora sin distinguir mayúsculas ni puntos/espacios finales. `informe_cobertura`
+      no cambia. Cambió la expectativa del caso `tareas/x.md` (aprobado por la
+      persona en el plan). 1 ronda, aprobada sin hallazgos, 7 mutantes detectados.
+      Pendiente de publicar en 0.14.0.*
+- [ ] TASK-093 — finish reutiliza la completa en verde del mismo árbol, con entradas ignoradas declaradas
+- [ ] TASK-094 — Cerrojo: una sola verificación de taskctl a la vez por repo
