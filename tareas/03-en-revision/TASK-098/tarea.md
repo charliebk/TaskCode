@@ -27,12 +27,26 @@ dependencias: []
 Que todo proyecto tenga tareas/ROADMAP.md al dia sin escribir un script: hitos (campo sprint), orden por dependencias (ninguna tarea antes que sus predecesoras; a igualdad, el hito anterior), complejidad, estado, tareas terminadas y un resumen de lo que esta en marcha y lo que esta listo para empezar, regenerado en el commit de cada transicion. Hoy solo lo tienen ToolsaWeb y OpenDockTrading, con su propio scripts/grafo-tareas.py. Regla numero uno (decision de Carlos): no puede entrar en conflicto con esos dos proyectos; taskctl solo escribe un ROADMAP que lleve su marca o que no exista. La migracion de esos proyectos se permite solo si no rompe nada ni pierde datos, va en tareas aparte en cada repo y la decide la persona.
 
 ## Criterios de aceptacion
-- [ ] Sin tareas/ROADMAP.md, cada transicion cuyo commit cae en la rama de integracion (new, plan, approve, finish tras el merge) lo crea o regenera con la marca de taskctl dentro de su mismo commit, y dos ramas de tarea en paralelo no generan conflicto de merge en el: hitos, orden por dependencias, complejidad, estado y resumen (test de integracion en un repo temporal)
-- [ ] Un tareas/ROADMAP.md sin la marca de taskctl, o declarado en rutas_sincronizacion, queda byte a byte igual tras cada transicion (test con copias de los ROADMAP reales de ToolsaWeb y OpenDockTrading)
-- [ ] La zona manual entre marcas se conserva al regenerar, y una dependencia circular se informa en el ROADMAP sin abortar la transicion (un test por caso)
-- [ ] taskctl roadmap --comparar genera en seco y lista, sin escribir nada, lo que difiere del ROADMAP actual (tareas, hitos, dependencias, estado, zona manual); es la comprobacion previa a migrar un proyecto (test)
-- [ ] skills/task-workflow, README y CHANGELOG explican el ROADMAP, la marca, la zona manual y como migrar un proyecto que ya tiene el suyo
-- [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ningun test
+- [x] Sin tareas/ROADMAP.md, cada transicion cuyo commit cae en la rama de integracion (new, plan, approve, finish tras el merge) lo crea o regenera con la marca de taskctl dentro de su mismo commit, y dos ramas de tarea en paralelo no generan conflicto de merge en el: hitos, orden por dependencias, complejidad, estado y resumen (test de integracion en un repo temporal)
+- [x] Un tareas/ROADMAP.md sin la marca de taskctl, o declarado en rutas_sincronizacion, queda byte a byte igual tras cada transicion (test con copias de los ROADMAP reales de ToolsaWeb y OpenDockTrading)
+- [x] La zona manual entre marcas se conserva al regenerar, y una dependencia circular se informa en el ROADMAP sin abortar la transicion (un test por caso)
+- [x] taskctl roadmap --comparar genera en seco y lista, sin escribir nada, lo que difiere del ROADMAP actual (tareas, hitos, dependencias, estado, zona manual); es la comprobacion previa a migrar un proyecto (test)
+- [x] skills/task-workflow, README y CHANGELOG explican el ROADMAP, la marca, la zona manual y como migrar un proyecto que ya tiene el suyo
+- [x] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ningun test
+
+## Resultado
+
+**Implementado.** ROADMAP de tareas generado por taskctl en `tareas/ROADMAP.md`, el mismo formato para todos los proyectos (decision de Carlos: una sola fuente de verdad). Modulos nuevos: `core/roadmap.ts` (generador puro: hitos por `sprint`, orden topologico por dependencias, complejidad, estado, resumen «En marcha / Listas para empezar», dependencias circulares informadas sin abortar), `core/roadmap-comparar.ts` (comparacion estructural), `fs/roadmap.ts` (lectura de tareas y escritura con todas las guardas) y `commands/roadmap.ts` (`taskctl roadmap [--comparar | --escribir]`). `autoCommit` gana `roadmap: true`, que pasan new, plan, approve y finish; solo actua si el commit cae en `rama_base`, dentro del mismo commit.
+
+**No pisa ROADMAP ajenos** (requisito numero uno de Carlos: ToolsaWeb y OpenDockTrading). Las transiciones no escriben si el fichero no lleva la marca exacta en la linea 3, si esta en `rutas_sincronizacion`, si tiene cambios sin commitear, si tiene historia en git pero no existe, o si en disco tiene otras mayusculas. Tests con copias reales de los dos ROADMAP. `--escribir` sustituye uno ajeno solo si `--comparar` sale limpio.
+
+**Revision por pares.** Ronda 1 (completa): cambios solicitados con IMP-1 (`--comparar` salia limpio con texto propio fuera de la zona manual y `--escribir` lo borraba) y MEN-1 (titulo, complejidad y filas duplicadas sin comparar); ambos corregidos. Ronda 2 (verificacion de correcciones por protocolo de arranque): aprobada con correcciones; IMP-1 y MEN-1 verificados y un MEN-2 nuevo causado por la correccion (una fila propia dentro de la tabla de un hito se seguia eximiendo). Carlos decidio corregirlo antes de cerrar; como taskctl 0.13 no abre otra ronda sobre «aprobada con correcciones», un revisor independiente lo verifico como anexo (`revision/verificacion-men-2.md`): corregido, sin hallazgos nuevos. En las transiciones ninguna ronda encontro forma de sobrescribir un ROADMAP ajeno. Mutantes de las guardas (marca, cambios sin commitear, historia, sincronizacion) y de la comparacion, muertos.
+
+**Tests que cambian de expectativa:** `auto-commit.test.ts` y `sincronizacion-ciclo.test.ts` (el commit de las transiciones en la rama base incluye ahora `tareas/ROADMAP.md`); en `roadmap-ajenos.test.ts` la asercion de «sin diferencias de zona manual» se cine a las lineas `- zona manual:`, porque el mensaje nuevo de texto perdido tambien contiene esas palabras. No se debilita ninguna asercion.
+
+**Suite completa:** 2117 tests, 2113 en verde antes de la revision (solo los 3 rojos conocidos de Windows). Tras las correcciones de las rondas, suite rapida 699/699 y los 24 tests del ROADMAP en verde (protocolo de arranque: la completa, una vez antes de la revision).
+
+**Limites aceptados:** «En marcha» suele salir vacio en develop, porque el ROADMAP solo se regenera en la rama de integracion; la prioridad por etiqueta `interfaz` de OpenDockTrading no se replica, asi que el orden de filas puede cambiar al migrar; un comentario HTML de una linea o una fila hecha solo de guiones fuera de la zona manual no cuentan como texto propio.
 
 ## Transiciones
 
