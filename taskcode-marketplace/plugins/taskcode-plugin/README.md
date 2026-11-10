@@ -894,7 +894,9 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   config de la rama destino): un merge a mano de una tarea de solo
   documentación pasa sin el verde de la completa, o con el verde de su
   comprobación de documentación si la hay. El guardián no aplica la exención si
-  el comando crea o mueve commits antes del merge (`git commit && git merge`),
+  el comando hace algo más que un merge, cambiar de carpeta o de rama y
+  consultar (un `git commit`, otro merge, `>`, `$(...)` o un script podrían
+  cambiar lo que entra),
   en un release, ni si cambian los held-out (`tareas/.../aceptacion/`), y la
   calcula solo cuando ya iba a bloquear, con un presupuesto de 20 s.
 - El freno de fin de turno y `review` siguen corriendo la completa o la selectiva.

@@ -262,37 +262,60 @@ function ramaDeCambio(args) {
     return pos.length === 1 ? pos[0] : null;
 }
 /**
- * TASK-101: programas que no pueden cambiar ningun commit de ninguna rama.
- * Lectura, cambio de carpeta y salida por pantalla.
+ * TASK-101: lo unico que puede acompanar al merge para que el guardian aplique
+ * la exencion de solo documentacion. Lista blanca minima (CRI-2 de la revision:
+ * `echo`, `cat`, `tee` o `git log` con una redireccion o una sustitucion
+ * escribian una ref y movian la rama que se evalua).
  */
-const SIN_EFECTO_EN_RAMAS = new Set(['cd', 'pushd', 'popd', 'echo', 'pwd', 'true', 'set-location', 'sl', 'tee', 'cat', 'head', 'tail', 'grep']);
-/** Subcomandos de git que no mueven ninguna rama (checkout/switch y branch, aparte). */
-const GIT_SIN_EFECTO = new Set(['merge', 'status', 'log', 'diff', 'show', 'rev-parse']);
+const SOLO_CARPETA = new Set(['cd', 'pushd', 'popd', 'pwd', 'set-location', 'sl']);
+/** Subcomandos de git que solo consultan (checkout/switch y branch, aparte; merge se cuenta fuera). */
+const GIT_SOLO_CONSULTA = new Set(['status', 'log', 'diff', 'show', 'rev-parse']);
 /** `git branch` sin mas, o solo con estas opciones, solo lista. */
 const BRANCH_SOLO_LISTA = new Set(['--show-current', '-a', '-r', '--list', '-v', '-vv', '--all', '--remotes']);
 /**
- * TASK-101: true si, aparte de los merges y scripts de cierre, el comando solo
- * cambia de carpeta o de rama, consulta o escribe por pantalla. El guardian de
- * merges evalua la rama que entra ANTES de ejecutar el comando: si el comando
- * puede crear o mover commits antes del merge (`git commit`, `reset`, `rebase`,
- * `pull`, `cherry-pick`, un script, `taskctl`...), lo evaluado no es lo que
- * entra, y no se aplica la exencion de solo documentacion. Ante la duda, false.
+ * Caracteres que el troceado no interpreta y que pueden escribir ficheros o
+ * ejecutar otra orden: redirecciones, sustitucion de comandos y de variables.
+ */
+const CARACTERES_PELIGROSOS = /[<>`$]/;
+/**
+ * TASK-101: true si el comando, aparte de UN merge o script de cierre, solo
+ * cambia de carpeta o de rama o consulta. El guardian evalua la rama que entra
+ * ANTES de ejecutar el comando: si algo puede crear o mover commits antes del
+ * merge (`git commit`, otro `git merge` (CRI-1), `reset`, `pull`, un script,
+ * una redireccion a una ref...), lo evaluado no es lo que entra y no se aplica
+ * la exencion. Ante cualquier duda, false.
  */
 export function comandoSoloIntegra(texto) {
+    if (CARACTERES_PELIGROSOS.test(texto))
+        return false;
+    if (analizarComando(texto).length !== 1)
+        return false;
+    return segmentosSoloIntegran(texto);
+}
+function segmentosSoloIntegran(texto) {
     for (const bruto of segmentar(texto)) {
         const seg = sinPrefijos(bruto);
         if (seg.length === 0)
             continue;
+        // Asignaciones de entorno delante (`GIT_DIR=x git merge`): fuera.
+        if (seg.length !== bruto.length)
+            return false;
         const prog = programa(seg[0]);
-        if (SIN_EFECTO_EN_RAMAS.has(prog))
+        if (SOLO_CARPETA.has(prog))
             continue;
         if (prog === 'git') {
             let i = 1;
-            while (i < seg.length && seg[i].startsWith('-'))
-                i += GLOBALES_CON_VALOR.has(seg[i]) ? 2 : 1;
+            while (i < seg.length && seg[i].startsWith('-')) {
+                // Solo `-C <dir>`: `-c alias.x=!...` o `--exec-path` ejecutarian otra cosa.
+                if (seg[i] !== '-C')
+                    return false;
+                i += 2;
+            }
             const sub = (seg[i] ?? '').toLowerCase();
             const args = seg.slice(i + 1);
-            if (GIT_SIN_EFECTO.has(sub))
+            if (args.some((a) => a.startsWith('--output') || a === '-o' || a.startsWith('--exec')))
+                return false;
+            if (sub === 'merge' || GIT_SOLO_CONSULTA.has(sub))
                 continue;
             if ((sub === 'checkout' || sub === 'switch') && !args.some((a) => CREAN_RAMA.has(a) || a === '-f' || a === '--force'))
                 continue;
@@ -302,7 +325,7 @@ export function comandoSoloIntegra(texto) {
         }
         const interior = textoDeShell(prog, seg);
         if (interior !== null) {
-            if (!comandoSoloIntegra(interior))
+            if (!segmentosSoloIntegran(interior))
                 return false;
             continue;
         }

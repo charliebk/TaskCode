@@ -122,9 +122,12 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   merge a mano de una tarea de solo documentacion pasa sin el verde de la
   completa (con comprobacion de documentacion, con su verde guardado). El
   guardian lee las rutas de la config de la rama destino y no aplica la
-  exencion si el comando crea o mueve commits antes del merge (`git commit &&
-  git merge ...`: haz el commit en otro comando), en un release, ni si cambian
-  los tests held-out (`tareas/.../aceptacion/`), que alli cuentan como codigo.
+  exencion si el comando hace algo mas que UN merge (o script de cierre),
+  cambiar de carpeta o de rama y consultar (`git status|log|diff|show`): un
+  `git commit`, otro merge, una redireccion (`>`), `$(...)` o un script antes
+  del merge podrian cambiar lo que entra. Haz el commit en otro comando. Tampoco
+  en un release, ni si cambian los tests held-out (`tareas/.../aceptacion/`),
+  que alli cuentan como codigo.
 - El fin de turno y `review` siguen como antes (mas estrictos, nunca mas laxos).
 
 ### Que `.md` NO son documentacion

@@ -199,11 +199,11 @@ test('guardian (TASK-101): sin rutas_documentacion el mensaje es exactamente el 
   });
 });
 
-test('comandoSoloIntegra: solo cambiar de carpeta o de rama, consultar y mergear', () => {
+test('comandoSoloIntegra: solo un merge, cambiar de carpeta o de rama y consultar', () => {
   for (const ok of [
     'git merge --no-ff feature/x',
     'cd repo && git checkout develop && git merge --no-ff feature/x',
-    'git -C repo switch develop; git merge feature/x | tee log.txt',
+    'git -C repo switch develop; git merge feature/x',
     'git status && git log -1 && git branch --show-current && git merge x',
     'bash scripts/merge-feature-to-develop.sh feature/x',
     'bash -c "git checkout develop && git merge x"',
@@ -219,7 +219,42 @@ test('comandoSoloIntegra: solo cambiar de carpeta o de rama, consultar y mergear
     'bash -c "git commit -m y && git merge x"',
     'git rebase develop && git merge x',
     'git fetch origin x:x && git merge x',
+    // CRI-1 de la revision: otro merge antes, hacia una rama no protegida.
+    'git checkout docs && git merge --no-edit code && git checkout develop && git merge --no-ff -m m docs',
+    'git checkout docs; git merge code; git checkout develop; git merge docs',
+    // CRI-2: redirecciones, tee, sustituciones.
+    'git rev-parse code > .git/refs/heads/docs && git merge docs',
+    'echo abc > .git/refs/heads/docs && git merge docs',
+    'echo abc | tee .git/refs/heads/docs && git merge docs',
+    'cat .git/refs/heads/code > .git/refs/heads/docs && git merge docs',
+    'echo "$(git branch -f docs code)" && git merge docs',
+    'git log "$(git branch -f docs code)" && git merge docs',
+    'git log `git branch -f docs code` && git merge docs',
+    'git log --output=.git/refs/heads/docs && git merge docs',
+    'git -c alias.st=!sh status && git merge docs',
+    'GIT_DIR=otro git merge docs',
   ]) {
     assert.equal(comandoSoloIntegra(no), false, no);
   }
+});
+
+test('guardian (TASK-101): CRI-1 y CRI-2 de la revision bloquean de punta a punta', async () => {
+  await conEntorno(() => RUTAS, async (e) => {
+    const task = sampleTask({ id: 'TASK-959' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'docs/guia.md');
+    git(['checkout', '-q', '-b', 'codigo', 'develop'], e.repoRoot);
+    await enLaRama(e, 'src/y.ts', 'export const y = 1;\n');
+    git(['checkout', '-q', 'develop'], e.repoRoot);
+    for (const cmd of [
+      `git checkout ${task.rama} && git merge --no-edit codigo && git checkout develop && git merge --no-ff -m m ${task.rama}`,
+      `git rev-parse codigo > .git/refs/heads/${task.rama} && git merge --no-ff ${task.rama}`,
+      `echo "$(git branch -f ${task.rama} codigo)" && git merge --no-ff ${task.rama}`,
+    ]) {
+      const d = guardian(e, cmd);
+      assert.equal(d.codigo, 2, cmd);
+    }
+    // Y el merge limpio de esa misma rama si pasa.
+    assert.equal(guardian(e, `git merge --no-ff ${task.rama}`).codigo, 0);
+  });
 });
