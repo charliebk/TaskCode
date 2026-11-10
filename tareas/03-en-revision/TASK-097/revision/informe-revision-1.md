@@ -8,11 +8,11 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| H1 | IMPORTANTE | abierto | src/core/duracion-estimada.ts (CIFRA_RE) | implementacion |
-| H2 | IMPORTANTE | abierto | skills/task-workflow/SKILL.md (+ test/skills/task-workflow.test.ts, limite 15 KB) | implementacion |
-| H3 | IMPORTANTE | abierto | test/commands/duracion-estimada.test.ts, test/core (sin test en modo manual) | implementacion |
-| H4 | MENOR | abierto | src/core/duracion-estimada.ts (LINEA_RE y primera coincidencia) | implementacion |
-| H5 | MENOR | abierto | skills/task-workflow/duracion.md | plan |
+| H1 | IMPORTANTE | corregido | src/core/duracion-estimada.ts (CIFRA_RE) | implementacion |
+| H2 | IMPORTANTE | corregido | skills/task-workflow/SKILL.md (+ test/skills/task-workflow.test.ts, limite 15 KB) | implementacion |
+| H3 | IMPORTANTE | corregido | test/commands/duracion-estimada.test.ts, test/core (sin test en modo manual) | implementacion |
+| H4 | MENOR | corregido | src/core/duracion-estimada.ts (LINEA_RE y primera coincidencia) | implementacion |
+| H5 | MENOR | corregido | skills/task-workflow/duracion.md | plan |
 
 Nota: el HEAD de la rama es 297f67c (solo peticion, informe vacio y planificacion); el codigo revisado es el de 3493c31.
 
@@ -48,3 +48,12 @@ Casos buscados: re-planificacion, finish reintentado, dato ausente tras el merge
 - `dist/test/helpers/automatico-fixtures.js` y `dist/src/core/flujo.js`: casos por el CLI y por `siguienteFase`.
 - `src/core/metricas.ts`, `src/commands/finish.ts` y `approve.ts` alrededor de los cambios.
 - `git show develop:.../SKILL.md` y tamaños LF/CRLF (H2).
+
+## Correcciones del implementador (tras la ronda 1)
+
+Commit 20aaa29.
+- H1: la cifra solo vale seguida del fin, de un parentesis con las senales o de un punto; 2 horas, 2 h, 1 h 30, 90 - 120 o 45 + 30 min son ilegibles y se pregunta. Tests con esos casos.
+- H2: SKILL.md vuelve a medir lo mismo que en develop (15355 bytes con CRLF): la linea de la regla se integra recortando un parentesis del parrafo de held-out.
+- H3: tests de siguienteFase en los tres modos con mas de una hora (y con cifra ilegible), y con 60 min o sin linea cada modo hace lo de siempre.
+- H4: se admiten vineta, cita, encabezado y acentos graves; la linea de plantilla sin cifra no tapa una estimacion real mas abajo. Tests.
+- H5: duracion.md documenta que la cifra es un entero de minutos y que solo se descuentan las pausas de taskctl pausa.
