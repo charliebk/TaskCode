@@ -219,13 +219,8 @@ lo que tiene que estar hecho al cerrar (suite, smoke test, criterios marcados,
 `## Resultado`, registro de progreso) y como declarar y verificar los criterios
 que solo se comprueban despues del merge (`### Tras el cierre`).
 
-## Regla de una hora
-
-Una tarea prevista de mas de una hora de punta a punta (de la rama abierta al
-cierre con merge) se trocea. El plan dice `Duracion estimada: N min`; con mas
-de 60, decide una persona en approve (siguiente pregunta en cualquier modo y
-la aprobacion automatica se rechaza), y finish anota la duracion real para
-calibrar. Senales, como trocear y por que: [duracion.md](duracion.md).
+**Regla de una hora**: mas de una hora de punta a punta se trocea; lo decide
+una persona en approve. Ver [duracion.md](duracion.md).
 
 ## El brainstorm de la fase de diseno
 
