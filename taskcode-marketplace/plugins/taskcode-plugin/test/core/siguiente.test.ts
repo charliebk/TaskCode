@@ -90,7 +90,11 @@ const TABLA: Caso[] = [
   // TASK-059: guardas del automatico.
   { nombre: 'aprobada sin informe en commit propio', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'aprobada', informeEnCommitPropio: false }, fase: 'finish', comando: 'taskctl finish TASK-100', acciones: ['detener', 'preguntar', 'preguntar'] },
   { nombre: 'cambios en la ronda 2 (bajo el tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 2 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['detener', 'detener', 'continuar'] },
-  { nombre: 'cambios en la ronda 3 (tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 3 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['detener', 'detener', 'preguntar'] },
+  // TASK-095: en el tope se pregunta en TODOS los modos (antes manual y semi
+  // se detenian sin decir que decidir: IMP-3 de TASK-058, IMP-2 de TASK-059),
+  // y el comando NO lleva --ronda-extra (va en el motivo): ejecutarlo sin
+  // preguntar choca con review, que exige el flag pasado el tope (MEN-6).
+  { nombre: 'cambios en la ronda 3 (tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 3 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['preguntar', 'preguntar', 'preguntar'] },
   { nombre: 'terminada', task: { estado: 'terminada', plan_aprobado: true }, fase: 'terminada', comando: null, acciones: ['detener', 'detener', 'detener'] },
 ];
 
@@ -137,7 +141,11 @@ test('siguienteFase: ninguna fase propuesta es una transicion ilegal para la maq
 test('siguienteFase: en manual nunca encadena nada, en ningun estado', () => {
   for (const caso of TABLA) {
     const r = siguienteFase(tarea(caso.task), { ...CTX, ...caso.ctx }, 'manual');
-    assert.equal(r.accion, 'detener', caso.nombre);
+    // TASK-095: el tope de rondas pregunta tambien en manual (nombra las
+    // salidas); preguntar no encadena. Todo lo demas se detiene.
+    const esperada = caso.nombre === 'cambios en la ronda 3 (tope)' ? 'preguntar' : 'detener';
+    assert.equal(r.accion, esperada, caso.nombre);
+    assert.notEqual(r.accion, 'continuar', caso.nombre);
   }
 });
 

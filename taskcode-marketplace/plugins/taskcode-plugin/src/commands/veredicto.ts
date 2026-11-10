@@ -32,7 +32,6 @@ import {
   type AutoCommitResult,
 } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
-import { soloMenores } from '../core/informe-revision.js';
 
 export class VeredictoCommandError extends Error {}
 
@@ -58,7 +57,11 @@ export interface VeredictoCommandResult {
   ronda: number;
   informePath: string;
   linea: string;
-  /** TASK-083: avisos no fatales (p. ej. `cambios-solicitados` con solo MENORES). */
+  /**
+   * Avisos no fatales. Hoy siempre vacio: el unico que habia (TASK-083,
+   * `cambios-solicitados` con solo MENORES) se quito en TASK-095. Se conserva
+   * el campo por contrato con quien lo lee.
+   */
   avisos: string[];
   autoCommit: AutoCommitResult;
 }
@@ -178,16 +181,10 @@ export async function runVeredictoCommand(
   }
   if (nuevo !== contenido) await writeFile(informePath, nuevo, 'utf8');
 
-  // TASK-083: aviso, sin bloquear ni cambiar el veredicto (el contrato de
-  // TASK-036 sigue igual): pedir cambios con solo MENORES abre otra ronda.
+  // TASK-095: el aviso de TASK-083 (pedir cambios con solo MENORES) se quito:
+  // desde la ronda 2 toda ronda es una verificacion acotada, asi que decia
+  // algo que ya no distingue nada. `avisos` se conserva en el resultado.
   const avisos: string[] = [];
-  if (valor === 'cambios-solicitados' && soloMenores(nuevo)) {
-    avisos.push(
-      `${task.id}: ${nombre} pide cambios y su tabla solo tiene MENORES. Una ronda sin CRITICO ni ` +
-        'IMPORTANTE puede cerrar con "aprobada-con-correcciones"; si se piden cambios, la ronda ' +
-        'siguiente podra ser una verificacion acotada al diff de las correcciones.'
-    );
-  }
 
   const commitResult = autoCommit({
     cwd: deps.repoCwd,

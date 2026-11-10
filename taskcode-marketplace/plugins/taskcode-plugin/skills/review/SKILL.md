@@ -76,13 +76,26 @@ punto, no un formalismo.
    Si la ronda esta fragmentada, uno por informe, con el nombre de fichero
    completo: `--informe informe-revision-N-<revisor>.md`. Con CRITICO o
    IMPORTANTE abiertos, `cambios-solicitados`: se corrigen, se commitea, y se
-   vuelve a esta skill (abre la ronda siguiente). En modo automatico, si
-   `siguiente` da `fase: review` con `accion: continuar` tras los cambios,
-   corrige tu los CRITICO e IMPORTANTE del informe (y los MENOR baratos),
-   commitea, deja la suite en verde y vuelve al paso 2. Desde la ronda 3,
-   `siguiente` pregunta: otra ronda la decide una persona, y un «si» quiere
-   decir corregir primero y despues abrir la ronda, nunca relanzarla sobre el
-   mismo codigo.
+   vuelve a esta skill (abre la ronda siguiente).
+   **Antes de abrir la ronda siguiente se corrige TODO lo de la ronda**, en
+   cualquier modo: los CRITICO e IMPORTANTE siempre; un MENOR que no compense
+   corregir se marca `aceptado` con su motivo en su informe o se pasa a una
+   tarea nueva. Nunca se deja nada para la ronda siguiente: corregir de uno en
+   uno es lo que convierte trece hallazgos en trece rondas. Lo corregido se
+   marca `corregido` en la columna Estado de su informe (commit aparte del
+   codigo). `taskctl review` avisa si queda alguno sin marcar. En modo
+   automatico, si `siguiente` da `fase: review` con `accion: continuar`, haz tu
+   todo eso, commitea, deja la suite en verde y vuelve al paso 2. Desde la
+   ronda 2 la ronda es una verificacion acotada: cada revisor comprueba sus
+   hallazgos pendientes y el diff de la correccion, y solo abre uno nuevo si
+   es CRITICO o lo introduce la correccion.
+   **Tope**: tras la ronda 3 con cambios, `siguiente` pregunta en cualquier
+   modo. Lo decide una persona: aceptar lo abierto (sus IDs y el motivo en el
+   `## Resultado`) y cerrar, pasarlo a una tarea nueva, o corregir y abrir
+   otra ronda con `taskctl review TASK-NNN --ronda-extra`. Pasa ese flag solo
+   cuando la persona lo diga: sin el, `review` no abre la ronda 4. Un «si»
+   quiere decir corregir primero y despues abrir la ronda, nunca relanzarla
+   sobre el mismo codigo.
    En automatico, `aprobada-con-correcciones` no se corrige despues: el codigo
    que se mergea tiene que ser el revisado (`finish` pregunta si cambia). Los
    MENOR que merezca la pena corregir se piden como `cambios-solicitados`; el

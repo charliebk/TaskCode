@@ -37,12 +37,19 @@ import { verificarConMemo, type VerificacionConMemo } from '../fs/verificacion.j
 import { registrarTransicion } from '../core/transiciones.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
-import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, siguienteRonda } from '../fs/rondas.js';
+import {
+  INFORME_REVISION_RE,
+  PETICION_REVISION_RE,
+  informesDeUltimaRonda,
+  rondaYRevisorDeInforme,
+  siguienteRonda,
+} from '../fs/rondas.js';
+import { TOPE_RONDAS } from '../core/flujo.js';
 import {
   alcanceRondaSiguiente,
   commitRevisadoDe,
-  ficheroNombrado,
   hallazgosNoCerrados,
+  hallazgosPendientes,
   veredictoDeRonda,
   type AlcanceRonda,
   type VeredictoInforme,
@@ -76,8 +83,12 @@ import { modeloDeVerificacion } from '../core/modelo-revision.js';
 
 export class ReviewCommandError extends Error {}
 
-/** Flags de `taskctl review`: los de extraerPushFlag y `--completa` (TASK-083). */
-export const FLAGS_REVIEW: readonly string[] = ['--push', '-p', '--completa'];
+/**
+ * Flags de `taskctl review`: los de extraerPushFlag, `--completa` (TASK-083) y
+ * `--ronda-extra` (TASK-095: abrir una ronda pasado el tope, solo si lo decide
+ * una persona).
+ */
+export const FLAGS_REVIEW: readonly string[] = ['--push', '-p', '--completa', '--ronda-extra'];
 
 /** TASK-083: la cabecera que marca una peticion de verificacion acotada (la lee la ronda siguiente). */
 const ALCANCE_ACOTADA = 'verificacion acotada al diff de las correcciones';
@@ -164,10 +175,10 @@ export interface ReviewCommandResult {
    */
   modeloRonda?: string;
   /**
-   * TASK-083: `acotada` si esta ronda es una verificacion acotada al diff de
-   * las correcciones (un solo revisor, el generico, con instrucciones de
-   * verificacion); `completa` en cualquier otro caso. Va escrito, con su
-   * motivo, en la linea `- Alcance:` de la peticion.
+   * TASK-083/095: `acotada` si esta ronda es una verificacion acotada al diff
+   * de las correcciones (cada revisor con pendientes, mas los dominios que
+   * toca la correccion, con instrucciones de verificacion); `completa` en
+   * cualquier otro caso. Va escrito, con su motivo, en la linea `- Alcance:`.
    */
   alcance: 'completa' | 'acotada';
   motivoAlcance: string;
@@ -284,28 +295,40 @@ function instruccionesCompletas(nombreInforme: string): string {
 }
 
 /**
- * TASK-083: la ronda anterior solo dejo MENORES y el delta solo toca sus
- * ficheros. No basta con tachar la lista: la correccion de un MENOR puede meter
- * un IMPORTANTE nuevo (se vio en un proyecto real, y se encontro ejecutando),
- * asi que se siguen exigiendo los tests y la busqueda de fallos en el delta.
+ * TASK-095: frase que limita los hallazgos nuevos de una verificacion acotada.
+ * Exportada para que los tests comprueben su presencia sin copiar el texto.
+ */
+export const REGLA_HALLAZGOS_NUEVOS =
+  'Solo abre un hallazgo NUEVO si es CRITICO o si lo introduce la propia correccion\n' +
+  '(algo que el diff de esta ronda rompe). Lo demas que veas fuera de eso va como\n' +
+  'nota al final del informe, no en la tabla: no abre otra ronda.';
+
+/**
+ * TASK-095: desde la ronda 2 la ronda verifica las correcciones, tambien si la
+ * anterior dejo CRITICOS o IMPORTANTES (antes, TASK-083, solo con MENORES). No
+ * basta con tachar la lista: la correccion puede abrir un fallo nuevo, asi que
+ * se siguen exigiendo los tests y la busqueda de fallos en el delta.
  */
 function instruccionesAcotadas(nombreInforme: string): string {
   return (
     '## Instrucciones para el agente revisor (verificacion acotada)\n\n' +
     'Eres un revisor INDEPENDIENTE del agente que implemento. La rama ya paso una\n' +
-    'revision completa y la ronda anterior solo dejo hallazgos MENORES: esta ronda\n' +
-    'verifica sus correcciones, no vuelve a revisar la rama entera. Haz esto, y\n' +
-    'nada mas:\n\n' +
-    '1. Comprueba, uno por uno, que cada hallazgo de la tabla de abajo queda resuelto\n' +
-    '   por el diff de esta ronda, o que se justifica por que no.\n' +
+    'revision completa: esta ronda verifica las correcciones de la ronda anterior,\n' +
+    'no vuelve a revisar la rama entera. Haz esto, y nada mas:\n\n' +
+    '1. Comprueba, uno por uno, que cada hallazgo pendiente de tu tabla de abajo\n' +
+    '   queda resuelto por el diff de esta ronda (los marcados `corregido` tambien:\n' +
+    '   verificalo, no lo des por bueno). Para un CRITICO o IMPORTANTE, reproduce el\n' +
+    '   fallo original y comprueba que ya no ocurre; puedes leer el repo entero si la\n' +
+    '   causa no esta en el diff.\n' +
     '2. Ejecuta la suite (o el comando de verificacion del proyecto) sobre el commit\n' +
     '   revisado y di el resultado: verificar sin ejecutar no vale.\n' +
     '3. Busca en el diff de esta ronda el fallo que la correccion abre: es justo\n' +
-    '   donde se cuelan los IMPORTANTES nuevos. Si encuentras uno, construye el caso\n' +
-    '   que lo rompe antes de reportarlo.\n\n' +
-    `${CLASIFICACION} Un CRITICO o IMPORTANTE nuevo obliga a que la ronda\n` +
-    'siguiente sea completa (lo decide taskctl). Vuelca tu salida en el informe de\n' +
-    `esta ronda (${nombreInforme}), sin borrar la peticion.\n\n`
+    '   donde se cuelan los fallos nuevos. Si encuentras uno, construye el caso que\n' +
+    '   lo rompe antes de reportarlo.\n\n' +
+    `${REGLA_HALLAZGOS_NUEVOS}\n\n` +
+    `${CLASIFICACION} En la tabla, cada hallazgo pendiente que ya este\n` +
+    'resuelto va como `corregido`; el que no, `abierto`. Vuelca tu salida en el\n' +
+    `informe de esta ronda (${nombreInforme}), sin borrar la peticion.\n\n`
   );
 }
 
@@ -354,8 +377,15 @@ interface RondaPrevia {
   veredicto: VeredictoInforme;
   /** Commit revisado en la ronda N, o null si ninguna peticion lo dice. */
   commit: string | null;
-  /** Seccion de la peticion con los hallazgos que siguen abiertos. */
+  /** Seccion de la peticion con todos los hallazgos pendientes (ronda completa). */
   seccion: string;
+  /**
+   * TASK-095: seccion por revisor ('' = el generico, sin sufijo) con SUS
+   * hallazgos pendientes, para la ronda acotada.
+   */
+  seccionesPorRevisor: Map<string, string>;
+  /** TASK-095: hallazgos de la ronda N que no estan `corregido` ni `aceptado`. */
+  sinMarcar: string[];
   /** TASK-081 y TASK-083: lo que los informes de la ronda N permiten para la N+1. */
   alcance: AlcanceRonda;
   /** TASK-083: la ronda N fue una verificacion acotada (su peticion lo dice). */
@@ -364,6 +394,27 @@ interface RondaPrevia {
 
 /** Vive en core/informe-revision.ts desde TASK-083; se reexporta para quien la importe de aqui. */
 export { modeloBaratoPermitido } from '../core/informe-revision.js';
+
+/** Tabla de pendientes de una ronda, con la nota de los informes ilegibles. */
+function seccionPendientes(ronda: number, filas: readonly string[], sinTabla: readonly string[]): string {
+  let seccion =
+    `## Hallazgos de la ronda ${String(ronda)} pendientes de verificar\n\n` +
+    'Comprueba que cada uno queda resuelto por los cambios de esta ronda, y que la\n' +
+    'correccion no abre otro fallo: es justo donde se cuelan.\n\n';
+  if (filas.length > 0) {
+    seccion += '| ID | Severidad | Estado | Fichero | Informe |\n|---|---|---|---|---|\n' + filas.join('\n') + '\n';
+  } else if (sinTabla.length === 0) {
+    seccion += `0 hallazgos pendientes en la tabla de la ronda ${String(ronda)}.\n`;
+  }
+  if (sinTabla.length > 0) {
+    // Una tabla ausente NO es "0 abiertos": los informes anteriores a la
+    // tabla, o escritos a mano, hay que leerlos enteros.
+    seccion +=
+      `\nTabla de hallazgos ausente o ilegible en: ${sinTabla.join(', ')}. ` +
+      'Lee esos informes enteros.\n';
+  }
+  return seccion + '\n';
+}
 
 async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
   const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
@@ -379,39 +430,40 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
     commit ??= commitRevisadoDe(texto);
   }
 
+  // TASK-095: pendiente = todo lo que no esta `aceptado` (tambien lo
+  // `corregido`, que es justo lo que hay que verificar), agrupado por el
+  // revisor que lo encontro (el sufijo del informe; '' sin fragmentar).
   const filas: string[] = [];
   const sinTabla: string[] = [];
+  const sinMarcar: string[] = [];
+  const porRevisor = new Map<string, string[]>();
   for (const { nombre, texto } of textos) {
-    const lectura = hallazgosNoCerrados(texto);
+    const revisor = rondaYRevisorDeInforme(nombre)?.revisor ?? '';
+    const lectura = hallazgosPendientes(texto);
     if (!lectura.tabla) {
       sinTabla.push(nombre);
       continue;
     }
+    for (const h of hallazgosNoCerrados(texto).abiertos) sinMarcar.push(`${h.id} (${nombre})`);
+    const propias = porRevisor.get(revisor) ?? [];
     for (const h of lectura.abiertos) {
-      filas.push(`| ${h.id} | ${h.severidad} | ${h.estado} | ${h.fichero} | ${nombre} |`);
+      const fila = `| ${h.id} | ${h.severidad} | ${h.estado} | ${h.fichero} | ${nombre} |`;
+      filas.push(fila);
+      propias.push(fila);
     }
+    porRevisor.set(revisor, propias);
   }
-  let seccion =
-    `## Hallazgos de la ronda ${informes.ronda} que siguen abiertos\n\n` +
-    'Comprueba que cada uno queda resuelto por los cambios de esta ronda, y que la\n' +
-    'correccion no abre otro fallo: es justo donde se cuelan.\n\n';
-  if (filas.length > 0) {
-    seccion += '| ID | Severidad | Estado | Fichero | Informe |\n|---|---|---|---|---|\n' + filas.join('\n') + '\n';
-  } else if (sinTabla.length === 0) {
-    seccion += '0 hallazgos abiertos en la tabla de la ronda anterior.\n';
-  }
-  if (sinTabla.length > 0) {
-    // Una tabla ausente NO es "0 abiertos": los informes anteriores a la
-    // tabla, o escritos a mano, hay que leerlos enteros.
-    seccion +=
-      `\nTabla de hallazgos ausente o ilegible en: ${sinTabla.join(', ')}. ` +
-      'Lee esos informes enteros.\n';
+  const seccionesPorRevisor = new Map<string, string>();
+  for (const [revisor, propias] of porRevisor) {
+    if (propias.length > 0) seccionesPorRevisor.set(revisor, seccionPendientes(informes.ronda, propias, []));
   }
   return {
     ronda: informes.ronda,
     veredicto: veredictoDeRonda(textos.map((t) => t.texto)),
     commit,
-    seccion: seccion + '\n',
+    seccion: seccionPendientes(informes.ronda, filas, sinTabla),
+    seccionesPorRevisor,
+    sinMarcar,
     alcance: alcanceRondaSiguiente(textos.map((t) => t.texto)),
     fueAcotada,
   };
@@ -476,6 +528,40 @@ export function informeTemplate(task: Task, commitRevisado: string, ronda: numbe
   );
 }
 
+/**
+ * TASK-095: grupos de una verificacion acotada. Un grupo por revisor con
+ * hallazgos pendientes (el sufijo '' es el generico) y por cada dominio cuyos
+ * ficheros toca el delta; todos reciben el delta entero (no filtrado: la
+ * correccion de un hallazgo de dominio puede tocar un llamante de otro).
+ */
+function planDeVerificacion(
+  previa: RondaPrevia,
+  delta: readonly string[],
+  catalogo: ReturnType<typeof cargarCatalogoRevisores>,
+  generico: string
+): { fragmentado: boolean; grupos: { revisor: string; ficheros: readonly string[] }[] } {
+  const revisores: string[] = [];
+  const anadir = (r: string): void => {
+    if (!revisores.includes(r)) revisores.push(r);
+  };
+  for (const r of previa.seccionesPorRevisor.keys()) anadir(r === '' ? generico : r);
+  for (const g of clasificarPorDominio(delta, catalogo).grupos) {
+    if (g.revisor !== generico) anadir(g.revisor);
+  }
+  if (revisores.length === 0) anadir(generico);
+  return { fragmentado: false, grupos: revisores.map((revisor) => ({ revisor, ficheros: delta })) };
+}
+
+/** TASK-095: seccion de un revisor sin pendientes propios en la ronda acotada. */
+function seccionSinPendientes(ronda: number): string {
+  return (
+    `## Hallazgos de la ronda ${String(ronda)} pendientes de verificar\n\n` +
+    'No tienes hallazgos pendientes propios: recibes esta ronda porque la correccion\n' +
+    'toca ficheros de tu dominio. Revisa en el diff de esta ronda lo que la correccion\n' +
+    'cambia en tu terreno y si abre un fallo.\n\n'
+  );
+}
+
 /** isAncestor sin lanzar: un SHA que ya no existe (gc) no es antepasado. */
 function esAntepasado(sha: string, cwd: string): boolean {
   try {
@@ -495,7 +581,8 @@ export async function runReviewCommand(
   rechazarFlagsDesconocidos(argv, FLAGS_REVIEW, 'review', (m) => new ReviewCommandError(m));
   const { push, resto: sinPush } = extraerPushFlag(argv);
   const completaPedida = sinPush.includes('--completa');
-  const resto = sinPush.filter((a) => a !== '--completa');
+  const rondaExtra = sinPush.includes('--ronda-extra');
+  const resto = sinPush.filter((a) => a !== '--completa' && a !== '--ronda-extra');
   const id = resto[0];
   if (id === undefined || id.trim() === '') {
     throw new ReviewCommandError('[ERROR] Falta el ID de la tarea: taskctl review TASK-NNN.');
@@ -516,6 +603,18 @@ export async function runReviewCommand(
     ctx.veredictoRondaAnterior = previa.veredicto;
   }
   assertTransitionAllowed('review', initial ? initial.task : null, ctx);
+  // TASK-095: el tope de rondas lo aplica tambien review, no solo siguiente:
+  // llamar a review sin pasar por siguiente abria rondas sin limite (una tarea
+  // llego a 14). Pasado el tope, otra ronda solo con --ronda-extra, que la
+  // skill pasa unicamente cuando una persona lo decide. Antes de tocar nada.
+  if (previa !== null && previa.ronda >= TOPE_RONDAS && !rondaExtra) {
+    throw new ReviewCommandError(
+      `[ERROR] ${id}: la ronda ${String(previa.ronda)} ya es el tope de rondas (${String(TOPE_RONDAS)}). ` +
+        'Lo decide una persona: aceptar lo que queda abierto (sus IDs y el motivo en el Resultado) y ' +
+        'cerrar, pasarlo a una tarea nueva, o corregir y abrir otra ronda con ' +
+        `"taskctl review ${id} --ronda-extra".`
+    );
+  }
   const tipo = initial!.task.tipo;
   const rama = initial!.task.rama;
 
@@ -589,6 +688,19 @@ export async function runReviewCommand(
   // avisoAutorrevision es pura y nunca lanza.
   const sinAutorrevision = avisoAutorrevision(body, id);
   if (sinAutorrevision !== null) avisos.push(sinAutorrevision);
+  // TASK-095: entre ronda y ronda se corrige TODO lo de la ronda anterior; lo
+  // que no compense (un MENOR) se marca `aceptado` con su motivo o pasa a una
+  // tarea nueva. Dejarlo para la ronda siguiente es lo que alargaba el ciclo.
+  // Aviso, sin bloquear: la ronda la puede abrir igual.
+  if (previa !== null && previa.sinMarcar.length > 0) {
+    const lista = previa.sinMarcar.slice(0, 8).join(', ');
+    const resto = previa.sinMarcar.length > 8 ? ` (y ${String(previa.sinMarcar.length - 8)} mas)` : '';
+    avisos.push(
+      `${id}: la ronda ${String(previa.ronda)} tiene hallazgos sin marcar como corregido ni aceptado: ${lista}${resto}. ` +
+        'Corrigelos todos antes de abrir la ronda; el MENOR que no compense, marcalo aceptado con su ' +
+        'motivo en su informe o pasalo a una tarea nueva.'
+    );
+  }
   let desde = baseBranch;
   if (incremental && previa !== null) {
     const valido = previa.commit !== null && esAntepasado(previa.commit, deps.repoCwd);
@@ -608,27 +720,31 @@ export async function runReviewCommand(
   const excluir = excluirDeRevision(configRama.excluir_de_revision);
   let paraRevision = diffParaRevision(desde, 'HEAD', excluir, deps.repoCwd);
 
-  // TASK-083: alcance de la ronda. Acotada solo si los informes de la ronda
-  // anterior lo permiten (alcanceRondaSiguiente, fail-closed) Y ademas: no se
-  // pidio --completa, hay diff de correcciones (no se cayo a la base), el delta
-  // no trae merges (codigo ajeno sin revisar) y solo toca ficheros que algun
-  // hallazgo nombraba (decision de la persona). Antes de escribir nada: es
-  // funcion pura de lo commiteado, y un reintento da el mismo alcance.
+  // TASK-095: alcance de la ronda. Desde la ronda 2 es una verificacion
+  // acotada, tambien con CRITICOS o IMPORTANTES en la anterior (antes, TASK-083,
+  // solo con MENORES: no se cumplia nunca). Completa solo si: se pide
+  // --completa (siempre desde la base), los informes no lo permiten (las guardas
+  // fail-closed de alcanceRondaSiguiente) o no hay commit revisado fiable (el
+  // diff ya va desde la base). Un merge entre rondas no la hace completa: se
+  // nombra (decision de la persona). Antes de escribir nada.
   let acotada = false;
   let motivoAlcance = 'primera ronda de revision';
   if (incremental && previa !== null) {
-    const fuera = paraRevision.incluidos.filter((f) => !ficheroNombrado(f, previa!.alcance.ficherosNombrados));
-    if (completaPedida) motivoAlcance = 'pedida con --completa';
-    else if (!previa.alcance.acotada) motivoAlcance = previa.alcance.motivo;
-    else if (desde === baseBranch) motivoAlcance = 'no hay diff de correcciones: el diff va desde la rama base';
-    else if (hayMergesEntre(desde, 'HEAD', deps.repoCwd)) motivoAlcance = `hay commits de merge entre ${desde} y HEAD`;
-    else if (fuera.length > 0) {
-      // Cinco bastan para el motivo: es una linea de cabecera, no la lista.
-      const resto = fuera.length > 5 ? ` (y ${fuera.length - 5} mas)` : '';
-      motivoAlcance = `el diff toca ficheros que ningun hallazgo nombraba: ${fuera.slice(0, 5).join(', ')}${resto}`;
-    } else {
+    if (completaPedida) {
+      motivoAlcance = 'pedida con --completa';
+      if (desde !== baseBranch) {
+        motivoAlcance += `; el diff va desde "${baseBranch}"`;
+        desde = baseBranch;
+        paraRevision = diffParaRevision(desde, 'HEAD', excluir, deps.repoCwd);
+      }
+    } else if (!previa.alcance.acotada) motivoAlcance = previa.alcance.motivo;
+    else if (desde === baseBranch) motivoAlcance = 'no hay commit revisado fiable: el diff va desde la rama base';
+    else {
       acotada = true;
-      motivoAlcance = `${previa.alcance.motivo} y el diff solo toca sus ficheros`;
+      motivoAlcance = previa.alcance.motivo;
+      if (hayMergesEntre(desde, 'HEAD', deps.repoCwd)) {
+        motivoAlcance += `; hay commits de merge entre ${desde} y HEAD: lo que entra con ellos va en el diff y tambien se revisa`;
+      }
     }
     // Una ronda completa tras una acotada revisa desde la base: el delta de
     // la acotada nunca tuvo revision completa (punto 3 del plan de TASK-083).
@@ -674,11 +790,17 @@ export async function runReviewCommand(
   // (correccion del rol de arquitectura, TASK-034).
   const ficherosTocados = paraRevision.incluidos;
   const catalogoRevisores = cargarCatalogoRevisores();
-  // TASK-083: la verificacion acotada no se fragmenta: un solo revisor, el
-  // generico, con todo el delta y los nombres de siempre (sin sufijo).
+  // TASK-095: en la verificacion acotada revisa cada revisor que tiene algo
+  // pendiente (el de dominio verifica lo suyo, no el generico en su lugar) y
+  // cada dominio cuyo terreno toca la correccion; todos con el delta entero.
+  // Sin nadie, el generico. El coste crece con la correccion, no con el repo.
+  const generico = catalogoRevisores.generico.nombre;
   const plan = acotada
-    ? { fragmentado: false, grupos: [{ revisor: catalogoRevisores.generico.nombre, ficheros: ficherosTocados }] }
+    ? planDeVerificacion(previa!, ficherosTocados, catalogoRevisores, generico)
     : clasificarPorDominio(ficherosTocados, catalogoRevisores);
+  // Con sufijo si hay mas de un grupo o el unico no es el generico: las
+  // metricas sacan el revisor del nombre del informe.
+  const conSufijo = plan.fragmentado || plan.grupos.length > 1 || plan.grupos[0]?.revisor !== generico;
   // TASK-074 (MEN-4 de la revision): en una peticion fragmentada, la seccion
   // de cobertura de cada dominio lleva SUS ficheros cambiados desde la merge
   // base, no solo los del delta de la ronda: una linea sin cubrir de la ronda
@@ -727,7 +849,7 @@ export async function runReviewCommand(
       ? modeloDeVerificacion(updated.modelo_sugerido)
       : null;
   const escrituras = plan.grupos.map((grupo) => {
-    const sufijo = plan.fragmentado ? `-${grupo.revisor}` : '';
+    const sufijo = conSufijo ? `-${grupo.revisor}` : '';
     return {
       revisor: grupo.revisor,
       ficheros: grupo.ficheros,
@@ -793,7 +915,15 @@ export async function runReviewCommand(
             stat: paraRevision.stat,
             patrones: excluir,
             ...(incremental && desde !== baseBranch ? { desde } : {}),
-            ...(previa !== null ? { seccionPrevia: previa.seccion } : {}),
+            ...(previa !== null
+              ? {
+                  seccionPrevia: acotada
+                    ? (previa.seccionesPorRevisor.get(escritura.revisor === generico ? '' : escritura.revisor) ??
+                      previa.seccionesPorRevisor.get(escritura.revisor) ??
+                      seccionSinPendientes(previa.ronda))
+                    : previa.seccion,
+                }
+              : {}),
             ...(datosCobertura === null
               ? {}
               : {

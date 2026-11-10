@@ -80,7 +80,23 @@ export function siguienteFase(task, ctx, modo) {
             switch (ctx.veredicto) {
                 case 'cambios-solicitados':
                     if (ctx.rondaRevision >= TOPE_RONDAS) {
-                        return paso('review', false, `la ronda ${String(ctx.rondaRevision)} tambien pidio cambios: tope de rondas alcanzado; corregir y abrir otra ronda lo decide una persona`, `taskctl review ${task.id}`, true, true);
+                        // TASK-095: en el tope se pregunta en CUALQUIER modo, tambien en
+                        // manual y semiautomatico (antes se detenia sin preguntar: IMP-3 de
+                        // TASK-058, IMP-2 de TASK-059). Detenerse sin decir que decidir
+                        // dejaba la salida en manos de quien relanzaba review, y asi una
+                        // tarea llego a 14 rondas. La pregunta nombra las salidas.
+                        // El comando NO lleva --ronda-extra (MEN-6 de la revision): quien lo
+                        // ejecute sin leer la accion se encuentra con review rechazando la
+                        // ronda, no con el control humano saltado. El flag va en el motivo.
+                        return {
+                            fase: 'review',
+                            comando: `taskctl review ${task.id}`,
+                            accion: 'preguntar',
+                            motivo: `la ronda ${String(ctx.rondaRevision)} tambien pidio cambios: tope de rondas alcanzado. ` +
+                                'Lo decide una persona: aceptar lo que queda abierto (con sus IDs y el motivo en el ' +
+                                'Resultado) y cerrar, pasarlo a una tarea nueva, o corregir y abrir otra ronda con ' +
+                                `"taskctl review ${task.id} --ronda-extra"`,
+                        };
                     }
                     return paso('review', false, 'la ultima ronda pidio cambios: corregir, commitear y pedir otra ronda', `taskctl review ${task.id}`, false, true);
                 case 'aprobada':

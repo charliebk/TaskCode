@@ -6,6 +6,34 @@
 
 ## 0.14.0 — sin publicar
 
+Revision que converge (TASK-095). Corrige la regla de alcance de la 0.12
+(TASK-083), que exigia que la ronda anterior dejara solo MENORES: un CRITICO o
+IMPORTANTE en cualquier estado, tambien `corregido`, obligaba a una ronda
+completa desde la base, y como los revisores vuelven a listar lo ya
+corregido, cada ronda relanzaba una revision entera que encontraba otra tanda
+(medido en 147 tareas de dos proyectos: hasta 14 rondas en una tarea;
+`docs/auditoria/INVENTARIO-AGILIDAD-2026-11-10.md`). Principio: el coste de
+revisar crece con la correccion, no con el proyecto. Desde la ronda 2 la ronda
+es una verificacion acotada aunque queden CRITICOS o IMPORTANTES: revisan los
+revisores con hallazgos pendientes (todo lo que no esta `aceptado`, tambien lo
+`corregido`), cada uno los suyos, y los de dominio cuyos ficheros toca la
+correccion, todos con el diff entero de la correccion; solo se abre un
+hallazgo nuevo si es CRITICO o lo introduce la correccion. Un merge de la base
+entre rondas ya no la hace completa: se nombra y su codigo va en el diff.
+Sigue siendo completa con `--completa` (ahora siempre desde la base), sin
+commit revisado fiable, o si un informe anterior no se puede leer. Entre
+rondas se corrige todo (el MENOR que no compense se acepta con motivo o pasa a
+otra tarea) y `review` avisa de lo que quede sin marcar. Tope: tras la ronda 3
+con cambios, `siguiente` pregunta en cualquier modo (antes manual y
+semiautomatico se detenian) y `review` no abre la ronda 4 sin el flag nuevo
+`--ronda-extra`, que solo se pasa si lo decide una persona. Se quita el aviso
+de `veredicto` con solo MENORES. No se retira ningun revisor.
+
+Cambios de comportamiento: una ronda acotada puede llevar varias peticiones
+con sufijo de revisor (antes una sola, del generico); la ronda siguiente lista
+tambien los hallazgos `corregido` para verificarlos; `siguiente --json` en el
+tope da `preguntar` y el comando lleva `--ronda-extra`.
+
 Sincronizacion de un fichero suelto en la raiz de `tareas/` (TASK-092).
 `rutas_sincronizacion` admite ahora un fichero directamente en `tareas/` (p. ej.
 `tareas/ROADMAP.md`), que se regenera en cada transicion dentro del mismo commit
