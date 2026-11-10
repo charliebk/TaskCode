@@ -10,12 +10,12 @@ El revisor propuso `aprobada-con-correcciones`. En modo automatico esa forma no 
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | abierto | src/core/informe-revision.ts (guarda `esPlantilla` en `alcanceRondaSiguiente`) y test/commands/review-alcance.test.ts | implementacion |
-| MEN-2 | MENOR | abierto | src/commands/review.ts (rama `fueAcotada`) y test/commands/review-alcance.test.ts | implementacion |
-| MEN-3 | MENOR | abierto | src/commands/review.ts (`sinMarcar`) y test/commands/review-alcance.test.ts | implementacion |
-| MEN-4 | MENOR | abierto | src/core/informe-revision.ts (`resumirHallazgos`) y src/commands/review.ts (`conSufijo`) | implementacion |
-| MEN-5 | MENOR | abierto | test/commands/review-alcance.test.ts, test/commands/automatico-rondas.test.ts | implementacion |
-| MEN-6 | MENOR | abierto | src/commands/veredicto.ts, src/commands/review.ts | implementacion |
+| MEN-1 | MENOR | corregido | src/core/informe-revision.ts (guarda `esPlantilla` en `alcanceRondaSiguiente`) y test/commands/review-alcance.test.ts | implementacion |
+| MEN-2 | MENOR | corregido | src/commands/review.ts (rama `fueAcotada`) y test/commands/review-alcance.test.ts | implementacion |
+| MEN-3 | MENOR | corregido | src/commands/review.ts (`sinMarcar`) y test/commands/review-alcance.test.ts | implementacion |
+| MEN-4 | MENOR | aceptado | src/core/informe-revision.ts (`resumirHallazgos`) y src/commands/review.ts (`conSufijo`) | implementacion |
+| MEN-5 | MENOR | corregido | test/commands/review-alcance.test.ts, test/commands/automatico-rondas.test.ts | implementacion |
+| MEN-6 | MENOR | corregido | src/commands/veredicto.ts, src/commands/review.ts | implementacion |
 
 No hay CRITICO ni IMPORTANTE. La logica de alcance, el tope y la planificacion por revisor se comportan como piden el plan y las decisiones de la persona.
 
@@ -49,3 +49,10 @@ Criterios: 1, 2, 4, 6 y 8 cumplen; 3 y 5 a medias (MEN-5); 7 a medias (MEN-2 y f
 - `test/helpers/review-fixtures.ts`, `test/helpers/automatico-fixtures.ts`, `test/commands/automatico-rondas.test.ts`: escenarios por spawn del tope.
 - `git show` del test de alcance antes de la tarea (fa18c8e): para listar los tests borrados.
 - `tareas/.../TASK-095/tarea.md`, `src/commands/veredicto.ts` y grep en README/docs: restos de la regla antigua.
+
+## Correcciones del implementador (tras la ronda 1)
+
+- MEN-1, MEN-2, MEN-3: tests nuevos (fragmento plantilla en la regla pura; completa tras acotada desde la base; un corregido no se avisa pero se verifica). Commit 6a8e160.
+- MEN-5: el test del revisor de dominio se parametriza tambien con Rust (rust-wasm-reviewer). La parte de la prueba por spawn en manual y semiautomatico se acepta: el tope tiene test unitario en los tres modos, la prueba por spawn existente cubre automatico y el revisor lo comprobo a mano.
+- MEN-6: comentario de veredicto.ts corregido; el comando del tope en siguiente ya no lleva --ronda-extra (va en el motivo), asi que ejecutarlo sin preguntar choca con review.
+- MEN-4 aceptado: el doble recuento es la consecuencia ya documentada de las metricas con sufijos (MEN-3 de TASK-064); no afecta al flujo y se mira al medir de nuevo.
