@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 837575
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -40,3 +40,9 @@ Segunda parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-10T21:54:14Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-10T22:02:02Z | diseno | agente:a0b810a87912b0a9b,a1a7fbbc155e22f2a,ac832177fd6d296a1 | 50 | 125707 | 677240 | 34578 | 34 | 837575 | - | - |
