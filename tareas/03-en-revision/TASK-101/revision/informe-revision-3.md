@@ -2,7 +2,7 @@
 
 - Commit revisado: 8768397 (contiene 729658b, la correccion)
 - Revisor: revisor por pares independiente (agente general-purpose, skill code-quality-reviewer); verificacion acotada
-- Veredicto: aprobada-con-correcciones
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
