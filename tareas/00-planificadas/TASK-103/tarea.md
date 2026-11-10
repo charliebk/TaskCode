@@ -30,5 +30,6 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 - [ ] Con .taskcode/config.yml invalido (una clave antigua y una nueva, un caso cada una), un merge hacia develop, main o master queda bloqueado con un mensaje que nombra el error y como arreglarlo (test en repo temporal)
 - [ ] Sin fichero de config, o con config valida, el guardian se comporta exactamente como antes (test de regresion)
 - [ ] Un merge hacia una rama que no es develop, main ni master con config invalida deja pasar, como hoy (test)
+- [ ] De la revision de TASK-101 (MEN-2, anterior a ella): `git merge -m --abort rama` (y --quit, --continue, --skip como valor de una opcion) se detecta como merge y el guardian lo evalua (test)
 - [ ] README y CHANGELOG explican el cambio de comportamiento
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
