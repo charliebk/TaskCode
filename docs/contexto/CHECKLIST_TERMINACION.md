@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad de la verificación tras la 0.13 | 3 | **1** | — |
+| ⏳ P — Agilidad sin perder calidad | 3 | **1** | — |
 | **Total pendiente** | **2** | — | — |
 
 ---
@@ -1115,7 +1115,7 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
-## ⏳ P — Agilidad de la verificación tras la 0.13 (1/3)
+## ⏳ P — Agilidad sin perder calidad (1/3)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -1129,5 +1129,14 @@ del código.
       no cambia. Cambió la expectativa del caso `tareas/x.md` (aprobado por la
       persona en el plan). 1 ronda, aprobada sin hallazgos, 7 mutantes detectados.
       Pendiente de publicar en 0.14.0.*
-- [ ] TASK-093 — finish reutiliza la completa en verde del mismo árbol, con entradas ignoradas declaradas
-- [ ] TASK-094 — Cerrojo: una sola verificación de taskctl a la vez por repo
+- [ ] TASK-095 — Revisión que converge: desde la ronda 2 solo se verifican las correcciones
+- [ ] TASK-096 — Verificación proporcional al cambio: una tarea sin código no corre la suite de tests
+
+Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
+de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
+y seguir añadiendo parches empeora el plugin). Principio que guía la fase: el coste de
+revisar y verificar crece con el tamaño del cambio, no con el del proyecto.
+- ~~TASK-093 — finish reutiliza la completa en verde del mismo árbol~~: poco valor (con
+  selectiva declarada el freno no guarda el verde de la completa) y riesgo de falsos verdes.
+- ~~TASK-094 — Cerrojo de verificación~~: síntoma de lanzar demasiadas verificaciones;
+  ToolsaWeb ya lo resuelve en su comando. TASK-096 ataca la causa.
