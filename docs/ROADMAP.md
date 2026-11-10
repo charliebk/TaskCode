@@ -14,7 +14,7 @@
 |---|---|
 | Terminadas | **94** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-092, TASK-095, TASK-097, TASK-098) |
 | Descartadas | 3 (TASK-019, TASK-093, TASK-094) |
-| **Pendientes** | **1** (TASK-096) |
+| **Pendientes** | **2** (TASK-096; TASK-099 para la 0.15.0) |
 | Versión publicada | **0.14.0** (2026-11-10) |
 
 ---
@@ -31,6 +31,12 @@ las revisiones de 2,3 a 3,8 rondas. La 0.14.0 trae la revisión que converge
 | Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
 |---|---|---|---|---|---|
 | 1 | TASK-096 | Verificación proporcional al cambio: una tarea sin código no corre la suite de tests | alta | alta | — |
+| 2 | TASK-099 | Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | 0.15.0 | 10 tareas medidas con la 0.14.0 |
+
+TASK-099 sale de OpenDockTrading TASK-067, la primera tarea cerrada con la 0.14.0
+(15 min de punta a punta, rondas de 1,42 M, 0,74 M y 0,37 M tokens): la ronda 3 se
+abrió por un único MENOR. Se decide con datos: no se empieza hasta medir al menos 10
+tareas con la 0.14.0 y se descarta si las rondas por MENORES no pesan.
 
 ### Fase N — Mejoras tras las métricas de la 0.8 (9/9)
 
