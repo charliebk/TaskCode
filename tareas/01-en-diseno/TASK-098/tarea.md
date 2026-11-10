@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 838143
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -40,3 +40,9 @@ Que todo proyecto tenga tareas/ROADMAP.md al dia sin escribir un script: hitos (
 |---|---|---|---|---|
 | 2026-11-10T15:13:28Z | plan | automatico | persona | 0.13.0 |
 | 2026-11-10T15:21:53Z | approve | automatico | persona | 0.13.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-10T15:22:05Z | diseno | agente:a542730c857c956b4,a68ce8c1c7c63bfa6,ae3b3243d20e87593 | 52 | 114893 | 699025 | 24173 | 42 | 838143 | - | - |
