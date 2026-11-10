@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [revision, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-095-revision-que-converge-desde-la-ronda-2-s
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -35,3 +35,9 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que la revision por
 - [ ] El codigo de la regla antigua de alcance que deje de usarse se borra, y sus tests cambian de expectativa con el motivo escrito en Resultado; ningun test se borra sin sustituto
 - [ ] skills/review, skills/task-workflow, README y CHANGELOG describen la regla nueva y el principio de coste proporcional a la correccion
 - [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-10T14:21:25Z | plan | automatico | persona | 0.13.0 |
