@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 735317
 tokens_implementacion: 14841125
-tokens_revision: 4710347
+tokens_revision: 6097400
 creado: 2026-11-10
 actualizado: 2026-11-10
 dependencias: []
@@ -52,6 +52,7 @@ Primera parte de TASK-096 (decision de Carlos, 2026-11-10: trocearla y empezar p
 | 2026-11-10T20:03:45Z | diseno | agente:a4ddfe25c518261e6,a118359c7e0d14283,ae7f7a5f26750c1c5 | 50 | 117216 | 591360 | 26691 | 31 | 735317 | - | - |
 | 2026-11-10T20:48:00Z | implementacion | sesion:f5a75e93-b137-4945-9f2a-de03fa092974 | 86 | 87960 | 14707516 | 45563 | 18 | 14841125 | - | - |
 | 2026-11-10T21:02:13Z | revision | agente:a51a94ac1094ed618 | 68 | 173435 | 4499621 | 37223 | 2 | 4710347 | 1 | - |
+| 2026-11-10T21:11:27Z | revision | agente:ad08c61db4f501bc6 | 26 | 122467 | 1236945 | 27615 | 0 | 1387053 | 2 | - |
 
 ## Autorrevision
 
