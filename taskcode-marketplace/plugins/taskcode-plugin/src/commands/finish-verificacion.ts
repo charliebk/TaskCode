@@ -31,18 +31,13 @@
  */
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
-import { ConfigError, resolverConfig } from '../core/config.js';
+import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import { anotarVerificacionDocumentacion, anotarVerificacionOmitida } from '../core/transiciones.js';
-import {
-  decidirVerificacion,
-  documentacionDeclarada,
-  patronesDocumentacion,
-  type DecisionVerificacion,
-} from '../core/verificacion-proporcional.js';
-import { configDeRef } from '../fs/config-de-ref.js';
-import { currentBranch, isWorkspaceClean, rutasDeTarea } from '../fs/git.js';
+import type { DecisionVerificacion } from '../core/verificacion-proporcional.js';
+import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
+import { currentBranch, isWorkspaceClean } from '../fs/git.js';
 import { autoCommit, mensajeChore } from '../fs/git-commit.js';
 import { readTareaFile, type ReadTareaResult } from '../fs/task-store.js';
 import { ejecutarVerificacion, guardarMemo, huellaDelArbol } from '../fs/verificacion.js';
@@ -86,26 +81,23 @@ export type ResultadoPuerta =
 /**
  * TASK-100: la decision para esta tarea, con la config de la base, o null si
  * la base no declara rutas de documentacion (entonces ni se calcula el diff).
- * Una config de la base invalida no exime de nada: la completa.
+ * Una config de la base invalida no exime de nada: la completa. TASK-101: la
+ * decision la toma `decidirVerificacionEntre`, la misma que usa el guardian.
  */
 function decisionDocumentacion(
   o: PuertaVerificacionOpts,
   ramaBase: string
 ): { decision: DecisionVerificacion; timeoutS: number } | null {
-  let base;
-  try {
-    base = configDeRef(ramaBase, o.cwd);
-  } catch (e: unknown) {
-    if (!(e instanceof ConfigError)) throw e;
+  const r = decidirVerificacionEntre(ramaBase, 'HEAD', o.cwd);
+  if (r === null) return null;
+  if (r.tipo === 'config-invalida') {
     o.onAviso?.(
       `${o.id}: la configuracion de "${ramaBase}" no es valida, asi que no se puede saber si la tarea es solo ` +
-        `documentacion: se ejecuta la verificacion completa. Detalle: ${e.message.replace(/^\[ERROR\]\s*/, '')}`
+        `documentacion: se ejecuta la verificacion completa. Detalle: ${r.error.message.replace(/^\[ERROR\]\s*/, '')}`
     );
     return null;
   }
-  if (!documentacionDeclarada(base)) return null;
-  const diff = rutasDeTarea(ramaBase, 'HEAD', patronesDocumentacion(base), o.cwd);
-  return { decision: decidirVerificacion(base, diff, ramaBase), timeoutS: base.timeout_verificacion };
+  return { decision: r.decision, timeoutS: r.timeoutS };
 }
 
 /**

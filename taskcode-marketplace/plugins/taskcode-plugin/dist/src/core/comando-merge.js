@@ -261,3 +261,103 @@ function ramaDeCambio(args) {
     const pos = posicionales(args, CAMBIO_CON_VALOR);
     return pos.length === 1 ? pos[0] : null;
 }
+/**
+ * TASK-101: lo unico que puede acompanar al merge para que el guardian aplique
+ * la exencion de solo documentacion. Lista blanca minima (CRI-2 de la revision:
+ * `echo`, `cat`, `tee` o `git log` con una redireccion o una sustitucion
+ * escribian una ref y movian la rama que se evalua).
+ */
+const SOLO_CARPETA = new Set(['cd', 'pushd', 'popd', 'pwd', 'set-location', 'sl']);
+/** Subcomandos de git que solo consultan (checkout/switch y branch, aparte; merge se cuenta fuera). */
+const GIT_SOLO_CONSULTA = new Set(['status', 'log', 'diff', 'show', 'rev-parse']);
+/** `git branch` sin mas, o solo con estas opciones, solo lista. */
+const BRANCH_SOLO_LISTA = new Set(['--show-current', '-a', '-r', '--list', '-v', '-vv', '--all', '--remotes']);
+/**
+ * Caracteres que el troceado no interpreta y que pueden escribir ficheros o
+ * ejecutar otra orden: redirecciones, sustitucion de comandos y de variables.
+ */
+const CARACTERES_PELIGROSOS = /[<>`$]/;
+/**
+ * TASK-101: true si el comando, aparte de UN merge o script de cierre, solo
+ * cambia de carpeta o de rama o consulta. El guardian evalua la rama que entra
+ * ANTES de ejecutar el comando: si algo puede crear o mover commits antes del
+ * merge (`git commit`, otro `git merge` (CRI-1), `reset`, `pull`, un script,
+ * una redireccion a una ref...), lo evaluado no es lo que entra y no se aplica
+ * la exencion. Ante cualquier duda, false.
+ */
+export function comandoSoloIntegra(texto) {
+    if (CARACTERES_PELIGROSOS.test(texto))
+        return false;
+    if (analizarComando(texto).length !== 1)
+        return false;
+    const cuenta = { integraciones: 0 };
+    // NUE-2 de la revision: un `git merge -m --abort x` no cuenta en analizarComando
+    // pero si mergea; aqui se cuenta todo `git merge` y todo script de cierre.
+    return segmentosSoloIntegran(texto, cuenta) && cuenta.integraciones === 1;
+}
+/**
+ * Unicas opciones de checkout/switch admitidas (NUE-1 de la revision: `-fB`,
+ * `-Bdocs`, `--force-c` o `-\B` creaban o forzaban la rama sin coincidir con
+ * ninguna opcion prohibida). Lista cerrada, no lista de prohibidas.
+ */
+const CAMBIO_OPCIONES_ADMITIDAS = new Set(['-q', '--quiet', '--detach']);
+function segmentosSoloIntegran(texto, cuenta) {
+    for (const bruto of segmentar(texto)) {
+        const seg = sinPrefijos(bruto);
+        if (seg.length === 0)
+            continue;
+        // Asignaciones de entorno delante (`GIT_DIR=x git merge`): fuera.
+        if (seg.length !== bruto.length)
+            return false;
+        const prog = programa(seg[0]);
+        if (SOLO_CARPETA.has(prog))
+            continue;
+        // Una barra invertida que quede tras el troceado la interpretaria el shell (`-\B` es `-B`).
+        if (seg.some((t) => t.includes('\\')))
+            return false;
+        if (prog === 'git') {
+            let i = 1;
+            while (i < seg.length && seg[i].startsWith('-')) {
+                // Solo `-C <dir>`: `-c alias.x=!...` o `--exec-path` ejecutarian otra cosa.
+                if (seg[i] !== '-C')
+                    return false;
+                i += 2;
+            }
+            const sub = (seg[i] ?? '').toLowerCase();
+            const args = seg.slice(i + 1);
+            if (args.some((a) => a.startsWith('--output') || a === '-o' || a.startsWith('--exec')))
+                return false;
+            if (sub === 'merge') {
+                if (args.some((a) => MERGE_SIN_MERGE.has(a)))
+                    return false;
+                cuenta.integraciones++;
+                continue;
+            }
+            if (GIT_SOLO_CONSULTA.has(sub))
+                continue;
+            if (sub === 'checkout' || sub === 'switch') {
+                const opciones = args.slice(0, args.includes('--') ? args.indexOf('--') : args.length).filter((a) => a.startsWith('-'));
+                if (opciones.every((a) => CAMBIO_OPCIONES_ADMITIDAS.has(a)))
+                    continue;
+                return false;
+            }
+            if (sub === 'branch' && args.every((a) => BRANCH_SOLO_LISTA.has(a)))
+                continue;
+            return false;
+        }
+        const interior = textoDeShell(prog, seg);
+        if (interior !== null) {
+            if (!segmentosSoloIntegran(interior, cuenta))
+                return false;
+            continue;
+        }
+        const iScript = SHELLS.has(prog) ? opcionesDeShell(seg).fin : 0;
+        const nombre = (seg[iScript] ?? '').split(/[\\/]/).pop() ?? '';
+        if (SCRIPT_CIERRE.test(nombre)) {
+            cuenta.integraciones++;
+            continue;
+        }
+        return false;
+    }
+    return true;
+}

@@ -24,8 +24,8 @@
  * | comando_heldout              | null (sin held-out) | commands/finish-heldout.ts (TASK-073) |
  * | informe_cobertura            | null (sin freno)  | commands/review.ts, finish-cobertura.ts (TASK-074) |
  * | umbral_cobertura             | null (solo informa) | commands/finish-cobertura.ts (TASK-074) |
- * | rutas_documentacion          | [] (sin efecto)   | commands/finish-verificacion.ts (TASK-100) |
- * | comando_verificacion_documentacion | null        | commands/finish-verificacion.ts (TASK-100) |
+ * | rutas_documentacion          | [] (sin efecto)   | finish-verificacion.ts (TASK-100), hooks/guardia-merge.ts (TASK-101) |
+ * | comando_verificacion_documentacion | null        | finish-verificacion.ts (TASK-100), guardia-merge.ts (TASK-101) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
  * TASK-100: si todo lo que cambia la tarea frente a la base cae en esas rutas
@@ -576,8 +576,12 @@ function validarRutasDocumentacion(donde, valor) {
     const patrones = validarPatronesExclusion(donde, valor, 'rutas_documentacion', false);
     const total = patrones.find((p) => /^(\*\*?\/)*\*\*?$/.test(p.replace(/\/+$/, '')));
     if (total !== undefined) {
-        throw new ConfigError(`[ERROR] ${donde}: el patron "${total}" de "rutas_documentacion" casa con cualquier fichero y haria ` +
-            'que toda tarea se cerrara sin la verificacion completa.\n' +
+        throw new ConfigError(
+        // MEN-6 de la revision de TASK-100: `*` y `*/**` no casan con todo, pero
+        // si con todos los ficheros de la raiz o de cualquier carpeta: demasiado.
+        `[ERROR] ${donde}: el patron "${total}" de "rutas_documentacion" es demasiado amplio: casa con ` +
+            'ficheros de cualquier tipo (todos los de la raiz, de cualquier carpeta o del repo entero), y una tarea ' +
+            'con codigo podria cerrarse sin la verificacion completa.\n' +
             '        Declara carpetas o ficheros concretos de documentacion (p. ej. [docs/**, README.md]).');
     }
     return patrones;
