@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 837575
 tokens_implementacion: 10619320
-tokens_revision: 5426634
+tokens_revision: 7416729
 creado: 2026-11-10
 actualizado: 2026-11-10
 dependencias: [TASK-100]
@@ -56,6 +56,7 @@ Segunda parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 | 2026-11-10T22:50:05Z | implementacion | sesion:f5a75e93-b137-4945-9f2a-de03fa092974 | 46 | 36414 | 10557409 | 25451 | 7 | 10619320 | - | - |
 | 2026-11-10T23:00:54Z | revision | agente:adcbcf91a2cbd0279 | 72 | 153463 | 4310891 | 37385 | 5 | 4501811 | 1 | - |
 | 2026-11-10T23:14:34Z | revision | agente:a41620e1685fa4e65 | 18 | 115439 | 793257 | 16109 | 0 | 924823 | 2 | - |
+| 2026-11-10T23:36:26Z | revision | agente:adb53d0e28b1bea3f | 34 | 134415 | 1824725 | 30921 | 1 | 1990095 | 3 | - |
 
 ## Autorrevision
 
