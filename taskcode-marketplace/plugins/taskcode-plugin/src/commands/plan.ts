@@ -1043,6 +1043,8 @@ export async function runPlanCommand(
     rutas: [path.dirname(filePath), path.dirname(newFilePath)],
     mensaje: mensajeChore(task.id, 'tarea en diseno'),
     push,
+    // TASK-098: solo surte efecto si el commit cae en la rama de integracion.
+    roadmap: true,
   });
 
   // Las rutas del brainstorm se recalculan contra la carpeta de

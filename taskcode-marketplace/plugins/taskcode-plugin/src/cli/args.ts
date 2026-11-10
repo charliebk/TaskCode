@@ -112,6 +112,7 @@ const FLAGS_SIN_VALOR: readonly string[] = [
   '--json',
   '--forzar',
   '--escribir',
+  '--comparar',
   '--crear-tareas',
   '--heuristica',
   '--merge-request',

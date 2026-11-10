@@ -186,12 +186,12 @@ que ha dejado de ser cierto es peor que no tenerlo.
 Claves opcionales: `rama_base`, `agente_revisor_por_defecto`, `limite_wip`,
 `modo_flujo`, `excluir_de_revision`, `cierre_por_defecto`, las dos del remoto
 (`plataforma_remota`, `url_base_remoto`), las dos de verificacion
-(`comando_verificacion`, el comando de tests del proyecto que ejecutan los
-frenos, y `timeout_verificacion`) y las tres de sincronizacion de ficheros
-derivados tras cada transicion. Sin fichero, todo por defecto; un valor
-invalido de una clave conocida aborta todos los comandos, y una clave
-desconocida avisa y se ignora. La sincronizacion (y sus trampas: no usar un
-hook de pre-commit, codigo de salida 3) esta en [sincronizacion.md](sincronizacion.md).
+(`comando_verificacion`, los tests que ejecutan los frenos, y
+`timeout_verificacion`) y las tres de sincronizacion de ficheros derivados
+tras cada transicion. Sin fichero, todo por defecto; un valor invalido de una
+clave conocida aborta todos los comandos, y una clave desconocida avisa y se
+ignora. La sincronizacion y sus trampas, en [sincronizacion.md](sincronizacion.md).
+`tareas/ROADMAP.md` y su zona manual, en [roadmap.md](roadmap.md).
 
 **Freno de fin de turno.** Con `comando_verificacion` y una tarea en curso en
 la rama actual, el hook `Stop` lo ejecuta al terminar cada turno y, si no sale

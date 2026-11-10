@@ -8,6 +8,36 @@
 
 ## 0.14.0 — sin publicar
 
+ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).
+`new`, `plan`, `approve` y `finish` (tras el merge) regeneran
+`tareas/ROADMAP.md` dentro de su propio commit cuando este cae en la rama de
+integracion: una tabla por hito (`sprint`) en orden de dependencias, con
+complejidad y estado, y un resumen de lo que esta en marcha y lo listo para
+empezar. En la rama de una tarea no se toca, asi que dos ramas en paralelo no
+chocan en el. Sin fecha (regenerar sin cambios no da diff). Regla numero uno:
+no pisa un ROADMAP ajeno. Solo escribe el fichero si lleva la marca de taskctl
+en su tercera linea (`<!-- generado por taskctl; formato 1; no editar fuera de
+la zona manual -->`, comparada entera) o si nunca ha existido en git; nunca si
+esta en `rutas_sincronizacion`, si tiene cambios sin commitear (avisa) o si en
+disco se llama con otras mayusculas. La zona manual (entre `<!--
+manual:inicio ... -->` y `<!-- manual:fin -->`) se conserva byte a byte y sus
+`### Hn — titulo` dan el titulo y el orden de los hitos. Generacion tolerante:
+un ciclo de dependencias sale en su propia seccion y como aviso, y una
+`tarea.md` ilegible deja el fichero como estaba; nada tumba una transicion.
+Comando nuevo `taskctl roadmap [--comparar | --escribir]`: sin flags lo
+muestra; `--comparar` lista sin escribir lo que difiere del actual (tareas
+con titulo, complejidad, dependencias y estado, hitos, filas duplicadas, zona
+manual y el texto propio fuera de ella que se perderia) y sale con 1 si hay diferencias, que
+es la comprobacion previa a migrar un proyecto con ROADMAP propio;
+`--escribir` lo regenera sin commitear y sobre uno ajeno solo si `--comparar`
+saldria limpio. Guia en la skill `task-workflow` (`roadmap.md`) y en el
+README.
+
+Cambio de comportamiento: en un proyecto sin `tareas/ROADMAP.md` (ni historia
+de el), el primer commit de `new`, `plan`, `approve` o `finish` en la rama de
+integracion lo crea, y desde entonces entra en los commits de esas
+transiciones cuando cambia.
+
 Regla de una hora (TASK-097). Una tarea prevista de mas de una hora de punta a
 punta (de la rama abierta al cierre con merge) se trocea. La plantilla de
 `plan-final.md` gana la linea `Duracion estimada: N min` con sus senales

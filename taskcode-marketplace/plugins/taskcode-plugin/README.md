@@ -611,13 +611,64 @@ comando_sincronizacion: "node scripts/roadmap.mjs"
 rutas_sincronizacion: [tareas/ROADMAP.md, docs/PLAN.md]
 ```
 
-El motivo: `taskctl` solo escribe dentro de las carpetas de estado
-(`tareas/00-planificadas/` … `tareas/04-terminadas/`), así que un fichero suelto
+El motivo: fuera de las carpetas de estado (`tareas/00-planificadas/` …
+`tareas/04-terminadas/`) `taskctl` solo escribe `tareas/ROADMAP.md`, y nunca si
+está declarado aquí (ver «ROADMAP de tareas» abajo), así que un fichero suelto
 en la raíz de `tareas/` no choca con lo que escribe la herramienta, y sin esa
-excepción un roadmap que vive ahí se quedaba atrasado tras cada transición.
+excepción un roadmap propio que vive ahí se quedaba atrasado tras cada transición.
 `tareas/01-en-diseno/x.md`, `tareas/otra/x.md` y `tareas` (la carpeta) se
 siguen rechazando, sin distinguir mayúsculas. `informe_cobertura` no tiene esta
 excepción.
+
+## ROADMAP de tareas (`tareas/ROADMAP.md`)
+
+`taskctl` mantiene en cada proyecto un `tareas/ROADMAP.md`: una tabla por hito
+(el campo `sprint`), con las columnas Paso, Tarea, Título, Complejidad, Depende
+de y Estado, en orden de dependencias (ninguna tarea antes que sus predecesoras;
+a igualdad, la del hito anterior y luego la de número menor), y un resumen de
+lo que está en marcha y lo que está listo para empezar. Un ciclo de
+dependencias no aborta nada: sale en una sección «Dependencias circulares» y
+como aviso. No lleva fecha, así que una transición que no cambia nada no lo
+toca.
+
+**Cuándo.** `new`, `plan`, `approve` y `finish` (tras el merge) lo regeneran
+dentro de su propio commit, solo cuando ese commit cae en la rama de
+integración (`rama_base`). `start`, `review` y el resto commitean en la rama de
+la tarea y no lo tocan: por eso dos ramas en paralelo nunca chocan en él. Si
+añadirlo al commit falla, se avisa y la transición sigue sin él.
+
+**La marca.** Su tercera línea es exactamente
+`<!-- generado por taskctl; formato 1; no editar fuera de la zona manual -->`
+(se compara la línea entera, ignorando CRLF; nunca por subcadena).
+
+**La regla de no pisar.** Las transiciones solo escriben el fichero si lleva
+la marca o si no existe y nunca ha existido (`git log --all` no sabe nada de
+él). Nunca si no lleva la marca (es del proyecto, aunque lo genere otro
+script), si está en `rutas_sincronizacion`, si tiene cambios sin commitear
+(avisan), ni si en disco se llama con otras mayúsculas. Cualquier fallo al
+generarlo (una `tarea.md` ilegible, una zona manual sin cerrar) deja el
+fichero como estaba y solo avisa.
+
+**La zona manual.** Lo que va entre una línea que empieza por
+`<!-- manual:inicio` y la línea `<!-- manual:fin -->` se conserva byte a byte.
+Ahí van el motivo de cada hito y un `### Hn — título` por hito, que da el
+título y el orden de su tabla.
+
+**Comando.** `taskctl roadmap` muestra el que se generaría, sin escribir.
+`taskctl roadmap --comparar` lista, sin escribir nada, lo que difiere del
+actual (tareas con su título, complejidad, dependencias y estado, hitos, filas
+duplicadas, zona manual y el texto propio fuera de ella que se perdería) y sale con 1 si hay
+diferencias. `taskctl roadmap --escribir` lo regenera sin commitear, aunque no
+exista o tenga historia; sobre uno sin la marca, solo si `--comparar` saldría
+limpio.
+
+**Migrar un proyecto que ya tiene el suyo.** Mientras no lleve la marca,
+`taskctl` lo deja en paz. Para pasarlo: `taskctl roadmap --comparar`, corregir
+lo que salga (normalmente, llevar a una zona manual los textos y los títulos
+de los hitos), repetir hasta que salga limpio, `taskctl roadmap --escribir`,
+revisar el diff, commitear y retirar el script propio. La guía está en la skill
+`task-workflow`, en `roadmap.md`. Con una versión vieja del plugin, un ROADMAP
+con la marca se queda desactualizado sin aviso.
 
 ## Problemas conocidos
 

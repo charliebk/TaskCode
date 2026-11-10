@@ -7,6 +7,7 @@ import { runNewCommand, NewTaskArgError } from './commands/new.js';
 import { TaskIdError } from './core/task-id.js';
 import { runImportCommand, ImportCommandError } from './commands/import.js';
 import { runBoardCommand, BoardCommandError } from './commands/board.js';
+import { runRoadmapCommand, RoadmapCommandError } from './commands/roadmap.js';
 import { runMetricasCommand, MetricasCommandError } from './commands/metricas.js';
 import { runStartCommand, StartCommandError } from './commands/start.js';
 import { runPlanCommand, PlanCommandError, type PlanCommandResult } from './commands/plan.js';
@@ -75,6 +76,7 @@ Uso:
                  [--sprint N] [--complejidad ...] [--modelo-sugerido ...] \\
                  [--agente-revisor ...]
   taskctl board [--sprint N] [--asignado-a <persona>] [--escribir]
+  taskctl roadmap [--comparar | --escribir]
   taskctl metricas [--heuristica] [--tokens [--escribir]] [--repo <ruta>]...
   taskctl metricas [--evolucion [--tramo N]] [--grupos] [--por-version] [--json] [--repo <ruta>]...
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
@@ -98,8 +100,16 @@ Uso:
   taskctl recover [<rama>]
   taskctl abort-merge
 
-Comandos: new, import, board, metricas, start, plan, approve, review, codex-review, veredicto,
+Comandos: new, import, board, roadmap, metricas, start, plan, approve, review, codex-review, veredicto,
 finish, siguiente, doctor, doctor-deploy, pausa, registrar-coste, cadena.
+roadmap genera tareas/ROADMAP.md (hitos por sprint, orden por dependencias, complejidad, estado y
+lo que esta en marcha o listo para empezar). new, plan, approve y finish lo regeneran en su commit
+cuando cae en la rama de integracion, pero solo si lleva la marca de taskctl en su tercera linea o
+si nunca ha existido; uno ajeno, con cambios sin commitear o declarado en rutas_sincronizacion no se
+toca. La zona manual (entre <!-- manual:inicio ... --> y <!-- manual:fin -->) se conserva tal cual.
+Sin flags lo muestra sin escribir; --comparar lista sin escribir lo que difiere del actual (tareas,
+hitos, dependencias, estado, zona manual) y sale con 1 si hay diferencias; --escribir lo regenera
+(sin commitear), y sobre uno sin la marca solo si --comparar saldria limpio.
 metricas saca, por tarea, cuanto duro cada fase (diseno, curso, revision) y
 cuantas rondas de revision hubo, con sus hallazgos CRITICO/IMPORTANTE/MENOR y su
 origen (cada uno una vez por tarea: revisor + ID; un informe sin tabla es sin dato,
@@ -494,6 +504,21 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         e instanceof TaskIdError ||
         e instanceof BaseBranchGuardError
       ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'roadmap') {
+    try {
+      const result = runRoadmapCommand(process.cwd(), argv.slice(1));
+      printAvisos(...result.avisos);
+      process.stdout.write(result.salida);
+      return result.codigo;
+    } catch (e) {
+      if (e instanceof RoadmapCommandError || e instanceof ConfigError) {
         printCliError(e);
         return 1;
       }

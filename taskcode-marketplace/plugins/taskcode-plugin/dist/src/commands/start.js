@@ -210,6 +210,8 @@ export async function runStartCommand(tareasRoot, argv, today, deps) {
     // confirmada arriba. "start" NO aplica ensureBaseBranchReady: aqui
     // puede haber trabajo de la persona en el arbol, y por eso el commit
     // se limita a las dos carpetas de la tarea y a nada mas.
+    // TASK-098: sin ROADMAP. Este commit cae siempre en la rama de la tarea
+    // (comprobado arriba), y el ROADMAP solo se regenera en la de integracion.
     const commitResult = autoCommit({
         cwd: deps.repoCwd,
         rutas: [path.dirname(filePath), path.dirname(newFilePath)],

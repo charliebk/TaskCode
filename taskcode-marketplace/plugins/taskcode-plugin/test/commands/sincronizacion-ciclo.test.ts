@@ -105,7 +105,10 @@ test('sincronizacion: sin las claves, ni se ejecuta el script ni cambia el commi
       repoCwd: repoRoot,
     });
     assert.equal(a.autoCommit.sincronizacion.estado, 'no-configurada');
-    assert.deepEqual(a.autoCommit.ficheros, ['tareas/01-en-diseno/TASK-920/tarea.md']);
+    // TASK-098: lo unico que cambia respecto a 0.1.0 es el ROADMAP de taskctl,
+    // que approve crea en develop porque el repo no tenia ninguno. No es la
+    // sincronizacion: sigue 'no-configurada' y docs/PLAN.md no se toca.
+    assert.deepEqual(a.autoCommit.ficheros, ['tareas/01-en-diseno/TASK-920/tarea.md', 'tareas/ROADMAP.md']);
     assert.equal(await planEnDisco(repoRoot), antes, 'el script no deberia haberse ejecutado');
   });
 });
