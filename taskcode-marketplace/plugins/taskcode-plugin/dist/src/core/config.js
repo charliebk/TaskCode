@@ -441,7 +441,7 @@ export function parsearConfigConAvisos(contenido, ruta) {
                 config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
                 break;
             case 'rutas_documentacion':
-                config.rutas_documentacion = validarPatronesExclusion(donde, par.valor, 'rutas_documentacion', false);
+                config.rutas_documentacion = validarRutasDocumentacion(donde, par.valor);
                 break;
             case 'comando_verificacion_documentacion':
                 config.comando_verificacion_documentacion = validarComando(donde, par.clave, par.valor, 'comando_verificacion_documentacion: "node scripts/comprobar-docs.js"');
@@ -566,6 +566,21 @@ function validarCoberturaCompleta(ruta, vistas) {
             '        El umbral se mide sobre el informe lcov que regenera la verificacion antes de cerrar. ' +
             'Declara las dos (p. ej. informe_cobertura: coverage/lcov.info), o borra el umbral.');
     }
+}
+/**
+ * TASK-100: patrones de documentacion, sin anclar. Un patron que casa con todo
+ * (`*`, `**`, `**\/*`) convertiria cualquier cambio en «solo documentacion»:
+ * se rechaza (MEN-4 de la revision).
+ */
+function validarRutasDocumentacion(donde, valor) {
+    const patrones = validarPatronesExclusion(donde, valor, 'rutas_documentacion', false);
+    const total = patrones.find((p) => /^(\*\*?\/)*\*\*?$/.test(p.replace(/\/+$/, '')));
+    if (total !== undefined) {
+        throw new ConfigError(`[ERROR] ${donde}: el patron "${total}" de "rutas_documentacion" casa con cualquier fichero y haria ` +
+            'que toda tarea se cerrara sin la verificacion completa.\n' +
+            '        Declara carpetas o ficheros concretos de documentacion (p. ej. [docs/**, README.md]).');
+    }
+    return patrones;
 }
 /**
  * TASK-100: las rutas de documentacion ahorran `comando_verificacion`; sin el

@@ -878,7 +878,7 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   sus held-out los sigue corriendo su puerta).
 - **Ante la duda, la completa**: diff que no se puede calcular o vacío, mezcla
   de documentación y código, o un renombre de código a una ruta de
-  documentación (cuentan las dos rutas). Las mayúsculas cuentan. Un `release`
+  documentación (cuentan las dos rutas). Un `release`
   corre siempre la completa.
 - Con `comando_verificacion_documentacion` se ejecuta ese (con
   `timeout_verificacion`); su rojo bloquea y su verde va a su propio memo

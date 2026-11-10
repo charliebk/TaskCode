@@ -157,6 +157,14 @@ test('finish (TASK-100): solo documentacion con la comprobacion de documentacion
     assert.equal(git(['rev-parse', 'develop'], e.repoRoot).trim(), developAntes);
     assert.equal((await readTareaFile(e.tareasRoot, 'TASK-903'))?.task.estado, 'en-revision');
     assert.equal(git(['status', '--porcelain'], e.repoRoot), '');
+    // MEN-1: el reintento tras arreglar la documentacion no duplica ni la linea ni el commit.
+    await e.desenlace('docs', 'ok');
+    await finish(e, 'TASK-903');
+    assert.ok(integradaEnDevelop(task.rama, e.repoRoot));
+    const commits = git(['log', '--format=%s', 'develop'], e.repoRoot).split('\n').filter((l) => /cierre solo documentacion/.test(l));
+    assert.equal(commits.length, 1, commits.join('\n'));
+    const body = (await readTareaFile(e.tareasRoot, 'TASK-903'))?.body ?? '';
+    assert.equal((body.match(/no se ejecuta `/g) ?? []).length, 1);
   });
 });
 

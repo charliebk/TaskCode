@@ -1,7 +1,7 @@
 /** TASK-100: decision unica de la verificacion proporcional, config y anotacion (puros). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -85,7 +85,7 @@ test('anotarVerificacionDocumentacion: crea la seccion y en un reintento anade l
   assert.match(una, /## Verificacion de documentacion\n\n- 2026-11-10: solo docs; no se ejecuta `npm test`, sin comprobacion de documentacion declarada\n$/);
   const dos = anotarVerificacionDocumentacion(una, '2026-11-11', 'npm `x`', 'solo docs', 'node d.js');
   assert.equal((dos.match(/^## Verificacion de documentacion$/gm) ?? []).length, 1);
-  assert.match(dos, /- 2026-11-11: solo docs; no se ejecuta `npm 'x'`, se ejecuta `node d\.js`/);
+  assert.match(dos, /- 2026-11-11: solo docs; no se ejecuta `npm 'x'`, comprobacion de documentacion `node d\.js`/);
 });
 
 test('rutasDeTarea: null si la base no existe; tildes y espacios salen tal cual', async () => {
@@ -107,4 +107,51 @@ test('rutasDeTarea: null si la base no existe; tildes y espacios salen tal cual'
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+// IMP-1 de la revision: desde una subcarpeta, las rutas y los patrones son de todo el repo.
+test('rutasDeTarea: desde una subcarpeta ve el codigo de fuera y los patrones son relativos a la raiz', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'rutas-subdir-'));
+  const g = (...a: string[]) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' });
+  try {
+    g('init', '-q', '-b', 'develop');
+    g('config', 'user.email', 't@t');
+    g('config', 'user.name', 't');
+    g('commit', '-q', '--allow-empty', '-m', 'init');
+    g('checkout', '-q', '-b', 'tarea');
+    for (const f of ['proj/docs/a.md', 'other/code.ts']) {
+      await mkdir(path.dirname(path.join(dir, f)), { recursive: true });
+      await writeFile(path.join(dir, f), 'x', 'utf8');
+    }
+    g('add', '-A');
+    g('commit', '-q', '-m', 'cambios');
+    const desdeSubcarpeta = rutasDeTarea('develop', 'HEAD', ['proj/docs/**'], path.join(dir, 'proj'));
+    assert.deepEqual(desdeSubcarpeta, { todas: ['other/code.ts', 'proj/docs/a.md'], fueraDeDocs: ['other/code.ts'] });
+    // Un patron relativo a la subcarpeta no casa: ante la duda, fuera de documentacion.
+    assert.deepEqual(rutasDeTarea('develop', 'HEAD', ['docs/**'], path.join(dir, 'proj'))?.fueraDeDocs, ['other/code.ts', 'proj/docs/a.md']);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// MEN-4 de la revision.
+test('config (TASK-100): un patron que casa con todo se rechaza', () => {
+  for (const p of ['"*"', '"**"', '"**/*"', '"**/**"', '"**/"']) {
+    assert.throws(
+      () => parsearConfig(`comando_verificacion: "npm test"\nrutas_documentacion: [docs/**, ${p}]\n`, 'c.yml'),
+      /casa con cualquier fichero/,
+      p
+    );
+  }
+  assert.deepEqual(
+    parsearConfig('comando_verificacion: "npm test"\nrutas_documentacion: ["*.md", "docs/*"]\n', 'c.yml').rutas_documentacion,
+    ['*.md', 'docs/*']
+  );
+});
+
+// MEN-1 de la revision.
+test('anotarVerificacionDocumentacion: un reintento con lo mismo no duplica la linea', () => {
+  const una = anotarVerificacionDocumentacion('## Objetivo\n', '2026-11-10T10:00:00Z', 'npm test', 'solo docs', 'node d.js');
+  assert.equal(anotarVerificacionDocumentacion(una, '2026-11-10T10:05:00Z', 'npm test', 'solo docs', 'node d.js'), una);
+  assert.notEqual(anotarVerificacionDocumentacion(una, '2026-11-11', 'npm test', 'otro motivo', 'node d.js'), una);
 });

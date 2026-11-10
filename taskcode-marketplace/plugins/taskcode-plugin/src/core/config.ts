@@ -591,7 +591,7 @@ export function parsearConfigConAvisos(
         config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
         break;
       case 'rutas_documentacion':
-        config.rutas_documentacion = validarPatronesExclusion(donde, par.valor, 'rutas_documentacion', false);
+        config.rutas_documentacion = validarRutasDocumentacion(donde, par.valor);
         break;
       case 'comando_verificacion_documentacion':
         config.comando_verificacion_documentacion = validarComando(
@@ -749,6 +749,24 @@ function validarCoberturaCompleta(ruta: string, vistas: ReadonlySet<string>): vo
         'Declara las dos (p. ej. informe_cobertura: coverage/lcov.info), o borra el umbral.'
     );
   }
+}
+
+/**
+ * TASK-100: patrones de documentacion, sin anclar. Un patron que casa con todo
+ * (`*`, `**`, `**\/*`) convertiria cualquier cambio en «solo documentacion»:
+ * se rechaza (MEN-4 de la revision).
+ */
+function validarRutasDocumentacion(donde: string, valor: unknown): readonly string[] {
+  const patrones = validarPatronesExclusion(donde, valor, 'rutas_documentacion', false);
+  const total = patrones.find((p) => /^(\*\*?\/)*\*\*?$/.test(p.replace(/\/+$/, '')));
+  if (total !== undefined) {
+    throw new ConfigError(
+      `[ERROR] ${donde}: el patron "${total}" de "rutas_documentacion" casa con cualquier fichero y haria ` +
+        'que toda tarea se cerrara sin la verificacion completa.\n' +
+        '        Declara carpetas o ficheros concretos de documentacion (p. ej. [docs/**, README.md]).'
+    );
+  }
+  return patrones;
 }
 
 /**

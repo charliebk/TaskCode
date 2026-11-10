@@ -213,13 +213,17 @@ async function puertaSoloDocumentacion(
   timeoutS: number
 ): Promise<{ resultado: ResultadoPuerta; tarea: ReadTareaResult }> {
   const body = anotarVerificacionDocumentacion(o.initial.body, o.instante, comando, decision.motivo, decision.comando);
-  await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
-  const c = autoCommit({
-    cwd: o.cwd,
-    rutas: [path.dirname(o.initial.filePath)],
-    mensaje: mensajeChore(o.id, 'cierre solo documentacion'),
-    push: false,
-  });
+  // Un reintento tras un rojo de la comprobacion ya la tiene anotada: ni se reescribe ni se commitea otra vez.
+  let c: { commit: string | null; avisos: readonly string[] } = { commit: null, avisos: [] };
+  if (body !== o.initial.body) {
+    await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
+    c = autoCommit({
+      cwd: o.cwd,
+      rutas: [path.dirname(o.initial.filePath)],
+      mensaje: mensajeChore(o.id, 'cierre solo documentacion'),
+      push: false,
+    });
+  }
   for (const a of c.avisos) o.onAviso?.(a);
   const releida = await readTareaFile(o.tareasRoot, o.id);
   if (releida === null) {

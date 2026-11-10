@@ -913,13 +913,16 @@ export function numeroDePadres(commit, cwd) {
  * con sus dos rutas, no solo con la de destino. `-z` y `core.quotePath=false`:
  * una ruta con tildes o espacios sale tal cual. null si Git falla (base que no
  * existe, clon superficial...): quien decide lo trata como «no se sabe».
+ * Pathspecs con `:(top)`: las dos listas son de TODO el repo y los patrones,
+ * relativos a su raiz, aunque taskctl se ejecute desde una subcarpeta (IMP-1
+ * de la revision: con `.`, el codigo fuera de la subcarpeta no salia).
  */
 export function rutasDeTarea(base, hasta, patronesDocs, cwd) {
     const rango = `${base}...${hasta}`;
     const diff = [...SIN_COMILLAS, 'diff', '--name-only', '-z', '--no-renames', '--no-ext-diff', rango];
     try {
-        const todas = partirNul(runGit([...diff, '--'], cwd));
-        const fueraDeDocs = partirNul(runGit([...diff, '--', '.', ...patronesDocs.map((p) => `:(exclude,glob)${p}`)], cwd));
+        const todas = partirNul(runGit([...diff, '--', ':(top)'], cwd));
+        const fueraDeDocs = partirNul(runGit([...diff, '--', ':(top)', ...patronesDocs.map((p) => `:(top,exclude,glob)${p}`)], cwd));
         return { todas, fueraDeDocs };
     }
     catch {

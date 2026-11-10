@@ -104,7 +104,8 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   no puede ampliarlas para eximirse. Si la tarea cambia `.taskcode/config.yml`,
   corre la completa.
 - **Sin anclar**: `*.md` es solo la raiz del repo; `docs/**` es esa carpeta.
-  Las mayusculas cuentan (`Docs/` no es `docs/`).
+  Los comodines distinguen mayusculas; el nombre literal de una carpeta, segun
+  `core.ignorecase` (en Windows y macOS `Docs/` y `docs/` son la misma).
 - **La carpeta `tareas/` cuenta siempre** como documentacion: la cambia toda
   tarea. Sus tests held-out los sigue corriendo su propia puerta.
 - **Ante la duda, la completa**: si no se puede calcular el diff, si sale

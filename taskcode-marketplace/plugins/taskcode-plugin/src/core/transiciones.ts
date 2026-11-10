@@ -355,8 +355,10 @@ export const SECCION_VERIFICACION_DOCUMENTACION = '## Verificacion de documentac
 
 /**
  * Anota que `finish` no ejecuto `comando_verificacion` porque la tarea solo
- * cambia documentacion, con el motivo y lo que si corrio. Auditable igual que
- * el salto con --sin-verificacion; un reintento anade otra linea.
+ * cambia documentacion, con el motivo y la comprobacion que corresponde.
+ * Auditable igual que el salto con --sin-verificacion. Un reintento con lo
+ * mismo (tras un rojo de la comprobacion) no duplica la linea (MEN-1 de la
+ * revision): devuelve el cuerpo tal cual.
  */
 export function anotarVerificacionDocumentacion(
   body: string,
@@ -369,9 +371,14 @@ export function anotarVerificacionDocumentacion(
   const corrio =
     comandoDocumentacion === null
       ? 'sin comprobacion de documentacion declarada'
-      : `se ejecuta \`${sinComillas(comandoDocumentacion)}\``;
-  const linea = `- ${instante}: ${motivo}; no se ejecuta \`${sinComillas(comando)}\`, ${corrio}`;
-  return anotarLineaEnSeccion(body, SECCION_VERIFICACION_DOCUMENTACION, linea);
+      : `comprobacion de documentacion \`${sinComillas(comandoDocumentacion)}\``;
+  const texto = `${motivo}; no se ejecuta \`${sinComillas(comando)}\`, ${corrio}`;
+  const lineas = body.split(/\r?\n/);
+  const rango = rangoDeSeccion(lineas, SECCION_VERIFICACION_DOCUMENTACION);
+  if (rango !== null && lineas.slice(rango[0], rango[1]).some((l) => l.startsWith('- ') && l.endsWith(`: ${texto}`))) {
+    return body;
+  }
+  return anotarLineaEnSeccion(body, SECCION_VERIFICACION_DOCUMENTACION, `- ${instante}: ${texto}`);
 }
 
 function anotarLineaEnSeccion(body: string, titulo: string, linea: string): string {
