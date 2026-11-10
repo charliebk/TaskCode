@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 627661
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -38,3 +38,9 @@ Ley de agilidad (decision de Carlos, 2026-11-10): una tarea prevista de mas de 1
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-10T15:13:25Z | plan | automatico | persona | 0.13.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-10T15:21:47Z | diseno | agente:a7ec5d299fd738624,a4a66dc6a31e2733d,a6e41e0bc628e5ef4 | 42 | 111372 | 499644 | 16603 | 35 | 627661 | - | - |
