@@ -92,8 +92,9 @@ const TABLA: Caso[] = [
   { nombre: 'cambios en la ronda 2 (bajo el tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 2 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['detener', 'detener', 'continuar'] },
   // TASK-095: en el tope se pregunta en TODOS los modos (antes manual y semi
   // se detenian sin decir que decidir: IMP-3 de TASK-058, IMP-2 de TASK-059),
-  // y el comando lleva --ronda-extra, que review exige pasado el tope.
-  { nombre: 'cambios en la ronda 3 (tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 3 }, fase: 'review', comando: 'taskctl review TASK-100 --ronda-extra', acciones: ['preguntar', 'preguntar', 'preguntar'] },
+  // y el comando NO lleva --ronda-extra (va en el motivo): ejecutarlo sin
+  // preguntar choca con review, que exige el flag pasado el tope (MEN-6).
+  { nombre: 'cambios en la ronda 3 (tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 3 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['preguntar', 'preguntar', 'preguntar'] },
   { nombre: 'terminada', task: { estado: 'terminada', plan_aprobado: true }, fase: 'terminada', comando: null, acciones: ['detener', 'detener', 'detener'] },
 ];
 

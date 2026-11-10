@@ -57,7 +57,11 @@ export interface VeredictoCommandResult {
   ronda: number;
   informePath: string;
   linea: string;
-  /** TASK-083: avisos no fatales (p. ej. `cambios-solicitados` con solo MENORES). */
+  /**
+   * Avisos no fatales. Hoy siempre vacio: el unico que habia (TASK-083,
+   * `cambios-solicitados` con solo MENORES) se quito en TASK-095. Se conserva
+   * el campo por contrato con quien lo lee.
+   */
   avisos: string[];
   autoCommit: AutoCommitResult;
 }

@@ -153,23 +153,47 @@ test('alcance (TASK-095): con un IMPORTANTE abierto, uno corregido, un CRITICO a
   }
 });
 
-test('alcance (TASK-095): cada revisor de dominio verifica SUS pendientes, no el generico en su lugar', async () => {
-  await conRonda1([JAVA, SCRIPT], async (ctx, r1) => {
-    const nombres1 = r1.r.informes.map((g) => g.revisor);
-    assert.deepEqual([...nombres1].sort(), ['code-quality-reviewer', 'java-spring-reviewer'].sort());
-    const porRevisor = r1.r.informes.map((g) => (g.revisor === 'java-spring-reviewer' ? informe([IMP_ABIERTO]) : informe([MEN_SCRIPT])));
-    await ctx.pedirCambios(r1.r, porRevisor);
-    await ctx.corregir([JAVA, SCRIPT]);
+// Parametrizado por dominio (MEN-5 de la revision: el criterio pide Rust con
+// rust-wasm-reviewer; Java cubre el mismo mecanismo con otro patron del catalogo).
+for (const [fichero, dominio] of [
+  [JAVA, 'java-spring-reviewer'],
+  ['core/motor/src/lib.rs', 'rust-wasm-reviewer'],
+] as const) {
+  test(`alcance (TASK-095): cada revisor de dominio verifica SUS pendientes, no el generico en su lugar (${dominio})`, async () => {
+    await conRonda1([fichero, SCRIPT], async (ctx, r1) => {
+      const nombres1 = r1.r.informes.map((g) => g.revisor);
+      assert.deepEqual([...nombres1].sort(), ['code-quality-reviewer', dominio].sort());
+      const impDominio = `| IMP-1 | IMPORTANTE | abierto | ${fichero}:9 | implementacion |`;
+      const porRevisor = r1.r.informes.map((g) => (g.revisor === dominio ? informe([impDominio]) : informe([MEN_SCRIPT])));
+      await ctx.pedirCambios(r1.r, porRevisor);
+      await ctx.corregir([fichero, SCRIPT]);
+      const r2 = await ctx.review();
+      esAcotada(r2, r1.r.commitRevisado);
+      const deDominio = r2.peticiones.get(`peticion-revision-2-${dominio}.md`);
+      const generico = r2.peticiones.get('peticion-revision-2-code-quality-reviewer.md');
+      assert.ok(deDominio !== undefined, 'el revisor de dominio recibe su propia peticion');
+      assert.ok(generico !== undefined);
+      assert.ok(deDominio.includes('| IMP-1 | IMPORTANTE |') && !deDominio.includes('| MEN-3 |'), 'el dominio ve solo lo suyo');
+      assert.ok(generico.includes('| MEN-3 | MENOR |') && !generico.includes('| IMP-1 |'), 'el generico no verifica lo del dominio');
+      // Cada uno recibe el delta entero de la correccion, no filtrado.
+      for (const p of [deDominio, generico]) assert.ok(p.includes(fichero) && p.includes(SCRIPT));
+    });
+  });
+}
+
+test('alcance (TASK-095, MEN-2): una completa tras una acotada revisa desde la base', async () => {
+  await conRonda1([JAVA], async (ctx, r1) => {
+    await ctx.pedirCambios(r1.r, [informe([MEN_JAVA])]);
+    await ctx.corregir([JAVA]);
     const r2 = await ctx.review();
     esAcotada(r2, r1.r.commitRevisado);
-    const java = r2.peticiones.get('peticion-revision-2-java-spring-reviewer.md');
-    const generico = r2.peticiones.get('peticion-revision-2-code-quality-reviewer.md');
-    assert.ok(java !== undefined, 'el revisor de dominio recibe su propia peticion');
-    assert.ok(generico !== undefined);
-    assert.ok(java.includes('| IMP-1 | IMPORTANTE |') && !java.includes('| MEN-3 |'), 'java ve solo lo suyo');
-    assert.ok(generico.includes('| MEN-3 | MENOR |') && !generico.includes('| IMP-1 |'), 'el generico no verifica lo de java');
-    // Cada uno recibe el delta entero de la correccion, no filtrado.
-    for (const p of [java, generico]) assert.ok(p.includes(JAVA) && p.includes(SCRIPT));
+    // El informe de la ronda 2 no tiene tabla: la 3 es completa (fail-closed)
+    // y, como la 2 fue acotada, revisa desde la base.
+    await ctx.pedirCambios(r2.r, ['# Informe\n\n- Veredicto: PENDIENTE\n\n## Hallazgos\n\nUn fallo descrito en prosa.\n']);
+    await ctx.corregir([JAVA]);
+    const r3 = await ctx.review();
+    esCompleta(r3, /la ronda 2 fue acotada, asi que el diff va desde "develop"/);
+    assert.equal(r3.r.desde, 'develop');
   });
 });
 
@@ -255,12 +279,21 @@ test('alcance (TASK-095): el caso real que no convergia (IMPORTANTE relistado co
 
 test('alcance (TASK-095): abrir una ronda con hallazgos de la anterior sin marcar corregido ni aceptado avisa', async () => {
   await conRonda1([JAVA], async (ctx, r1) => {
-    await ctx.pedirCambios(r1.r, [informe([IMP_ABIERTO, `| MEN-1 | MENOR | aceptado | ${JAVA}:3 | plan |`])]);
+    await ctx.pedirCambios(r1.r, [
+      informe([
+        IMP_ABIERTO,
+        `| MEN-1 | MENOR | aceptado | ${JAVA}:3 | plan |`,
+        `| MEN-7 | MENOR | corregido | ${JAVA}:5 | plan |`,
+      ]),
+    ]);
     await ctx.corregir([JAVA]);
     const r2 = await ctx.review();
     const aviso = r2.r.avisos.join('\n');
     assert.match(aviso, /sin marcar como corregido ni aceptado: IMP-1 \(informe-revision-1[^)]*\.md\)/);
     assert.ok(!/MEN-1 \(/.test(aviso), 'lo aceptado no se avisa');
+    // MEN-3 de la revision: lo corregido tampoco (aunque si se verifica).
+    assert.doesNotMatch(aviso, /MEN-7 \(/, 'lo corregido no se avisa');
+    assert.ok([...r2.peticiones.values()].join('\n').includes('| MEN-7 | MENOR | corregido |'), 'lo corregido se verifica');
   });
 });
 
@@ -272,6 +305,16 @@ test('alcanceRondaSiguiente (TASK-095): la severidad ya no decide; las guardas f
     assert.equal(alcanceRondaSiguiente([pedida(filas)]).acotada, true, filas.join(' '));
   }
   assert.equal(alcanceRondaSiguiente([pedida([MEN_JAVA]), pedida([CRIT_ACEPTADO])]).acotada, true);
+  // MEN-1 de la revision: un fragmento que sigue siendo la plantilla obliga a
+  // la completa aunque otro fragmento tenga hallazgos (si no, un dominio sin
+  // revisar pasaria como verificado).
+  const plantilla =
+    '# Informe\n\n- Veredicto: cambios-solicitados\n\n## Hallazgos\n\n' +
+    '| ID | Severidad | Estado | Fichero | Origen |\n|---|---|---|---|---|\n' +
+    '| (ej. IMP-1) | (CRITICO / IMPORTANTE / MENOR) | (abierto / corregido / aceptado) | (ruta:linea) | (implementacion) |\n';
+  const conPlantilla = alcanceRondaSiguiente([pedida([IMP_ABIERTO]), plantilla]);
+  assert.equal(conPlantilla.acotada, false);
+  assert.match(conPlantilla.motivo, /sigue siendo la plantilla/);
   const casos: Array<[string, string[], RegExp]> = [
     ['sin informes', [], /no tiene informes/],
     ['veredicto aprobada', [informe([MEN_JAVA], 'aprobada')], /veredicto .* "aprobada"/],
