@@ -6,7 +6,7 @@ Los desacuerdos entre roles se senalan, no se promedian.)
 
 ## Enfoque propuesto
 
-Duracion estimada: 120 min (de la rama abierta al cierre con merge; senales: 4-5 ficheros de codigo (fs/decision-documentacion nuevo, finish-verificacion, guardia-merge, config.ts, y lo que detecte el comando compuesto), 3 capas hooks/commands->fs->core, 7 criterios; ~90 de arquitectura, que no cuentan las mitigaciones de riesgos (comando compuesto, release, presupuesto de tiempo, par/memo, held-out): ~30 mas, cuenta del unificador, no de un rol. Sin MEN-5 bajaria a ~100: sigue pasando de 60)
+Duracion estimada: 95 min (tras sacar MEN-5 a TASK-103; de la rama abierta al cierre con merge; senales: 4 ficheros de codigo (fs/decision-documentacion nuevo, finish-verificacion, guardia-merge, core/comando-merge), 3 capas hooks/commands->fs->core, 7 criterios; la tarea entera estimaba 120)
 - (arquitectura) Se crea `src/fs/decision-documentacion.ts`: `decidirVerificacionEntre(base, hasta, cwd)` -> `{decision, timeoutS} | {invalida} | null`, sacando `decisionDocumentacion` de `finish-verificacion.ts`; finish lo llama con `(ramaBase,'HEAD')` y el guardian con `(destino, sha)`: criterio 2 por construccion.
 - (arquitectura) `guardia-merge.ts`: paso 6b perezoso, solo tras fallar el memo de la completa y solo si el destino declara `rutas_documentacion`; documentacion sin comando -> pasa; con comando -> memo 'documentacion' con el timeout de la BASE; completa/invalida -> bloqueo de hoy con el motivo.
 - (riesgos, CRITICAS, entran en el enfoque) rutas, comando de docs y timeout solo de `configDeRef(destino)`, nunca del arbol; par `(destino, sha ya resuelto)`, nunca nombres; decision y memo por cada par (octopus, hotfix); release -> siempre la completa, como finish; sin exencion si el comando puede mover la fuente antes del merge (commit, reset, rebase, pull, cherry-pick, am) o si la fuente es la rama actual con cambios fuera de docs en el arbol; presupuesto interno ~20 s, y si se supera hacia rama protegida, bloquear.
@@ -59,7 +59,14 @@ Todo contra repos Git temporales reales; un test por caso.
 - Que los held-out de los consumidores viven siempre bajo `tareas/**/aceptacion` — riesgos — sin forma de verificarlo aqui.
 - Que existe `verificacion-selectiva.md` donde dice MEN-7 — arquitectura — buscarlo.
 
-## Lo que necesita decision de una persona
+## Decision de la persona (2026-11-10)
+
+- Trocear: Carlos saca MEN-5 (config invalida del arbol) a TASK-103. Esta tarea mantiene del criterio 3 el bloqueo si no se puede calcular el diff y la decision completa con una config del DESTINO invalida.
+- Config invalida (para TASK-103): bloquear siempre hacia develop, main o master, con cualquier clave invalida, nueva o antigua; cambia la 0.14.0 y va al CHANGELOG. Rama protegida por lista fija (sin config no se sabe rama_base).
+- Held-out: en el guardian, un cambio en tareas/**/aceptacion/ cuenta como codigo y exige la completa (mas estricto que finish, solo en el merge a mano).
+- Entran como obligatorias las mitigaciones de riesgos: config solo de configDeRef(destino); par destino->sha resuelto; decision y memo por par; release siempre completa; sin exencion si el comando compuesto puede mover la fuente antes del merge; presupuesto interno de ~20 s.
+
+## Lo que necesita decision de una persona (antes de decidir)
 
 - Trocear o no (regla de una hora: ~120 min > 60). Corte de arquitectura: sacar MEN-5 (paso 3) a otra tarea (~100, sigue pasando); si se saca, decidir que parte del criterio 3 se queda — cambia el enunciado aprobado.
 - Config invalida: bloquear siempre hacia rama protegida (riesgos y arquitectura; cambia la 0.14.0, contradice el criterio 4, va al CHANGELOG) o solo cuando la clave invalida es nueva (respeta el criterio 4); y con que se detecta la rama protegida (destino candidato vs lista fija) — elegir entre criterios es cambiar el enunciado.
