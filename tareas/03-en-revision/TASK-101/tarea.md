@@ -29,13 +29,25 @@ Troceada en el plan por la regla de una hora (120 min estimados; decision de Car
 Segunda parte de TASK-100 (troceada por la regla de una hora, decision de Carlos 2026-11-10). Con la decision unica de TASK-100 (decidirVerificacion, rutas_documentacion leidas de la base, memo 'documentacion'), el guardian de merges recalcula el diff con merge-base(destino, fuente), sin depender de la tarea ni del memo de finish: deja pasar un merge de solo documentacion con el verde del memo de documentacion (o sin el si no hay comando de documentacion) y sigue bloqueando uno con codigo sin verde de la completa. Si no puede calcular el diff con el destino ya protegido, bloquea. Un valor invalido de la clave nueva no desactiva el guardian. Plan de partida: tareas/04-terminadas/TASK-100/planificacion/plan-final.md (seccion A2).
 
 ## Criterios de aceptacion
-- [ ] Con rutas_documentacion declaradas, el guardian deja pasar el merge de una tarea de solo documentacion sin verde de la completa y bloquea el de una con codigo (un test por caso, repo temporal)
-- [ ] Lanzado el merge a mano sin pasar por finish, el guardian llega a la misma decision que finish para el mismo par fuente-destino (test)
-- [ ] Si no puede calcular el diff con el destino protegido, el guardian bloquea igual que hoy; una config del destino invalida lleva a la decision completa (un test por caso). La config invalida del arbol (MEN-5) es TASK-103
-- [ ] Sin la configuracion nueva el guardian se comporta exactamente como en la 0.14.0 (test de regresion)
-- [ ] De la revision de TASK-100 (ronda 2): el mensaje de error de rutas_documentacion deja de decir «casa con cualquier fichero» para `*` y `*/**` (MEN-6), y verificacion-selectiva.md corrige la frase sobre core.ignorecase: el pathspec distingue mayusculas siempre salvo con :(icase) (MEN-7)
-- [ ] verificacion-selectiva.md, README y CHANGELOG explican el comportamiento del guardian
-- [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+- [x] Con rutas_documentacion declaradas, el guardian deja pasar el merge de una tarea de solo documentacion sin verde de la completa y bloquea el de una con codigo (un test por caso, repo temporal)
+- [x] Lanzado el merge a mano sin pasar por finish, el guardian llega a la misma decision que finish para el mismo par fuente-destino (test)
+- [x] Si no puede calcular el diff con el destino protegido, el guardian bloquea igual que hoy; una config del destino invalida lleva a la decision completa (un test por caso). La config invalida del arbol (MEN-5) es TASK-103
+- [x] Sin la configuracion nueva el guardian se comporta exactamente como en la 0.14.0 (test de regresion)
+- [x] De la revision de TASK-100 (ronda 2): el mensaje de error de rutas_documentacion deja de decir «casa con cualquier fichero» para `*` y `*/**` (MEN-6), y verificacion-selectiva.md corrige la frase sobre core.ignorecase: el pathspec distingue mayusculas siempre salvo con :(icase) (MEN-7)
+- [x] verificacion-selectiva.md, README y CHANGELOG explican el comportamiento del guardian
+- [x] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Resultado
+
+**Implementado (A2 de TASK-096; troceada en el plan: la config invalida del arbol es TASK-103).** La decision de verificacion proporcional pasa a `fs/decision-documentacion.ts` (`decidirVerificacionEntre`), compartida por `finish` (refactor sin cambio de comportamiento) y el guardian de merges: deciden lo mismo por construccion. El guardian gana el paso 6b, que solo se calcula cuando ya iba a bloquear: con la config de la rama DESTINO, un merge a mano de solo documentacion pasa sin el verde de la completa (o con el verde del memo de documentacion si hay comprobacion declarada). No se aplica en un release, si cambian los held-out (`tareas/**/aceptacion/`, que en el guardian cuentan como codigo, decision de Carlos), con la config del destino invalida, pasado un presupuesto de 20 s, ni si el comando hace algo mas que un unico merge (`comandoSoloIntegra`, en `core/comando-merge.ts`). El mensaje de bloqueo dice por que; sin `rutas_documentacion` es identico al de la 0.14.0. Incluye MEN-6 y MEN-7 de TASK-100 (mensaje de patrones demasiado amplios y frase de mayusculas).
+
+**`comandoSoloIntegra`, lista blanca estricta:** sin `<`, `>`, backtick ni `$` en el texto; exactamente un `git merge` o script de cierre contado en todo el texto (tambien dentro de `bash -c`), sin `--abort/--quit/--continue/--skip`; aparte, solo `cd`/`pushd`/`popd`/`pwd`/`set-location`, `git status|log|diff|show|rev-parse` (sin `--output`, `-o` ni `--exec`), `git checkout|switch` con solo `-q`, `--quiet` o `--detach`, `git branch` listando; solo `-C` como opcion global de git; sin asignaciones de entorno ni barras invertidas.
+
+**Revision por pares (3 rondas; la 0.14.0 mantuvo el modelo completo en las acotadas por haber CRITICOS).** Ronda 1: CRI-1 (otro `git merge` antes en el mismo comando metia codigo en la rama evaluada) y CRI-2 (`>`, `tee`, `$(...)` o backticks en comandos «de lectura» movian la rama), ambos reproducidos de punta a punta; MEN-1 aceptado (linea extra en el mensaje con la config del destino invalida; sigue bloqueando) y MEN-2 a TASK-103 (anterior a la tarea). Ronda 2: CRI-1 y CRI-2 corregidos; NUE-1 (opciones de crear o forzar rama agrupadas, adjuntas o escapadas: `-fB`, `-Bdocs`, `-\B`, `--force-c`) y NUE-2 (un merge con `-m --abort` no contaba como merge), corregidos con lista cerrada de opciones y conteo de merges. Ronda 3: aprobada con correcciones; queda NUE-3 (los tests de barra invertida no llevan barra real en el `.ts`; el rechazo si funciona, probado a mano), que pasa a TASK-103 junto a tres huecos que el guardian ya tenia desde TASK-072 y que esta tarea no causa: `{ git merge ...; }`, `time`/`eval` delante del merge, y `git checkout <fichero> && git merge` (el fichero se toma como rama destino).
+
+**Tests:** 13 nuevos en `test/hooks/guardia-documentacion.test.ts` (paso 6b de punta a punta, memo de documentacion frente al de la completa, held-out, release, config del destino, mensaje de la 0.14.0, `comandoSoloIntegra` con las entradas de las tres rondas). Ningun test existente cambia de expectativa.
+
+**Suite completa:** 2147 tests, 2143 en verde antes de la revision (los 3 rojos conocidos de Windows). Tras las correcciones, suite rapida 707/707 y los 71 tests de hooks en verde.
 
 ## Transiciones
 
