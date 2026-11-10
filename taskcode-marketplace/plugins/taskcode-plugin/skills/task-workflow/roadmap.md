@@ -58,8 +58,10 @@ Mientras el ROADMAP propio no lleve la marca, taskctl lo deja en paz. Para
 pasarlo al de taskctl:
 
 1. `taskctl roadmap --comparar`: genera en seco y lista, sin escribir nada,
-   lo que difiere del actual (tareas, hitos, dependencias, estado y zona
-   manual). Sale con 1 si hay diferencias.
+   lo que difiere del actual (tareas con su titulo, complejidad,
+   dependencias y estado, hitos, filas duplicadas, zona manual y cualquier
+   texto propio fuera de la zona manual que se perderia). Sale con 1 si hay
+   diferencias.
 2. Corrige lo que salga: normalmente, mover a una zona manual los textos y
    los `### Hn — titulo` de los hitos, o arreglar dependencias y estados que
    el script propio calculaba distinto.

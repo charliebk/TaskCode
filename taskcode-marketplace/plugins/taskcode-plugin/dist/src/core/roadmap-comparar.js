@@ -10,9 +10,14 @@
  * El extractor es tolerante: lee las filas `| Paso | TASK-NNN | ... |`
  * bajo un `## Hn` fuera de la zona manual. Lo que parece una fila de
  * tarea y no casa con ese formato se declara "no comparable" en vez de
- * ignorarlo en silencio.
+ * ignorarlo en silencio. Cualquier otro texto del actual fuera de la zona
+ * manual que el generado no lleve se lista como "se perderia" (H1 de la
+ * revision: antes un parrafo o una seccion propia se borraba en silencio
+ * con `--escribir`).
  */
 import { extraerZonaManual, normalizarFinales } from './roadmap.js';
+/** Lineas que el generador recalcula siempre: no son contenido propio. */
+const DERIVADA_RE = /^(?:\d+ de \d+ terminadas\.|- \*\*(?:En marcha|Listas para empezar):\*\* .*)$/;
 /** Separa las celdas de una fila de tabla Markdown respetando los `\|` escapados. */
 function celdas(linea) {
     const cuerpo = linea.trim().replace(/^\|/, '').replace(/\|$/, '');
@@ -49,6 +54,8 @@ export function extraerEstructura(texto) {
     const tareas = new Map();
     const hitos = new Map();
     const noComparables = [];
+    const duplicadas = [];
+    const textoPropio = [];
     let hito = null;
     for (const linea of fuera.split('\n')) {
         const h = /^## H(\d+)(?:\s+—\s+(.*))?\s*$/.exec(linea);
@@ -57,26 +64,38 @@ export function extraerEstructura(texto) {
             hitos.set(hito, (h[2] ?? '').trim());
             continue;
         }
+        const recortada = linea.trim();
         if (/^#{1,2} /.test(linea)) {
             hito = null;
+            textoPropio.push(recortada);
             continue;
         }
-        if (!linea.trimStart().startsWith('|') || !/TASK-\d+/.test(linea))
+        if (!recortada.startsWith('|') || !/TASK-\d+/.test(linea)) {
+            const cabeceraDeTabla = hito !== null && recortada.startsWith('|');
+            if (recortada !== '' && !cabeceraDeTabla && !/^<!--.*-->$/.test(recortada) && !DERIVADA_RE.test(recortada)) {
+                textoPropio.push(recortada);
+            }
             continue;
+        }
         const cs = celdas(linea);
         const id = cs[1] ?? '';
         if (hito === null || cs.length !== 6 || !/^TASK-\d+$/.test(id)) {
             noComparables.push(linea);
             continue;
         }
+        if (tareas.has(id)) {
+            duplicadas.push(linea);
+            continue;
+        }
         tareas.set(id, {
             hito,
             titulo: cs[2] ?? '',
+            complejidad: cs[3] ?? '',
             dependencias: listaDeps(cs[4] ?? ''),
             estado: cs[5] ?? '',
         });
     }
-    return { tareas, hitos, zonaManual, noComparables };
+    return { tareas, hitos, zonaManual, noComparables, duplicadas, textoPropio };
 }
 function numero(id) {
     return Number(/(\d+)$/.exec(id)?.[1] ?? Number.MAX_SAFE_INTEGER);
@@ -126,6 +145,11 @@ export function compararRoadmaps(actual, generado) {
         }
         if (fa.hito !== fg.hito)
             difs.push(`${id}: hito H${fa.hito} en el actual y H${fg.hito} en el generado.`);
+        if (fa.titulo !== fg.titulo)
+            difs.push(`${id}: titulo "${fa.titulo}" en el actual y "${fg.titulo}" en el generado.`);
+        if (fa.complejidad !== fg.complejidad) {
+            difs.push(`${id}: complejidad "${fa.complejidad}" en el actual y "${fg.complejidad}" en el generado.`);
+        }
         if (!mismaLista(fa.dependencias, fg.dependencias)) {
             const fmt = (l) => (l.length === 0 ? '—' : l.join(', '));
             difs.push(`${id}: depende de ${fmt(fa.dependencias)} en el actual y de ${fmt(fg.dependencias)} en el generado.`);
@@ -136,5 +160,12 @@ export function compararRoadmaps(actual, generado) {
     }
     for (const l of a.noComparables)
         difs.push(`fila no comparable en el actual: ${l.trim()}`);
+    for (const l of a.duplicadas)
+        difs.push(`fila duplicada en el actual (solo cuenta la primera): ${l.trim()}`);
+    const delGenerado = new Set(normalizarFinales(generado).split('\n').map((l) => l.trim()));
+    for (const l of a.textoPropio) {
+        if (!delGenerado.has(l))
+            difs.push(`texto fuera de la zona manual que se perderia: ${l}`);
+    }
     return difs;
 }

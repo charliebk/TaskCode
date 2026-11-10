@@ -180,3 +180,34 @@ test('compararRoadmaps: lee los ROADMAP reales y declara no comparable lo que no
   const raro = `# R\n\n## H0 — x\n\n| 1 | TASK-001 | solo cuatro | celdas |\n`;
   assert.deepEqual(compararRoadmaps(raro, raro), ['fila no comparable en el actual: | 1 | TASK-001 | solo cuatro | celdas |']);
 });
+
+// H1 de la revision (ronda 1): texto propio fuera de la zona manual se perdia
+// con `--escribir` y `--comparar` salia limpio.
+test('compararRoadmaps: el texto propio fuera de la zona manual cuenta como diferencia', () => {
+  const g = generarRoadmap([t('TASK-001', { sprint: 1 })], MANUAL).texto;
+  const ajeno =
+    g.replace(MARCA_TASKCTL, '<!-- generado por mi script -->') +
+    '\nTEXTO PROPIO FUERA DE ZONA: contexto del negocio.\n\n## Notas de riesgos\n\nNO BORRAR: entregar H1 antes del 15.\n\n| Riesgo | Mitigacion |\n|---|---|\n| a | b |\n';
+  const difs = compararRoadmaps(ajeno, g);
+  for (const l of ['TEXTO PROPIO FUERA DE ZONA: contexto del negocio.', '## Notas de riesgos', 'NO BORRAR: entregar H1 antes del 15.', '| Riesgo | Mitigacion |', '| a | b |']) {
+    assert.ok(difs.includes(`texto fuera de la zona manual que se perderia: ${l}`), `${l}\n${difs.join('\n')}`);
+  }
+  // Solo cambia la marca (comentario de una linea): sigue limpio.
+  assert.deepEqual(compararRoadmaps(g.replace(MARCA_TASKCTL, '<!-- generado por mi script -->'), g), []);
+  // Los resumenes que el generador recalcula no cuentan como texto propio.
+  const otroResumen = g.replace('- **Listas para empezar:** TASK-001', '- **Listas para empezar:** ninguna');
+  assert.ok(!compararRoadmaps(otroResumen, g).some((d) => d.startsWith('texto fuera')), compararRoadmaps(otroResumen, g).join('\n'));
+});
+
+// MEN-1 de la revision (ronda 1).
+test('compararRoadmaps: compara titulo y complejidad y avisa de filas duplicadas', () => {
+  const g = generarRoadmap([t('TASK-001', { sprint: 1 })], MANUAL).texto;
+  const fila = g.split('\n').find((l) => l.includes('| TASK-001 |'))!;
+  const cs = fila.split('|');
+  const retocada = g.replace(fila, fila.replace(`|${cs[3]}|`, '| Otro titulo |').replace(`|${cs[4]}|`, '| compleja |'));
+  const difs = compararRoadmaps(retocada, g);
+  assert.ok(difs.some((d) => d.startsWith('TASK-001: titulo "Otro titulo"')), difs.join('\n'));
+  assert.ok(difs.some((d) => d.startsWith('TASK-001: complejidad "compleja"')), difs.join('\n'));
+  const duplicada = g.replace(fila, `${fila}\n${fila}`);
+  assert.ok(compararRoadmaps(duplicada, g).some((d) => d.startsWith('fila duplicada en el actual')));
+});

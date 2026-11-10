@@ -656,7 +656,8 @@ título y el orden de su tabla.
 
 **Comando.** `taskctl roadmap` muestra el que se generaría, sin escribir.
 `taskctl roadmap --comparar` lista, sin escribir nada, lo que difiere del
-actual (tareas, hitos, dependencias, estado y zona manual) y sale con 1 si hay
+actual (tareas con su título, complejidad, dependencias y estado, hitos, filas
+duplicadas, zona manual y el texto propio fuera de ella que se perdería) y sale con 1 si hay
 diferencias. `taskctl roadmap --escribir` lo regenera sin commitear, aunque no
 exista o tenga historia; sobre uno sin la marca, solo si `--comparar` saldría
 limpio.

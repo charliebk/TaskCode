@@ -25,8 +25,9 @@ manual:inicio ... -->` y `<!-- manual:fin -->`) se conserva byte a byte y sus
 un ciclo de dependencias sale en su propia seccion y como aviso, y una
 `tarea.md` ilegible deja el fichero como estaba; nada tumba una transicion.
 Comando nuevo `taskctl roadmap [--comparar | --escribir]`: sin flags lo
-muestra; `--comparar` lista sin escribir lo que difiere del actual (tareas,
-hitos, dependencias, estado, zona manual) y sale con 1 si hay diferencias, que
+muestra; `--comparar` lista sin escribir lo que difiere del actual (tareas
+con titulo, complejidad, dependencias y estado, hitos, filas duplicadas, zona
+manual y el texto propio fuera de ella que se perderia) y sale con 1 si hay diferencias, que
 es la comprobacion previa a migrar un proyecto con ROADMAP propio;
 `--escribir` lo regenera sin commitear y sobre uno ajeno solo si `--comparar`
 saldria limpio. Guia en la skill `task-workflow` (`roadmap.md`) y en el

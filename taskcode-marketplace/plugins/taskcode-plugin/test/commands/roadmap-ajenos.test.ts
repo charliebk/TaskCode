@@ -242,7 +242,10 @@ test('roadmap --comparar no escribe nada y lista lo que difiere de un ROADMAP aj
     assert.match(c.salida, /no lleva la marca de taskctl/);
     assert.match(c.salida, /TASK-009: estado "▶ en revisión" en el actual y "✅ terminada" en el generado\./);
     assert.match(c.salida, /TASK-001: solo en el actual \(H0\)\./);
-    assert.doesNotMatch(c.salida, /zona manual/);
+    // La zona manual de OpenDockTrading se conserva tal cual (ninguna
+    // diferencia "zona manual:"); su texto fuera de la zona si se lista.
+    assert.doesNotMatch(c.salida, /^\s*- zona manual:/m);
+    assert.match(c.salida, /texto fuera de la zona manual que se perderia: /);
     assert.ok(bytes(rutaRoadmap(repoRoot)).equals(original));
     assert.equal(porcelain(repoRoot), '');
     assert.equal(git(['rev-parse', 'HEAD'], repoRoot), head);
