@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-101-verificacion-proporcional-a2-el-guardian
 asignado_a: charlie.bk@gmail.com
@@ -59,6 +59,7 @@ Segunda parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 | 2026-11-10T22:50:05Z | review | automatico | persona | 0.14.0 |
 | 2026-11-10T23:05:37Z | review | automatico | persona | 0.14.0 |
 | 2026-11-10T23:18:58Z | review | automatico | persona | 0.14.0 |
+| 2026-11-10T23:36:58Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -75,3 +76,9 @@ Segunda parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 - code-quality-reviewer — 8277541
 - code-quality-reviewer — 56c79a7
 - code-quality-reviewer — 729658b
+
+## Duracion
+
+- Estimada: 95 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 79 min
+- Paso de la hora: 79 min reales frente a 95 estimados
