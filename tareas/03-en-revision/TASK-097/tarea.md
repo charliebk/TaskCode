@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 627661
 tokens_implementacion: 44150681
-tokens_revision: null
+tokens_revision: 6657179
 creado: 2026-11-10
 actualizado: 2026-11-10
 dependencias: []
@@ -50,6 +50,7 @@ Ley de agilidad (decision de Carlos, 2026-11-10): una tarea prevista de mas de 1
 | 2026-11-10T16:47:24Z | implementacion | sesion:f5a75e93-b137-4945-9f2a-de03fa092974 | 102 | 76006 | 34815391 | 39149 | 26 | 34930648 | - | - |
 | 2026-11-10T16:47:24Z | implementacion | agente:a2b502fc133f8002f | 108 | 222902 | 8663058 | 54762 | 0 | 8940830 | - | - |
 | 2026-11-10T16:47:24Z | implementacion | agente:a40be68dbd3be50f9 | 6 | 138187 | 137925 | 3085 | 0 | 279203 | - | - |
+| 2026-11-10T17:31:32Z | revision | agente:a5131d3f6446b9844 | 100 | 158596 | 6469983 | 28500 | 8 | 6657179 | 1 | - |
 
 ## Autorrevision
 
