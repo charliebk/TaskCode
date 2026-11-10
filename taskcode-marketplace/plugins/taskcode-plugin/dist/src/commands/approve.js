@@ -161,6 +161,8 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
         rutas: [path.dirname(filePath), path.dirname(newFilePath)],
         mensaje: mensajeChore(task.id, 'plan aprobado'),
         push,
+        // TASK-098: solo surte efecto si el commit cae en la rama de integracion.
+        roadmap: true,
     });
     return { id: task.id, filePath: newFilePath, baseBranchGuard, autoCommit: commitResult, avisos };
 }

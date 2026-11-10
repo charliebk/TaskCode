@@ -709,6 +709,9 @@ export async function runFinishCommand(
     ],
     mensaje: mensajeChore(task.id, 'tarea terminada y artefactos de cierre'),
     push,
+    // TASK-098: tras el merge, en la rama de integracion. En la rama de la
+    // tarea el ROADMAP no se toca nunca: por eso dos ramas no chocan en el.
+    roadmap: true,
   });
   if (commitResult.commiteado) volcado.olvidar();
 

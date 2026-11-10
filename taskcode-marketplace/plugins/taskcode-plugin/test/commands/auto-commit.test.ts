@@ -185,7 +185,13 @@ test('taskctl approve: commitea el tarea.md aprobado con el mensaje del repo', a
     });
 
     assert.equal(r.autoCommit.commiteado, true);
-    assert.deepEqual(r.autoCommit.ficheros, ['tareas/01-en-diseno/TASK-910/tarea.md']);
+    // TASK-098: approve commitea en develop (la rama de integracion) y el
+    // repo no tenia ROADMAP ni historia de el, asi que lo crea en este
+    // mismo commit. Sigue sin entrar nada que taskctl no haya escrito.
+    assert.deepEqual(r.autoCommit.ficheros, [
+      'tareas/01-en-diseno/TASK-910/tarea.md',
+      'tareas/ROADMAP.md',
+    ]);
     assert.equal(git(['log', '--format=%s', '-1'], repoRoot).trim(), 'chore(TASK-910): plan aprobado');
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
   });
@@ -309,8 +315,12 @@ test('taskctl finish: commitea sobre DEVELOP la tarea y los tres artefactos de c
       git(['log', '--format=%s', '-1', 'develop'], repoRoot).trim(),
       'chore(TASK-910): tarea terminada y artefactos de cierre'
     );
-    const stat = git(['show', '--stat', '--format=', 'HEAD'], repoRoot);
-    for (const esperado of [/CHANGELOG\.md/, /INDEX\.md/, /BOARD\.md/, /04-terminadas/]) {
+    // --name-only y no --stat: desde TASK-098 el commit trae tambien
+    // tareas/ROADMAP.md, y --stat abrevia las rutas largas con ".../" en
+    // cuanto cambia el ancho de su grafico (el rojo hablaria del ancho de la
+    // columna, no del comportamiento; mismo motivo que en el test de plan).
+    const stat = git(['show', '--name-only', '--format=', 'HEAD'], repoRoot);
+    for (const esperado of [/CHANGELOG\.md/, /INDEX\.md/, /BOARD\.md/, /04-terminadas/, /tareas\/ROADMAP\.md/]) {
       assert.match(stat, esperado);
     }
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');

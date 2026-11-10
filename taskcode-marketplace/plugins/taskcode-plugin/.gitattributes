@@ -24,3 +24,7 @@ bin/*.cmd text eol=crlf
 # falla con "$'\r': command not found" (visto en TASK-069 al lanzar
 # create-feature.sh desde la VM del bridge sobre el checkout de Windows).
 *.sh text eol=lf
+
+# Copias byte a byte de ROADMAP reales de otros proyectos (TASK-098): los tests
+# comprueban que taskctl no les cambia ni un byte, asi que Git tampoco puede.
+test/fixtures/roadmap/** -text

@@ -46,8 +46,10 @@
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { resolverConfig } from '../core/config.js';
+import { resolverConfig, resolverConfigConAvisos } from '../core/config.js';
+import { ROADMAP_RUTA } from '../core/roadmap.js';
 import { GitCommandError, currentBranch, isRemoteAvailable, runGit } from './git.js';
+import { prepararRoadmap, restaurarRoadmap } from './roadmap.js';
 import { ejecutarSincronizacion, sincronizacionFallidaAlPreparar, SIN_SINCRONIZACION, } from './sincronizacion.js';
 export class AutoCommitError extends Error {
 }
@@ -157,9 +159,33 @@ export function autoCommit(opts) {
         rutasSync = [];
     }
     avisos.push(...sincronizacion.avisos);
+    // TASK-098: el ROADMAP se prepara aparte, como las rutas de
+    // sincronizacion: si su `git add` falla, se restaura el fichero, se
+    // avisa y el commit de la tarea sigue adelante sin el.
+    const roadmap = opts.roadmap === true && rutasComando.length > 0 ? regenerarRoadmap(cwd, rama) : null;
+    const rutasRoadmap = [];
+    if (roadmap !== null) {
+        avisos.push(...roadmap.avisos);
+        if (roadmap.estado === 'escrito') {
+            try {
+                runGit(['add', '--', ROADMAP_RUTA], cwd);
+                rutasRoadmap.push(ROADMAP_RUTA);
+            }
+            catch (e) {
+                try {
+                    restaurarRoadmap(roadmap);
+                }
+                catch {
+                    // Si ni siquiera se puede restaurar, el aviso de abajo lo cuenta.
+                }
+                avisos.push(`${ROADMAP_RUTA} se regenero pero no se pudo preparar para el commit (${detalleDeError(e)}): ` +
+                    'se ha dejado como estaba y la transicion sigue sin el. Regeneralo con "taskctl roadmap --escribir".');
+            }
+        }
+    }
     // Deduplicadas y ordenadas para que el commando de Git sea
     // determinista (y los tests puedan aseverar sobre el).
-    const rutasRel = [...new Set([...rutasComando, ...rutasSync])].sort();
+    const rutasRel = [...new Set([...rutasComando, ...rutasSync, ...rutasRoadmap])].sort();
     const presentes = rutasRel.filter((r) => tieneAlgoQuePreparar(cwd, r));
     let commiteado = false;
     let commit = null;
@@ -231,7 +257,23 @@ export function autoCommit(opts) {
         push: empujar(opts, rama, avisos),
         sincronizacion,
         avisos,
+        roadmap,
     };
+}
+/**
+ * Solo en la rama de integracion. Cualquier excepcion (config ilegible a
+ * estas alturas) se traga como "no tocaba": un ROADMAP no tumba nunca una
+ * transicion. prepararRoadmap ya no lanza; esto cubre lo de antes.
+ */
+function regenerarRoadmap(cwd, rama) {
+    try {
+        if (rama === '' || rama !== resolverConfigConAvisos(cwd).config.rama_base)
+            return null;
+    }
+    catch {
+        return null;
+    }
+    return prepararRoadmap(cwd, 'transicion');
 }
 /**
  * Cualquier excepcion de la sincronizacion (config ilegible a estas

@@ -170,8 +170,11 @@ export const CLAVES_CONFIG = [
  * ahi haria que el comando del proyecto y el CLI escribieran lo mismo.
  *
  * Excepcion (TASK-092): un fichero suelto directamente en la raiz de
- * tareas/ (p. ej. tareas/ROADMAP.md). taskctl solo escribe dentro de las
- * carpetas de estado (tareas/0N-*), asi que ahi no hay choque posible.
+ * tareas/ (p. ej. tareas/ROADMAP.md). Fuera de las carpetas de estado
+ * (tareas/0N-*) taskctl solo escribe un fichero, tareas/ROADMAP.md
+ * (TASK-098), y solo si lleva su marca o nunca ha existido; si el
+ * proyecto lo declara aqui, taskctl no lo toca (fs/roadmap.ts), asi que
+ * tampoco hay choque posible.
  * La comparacion no distingue mayusculas: en Windows y macOS `Tareas/` y
  * `.GIT/` son las mismas carpetas.
  */

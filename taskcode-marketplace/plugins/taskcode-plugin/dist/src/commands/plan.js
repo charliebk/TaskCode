@@ -788,6 +788,8 @@ export async function runPlanCommand(tareasRoot, argv, today, deps) {
         rutas: [path.dirname(filePath), path.dirname(newFilePath)],
         mensaje: mensajeChore(task.id, 'tarea en diseno'),
         push,
+        // TASK-098: solo surte efecto si el commit cae en la rama de integracion.
+        roadmap: true,
     });
     // Las rutas del brainstorm se recalculan contra la carpeta de
     // DESTINO: se escribieron en la de origen y el rename se las llevo,

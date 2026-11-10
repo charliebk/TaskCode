@@ -376,6 +376,8 @@ export async function runNewCommand(
     rutas: [path.dirname(filePath)],
     mensaje: mensajeChore(id, 'tarea creada'),
     push,
+    // TASK-098: solo surte efecto si el commit cae en la rama de integracion.
+    roadmap: true,
   });
   return {
     conContenido: cuerpo !== DEFAULT_BODY,
