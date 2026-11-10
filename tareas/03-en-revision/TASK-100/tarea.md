@@ -55,3 +55,4 @@ Primera parte de TASK-096 (decision de Carlos, 2026-11-10: trocearla y empezar p
 ## Autorrevision
 
 - code-quality-reviewer — 1996a91
+- code-quality-reviewer — 4140aef
