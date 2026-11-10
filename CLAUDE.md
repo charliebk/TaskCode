@@ -31,7 +31,7 @@ procesan).
 4. **Al cerrar cualquier item**: marcar su casilla en
    `docs/contexto/CHECKLIST_TERMINACION.md`, actualizar los contadores de la
    tabla de cabecera, y **mostrar el checklist actualizado en la respuesta**.
-5. **Protocolo de arranque (temporal, hasta que TASK-095 esté integrada).**
+5. **Protocolo de arranque (temporal, hasta tener instalada la 0.14.0, que trae TASK-095).**
    La regla de alcance de TASK-083 relanza rondas completas sin fin (ver
    `docs/auditoria/INVENTARIO-AGILIDAD-2026-11-10.md`). Mientras tanto, en
    este repo: se sigue usando `taskctl` con rama, revisor independiente,
