@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 2517940
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -42,3 +42,9 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que la revision por
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-10T14:21:25Z | plan | automatico | persona | 0.13.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-10T14:31:55Z | diseno | agente:a6b9f784261594d37,a2fe5217f2615f83c,aa7ccfea339b6866f,a7f1778732ca00ca2 | 116 | 216204 | 2257305 | 44315 | 72 | 2517940 | - | - |
