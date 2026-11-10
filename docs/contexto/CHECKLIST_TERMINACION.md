@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 106 / 110 items terminados (96%)** · última actualización: 2026-11-10
+**Progreso global: 107 / 111 items terminados (96%)** · última actualización: 2026-11-10
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 9 | **5** | — |
+| ⏳ P — Agilidad sin perder calidad | 10 | **6** | — |
 | **Total pendiente** | **4** | — | — |
 
 ---
@@ -1115,7 +1115,7 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
-## ⏳ P — Agilidad sin perder calidad (5/9)
+## ⏳ P — Agilidad sin perder calidad (6/10)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -1142,8 +1142,9 @@ del código.
 - [x] TASK-097 — Regla de una hora: plan estima la duración de punta a punta y propone trocear — cerrada el 2026-11-10
 - [x] TASK-098 — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes — cerrada el 2026-11-10
 - [x] TASK-100 — Verificación proporcional A1: finish no corre la suite si la tarea solo cambia documentación — cerrada el 2026-11-10
-- [ ] TASK-101 — Verificación proporcional A2: el guardián de merges (depende de TASK-100)
+- [x] TASK-101 — Verificación proporcional A2: el guardián de merges — cerrada el 2026-11-10
 - [ ] TASK-102 — Verificación proporcional A3: el freno Stop y las rondas de review (depende de TASK-100)
+- [ ] TASK-103 — Guardián de merges: config inválida bloquea y merges que hoy no detecta (`{ }`, `time`, `eval`, `-m --abort`)
 - [ ] TASK-096 — Verificación proporcional B: con código parcial se verifica solo lo afectado (troceada: la parte A son TASK-100 a 102)
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)

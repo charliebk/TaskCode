@@ -1,6 +1,6 @@
 ---
 id: TASK-103
-titulo: "Guardian de merges con config invalida: bloquea hacia rama protegida en vez de desactivarse"
+titulo: "Guardian de merges: config invalida bloquea y merges que hoy no detecta"
 tipo: fix
 sprint: 0
 etiquetas: [verificacion, guardian]
@@ -31,5 +31,7 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 - [ ] Sin fichero de config, o con config valida, el guardian se comporta exactamente como antes (test de regresion)
 - [ ] Un merge hacia una rama que no es develop, main ni master con config invalida deja pasar, como hoy (test)
 - [ ] De la revision de TASK-101 (MEN-2, anterior a ella): `git merge -m --abort rama` (y --quit, --continue, --skip como valor de una opcion) se detecta como merge y el guardian lo evalua (test)
+- [ ] De la revision de TASK-101 (ronda 3, huecos que el guardian ya tenia desde TASK-072): `{ git merge x; }`, `time git merge x` y `eval git merge x` se detectan como merge, y `git checkout <fichero> && git merge x` no toma el fichero como rama destino (un test por caso, con el hook real)
+- [ ] De la revision de TASK-101 (NUE-3): los tests de comandoSoloIntegra con barra invertida llevan una barra real (`-\\B`, `-\\C`, `C:\\repo` en el .ts)
 - [ ] README y CHANGELOG explican el cambio de comportamiento
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
