@@ -1040,3 +1040,34 @@ export function numeroDePadres(commit: string, cwd: string): number {
   const linea = runGit(['rev-list', '--parents', '-n', '1', '--end-of-options', commit], cwd);
   return linea.split(/\s+/).filter((t) => t !== '').length - 1;
 }
+
+/**
+ * TASK-100: rutas que cambia la rama `hasta` frente a `base`, desde su merge
+ * base (`base...hasta`), y cuales de ellas no casan con `patronesDocs`
+ * (`git :(glob)`, sin anclar). Las clasifica Git, el mismo motor que
+ * `excluir_de_revision`. `--no-renames`: mover `src/x.ts` a `docs/x.md` cuenta
+ * con sus dos rutas, no solo con la de destino. `-z` y `core.quotePath=false`:
+ * una ruta con tildes o espacios sale tal cual. null si Git falla (base que no
+ * existe, clon superficial...): quien decide lo trata como «no se sabe».
+ * Pathspecs con `:(top)`: las dos listas son de TODO el repo y los patrones,
+ * relativos a su raiz, aunque taskctl se ejecute desde una subcarpeta (IMP-1
+ * de la revision: con `.`, el codigo fuera de la subcarpeta no salia).
+ */
+export function rutasDeTarea(
+  base: string,
+  hasta: string,
+  patronesDocs: readonly string[],
+  cwd: string
+): { todas: string[]; fueraDeDocs: string[] } | null {
+  const rango = `${base}...${hasta}`;
+  const diff = [...SIN_COMILLAS, 'diff', '--name-only', '-z', '--no-renames', '--no-ext-diff', rango];
+  try {
+    const todas = partirNul(runGit([...diff, '--', ':(top)'], cwd));
+    const fueraDeDocs = partirNul(
+      runGit([...diff, '--', ':(top)', ...patronesDocs.map((p) => `:(top,exclude,glob)${p}`)], cwd)
+    );
+    return { todas, fueraDeDocs };
+  } catch {
+    return null;
+  }
+}

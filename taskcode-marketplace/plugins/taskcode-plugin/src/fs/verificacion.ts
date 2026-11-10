@@ -35,11 +35,13 @@ import type { ResultadoVerificacion } from '../core/informe-verificacion.js';
 /** Bytes del final de la salida que se leen (el informe muestra menos: ver informe-verificacion). */
 const BYTES_COLA_LEIDOS = 16 * 1024;
 /** TASK-091: la completa es la puerta de integracion; la selectiva, la de las rondas. */
-export type TipoVerificacion = 'completa' | 'selectiva';
+// TASK-100: la de documentacion, con su propio memo: su verde nunca abre la puerta de la completa.
+export type TipoVerificacion = 'completa' | 'selectiva' | 'documentacion';
 
 const FICHEROS_MEMO: Readonly<Record<TipoVerificacion, string>> = Object.freeze({
   completa: 'freno-verificacion.json',
   selectiva: 'freno-verificacion-selectiva.json',
+  documentacion: 'freno-verificacion-documentacion.json',
 });
 const VERSION_MEMO = 1;
 

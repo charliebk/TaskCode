@@ -860,6 +860,39 @@ timeout_verificacion_selectiva: 600                                 # opcional (
 - Cómo escribir el clasificador y qué cambios obligan a correr todo: guía
   instalada con el plugin, `skills/task-workflow/verificacion-selectiva.md`.
 
+#### Tareas de solo documentación: `rutas_documentacion`
+
+El coste de verificar debe crecer con lo que cambia la tarea, no con el tamaño
+del proyecto. Si todo lo que cambia la tarea frente a la base cae en rutas de
+documentación declaradas, `finish` no corre `comando_verificacion`:
+
+```yaml
+comando_verificacion: "npm test"
+rutas_documentacion: [docs/**, README.md, CHANGELOG.md]          # patrones git :(glob), sin anclar
+comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opcional
+```
+
+- Las rutas se leen de la config de la **rama base**: la tarea no puede
+  ampliarlas para eximirse, y si cambia `.taskcode/config.yml` corre la
+  completa. `tareas/` cuenta siempre como documentación (la cambia toda tarea;
+  sus held-out los sigue corriendo su puerta).
+- **Ante la duda, la completa**: diff que no se puede calcular o vacío, mezcla
+  de documentación y código, o un renombre de código a una ruta de
+  documentación (cuentan las dos rutas). Un `release`
+  corre siempre la completa.
+- Con `comando_verificacion_documentacion` se ejecuta ese (con
+  `timeout_verificacion`); su rojo bloquea y su verde va a su propio memo
+  (`.git/freno-verificacion-documentacion.json`), nunca al de la completa. La
+  puerta de cobertura no mide nada en una tarea de solo documentación.
+- `finish` dice qué corrió y por qué, y lo anota en `tarea.md` (sección
+  «Verificacion de documentacion»), commiteado antes del merge.
+- No declares `**/*.md`: skills, agentes, `CLAUDE.md` o comandos son Markdown
+  que se ejecuta. La guía `verificacion-selectiva.md` trae la lista.
+- Exige `comando_verificacion`; el comando de documentación exige las rutas.
+  Sin `rutas_documentacion`, todo funciona como antes.
+- De momento solo lo aplica `finish`; el freno de fin de turno, `review` y el
+  guardián de merges siguen corriendo o exigiendo la completa.
+
 #### Freno de fin de turno (hook `Stop`)
 
 El plugin declara en `hooks/hooks.json` un hook `Stop` que Claude Code ejecuta

@@ -35,6 +35,7 @@ const BYTES_COLA_LEIDOS = 16 * 1024;
 const FICHEROS_MEMO = Object.freeze({
     completa: 'freno-verificacion.json',
     selectiva: 'freno-verificacion-selectiva.json',
+    documentacion: 'freno-verificacion-documentacion.json',
 });
 const VERSION_MEMO = 1;
 /**

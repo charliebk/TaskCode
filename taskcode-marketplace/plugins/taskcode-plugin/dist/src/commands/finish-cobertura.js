@@ -55,6 +55,13 @@ export function puertaCobertura(o) {
             `cobertura (${umbral} %). El salto ya queda anotado en la tarea.`);
         return { tipo: 'omitida' };
     }
+    // TASK-100: solo documentacion: no corrio la verificacion que regenera el
+    // informe, y tampoco hay lineas de codigo cambiadas que medir.
+    if (o.verificacion.tipo === 'documentacion') {
+        o.onAviso?.(`${o.id}: la tarea solo cambia documentacion: no hay lineas de codigo que medir contra el umbral de ` +
+            `cobertura (${umbral} %).`);
+        return { tipo: 'omitida' };
+    }
     if (o.verificacion.tipo === 'sin-comando') {
         throw new FinishCommandError(`[ERROR] ${o.id}: "${o.ramaBase}" declara umbral_cobertura (${umbral} %), pero la rama no declara ` +
             `comando_verificacion, asi que nadie regenera el informe ${informe} antes de medirlo. Restaura ` +

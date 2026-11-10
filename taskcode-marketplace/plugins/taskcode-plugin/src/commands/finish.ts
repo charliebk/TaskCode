@@ -462,6 +462,10 @@ export async function runFinishCommand(
       instante: deps.ahora ?? today,
       ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
       ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+      // TASK-100: la misma base que la cobertura y los held-out. Un release no:
+      // su diff propio puede ser solo el CHANGELOG, pero lleva a la principal
+      // todo lo acumulado en la rama de integracion. Siempre la completa.
+      ...(tipo === 'release' ? {} : { ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion }),
     });
     // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
     // de que el comando de held-out pueda reescribirlo.

@@ -1,5 +1,21 @@
 # Changelog
 
+## Siguiente version — sin publicar
+
+Verificacion proporcional, parte A1 (TASK-100, primera de las tres en que se
+trocea TASK-096). Claves nuevas opcionales `rutas_documentacion` (patrones
+`git :(glob)`, sin anclar) y `comando_verificacion_documentacion`: si todo lo
+que cambia la tarea frente a la base cae en esas rutas, `finish` no corre
+`comando_verificacion`; solo la comprobacion de documentacion si se declara,
+con su propio memo. Las rutas se leen de la config de la rama base, `tareas/`
+cuenta siempre como documentacion, y ante la duda se corre la completa (diff
+no calculable o vacio, mixto, renombre de codigo a documentacion con
+`--no-renames`, cambio en `.taskcode/config.yml`, release). `finish` dice que
+corrio y por que y lo anota en la seccion `## Verificacion de documentacion`
+de la tarea; la puerta de cobertura no mide una tarea de solo documentacion.
+Sin las claves, todo como en la 0.14.0. El guardian de merges (TASK-101) y el
+freno Stop y `review` (TASK-102) siguen exigiendo o corriendo la completa.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).
