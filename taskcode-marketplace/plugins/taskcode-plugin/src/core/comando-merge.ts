@@ -303,10 +303,20 @@ const CARACTERES_PELIGROSOS = /[<>`$]/;
 export function comandoSoloIntegra(texto: string): boolean {
   if (CARACTERES_PELIGROSOS.test(texto)) return false;
   if (analizarComando(texto).length !== 1) return false;
-  return segmentosSoloIntegran(texto);
+  const cuenta = { integraciones: 0 };
+  // NUE-2 de la revision: un `git merge -m --abort x` no cuenta en analizarComando
+  // pero si mergea; aqui se cuenta todo `git merge` y todo script de cierre.
+  return segmentosSoloIntegran(texto, cuenta) && cuenta.integraciones === 1;
 }
 
-function segmentosSoloIntegran(texto: string): boolean {
+/**
+ * Unicas opciones de checkout/switch admitidas (NUE-1 de la revision: `-fB`,
+ * `-Bdocs`, `--force-c` o `-\B` creaban o forzaban la rama sin coincidir con
+ * ninguna opcion prohibida). Lista cerrada, no lista de prohibidas.
+ */
+const CAMBIO_OPCIONES_ADMITIDAS = new Set(['-q', '--quiet', '--detach']);
+
+function segmentosSoloIntegran(texto: string, cuenta: { integraciones: number }): boolean {
   for (const bruto of segmentar(texto)) {
     const seg = sinPrefijos(bruto);
     if (seg.length === 0) continue;
@@ -314,6 +324,8 @@ function segmentosSoloIntegran(texto: string): boolean {
     if (seg.length !== bruto.length) return false;
     const prog = programa(seg[0] as string);
     if (SOLO_CARPETA.has(prog)) continue;
+    // Una barra invertida que quede tras el troceado la interpretaria el shell (`-\B` es `-B`).
+    if (seg.some((t) => t.includes('\\'))) return false;
     if (prog === 'git') {
       let i = 1;
       while (i < seg.length && (seg[i] as string).startsWith('-')) {
@@ -324,19 +336,31 @@ function segmentosSoloIntegran(texto: string): boolean {
       const sub = (seg[i] ?? '').toLowerCase();
       const args = seg.slice(i + 1);
       if (args.some((a) => a.startsWith('--output') || a === '-o' || a.startsWith('--exec'))) return false;
-      if (sub === 'merge' || GIT_SOLO_CONSULTA.has(sub)) continue;
-      if ((sub === 'checkout' || sub === 'switch') && !args.some((a) => CREAN_RAMA.has(a) || a === '-f' || a === '--force')) continue;
+      if (sub === 'merge') {
+        if (args.some((a) => MERGE_SIN_MERGE.has(a))) return false;
+        cuenta.integraciones++;
+        continue;
+      }
+      if (GIT_SOLO_CONSULTA.has(sub)) continue;
+      if (sub === 'checkout' || sub === 'switch') {
+        const opciones = args.slice(0, args.includes('--') ? args.indexOf('--') : args.length).filter((a) => a.startsWith('-'));
+        if (opciones.every((a) => CAMBIO_OPCIONES_ADMITIDAS.has(a))) continue;
+        return false;
+      }
       if (sub === 'branch' && args.every((a) => BRANCH_SOLO_LISTA.has(a))) continue;
       return false;
     }
     const interior = textoDeShell(prog, seg);
     if (interior !== null) {
-      if (!segmentosSoloIntegran(interior)) return false;
+      if (!segmentosSoloIntegran(interior, cuenta)) return false;
       continue;
     }
     const iScript = SHELLS.has(prog) ? opcionesDeShell(seg).fin : 0;
-    const nombre = (seg[iScript] ?? '').split(/[\/]/).pop() ?? '';
-    if (SCRIPT_CIERRE.test(nombre)) continue;
+    const nombre = (seg[iScript] ?? '').split(/[\\/]/).pop() ?? '';
+    if (SCRIPT_CIERRE.test(nombre)) {
+      cuenta.integraciones++;
+      continue;
+    }
     return false;
   }
   return true;

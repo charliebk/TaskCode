@@ -207,6 +207,8 @@ test('comandoSoloIntegra: solo un merge, cambiar de carpeta o de rama y consulta
     'git status && git log -1 && git branch --show-current && git merge x',
     'bash scripts/merge-feature-to-develop.sh feature/x',
     'bash -c "git checkout develop && git merge x"',
+    'git checkout -q develop && git switch --detach develop && git merge x',
+    'cd C:\repo && git merge x',
   ]) {
     assert.equal(comandoSoloIntegra(ok), true, ok);
   }
@@ -233,6 +235,20 @@ test('comandoSoloIntegra: solo un merge, cambiar de carpeta o de rama y consulta
     'git log --output=.git/refs/heads/docs && git merge docs',
     'git -c alias.st=!sh status && git merge docs',
     'GIT_DIR=otro git merge docs',
+    // NUE-1 de la ronda 2: opciones de crear o forzar rama agrupadas, adjuntas o escapadas.
+    'git checkout -fB docs code && git checkout develop && git merge docs',
+    'git checkout -qB docs code && git checkout develop && git merge docs',
+    'git checkout -Bdocs code && git checkout develop && git merge docs',
+    'git checkout -\B docs code && git checkout develop && git merge docs',
+    'git switch -fC docs code && git switch develop && git merge docs',
+    'git switch -Cdocs code && git switch develop && git merge docs',
+    'git switch --force-c docs code && git switch develop && git merge docs',
+    'git switch -\C docs code && git switch develop && git merge docs',
+    'bash -lc "git checkout -\B docs code && git checkout develop && git merge docs"',
+    "sh -c 'git checkout -fB docs code && git checkout develop && git merge docs'",
+    // NUE-2: un merge disfrazado con una opcion de --abort/--quit no cuenta en analizarComando.
+    'git checkout docs && git merge -m --abort code && git checkout develop && git merge --no-ff docs',
+    'git merge -m --quit code; git merge docs',
   ]) {
     assert.equal(comandoSoloIntegra(no), false, no);
   }
@@ -250,6 +266,8 @@ test('guardian (TASK-101): CRI-1 y CRI-2 de la revision bloquean de punta a punt
       `git checkout ${task.rama} && git merge --no-edit codigo && git checkout develop && git merge --no-ff -m m ${task.rama}`,
       `git rev-parse codigo > .git/refs/heads/${task.rama} && git merge --no-ff ${task.rama}`,
       `echo "$(git branch -f ${task.rama} codigo)" && git merge --no-ff ${task.rama}`,
+      `git checkout -fB ${task.rama} codigo && git checkout develop && git merge ${task.rama}`,
+      `git checkout ${task.rama} && git merge -m --abort codigo && git checkout develop && git merge --no-ff ${task.rama}`,
     ]) {
       const d = guardian(e, cmd);
       assert.equal(d.codigo, 2, cmd);
