@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-092 (feature) — Sincronización de ficheros sueltos de la raíz de tareas/ (2026-11-10)
+
 ## 0.14.0 — sin publicar
 
 Sincronizacion de un fichero suelto en la raiz de `tareas/` (TASK-092).

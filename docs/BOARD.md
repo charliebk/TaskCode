@@ -1,8 +1,8 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-11-09. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-11-10. No editar a mano.
 
-## Planificadas (00-planificadas) — 14
+## Planificadas (00-planificadas) — 16
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,9 +21,11 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-093  finish reutiliza la completa en verde del mismo árbol, con entradas ignoradas declaradas    (sin asignar)
+TASK-094  Cerrojo: una sola verificación de taskctl a la vez por repo                                 (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 77
+## Terminadas (04-terminadas) — 78
 
 ```text
 ID        Titulo                                                                                       Asignado
@@ -105,4 +107,5 @@ TASK-088  taskctl doctor avisa si falta comando_verificacion con tests detectabl
 TASK-089  Evitar literales con forma de secreto en el repo y tags de version que faltan                charlie.bk@gmail.com
 TASK-090  El guardian de secretos tolera excepciones solo en su fichero historico                      charlie.bk@gmail.com
 TASK-091  Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar    charlie.bk@gmail.com
+TASK-092  Sincronización de ficheros sueltos de la raíz de tareas/                                     charlie.bk@gmail.com
 ```
