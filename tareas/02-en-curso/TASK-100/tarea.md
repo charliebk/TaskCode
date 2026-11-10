@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-100-verificacion-proporcional-a-una-tarea-qu
 asignado_a: charlie.bk@gmail.com
@@ -41,6 +41,7 @@ Primera parte de TASK-096 (decision de Carlos, 2026-11-10: trocearla y empezar p
 |---|---|---|---|---|
 | 2026-11-10T19:57:48Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-10T20:07:36Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-10T20:07:38Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
