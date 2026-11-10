@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, finish]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-093-finish-reutiliza-la-completa-en-verde-de
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -33,3 +33,9 @@ Que taskctl finish no repita la verificación completa cuando ya hay un verde de
 - [ ] Una ruta declarada inexistente, absoluta o fuera del repo aborta la config con un error que nombra la clave y la línea
 - [ ] README, skills/task-workflow y CHANGELOG describen la clave, su motivo y el riesgo de no declarar una entrada ignorada
 - [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ningún test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-10T13:51:53Z | plan | automatico | persona | 0.13.0 |
