@@ -31,5 +31,6 @@ Segunda parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 - [ ] Lanzado el merge a mano sin pasar por finish, el guardian llega a la misma decision que finish para el mismo par fuente-destino (test)
 - [ ] Si no puede calcular el diff con el destino protegido, o la clave nueva tiene un valor invalido, el guardian bloquea igual que hoy (un test por caso)
 - [ ] Sin la configuracion nueva el guardian se comporta exactamente como en la 0.14.0 (test de regresion)
+- [ ] De la revision de TASK-100 (ronda 2): el mensaje de error de rutas_documentacion deja de decir «casa con cualquier fichero» para `*` y `*/**` (MEN-6), y verificacion-selectiva.md corrige la frase sobre core.ignorecase: el pathspec distingue mayusculas siempre salvo con :(icase) (MEN-7)
 - [ ] verificacion-selectiva.md, README y CHANGELOG explican el comportamiento del guardian
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
