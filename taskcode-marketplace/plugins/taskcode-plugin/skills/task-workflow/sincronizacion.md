@@ -13,7 +13,14 @@ un comando que reescribe esos ficheros y la lista de rutas que modifica.
 - **`rutas_sincronizacion`**: lista de ficheros que ese comando reescribe,
   en sintaxis flow (entre corchetes): `[docs/PLAN.md, docs/BOARD.md]`. Rutas
   relativas a la raiz del repo, siempre ficheros, nunca carpetas ni la raiz
-  del repo. No pueden estar bajo `tareas/` ni bajo `.taskcode/`.
+  del repo. No pueden estar bajo `.taskcode/` ni bajo `.git/`. De `tareas/`
+  solo se admite un fichero suelto en su raiz (p. ej. `tareas/ROADMAP.md`):
+  `taskctl` solo escribe dentro de las carpetas de estado (`tareas/00-planificadas/`
+  a `tareas/04-terminadas/`), asi que un fichero suelto no choca con lo que
+  escribe la herramienta. Lo que cuelga de una carpeta de estado o de
+  cualquier otra subcarpeta de `tareas/` se rechaza. La comparacion no
+  distingue mayusculas (`Tareas/01-en-diseno/x.md` o `.GIT/HEAD` tambien se
+  rechazan).
 - **`timeout_sincronizacion`**: numero de segundos (entero ≥ 1) para esperar
   al comando. Opcional; por defecto, 60 segundos. Solo es valida si estan las
   otras dos claves.

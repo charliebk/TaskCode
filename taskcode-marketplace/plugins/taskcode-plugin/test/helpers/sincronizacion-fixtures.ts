@@ -76,10 +76,13 @@ export function sampleTask(overrides: Partial<Task> = {}): Task {
 }
 
 /**
- * Regenera docs/PLAN.md: una linea por tarea con su carpeta y si el
- * plan esta aprobado. Lee el estado de disco, como el script real.
+ * Regenera `ruta` (por defecto docs/PLAN.md): una linea por tarea con su
+ * carpeta y si el plan esta aprobado. Lee el estado de disco, como el
+ * script real. TASK-092 la parametriza para probar tareas/ROADMAP.md.
  */
-export const SCRIPT_SYNC = `import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+export function scriptSync(ruta: string): string {
+  const carpeta = ruta.includes('/') ? ruta.slice(0, ruta.lastIndexOf('/')) : '.';
+  return `import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 const filas = [];
 for (const c of ['00-planificadas', '01-en-diseno', '02-en-curso', '03-en-revision', '04-terminadas']) {
   const d = 'tareas/' + c;
@@ -89,12 +92,18 @@ for (const c of ['00-planificadas', '01-en-diseno', '02-en-curso', '03-en-revisi
     filas.push(id + ' ' + c + (/plan_aprobado: true/.test(md) ? ' aprobado' : ''));
   }
 }
-mkdirSync('docs', { recursive: true });
-writeFileSync('docs/PLAN.md', filas.sort().join('\\n') + '\\n');
+mkdirSync('${carpeta}', { recursive: true });
+writeFileSync('${ruta}', filas.sort().join('\\n') + '\\n');
 `;
+}
 
-export const CONFIG_SYNC =
-  'comando_sincronizacion: "node scripts/sync.mjs"\nrutas_sincronizacion: [docs/PLAN.md]\n';
+export const SCRIPT_SYNC = scriptSync('docs/PLAN.md');
+
+export function configSync(ruta: string): string {
+  return `comando_sincronizacion: "node scripts/sync.mjs"\nrutas_sincronizacion: [${ruta}]\n`;
+}
+
+export const CONFIG_SYNC = configSync('docs/PLAN.md');
 
 /**
  * Repo con develop, el script de sincronizacion, la config que lo
@@ -103,7 +112,8 @@ export const CONFIG_SYNC =
  */
 export async function withRepoSincronizado(
   config: string | null,
-  fn: (repoRoot: string, tareasRoot: string) => Promise<void>
+  fn: (repoRoot: string, tareasRoot: string) => Promise<void>,
+  script: string = SCRIPT_SYNC
 ): Promise<void> {
   const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-sync-'));
   try {
@@ -122,7 +132,7 @@ export async function withRepoSincronizado(
     // TASK-043: approve rechaza un plan que es solo una cabecera.
     await writeFile(path.join(planDir, 'plan-final.md'), '# Plan\n\nEnfoque: sincronizar.\n', 'utf8');
     await mkdir(path.join(repoRoot, 'scripts'), { recursive: true });
-    await writeFile(path.join(repoRoot, 'scripts', 'sync.mjs'), SCRIPT_SYNC, 'utf8');
+    await writeFile(path.join(repoRoot, 'scripts', 'sync.mjs'), script, 'utf8');
     if (config !== null) {
       await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
       await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), config, 'utf8');
