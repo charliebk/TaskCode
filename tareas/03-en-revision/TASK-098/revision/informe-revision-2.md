@@ -2,7 +2,7 @@
 
 - Commit revisado: 8ea9b9707226be642cce5c147fe7aa4f8ce48f7e
 - Revisor: revisor independiente de la ronda 2 (agente general-purpose, skill code-quality-reviewer); alcance: solo verificar las correcciones de la ronda 1 (protocolo de arranque, CLAUDE.md punto 5)
-- Veredicto: aprobada-con-correcciones
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
