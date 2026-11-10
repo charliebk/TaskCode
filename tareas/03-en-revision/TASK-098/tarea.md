@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 838143
 tokens_implementacion: 10087887
-tokens_revision: null
+tokens_revision: 3319896
 creado: 2026-11-10
 actualizado: 2026-11-10
 dependencias: []
@@ -49,6 +49,7 @@ Que todo proyecto tenga tareas/ROADMAP.md al dia sin escribir un script: hitos (
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-10T15:22:05Z | diseno | agente:a542730c857c956b4,a68ce8c1c7c63bfa6,ae3b3243d20e87593 | 52 | 114893 | 699025 | 24173 | 42 | 838143 | - | - |
 | 2026-11-10T18:09:54Z | implementacion | sesion:f5a75e93-b137-4945-9f2a-de03fa092974 | 52 | 89454 | 9989284 | 9097 | 4 | 10087887 | - | - |
+| 2026-11-10T18:22:50Z | revision | agente:a482fd2c4ecfb1d53 | 54 | 145552 | 3155923 | 18367 | 4 | 3319896 | 1 | - |
 
 ## Autorrevision
 
