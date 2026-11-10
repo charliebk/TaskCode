@@ -211,3 +211,16 @@ test('compararRoadmaps: compara titulo y complejidad y avisa de filas duplicadas
   const duplicada = g.replace(fila, `${fila}\n${fila}`);
   assert.ok(compararRoadmaps(duplicada, g).some((d) => d.startsWith('fila duplicada en el actual')));
 });
+
+// MEN-2 de la revision (ronda 2): una fila propia dentro de la tabla de un
+// hito tambien se perderia; solo se eximen la cabecera y el separador.
+test('compararRoadmaps: una fila propia dentro de un hito cuenta como texto que se perderia', () => {
+  const g = generarRoadmap([t('TASK-001', { sprint: 1 })], MANUAL).texto;
+  const fila = g.split('\n').find((l) => l.includes('| TASK-001 |'))!;
+  const ajeno = g.replace(MARCA_TASKCTL, '<!-- otro -->').replace(fila, `${fila}\n| Riesgo propio | dato perdido |`);
+  assert.ok(
+    compararRoadmaps(ajeno, g).includes('texto fuera de la zona manual que se perderia: | Riesgo propio | dato perdido |'),
+    compararRoadmaps(ajeno, g).join('\n')
+  );
+  assert.deepEqual(compararRoadmaps(g.replace(MARCA_TASKCTL, '<!-- otro -->'), g), []);
+});

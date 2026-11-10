@@ -15,7 +15,7 @@
  * revision: antes un parrafo o una seccion propia se borraba en silencio
  * con `--escribir`).
  */
-import { extraerZonaManual, normalizarFinales } from './roadmap.js';
+import { CABECERA_TABLA_HITO, extraerZonaManual, normalizarFinales } from './roadmap.js';
 
 export interface FilaRoadmap {
   hito: number;
@@ -42,6 +42,9 @@ export interface EstructuraRoadmap {
    */
   textoPropio: string[];
 }
+
+/** Separador de cabecera de una tabla Markdown (`|---|:--:|...`). */
+const SEPARADOR_RE = /^\|(?:\s*:?-+:?\s*\|)+$/;
 
 /** Lineas que el generador recalcula siempre: no son contenido propio. */
 const DERIVADA_RE = /^(?:\d+ de \d+ terminadas\.|- \*\*(?:En marcha|Listas para empezar):\*\* .*)$/;
@@ -99,7 +102,9 @@ export function extraerEstructura(texto: string): EstructuraRoadmap {
       continue;
     }
     if (!recortada.startsWith('|') || !/TASK-\d+/.test(linea)) {
-      const cabeceraDeTabla = hito !== null && recortada.startsWith('|');
+      // Solo la cabecera de la tabla del generador y los separadores; una
+      // fila propia dentro de un hito si se lista (MEN-2 de la ronda 2).
+      const cabeceraDeTabla = hito !== null && (recortada === CABECERA_TABLA_HITO || SEPARADOR_RE.test(recortada));
       if (recortada !== '' && !cabeceraDeTabla && !/^<!--.*-->$/.test(recortada) && !DERIVADA_RE.test(recortada)) {
         textoPropio.push(recortada);
       }

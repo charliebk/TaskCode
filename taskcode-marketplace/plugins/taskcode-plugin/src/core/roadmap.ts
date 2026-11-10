@@ -33,6 +33,8 @@ export const MARCA_TASKCTL =
 /** Indice (base 0) de la linea donde tiene que estar la marca: la tercera. */
 export const LINEA_MARCA = 2;
 
+/** Cabecera de la tabla de cada hito (la usa tambien la comparacion). */
+export const CABECERA_TABLA_HITO = '| Paso | Tarea | Título | Complejidad | Depende de | Estado |';
 export const PREFIJO_MANUAL_INICIO = '<!-- manual:inicio';
 export const MANUAL_FIN = '<!-- manual:fin -->';
 
@@ -312,7 +314,7 @@ export function generarRoadmap(
       '',
       `${hechas} de ${ids.length} terminadas.`,
       '',
-      '| Paso | Tarea | Título | Complejidad | Depende de | Estado |',
+      CABECERA_TABLA_HITO,
       '|---|---|---|---|---|---|'
     );
     for (const id of ids) {

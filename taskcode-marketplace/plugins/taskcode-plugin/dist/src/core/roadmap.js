@@ -4,6 +4,8 @@ export const ROADMAP_RUTA = 'tareas/ROADMAP.md';
 export const MARCA_TASKCTL = '<!-- generado por taskctl; formato 1; no editar fuera de la zona manual -->';
 /** Indice (base 0) de la linea donde tiene que estar la marca: la tercera. */
 export const LINEA_MARCA = 2;
+/** Cabecera de la tabla de cada hito (la usa tambien la comparacion). */
+export const CABECERA_TABLA_HITO = '| Paso | Tarea | Título | Complejidad | Depende de | Estado |';
 export const PREFIJO_MANUAL_INICIO = '<!-- manual:inicio';
 export const MANUAL_FIN = '<!-- manual:fin -->';
 /** Zona manual de un ROADMAP recien creado. */
@@ -240,7 +242,7 @@ export function generarRoadmap(lista, zonaManual) {
     for (const h of hitos) {
         const ids = porHito.get(h);
         const hechas = ids.filter((id) => estado(id) === 'terminada').length;
-        lineas.push(`## H${h} — ${titulos.get(h) ?? `H${h}`}`, '', `${hechas} de ${ids.length} terminadas.`, '', '| Paso | Tarea | Título | Complejidad | Depende de | Estado |', '|---|---|---|---|---|---|');
+        lineas.push(`## H${h} — ${titulos.get(h) ?? `H${h}`}`, '', `${hechas} de ${ids.length} terminadas.`, '', CABECERA_TABLA_HITO, '|---|---|---|---|---|---|');
         for (const id of ids) {
             const t = tareas.get(id);
             const n = pasos.has(id) ? String(pasos.get(id)) : '—';
