@@ -2,7 +2,7 @@
 
 - Commit revisado: ca2198de494244e805acdd3b067e88f5debffa0f
 - Revisor: revisor independiente (agente general-purpose, modelo haiku, skill code-quality-reviewer); verificacion acotada
-- Veredicto: aprobada-con-correcciones
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
