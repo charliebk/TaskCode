@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-096, TASK-099, TASK-100, TASK-019
+- **En marcha:** TASK-100 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-019
 
 ## H0 — H0
 
@@ -63,11 +63,11 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-091 | Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar | media | — | ✅ terminada |
 | — | TASK-092 | Sincronización de ficheros sueltos de la raíz de tareas/ | simple | — | ✅ terminada |
 | — | TASK-095 | Revision que converge: desde la ronda 2 solo se verifican las correcciones | alta | — | ✅ terminada |
-| 8 | TASK-096 | Verificacion proporcional al cambio: una tarea sin codigo no corre la suite de tests | alta | — | lista para empezar |
 | — | TASK-097 | Regla de una hora: plan estima la duracion de punta a punta y propone trocear | media | — | ✅ terminada |
 | — | TASK-098 | ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes | media | — | ✅ terminada |
-| 9 | TASK-099 | Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | — | lista para empezar |
-| 10 | TASK-100 | Verificacion proporcional A: una tarea que solo cambia documentacion no corre la suite de tests | media | — | lista para empezar |
+| 8 | TASK-099 | Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | — | lista para empezar |
+| 9 | TASK-100 | Verificacion proporcional A: una tarea que solo cambia documentacion no corre la suite de tests | media | — | ▶ en diseño |
+| 10 | TASK-096 | Verificacion proporcional B: con codigo parcial se verifica solo lo afectado | alta | TASK-100 | espera a TASK-100 |
 
 ## H1 — H1
 

@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-100-verificacion-proporcional-a-una-tarea-qu
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -34,3 +34,9 @@ Primera parte de TASK-096 (decision de Carlos, 2026-11-10: trocearla y empezar p
 - [ ] Un proyecto sin la configuracion nueva se comporta exactamente como en la 0.14.0 (tests de regresion de finish, Stop, review y guardian)
 - [ ] skills/task-workflow (verificacion-selectiva.md), README y CHANGELOG explican el principio y como declara un proyecto sus rutas de documentacion
 - [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-10T19:57:48Z | plan | automatico | persona | 0.14.0 |
