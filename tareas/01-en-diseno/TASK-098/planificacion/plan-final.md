@@ -55,3 +55,4 @@ Todas contra repos Git temporales reales.
 6. El ROADMAP entra en el mismo commit pero se prepara aparte: un fallo al anadirlo solo avisa.
 7. La TASK-068 de OpenDockTrading se sustituye por la tarea de migracion de ese proyecto, tras publicar la 0.14.0.
 8. Plan aprobado tal cual por la persona.
+9. Una sola fuente de verdad (persona, 2026-11-10): el ROADMAP del plugin es el formato unico y el mismo para todos los proyectos. Los scripts propios de ToolsaWeb y OpenDockTrading son transitorios: se retiran en sus tareas de migracion en cuanto roadmap --comparar salga limpio. Mientras tanto se respetan byte a byte, para no chocar.
