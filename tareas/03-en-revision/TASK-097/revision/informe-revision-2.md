@@ -2,7 +2,7 @@
 
 - Commit revisado: 4167474940a1ff3af1fcfd001d26da71bf6aafaf
 - Revisor: general-purpose (sonnet) con code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-097 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada
 
 Ronda de verificacion de las correcciones (protocolo de arranque): la peticion la genero como completa el taskctl 0.13 instalado, con la regla que corrige TASK-095.
 
