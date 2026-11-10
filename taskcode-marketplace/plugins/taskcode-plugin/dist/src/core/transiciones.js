@@ -308,13 +308,31 @@ export const SECCION_VERIFICACION_OMITIDA = '## Verificacion omitida';
  * Si la seccion ya existe (un reintento) la linea va al final de ella.
  */
 export function anotarVerificacionOmitida(body, instante, comando) {
-    const eol = body.includes('\r\n') ? '\r\n' : '\n';
     const linea = `- ${instante}: taskctl finish --sin-verificacion; no se ejecuto \`${comando.replace(/`/g, "'")}\``;
+    return anotarLineaEnSeccion(body, SECCION_VERIFICACION_OMITIDA, linea);
+}
+/** TASK-100: seccion que deja `finish` cuando la tarea es solo documentacion y no corre la completa. */
+export const SECCION_VERIFICACION_DOCUMENTACION = '## Verificacion de documentacion';
+/**
+ * Anota que `finish` no ejecuto `comando_verificacion` porque la tarea solo
+ * cambia documentacion, con el motivo y lo que si corrio. Auditable igual que
+ * el salto con --sin-verificacion; un reintento anade otra linea.
+ */
+export function anotarVerificacionDocumentacion(body, instante, comando, motivo, comandoDocumentacion) {
+    const sinComillas = (t) => t.replace(/`/g, "'");
+    const corrio = comandoDocumentacion === null
+        ? 'sin comprobacion de documentacion declarada'
+        : `se ejecuta \`${sinComillas(comandoDocumentacion)}\``;
+    const linea = `- ${instante}: ${motivo}; no se ejecuta \`${sinComillas(comando)}\`, ${corrio}`;
+    return anotarLineaEnSeccion(body, SECCION_VERIFICACION_DOCUMENTACION, linea);
+}
+function anotarLineaEnSeccion(body, titulo, linea) {
+    const eol = body.includes('\r\n') ? '\r\n' : '\n';
     const lineas = body.split(/\r?\n/);
-    const rango = rangoDeSeccion(lineas, SECCION_VERIFICACION_OMITIDA);
+    const rango = rangoDeSeccion(lineas, titulo);
     if (rango === null) {
         const base = body.replace(/(\r?\n)*$/, '');
-        return `${base}${base === '' ? '' : eol + eol}${SECCION_VERIFICACION_OMITIDA}${eol}${eol}${linea}${eol}`;
+        return `${base}${base === '' ? '' : eol + eol}${titulo}${eol}${eol}${linea}${eol}`;
     }
     const [inicio, fin] = rango;
     let ultima = inicio;

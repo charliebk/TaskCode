@@ -86,3 +86,49 @@ El clasificador falla cerrado: ante la duda, corre todo. Como minimo:
 - **`taskctl finish`**: corre la completa; en rojo no integra y dice como
   correrla.
 - **`taskctl doctor`**: avisa si hay completa y falta la selectiva.
+
+## Tareas de solo documentacion: `rutas_documentacion`
+
+Una tarea que solo cambia documentacion no necesita la suite de tests. El
+proyecto declara que rutas son documentacion y, si todo lo que cambia la
+tarea frente a la base cae en ellas, `finish` no corre `comando_verificacion`:
+
+```yaml
+# .taskcode/config.yml
+comando_verificacion: "npm test"
+rutas_documentacion: [docs/**, README.md, "*.md"]        # patrones git :(glob)
+comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opcional
+```
+
+- **Las rutas se leen de la rama base**, no de la rama de la tarea: una tarea
+  no puede ampliarlas para eximirse. Si la tarea cambia `.taskcode/config.yml`,
+  corre la completa.
+- **Sin anclar**: `*.md` es solo la raiz del repo; `docs/**` es esa carpeta.
+  Las mayusculas cuentan (`Docs/` no es `docs/`).
+- **La carpeta `tareas/` cuenta siempre** como documentacion: la cambia toda
+  tarea. Sus tests held-out los sigue corriendo su propia puerta.
+- **Ante la duda, la completa**: si no se puede calcular el diff, si sale
+  vacio, si mezcla documentacion y codigo, o si mueve un fichero de codigo a
+  una ruta de documentacion (cuentan las dos rutas del renombre).
+- Con `comando_verificacion_documentacion`, se ejecuta ese (con
+  `timeout_verificacion`) y su rojo bloquea igual que el de la completa. Su
+  verde se guarda aparte: nunca abre la puerta de la completa.
+- `finish` dice en su salida que corrio y por que, y lo anota en `tarea.md`
+  (seccion `## Verificacion de documentacion`).
+- Un `release` corre siempre la completa: lleva a la principal todo lo
+  acumulado, aunque su diff propio sea solo el CHANGELOG.
+- De momento solo lo aplica `finish`. El fin de turno, `review` y el guardian
+  de merges siguen como antes (mas estrictos, nunca mas laxos).
+
+### Que `.md` NO son documentacion
+
+No declares `**/*.md`. Hay ficheros Markdown que son instrucciones que se
+ejecutan, y romperlos rompe el comportamiento del agente:
+
+- skills (`skills/**/SKILL.md` y sus guias) y agentes (`agents/*.md`);
+- `CLAUDE.md`, `AGENTS.md` y similares;
+- comandos (`.claude/commands/*.md`) y plantillas que lee el codigo;
+- cualquier `.md` que un test lea o valide.
+
+Declara carpetas concretas de documentacion para personas (`docs/**`,
+`README.md`, `CHANGELOG.md`).

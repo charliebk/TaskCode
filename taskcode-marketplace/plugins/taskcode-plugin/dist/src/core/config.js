@@ -24,6 +24,16 @@
  * | comando_heldout              | null (sin held-out) | commands/finish-heldout.ts (TASK-073) |
  * | informe_cobertura            | null (sin freno)  | commands/review.ts, finish-cobertura.ts (TASK-074) |
  * | umbral_cobertura             | null (solo informa) | commands/finish-cobertura.ts (TASK-074) |
+ * | rutas_documentacion          | [] (sin efecto)   | commands/finish-verificacion.ts (TASK-100) |
+ * | comando_verificacion_documentacion | null        | commands/finish-verificacion.ts (TASK-100) |
+ *
+ * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
+ * TASK-100: si todo lo que cambia la tarea frente a la base cae en esas rutas
+ * (patrones `git :(glob)`, sin anclar: `*.md` es solo la raiz), `finish` no
+ * corre `comando_verificacion`, solo la comprobacion de documentacion si se
+ * declara. Las rutas se leen de la config de la RAMA BASE (la rama no puede
+ * ampliarlas para eximirse). Exigen `comando_verificacion`: sin el no hay nada
+ * que ahorrar.
  *
  * `comando_verificacion` y `timeout_verificacion` las anadio TASK-070: declaran
  * como se verifica el proyecto (el comando de tests del repo) para que los
@@ -141,6 +151,8 @@ export const CONFIG_DEFAULTS = Object.freeze({
     comando_heldout: null,
     informe_cobertura: null,
     umbral_cobertura: null,
+    rutas_documentacion: Object.freeze([]),
+    comando_verificacion_documentacion: null,
 });
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
 export const CLAVES_CONFIG = [
@@ -163,6 +175,8 @@ export const CLAVES_CONFIG = [
     'comando_heldout',
     'informe_cobertura',
     'umbral_cobertura',
+    'rutas_documentacion',
+    'comando_verificacion_documentacion',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -426,11 +440,18 @@ export function parsearConfigConAvisos(contenido, ruta) {
             case 'umbral_cobertura':
                 config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
                 break;
+            case 'rutas_documentacion':
+                config.rutas_documentacion = validarPatronesExclusion(donde, par.valor, 'rutas_documentacion', false);
+                break;
+            case 'comando_verificacion_documentacion':
+                config.comando_verificacion_documentacion = validarComando(donde, par.clave, par.valor, 'comando_verificacion_documentacion: "node scripts/comprobar-docs.js"');
+                break;
         }
     }
     validarSincronizacionCompleta(ruta, vistas);
     validarVerificacionCompleta(ruta, vistas);
     validarCoberturaCompleta(ruta, vistas);
+    validarDocumentacionCompleta(ruta, vistas);
     validarRemotoCompleto(dondeUrlBase, config);
     return { config, avisos };
 }
@@ -546,6 +567,22 @@ function validarCoberturaCompleta(ruta, vistas) {
             'Declara las dos (p. ej. informe_cobertura: coverage/lcov.info), o borra el umbral.');
     }
 }
+/**
+ * TASK-100: las rutas de documentacion ahorran `comando_verificacion`; sin el
+ * no ahorran nada. El comando de documentacion sin rutas no lo lanzaria nadie.
+ */
+function validarDocumentacionCompleta(ruta, vistas) {
+    if (vistas.has('rutas_documentacion') && !vistas.has('comando_verificacion')) {
+        throw new ConfigError(`[ERROR] ${ruta}: "rutas_documentacion" necesita tambien "comando_verificacion".\n` +
+            '        Las rutas de documentacion sirven para no correr la verificacion completa cuando la tarea ' +
+            'solo cambia documentacion; sin ella no hay nada que ahorrar. Declara la completa o borra las rutas.');
+    }
+    if (vistas.has('comando_verificacion_documentacion') && !vistas.has('rutas_documentacion')) {
+        throw new ConfigError(`[ERROR] ${ruta}: "comando_verificacion_documentacion" necesita tambien "rutas_documentacion".\n` +
+            '        Solo se ejecuta cuando la tarea cambia unicamente esas rutas. Declaralas (p. ej. ' +
+            'rutas_documentacion: [docs/**, README.md]) o borra el comando.');
+    }
+}
 /** Ruta relativa a la raiz del repo, como las de sincronizacion (no absoluta, no carpeta, no fuera del repo). */
 function validarInformeCobertura(donde, valor) {
     const texto = validarTextoNoVacio(donde, 'informe_cobertura', valor);
@@ -580,8 +617,9 @@ function validarPatronesExclusion(donde, valor, clave = 'excluir_de_revision', a
     if (!Array.isArray(valor)) {
         throw new ConfigError(`[ERROR] ${donde}: "${clave}" debe ser una lista entre corchetes, ` +
             `y es ${describirValor(valor)}.\n` +
-            `        Ejemplo: ${clave}: [**/dist/**, **/*.lock]. Para no excluir ` +
-            `nada: ${clave}: [].`);
+            (clave === 'rutas_documentacion'
+                ? `        Ejemplo: ${clave}: [docs/**, README.md].`
+                : `        Ejemplo: ${clave}: [**/dist/**, **/*.lock]. Para no excluir nada: ${clave}: [].`));
     }
     const patrones = [];
     for (const elemento of valor) {
