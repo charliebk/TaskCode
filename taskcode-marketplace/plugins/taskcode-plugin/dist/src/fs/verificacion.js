@@ -100,11 +100,7 @@ export function huellaDelArbol(raiz, comando, timeoutS, contexto) {
     catch {
         return null;
     }
-    const h = createHash('sha1');
-    h.update(`v${String(VERSION_MEMO)}\0${head}\0${comando}\0${String(timeoutS)}\0`);
-    // TASK-091: solo la selectiva trae contexto; la formula de la completa no cambia.
-    if (contexto !== undefined)
-        h.update(`ctx\0${contexto}\0`);
+    const h = cabeceraDeHuella(head, comando, timeoutS, contexto);
     for (const ruta of [...foto.keys()].sort())
         h.update(`${ruta}\0${foto.get(ruta)}\0`);
     return h.digest('hex');
@@ -125,11 +121,19 @@ export function huellaDeCommit(raiz, ref, comando, timeoutS, contexto) {
     const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
     if (sha === null || sha === '')
         return null;
+    return cabeceraDeHuella(sha, comando, timeoutS, contexto).digest('hex');
+}
+/**
+ * TASK-105: la parte comun de `huellaDelArbol` y `huellaDeCommit`, en un solo
+ * sitio: si las dos se separan, el guardian deja de casar los verdes guardados.
+ * TASK-091: solo la selectiva trae contexto; la formula de la completa no cambia.
+ */
+function cabeceraDeHuella(commit, comando, timeoutS, contexto) {
     const h = createHash('sha1');
-    h.update(`v${String(VERSION_MEMO)}\0${sha}\0${comando}\0${String(timeoutS)}\0`);
+    h.update(`v${String(VERSION_MEMO)}\0${commit}\0${comando}\0${String(timeoutS)}\0`);
     if (contexto !== undefined)
         h.update(`ctx\0${contexto}\0`);
-    return h.digest('hex');
+    return h;
 }
 function rutaMemo(raiz, tipo) {
     const p = git(['rev-parse', '--git-path', FICHEROS_MEMO[tipo]], raiz);

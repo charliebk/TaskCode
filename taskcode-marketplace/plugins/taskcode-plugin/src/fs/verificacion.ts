@@ -25,7 +25,7 @@
  * completa que dejo `finish`. La huella de la selectiva lleva ademas la rama
  * base y su commit: su resultado depende de lo cambiado respecto a ella.
  */
-import { createHash } from 'node:crypto';
+import { createHash, type Hash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -125,10 +125,7 @@ export function huellaDelArbol(
   } catch {
     return null;
   }
-  const h = createHash('sha1');
-  h.update(`v${String(VERSION_MEMO)}\0${head}\0${comando}\0${String(timeoutS)}\0`);
-  // TASK-091: solo la selectiva trae contexto; la formula de la completa no cambia.
-  if (contexto !== undefined) h.update(`ctx\0${contexto}\0`);
+  const h = cabeceraDeHuella(head, comando, timeoutS, contexto);
   for (const ruta of [...foto.keys()].sort()) h.update(`${ruta}\0${foto.get(ruta) as string}\0`);
   return h.digest('hex');
 }
@@ -154,10 +151,19 @@ export function huellaDeCommit(
 ): string | null {
   const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
   if (sha === null || sha === '') return null;
+  return cabeceraDeHuella(sha, comando, timeoutS, contexto).digest('hex');
+}
+
+/**
+ * TASK-105: la parte comun de `huellaDelArbol` y `huellaDeCommit`, en un solo
+ * sitio: si las dos se separan, el guardian deja de casar los verdes guardados.
+ * TASK-091: solo la selectiva trae contexto; la formula de la completa no cambia.
+ */
+function cabeceraDeHuella(commit: string, comando: string, timeoutS: number, contexto: string | undefined): Hash {
   const h = createHash('sha1');
-  h.update(`v${String(VERSION_MEMO)}\0${sha}\0${comando}\0${String(timeoutS)}\0`);
+  h.update(`v${String(VERSION_MEMO)}\0${commit}\0${comando}\0${String(timeoutS)}\0`);
   if (contexto !== undefined) h.update(`ctx\0${contexto}\0`);
-  return h.digest('hex');
+  return h;
 }
 
 export interface MemoVerificacion {
