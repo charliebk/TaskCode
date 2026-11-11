@@ -7,7 +7,7 @@ etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-105-verificacion-proporcional-b2-decision-en
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,6 +37,7 @@ Segunda parte de TASK-096 (troceada por la regla de una hora, decision de Carlos
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T16:31:34Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-11T16:53:15Z | approve | automatico | persona | 0.14.0 |
 
 ## Coste
 
