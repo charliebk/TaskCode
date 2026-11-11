@@ -890,6 +890,16 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   que se ejecuta. La guía `verificacion-selectiva.md` trae la lista.
 - Exige `comando_verificacion`; el comando de documentación exige las rutas.
   Sin `rutas_documentacion`, todo funciona como antes.
+- El **fin de turno** (`Stop`) y **`review`** aplican la misma decisión sobre
+  todo lo que cambia la tarea frente a la base (nunca sobre el último turno ni
+  el delta de la ronda). El fin de turno cuenta además lo no commiteado (un
+  `.ts` sin `git add` saca el turno de «solo documentación») y, en un turno de
+  solo documentación, corre la comprobación de documentación o nada. `review`
+  solo verifica si declaras `comando_verificacion_selectiva`: con ella, una
+  ronda de solo documentación corre la comprobación de documentación en su
+  lugar (o nada) y la petición lo dice; sin ella no corre nada, como antes.
+  **Cambio de comportamiento** si ya declarabas `rutas_documentacion`: esos
+  turnos y rondas dejan de correr la completa o la selectiva.
 - Lo aplican `finish` y el **guardián de merges**, con la misma decisión (la
   config de la rama destino): un merge a mano de una tarea de solo
   documentación pasa sin el verde de la completa, o con el verde de su

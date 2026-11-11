@@ -34,6 +34,7 @@ import { raizDelRepo, resolverConfig } from '../core/config.js';
 import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertura.js';
 import { formatearVerificacionRoja, seccionVerificacionRevision } from '../core/informe-verificacion.js';
 import { verificarConMemo, type VerificacionConMemo } from '../fs/verificacion.js';
+import { peticionDeTrabajo, type PlanVerificacion } from '../fs/decision-documentacion.js';
 import { registrarTransicion } from '../core/transiciones.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
@@ -67,6 +68,7 @@ import {
   diffParaRevision,
   diffRangeForPaths,
   hayMergesEntre,
+  baseDeTipoSinRed,
 } from '../fs/git.js';
 import {
   autoCommit,
@@ -761,7 +763,7 @@ export async function runReviewCommand(
   // en curso y sin ronda a medias (decision de Carlos). En la primera ronda el
   // update de Git-Flow ya integro la base (y ese merge queda hecho); en una
   // incremental la rama no se actualiza (TASK-040). Sin la clave, nada.
-  const selectiva = verificacionSelectivaDeRonda(id, configRama, baseBranch, incremental, deps);
+  const verificacion = verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos);
   // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
   // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
   // nadie arreglo sigue ahi). Una vez por ronda y antes de escribir nada;
@@ -769,7 +771,7 @@ export async function runReviewCommand(
   // corrio la selectiva no se muestra: su informe puede ser parcial
   // (decision de Carlos; la completa la mide en el cierre).
   const datosCobertura =
-    configRama.informe_cobertura === null || selectiva !== null
+    configRama.informe_cobertura === null || verificacion !== null
       ? null
       : datosCoberturaRevision(
           raizDelRepo(deps.repoCwd),
@@ -932,15 +934,14 @@ export async function runReviewCommand(
                     plan.fragmentado ? (coberturaPorRevisor.get(escritura.revisor) ?? new Set<string>()) : undefined
                   ),
                 }),
-            ...(selectiva === null
+            ...(verificacion === null
               ? {}
               : {
-                  seccionVerificacion: seccionVerificacionRevision({
-                    resultado: selectiva.resultado,
-                    base: baseBranch,
-                    deMemo: selectiva.deMemo,
-                    conCobertura: configRama.informe_cobertura !== null,
-                  }),
+                  seccionVerificacion: seccionDeVerificacion(
+                    verificacion,
+                    baseBranch,
+                    configRama.informe_cobertura !== null
+                  ),
                 }),
           }
         )
@@ -1013,28 +1014,94 @@ export async function runReviewCommand(
   };
 }
 
+/** La seccion «Verificacion de esta ronda» de la peticion. */
+function seccionDeVerificacion(r: VerificacionRonda, base: string, conCobertura: boolean): string {
+  if (r.tipo === 'documentacion-sin-comando') {
+    return seccionVerificacionRevision({ tipo: r.tipo, motivo: r.motivo, conCobertura });
+  }
+  if (r.tipo === 'documentacion') {
+    return seccionVerificacionRevision({
+      tipo: 'documentacion',
+      resultado: r.v.resultado,
+      motivo: r.motivo,
+      deMemo: r.v.deMemo,
+      conCobertura,
+    });
+  }
+  return seccionVerificacionRevision({ tipo: 'selectiva', resultado: r.v.resultado, base, deMemo: r.v.deMemo, conCobertura });
+}
+
+/** Lo que verifico la ronda (para la seccion de la peticion y la cobertura). */
+type VerificacionRonda =
+  | { tipo: 'selectiva'; v: VerificacionConMemo }
+  | { tipo: 'documentacion'; v: VerificacionConMemo; motivo: string }
+  | { tipo: 'documentacion-sin-comando'; motivo: string };
+
 /**
- * TASK-091: la verificacion selectiva de la ronda, o null si el proyecto no
- * la declara. Reutiliza el resultado del hook Stop si la huella coincide.
- * Lanza ReviewCommandError (sin haber escrito nada) si no sale en verde o si
- * deja el arbol sucio: el autocommit de la ronda se llevaria esos ficheros o
- * el siguiente comando abortaria por workspace sucio.
+ * TASK-091: la verificacion de la ronda, o null si el proyecto no declara
+ * `comando_verificacion_selectiva` (entonces no se decide nada ni se lanza
+ * ningun git: como en la 0.14.0; y sin selectiva no corre nada aunque haya
+ * comando de documentacion, decision de Carlos en TASK-102).
+ *
+ * TASK-104: decide con `peticionDeTrabajo`, la misma funcion y la misma
+ * `baseFiable` que el freno Stop, sobre base...HEAD mas el arbol (nunca el
+ * delta de la ronda): con solo documentacion corre la comprobacion de
+ * documentacion de la base, o nada si no se declara. Un fallo de la decision
+ * no aborta: la selectiva, con un aviso.
+ *
+ * Reutiliza el resultado del hook Stop si la huella coincide. Lanza
+ * ReviewCommandError (sin haber escrito nada) si no sale en verde o si deja el
+ * arbol sucio: el autocommit de la ronda se llevaria esos ficheros o el
+ * siguiente comando abortaria por workspace sucio.
  */
-function verificacionSelectivaDeRonda(
+function verificacionDeRonda(
   id: string,
   config: ReturnType<typeof resolverConfig>,
   base: string,
+  tipoTarea: Task['tipo'],
   incremental: boolean,
-  deps: ReviewCommandDeps
-): VerificacionConMemo | null {
-  const comando = config.comando_verificacion_selectiva;
-  if (comando === null) return null;
+  deps: ReviewCommandDeps,
+  avisos: string[]
+): VerificacionRonda | null {
+  const selectiva = config.comando_verificacion_selectiva;
+  if (selectiva === null) return null;
   const raiz = raizDelRepo(deps.repoCwd);
+  let plan: PlanVerificacion;
+  try {
+    const decision = peticionDeTrabajo({
+      config,
+      raiz,
+      base: () => base,
+      baseFiable: baseDeTipoSinRed(tipoTarea),
+      sinSelectiva: 'nada',
+    });
+    plan = decision.plan;
+    avisos.push(...decision.avisos.map((a) => `${id}: ${a}`));
+  } catch (e: unknown) {
+    plan = { tipo: 'selectiva', comando: selectiva, timeoutS: config.timeout_verificacion_selectiva, base };
+    avisos.push(
+      `${id}: no se pudo decidir si la tarea solo cambia documentacion, asi que se corre la verificacion ` +
+        `selectiva. Detalle: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+  if (plan.tipo === 'documentacion' && plan.comando === null) {
+    return { tipo: 'documentacion-sin-comando', motivo: plan.motivo };
+  }
+  // Con la selectiva declarada, `peticionDeTrabajo` nunca da 'completa' ni 'nada'.
+  if (plan.tipo !== 'selectiva' && plan.tipo !== 'documentacion') return null;
+  const comando = plan.comando as string;
+  const motivo = plan.tipo === 'documentacion' ? plan.motivo : null;
   const v = verificarConMemo(
     raiz,
-    { tipo: 'selectiva', comando, timeoutS: config.timeout_verificacion_selectiva, base },
+    motivo !== null
+      ? { tipo: 'documentacion', comando, timeoutS: plan.timeoutS }
+      : { tipo: 'selectiva', comando, timeoutS: plan.timeoutS, base },
     deps.env === undefined ? {} : { env: deps.env }
   );
+  const nombre =
+    motivo !== null
+      ? 'la comprobacion de documentacion (comando_verificacion_documentacion: solo cambia documentacion)'
+      : `la verificacion selectiva (por impacto respecto a "${base}", en RAMA_BASE)`;
   // Lo que ya paso con la base antes de verificar: solo la primera ronda la integra.
   const estadoBase = incremental
     ? `en una ronda incremental la rama no se actualiza con "${base}"`
@@ -1042,22 +1109,25 @@ function verificacionSelectivaDeRonda(
       'siguiente review lo integra';
   if (v.resultado.estado !== 'verde') {
     throw new ReviewCommandError(
-      `[ERROR] ${id}: la verificacion selectiva (por impacto respecto a "${base}", en RAMA_BASE) no esta en ` +
+      `[ERROR] ${id}: ${nombre} no esta en ` +
         'verde, asi que no se abre ronda de revision: la tarea sigue en curso y no se ha escrito peticion ni ' +
         `informe (${estadoBase}).\n` +
         `${formatearVerificacionRoja(v.resultado)}\n` +
         (v.deMemo
           ? 'Es el resultado guardado: el arbol no ha cambiado desde la ultima ejecucion. Cambia algo o ejecuta el comando a mano.\n'
           : '') +
-        `Para reproducirla: ejecuta "${comando}" con la variable de entorno RAMA_BASE=${base}.`
+        (motivo !== null
+          ? `Para reproducirla: ejecuta "${comando}".`
+          : `Para reproducirla: ejecuta "${comando}" con la variable de entorno RAMA_BASE=${base}.`)
     );
   }
   if (v.cambioElArbol) {
     throw new ReviewCommandError(
-      `[ERROR] ${id}: la verificacion selectiva salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
+      `[ERROR] ${id}: ${motivo !== null ? 'la comprobacion de documentacion' : 'la verificacion selectiva'} salio en ` +
+        'verde, pero ha dejado cambios en el arbol de trabajo ' +
         `("${comando}" escribe ficheros versionados o no ignorados: mira git status). Ignoralos en .gitignore, ` +
         `o descartalos, y reintenta. No se ha abierto ronda (${estadoBase}).`
     );
   }
-  return v;
+  return motivo !== null ? { tipo: 'documentacion', v, motivo } : { tipo: 'selectiva', v };
 }
