@@ -11,7 +11,9 @@ Los desacuerdos entre roles se señalan, no se promedian. Este plan no vale hast
 - Los comentarios que dicen «hasta que el guardián la acepte (B5)» se reescriben con D1 («nunca»): `decision-documentacion.ts:148-155`, `finish-verificacion.ts:280-281` y la cabecera del guardián (arquitectura y riesgos, modo 4).
 - Remedio del mensaje: solo `taskctl finish TASK-NNN` (y, si hay conflicto, resolver en la rama y repetir) o `--sin-verificacion` como decisión de la persona. Nunca «corre la completa y repite el merge» (riesgos, modo 1; arquitectura coincide).
 
-Duracion estimada: 55 min (de la rama abierta al cierre con merge; señales: 3 ficheros de código, `guardia-merge.ts`, `decision-documentacion.ts` y `finish-verificacion.ts`, este último solo comentarios; 1 de tests; 2 capas, `fs` y `hooks`; 5 criterios; una suite completa de unos 10 min más la revisión). La estimación es del unificador, no de los roles. Si entra el corte por tiempo del modo 2 de riesgos, sube a unos 80 min y se trocea: ese corte va a una tarea aparte, con su medición en ToolsaWeb, y esta se queda con tests, mensaje y comentarios.
+Duracion estimada: 55 min
+
+Señales de la duración (de la rama abierta al cierre con merge; señales: 3 ficheros de código, `guardia-merge.ts`, `decision-documentacion.ts` y `finish-verificacion.ts`, este último solo comentarios; 1 de tests; 2 capas, `fs` y `hooks`; 5 criterios; una suite completa de unos 10 min más la revisión). La estimación es del unificador, no de los roles. Si entra el corte por tiempo del modo 2 de riesgos, sube a unos 80 min y se trocea: ese corte va a una tarea aparte, con su medición en ToolsaWeb, y esta se queda con tests, mensaje y comentarios.
 
 ## Desacuerdos entre roles, y como se resuelven
 
