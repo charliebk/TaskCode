@@ -8,9 +8,9 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/verificacion-proporcional.ts:122-153 y test/core/verificacion-proporcional.test.ts:335-370 | implementacion |
-| MEN-2 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/config.ts:776-796 y test/core/verificacion-proporcional.test.ts:389-425 | implementacion |
-| MEN-3 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/verificacion-proporcional.ts:84-86 y test:372-387 | implementacion |
+| MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/verificacion-proporcional.ts:122-153 y test/core/verificacion-proporcional.test.ts:335-370 | implementacion |
+| MEN-2 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/config.ts:776-796 y test/core/verificacion-proporcional.test.ts:389-425 | implementacion |
+| MEN-3 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/verificacion-proporcional.ts:84-86 y test:372-387 | implementacion |
 
 Ningun hallazgo CRITICO ni IMPORTANTE.
 
