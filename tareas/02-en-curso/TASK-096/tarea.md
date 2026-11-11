@@ -32,7 +32,7 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 
 ## Criterios de aceptacion
 - [ ] rutas_verificacion_parcial es una clave conocida de .taskcode/config.yml: patrones git :(glob) validados como rutas_documentacion (se rechazan los que casan con todo) y, sin comando_verificacion_selectiva, la config aborta (un test por caso, en test:rapido)
-- [ ] La tabla de decidirVerificacion cubre documentacion -> documentacion; codigo todo dentro de las rutas parciales -> selectiva; algo fuera, cambio de .taskcode/config.yml, diff nulo o vacio, o release -> completa; la prueba se pone roja si se comprueba selectiva antes que el cambio de config (un test por caso)
+- [ ] La tabla de decidirVerificacion cubre documentacion -> documentacion; codigo todo dentro de las rutas parciales -> selectiva; algo fuera, sin calcular, cambio de .taskcode/config.yml, o diff nulo o vacio -> completa (release y hotfix los excluye quien llama: finish no pasa base en un release, y el hotfix lo deja en la completa TASK-106); la prueba se pone roja si se comprueba selectiva antes que el cambio de config (un test por caso)
 - [ ] Sin la clave la decision es la de la 0.14.0 y finish y el guardian no cambian de comportamiento (las redes como en la 0.14.0 siguen en verde)
 - [ ] El plan deja escrita la decision sobre TASK-091 y la particion (TASK-105 a TASK-109)
 - [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ningun test
