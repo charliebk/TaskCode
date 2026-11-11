@@ -49,3 +49,7 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-11T10:38:15Z | diseno | agente:a55b886637a7f1998 | 30 | 43158 | 446024 | 14178 | 22 | 503390 | - | - |
+
+## Autorrevision
+
+- code-quality-reviewer — 784fd97
