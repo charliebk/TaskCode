@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 110 / 112 items terminados (98%)** · última actualización: 2026-11-11
+**Progreso global: 111 / 117 items terminados (95%)** · última actualización: 2026-11-11
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 11 | **9** | — |
-| **Total pendiente** | **2** | — | — |
+| ⏳ P — Agilidad sin perder calidad | 16 | **10** | — |
+| **Total pendiente** | **6** | — | — |
 
 ---
 
@@ -1146,7 +1146,18 @@ del código.
 - [x] TASK-102 — Verificación proporcional A3a: el freno Stop no corre la suite si solo cambia documentación — cerrada el 2026-11-11
 - [x] TASK-104 — Verificación proporcional A3b: las rondas de review no corren la suite si solo cambia documentación — cerrada el 2026-11-11
 - [x] TASK-103 — Guardián de merges: config inválida bloquea y merges que hoy no detecta — cerrada el 2026-11-11
-- [ ] TASK-096 — Verificación proporcional B: con código parcial se verifica solo lo afectado (troceada: la parte A son TASK-100 a 102)
+- [x] TASK-096 — Verificación proporcional B1: clave `rutas_verificacion_parcial` y decisión `selectiva` en core — cerrada el 2026-11-11
+      *Troceada en el plan por la regla de una hora (270 min; decisión de Carlos): B1 es esta, el
+      resto son TASK-105 a TASK-109. Clave opt-in leída de la base (lista de rutas permitidas, exige
+      la selectiva) y tercer resultado de la decisión pura; nada observable cambia todavía. Decisión
+      sobre TASK-091 escrita en el plan: la completa sigue por defecto y el guardián no acepta la
+      selectiva para código. 2 rondas: 3 MENOR en la 1, corregidos; aprobada en la 2. No se publica
+      versión hasta cerrar TASK-109.*
+- [ ] TASK-105 — Verificación proporcional B2: decisión entre refs y huella para el nivel 2
+- [ ] TASK-106 — Verificación proporcional B3: finish verifica solo lo afectado con código parcial
+- [ ] TASK-107 — Verificación proporcional B4: Stop, review y finish deciden igual el mismo diff
+- [ ] TASK-108 — Verificación proporcional B5: el guardián de merges ante el nivel 2
+- [ ] TASK-109 — Verificación proporcional B6: documentación y limpieza del nivel 2
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
 
