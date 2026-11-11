@@ -77,12 +77,15 @@ El clasificador falla cerrado: ante la duda, corre todo. Como minimo:
 - **Fin de turno (`Stop`)**: con tarea en curso en la rama, corre la
   selectiva; en rojo devuelve el turno con su salida. Guarda el resultado
   aparte del de la completa: un verde de la selectiva nunca abre un merge.
+  Con `rutas_documentacion`, un turno de solo documentacion corre antes la
+  comprobacion de documentacion (o nada): ver la seccion siguiente.
 - **`taskctl review`**: corre la selectiva antes de escribir la ronda (en la
   primera ronda, despues de integrar la base en la rama; las rondas
   incrementales no la integran). En rojo aborta: no abre ronda y la tarea sigue
   en curso; el mensaje dice si la base quedo integrada. En verde, la peticion de
-  revision lleva una seccion con el tipo (selectiva), el comando, el
-  resultado y su salida.
+  revision lleva una seccion con el tipo (selectiva o comprobacion de
+  documentacion), el comando, el resultado y su salida. Sin la selectiva,
+  `review` no verifica nada.
 - **`taskctl finish`**: corre la completa; en rojo no integra y dice como
   correrla.
 - **`taskctl doctor`**: avisa si hay completa y falta la selectiva.
@@ -128,7 +131,31 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   del merge podrian cambiar lo que entra. Haz el commit en otro comando. Tampoco
   en un release, ni si cambian los tests held-out (`tareas/.../aceptacion/`),
   que alli cuentan como codigo.
-- El fin de turno y `review` siguen como antes (mas estrictos, nunca mas laxos).
+- **Fin de turno y `review`** usan la misma decision (una sola funcion),
+  sobre todo lo que cambia la tarea frente a la base, nunca sobre el ultimo
+  turno ni sobre lo que cambio desde la ronda anterior: una ronda 2 que solo
+  corrige documentacion sigue corriendo la selectiva si la tarea toco codigo.
+  - El fin de turno cuenta tambien lo no commiteado: un fichero de codigo
+    modificado, preparado o sin seguimiento saca el turno de «solo
+    documentacion». Sin selectiva corre la completa; en un turno de solo
+    documentacion, la comprobacion de documentacion, o nada si no se declara.
+    Con el arbol sucio no guarda el resultado de esa comprobacion.
+  - `review` solo verifica si el proyecto declara la selectiva. Con ella, una
+    ronda de solo documentacion corre la comprobacion de documentacion en su
+    lugar, o nada si no se declara, y la peticion lo dice (asi el revisor no
+    lee ese verde como tests pasados) y no muestra la cobertura. Sin la
+    selectiva no corre nada, tampoco la de documentacion: donde antes no se
+    corria nada, no aparece ninguna ejecucion.
+  - Con la selectiva declarada, los dos deciden igual para el mismo diff, y
+    `review` reutiliza el resultado del fin de turno si el arbol no cambio. Sin
+    ella difieren a proposito: el fin de turno corre algo y `review` nada.
+  - Un hotfix no se exime en ninguno de los dos (resolver su base puede ir a la
+    red). Una config de la base invalida no bloquea: la verificacion de
+    siempre con un aviso. Los held-out de `tareas/.../aceptacion/` cuentan como
+    documentacion, igual que en `finish`, que los corre con su propia puerta.
+  - **Cambio de comportamiento** si ya declarabas `rutas_documentacion`: los
+    turnos y rondas de solo documentacion dejan de correr la completa o la
+    selectiva.
 
 ### Que `.md` NO son documentacion
 

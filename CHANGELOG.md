@@ -48,6 +48,23 @@ siempre con un aviso. Un hotfix no se exime en el freno (resolver su base
 puede costar un `ls-remote` en cada turno). Sin `rutas_documentacion` en la
 config, el freno no lanza ni un proceso git mas que en la 0.14.0.
 
+Verificacion proporcional, parte A3b (TASK-104): `review` decide con la misma
+funcion que el freno Stop (`peticionDeTrabajo`), sobre base...HEAD y nunca
+sobre el delta de la ronda. Solo si el proyecto declara
+`comando_verificacion_selectiva`: una ronda de solo documentacion corre
+`comando_verificacion_documentacion` en lugar de la selectiva, o nada si no
+se declara. **Cambio de comportamiento para quien ya declaro
+`rutas_documentacion` y la selectiva**: sus rondas de solo documentacion dejan
+de correr la selectiva. Sin la selectiva `review` sigue sin correr nada,
+tampoco la de documentacion. La peticion de revision dice que se corrio (la
+comprobacion de documentacion, o ninguna) para que el revisor no lea ese
+verde como tests pasados, y no muestra la cobertura. Un fichero de codigo en
+base...HEAD aplica la selectiva tambien en una ronda incremental que solo
+corrige documentacion. Con el mismo arbol, `review` reutiliza el resultado del
+freno. Una config de la base invalida o un fallo al decidir no abortan: la
+selectiva con un aviso. Sin `rutas_documentacion`, `review` no lee la config
+de la base ni mira el arbol, como en la 0.14.0.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).
