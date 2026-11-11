@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 1428123
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-11
@@ -38,3 +38,9 @@ Quinta parte de TASK-096. Decision de Carlos (D1, 2026-11-11): el guardian de me
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T22:40:40Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-11T22:47:35Z | diseno | agente:a2a5ecc0346d9324a,afe06a71b5b03a1eb,a83a07992ade4abcb | 70 | 157689 | 1239869 | 30495 | 47 | 1428123 | - | - |
