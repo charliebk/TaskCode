@@ -87,7 +87,8 @@ Revision por pares, tres rondas:
   y en Linux una rama llamada `head` en minusculas no cambia el destino.
 
 Limites que siguen documentados en el README: alias de git, `git pull`,
-`git push . x:develop`, subshells y `git checkout -` / `@{-N}` (rama anterior).
+`git push . x:develop` y subshells. Tampoco resuelve `git checkout -` ni
+`@{-N}` (la rama anterior), igual que antes de esta tarea.
 
 ## Transiciones
 
