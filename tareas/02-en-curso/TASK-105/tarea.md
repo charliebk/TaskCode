@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-105-verificacion-proporcional-b2-decision-en
 asignado_a: charlie.bk@gmail.com
@@ -38,6 +38,7 @@ Segunda parte de TASK-096 (troceada por la regla de una hora, decision de Carlos
 |---|---|---|---|---|
 | 2026-11-11T16:31:34Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-11T16:53:15Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-11T16:53:25Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
