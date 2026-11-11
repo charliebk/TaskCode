@@ -94,15 +94,48 @@ const CREAN_RAMA = new Set(['-b', '-B', '-c', '-C', '--orphan', '--create', '--f
 const CAMBIO_CON_VALOR = new Set(['--conflict', '--pathspec-from-file']);
 const SCRIPT_CIERRE = /^merge-(feature|fix|hotfix|release)-to-(develop|main)\.sh$/;
 const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash']);
-/** Quita asignaciones de entorno iniciales (`FOO=1 git merge x`) y `command`/`exec`. */
+/**
+ * Quita asignaciones de entorno iniciales (`FOO=1 git merge x`), `command`,
+ * `exec`, `env` y (TASK-103) la llave de un grupo (`{ git merge x; }`) y
+ * `time [-p]`.
+ */
 function sinPrefijos(seg) {
     let i = 0;
-    while (i < seg.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(seg[i]) || ['command', 'exec', 'env'].includes(seg[i])))
-        i++;
+    while (i < seg.length) {
+        const t = seg[i];
+        if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t) || ['command', 'exec', 'env', '{'].includes(t))
+            i++;
+        else if (t === 'time')
+            i += seg[i + 1] === '-p' ? 2 : 1;
+        else
+            break;
+    }
     return seg.slice(i);
 }
-/** Merges y scripts de cierre que aparecen en el comando, en orden. */
-export function analizarComando(texto) {
+/**
+ * TASK-103 (MEN-2 de TASK-101): true si los argumentos de `git merge` llevan
+ * `--abort`, `--continue`, `--quit` o `--skip` como opcion, no como el valor de
+ * otra (`git merge -m --abort x` SI mergea x).
+ */
+function esControlDeMerge(args) {
+    for (let i = 0; i < args.length; i++) {
+        const a = args[i];
+        if (a === '--')
+            return false;
+        if (MERGE_SIN_MERGE.has(a))
+            return true;
+        if (MERGE_CON_VALOR.has(a))
+            i++;
+    }
+    return false;
+}
+/**
+ * Merges y scripts de cierre que aparecen en el comando, en orden.
+ * `esRama` (TASK-103) dice si un nombre es una rama: `git checkout <x>` con un
+ * unico argumento puede restaurar un fichero, y saberlo exige I/O que este
+ * modulo no hace. Por defecto todo cuenta como rama (el comportamiento previo).
+ */
+export function analizarComando(texto, esRama = () => true) {
     const ops = [];
     let destino = null;
     for (const bruto of segmentar(texto)) {
@@ -126,12 +159,12 @@ export function analizarComando(texto) {
             const sub = (seg[i] ?? '').toLowerCase();
             const args = seg.slice(i + 1);
             if (sub === 'checkout' || sub === 'switch') {
-                const nuevo = ramaDeCambio(args);
+                const nuevo = ramaDeCambio(args, esRama);
                 if (nuevo !== null)
                     destino = nuevo;
             }
             else if (sub === 'merge') {
-                if (args.some((a) => MERGE_SIN_MERGE.has(a)))
+                if (esControlDeMerge(args))
                     continue;
                 ops.push({ tipo: 'merge', fuentes: posicionales(args, MERGE_CON_VALOR), destino, dir });
             }
@@ -141,7 +174,7 @@ export function analizarComando(texto) {
         // analiza igual (MEN-1 de la revision: es una forma frecuente en agentes).
         const interior = textoDeShell(prog, seg);
         if (interior !== null) {
-            ops.push(...analizarComando(interior));
+            ops.push(...analizarComando(interior, esRama));
             continue;
         }
         // `bash script.sh rama`, `sh ./script.sh rama` o el script a secas.
@@ -166,9 +199,12 @@ export function analizarComando(texto) {
 /**
  * El comando que un shell recibe como texto, o null si no es esa forma:
  * `bash|sh|zsh|dash [opts] -c <texto>` (tambien `-lc`, `-ec`...),
- * `powershell|pwsh [opts] -Command|-c <texto...>` y `cmd /c|/k <texto...>`.
+ * `powershell|pwsh [opts] -Command|-c <texto...>`, `cmd /c|/k <texto...>` y
+ * (TASK-103) `eval <texto...>`.
  */
 function textoDeShell(prog, seg) {
+    if (prog === 'eval')
+        return seg.length > 1 ? seg.slice(1).join(' ') : null;
     if (SHELLS.has(prog)) {
         // Como bash: con -c, el texto es el primer argumento que no es opcion.
         const { fin, conC } = opcionesDeShell(seg);
@@ -244,7 +280,7 @@ function posicionales(args, conValor) {
  * La rama a la que deja un `git checkout|switch`, o null si no cambia de rama
  * (restaurar ficheros: `git checkout -- f`, `git checkout develop -- f`).
  */
-function ramaDeCambio(args) {
+function ramaDeCambio(args, esRama) {
     for (let i = 0; i < args.length; i++) {
         const a = args[i];
         if (CREAN_RAMA.has(a))
@@ -258,8 +294,10 @@ function ramaDeCambio(args) {
         return posicionales(antes, CAMBIO_CON_VALOR)[0] ?? null;
     }
     // `git checkout develop src/a.ts` (sin `--`) tambien restaura ficheros (MEN-2).
+    // `git checkout README.md` tambien (TASK-103): con un unico argumento que no
+    // es rama, no cambia de rama y el destino sigue siendo el anterior.
     const pos = posicionales(args, CAMBIO_CON_VALOR);
-    return pos.length === 1 ? pos[0] : null;
+    return pos.length === 1 && esRama(pos[0]) ? pos[0] : null;
 }
 /**
  * TASK-101: lo unico que puede acompanar al merge para que el guardian aplique
@@ -291,8 +329,8 @@ export function comandoSoloIntegra(texto) {
     if (analizarComando(texto).length !== 1)
         return false;
     const cuenta = { integraciones: 0 };
-    // NUE-2 de la revision: un `git merge -m --abort x` no cuenta en analizarComando
-    // pero si mergea; aqui se cuenta todo `git merge` y todo script de cierre.
+    // NUE-2 de la revision: se cuentan aparte todos los merges y scripts de cierre,
+    // con la misma regla que analizarComando (desde TASK-103, `-m --abort x` cuenta).
     return segmentosSoloIntegran(texto, cuenta) && cuenta.integraciones === 1;
 }
 /**
@@ -328,7 +366,7 @@ function segmentosSoloIntegran(texto, cuenta) {
             if (args.some((a) => a.startsWith('--output') || a === '-o' || a.startsWith('--exec')))
                 return false;
             if (sub === 'merge') {
-                if (args.some((a) => MERGE_SIN_MERGE.has(a)))
+                if (esControlDeMerge(args))
                     return false;
                 cuenta.integraciones++;
                 continue;
@@ -345,6 +383,9 @@ function segmentosSoloIntegran(texto, cuenta) {
                 continue;
             return false;
         }
+        // `eval` vuelve a expandir su texto: lo evaluado no seria lo que se ejecuta (TASK-103).
+        if (prog === 'eval')
+            return false;
         const interior = textoDeShell(prog, seg);
         if (interior !== null) {
             if (!segmentosSoloIntegran(interior, cuenta))

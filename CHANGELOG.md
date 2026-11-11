@@ -66,6 +66,21 @@ freno. Una config de la base invalida o un fallo al decidir no abortan: la
 selectiva con un aviso. Sin `rutas_documentacion`, `review` no lee la config
 de la base ni mira el arbol, como en la 0.14.0.
 
+Guardian de merges (TASK-103). **Cambio de comportamiento respecto a la
+0.14.0**: si `.taskcode/config.yml` existe pero no se puede leer (un valor
+invalido de cualquier clave, antigua o nueva), un merge o un script de cierre
+hacia `develop`, `main` o `master` queda BLOQUEADO, siempre, aunque lo que
+entra ya este integrado; el mensaje cita el error y remite a `taskctl doctor`
+y a `taskctl finish`. Antes una config mal escrita desactivaba el guardian. La
+lista es fija porque sin config no se sabe `rama_base`: hacia cualquier otra
+rama deja pasar, y sin fichero de config todo sigue como antes. Ademas detecta
+merges que antes se le escapaban: `git merge -m --abort x` (y `--quit`,
+`--continue`, `--skip` como valor de una opcion), `{ git merge x; }`,
+`time git merge x` y `eval git merge x`, que nunca reciben la exencion de
+solo documentacion; y `git checkout <fichero> && git merge x` ya no toma el
+fichero como rama destino (solo cuenta como rama un nombre que existe en
+`refs/heads/` o `refs/remotes/origin/`).
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).
