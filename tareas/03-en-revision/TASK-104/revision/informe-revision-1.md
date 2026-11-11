@@ -2,7 +2,7 @@
 
 - Commit revisado: e6be4de6a86a0dc92912662e3f79fe4538705dbc
 - Revisor: revisor independiente (agente general-purpose, skill code-quality-reviewer)
-- Veredicto: aprobada-con-correcciones
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
