@@ -145,10 +145,10 @@ function necesitaNivel2(diff: Rutas): boolean {
 }
 
 /**
- * TASK-105: el motivo que finish y el guardian muestran al exigir la completa.
- * Hasta que acepten la selectiva (B3/B5), una decision `selectiva` se ensena
- * como en la 0.14.0: su motivo («basta la verificacion de lo afectado»)
- * contradiria que se ejecuta la completa.
+ * TASK-105: el motivo que el guardian muestra al exigir la completa (finish
+ * acepta la selectiva desde TASK-106 y tiene el suyo). Hasta que el guardian la
+ * acepte (B5), una decision `selectiva` se ensena como en la 0.14.0: su motivo
+ * («basta la verificacion de lo afectado») contradiria que se exige la completa.
  */
 export function motivoDeLaCompleta(d: DecisionVerificacion): string {
   return d.tipo === 'selectiva' ? 'la tarea cambia rutas que no son documentacion' : d.motivo;

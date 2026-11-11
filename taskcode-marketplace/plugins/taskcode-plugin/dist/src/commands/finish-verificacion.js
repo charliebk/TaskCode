@@ -13,9 +13,20 @@
  * y el rastro sobrevive aunque el proceso muera despues del script. Escribirla
  * sin commitear ensuciaria el workspace y el script de Git-Flow abortaria.
  *
- * TASK-091: la verificacion selectiva no cuenta aqui. Aunque las rondas de
- * revision corrieran la selectiva, `finish` ejecuta la COMPLETA sobre el
- * commit que va a integrar, y el guardian solo lee el memo de la completa.
+ * TASK-091: sin `rutas_verificacion_parcial` en la base, la selectiva no
+ * cuenta aqui: aunque las rondas la corrieran, `finish` ejecuta la COMPLETA.
+ *
+ * TASK-106 (nivel 2): si la base declara `rutas_verificacion_parcial` y todo
+ * el codigo de la tarea cae en ellas, se ejecuta `comando_verificacion_selectiva`
+ * (con RAMA_BASE y su timeout) en vez de la completa. Excepcion acotada a la
+ * decision de TASK-072, de Carlos (2026-11-11): para la selectiva SI se
+ * reutiliza el memo del Stop o de review, solo si casa la huella (arbol
+ * limpio, mismo HEAD, misma base y su SHA) y estaba en verde; un rojo o un
+ * corte se vuelven a ejecutar. La completa sigue sin memo. El verde selectivo
+ * se guarda solo en el memo selectivo, nunca en el de la completa. Se anota en
+ * la tarea DESPUES del verde (anotar antes cambiaria HEAD y el memo no casaria
+ * nunca). Un hotfix nunca usa la selectiva (`permitirSelectiva`), pero
+ * conserva su camino de solo documentacion; un release no recibe `ramaBase`.
  *
  * Tras un verde se guarda el memo con la huella del arbol (limpio, igual que
  * `huellaDeCommit` del commit de la rama): es lo que consulta el guardian de
@@ -34,12 +45,13 @@ import { writeFile } from 'node:fs/promises';
 import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
-import { anotarVerificacionDocumentacion, anotarVerificacionOmitida } from '../core/transiciones.js';
-import { decidirVerificacionEntre, motivoDeLaCompleta } from '../fs/decision-documentacion.js';
+import { anotarVerificacionDocumentacion, anotarVerificacionOmitida, anotarVerificacionParcial, } from '../core/transiciones.js';
+import { comandoParcial } from '../core/verificacion-proporcional.js';
+import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
 import { currentBranch, isWorkspaceClean } from '../fs/git.js';
 import { autoCommit, mensajeChore } from '../fs/git-commit.js';
 import { readTareaFile } from '../fs/task-store.js';
-import { ejecutarVerificacion, guardarMemo, huellaDelArbol } from '../fs/verificacion.js';
+import { ejecutarVerificacion, guardarMemo, huellaDelArbol, verificarConMemo } from '../fs/verificacion.js';
 import { FinishCommandError } from './finish-opciones.js';
 export const FLAG_SIN_VERIFICACION = '--sin-verificacion';
 /** Saca `--sin-verificacion` de argv. */
@@ -62,7 +74,7 @@ function decisionDocumentacion(o, ramaBase) {
             `documentacion: se ejecuta la verificacion completa. Detalle: ${r.error.message.replace(/^\[ERROR\]\s*/, '')}`);
         return null;
     }
-    return { decision: r.decision, timeoutS: r.timeoutS };
+    return { decision: r.decision, timeoutS: r.timeoutS, timeoutSelectivaS: r.timeoutSelectivaS };
 }
 /**
  * Ejecuta la puerta. Devuelve la tarea releida (la anotacion del salto cambia
@@ -89,29 +101,21 @@ export async function puertaVerificacion(o) {
     }
     if (o.sinVerificacion) {
         const body = anotarVerificacionOmitida(o.initial.body, o.instante, comando);
-        await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
-        const c = autoCommit({
-            cwd: o.cwd,
-            rutas: [path.dirname(o.initial.filePath)],
-            mensaje: mensajeChore(o.id, 'cierre sin verificacion'),
-            push: false,
-        });
-        for (const a of c.avisos)
-            o.onAviso?.(a);
+        const { commit, tarea } = await anotarYCommitear(o, body, 'cierre sin verificacion', 'anotar el salto');
         o.onAviso?.(`${o.id}: cierre con ${FLAG_SIN_VERIFICACION}: no se ha ejecutado "${comando}". Queda anotado en ` +
-            `tarea.md (seccion "Verificacion omitida")${c.commit === null ? '' : `, commit ${c.commit}`}.`);
-        const releida = await readTareaFile(o.tareasRoot, o.id);
-        if (releida === null) {
-            throw new FinishCommandError(`[ERROR] ${o.id}: tarea.md desaparecio tras anotar el salto; revisa el repo a mano.`);
-        }
-        return { resultado: { tipo: 'omitida', commit: c.commit }, tarea: releida };
+            `tarea.md (seccion "Verificacion omitida")${commit === null ? '' : `, commit ${commit}`}.`);
+        return { resultado: { tipo: 'omitida', commit }, tarea };
     }
     const docs = o.ramaBase === undefined ? null : decisionDocumentacion(o, o.ramaBase);
     if (docs !== null && docs.decision.tipo === 'documentacion') {
         return puertaSoloDocumentacion(o, comando, docs.decision, docs.timeoutS);
     }
-    if (docs !== null) {
-        o.onAviso?.(`${o.id}: se ejecuta la verificacion completa: ${motivoDeLaCompleta(docs.decision)}.`);
+    if (docs !== null && docs.decision.tipo === 'selectiva' && o.permitirSelectiva === true) {
+        return puertaSelectiva(o, comando, docs.decision, docs.timeoutSelectivaS, o.ramaBase);
+    }
+    const motivoCompleta = docs === null ? null : motivoDeLaCompleta(docs.decision);
+    if (motivoCompleta !== null) {
+        o.onAviso?.(`${o.id}: se ejecuta la verificacion completa: ${motivoCompleta}.`);
     }
     const timeoutS = config.timeout_verificacion;
     const inicioMs = Date.now();
@@ -125,12 +129,7 @@ export async function puertaVerificacion(o) {
     if (r.estado !== 'verde') {
         throw new FinishCommandError(`[ERROR] ${o.id}: no se mergea con la verificacion en rojo. No se ha tocado nada.\n` +
             `${formatearVerificacionRoja(r)}\n` +
-            // TASK-091: con selectiva, que quede claro por que se corre la completa aunque las rondas pasaran.
-            (config.comando_verificacion_selectiva === null
-                ? ''
-                : 'Es la verificacion completa (comando_verificacion): se exige en verde sobre el commit que se ' +
-                    'integra aunque las rondas usaran la selectiva. Correla a mano con ese comando en la rama de la ' +
-                    'tarea hasta que salga en verde, commitea los arreglos y reintenta.\n') +
+            textoDeLaCompleta(config, motivoCompleta) +
             `Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y ` +
             'lo deja anotado en la tarea.');
     }
@@ -150,22 +149,8 @@ export async function puertaVerificacion(o) {
 async function puertaSoloDocumentacion(o, comando, decision, timeoutS) {
     const body = anotarVerificacionDocumentacion(o.initial.body, o.instante, comando, decision.motivo, decision.comando);
     // Un reintento tras un rojo de la comprobacion ya la tiene anotada: ni se reescribe ni se commitea otra vez.
-    let c = { commit: null, avisos: [] };
-    if (body !== o.initial.body) {
-        await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
-        c = autoCommit({
-            cwd: o.cwd,
-            rutas: [path.dirname(o.initial.filePath)],
-            mensaje: mensajeChore(o.id, 'cierre solo documentacion'),
-            push: false,
-        });
-    }
-    for (const a of c.avisos)
-        o.onAviso?.(a);
-    const releida = await readTareaFile(o.tareasRoot, o.id);
-    if (releida === null) {
-        throw new FinishCommandError(`[ERROR] ${o.id}: tarea.md desaparecio tras anotar la verificacion; revisa el repo a mano.`);
-    }
+    const { commit, tarea: releida } = await anotarYCommitear(o, body, 'cierre solo documentacion', 'anotar la verificacion');
+    const c = { commit };
     if (decision.comando !== null) {
         const r = ejecutarVerificacion(o.cwd, decision.comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
         const limpio = isWorkspaceClean(o.cwd);
@@ -192,4 +177,85 @@ async function puertaSoloDocumentacion(o, comando, decision, timeoutS) {
         ` Queda anotado en tarea.md (seccion "Verificacion de documentacion")` +
         `${c.commit === null ? '' : `, commit ${c.commit}`}.`);
     return { resultado: { tipo: 'documentacion', comando: decision.comando, motivo: decision.motivo }, tarea: releida };
+}
+/**
+ * TASK-106: por que se ejecuta la completa en un proyecto que la decide (la
+ * base declara `rutas_documentacion`). Una decision `selectiva` solo llega aqui
+ * si la puerta no la permite: un hotfix.
+ */
+function motivoDeLaCompleta(d) {
+    return d.tipo === 'selectiva' ? 'un hotfix integra en la principal y siempre se verifica con la completa' : d.motivo;
+}
+/**
+ * TASK-091 y TASK-106: la explicacion que acompana al rojo de la completa.
+ * Sin el nivel 2, la de la 0.14.0 (las rondas pudieron usar la selectiva). Con
+ * el nivel 2 y una decision tomada, su motivo real, en vez de afirmar que la
+ * selectiva no cuenta nunca.
+ */
+function textoDeLaCompleta(config, motivo) {
+    if (config.comando_verificacion_selectiva === null)
+        return '';
+    const pasos = 'Correla a mano con ese comando en la rama de la tarea hasta que salga en verde, commitea los arreglos y reintenta.\n';
+    if (comandoParcial(config) !== null && motivo !== null) {
+        return `Es la verificacion completa (comando_verificacion), no la selectiva, porque ${motivo}. ${pasos}`;
+    }
+    return ('Es la verificacion completa (comando_verificacion): se exige en verde sobre el commit que se ' +
+        `integra aunque las rondas usaran la selectiva. ${pasos}`);
+}
+/**
+ * Escribe el cuerpo nuevo de tarea.md, lo commitea en la rama y relee la
+ * tarea. Si el cuerpo no cambia (un reintento ya lo tiene anotado), ni se
+ * reescribe ni se commitea otra vez.
+ */
+async function anotarYCommitear(o, body, mensaje, que) {
+    let c = { commit: null, avisos: [] };
+    if (body !== o.initial.body) {
+        await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
+        c = autoCommit({
+            cwd: o.cwd,
+            rutas: [path.dirname(o.initial.filePath)],
+            mensaje: mensajeChore(o.id, mensaje),
+            push: false,
+        });
+    }
+    for (const a of c.avisos)
+        o.onAviso?.(a);
+    const releida = await readTareaFile(o.tareasRoot, o.id);
+    if (releida === null) {
+        throw new FinishCommandError(`[ERROR] ${o.id}: tarea.md desaparecio tras ${que}; revisa el repo a mano.`);
+    }
+    return { commit: c.commit, tarea: releida };
+}
+/**
+ * TASK-106: todo el codigo de la tarea cae en `rutas_verificacion_parcial` de
+ * la base. Corre la selectiva sobre el HEAD de la tarea SIN anotar todavia,
+ * para que case el memo del Stop o de review: solo uno verde se reutiliza, y
+ * solo casa con el arbol limpio (la huella lleva los ficheros sucios, y el memo
+ * selectivo solo se guarda con el arbol limpio). Su rojo bloquea como el de la
+ * completa y no deja nada escrito. Con el verde, anota y commitea en la rama
+ * antes del merge (`tareas/**` es documentacion: no cambia la decision de un
+ * reintento).
+ */
+async function puertaSelectiva(o, comando, decision, timeoutS, ramaBase) {
+    const v = verificarConMemo(o.cwd, { tipo: 'selectiva', comando: decision.comando, timeoutS, base: ramaBase, memoSoloVerde: true }, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
+    if (v.resultado.estado !== 'verde') {
+        throw new FinishCommandError(`[ERROR] ${o.id}: no se mergea con la verificacion selectiva en rojo (comando_verificacion_selectiva: ` +
+            `${decision.motivo}). No se ha tocado nada.\n` +
+            `${formatearVerificacionRoja(v.resultado)}\n` +
+            `Correla a mano en la rama de la tarea (con RAMA_BASE=${ramaBase}) hasta que salga en verde, commitea ` +
+            `los arreglos y reintenta. Si la persona decide cerrar igualmente, taskctl finish ${o.id} ` +
+            `${FLAG_SIN_VERIFICACION} lo salta y lo deja anotado en la tarea.`);
+    }
+    if (!isWorkspaceClean(o.cwd)) {
+        throw new FinishCommandError(`[ERROR] ${o.id}: la verificacion selectiva salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
+            `("${decision.comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita ` +
+            'el workspace limpio: ignoralos en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.');
+    }
+    const body = anotarVerificacionParcial(o.initial.body, o.instante, comando, decision.motivo, decision.comando);
+    const { commit, tarea } = await anotarYCommitear(o, body, 'cierre con verificacion parcial', 'anotar la verificacion');
+    o.onAviso?.(`${o.id}: ${decision.motivo}: se ejecuta la verificacion selectiva ("${decision.comando}") en vez de la ` +
+        `completa ("${comando}"), y sale en verde` +
+        (v.deMemo ? ' (resultado en verde guardado para este mismo commit: no se vuelve a ejecutar)' : '') +
+        `. Queda anotado en tarea.md (seccion "Verificacion parcial")${commit === null ? '' : `, commit ${commit}`}.`);
+    return { resultado: { tipo: 'selectiva', comando: decision.comando, motivo: decision.motivo, deMemo: v.deMemo }, tarea };
 }

@@ -211,8 +211,9 @@ export function verificarConMemo(raiz, p, opciones = {}) {
     const contexto = p.tipo === 'selectiva' ? contextoSelectiva(raiz, p.base) : undefined;
     const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
     const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
-    if (guardado !== null)
+    if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
         return { resultado: guardado, deMemo: true, cambioElArbol: false };
+    }
     const env = p.tipo === 'selectiva'
         ? { ...(opciones.env ?? process.env), [VARIABLE_RAMA_BASE]: p.base }
         : opciones.env;

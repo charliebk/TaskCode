@@ -373,12 +373,40 @@ export function anotarVerificacionDocumentacion(
       ? 'sin comprobacion de documentacion declarada'
       : `comprobacion de documentacion \`${sinComillas(comandoDocumentacion)}\``;
   const texto = `${motivo}; no se ejecuta \`${sinComillas(comando)}\`, ${corrio}`;
+  return anotarLineaUnica(body, SECCION_VERIFICACION_DOCUMENTACION, instante, texto);
+}
+
+/** TASK-106: seccion que deja `finish` cuando corre la selectiva del nivel 2 en vez de la completa. */
+export const SECCION_VERIFICACION_PARCIAL = '## Verificacion parcial';
+
+/**
+ * TASK-106: anota que `finish` integro con `comando_verificacion_selectiva` en
+ * verde y sin ejecutar `comando_verificacion`, con el motivo. Se anota solo
+ * tras el verde (un rojo no deja rastro que luego mienta). Un reintento con lo
+ * mismo no duplica la linea.
+ */
+export function anotarVerificacionParcial(
+  body: string,
+  instante: string,
+  comando: string,
+  motivo: string,
+  comandoSelectiva: string
+): string {
+  const sinComillas = (t: string): string => t.replace(/`/g, "'");
+  const texto =
+    `${motivo}; se ejecuta la selectiva \`${sinComillas(comandoSelectiva)}\` en verde, ` +
+    `no la completa \`${sinComillas(comando)}\``;
+  return anotarLineaUnica(body, SECCION_VERIFICACION_PARCIAL, instante, texto);
+}
+
+/** `- <instante>: <texto>` en la seccion, salvo que ya haya una linea con ese mismo texto (MEN-1 de TASK-100). */
+function anotarLineaUnica(body: string, titulo: string, instante: string, texto: string): string {
   const lineas = body.split(/\r?\n/);
-  const rango = rangoDeSeccion(lineas, SECCION_VERIFICACION_DOCUMENTACION);
+  const rango = rangoDeSeccion(lineas, titulo);
   if (rango !== null && lineas.slice(rango[0], rango[1]).some((l) => l.startsWith('- ') && l.endsWith(`: ${texto}`))) {
     return body;
   }
-  return anotarLineaEnSeccion(body, SECCION_VERIFICACION_DOCUMENTACION, `- ${instante}: ${texto}`);
+  return anotarLineaEnSeccion(body, titulo, `- ${instante}: ${texto}`);
 }
 
 function anotarLineaEnSeccion(body: string, titulo: string, linea: string): string {

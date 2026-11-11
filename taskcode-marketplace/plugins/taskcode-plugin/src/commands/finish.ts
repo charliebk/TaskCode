@@ -466,6 +466,8 @@ export async function runFinishCommand(
       // su diff propio puede ser solo el CHANGELOG, pero lleva a la principal
       // todo lo acumulado en la rama de integracion. Siempre la completa.
       ...(tipo === 'release' ? {} : { ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion }),
+      // TASK-106: un hotfix integra en la principal: nunca la selectiva (si su camino de solo documentacion).
+      permitirSelectiva: tipo !== 'hotfix',
     });
     // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
     // de que el comando de held-out pueda reescribirlo.

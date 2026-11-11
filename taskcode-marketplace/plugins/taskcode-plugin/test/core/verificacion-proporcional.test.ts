@@ -14,7 +14,7 @@ import {
   RUTA_TAREAS_SIEMPRE_DOCUMENTACION,
 } from '../../src/core/verificacion-proporcional.js';
 import { ConfigError, parsearConfig } from '../../src/core/config.js';
-import { anotarVerificacionDocumentacion } from '../../src/core/transiciones.js';
+import { anotarVerificacionDocumentacion, anotarVerificacionParcial } from '../../src/core/transiciones.js';
 import { rutasDeTarea } from '../../src/fs/git.js';
 
 const CFG = { rutas_documentacion: ['docs/**'], comando_verificacion_documentacion: null };
@@ -88,6 +88,17 @@ test('anotarVerificacionDocumentacion: crea la seccion y en un reintento anade l
   const dos = anotarVerificacionDocumentacion(una, '2026-11-11', 'npm `x`', 'solo docs', 'node d.js');
   assert.equal((dos.match(/^## Verificacion de documentacion$/gm) ?? []).length, 1);
   assert.match(dos, /- 2026-11-11: solo docs; no se ejecuta `npm 'x'`, comprobacion de documentacion `node d\.js`/);
+});
+
+test('anotarVerificacionParcial (TASK-106): crea su seccion, no duplica un reintento igual y no toca la de documentacion', () => {
+  const docs = anotarVerificacionDocumentacion('## Objetivo\n\nX.\n', '2026-11-10', 'npm test', 'solo docs', null);
+  const una = anotarVerificacionParcial(docs, '2026-11-11', 'npm test', 'todo en src', 'node `sel`.js');
+  assert.match(una, /## Verificacion parcial\n\n- 2026-11-11: todo en src; se ejecuta la selectiva `node 'sel'\.js` en verde, no la completa `npm test`\n$/);
+  assert.equal((una.match(/^## Verificacion de documentacion$/gm) ?? []).length, 1, 'secciones separadas');
+  assert.equal(anotarVerificacionParcial(una, '2026-11-12', 'npm test', 'todo en src', 'node `sel`.js'), una, 'idempotente');
+  const otra = anotarVerificacionParcial(una, '2026-11-12', 'npm test', 'otro motivo', 'node sel.js');
+  assert.equal((otra.match(/^## Verificacion parcial$/gm) ?? []).length, 1);
+  assert.match(otra, /- 2026-11-12: otro motivo;/);
 });
 
 test('rutasDeTarea: null si la base no existe; tildes y espacios salen tal cual', async () => {

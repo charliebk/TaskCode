@@ -226,6 +226,11 @@ export interface PeticionVerificacion {
   timeoutS: number;
   /** Rama base. Obligatoria en la selectiva (va en RAMA_BASE y en su huella); ignorada en la completa. */
   base?: string;
+  /**
+   * TASK-106 (finish): solo se reutiliza un resultado guardado en verde; uno
+   * rojo o cortado se vuelve a ejecutar. Sin ella (Stop, review), cualquiera.
+   */
+  memoSoloVerde?: boolean;
 }
 
 export interface VerificacionConMemo {
@@ -281,7 +286,9 @@ export function verificarConMemo(
   const contexto = p.tipo === 'selectiva' ? contextoSelectiva(raiz, p.base as string) : undefined;
   const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
   const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
-  if (guardado !== null) return { resultado: guardado, deMemo: true, cambioElArbol: false };
+  if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
+    return { resultado: guardado, deMemo: true, cambioElArbol: false };
+  }
 
   const env =
     p.tipo === 'selectiva'
