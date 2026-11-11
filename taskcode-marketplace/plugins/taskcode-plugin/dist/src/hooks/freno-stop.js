@@ -24,6 +24,16 @@
  * principal) en RAMA_BASE y su propio memo; sin ella, la completa, como
  * siempre. La puerta de integracion sigue siendo la completa de `finish`.
  *
+ * Solo documentacion (TASK-102): si la config del arbol declara
+ * `rutas_documentacion` y todo lo que cambia la tarea (sus commits frente a la
+ * base y lo que hay sin commitear o sin trackear) es documentacion, no se corre
+ * la suite: solo `comando_verificacion_documentacion` si se declara, y si no,
+ * nada. Se decide antes que la selectiva y con `peticionDeTrabajo`, la misma
+ * eleccion que usa review. Las rutas y el comando salen de la config de la
+ * BASE (como en finish y en el guardian); la del arbol solo abre la puerta, asi
+ * que sin la clave no hay ni un git mas que en la 0.14.0. Tarea sin tipo: no se
+ * exime nada.
+ *
  * Contrato con Claude Code (spike TASK-069 y documentacion oficial): exit 0
  * deja parar; exit 2 bloquea y el stderr le llega al agente; exit 1 NO
  * bloquea, asi que nunca se sale con 1 por accidente: decidirStop no lanza.
@@ -34,6 +44,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ConfigError, raizDelRepo, resolverConfigConAvisos } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
+import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
 import { verificarConMemo } from '../fs/verificacion.js';
@@ -146,28 +157,38 @@ export async function decidirStop(entrada, deps = {}) {
                     'Corrige .taskcode/config.yml y vuelve a verificar antes de dar la tarea por terminada.',
             };
         }
-        const selectiva = config.comando_verificacion_selectiva;
-        const clave = selectiva === null ? 'timeout_verificacion' : 'timeout_verificacion_selectiva';
-        const pedido = selectiva === null ? config.timeout_verificacion : config.timeout_verificacion_selectiva;
-        const { timeoutS, recortado } = timeoutEfectivoS(pedido);
-        const avisos = [];
+        const cfg = config;
+        const tipoTarea = tipo;
+        const { plan, avisos: avisosDecision } = peticionDeTrabajo({
+            config: cfg,
+            raiz,
+            base: () => (tipoTarea === null ? cfg.rama_base : resolveBaseBranchForTipo(tipoTarea, raiz)),
+            baseFiable: tipoTarea !== null,
+            sinSelectiva: 'completa',
+        });
+        const dejarParar = avisosDecision.length === 0 ? DEJAR_PARAR : { codigo: 0, stderr: avisosDecision.join('\n') };
+        // Solo documentacion sin comprobacion declarada: no hay nada que correr.
+        if (plan.tipo === 'nada' || (plan.tipo === 'documentacion' && plan.comando === null))
+            return dejarParar;
+        const clave = plan.tipo === 'selectiva' ? 'timeout_verificacion_selectiva' : 'timeout_verificacion';
+        const { timeoutS, recortado } = timeoutEfectivoS(plan.timeoutS);
+        const avisos = [...avisosDecision];
         if (recortado) {
-            avisos.push(`${clave} pide ${String(pedido)} s, pero este freno tiene un tope de ` +
+            avisos.push(`${clave} pide ${String(plan.timeoutS)} s, pero este freno tiene un tope de ` +
                 `${String(timeoutS)} s: se ha usado el tope.`);
         }
-        const peticion = selectiva === null
-            ? { tipo: 'completa', comando: config.comando_verificacion, timeoutS }
-            : {
-                tipo: 'selectiva',
-                comando: selectiva,
-                timeoutS,
-                base: tipo === null ? config.rama_base : resolveBaseBranchForTipo(tipo, raiz),
-            };
+        const peticion = plan.tipo === 'selectiva'
+            ? { tipo: 'selectiva', comando: plan.comando, timeoutS, base: plan.base }
+            : { tipo: plan.tipo, comando: plan.comando, timeoutS };
         // 8 y 9
         const deOpciones = deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs };
         const { resultado: r, deMemo, cambioElArbol } = verificarConMemo(raiz, peticion, deOpciones);
         if (r.estado === 'verde')
-            return DEJAR_PARAR;
+            return dejarParar;
+        if (plan.tipo === 'documentacion') {
+            avisos.push(`Es la comprobacion de documentacion (comando_verificacion_documentacion): ${plan.motivo}. ` +
+                'Antes de integrar se vuelve a exigir.');
+        }
         if (peticion.tipo === 'selectiva') {
             avisos.push(`Es la verificacion selectiva (por impacto respecto a ${peticion.base}); antes de integrar ` +
                 'se exige ademas la completa.');

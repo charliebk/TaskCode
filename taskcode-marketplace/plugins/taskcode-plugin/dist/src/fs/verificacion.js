@@ -171,6 +171,20 @@ function contextoSelectiva(raiz, base) {
     return `selectiva\0${base}\0${sha}`;
 }
 /**
+ * TASK-102: el memo de documentacion es uno solo y lo comparten el freno Stop,
+ * `finish` y el guardian (que lo busca por la huella del commit limpio). Con el
+ * arbol sucio no se guarda: machacaria el verde que `finish` dejo para el
+ * commit (gana el ultimo en escribir). Igual que hace `finish`.
+ */
+function arbolLimpio(raiz) {
+    try {
+        return fotoDelArbol(raiz).size === 0;
+    }
+    catch {
+        return false;
+    }
+}
+/**
  * Ejecuta la verificacion pedida, salvo que la ultima con la misma huella
  * este guardada: entonces devuelve esa. Guarda el resultado en el memo de su
  * tipo. No lanza por el comando (ejecutarVerificacion no lanza).
@@ -192,7 +206,7 @@ export function verificarConMemo(raiz, p, opciones = {}) {
         ...(env === undefined ? {} : { env }),
     });
     const despues = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
-    if (despues !== null)
+    if (despues !== null && (p.tipo !== 'documentacion' || arbolLimpio(raiz)))
         guardarMemo(raiz, despues, resultado, p.tipo);
     return { resultado, deMemo: false, cambioElArbol: huella !== null && despues !== null && huella !== despues };
 }
