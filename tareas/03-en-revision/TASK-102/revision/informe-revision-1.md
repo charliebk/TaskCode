@@ -8,9 +8,9 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/freno-stop.ts:185 (la base de `peticionDeTrabajo`) | implementacion |
-| MEN-2 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/test/hooks/freno-stop-documentacion.test.ts (falta un caso) | implementacion |
-| MEN-3 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/fs/decision-documentacion.ts:~79 y src/hooks/freno-stop.ts:~182 (`heldoutComoCodigo`) | plan |
+| MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/freno-stop.ts:185 (la base de `peticionDeTrabajo`) | implementacion |
+| MEN-2 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/test/hooks/freno-stop-documentacion.test.ts (falta un caso) | implementacion |
+| MEN-3 | MENOR | aceptado | taskcode-marketplace/plugins/taskcode-plugin/src/fs/decision-documentacion.ts:~79 y src/hooks/freno-stop.ts:~182 (`heldoutComoCodigo`) | plan |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
@@ -91,3 +91,9 @@ Sugerencia: confirmar y anotar que el `comando_verificacion` del Stop no corre l
 - `src/fs/verificacion.ts` completo (`huellaDelArbol`, `fotoDelArbol` via importacion, `leerMemo`, `guardarMemo`): para razonar sobre el memo y el arbol sucio (ya estaba en la lista; se leyo mas alla de lo cambiado).
 - `skills/task-workflow/revision.md` de la skill instalada (no del repo): la plantilla de informe.
 - `tareas/03-en-revision/TASK-102/revision/informe-revision-1.md`: la plantilla.
+
+## Correcciones (1c52181)
+
+- MEN-1 corregido: en el freno, un hotfix no se exime por documentacion (`baseDeTipoSinRed`): no se resuelve su base por red en cada turno; la verificacion de siempre, como en la 0.14.0.
+- MEN-2 corregido: test «un hotfix no se exime por documentacion ni va a la red a por su base» (origin inalcanzable; asevera la completa y cero `ls-remote`). El mutante M5 (`if (e.baseFiable)` -> `if (true)`) lo pone en rojo.
+- MEN-3 aceptado: el Stop clasifica los held-out igual que `finish`, que tampoco pasa `heldoutComoCodigo` (solo el guardian lo hace, porque el no corre la puerta de held-out). La suite de Stop no ejecuta `tareas/**/aceptacion/` en este repo (`dist/test/**`) y quien los ejecuta antes de integrar es la puerta propia de `finish`. Anotado en `peticionDeTrabajo`.
