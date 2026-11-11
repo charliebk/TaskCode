@@ -2,7 +2,7 @@
 
 - Commit revisado: c0fb85be8c337d7e66250a610ca4cd3bb2bdbd1c
 - Revisor: general-purpose, sonnet, skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-103 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 (El revisor propuso `aprobada-con-correcciones`; quien orquesta registra `cambios-solicitados`
 porque hay dos IMPORTANTE abiertos y, en modo automatico, lo que se mergea tiene que ser lo revisado.)
