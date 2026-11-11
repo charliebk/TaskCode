@@ -2,7 +2,7 @@
 
 - Commit revisado: 9547bd0d833f67330dfee801e73b4beba90ade30
 - Revisor: code-quality-reviewer (verificacion acotada, agente independiente, general-purpose, haiku)
-- Veredicto: aprobada-con-correcciones
+- Veredicto: aprobada con correcciones
 
 ## Hallazgos
 
