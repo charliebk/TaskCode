@@ -597,6 +597,14 @@ const RAMA_BASE_ES_DEVELOP = {
     hotfix: false,
 };
 /**
+ * TASK-102: true si la base del tipo se resuelve sin red (la de integracion,
+ * leida de la config). La de un hotfix es la principal, y resolverla puede
+ * costar `ls-remote`: el freno Stop, que corre en cada turno, no lo paga.
+ */
+export function baseDeTipoSinRed(tipo) {
+    return RAMA_BASE_ES_DEVELOP[tipo];
+}
+/**
  * Rama base esperada para un tipo de tarea (seccion 8.3): la rama base
  * configurada para feature/fix/release, resolveMainBranch() para
  * hotfix.
@@ -923,6 +931,33 @@ export function rutasDeTarea(base, hasta, patronesDocs, cwd) {
     try {
         const todas = partirNul(runGit([...diff, '--', ':(top)'], cwd));
         const fueraDeDocs = partirNul(runGit([...diff, '--', ':(top)', ...patronesDocs.map((p) => `:(top,exclude,glob)${p}`)], cwd));
+        return { todas, fueraDeDocs };
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * TASK-102: lo que el arbol de trabajo cambia frente a HEAD, con la misma forma
+ * y los mismos pathspecs que `rutasDeTarea`: lo preparado y lo no preparado
+ * (`git diff HEAD`) y lo no trackeado (`ls-files --others --exclude-standard`;
+ * `--full-name` para que salga desde la raiz, como el diff). Clasifica Git, no
+ * un glob en JS: un solo motor para `rutas_documentacion`. null si Git falla
+ * (sin commits, git roto): «no se sabe», nunca «solo lo no trackeado».
+ */
+export function rutasDelArbol(patronesDocs, cwd) {
+    const diff = [...SIN_COMILLAS, 'diff', '--name-only', '-z', '--no-renames', '--no-ext-diff', 'HEAD'];
+    const otros = [...SIN_COMILLAS, 'ls-files', '--others', '--exclude-standard', '--full-name', '-z'];
+    const excluir = patronesDocs.map((p) => `:(top,exclude,glob)${p}`);
+    try {
+        const todas = [
+            ...partirNul(runGit([...diff, '--', ':(top)'], cwd)),
+            ...partirNul(runGit([...otros, '--', ':(top)'], cwd)),
+        ];
+        const fueraDeDocs = [
+            ...partirNul(runGit([...diff, '--', ':(top)', ...excluir], cwd)),
+            ...partirNul(runGit([...otros, '--', ':(top)', ...excluir], cwd)),
+        ];
         return { todas, fueraDeDocs };
     }
     catch {
