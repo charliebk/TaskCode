@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-102 — Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion · etiquetas: verificacion, agilidad · rama feature/task-102-verificacion-proporcional-a3-el-freno-st · terminada 2026-11-11 · tareas/04-terminadas/TASK-102/
 - TASK-101 — Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion · etiquetas: verificacion, agilidad · rama feature/task-101-verificacion-proporcional-a2-el-guardian · terminada 2026-11-10 · tareas/04-terminadas/TASK-101/
 - TASK-100 — Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion · etiquetas: verificacion, agilidad · rama feature/task-100-verificacion-proporcional-a-una-tarea-qu · terminada 2026-11-10 · tareas/04-terminadas/TASK-100/
 - TASK-098 — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes · etiquetas: roadmap, agilidad · rama feature/task-098-roadmap-de-tareas-generado-por-taskctl-e · terminada 2026-11-10 · tareas/04-terminadas/TASK-098/

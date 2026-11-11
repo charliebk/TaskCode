@@ -12,12 +12,12 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-102 (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-096, TASK-103, TASK-019
+- **En marcha:** ninguna
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-096, TASK-103, TASK-104, TASK-019
 
 ## H0 — H0
 
-39 de 51 terminadas.
+40 de 51 terminadas.
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
@@ -69,9 +69,9 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-100 | Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion | media | — | ✅ terminada |
 | 9 | TASK-096 | Verificacion proporcional B: con codigo parcial se verifica solo lo afectado | alta | TASK-100 | lista para empezar |
 | — | TASK-101 | Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion | media | TASK-100 | ✅ terminada |
-| 10 | TASK-102 | Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion | media | TASK-100 | ▶ en diseño |
-| 11 | TASK-103 | Guardian de merges: config invalida bloquea y merges que hoy no detecta | simple | TASK-101 | lista para empezar |
-| 12 | TASK-104 | Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion | media | TASK-102 | espera a TASK-102 |
+| — | TASK-102 | Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion | media | TASK-100 | ✅ terminada |
+| 10 | TASK-103 | Guardian de merges: config invalida bloquea y merges que hoy no detecta | simple | TASK-101 | lista para empezar |
+| 11 | TASK-104 | Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion | media | TASK-102 | lista para empezar |
 
 ## H1 — H1
 
@@ -79,11 +79,11 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 13 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
-| 14 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
-| 15 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
-| 16 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
-| 17 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
+| 12 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
+| 13 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
+| 14 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
+| 15 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
+| 16 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
 
 ## H2 — H2
 
@@ -112,7 +112,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-016 | Brainstorm paralelo por roles con agente unificador | alta | TASK-010 | ✅ terminada |
 | — | TASK-017 | Catálogo de skills determinista con selección en dos pasos | alta | TASK-010 | ✅ terminada |
 | — | TASK-018 | Enrutado de revisor por diff real, fragmentado por dominio | alta | TASK-013 | ✅ terminada |
-| 18 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
+| 17 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
 | — | TASK-020 | Comando taskctl codex-review (segunda opinión independiente) | media | TASK-013 | ✅ terminada |
 | — | TASK-032 | Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) | media | — | ✅ terminada |
 | — | TASK-037 | F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos | simple | — | ✅ terminada |
@@ -125,7 +125,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 19 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
+| 18 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
 | — | TASK-022 | Documentación de equipo e incorporación de colaboradores | simple | TASK-021 | ✅ terminada |
 | — | TASK-023 | Métricas de coste en tokens por fase | media | TASK-014 | ✅ terminada |
 | — | TASK-040 | F3-T1 taskctl review para la ronda 2 y siguientes | media | — | ✅ terminada |

@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-102-verificacion-proporcional-a3-el-freno-st
 asignado_a: charlie.bk@gmail.com
@@ -53,6 +53,7 @@ Tercera parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 | 2026-11-11T00:21:37Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T01:00:51Z | review | automatico | persona | 0.14.0 |
 | 2026-11-11T01:36:22Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T02:22:11Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -67,3 +68,9 @@ Tercera parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 
 - code-quality-reviewer — abee9b6
 - code-quality-reviewer — 1c52181
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 121 min
+- Paso de la hora: 121 min reales frente a 55 estimados

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-102 (feature) — Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion (2026-11-11)
 - TASK-101 (feature) — Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion (2026-11-10)
 
 - TASK-100 (feature) — Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion (2026-11-10)
