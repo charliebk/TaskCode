@@ -18,6 +18,7 @@ import path from 'node:path';
 import { runReviewCommand, ReviewCommandError } from '../../src/commands/review.js';
 import { runVeredictoCommand } from '../../src/commands/veredicto.js';
 import { decidirStop } from '../../src/hooks/freno-stop.js';
+import { writeTareaFile } from '../../src/fs/task-store.js';
 import {
   SCRIPTS_DIR,
   sampleTask,
@@ -49,7 +50,11 @@ interface Entorno {
  * Repo con la config commiteada en develop y una tarea en curso en su rama, sin
  * ningun cambio aun (solo su tarea.md, que siempre cuenta como documentacion).
  */
-async function conTarea(config: (e: Omit<Entorno, 'repoRoot' | 'tareasRoot'>) => string, fn: (e: Entorno) => Promise<void>): Promise<void> {
+async function conTarea(
+  config: (e: Omit<Entorno, 'repoRoot' | 'tareasRoot'>) => string,
+  fn: (e: Entorno) => Promise<void>,
+  tipo: 'feature' | 'hotfix' = 'feature'
+): Promise<void> {
   const fuera = await mkdtemp(path.join(tmpdir(), 'review-docs-fuera-'));
   await writeFile(path.join(fuera, 'verif.cjs'), SCRIPT, 'utf8');
   const base = {
@@ -62,12 +67,21 @@ async function conTarea(config: (e: Omit<Entorno, 'repoRoot' | 'tareasRoot'>) =>
   };
   try {
     await withTempRepo(async (repoRoot, tareasRoot) => {
+      // Un hotfix nace de la principal: la config tiene que estar alli.
+      if (tipo === 'hotfix') git(['checkout', '-q', 'main'], repoRoot);
       await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
       await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), config(base), 'utf8');
       await mkdir(path.join(repoRoot, 'docs'), { recursive: true });
       await writeFile(path.join(repoRoot, 'docs', 'guia.md'), 'guia\n', 'utf8');
       commitAll(repoRoot, 'config y docs');
-      await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, sampleTask());
+      if (tipo === 'hotfix') {
+        const t = sampleTask({ tipo: 'hotfix', rama: 'hotfix/task-600-docs' });
+        git(['checkout', '-q', '-b', t.rama, 'main'], repoRoot);
+        await writeTareaFile(tareasRoot, t, '## Objetivo\nProbar review.\n');
+        commitAll(repoRoot, 'tarea en curso');
+      } else {
+        await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, sampleTask());
+      }
       await fn({ ...base, repoRoot, tareasRoot });
     });
   } finally {
@@ -284,4 +298,21 @@ test('review (TASK-104): la comprobacion de documentacion en rojo aborta sin ron
     assert.ok(!existsSync(path.join(e.tareasRoot, '03-en-revision', 'TASK-600')), 'la tarea sigue en curso');
     assert.equal(git(['status', '--porcelain'], e.repoRoot), '');
   });
+});
+
+test('Stop y review (TASK-104): en un hotfix de solo documentacion los dos corren la selectiva (la base no se exime)', async () => {
+  await conTarea(
+    tresClaves,
+    async (e) => {
+      await cambiar(e, 'docs/guia.md', 'guia ampliada\n');
+      const d = await stop(e);
+      assert.equal(d.codigo, 0, d.stderr);
+      assert.equal(e.ejecuciones('selectiva'), 1, 'Stop: la selectiva');
+      assert.equal(e.ejecuciones('docs'), 0);
+      const r = await review(e);
+      assert.match(peticionDe(r), /- Tipo: selectiva \(por impacto respecto a `main`/);
+      assert.equal(e.ejecuciones('docs'), 0, 'review tampoco exime al hotfix');
+    },
+    'hotfix'
+  );
 });
