@@ -399,6 +399,22 @@ export function anotarVerificacionParcial(
   return anotarLineaUnica(body, SECCION_VERIFICACION_PARCIAL, instante, texto);
 }
 
+/**
+ * TASK-106 (modo 6 de riesgos): si un intento anterior dejo la seccion de
+ * verificacion parcial y este exige la completa (el arreglo saco codigo de las
+ * rutas parciales), lo anota para que la seccion no afirme solo la selectiva.
+ * Sin la seccion devuelve el cuerpo tal cual: nada nuevo en una tarea normal.
+ */
+export function anotarCompletaTrasParcial(body: string, instante: string, comando: string, motivo: string): string {
+  if (!tieneSeccion(body, SECCION_VERIFICACION_PARCIAL)) return body;
+  const texto = `${motivo}; este intento exige la completa \`${comando.replace(/`/g, "'")}\``;
+  return anotarLineaUnica(body, SECCION_VERIFICACION_PARCIAL, instante, texto);
+}
+
+function tieneSeccion(body: string, titulo: string): boolean {
+  return rangoDeSeccion(body.split(/\r?\n/), titulo) !== null;
+}
+
 /** `- <instante>: <texto>` en la seccion, salvo que ya haya una linea con ese mismo texto (MEN-1 de TASK-100). */
 function anotarLineaUnica(body: string, titulo: string, instante: string, texto: string): string {
   const lineas = body.split(/\r?\n/);

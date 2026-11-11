@@ -45,7 +45,7 @@ import { writeFile } from 'node:fs/promises';
 import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
-import { anotarVerificacionDocumentacion, anotarVerificacionOmitida, anotarVerificacionParcial, } from '../core/transiciones.js';
+import { anotarCompletaTrasParcial, anotarVerificacionDocumentacion, anotarVerificacionOmitida, anotarVerificacionParcial, } from '../core/transiciones.js';
 import { comandoParcial } from '../core/verificacion-proporcional.js';
 import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
 import { currentBranch, isWorkspaceClean } from '../fs/git.js';
@@ -117,6 +117,15 @@ export async function puertaVerificacion(o) {
     if (motivoCompleta !== null) {
         o.onAviso?.(`${o.id}: se ejecuta la verificacion completa: ${motivoCompleta}.`);
     }
+    // TASK-106: un intento anterior anoto la selectiva; se anota (y commitea) antes de correr, como la
+    // via de documentacion, para que el memo de la completa case con el commit que se integra.
+    let tarea = o.initial;
+    if (motivoCompleta !== null) {
+        const body = anotarCompletaTrasParcial(o.initial.body, o.instante, comando, motivoCompleta);
+        if (body !== o.initial.body) {
+            tarea = (await anotarYCommitear(o, body, 'reintento con verificacion completa', 'anotar la verificacion')).tarea;
+        }
+    }
     const timeoutS = config.timeout_verificacion;
     const inicioMs = Date.now();
     const r = ejecutarVerificacion(o.cwd, comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
@@ -138,7 +147,7 @@ export async function puertaVerificacion(o) {
             `("${comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita el ` +
             'workspace limpio: ignora esos ficheros en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.');
     }
-    return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea: o.initial };
+    return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea };
 }
 /**
  * TASK-100: la tarea solo cambia documentacion. Primero se anota y commitea

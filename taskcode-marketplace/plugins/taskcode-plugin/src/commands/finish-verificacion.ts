@@ -46,6 +46,7 @@ import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import {
+  anotarCompletaTrasParcial,
   anotarVerificacionDocumentacion,
   anotarVerificacionOmitida,
   anotarVerificacionParcial,
@@ -174,6 +175,15 @@ export async function puertaVerificacion(
   if (motivoCompleta !== null) {
     o.onAviso?.(`${o.id}: se ejecuta la verificacion completa: ${motivoCompleta}.`);
   }
+  // TASK-106: un intento anterior anoto la selectiva; se anota (y commitea) antes de correr, como la
+  // via de documentacion, para que el memo de la completa case con el commit que se integra.
+  let tarea = o.initial;
+  if (motivoCompleta !== null) {
+    const body = anotarCompletaTrasParcial(o.initial.body, o.instante, comando, motivoCompleta);
+    if (body !== o.initial.body) {
+      tarea = (await anotarYCommitear(o, body, 'reintento con verificacion completa', 'anotar la verificacion')).tarea;
+    }
+  }
 
   const timeoutS = config.timeout_verificacion;
   const inicioMs = Date.now();
@@ -199,7 +209,7 @@ export async function puertaVerificacion(
         'workspace limpio: ignora esos ficheros en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.'
     );
   }
-  return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea: o.initial };
+  return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea };
 }
 
 /**

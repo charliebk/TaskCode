@@ -12,10 +12,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { readTareaFile } from '../../src/fs/task-store.js';
+import { readTareaFile, writeTareaFile } from '../../src/fs/task-store.js';
 import { runFinishCommand, FinishCommandError } from '../../src/commands/finish.js';
 import { resolverConfig } from '../../src/core/config.js';
-import { guardarMemo, huellaDelArbol, contextoSelectiva, verificarConMemo } from '../../src/fs/verificacion.js';
+import { guardarMemo, huellaDelArbol, huellaDeCommit, leerMemo, contextoSelectiva, verificarConMemo } from '../../src/fs/verificacion.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
 
 // argv[2] = 'completa' | 'sel': cada uno con su contador y su desenlace.
@@ -348,4 +348,24 @@ test('finish (TASK-106): un rojo o un corte guardados de la selectiva no se reut
       assert.ok(integrada(task.rama, 'develop', e.repoRoot));
     });
   }
+});
+
+test('finish (TASK-106): un reintento que acaba en la completa lo anota bajo la selectiva anotada antes, y el memo de la completa casa', async () => {
+  await conEntorno(({ sel }) => NIVEL2(sel), async (e) => {
+    const task = sampleTask({ id: 'TASK-964' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    // Lo que dejo un intento anterior: la selectiva en verde, anotada y commiteada (el merge no llego).
+    const t0 = await readTareaFile(e.tareasRoot, 'TASK-964');
+    await writeTareaFile(e.tareasRoot, t0!.task, `${t0!.body.replace(/\s*$/, '')}\n\n## Verificacion parcial\n\n- 2026-11-10: todo en src; se ejecuta la selectiva en verde\n`);
+    commitAll(e.repoRoot, 'intento anterior');
+    await enLaRama(e, 'lib/util.ts');
+    await finish(e, 'TASK-964');
+    assert.equal(e.ejecuciones('completa'), 1);
+    assert.equal(e.ejecuciones('sel'), 0);
+    const t = await readTareaFile(e.tareasRoot, 'TASK-964');
+    assert.match(t?.body ?? '', /- 2026-11-11: la tarea cambia rutas fuera de rutas_verificacion_parcial: lib\/util\.ts; este intento exige la completa `node .*completa`/);
+    assert.match(git(['log', '--format=%s', 'develop'], e.repoRoot), /reintento con verificacion completa/);
+    const huella = huellaDeCommit(e.repoRoot, task.rama, e.comandoCompleta, 600) as string;
+    assert.equal(leerMemo(e.repoRoot, huella, 'completa')?.estado, 'verde', 'el verde de la completa es del commit integrado');
+  });
 });
