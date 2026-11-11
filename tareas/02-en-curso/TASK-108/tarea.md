@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-108-verificacion-proporcional-b5-el-guardian
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ Quinta parte de TASK-096. Decision de Carlos (D1, 2026-11-11): el guardian de me
 |---|---|---|---|---|
 | 2026-11-11T22:40:40Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-11T22:47:59Z | approve | automatico | automatico | 0.14.0 |
+| 2026-11-11T22:48:10Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
