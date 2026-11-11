@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-096-verificacion-proporcional-al-cambio-una
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
-actualizado: 2026-11-10
+actualizado: 2026-11-11
 dependencias: [TASK-100]
 ---
 ## Objetivo
@@ -36,3 +36,9 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 - [ ] El plan deja escrita la decision sobre TASK-091 y lo que se retira; el codigo que quede sin uso se borra y los tests que cambian de expectativa llevan su motivo en Resultado
 - [ ] skills/task-workflow (verificacion-selectiva.md), README y CHANGELOG explican el principio de coste proporcional al cambio y como lo declara un proyecto
 - [ ] La suite completa de TaskCode pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-11T15:04:19Z | plan | automatico | persona | 0.14.0 |
