@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { runReviewCommand } from '../../src/commands/review.js';
+import { runReviewCommand, ReviewCommandError } from '../../src/commands/review.js';
 import { runVeredictoCommand } from '../../src/commands/veredicto.js';
 import { decidirStop } from '../../src/hooks/freno-stop.js';
 import {
@@ -33,6 +33,7 @@ const SCRIPT = `
 const fs = require('node:fs');
 const path = require('node:path');
 fs.appendFileSync(path.join(__dirname, 'cuenta-' + process.argv[2]), 'x');
+if (fs.existsSync(path.join(__dirname, 'falla-' + process.argv[2]))) { console.error(process.argv[2] + ': ERROR, enlace roto'); process.exit(3); }
 console.log(process.argv[2] + ': verde');
 `;
 
@@ -263,4 +264,24 @@ test('review (TASK-104): en una ronda de documentacion la cobertura se oculta y 
       assert.match(peticion, /- Cobertura: no se muestra en esta ronda\. Solo cambia documentacion y no se ha corrido ningun test/);
     }
   );
+});
+
+test('review (TASK-104): la comprobacion de documentacion en rojo aborta sin ronda y dice que fue esa, sin RAMA_BASE', async () => {
+  await conTarea(tresClaves, async (e) => {
+    await writeFile(path.join(e.fuera, 'falla-docs'), '', 'utf8');
+    await cambiar(e, 'docs/guia.md', 'guia ampliada\n');
+    await assert.rejects(
+      () => review(e),
+      (err: unknown) => {
+        assert.ok(err instanceof ReviewCommandError);
+        assert.match(err.message, /la comprobacion de documentacion \(comando_verificacion_documentacion: solo cambia documentacion\) no esta en verde/);
+        assert.match(err.message, /docs: ERROR, enlace roto/);
+        assert.doesNotMatch(err.message, /selectiva|RAMA_BASE/);
+        return true;
+      }
+    );
+    assert.equal(e.ejecuciones('selectiva'), 0);
+    assert.ok(!existsSync(path.join(e.tareasRoot, '03-en-revision', 'TASK-600')), 'la tarea sigue en curso');
+    assert.equal(git(['status', '--porcelain'], e.repoRoot), '');
+  });
 });
