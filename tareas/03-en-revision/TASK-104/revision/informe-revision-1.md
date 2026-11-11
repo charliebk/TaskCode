@@ -8,8 +8,8 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/test/commands/review-documentacion.test.ts (falta el test); src/commands/review.ts:~1060 (`baseFiable: baseDeTipoSinRed(tipoTarea)`) | implementacion |
-| MEN-2 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/commands/review.ts (rama `catch` de `verificacionDeRonda`) / test/commands/review-documentacion.test.ts | implementacion |
+| MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/test/commands/review-documentacion.test.ts (falta el test); src/commands/review.ts:~1060 (`baseFiable: baseDeTipoSinRed(tipoTarea)`) | implementacion |
+| MEN-2 | MENOR | aceptado | taskcode-marketplace/plugins/taskcode-plugin/src/commands/review.ts (rama `catch` de `verificacionDeRonda`) / test/commands/review-documentacion.test.ts | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
@@ -50,3 +50,8 @@ No hay hallazgos CRITICOS ni IMPORTANTES.
 
 - `src/fs/decision-documentacion.ts`, `src/fs/verificacion.ts` y `src/fs/git.ts` (`baseDeTipoSinRed`, `rutasDelArbol`): dependencias directas de `review.ts`, para comprobar que comparte funcion y `baseFiable` con Stop y situar los mutantes.
 - `tareas/01-en-diseno/TASK-102/planificacion/plan-final.md`: no existe en esa ruta; se uso el plan de TASK-104.
+
+## Estado tras la ronda
+
+- MEN-1: corregido. Test nuevo «Stop y review (TASK-104): en un hotfix de solo documentacion los dos corren la selectiva»; el mutante `baseFiable: true` ahora lo tumba.
+- MEN-2: aceptado. `peticionDeTrabajo` no lanza por ningun camino alcanzable (la config de la base invalida la resuelve por dentro y `configDeRef` con una ref inexistente da la config por defecto): forzar el `catch` exigiria un doble, y la suite no usa mocks. Se deja como defensa en profundidad, documentada en el comentario de `verificacionDeRonda`.
