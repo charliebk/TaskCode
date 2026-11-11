@@ -56,3 +56,4 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 ## Autorrevision
 
 - code-quality-reviewer — 784fd97
+- code-quality-reviewer — 6f1662e
