@@ -32,6 +32,20 @@ con la config del destino invalida o pasado un presupuesto de 20 s. El
 mensaje de bloqueo dice por que no se aplico. Sin `rutas_documentacion`, el
 guardian se comporta y escribe igual que en la 0.14.0.
 
+Verificacion proporcional, parte A3a (TASK-102): el freno Stop tampoco corre
+la suite en un turno de solo documentacion; corre `comando_verificacion_documentacion`
+si se declara, y si no, nada. **Cambio de comportamiento para quien ya
+declaro `rutas_documentacion`** con TASK-100: sus turnos de solo documentacion
+dejan de correr la suite. Cuenta tambien el arbol de trabajo: un fichero de
+codigo modificado, preparado o sin seguimiento hace que el turno no sea de
+solo documentacion (lo clasifica Git, con los mismos patrones que `finish`).
+Se decide antes que la selectiva y con una sola funcion (`peticionDeTrabajo`)
+que review usara en TASK-104. Con el arbol sucio la comprobacion de
+documentacion no guarda su memo, para no pisar el verde que `finish` deja
+para el commit. Una config de la base invalida no bloquea: la verificacion de
+siempre con un aviso. Sin `rutas_documentacion` en la config, el freno no
+lanza ni un proceso git mas que en la 0.14.0.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).
