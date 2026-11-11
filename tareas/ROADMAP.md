@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-096, TASK-102, TASK-103, TASK-019
+- **En marcha:** TASK-102 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-096, TASK-103, TASK-019
 
 ## H0 — H0
 
@@ -69,8 +69,8 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-100 | Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion | media | — | ✅ terminada |
 | 9 | TASK-096 | Verificacion proporcional B: con codigo parcial se verifica solo lo afectado | alta | TASK-100 | lista para empezar |
 | — | TASK-101 | Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion | media | TASK-100 | ✅ terminada |
-| 10 | TASK-102 | Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion | media | TASK-100 | lista para empezar |
-| 11 | TASK-103 | Guardian de merges con config invalida: bloquea hacia rama protegida en vez de desactivarse | simple | TASK-101 | lista para empezar |
+| 10 | TASK-102 | Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion | media | TASK-100 | ▶ en diseño |
+| 11 | TASK-103 | Guardian de merges: config invalida bloquea y merges que hoy no detecta | simple | TASK-101 | lista para empezar |
 
 ## H1 — H1
 

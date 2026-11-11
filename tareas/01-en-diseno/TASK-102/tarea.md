@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-102-verificacion-proporcional-a3-el-freno-st
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
-actualizado: 2026-11-10
+actualizado: 2026-11-11
 dependencias: [TASK-100]
 ---
 ## Objetivo
@@ -33,3 +33,9 @@ Tercera parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 - [ ] Sin la configuracion nueva Stop y review se comportan exactamente como en la 0.14.0 y no lanzan ningun proceso git nuevo (test de regresion)
 - [ ] verificacion-selectiva.md, README y CHANGELOG explican el comportamiento de Stop y review
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-11T00:08:16Z | plan | automatico | persona | 0.14.0 |
