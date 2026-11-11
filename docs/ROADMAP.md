@@ -12,9 +12,9 @@
 
 | | Tareas |
 |---|---|
-| Terminadas | **97** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-092, TASK-095, TASK-097, TASK-098, TASK-100, TASK-101, TASK-102) |
+| Terminadas | **98** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-092, TASK-095, TASK-097, TASK-098, TASK-100, TASK-101, TASK-102, TASK-104) |
 | Descartadas | 3 (TASK-019, TASK-093, TASK-094) |
-| **Pendientes** | **4** (TASK-104, TASK-103, TASK-096; TASK-099 para la 0.15.0) |
+| **Pendientes** | **3** (TASK-103, TASK-096; TASK-099 para la 0.15.0) |
 | Versión publicada | **0.14.0** (2026-11-10) |
 
 ---
@@ -30,10 +30,9 @@ las revisiones de 2,3 a 3,8 rondas. La 0.14.0 trae la revisión que converge
 
 | Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
 |---|---|---|---|---|---|
-| 1 | TASK-104 | Verificación proporcional A3b: las rondas de review no corren la suite si solo cambia documentación | media | alta | TASK-102 |
-| 2 | TASK-103 | Guardián de merges: config inválida bloquea y merges que hoy no detecta | simple | alta | TASK-101 |
-| 3 | TASK-096 | Verificación proporcional B: con código parcial se verifica solo lo afectado | alta | media | TASK-100 |
-| 4 | TASK-099 | Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | 0.15.0 | 10 tareas medidas con la 0.14.0 |
+| 1 | TASK-103 | Guardián de merges: config inválida bloquea y merges que hoy no detecta | simple | alta | TASK-101 |
+| 2 | TASK-096 | Verificación proporcional B: con código parcial se verifica solo lo afectado | alta | media | TASK-100 |
+| 3 | TASK-099 | Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | 0.15.0 | 10 tareas medidas con la 0.14.0 |
 
 TASK-099 sale de OpenDockTrading TASK-067, la primera tarea cerrada con la 0.14.0
 (15 min de punta a punta, rondas de 1,42 M, 0,74 M y 0,37 M tokens): la ronda 3 se
@@ -96,10 +95,11 @@ item A1. Las carpetas de TASK-001 a TASK-012 y TASK-021 siguen en
 `tareas/00-planificadas/` porque se hicieron antes de que existiera el ciclo
 de `taskctl`; su cierre consta en el checklist, no en la carpeta.
 
-### Sin publicar — 3 tareas
+### Sin publicar — 4 tareas
 
 | Tarea | Título | Cierre |
 |---|---|---|
+| TASK-104 | Verificación proporcional A3b: las rondas de review no corren la suite si solo cambia documentación | 2026-11-11 |
 | TASK-102 | Verificación proporcional A3a: el freno Stop no corre la suite si solo cambia documentación | 2026-11-11 |
 | TASK-101 | Verificación proporcional A2: el guardián de merges no exige la completa si la tarea solo cambia documentación | 2026-11-10 |
 | TASK-100 | Verificación proporcional A1: finish no corre la suite si la tarea solo cambia documentación | 2026-11-10 |

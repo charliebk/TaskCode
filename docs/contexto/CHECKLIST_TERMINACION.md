@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 108 / 112 items terminados (96%)** · última actualización: 2026-11-11
+**Progreso global: 109 / 112 items terminados (97%)** · última actualización: 2026-11-11
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 11 | **7** | — |
-| **Total pendiente** | **4** | — | — |
+| ⏳ P — Agilidad sin perder calidad | 11 | **8** | — |
+| **Total pendiente** | **3** | — | — |
 
 ---
 
@@ -1144,7 +1144,7 @@ del código.
 - [x] TASK-100 — Verificación proporcional A1: finish no corre la suite si la tarea solo cambia documentación — cerrada el 2026-11-10
 - [x] TASK-101 — Verificación proporcional A2: el guardián de merges — cerrada el 2026-11-10
 - [x] TASK-102 — Verificación proporcional A3a: el freno Stop no corre la suite si solo cambia documentación — cerrada el 2026-11-11
-- [ ] TASK-104 — Verificación proporcional A3b: las rondas de review no corren la suite si solo cambia documentación (depende de TASK-102)
+- [x] TASK-104 — Verificación proporcional A3b: las rondas de review no corren la suite si solo cambia documentación — cerrada el 2026-11-11
 - [ ] TASK-103 — Guardián de merges: config inválida bloquea y merges que hoy no detecta (`{ }`, `time`, `eval`, `-m --abort`)
 - [ ] TASK-096 — Verificación proporcional B: con código parcial se verifica solo lo afectado (troceada: la parte A son TASK-100 a 102)
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
