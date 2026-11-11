@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-107-verificacion-proporcional-b4-stop-review
 asignado_a: charlie.bk@gmail.com
@@ -37,6 +37,7 @@ Cuarta parte de TASK-096. Solo tests, sin codigo de produccion salvo que destape
 |---|---|---|---|---|
 | 2026-11-11T21:31:01Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-11T21:34:38Z | approve | automatico | automatico | 0.14.0 |
+| 2026-11-11T21:34:51Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
