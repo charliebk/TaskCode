@@ -2,7 +2,7 @@
 
 - Commit revisado: 96debe0ee8da5fbc5ddf4bd137d3832b980c7e73
 - Revisor: general-purpose, haiku, skill code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-103 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
