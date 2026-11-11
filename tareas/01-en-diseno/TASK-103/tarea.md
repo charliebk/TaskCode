@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 503390
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -41,3 +41,9 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T10:32:04Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-11T10:38:15Z | diseno | agente:a55b886637a7f1998 | 30 | 43158 | 446024 | 14178 | 22 | 503390 | - | - |
