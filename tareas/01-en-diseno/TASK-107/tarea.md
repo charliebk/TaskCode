@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 418851
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-11
@@ -36,3 +36,9 @@ Cuarta parte de TASK-096. Solo tests, sin codigo de produccion salvo que destape
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T21:31:01Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-11T21:34:27Z | diseno | agente:a63dec4bad1925d79 | 24 | 53030 | 355800 | 9997 | 19 | 418851 | - | - |
