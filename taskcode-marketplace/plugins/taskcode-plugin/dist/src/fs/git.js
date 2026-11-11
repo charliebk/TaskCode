@@ -926,12 +926,49 @@ export function numeroDePadres(commit, cwd) {
  * de la revision: con `.`, el codigo fuera de la subcarpeta no salia).
  */
 export function rutasDeTarea(base, hasta, patronesDocs, cwd) {
-    const rango = `${base}...${hasta}`;
-    const diff = [...SIN_COMILLAS, 'diff', '--name-only', '-z', '--no-renames', '--no-ext-diff', rango];
+    let todas;
     try {
-        const todas = partirNul(runGit([...diff, '--', ':(top)'], cwd));
-        const fueraDeDocs = partirNul(runGit([...diff, '--', ':(top)', ...patronesDocs.map((p) => `:(top,exclude,glob)${p}`)], cwd));
-        return { todas, fueraDeDocs };
+        todas = partirNul(runGit([...diffDeRango(base, hasta), '--', ':(top)'], cwd));
+    }
+    catch {
+        return null;
+    }
+    const fueraDeDocs = rutasFueraDe(base, hasta, patronesDocs, cwd);
+    return fueraDeDocs === null ? null : { todas, fueraDeDocs };
+}
+function diffDeRango(base, hasta) {
+    return [...SIN_COMILLAS, 'diff', '--name-only', '-z', '--no-renames', '--no-ext-diff', `${base}...${hasta}`];
+}
+const excluirPatrones = (patrones) => patrones.map((p) => `:(top,exclude,glob)${p}`);
+/**
+ * TASK-105: solo la lista de `rutasDeTarea` que no casa con `patrones`, con el
+ * mismo diff y los mismos pathspecs (un proceso git). La usa el nivel 2, que ya
+ * tiene `todas` del primer diff y solo necesita lo que queda fuera de las rutas
+ * parciales. null si Git falla.
+ */
+export function rutasFueraDe(base, hasta, patrones, cwd) {
+    try {
+        return partirNul(runGit([...diffDeRango(base, hasta), '--', ':(top)', ...excluirPatrones(patrones)], cwd));
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * TASK-105: commits a los que apuntan `refs` ahora mismo, en un solo proceso.
+ * El nivel 2 diffea dos veces el mismo rango: con los SHA fijados, un commit
+ * que entre entre los dos diffs no hace que cada uno vea una rama distinta.
+ * null si alguno no resuelve.
+ */
+export function resolverCommits(refs, cwd) {
+    try {
+        // Sin `--verify`, que solo admite una ref; una que no resuelve hace fallar el
+        // proceso igual. Sin el, rev-parse repite `--end-of-options` en la salida:
+        // solo cuentan las lineas que son un SHA.
+        const shas = runGit(['rev-parse', '--end-of-options', ...refs.map((r) => `${r}^{commit}`)], cwd)
+            .split(/\r?\n/)
+            .filter((l) => /^[0-9a-f]{40,64}$/.test(l));
+        return shas.length === refs.length ? shas : null;
     }
     catch {
         return null;
@@ -946,19 +983,26 @@ export function rutasDeTarea(base, hasta, patronesDocs, cwd) {
  * (sin commits, git roto): «no se sabe», nunca «solo lo no trackeado».
  */
 export function rutasDelArbol(patronesDocs, cwd) {
+    const todas = rutasDelArbolFueraDe([], cwd);
+    if (todas === null)
+        return null;
+    const fueraDeDocs = rutasDelArbolFueraDe(patronesDocs, cwd);
+    return fueraDeDocs === null ? null : { todas, fueraDeDocs };
+}
+/**
+ * TASK-105: lo que el arbol de trabajo cambia frente a HEAD (diff y no
+ * trackeado) y no casa con `patrones`, con los pathspecs de `rutasDelArbol`.
+ * Sin patrones, todo. null si Git falla.
+ */
+export function rutasDelArbolFueraDe(patrones, cwd) {
     const diff = [...SIN_COMILLAS, 'diff', '--name-only', '-z', '--no-renames', '--no-ext-diff', 'HEAD'];
     const otros = [...SIN_COMILLAS, 'ls-files', '--others', '--exclude-standard', '--full-name', '-z'];
-    const excluir = patronesDocs.map((p) => `:(top,exclude,glob)${p}`);
+    const excluir = excluirPatrones(patrones);
     try {
-        const todas = [
-            ...partirNul(runGit([...diff, '--', ':(top)'], cwd)),
-            ...partirNul(runGit([...otros, '--', ':(top)'], cwd)),
-        ];
-        const fueraDeDocs = [
+        return [
             ...partirNul(runGit([...diff, '--', ':(top)', ...excluir], cwd)),
             ...partirNul(runGit([...otros, '--', ':(top)', ...excluir], cwd)),
         ];
-        return { todas, fueraDeDocs };
     }
     catch {
         return null;
