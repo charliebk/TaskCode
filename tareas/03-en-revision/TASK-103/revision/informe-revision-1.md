@@ -11,10 +11,10 @@ porque hay dos IMPORTANTE abiertos y, en modo automatico, lo que se mergea tiene
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/comando-merge.ts:117 (`MERGE_CON_VALOR`), usado por `esControlDeMerge` | implementacion |
-| IMP-2 | IMPORTANTE | abierto | taskcode-marketplace/plugins/taskcode-plugin/test/hooks/guardia-merge.test.ts (test «el hook real evalua los merges que antes no detectaba») y src/hooks/guardia-merge.ts:`esRama` | implementacion |
-| MEN-1 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/guardia-merge.ts:`esRama` + comando-merge.ts:`ramaDeCambio` | plan |
-| MEN-2 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/comando-merge.ts:`sinPrefijos` | plan |
+| IMP-1 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/comando-merge.ts:117 (`MERGE_CON_VALOR`), usado por `esControlDeMerge` | implementacion |
+| IMP-2 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/test/hooks/guardia-merge.test.ts (test «el hook real evalua los merges que antes no detectaba») y src/hooks/guardia-merge.ts:`esRama` | implementacion |
+| MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/guardia-merge.ts:`esRama` + comando-merge.ts:`ramaDeCambio` | plan |
+| MEN-2 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/comando-merge.ts:`sinPrefijos` | plan |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
