@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 418851
 tokens_implementacion: 4412635
-tokens_revision: null
+tokens_revision: 1892590
 creado: 2026-11-11
 actualizado: 2026-11-11
 dependencias: [TASK-106]
@@ -46,6 +46,7 @@ Cuarta parte de TASK-096. Solo tests, sin codigo de produccion salvo que destape
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-11T21:34:27Z | diseno | agente:a63dec4bad1925d79 | 24 | 53030 | 355800 | 9997 | 19 | 418851 | - | - |
 | 2026-11-11T22:23:14Z | implementacion | sesion:dc97ac1a-e124-4796-9bc7-dd4a6cde4571 | 62 | 55454 | 4342622 | 14497 | 10 | 4412635 | - | - |
+| 2026-11-11T22:32:49Z | revision | agente:a7949e266cf8c2f38 | 36 | 113717 | 1770971 | 7866 | 5 | 1892590 | 1 | - |
 
 ## Resultado
 
