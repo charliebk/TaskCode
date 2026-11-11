@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 697110
 tokens_implementacion: 8286126
-tokens_revision: null
+tokens_revision: 5262905
 creado: 2026-11-11
 actualizado: 2026-11-11
 dependencias: [TASK-096]
@@ -47,6 +47,7 @@ Segunda parte de TASK-096 (troceada por la regla de una hora, decision de Carlos
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-11T16:50:15Z | diseno | agente:a25a8c72b6ced7c56,a089636ad00421193,a603edf36e62845a4 | 42 | 135991 | 532020 | 29057 | 35 | 697110 | - | - |
 | 2026-11-11T17:24:52Z | implementacion | sesion:24f95d19-4916-4df1-bf7e-0932f0452ae3 | 88 | 82248 | 8169431 | 34359 | 18 | 8286126 | - | - |
+| 2026-11-11T18:15:52Z | revision | agente:af5b38e2a58d197b7 | 82 | 146962 | 5095934 | 19927 | 5 | 5262905 | 1 | - |
 
 ## Autorrevision
 
