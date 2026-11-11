@@ -12,8 +12,8 @@
 | IMP-2 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/test/hooks/guardia-merge.test.ts y src/hooks/guardia-merge.ts:`esRevision` | implementacion |
 | MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/guardia-merge.ts:`esRevision` | plan |
 | MEN-2 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/comando-merge.ts:`sinPrefijos` | plan |
-| NUE-1 | CRITICO | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/guardia-merge.ts:`esRevision` | implementacion |
-| NUE-2 | CRITICO | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/comando-merge.ts:`sinPrefijos` | plan |
+| NUE-1 | CRITICO | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/guardia-merge.ts:`esRevision` | implementacion |
+| NUE-2 | CRITICO | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/comando-merge.ts:`sinPrefijos` | plan |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
