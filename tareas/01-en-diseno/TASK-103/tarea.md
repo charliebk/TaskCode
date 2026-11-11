@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, guardian]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-103-guardian-de-merges-con-config-invalida-b
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
-actualizado: 2026-11-10
+actualizado: 2026-11-11
 dependencias: [TASK-101]
 ---
 ## Objetivo
@@ -35,3 +35,9 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 - [ ] De la revision de TASK-101 (NUE-3): los tests de comandoSoloIntegra con barra invertida llevan una barra real (`-\\B`, `-\\C`, `C:\\repo` en el .ts)
 - [ ] README y CHANGELOG explican el cambio de comportamiento
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-11T10:32:04Z | plan | automatico | persona | 0.14.0 |
