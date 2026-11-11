@@ -2,7 +2,7 @@
 
 - Commit revisado: 3c2c50c00aeb0dfc9b48288b37045af942a70650
 - Revisor: general-purpose (sonnet) con code-quality-reviewer
-- Veredicto: aprobada-con-correcciones
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
