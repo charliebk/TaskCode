@@ -14,7 +14,7 @@ import {
   RUTA_TAREAS_SIEMPRE_DOCUMENTACION,
 } from '../../src/core/verificacion-proporcional.js';
 import { ConfigError, parsearConfig } from '../../src/core/config.js';
-import { anotarVerificacionDocumentacion } from '../../src/core/transiciones.js';
+import { anotarCompletaTrasParcial, anotarVerificacionDocumentacion, anotarVerificacionParcial } from '../../src/core/transiciones.js';
 import { rutasDeTarea } from '../../src/fs/git.js';
 
 const CFG = { rutas_documentacion: ['docs/**'], comando_verificacion_documentacion: null };
@@ -88,6 +88,29 @@ test('anotarVerificacionDocumentacion: crea la seccion y en un reintento anade l
   const dos = anotarVerificacionDocumentacion(una, '2026-11-11', 'npm `x`', 'solo docs', 'node d.js');
   assert.equal((dos.match(/^## Verificacion de documentacion$/gm) ?? []).length, 1);
   assert.match(dos, /- 2026-11-11: solo docs; no se ejecuta `npm 'x'`, comprobacion de documentacion `node d\.js`/);
+});
+
+test('anotarVerificacionParcial (TASK-106): crea su seccion, no duplica un reintento igual y no toca la de documentacion', () => {
+  const docs = anotarVerificacionDocumentacion('## Objetivo\n\nX.\n', '2026-11-10', 'npm test', 'solo docs', null);
+  const una = anotarVerificacionParcial(docs, '2026-11-11', 'npm test', 'todo en src', 'node `sel`.js');
+  assert.match(una, /## Verificacion parcial\n\n- 2026-11-11: todo en src; se ejecuta la selectiva `node 'sel'\.js` en verde, no la completa `npm test`\n$/);
+  assert.equal((una.match(/^## Verificacion de documentacion$/gm) ?? []).length, 1, 'secciones separadas');
+  assert.equal(anotarVerificacionParcial(una, '2026-11-12', 'npm test', 'todo en src', 'node `sel`.js'), una, 'idempotente');
+  const otra = anotarVerificacionParcial(una, '2026-11-12', 'npm test', 'otro motivo', 'node sel.js');
+  assert.equal((otra.match(/^## Verificacion parcial$/gm) ?? []).length, 1);
+  assert.match(otra, /- 2026-11-12: otro motivo;/);
+});
+
+test('anotarCompletaTrasParcial (TASK-106, MEN-1): sin seccion no anota; tras selectiva, completa y selectiva, la ultima linea es la selectiva', () => {
+  const base = '## Objetivo\n\nX.\n';
+  assert.equal(anotarCompletaTrasParcial(base, '2026-11-10', 'npm test', 'fuera'), base, 'sin seccion parcial, nada');
+  const uno = anotarVerificacionParcial(base, '2026-11-10', 'npm test', 'todo en src', 'node sel.js');
+  const dos = anotarCompletaTrasParcial(uno, '2026-11-11', 'npm test', 'fuera: lib/u.ts');
+  assert.equal(anotarCompletaTrasParcial(dos, '2026-11-11', 'npm test', 'fuera: lib/u.ts'), dos, 'reintento igual: no duplica');
+  const tres = anotarVerificacionParcial(dos, '2026-11-12', 'npm test', 'todo en src', 'node sel.js');
+  const lineas = tres.split('\n').filter((l) => l.startsWith('- '));
+  assert.equal(lineas.length, 3);
+  assert.match(lineas[2] as string, /^- 2026-11-12: todo en src; se ejecuta la selectiva `node sel\.js` en verde/);
 });
 
 test('rutasDeTarea: null si la base no existe; tildes y espacios salen tal cual', async () => {

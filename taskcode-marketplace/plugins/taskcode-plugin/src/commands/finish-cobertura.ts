@@ -88,6 +88,15 @@ export function puertaCobertura(o: PuertaCoberturaOpts): ResultadoCobertura {
     );
     return { tipo: 'omitida' };
   }
+  // TASK-106 (decision de Carlos): la selectiva no regenera el informe de toda
+  // la suite; un lcov parcial no es medida fiable. Se mide en la completa del release.
+  if (o.verificacion.tipo === 'selectiva') {
+    o.onAviso?.(
+      `${o.id}: se verifico con la selectiva, que no regenera el informe de cobertura entero: el umbral de ` +
+        `cobertura (${umbral} %) no se mide aqui, sino en la verificacion completa del release.`
+    );
+    return { tipo: 'omitida' };
+  }
   if (o.verificacion.tipo === 'sin-comando') {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: "${o.ramaBase}" declara umbral_cobertura (${umbral} %), pero la rama no declara ` +

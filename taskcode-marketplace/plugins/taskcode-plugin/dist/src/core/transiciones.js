@@ -326,12 +326,51 @@ export function anotarVerificacionDocumentacion(body, instante, comando, motivo,
         ? 'sin comprobacion de documentacion declarada'
         : `comprobacion de documentacion \`${sinComillas(comandoDocumentacion)}\``;
     const texto = `${motivo}; no se ejecuta \`${sinComillas(comando)}\`, ${corrio}`;
+    return anotarLineaUnica(body, SECCION_VERIFICACION_DOCUMENTACION, instante, texto);
+}
+/** TASK-106: seccion que deja `finish` cuando corre la selectiva del nivel 2 en vez de la completa. */
+export const SECCION_VERIFICACION_PARCIAL = '## Verificacion parcial';
+/**
+ * TASK-106: anota que `finish` integro con `comando_verificacion_selectiva` en
+ * verde y sin ejecutar `comando_verificacion`, con el motivo. Se anota solo
+ * tras el verde (un rojo no deja rastro que luego mienta). Un reintento con lo
+ * mismo no duplica la linea.
+ */
+export function anotarVerificacionParcial(body, instante, comando, motivo, comandoSelectiva) {
+    const sinComillas = (t) => t.replace(/`/g, "'");
+    const texto = `${motivo}; se ejecuta la selectiva \`${sinComillas(comandoSelectiva)}\` en verde, ` +
+        `no la completa \`${sinComillas(comando)}\``;
+    return anotarLineaUnica(body, SECCION_VERIFICACION_PARCIAL, instante, texto);
+}
+/**
+ * TASK-106 (modo 6 de riesgos): si un intento anterior dejo la seccion de
+ * verificacion parcial y este exige la completa (el arreglo saco codigo de las
+ * rutas parciales), lo anota para que la seccion no afirme solo la selectiva.
+ * Sin la seccion devuelve el cuerpo tal cual: nada nuevo en una tarea normal.
+ */
+export function anotarCompletaTrasParcial(body, instante, comando, motivo) {
+    if (!tieneSeccion(body, SECCION_VERIFICACION_PARCIAL))
+        return body;
+    const texto = `${motivo}; este intento exige la completa \`${comando.replace(/`/g, "'")}\``;
+    return anotarLineaUnica(body, SECCION_VERIFICACION_PARCIAL, instante, texto);
+}
+function tieneSeccion(body, titulo) {
+    return rangoDeSeccion(body.split(/\r?\n/), titulo) !== null;
+}
+/**
+ * `- <instante>: <texto>` en la seccion, salvo que su ULTIMA linea ya tenga ese
+ * mismo texto (MEN-1 de TASK-100: un reintento igual no duplica). Se compara
+ * solo con la ultima (MEN-1 de TASK-106): tras selectiva, completa y otra vez
+ * selectiva, la seccion tiene que acabar diciendo lo que corrio al final.
+ */
+function anotarLineaUnica(body, titulo, instante, texto) {
     const lineas = body.split(/\r?\n/);
-    const rango = rangoDeSeccion(lineas, SECCION_VERIFICACION_DOCUMENTACION);
-    if (rango !== null && lineas.slice(rango[0], rango[1]).some((l) => l.startsWith('- ') && l.endsWith(`: ${texto}`))) {
+    const rango = rangoDeSeccion(lineas, titulo);
+    const ultima = rango === null ? undefined : lineas.slice(rango[0], rango[1]).filter((l) => l.startsWith('- ')).pop();
+    if (ultima !== undefined && ultima.endsWith(`: ${texto}`)) {
         return body;
     }
-    return anotarLineaEnSeccion(body, SECCION_VERIFICACION_DOCUMENTACION, `- ${instante}: ${texto}`);
+    return anotarLineaEnSeccion(body, titulo, `- ${instante}: ${texto}`);
 }
 function anotarLineaEnSeccion(body, titulo, linea) {
     const eol = body.includes('\r\n') ? '\r\n' : '\n';
