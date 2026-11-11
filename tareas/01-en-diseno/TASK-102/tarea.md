@@ -24,14 +24,16 @@ dependencias: [TASK-100]
 ---
 ## Objetivo
 
+Troceada en el plan por la regla de una hora (85 min estimados; decision de Carlos, 2026-11-11): esta tarea hace A3a (clasificacion del arbol de trabajo, la decision comun peticionDeTrabajo y el freno Stop); review, el test de que Stop y review deciden igual y la documentacion son TASK-104. Sin A3b, review sigue como en la 0.14.0. El enunciado original sigue debajo.
+
 Tercera parte de TASK-100 (troceada por la regla de una hora, decision de Carlos 2026-11-10). El freno Stop (cada fin de turno) y taskctl review usan la decision unica de TASK-100 sobre el mismo diff: si solo cambia documentacion no corren la suite de tests, solo la comprobacion de documentacion si se declara. Clasifican tambien el arbol de trabajo (lo no commiteado y lo no trackeado): un .ts sin commitear hace que el turno no sea de solo documentacion. Solo documentacion se decide antes que la verificacion selectiva de TASK-091 y de forma identica en Stop y review. Sin la clave, ni se calcula el diff (cero coste en cada turno). Plan de partida: tareas/04-terminadas/TASK-100/planificacion/plan-final.md (seccion A3).
 
 ## Criterios de aceptacion
-- [ ] Un turno o una ronda de solo documentacion no corren la suite de tests; con comando de documentacion declarado, corre ese (test por cada uno, repo temporal)
-- [ ] Un fichero de codigo sin commitear o sin seguimiento hace que Stop y review apliquen la verificacion de siempre (test por cada uno)
-- [ ] Con comando_verificacion_selectiva tambien declarado, solo documentacion se decide antes y Stop y review dan la misma decision para el mismo diff (test)
-- [ ] Sin la configuracion nueva Stop y review se comportan exactamente como en la 0.14.0 y no lanzan ningun proceso git nuevo (test de regresion)
-- [ ] verificacion-selectiva.md, README y CHANGELOG explican el comportamiento de Stop y review
+- [ ] Un turno de solo documentacion no corre la suite de tests; con comando de documentacion declarado, el freno Stop corre ese (test por cada uno, repo temporal)
+- [ ] Un fichero de codigo sin commitear o sin seguimiento hace que el freno Stop aplique la verificacion de siempre (test por cada uno)
+- [ ] Con comando_verificacion_selectiva tambien declarado, el freno Stop decide solo documentacion antes que la selectiva (test)
+- [ ] Sin la configuracion nueva el freno Stop se comporta exactamente como en la 0.14.0 y no lanza ningun proceso git nuevo (test de regresion)
+- [ ] Con el arbol de trabajo sucio, el freno Stop corre la comprobacion de documentacion pero no escribe su memo (test)
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
 
 ## Transiciones
