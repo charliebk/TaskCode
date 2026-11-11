@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, guardian]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-103-guardian-de-merges-con-config-invalida-b
 asignado_a: charlie.bk@gmail.com
@@ -42,6 +42,7 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 |---|---|---|---|---|
 | 2026-11-11T10:32:04Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-11T10:38:33Z | approve | automatico | automatico | 0.14.0 |
+| 2026-11-11T10:38:45Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
