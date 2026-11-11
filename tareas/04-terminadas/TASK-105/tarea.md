@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-105-verificacion-proporcional-b2-decision-en
 asignado_a: charlie.bk@gmail.com
@@ -56,6 +56,7 @@ Segunda parte de TASK-096 (troceada por la regla de una hora, decision de Carlos
 | 2026-11-11T16:53:15Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-11T16:53:25Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T17:24:52Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T18:16:42Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -68,3 +69,9 @@ Segunda parte de TASK-096 (troceada por la regla de una hora, decision de Carlos
 ## Autorrevision
 
 - code-quality-reviewer — 959f33c
+
+## Duracion
+
+- Estimada: 65 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 83 min
+- Paso de la hora: 83 min reales frente a 65 estimados
