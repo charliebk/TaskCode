@@ -2,7 +2,7 @@
 
 - Commit revisado: 51da391d65140d9c41401284fe8f43a5a9c1492b (HEAD a1322fa solo añade la peticion)
 - Revisor: code-quality-reviewer (agente independiente general-purpose/sonnet, pase generico; el diff no cae en ningun dominio con revisor propio)
-- Veredicto: aprobada (veredicto del revisor). Registrado como cambios-solicitados por la regla del modo automatico: los tres MENOR merecen corregirse antes de integrar y el codigo que se mergea tiene que ser el revisado.
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
