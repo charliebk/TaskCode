@@ -20,11 +20,15 @@ import { ConfigError, type TaskcodeConfig } from '../core/config.js';
 import {
   decidirVerificacion,
   documentacionDeclarada,
+  parcialDeclarada,
   patronesDocumentacion,
+  patronesParcial,
+  RUTA_CONFIG,
   type DecisionVerificacion,
+  type DiffTarea,
 } from '../core/verificacion-proporcional.js';
 import { configDeRef } from './config-de-ref.js';
-import { rutasDelArbol, rutasDeTarea } from './git.js';
+import { resolverCommits, rutasDelArbol, rutasDelArbolFueraDe, rutasDeTarea, rutasFueraDe } from './git.js';
 
 /**
  * Tests held-out de las tareas (`tareas/<estado>/TASK-NNN/aceptacion/`). `finish`
@@ -34,7 +38,17 @@ import { rutasDelArbol, rutasDeTarea } from './git.js';
 const RUTA_HELDOUT = /^tareas\/(?:[^/]+\/)+aceptacion\//;
 
 export type ResultadoDecision =
-  | { tipo: 'decision'; decision: DecisionVerificacion; timeoutS: number; comandoDocumentacion: string | null }
+  | {
+      tipo: 'decision';
+      decision: DecisionVerificacion;
+      timeoutS: number;
+      /**
+       * TASK-105: `timeout_verificacion_selectiva` de la BASE. La huella de la
+       * selectiva se calcula con el, al guardarla y al buscarla, nunca con el del arbol.
+       */
+      timeoutSelectivaS: number;
+      comandoDocumentacion: string | null;
+    }
   /** La config de la base no se puede leer: quien llama decide (nunca vale como «sin config»). */
   | { tipo: 'config-invalida'; error: ConfigError };
 
@@ -81,18 +95,63 @@ export function decidirVerificacionEntre(
   }
   if (!documentacionDeclarada(config)) return null;
   const patrones = patronesDocumentacion(config);
-  let diff = rutasDeTarea(base, hasta, patrones, cwd);
-  if (opciones.conArbol === true) diff = unir(diff, rutasDelArbol(patrones, cwd));
+  const conArbol = opciones.conArbol === true;
+  const parcial = parcialDeclarada(config);
+  // TASK-105: con el nivel 2 se diffea dos veces el mismo rango; se fijan los
+  // SHA antes (un proceso), y sin la clave se diffea por nombre como en la 0.14.0.
+  const rango = parcial ? resolverCommits([base, hasta], cwd) : [base, hasta];
+  const desde = rango?.[0] ?? base;
+  const a = rango?.[1] ?? hasta;
+  let diff: Rutas | null = rango === null ? null : rutasDeTarea(desde, a, patrones, cwd);
+  if (conArbol) diff = unir(diff, rutasDelArbol(patrones, cwd));
+  let heldout: string[] = [];
   if (diff !== null && opciones.heldoutComoCodigo === true) {
-    const heldout = diff.todas.filter((r) => RUTA_HELDOUT.test(r) && !diff?.fueraDeDocs.includes(r));
-    if (heldout.length > 0) diff = { todas: diff.todas, fueraDeDocs: [...diff.fueraDeDocs, ...heldout] };
+    const fuera = diff.fueraDeDocs;
+    heldout = diff.todas.filter((r) => RUTA_HELDOUT.test(r) && !fuera.includes(r));
+    if (heldout.length > 0) diff = { todas: diff.todas, fueraDeDocs: [...fuera, ...heldout] };
+  }
+  let diffDecision: DiffTarea | null = diff;
+  if (diff !== null && parcial && necesitaNivel2(diff)) {
+    // Se recalcula sobre el diff ya completo (arbol y held-out sumados): los
+    // held-out caen en `tareas/**`, que los patrones parciales excluyen, asi que
+    // se anaden a mano igual que a `fueraDeDocs`. Si algun lado falla, el campo
+    // no se pone y la decision es la completa.
+    const patronesN2 = patronesParcial(config);
+    let fueraDeParcial = rutasFueraDe(desde, a, patronesN2, cwd);
+    if (fueraDeParcial !== null && conArbol) {
+      const delArbol = rutasDelArbolFueraDe(patronesN2, cwd);
+      fueraDeParcial = delArbol === null ? null : [...fueraDeParcial, ...delArbol];
+    }
+    if (fueraDeParcial !== null) {
+      diffDecision = { ...diff, fueraDeParcial: [...new Set([...fueraDeParcial, ...heldout])] };
+    }
   }
   return {
     tipo: 'decision',
-    decision: decidirVerificacion(config, diff, base),
+    decision: decidirVerificacion(config, diffDecision, base),
     timeoutS: config.timeout_verificacion,
+    timeoutSelectivaS: config.timeout_verificacion_selectiva,
     comandoDocumentacion: config.comando_verificacion_documentacion,
   };
+}
+
+/**
+ * TASK-105: el nivel 2 solo cambia la decision si hay codigo y nada que fuerce
+ * ya la completa (diff vacio o que toca la config). En los demas casos ni se
+ * lanza el segundo diff.
+ */
+function necesitaNivel2(diff: Rutas): boolean {
+  return diff.todas.length > 0 && !diff.todas.includes(RUTA_CONFIG) && diff.fueraDeDocs.length > 0;
+}
+
+/**
+ * TASK-105: el motivo que finish y el guardian muestran al exigir la completa.
+ * Hasta que acepten la selectiva (B3/B5), una decision `selectiva` se ensena
+ * como en la 0.14.0: su motivo («basta la verificacion de lo afectado»)
+ * contradiria que se ejecuta la completa.
+ */
+export function motivoDeLaCompleta(d: DecisionVerificacion): string {
+  return d.tipo === 'selectiva' ? 'la tarea cambia rutas que no son documentacion' : d.motivo;
 }
 
 /** Que verificacion toca en un turno (Stop) o en una ronda (review). */

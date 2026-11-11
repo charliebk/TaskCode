@@ -140,12 +140,23 @@ export function huellaDelArbol(
  * (la de `finish`, o la del freno Stop si no habia nada sin commitear). La usa
  * el guardian de merges, que pregunta por la rama que entra sin cambiarse a
  * ella. null si `ref` no resuelve a un commit.
+ *
+ * TASK-105: `contexto` entra igual que en `huellaDelArbol`, asi que la huella de
+ * la selectiva (`contextoSelectiva`) casa con la que guardo `verificarConMemo`
+ * con ese commit en HEAD y el arbol limpio. Sin contexto, la formula de siempre.
  */
-export function huellaDeCommit(raiz: string, ref: string, comando: string, timeoutS: number): string | null {
+export function huellaDeCommit(
+  raiz: string,
+  ref: string,
+  comando: string,
+  timeoutS: number,
+  contexto?: string
+): string | null {
   const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
   if (sha === null || sha === '') return null;
   const h = createHash('sha1');
   h.update(`v${String(VERSION_MEMO)}\0${sha}\0${comando}\0${String(timeoutS)}\0`);
+  if (contexto !== undefined) h.update(`ctx\0${contexto}\0`);
   return h.digest('hex');
 }
 
@@ -223,8 +234,10 @@ export interface VerificacionConMemo {
  * El contexto de la huella de la selectiva: la base por su nombre y por su
  * commit (si la base avanza, lo cambiado respecto a ella tambien). Una base
  * que no resuelve entra vacia: el script del proyecto decidira que hacer.
+ * TASK-105: exportada para que quien busque la huella con `huellaDeCommit` use
+ * la misma cadena que guarda `verificarConMemo`, no una copia.
  */
-function contextoSelectiva(raiz: string, base: string): string {
+export function contextoSelectiva(raiz: string, base: string): string {
   const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`], raiz) ?? '';
   return `selectiva\0${base}\0${sha}`;
 }
@@ -234,6 +247,9 @@ function contextoSelectiva(raiz: string, base: string): string {
  * `finish` y el guardian (que lo busca por la huella del commit limpio). Con el
  * arbol sucio no se guarda: machacaria el verde que `finish` dejo para el
  * commit (gana el ultimo en escribir). Igual que hace `finish`.
+ * TASK-105: lo mismo para la selectiva, cuyo memo buscaran finish y el guardian
+ * por la huella del commit (decision de Carlos: con el arbol sucio, el Stop
+ * vuelve a ejecutarla en vez de pisar el verde limpio).
  */
 function arbolLimpio(raiz: string): boolean {
   try {
@@ -270,6 +286,6 @@ export function verificarConMemo(
     ...(env === undefined ? {} : { env }),
   });
   const despues = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
-  if (despues !== null && (p.tipo !== 'documentacion' || arbolLimpio(raiz))) guardarMemo(raiz, despues, resultado, p.tipo);
+  if (despues !== null && (p.tipo === 'completa' || arbolLimpio(raiz))) guardarMemo(raiz, despues, resultado, p.tipo);
   return { resultado, deMemo: false, cambioElArbol: huella !== null && despues !== null && huella !== despues };
 }
