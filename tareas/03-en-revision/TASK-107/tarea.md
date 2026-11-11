@@ -61,6 +61,10 @@ Cuarta parte de TASK-096. Solo tests, sin codigo de produccion salvo que destape
 
 **Suite**: `npm test` 2213 tests, 2206 pasan, 6 fallan. Los 3 conocidos de Windows (symlink EPERM en `approve.test`, chmod NTFS y CRLF en `plan.test`); los otros 3 (`doctor-deploy-tareas`, `doctor-hooks-subagente`, `origin-deteccion` expira) pasan al reejecutar sus ficheros aislados: carga (la pasada duro 28 min). La tabla sola tarda ~38 s en caliente; no entra en `test:rapido` porque lanza procesos.
 
+**Revision por pares**: ronda 1 (general-purpose sonnet, code-quality-reviewer): aprobada. Reprodujo la tabla en un clon y mato 4 mutantes propios (finish con la selectiva ante lo transversal, Stop con la completa, RAMA_BASE equivocada, finish sin la via de documentacion), cada uno en su celda.
+
+**Decidido no corregir**: MEN-1 (para Stop y review las filas parcial y transversal coinciden) — es justo la fila que fija que Stop y review no corren la completa ante lo transversal; MEN-2 (un test por fila con los tres actores en serie) — cada fallo ya nombra `fila/actor`. Aceptados en el informe; en automatico se integra lo revisado.
+
 ## Autorrevision
 
 - code-quality-reviewer — b110aab
