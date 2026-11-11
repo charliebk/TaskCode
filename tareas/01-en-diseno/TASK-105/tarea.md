@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 697110
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-11
@@ -37,3 +37,9 @@ Segunda parte de TASK-096 (troceada por la regla de una hora, decision de Carlos
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T16:31:34Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-11T16:50:15Z | diseno | agente:a25a8c72b6ced7c56,a089636ad00421193,a603edf36e62845a4 | 42 | 135991 | 532020 | 29057 | 35 | 697110 | - | - |
