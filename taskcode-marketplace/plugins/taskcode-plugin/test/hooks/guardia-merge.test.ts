@@ -400,6 +400,11 @@ test('comando-merge (TASK-103): { ...; }, time y eval no esconden el merge', () 
     'if true; then git merge x; fi',
     'while false; do git merge x; done',
     'if false; then :; else git merge x; fi',
+    // NUE-2 de la ronda 2.
+    'if git merge x; then :; fi',
+    'while git merge x; do :; done',
+    'until git merge x; do :; done',
+    'if false; then :; elif git merge x; then :; fi',
   ]) {
     assert.deepEqual(analizarComando(c), merge, c);
   }
@@ -505,6 +510,15 @@ test('guardia (TASK-103): el hook real evalua los merges que antes no detectaba'
       `eval git merge ${RAMA}`,
       `nohup git merge ${RAMA}`,
       `if true; then git merge ${RAMA}; fi`,
+      // NUE-2 de la ronda 2: la condicion tambien.
+      `if git merge ${RAMA}; then :; fi`,
+      `if ! git merge ${RAMA}; then :; fi`,
+      `while git merge ${RAMA}; do :; done`,
+      `until git merge ${RAMA}; do :; done`,
+      `if false; then :; elif git merge ${RAMA}; then :; fi`,
+      // NUE-1 de la ronda 2: HEAD y @ no desacoplan; el destino sigue siendo develop.
+      `git checkout HEAD && git merge ${RAMA}`,
+      `git checkout @ && git merge ${RAMA}`,
       // README.md es un fichero versionado, no una rama: el destino sigue siendo develop.
       `git checkout README.md && git merge ${RAMA}`,
     ]) {
@@ -524,6 +538,10 @@ test('guardia (TASK-103): el hook real evalua los merges que antes no detectaba'
     const sha = git(['rev-parse', 'main'], raiz).trim();
     assert.equal(lanzar(`git checkout ${sha} && git merge ${RAMA}`).status, 0, 'commit');
     assert.equal(lanzar(`git checkout origin/remota && git merge ${RAMA}`).status, 0, 'rama remota desacoplada');
+    // NUE-1: tras cambiar a main, `git checkout HEAD` sigue en main.
+    const r = lanzar(`git checkout main && git checkout HEAD && git merge ${RAMA}`);
+    assert.equal(r.status, 2, 'HEAD tras main');
+    assert.match(r.stderr, /entraria en "main"/);
   });
 });
 

@@ -98,9 +98,10 @@ const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash']);
  * Palabras que pueden ir delante de un comando sin cambiar cual es (TASK-103):
  * `command`, `exec`, `env`, `nohup`, `!`, la llave de un grupo
  * (`{ git merge x; }`) y las palabras de control de bash tras las que empieza
- * un comando (`if c; then git merge x; fi`).
+ * un comando: el cuerpo (`if c; then git merge x; fi`) y la condicion
+ * (`if git merge x; then ...`, NUE-2 de la ronda 2).
  */
-const PREFIJOS = new Set(['command', 'exec', 'env', 'nohup', '!', '{', 'then', 'do', 'else']);
+const PREFIJOS = new Set(['command', 'exec', 'env', 'nohup', '!', '{', 'then', 'do', 'else', 'if', 'elif', 'while', 'until']);
 /** Quita asignaciones de entorno iniciales (`FOO=1 git merge x`), los PREFIJOS y `time [-p] [--]`. */
 function sinPrefijos(seg) {
     let i = 0;

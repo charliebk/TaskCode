@@ -77,11 +77,12 @@ rama deja pasar, y sin fichero de config todo sigue como antes. Ademas detecta
 merges que antes se le escapaban: `git merge -m --abort x` y
 `--message --abort x` (y `--quit`, `--continue`, `--skip` como valor de una
 opcion), `{ git merge x; }`, `time [-p] [--] git merge x`, `eval git merge x`,
-`nohup git merge x`, `! git merge x` y el merge tras `then`, `do` o `else`,
-que nunca reciben la exencion de solo documentacion; y
-`git checkout <fichero> && git merge x` ya no toma el fichero como destino
-(solo cambia el destino una rama de `refs/heads/` o `refs/remotes/origin/`,
-un tag o un commit; estos dos desacoplan HEAD).
+`nohup git merge x`, `! git merge x` y el merge en la condicion o el cuerpo
+de `if`, `elif`, `else`, `while` y `until`, que nunca reciben la exencion de
+solo documentacion; y `git checkout <fichero> && git merge x` ya no toma el
+fichero como destino (solo cambia el destino una rama de `refs/heads/` o
+`refs/remotes/origin/`, un tag o un commit, que desacoplan HEAD; `HEAD` y `@`
+no lo cambian).
 
 ## 0.14.0 — 2026-11-10
 

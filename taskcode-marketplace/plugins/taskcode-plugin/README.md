@@ -1104,14 +1104,15 @@ rama de integración (`rama_base`) o en la principal:
   `merge-<tipo>-to-<destino>.sh <rama>`. Un `git checkout <x>` con un único
   argumento solo cambia el destino si `x` es una revisión: una rama (en
   `refs/heads/` o en `refs/remotes/origin/`), un tag o un commit (estos dos
-  desacoplan HEAD, así que el merge no entra en ninguna rama). `git checkout
-  README.md && git merge x` restaura un fichero y el destino sigue siendo la
-  rama actual.
+  desacoplan HEAD, así que el merge no entra en ninguna rama). `HEAD` y `@` no
+  cambian el destino: te dejan en la misma rama. `git checkout README.md && git
+  merge x` restaura un fichero y el destino sigue siendo la rama actual.
 - El texto de `bash|sh|zsh|dash [opciones] -c "…"`, `pwsh|powershell -Command …`,
   `cmd /c|/k …` y `eval …` se analiza igual que si se hubiera escrito
   directamente (también con opciones con valor delante, como `bash -o pipefail
   -c`), y también tras `time [-p] [--]`, `nohup`, `!`, dentro de un grupo
-  `{ …; }` o tras `then`, `do` y `else`.
+  `{ …; }` y en la condición o el cuerpo de `if`, `elif`, `else`, `while` y
+  `until`.
 - **Bloquea** (exit 2, el motivo le llega al agente) si no hay un **verde
   guardado para el commit que entra** —sin verde cuenta como no verde— y remite
   a `taskctl finish` (o a `--sin-verificacion`, si lo decide la persona).

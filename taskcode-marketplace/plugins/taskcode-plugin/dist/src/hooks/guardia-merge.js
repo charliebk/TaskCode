@@ -88,9 +88,15 @@ export function decidirPreToolUse(entrada) {
     const cwd = entrada.cwd;
     // TASK-103: `git checkout README.md` no cambia HEAD; una rama (tambien la que
     // solo esta en origin: el DWIM de checkout), un tag o un commit, si.
-    const esRevision = (n) => existeRef(`refs/heads/${n}`, cwd) ||
-        existeRef(`refs/remotes/origin/${n}`, cwd) ||
-        git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${n}^{commit}`], cwd).ok;
+    const esRevision = (n) => {
+        // `HEAD` y `@` resuelven a un commit pero te dejan en la misma rama (NUE-1 de
+        // la ronda 2): no cambian el destino. Sin distinguir mayusculas, por Windows.
+        if (/^(?:head|@)$/i.test(n))
+            return false;
+        return (existeRef(`refs/heads/${n}`, cwd) ||
+            existeRef(`refs/remotes/origin/${n}`, cwd) ||
+            git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${n}^{commit}`], cwd).ok);
+    };
     const ops = analizarComando(comando, esRevision);
     if (ops.length === 0)
         return PASAR;
