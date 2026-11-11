@@ -117,41 +117,78 @@ export function formatearVerificacionRoja(
   return lineas.join('\n');
 }
 
-export interface VerificacionDeRonda {
-  resultado: ResultadoVerificacion;
-  /** Rama base que recibio en RAMA_BASE. */
-  base: string;
-  /** true si es el resultado guardado de una ejecucion anterior con la misma huella. */
-  deMemo: boolean;
-  /** true si el proyecto declara un informe de cobertura (que esta ronda no muestra). */
-  conCobertura: boolean;
-}
+/**
+ * Lo que se corrio en la ronda. TASK-104: con solo documentacion en
+ * base...HEAD, la comprobacion de documentacion (o nada, si no se declaro)
+ * en lugar de la selectiva. La peticion lo dice para que el revisor no lea un
+ * verde de documentacion como si hubieran pasado los tests.
+ */
+export type VerificacionDeRonda =
+  | {
+      tipo: 'selectiva';
+      resultado: ResultadoVerificacion;
+      /** Rama base que recibio en RAMA_BASE. */
+      base: string;
+      /** true si es el resultado guardado de una ejecucion anterior con la misma huella. */
+      deMemo: boolean;
+      /** true si el proyecto declara un informe de cobertura (que esta ronda no muestra). */
+      conCobertura: boolean;
+    }
+  | {
+      tipo: 'documentacion';
+      resultado: ResultadoVerificacion;
+      /** Por que cuenta como solo documentacion (el motivo de la decision). */
+      motivo: string;
+      deMemo: boolean;
+      conCobertura: boolean;
+    }
+  | { tipo: 'documentacion-sin-comando'; motivo: string; conCobertura: boolean };
+
+const NO_SUSTITUYE = 'No sustituye a la completa: el cierre la exige sobre el commit que se integra.';
 
 /**
  * TASK-091: la seccion de la peticion de revision que dice que verificacion
- * se corrio en la ronda (hoy solo la selectiva: sin ella `review` no verifica),
- * con su resultado y su salida. Va al final, despues de la cabecera con el
- * commit revisado, y la salida en una valla que no colisiona con ella.
+ * se corrio en la ronda, con su resultado y su salida. Va al final, despues
+ * de la cabecera con el commit revisado, y la salida en una valla que no
+ * colisiona con ella. Sin `comando_verificacion_selectiva` review no verifica
+ * y no hay seccion.
  */
 export function seccionVerificacionRevision(v: VerificacionDeRonda): string {
+  const coberturaOculta =
+    '- Cobertura: no se muestra en esta ronda. ' +
+    (v.tipo === 'selectiva'
+      ? 'La selectiva solo corre parte de los tests y el informe puede ser parcial; la completa la mide en el cierre.'
+      : 'Solo cambia documentacion y no se ha corrido ningun test: el informe seria de otra ejecucion. ' +
+        'La completa la mide en el cierre.');
+  if (v.tipo === 'documentacion-sin-comando') {
+    const lineas = [
+      '## Verificacion de esta ronda',
+      '',
+      `- Tipo: ninguna: ${v.motivo} y el proyecto no declara comando_verificacion_documentacion, ` +
+        'asi que no se ha corrido ningun test ni ninguna comprobacion. ' +
+        NO_SUSTITUYE,
+    ];
+    if (v.conCobertura) lineas.push(coberturaOculta);
+    lineas.push('');
+    return `\n${lineas.join('\n')}`;
+  }
   const r = v.resultado;
   const { texto, recortada } = recortarCola(r.cola);
   const truncada = recortada || r.bytesTotales > Buffer.byteLength(r.cola, 'utf8');
   const lineas = [
     '## Verificacion de esta ronda',
     '',
-    `- Tipo: selectiva (por impacto respecto a \`${v.base}\`, que recibe en la variable RAMA_BASE). ` +
-      'No sustituye a la completa: el cierre la exige sobre el commit que se integra.',
+    v.tipo === 'selectiva'
+      ? `- Tipo: selectiva (por impacto respecto a \`${v.base}\`, que recibe en la variable RAMA_BASE). ` +
+        NO_SUSTITUYE
+      : `- Tipo: comprobacion de documentacion (comando_verificacion_documentacion): ${v.motivo}, ` +
+        'asi que no se ha corrido ningun test. ' +
+        NO_SUSTITUYE,
     `- Comando: \`${r.comando}\``,
     `- Resultado: ${describirResultado(r)}${v.deMemo ? ' (resultado guardado: el arbol no ha cambiado desde la ultima ejecucion)' : ''}`,
     `- Duracion: ${segundos(r.duracionMs)}`,
   ];
-  if (v.conCobertura) {
-    lineas.push(
-      '- Cobertura: no se muestra en esta ronda. La selectiva solo corre parte de los tests y el informe ' +
-        'puede ser parcial; la completa la mide en el cierre.'
-    );
-  }
+  if (v.conCobertura) lineas.push(coberturaOculta);
   lineas.push('');
   if (texto === '') {
     lineas.push('Salida: (vacia)', '');
