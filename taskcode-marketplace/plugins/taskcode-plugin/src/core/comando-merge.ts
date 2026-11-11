@@ -105,7 +105,7 @@ function programa(token: string): string {
 /** Opciones globales de git que llevan su valor en el token siguiente. */
 const GLOBALES_CON_VALOR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env', '--super-prefix']);
 /** Opciones de `git merge` que llevan su valor en el token siguiente. */
-const MERGE_CON_VALOR = new Set(['-m', '-F', '-s', '-X', '--file', '--strategy', '--strategy-option', '--into-name']);
+const MERGE_CON_VALOR = new Set(['-m', '--message', '-F', '-s', '-X', '--file', '--strategy', '--strategy-option', '--into-name']);
 const MERGE_SIN_MERGE = new Set(['--abort', '--continue', '--quit', '--skip']);
 /** Opciones de checkout/switch que crean la rama nombrada en el token siguiente. */
 const CREAN_RAMA = new Set(['-b', '-B', '-c', '-C', '--orphan', '--create', '--force-create']);
@@ -116,17 +116,23 @@ const SCRIPT_CIERRE = /^merge-(feature|fix|hotfix|release)-to-(develop|main)\.sh
 const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash']);
 
 /**
- * Quita asignaciones de entorno iniciales (`FOO=1 git merge x`), `command`,
- * `exec`, `env` y (TASK-103) la llave de un grupo (`{ git merge x; }`) y
- * `time [-p]`.
+ * Palabras que pueden ir delante de un comando sin cambiar cual es (TASK-103):
+ * `command`, `exec`, `env`, `nohup`, `!`, la llave de un grupo
+ * (`{ git merge x; }`) y las palabras de control de bash tras las que empieza
+ * un comando (`if c; then git merge x; fi`).
  */
+const PREFIJOS = new Set(['command', 'exec', 'env', 'nohup', '!', '{', 'then', 'do', 'else']);
+
+/** Quita asignaciones de entorno iniciales (`FOO=1 git merge x`), los PREFIJOS y `time [-p] [--]`. */
 function sinPrefijos(seg: readonly string[]): string[] {
   let i = 0;
   while (i < seg.length) {
     const t = seg[i] as string;
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t) || ['command', 'exec', 'env', '{'].includes(t)) i++;
-    else if (t === 'time') i += seg[i + 1] === '-p' ? 2 : 1;
-    else break;
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t) || PREFIJOS.has(t)) i++;
+    else if (t === 'time') {
+      i++;
+      while (seg[i] === '-p' || seg[i] === '--') i++;
+    } else break;
   }
   return seg.slice(i);
 }
@@ -148,11 +154,12 @@ function esControlDeMerge(args: readonly string[]): boolean {
 
 /**
  * Merges y scripts de cierre que aparecen en el comando, en orden.
- * `esRama` (TASK-103) dice si un nombre es una rama: `git checkout <x>` con un
- * unico argumento puede restaurar un fichero, y saberlo exige I/O que este
- * modulo no hace. Por defecto todo cuenta como rama (el comportamiento previo).
+ * `esRevision` (TASK-103) dice si `git checkout <x>` cambiaria HEAD a ese nombre
+ * (una rama, un tag o un commit): con un unico argumento tambien puede
+ * restaurar un fichero, y saberlo exige I/O que este modulo no hace. Por
+ * defecto todo cuenta como revision (el comportamiento previo).
  */
-export function analizarComando(texto: string, esRama: (nombre: string) => boolean = () => true): OperacionMerge[] {
+export function analizarComando(texto: string, esRevision: (nombre: string) => boolean = () => true): OperacionMerge[] {
   const ops: OperacionMerge[] = [];
   let destino: string | null = null;
   for (const bruto of segmentar(texto)) {
@@ -173,7 +180,7 @@ export function analizarComando(texto: string, esRama: (nombre: string) => boole
       const sub = (seg[i] ?? '').toLowerCase();
       const args = seg.slice(i + 1);
       if (sub === 'checkout' || sub === 'switch') {
-        const nuevo = ramaDeCambio(args, esRama);
+        const nuevo = ramaDeCambio(args, esRevision);
         if (nuevo !== null) destino = nuevo;
       } else if (sub === 'merge') {
         if (esControlDeMerge(args)) continue;
@@ -186,7 +193,7 @@ export function analizarComando(texto: string, esRama: (nombre: string) => boole
     // analiza igual (MEN-1 de la revision: es una forma frecuente en agentes).
     const interior = textoDeShell(prog, seg);
     if (interior !== null) {
-      ops.push(...analizarComando(interior, esRama));
+      ops.push(...analizarComando(interior, esRevision));
       continue;
     }
 
@@ -290,7 +297,7 @@ function posicionales(args: readonly string[], conValor: ReadonlySet<string>): s
  * La rama a la que deja un `git checkout|switch`, o null si no cambia de rama
  * (restaurar ficheros: `git checkout -- f`, `git checkout develop -- f`).
  */
-function ramaDeCambio(args: readonly string[], esRama: (nombre: string) => boolean): string | null {
+function ramaDeCambio(args: readonly string[], esRevision: (nombre: string) => boolean): string | null {
   for (let i = 0; i < args.length; i++) {
     const a = args[i] as string;
     if (CREAN_RAMA.has(a)) return args[i + 1] ?? null;
@@ -303,9 +310,10 @@ function ramaDeCambio(args: readonly string[], esRama: (nombre: string) => boole
   }
   // `git checkout develop src/a.ts` (sin `--`) tambien restaura ficheros (MEN-2).
   // `git checkout README.md` tambien (TASK-103): con un unico argumento que no
-  // es rama, no cambia de rama y el destino sigue siendo el anterior.
+  // es una revision, no cambia HEAD y el destino sigue siendo el anterior. Un
+  // tag o un commit si: HEAD queda desacoplado y el merge no entra en ninguna rama.
   const pos = posicionales(args, CAMBIO_CON_VALOR);
-  return pos.length === 1 && esRama(pos[0] as string) ? (pos[0] as string) : null;
+  return pos.length === 1 && esRevision(pos[0] as string) ? (pos[0] as string) : null;
 }
 
 /**

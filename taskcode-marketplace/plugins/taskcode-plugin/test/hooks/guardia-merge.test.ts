@@ -372,6 +372,8 @@ test('guardia: hooks.json declara el PreToolUse sin filtro if, en forma exec, si
 test('comando-merge (TASK-103, MEN-2): --abort/--quit/--continue/--skip como valor de -m no esconden el merge', () => {
   for (const control of ['--abort', '--quit', '--continue', '--skip']) {
     assert.deepEqual(analizarComando(`git merge -m ${control} x`), [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }], control);
+    // IMP-1 de la revision: tambien con la forma larga de -m.
+    assert.deepEqual(analizarComando(`git merge --message ${control} x`)[0], { tipo: 'merge', fuentes: ['x'], destino: null, dir: null }, control);
     assert.deepEqual(analizarComando(`git merge -F ${control} x`)[0], { tipo: 'merge', fuentes: ['x'], destino: null, dir: null }, control);
     // Como opcion, sigue sin ser un merge nuevo (tambien tras otra opcion con valor).
     assert.deepEqual(analizarComando(`git merge ${control}`), [], control);
@@ -383,8 +385,26 @@ test('comando-merge (TASK-103, MEN-2): --abort/--quit/--continue/--skip como val
 
 test('comando-merge (TASK-103): { ...; }, time y eval no esconden el merge', () => {
   const merge = [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }];
-  for (const c of ['{ git merge x; }', 'time git merge x', 'time -p git merge x', 'eval git merge x', 'eval "git merge x"', '{ time git merge x; }']) {
+  for (const c of [
+    '{ git merge x; }',
+    'time git merge x',
+    'time -p git merge x',
+    'eval git merge x',
+    'eval "git merge x"',
+    '{ time git merge x; }',
+    // MEN-2 de la revision.
+    'time -p -- git merge x',
+    'time -- git merge x',
+    'nohup git merge x',
+    '! git merge x',
+    'if true; then git merge x; fi',
+    'while false; do git merge x; done',
+    'if false; then :; else git merge x; fi',
+  ]) {
     assert.deepEqual(analizarComando(c), merge, c);
+  }
+  for (const c of ['nohup git merge x', 'if true; then git merge x; fi']) {
+    assert.equal(comandoSoloIntegra(c), false, c);
   }
   assert.deepEqual(analizarComando('eval "git checkout develop && git merge x"'), [
     { tipo: 'merge', fuentes: ['x'], destino: 'develop', dir: null },
@@ -478,9 +498,13 @@ test('guardia (TASK-103): el hook real evalua los merges que antes no detectaba'
       `git merge -m --quit ${RAMA}`,
       `git merge -m --continue ${RAMA}`,
       `git merge -m --skip ${RAMA}`,
+      `git merge --message --abort ${RAMA}`,
       `{ git merge ${RAMA}; }`,
       `time git merge ${RAMA}`,
+      `time -p -- git merge ${RAMA}`,
       `eval git merge ${RAMA}`,
+      `nohup git merge ${RAMA}`,
+      `if true; then git merge ${RAMA}; fi`,
       // README.md es un fichero versionado, no una rama: el destino sigue siendo develop.
       `git checkout README.md && git merge ${RAMA}`,
     ]) {
@@ -490,9 +514,16 @@ test('guardia (TASK-103): el hook real evalua los merges que antes no detectaba'
     }
     // Una rama de verdad si cambia el destino.
     assert.equal(lanzar(`git checkout ${RAMA} && git merge develop`).status, 0);
-    // Y la que solo existe en origin (DWIM de git checkout).
+    // Y la que solo existe en origin (DWIM de git checkout). IMP-2 de la revision:
+    // la fuente no es ancestro de develop, asi que solo pasa si el destino cambio.
     git(['update-ref', 'refs/remotes/origin/remota', RAMA], raiz);
-    assert.equal(lanzar('git checkout remota && git merge develop').status, 0);
+    assert.equal(lanzar(`git checkout remota && git merge ${RAMA}`).status, 0);
+    // MEN-1: un tag o un commit desacoplan HEAD; el merge no entra en develop.
+    git(['tag', 't1', 'main'], raiz);
+    assert.equal(lanzar(`git checkout t1 && git merge ${RAMA}`).status, 0, 'tag');
+    const sha = git(['rev-parse', 'main'], raiz).trim();
+    assert.equal(lanzar(`git checkout ${sha} && git merge ${RAMA}`).status, 0, 'commit');
+    assert.equal(lanzar(`git checkout origin/remota && git merge ${RAMA}`).status, 0, 'rama remota desacoplada');
   });
 });
 

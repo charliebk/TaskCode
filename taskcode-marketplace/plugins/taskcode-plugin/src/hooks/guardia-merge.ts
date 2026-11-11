@@ -109,9 +109,13 @@ export function decidirPreToolUse(entrada: EntradaPreToolUse): DecisionPreToolUs
   if (comando === null) return PASAR;
   if (typeof entrada.cwd !== 'string' || entrada.cwd === '' || !existsSync(entrada.cwd)) return PASAR;
   const cwd = entrada.cwd;
-  // TASK-103: `git checkout README.md` no cambia de rama; solo un nombre que es rama lo hace.
-  const esRama = (n: string) => existeRef(`refs/heads/${n}`, cwd) || existeRef(`refs/remotes/origin/${n}`, cwd);
-  const ops = analizarComando(comando, esRama);
+  // TASK-103: `git checkout README.md` no cambia HEAD; una rama (tambien la que
+  // solo esta en origin: el DWIM de checkout), un tag o un commit, si.
+  const esRevision = (n: string) =>
+    existeRef(`refs/heads/${n}`, cwd) ||
+    existeRef(`refs/remotes/origin/${n}`, cwd) ||
+    git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${n}^{commit}`], cwd).ok;
+  const ops = analizarComando(comando, esRevision);
   if (ops.length === 0) return PASAR;
   const contexto: ContextoComando = { soloIntegra: comandoSoloIntegra(comando), inicioMs: Date.now() };
 

@@ -1102,13 +1102,16 @@ rama de integración (`rama_base`) o en la principal:
 - `git [-C dir] merge … <ref>`, con destino la última rama de un `git
   checkout|switch` del mismo texto o, si no hay, la rama actual; y los scripts
   `merge-<tipo>-to-<destino>.sh <rama>`. Un `git checkout <x>` con un único
-  argumento solo cambia el destino si `x` es una rama (existe en `refs/heads/`
-  o en `refs/remotes/origin/`): `git checkout README.md && git merge x`
-  restaura un fichero y el destino sigue siendo la rama actual.
+  argumento solo cambia el destino si `x` es una revisión: una rama (en
+  `refs/heads/` o en `refs/remotes/origin/`), un tag o un commit (estos dos
+  desacoplan HEAD, así que el merge no entra en ninguna rama). `git checkout
+  README.md && git merge x` restaura un fichero y el destino sigue siendo la
+  rama actual.
 - El texto de `bash|sh|zsh|dash [opciones] -c "…"`, `pwsh|powershell -Command …`,
   `cmd /c|/k …` y `eval …` se analiza igual que si se hubiera escrito
   directamente (también con opciones con valor delante, como `bash -o pipefail
-  -c`), y también tras `time [-p]` o dentro de un grupo `{ …; }`.
+  -c`), y también tras `time [-p] [--]`, `nohup`, `!`, dentro de un grupo
+  `{ …; }` o tras `then`, `do` y `else`.
 - **Bloquea** (exit 2, el motivo le llega al agente) si no hay un **verde
   guardado para el commit que entra** —sin verde cuenta como no verde— y remite
   a `taskctl finish` (o a `--sin-verificacion`, si lo decide la persona).
@@ -1121,14 +1124,15 @@ rama de integración (`rama_base`) o en la principal:
   pasar.
 - **Deja pasar** si el texto no contiene `merge` (sale sin cargar nada),
   `merge --abort|--continue|--quit|--skip` como opción (no como el valor de
-  otra: `git merge -m --abort x` sí mergea `x` y se evalúa), `merge-base`,
+  otra: `git merge -m --abort x` o `--message --abort x` sí mergean `x` y se
+  evalúan), `merge-base`,
   `git config merge.*`, `echo "git merge …"`, merges hacia ramas de trabajo, lo
   que ya está integrado (ancestro del destino, de la principal —el backmerge de
   recuperación de un hotfix— o de `origin/<destino>`), proyectos sin fichero de
   config o sin `comando_verificacion` y cualquier otro fallo antes de saber que
   el destino es protegido.
-- `eval`, `time` y `{ …; }` nunca reciben la exención de solo documentación:
-  el merge se evalúa completo.
+- `eval`, `time`, `nohup`, `{ …; }` y las estructuras de control nunca reciben
+  la exención de solo documentación: el merge se evalúa completo.
 - Nunca ejecuta la suite (su `timeout` es de 30 s): solo lee el memo.
 - Es una defensa contra despistes, no contra un agente hostil: no ve alias de
   git, `git pull`, `git push . x:develop` ni lo que se calcula en una subshell.
