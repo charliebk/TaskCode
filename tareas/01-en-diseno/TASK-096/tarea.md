@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 1374110
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -42,3 +42,9 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T15:04:19Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-11T15:15:28Z | diseno | agente:a2c08b66bb6960263,afe339d0c94eadd6a,adbab668cb5880fcb,a93af7e5f319bef37 | 80 | 199162 | 1130341 | 44527 | 56 | 1374110 | - | - |
