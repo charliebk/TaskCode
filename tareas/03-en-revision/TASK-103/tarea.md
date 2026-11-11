@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 503390
 tokens_implementacion: 6424077
-tokens_revision: null
+tokens_revision: 5485703
 creado: 2026-11-10
 actualizado: 2026-11-11
 dependencias: [TASK-101]
@@ -51,6 +51,7 @@ Sale de TASK-101 (troceada por la regla de una hora, decision de Carlos 2026-11-
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-11T10:38:15Z | diseno | agente:a55b886637a7f1998 | 30 | 43158 | 446024 | 14178 | 22 | 503390 | - | - |
 | 2026-11-11T11:25:46Z | implementacion | sesion:f73288ba-c6a3-455b-a768-15b5d14e0063 | 72 | 79664 | 6310022 | 34319 | 6 | 6424077 | - | - |
+| 2026-11-11T12:18:08Z | revision | agente:a2bdd6bbf70a8cdbf | 84 | 147542 | 5315919 | 22158 | 5 | 5485703 | 1 | - |
 
 ## Autorrevision
 
