@@ -1,0 +1,63 @@
+# Peticion de brainstorm — TASK-106, rol riesgos (ronda 1)
+
+- Tarea: TASK-106 — Verificacion proporcional B3: finish verifica solo lo afectado con codigo parcial
+- Tipo: feature · Complejidad declarada: media
+- Ronda: 1
+- Fecha: 2026-11-11
+- Rol: `brainstorm-riesgos` — lanzalo con el agente de ese mismo nombre
+- Vuelca tu respuesta en: `salida-brainstorm-riesgos-1.md`
+
+## Tu pregunta
+
+> ¿Por donde se rompe esto?
+
+## Que miras
+
+- Bordes y estados intermedios: que queda a medias si el proceso muere a mitad.
+- Fallos parciales y concurrencia: dos ejecuciones, un recurso ocupado, un permiso denegado.
+- Compatibilidad hacia atras con los datos y ficheros que YA existen.
+- La vuelta atras: si esto sale mal, como se deshace y que queda inservible.
+
+## Que NO miras
+
+No es una lista de cortesia. Si la ignoras y lo cubres todo "por si acaso", el acotado de contexto se deshace sin que se note y esta tarea deja de tener varios puntos de vista:
+
+- Donde encaja el cambio (es del rol de arquitectura).
+- Que aserciones escribir (es del rol de testing).
+- Las reglas de negocio (son del rol de dominio).
+
+## Enunciado de la tarea
+
+### Objetivo
+
+````
+Tercera parte de TASK-096. Con la decision selectiva de TASK-105, puertaSoloDocumentacion pasa a puertaProporcional: si la decision es selectiva, finish corre comando_verificacion_selectiva (con RAMA_BASE y timeout_verificacion_selectiva, reutilizando el memo del Stop o de review si casa la huella) en vez de la completa, y lo dice en su salida con el motivo; lo anota en tarea.md en una seccion idempotente. Decisiones de Carlos: la puerta de cobertura queda omitida en el nivel 2 (se mide en la completa del release); release y hotfix siempre a la completa; el verde selectivo nunca escribe el memo de la completa. Se retira el texto aunque las rondas usaran la selectiva cuando aplica la clave. Plan de partida: tareas/01-en-diseno/TASK-096/planificacion/plan-final.md (particion, decisiones de Carlos del 2026-11-11).
+````
+
+### Criterios de aceptacion
+
+````
+En un repo temporal cuya tarea cambia codigo dentro de rutas_verificacion_parcial, finish ejecuta solo la selectiva (contadores: selectiva 1, completa 0), integra y lo dice en su salida; con codigo fuera de esas rutas ejecuta la completa (contadores al reves) y dice por que (un test por caso)
+Con la selectiva en rojo no integra: develop no se mueve y la tarea sigue en revision (test)
+El verde de la selectiva no escribe freno-verificacion.json; la puerta de cobertura queda omitida en el nivel 2; release y hotfix ejecutan la completa (un test por caso)
+Una rama que cambia a la vez codigo y su propio clasificador (fuera de las rutas declaradas) va a la completa (test)
+Un proyecto que ya declara comando_verificacion_selectiva pero no la clave nueva se comporta como en la 0.14.0: finish corre la completa (los tests TASK-091 siguen igual)
+La suite completa pasa en verde (npm test) sin debilitar ningun test
+````
+
+## Como entregas
+
+Escribe en `salida-brainstorm-riesgos-1.md`, con estas secciones y en este orden:
+
+- Modos de fallo, ordenados por gravedad, con el escenario concreto de cada uno
+- Estados intermedios y fallos parciales
+- Compatibilidad hacia atras
+- Vuelta atras
+- El riesgo que mas te preocupa (UNO solo)
+
+## Reglas
+
+- **Propones enfoque; no implementas.** No escribas codigo de produccion ni modifiques ficheros del repo: tu salida es un documento.
+- Evidencia, no suposicion: si afirmas que algo se comporta de cierta manera, es porque lo has mirado. Di de donde lo sacas.
+- Prefiere lo concreto: rutas, nombres y casos reales por encima de recomendaciones genericas.
+- Trabajan en paralelo contigo, sin verte: **arquitectura**. No cubras lo suyo — si lo haces, el unificador recibira el mismo punto de vista repetido y lo leera como confirmacion.
