@@ -8,7 +8,9 @@ import { spawnSync } from 'node:child_process';
 import {
   decidirVerificacion,
   documentacionDeclarada,
+  parcialDeclarada,
   patronesDocumentacion,
+  patronesParcial,
   RUTA_TAREAS_SIEMPRE_DOCUMENTACION,
 } from '../../src/core/verificacion-proporcional.js';
 import { ConfigError, parsearConfig } from '../../src/core/config.js';
@@ -154,4 +156,103 @@ test('anotarVerificacionDocumentacion: un reintento con lo mismo no duplica la l
   const una = anotarVerificacionDocumentacion('## Objetivo\n', '2026-11-10T10:00:00Z', 'npm test', 'solo docs', 'node d.js');
   assert.equal(anotarVerificacionDocumentacion(una, '2026-11-10T10:05:00Z', 'npm test', 'solo docs', 'node d.js'), una);
   assert.notEqual(anotarVerificacionDocumentacion(una, '2026-11-11', 'npm test', 'otro motivo', 'node d.js'), una);
+});
+
+// TASK-096 (nivel 2): con rutas_verificacion_parcial, el codigo que cae dentro basta con la selectiva.
+const CFG_PARCIAL = {
+  ...CFG,
+  rutas_verificacion_parcial: ['src/web/**'],
+  comando_verificacion_selectiva: 'node sel.js',
+};
+
+test('decidirVerificacion (TASK-096): selectiva solo si todo el codigo cae en las rutas parciales', () => {
+  const sel = decidirVerificacion(
+    CFG_PARCIAL,
+    { todas: ['docs/a.md', 'src/web/b.ts'], fueraDeDocs: ['src/web/b.ts'], fueraDeParcial: [] },
+    'develop'
+  );
+  assert.equal(sel.tipo, 'selectiva');
+  assert.equal(sel.tipo === 'selectiva' ? sel.comando : null, 'node sel.js');
+  assert.match(sel.motivo, /1 fichero\(s\)\) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado/);
+
+  // Solo documentacion sigue siendo documentacion aunque haya rutas parciales.
+  const docs = decidirVerificacion(CFG_PARCIAL, { todas: ['docs/a.md'], fueraDeDocs: [], fueraDeParcial: [] }, 'develop');
+  assert.equal(docs.tipo, 'documentacion');
+
+  // Nivel 2 sin rutas de documentacion: tambien vale.
+  const sinDocs = decidirVerificacion(
+    { ...CFG_PARCIAL, rutas_documentacion: [] },
+    { todas: ['src/web/b.ts'], fueraDeDocs: ['src/web/b.ts'], fueraDeParcial: [] },
+    'develop'
+  );
+  assert.equal(sinDocs.tipo, 'selectiva');
+
+  const casos: Array<[string, Parameters<typeof decidirVerificacion>[1], RegExp]> = [
+    ['fuera de las rutas parciales', { todas: ['src/web/b.ts', 'src/core/c.ts'], fueraDeDocs: ['src/web/b.ts', 'src/core/c.ts'], fueraDeParcial: ['src/core/c.ts'] }, /fuera de rutas_verificacion_parcial: src\/core\/c\.ts/],
+    ['sin calcular lo de fuera de las parciales', { todas: ['src/web/b.ts'], fueraDeDocs: ['src/web/b.ts'] }, /no se calculo .* fuera de rutas_verificacion_parcial/],
+    // Mutacion: comprobar «selectiva» antes que el cambio de config pone esto en rojo.
+    ['config cambiada con codigo parcial', { todas: ['src/web/b.ts', '.taskcode/config.yml'], fueraDeDocs: ['src/web/b.ts', '.taskcode/config.yml'], fueraDeParcial: [] }, /cambia \.taskcode\/config\.yml/],
+    ['diff no calculable', null, /no se pudo calcular/],
+    ['diff vacio', { todas: [], fueraDeDocs: [], fueraDeParcial: [] }, /no cambia nada/],
+  ];
+  for (const [nombre, diff, motivo] of casos) {
+    const d = decidirVerificacion(CFG_PARCIAL, diff, 'develop');
+    assert.equal(d.tipo, 'completa', nombre);
+    assert.match(d.motivo, motivo, nombre);
+  }
+});
+
+test('decidirVerificacion (TASK-096): sin la clave, o sin selectiva, la decision es la de la 0.14.0', () => {
+  const diff = { todas: ['src/web/b.ts'], fueraDeDocs: ['src/web/b.ts'], fueraDeParcial: [] };
+  for (const cfg of [
+    CFG,
+    { ...CFG, rutas_verificacion_parcial: [], comando_verificacion_selectiva: 'node sel.js' },
+    { ...CFG, rutas_verificacion_parcial: ['src/web/**'], comando_verificacion_selectiva: null },
+  ]) {
+    const d = decidirVerificacion(cfg, diff, 'develop');
+    assert.equal(d.tipo, 'completa');
+    assert.match(d.motivo, /no son documentacion: src\/web\/b\.ts/);
+  }
+  assert.match(decidirVerificacion({ ...CFG, rutas_documentacion: [] }, diff, 'develop').motivo, /no declara rutas_documentacion/);
+  assert.equal(parcialDeclarada(CFG), false);
+  assert.equal(parcialDeclarada(CFG_PARCIAL), true);
+  assert.deepEqual(patronesParcial(CFG_PARCIAL), ['docs/**', RUTA_TAREAS_SIEMPRE_DOCUMENTACION, 'src/web/**']);
+});
+
+test('config (TASK-096): rutas_verificacion_parcial es conocida, va con la selectiva y rechaza lo que casa con todo', () => {
+  const ok = parsearConfig(
+    'comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node s.js"\nrutas_verificacion_parcial: [src/web/**, "tools/*.ts"]\n',
+    'c.yml'
+  );
+  assert.deepEqual(ok.rutas_verificacion_parcial, ['src/web/**', 'tools/*.ts']);
+  assert.deepEqual(parsearConfig('', 'c.yml').rutas_verificacion_parcial, []);
+
+  // Fallo cerrado: sin la selectiva no hay nada que correr en su lugar.
+  assert.throws(
+    () => parsearConfig('comando_verificacion: "npm test"\nrutas_verificacion_parcial: [src/web/**]\n', 'c.yml'),
+    (e: unknown) => {
+      assert.ok(e instanceof ConfigError);
+      assert.match(e.message, /"rutas_verificacion_parcial" necesita tambien "comando_verificacion_selectiva"/);
+      return true;
+    }
+  );
+  for (const p of ['"*"', '"**"', '"**/*"']) {
+    assert.throws(
+      () =>
+        parsearConfig(
+          `comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node s.js"\nrutas_verificacion_parcial: [${p}]\n`,
+          'c.yml'
+        ),
+      /de "rutas_verificacion_parcial" es demasiado amplio[\s\S]*carpetas concretas de codigo/,
+      p
+    );
+  }
+  assert.throws(
+    () =>
+      parsearConfig(
+        'comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node s.js"\nrutas_verificacion_parcial: [../fuera/**]\n',
+        'c.yml'
+      ),
+    /sale del repo/
+  );
 });

@@ -26,6 +26,7 @@
  * | umbral_cobertura             | null (solo informa) | commands/finish-cobertura.ts (TASK-074) |
  * | rutas_documentacion          | [] (sin efecto)   | finish-verificacion.ts (TASK-100), hooks/guardia-merge.ts (TASK-101) |
  * | comando_verificacion_documentacion | null        | finish-verificacion.ts (TASK-100), guardia-merge.ts (TASK-101) |
+ * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
  * TASK-100: si todo lo que cambia la tarea frente a la base cae en esas rutas
@@ -34,6 +35,14 @@
  * declara. Las rutas se leen de la config de la RAMA BASE (la rama no puede
  * ampliarlas para eximirse). Exigen `comando_verificacion`: sin el no hay nada
  * que ahorrar.
+ *
+ * `rutas_verificacion_parcial` la anadio TASK-096 (nivel 2 de la
+ * verificacion proporcional): si todo el codigo que cambia la tarea cae en
+ * esas rutas (leidas de la RAMA BASE, como las de documentacion), basta la
+ * selectiva. Es una lista de rutas permitidas: lo que queda fuera va a la
+ * completa. Exige `comando_verificacion_selectiva` (que a su vez exige la
+ * completa). Mismos patrones y mismo rechazo de los que casan con todo que
+ * `rutas_documentacion`.
  *
  * `comando_verificacion` y `timeout_verificacion` las anadio TASK-070: declaran
  * como se verifica el proyecto (el comando de tests del repo) para que los
@@ -153,6 +162,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
     umbral_cobertura: null,
     rutas_documentacion: Object.freeze([]),
     comando_verificacion_documentacion: null,
+    rutas_verificacion_parcial: Object.freeze([]),
 });
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
 export const CLAVES_CONFIG = [
@@ -177,6 +187,7 @@ export const CLAVES_CONFIG = [
     'umbral_cobertura',
     'rutas_documentacion',
     'comando_verificacion_documentacion',
+    'rutas_verificacion_parcial',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -443,6 +454,9 @@ export function parsearConfigConAvisos(contenido, ruta) {
             case 'rutas_documentacion':
                 config.rutas_documentacion = validarRutasDocumentacion(donde, par.valor);
                 break;
+            case 'rutas_verificacion_parcial':
+                config.rutas_verificacion_parcial = validarRutasDocumentacion(donde, par.valor, 'rutas_verificacion_parcial');
+                break;
             case 'comando_verificacion_documentacion':
                 config.comando_verificacion_documentacion = validarComando(donde, par.clave, par.valor, 'comando_verificacion_documentacion: "node scripts/comprobar-docs.js"');
                 break;
@@ -452,6 +466,7 @@ export function parsearConfigConAvisos(contenido, ruta) {
     validarVerificacionCompleta(ruta, vistas);
     validarCoberturaCompleta(ruta, vistas);
     validarDocumentacionCompleta(ruta, vistas);
+    validarParcialCompleta(ruta, vistas);
     validarRemotoCompleto(dondeUrlBase, config);
     return { config, avisos };
 }
@@ -572,17 +587,19 @@ function validarCoberturaCompleta(ruta, vistas) {
  * (`*`, `**`, `**\/*`) convertiria cualquier cambio en «solo documentacion»:
  * se rechaza (MEN-4 de la revision).
  */
-function validarRutasDocumentacion(donde, valor) {
-    const patrones = validarPatronesExclusion(donde, valor, 'rutas_documentacion', false);
+function validarRutasDocumentacion(donde, valor, clave = 'rutas_documentacion') {
+    const patrones = validarPatronesExclusion(donde, valor, clave, false);
     const total = patrones.find((p) => /^(\*\*?\/)*\*\*?$/.test(p.replace(/\/+$/, '')));
     if (total !== undefined) {
         throw new ConfigError(
         // MEN-6 de la revision de TASK-100: `*` y `*/**` no casan con todo, pero
         // si con todos los ficheros de la raiz o de cualquier carpeta: demasiado.
-        `[ERROR] ${donde}: el patron "${total}" de "rutas_documentacion" es demasiado amplio: casa con ` +
+        `[ERROR] ${donde}: el patron "${total}" de "${clave}" es demasiado amplio: casa con ` +
             'ficheros de cualquier tipo (todos los de la raiz, de cualquier carpeta o del repo entero), y una tarea ' +
             'con codigo podria cerrarse sin la verificacion completa.\n' +
-            '        Declara carpetas o ficheros concretos de documentacion (p. ej. [docs/**, README.md]).');
+            (clave === 'rutas_documentacion'
+                ? '        Declara carpetas o ficheros concretos de documentacion (p. ej. [docs/**, README.md]).'
+                : '        Declara carpetas concretas de codigo cuyo efecto acota tu selectiva (p. ej. [src/web/**]).'));
     }
     return patrones;
 }
@@ -600,6 +617,18 @@ function validarDocumentacionCompleta(ruta, vistas) {
         throw new ConfigError(`[ERROR] ${ruta}: "comando_verificacion_documentacion" necesita tambien "rutas_documentacion".\n` +
             '        Solo se ejecuta cuando la tarea cambia unicamente esas rutas. Declaralas (p. ej. ' +
             'rutas_documentacion: [docs/**, README.md]) o borra el comando.');
+    }
+}
+/**
+ * TASK-096: las rutas parciales dicen donde basta la selectiva; sin ella no hay
+ * nada que correr en su lugar (fallo cerrado, como la selectiva sin la completa).
+ */
+function validarParcialCompleta(ruta, vistas) {
+    if (vistas.has('rutas_verificacion_parcial') && !vistas.has('comando_verificacion_selectiva')) {
+        throw new ConfigError(`[ERROR] ${ruta}: "rutas_verificacion_parcial" necesita tambien "comando_verificacion_selectiva".
+` +
+            '        En esas rutas basta la verificacion de lo afectado, que la corre la selectiva. Declarala ' +
+            '(p. ej. comando_verificacion_selectiva: "node scripts/verificar-selectiva.js") o borra las rutas.');
     }
 }
 /** Ruta relativa a la raiz del repo, como las de sincronizacion (no absoluta, no carpeta, no fuera del repo). */
