@@ -25,6 +25,11 @@
  *      su verde guardado. Nunca si el comando puede crear o mover commits antes
  *      del merge, en un release, con un held-out cambiado, o pasado el
  *      presupuesto de tiempo. Solo se calcula si el paso 6 no dejo pasar.
+ *      TASK-108 (D1, 2026-11-11): con `rutas_verificacion_parcial`, si entra
+ *      codigo se exige SIEMPRE la completa del paso 6, aunque `finish` integre
+ *      con la selectiva; el memo `selectiva` no se lee nunca. Solo la DECISION
+ *      sale de la config del destino: los pasos 3 y 6 usan la del arbol, igual
+ *      que `finish` al guardar la huella (si no, dejarian de casar).
  *   7. Cualquier otra cosa BLOQUEA (exit 2): «sin verde» cuenta como no verde
  *      (decision de Carlos) y remite a `taskctl finish`, que si verifica.
  *
@@ -39,7 +44,7 @@ import { analizarComando, type OperacionMerge } from '../core/comando-merge.js';
 import { ConfigError, raizDelRepo, resolverConfigConAvisos, type TaskcodeConfig } from '../core/config.js';
 import { huellaDeCommit, leerMemo } from '../fs/verificacion.js';
 import { comandoSoloIntegra } from '../core/comando-merge.js';
-import { decidirVerificacionEntre, motivoDeLaCompleta } from '../fs/decision-documentacion.js';
+import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
 import { timeoutEfectivoS } from './freno-stop.js';
 
 import { PASAR, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
@@ -244,6 +249,18 @@ function motivoDeBloqueo(integ: Integracion, config: TaskcodeConfig, contexto: C
 }
 
 /**
+ * TASK-108: lo que se anade al bloqueo cuando el destino declara
+ * `rutas_verificacion_parcial` y entra codigo. No manda a «correr la completa y
+ * repetir»: con el nivel 2 ningun camino guarda la completa de ese commit donde
+ * el guardian la busca, y eso solo acabaria en un bucle. Tampoco nombra la causa
+ * (develop avanzo, la huella no casa): el guardian no la comprueba.
+ */
+const LINEA_SELECTIVA =
+  'Con codigo, un merge a mano exige la verificacion completa en verde de ese commit aunque taskctl finish ' +
+  'acepte la de lo afectado (rutas_verificacion_parcial), y un merge a mano no la obtiene. Integra con taskctl ' +
+  'finish TASK-NNN, que verifica y mergea por su cuenta; tras un conflicto, resuelvelo y vuelve a lanzar finish.';
+
+/**
  * TASK-101: si lo que entra es solo documentacion segun la config del destino.
  * `detalle` explica por que no se aplica cuando el destino si la declara; null
  * cuando no la declara (el mensaje queda como en la 0.14.0).
@@ -264,10 +281,15 @@ function exencionDocumentacion(
     };
   }
   const d = r.decision;
-  // TASK-105: la selectiva cuenta como la completa, a proposito y no porque su
-  // comando no case con el memo de documentacion (D1: con codigo, el guardian
-  // exige la completa).
-  if (d.tipo !== 'documentacion') return { pasa: false, detalle: `No es solo documentacion: ${motivoDeLaCompleta(d)}.` };
+  // TASK-105/108 (D1, decision de Carlos del 2026-11-11): con codigo el guardian
+  // exige SIEMPRE la completa, aunque finish integre con la selectiva. Nunca se
+  // lee el memo `selectiva`. Su motivo propio («basta la verificacion de lo
+  // afectado») contradiria el bloqueo, asi que se ensena uno neutro y una linea
+  // que dice que hace falta y como integrar.
+  if (d.tipo === 'selectiva') {
+    return { pasa: false, detalle: `No es solo documentacion: la tarea cambia rutas que no son documentacion.\n${LINEA_SELECTIVA}` };
+  }
+  if (d.tipo !== 'documentacion') return { pasa: false, detalle: `No es solo documentacion: ${d.motivo}.` };
   if (integ.release) {
     return { pasa: false, detalle: 'Un release lleva a la principal todo lo acumulado: siempre exige la verificacion completa.' };
   }
