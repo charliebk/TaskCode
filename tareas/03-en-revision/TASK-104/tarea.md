@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 392832
 tokens_implementacion: 8094083
-tokens_revision: 1876292
+tokens_revision: 2805062
 creado: 2026-11-11
 actualizado: 2026-11-11
 dependencias: [TASK-102]
@@ -51,6 +51,7 @@ Segunda mitad de TASK-102 (troceada por la regla de una hora, decision de Carlos
 | 2026-11-11T08:52:59Z | diseno | agente:aea57827bd0fd7f33,a859c2a8efbcbd139,a6df14ece8685bd11 | 30 | 103891 | 269828 | 19083 | 26 | 392832 | - | - |
 | 2026-11-11T09:37:27Z | implementacion | sesion:54b72414-a421-4c5c-a0d6-578a9eae7f01 | 82 | 60976 | 7996655 | 36370 | 17 | 8094083 | - | - |
 | 2026-11-11T09:48:21Z | revision | agente:a2515e966b1484d09 | 36 | 119550 | 1748102 | 8604 | 2 | 1876292 | 1 | - |
+| 2026-11-11T10:00:06Z | revision | agente:ab3773049f4b9f877 | 20 | 99155 | 821879 | 7716 | 2 | 928770 | 2 | - |
 
 ## Autorrevision
 
