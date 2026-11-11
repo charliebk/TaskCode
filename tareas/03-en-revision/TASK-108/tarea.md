@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 1428123
 tokens_implementacion: 4897055
-tokens_revision: null
+tokens_revision: 4862899
 creado: 2026-11-11
 actualizado: 2026-11-11
 dependencias: [TASK-106]
@@ -48,6 +48,7 @@ Quinta parte de TASK-096. Decision de Carlos (D1, 2026-11-11): el guardian de me
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-11T22:47:35Z | diseno | agente:a2a5ecc0346d9324a,afe06a71b5b03a1eb,a83a07992ade4abcb | 70 | 157689 | 1239869 | 30495 | 47 | 1428123 | - | - |
 | 2026-11-11T23:14:10Z | implementacion | sesion:b4e87bc9-9df0-4298-9beb-5107e454beff | 62 | 50974 | 4824629 | 21390 | 13 | 4897055 | - | - |
+| 2026-11-11T23:49:57Z | revision | agente:a5871a250e109ee36 | 80 | 134204 | 4713044 | 15571 | 2 | 4862899 | 1 | - |
 
 ## Autorrevision
 
