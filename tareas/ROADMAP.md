@@ -13,7 +13,7 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
 - **En marcha:** TASK-102 (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-096, TASK-103, TASK-104, TASK-019
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-096, TASK-103, TASK-019
 
 ## H0 — H0
 
@@ -71,7 +71,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-101 | Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion | media | TASK-100 | ✅ terminada |
 | 10 | TASK-102 | Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion | media | TASK-100 | ▶ en diseño |
 | 11 | TASK-103 | Guardian de merges: config invalida bloquea y merges que hoy no detecta | simple | TASK-101 | lista para empezar |
-| 12 | TASK-104 | Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion | media | — | lista para empezar |
+| 12 | TASK-104 | Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion | media | TASK-102 | espera a TASK-102 |
 
 ## H1 — H1
 
