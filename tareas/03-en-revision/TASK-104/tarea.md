@@ -27,12 +27,53 @@ dependencias: [TASK-102]
 Segunda mitad de TASK-102 (troceada por la regla de una hora, decision de Carlos 2026-11-11). taskctl review usa la misma decision comun que el freno Stop (peticionDeTrabajo de TASK-102) sobre base...HEAD, nunca sobre el diff de la ronda: si solo cambia documentacion no corre la verificacion selectiva; con comando_verificacion_selectiva y comando de documentacion declarados corre el de documentacion; sin selectiva no corre nada (decision de Carlos: no aparece una ejecucion donde la 0.14.0 no la tenia). La comprobacion se ejecuta antes de escribir la peticion, con el mismo patron que verificacionSelectivaDeRonda. Plan de partida: tareas/01-en-diseno/TASK-102/planificacion/plan-final.md (paso 5).
 
 ## Criterios de aceptacion
-- [ ] Una ronda de review de solo documentacion con comando_verificacion_selectiva y comando de documentacion declarados corre el de documentacion y no la selectiva; sin selectiva declarada no corre nada (test por cada uno, repo temporal)
-- [ ] Un fichero de codigo en base...HEAD hace que review aplique la verificacion de siempre, tambien en una ronda incremental cuyo delta solo toca documentacion (test)
-- [ ] Stop y review dan la misma decision para el mismo diff (test)
-- [ ] Sin la configuracion nueva review se comporta exactamente como en la 0.14.0 (test de regresion)
-- [ ] verificacion-selectiva.md, README y CHANGELOG explican el comportamiento de Stop y review, como cambio de comportamiento para quien ya declaro rutas_documentacion
-- [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+- [x] Una ronda de review de solo documentacion con comando_verificacion_selectiva y comando de documentacion declarados corre el de documentacion y no la selectiva; sin selectiva declarada no corre nada (test por cada uno, repo temporal)
+- [x] Un fichero de codigo en base...HEAD hace que review aplique la verificacion de siempre, tambien en una ronda incremental cuyo delta solo toca documentacion (test)
+- [x] Stop y review dan la misma decision para el mismo diff (test)
+- [x] Sin la configuracion nueva review se comporta exactamente como en la 0.14.0 (test de regresion)
+- [x] verificacion-selectiva.md, README y CHANGELOG explican el comportamiento de Stop y review, como cambio de comportamiento para quien ya declaro rutas_documentacion
+- [x] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Resultado
+
+`taskctl review` decide con la misma funcion que el freno Stop
+(`peticionDeTrabajo`, con la misma `baseFiable`), sobre base...HEAD mas el
+arbol y nunca sobre el delta de la ronda. `verificacionSelectivaDeRonda` pasa a
+`verificacionDeRonda` (src/commands/review.ts), con la guarda temprana intacta:
+sin `comando_verificacion_selectiva` devuelve null sin lanzar ningun git (como
+en la 0.14.0, y sin correr la de documentacion: decision de Carlos). Con ella:
+
+- solo documentacion y `comando_verificacion_documentacion`: corre ese, no la selectiva;
+- solo documentacion sin ese comando: no corre nada, y la peticion lo dice («Tipo: ninguna»);
+- codigo en base...HEAD: la selectiva, tambien en una ronda incremental que solo corrige documentacion.
+
+`VerificacionDeRonda` (core/informe-verificacion.ts) gana el tipo: la peticion
+dice «comprobacion de documentacion ... no se ha corrido ningun test» o
+«ninguna», nunca «selectiva», y oculta la cobertura con su motivo (decision de
+Carlos). Los mensajes de rojo y de arbol sucio distinguen el tipo; el de
+documentacion no menciona RAMA_BASE. Los avisos de la decision (config de la
+base invalida) salen en los avisos de review; un fallo inesperado de la
+decision cae a la selectiva con aviso. Documentado en verificacion-selectiva.md,
+README y CHANGELOG como cambio de comportamiento para quien ya declaro
+`rutas_documentacion` y la selectiva, incluida la divergencia a proposito sin
+selectiva (Stop corre algo, review nada).
+
+Tests: test/commands/review-documentacion.test.ts (10, repos temporales y un
+script que cuenta ejecuciones): criterios 1 a 4, el hotfix (Stop y review corren
+la selectiva), el rojo de documentacion, la config de la base invalida, la
+cobertura oculta y la regresion sin `rutas_documentacion` contando procesos git
+con GIT_TRACE2_EVENT (ni `git show` de la base ni `ls-files --others`). El
+criterio 3 se prueba con la selectiva declarada (decision de Carlos). Suite
+completa sobre ab52569: 2168 tests, 2164 en verde, solo los 3 rojos conocidos de
+Windows (symlink en approve, chmod y CRLF en plan); despues solo cambiaron
+tests, verificados por fichero.
+
+Revision por pares, dos rondas, sin CRITICO ni IMPORTANTE:
+- MEN-1 (no habia test de hotfix en review; el mutante `baseFiable: true`
+  sobrevivia): corregido con un test que ahora lo tumba.
+- MEN-2 (el `catch` de la decision no tiene test): aceptado. `peticionDeTrabajo`
+  no lanza por ningun camino alcanzable y forzarlo exigiria un doble (la suite
+  no usa mocks); queda como defensa en profundidad.
 
 ## Transiciones
 
