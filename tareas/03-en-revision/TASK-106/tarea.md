@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 1097656
 tokens_implementacion: 13754830
-tokens_revision: null
+tokens_revision: 6422179
 creado: 2026-11-11
 actualizado: 2026-11-11
 dependencias: [TASK-105]
@@ -49,6 +49,7 @@ Tercera parte de TASK-096. Con la decision selectiva de TASK-105, puertaSoloDocu
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-11T18:27:40Z | diseno | agente:a1fb71a103a425a39,a80b09e5e7c94a2da,a4f5fe5bc4fa543a6 | 60 | 151053 | 916335 | 30208 | 43 | 1097656 | - | - |
 | 2026-11-11T19:12:13Z | implementacion | sesion:b6475f64-094f-4992-9e7f-78692efbf074 | 132 | 111947 | 13588928 | 53823 | 32 | 13754830 | - | - |
+| 2026-11-11T19:54:24Z | revision | agente:a1fb4fb8024962dbf | 88 | 165073 | 6237463 | 19555 | 7 | 6422179 | 1 | - |
 
 ## Autorrevision
 
