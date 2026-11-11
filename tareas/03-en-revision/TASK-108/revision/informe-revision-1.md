@@ -2,7 +2,7 @@
 
 - Commit revisado: aeb40d9b77fd3075072e0ee7dabc83bd78eca304
 - Revisor: code-quality-reviewer (agente general-purpose, modelo sonnet)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-108 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 Veredicto propuesto por el revisor: aprobada-con-correcciones. En modo automatico el codigo que se mergea tiene que ser el revisado, asi que MEN-1 y MEN-2 se piden como cambios-solicitados; MEN-3 se acepta.
 
