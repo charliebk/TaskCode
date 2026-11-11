@@ -45,6 +45,7 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 | 2026-11-11T15:17:43Z | approve | automatico | automatico | 0.14.0 |
 | 2026-11-11T15:17:52Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T15:47:51Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T16:03:05Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
