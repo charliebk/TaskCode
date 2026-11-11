@@ -6,7 +6,9 @@ Los desacuerdos entre roles se senalan, no se promedian.)
 
 ## Enfoque propuesto
 
-Duracion estimada: 70 min (de la rama abierta al cierre con merge; señales: 4 ficheros de código —`core/transiciones.ts`, `commands/finish-verificacion.ts`, `commands/finish-cobertura.ts`, `commands/finish.ts`— más tests nuevos con procesos sobre repos temporales; 2 capas, core y commands, con `fs/verificacion.ts` reutilizado sin cambios; 6 criterios con un test por caso; la suite completa, ~10 min). Pasa de 60 min: se propone trocear (D3). La partición de TASK-096 le daba ~60 min a esta parte antes de añadir el helper compartido y la extracción de `anotarYCommitear`.
+Duracion estimada: 70 min
+
+Señales (de la rama abierta al cierre con merge): 4 ficheros de código —`core/transiciones.ts`, `commands/finish-verificacion.ts`, `commands/finish-cobertura.ts`, `commands/finish.ts`— más tests nuevos con procesos sobre repos temporales; 2 capas, core y commands, con `fs/verificacion.ts` reutilizado sin cambios; 6 criterios con un test por caso; la suite completa, ~10 min). Pasa de 60 min: Carlos decidió aprobarla entera (D3, ver «Respuestas de Carlos»). La partición de TASK-096 le daba ~60 min a esta parte antes de añadir el helper compartido y la extracción de `anotarYCommitear`.
 
 - `puertaSoloDocumentacion` pasa a `puertaProporcional` y se ramifica por `decision.tipo`; el caso `selectiva` llama a `verificarConMemo` (`fs/verificacion.ts:273`) con `tipo:'selectiva'`, `timeoutSelectivaS` y `base: ramaBase`, que ya impone `RAMA_BASE` y escribe solo `freno-verificacion-selectiva.json` (arquitectura; riesgos pide eso mismo en sus modos 1 y 7).
 - `ResultadoPuerta` gana `{tipo:'selectiva'; comando; motivo; deMemo}` y `puertaCobertura` lo trata como `omitida` (arquitectura; riesgos, modo 5; decisión D4 de Carlos).
