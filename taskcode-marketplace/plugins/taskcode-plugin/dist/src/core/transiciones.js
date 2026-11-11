@@ -357,11 +357,17 @@ export function anotarCompletaTrasParcial(body, instante, comando, motivo) {
 function tieneSeccion(body, titulo) {
     return rangoDeSeccion(body.split(/\r?\n/), titulo) !== null;
 }
-/** `- <instante>: <texto>` en la seccion, salvo que ya haya una linea con ese mismo texto (MEN-1 de TASK-100). */
+/**
+ * `- <instante>: <texto>` en la seccion, salvo que su ULTIMA linea ya tenga ese
+ * mismo texto (MEN-1 de TASK-100: un reintento igual no duplica). Se compara
+ * solo con la ultima (MEN-1 de TASK-106): tras selectiva, completa y otra vez
+ * selectiva, la seccion tiene que acabar diciendo lo que corrio al final.
+ */
 function anotarLineaUnica(body, titulo, instante, texto) {
     const lineas = body.split(/\r?\n/);
     const rango = rangoDeSeccion(lineas, titulo);
-    if (rango !== null && lineas.slice(rango[0], rango[1]).some((l) => l.startsWith('- ') && l.endsWith(`: ${texto}`))) {
+    const ultima = rango === null ? undefined : lineas.slice(rango[0], rango[1]).filter((l) => l.startsWith('- ')).pop();
+    if (ultima !== undefined && ultima.endsWith(`: ${texto}`)) {
         return body;
     }
     return anotarLineaEnSeccion(body, titulo, `- ${instante}: ${texto}`);

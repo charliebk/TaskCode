@@ -171,17 +171,20 @@ export async function puertaVerificacion(
   if (docs !== null && docs.decision.tipo === 'selectiva' && o.permitirSelectiva === true) {
     return puertaSelectiva(o, comando, docs.decision, docs.timeoutSelectivaS, o.ramaBase as string);
   }
-  const motivoCompleta = docs === null ? null : motivoDeLaCompleta(docs.decision);
+  const motivoCompleta = docs === null ? null : motivoCompletaEnFinish(docs.decision);
   if (motivoCompleta !== null) {
     o.onAviso?.(`${o.id}: se ejecuta la verificacion completa: ${motivoCompleta}.`);
   }
   // TASK-106: un intento anterior anoto la selectiva; se anota (y commitea) antes de correr, como la
   // via de documentacion, para que el memo de la completa case con el commit que se integra.
   let tarea = o.initial;
+  let commitAnotacion: string | null = null;
   if (motivoCompleta !== null) {
     const body = anotarCompletaTrasParcial(o.initial.body, o.instante, comando, motivoCompleta);
     if (body !== o.initial.body) {
-      tarea = (await anotarYCommitear(o, body, 'reintento con verificacion completa', 'anotar la verificacion')).tarea;
+      const a = await anotarYCommitear(o, body, 'reintento con verificacion completa', 'anotar la verificacion');
+      tarea = a.tarea;
+      commitAnotacion = a.commit;
     }
   }
 
@@ -195,7 +198,11 @@ export async function puertaVerificacion(
   if (huella !== null) guardarMemo(o.cwd, huella, r);
   if (r.estado !== 'verde') {
     throw new FinishCommandError(
-      `[ERROR] ${o.id}: no se mergea con la verificacion en rojo. No se ha tocado nada.\n` +
+      `[ERROR] ${o.id}: no se mergea con la verificacion en rojo. ` +
+        // MEN-3 de la revision: el reintento tras una parcial ya commiteo su anotacion en la rama.
+        (commitAnotacion === null
+          ? 'No se ha tocado nada.\n'
+          : `No se ha mergeado nada; solo se ha commiteado en la rama la anotacion del intento (${commitAnotacion}).\n`) +
         `${formatearVerificacionRoja(r)}\n` +
         textoDeLaCompleta(config, motivoCompleta) +
         `Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y ` +
@@ -270,9 +277,10 @@ async function puertaSoloDocumentacion(
 /**
  * TASK-106: por que se ejecuta la completa en un proyecto que la decide (la
  * base declara `rutas_documentacion`). Una decision `selectiva` solo llega aqui
- * si la puerta no la permite: un hotfix.
+ * si la puerta no la permite: un hotfix. No es la `motivoDeLaCompleta` del
+ * guardian (fs/decision-documentacion), que aun no acepta la selectiva (B5).
  */
-function motivoDeLaCompleta(d: DecisionVerificacion): string {
+function motivoCompletaEnFinish(d: DecisionVerificacion): string {
   return d.tipo === 'selectiva' ? 'un hotfix integra en la principal y siempre se verifica con la completa' : d.motivo;
 }
 

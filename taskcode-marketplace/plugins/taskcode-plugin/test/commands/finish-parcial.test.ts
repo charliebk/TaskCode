@@ -24,6 +24,7 @@ const fs = require('node:fs');
 const tipo = process.argv[2];
 const dir = __dirname;
 fs.appendFileSync(dir + '/cuenta-' + tipo, 'x');
+if (tipo === 'sel' && fs.existsSync(dir + '/ensucia')) fs.writeFileSync(process.cwd() + '/sucio.txt', 'x');
 if (tipo === 'sel') fs.writeFileSync(dir + '/rama-base', process.env.RAMA_BASE === undefined ? '(sin)' : process.env.RAMA_BASE);
 const d = fs.readFileSync(dir + '/desenlace-' + tipo, 'utf8').trim();
 if (d === 'ok') { console.log(tipo + ' en verde'); process.exit(0); }
@@ -40,6 +41,8 @@ interface Entorno {
   desenlace(tipo: Tipo, d: 'ok' | 'ko'): Promise<void>;
   ejecuciones(tipo: Tipo): number;
   ramaBaseRecibida(): string | null;
+  /** La selectiva deja `sucio.txt` (no ignorado) en el repo. */
+  ensuciar(): Promise<void>;
 }
 
 /** `trabajo-*.txt` (lo que deja `setupTaskEnRevision`) es documentacion; el codigo parcial vive en src/**. */
@@ -75,6 +78,7 @@ async function conEntorno(
           const f = path.join(dir, `cuenta-${tipo}`);
           return existsSync(f) ? readFileSync(f, 'utf8').length : 0;
         },
+        ensuciar: () => writeFile(path.join(dir, 'ensucia'), 'x', 'utf8'),
         ramaBaseRecibida: () => {
           const f = path.join(dir, 'rama-base');
           return existsSync(f) ? readFileSync(f, 'utf8') : null;
@@ -367,5 +371,48 @@ test('finish (TASK-106): un reintento que acaba en la completa lo anota bajo la 
     assert.match(git(['log', '--format=%s', 'develop'], e.repoRoot), /reintento con verificacion completa/);
     const huella = huellaDeCommit(e.repoRoot, task.rama, e.comandoCompleta, 600) as string;
     assert.equal(leerMemo(e.repoRoot, huella, 'completa')?.estado, 'verde', 'el verde de la completa es del commit integrado');
+  });
+});
+
+test('finish (TASK-106, IMP-1): la selectiva en verde que deja el arbol sucio no integra ni anota', async () => {
+  await conEntorno(({ sel }) => NIVEL2(sel), async (e) => {
+    const task = sampleTask({ id: 'TASK-965' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/calculo.ts');
+    await e.ensuciar();
+    const develop = git(['rev-parse', 'develop'], e.repoRoot);
+    await assert.rejects(
+      () => finish(e, 'TASK-965'),
+      (err: unknown) =>
+        err instanceof FinishCommandError &&
+        /la verificacion selectiva salio en verde, pero ha dejado cambios en el arbol de trabajo/.test(err.message) &&
+        /No se ha mergeado nada/.test(err.message)
+    );
+    assert.equal(e.ejecuciones('sel'), 1);
+    assert.equal(git(['rev-parse', 'develop'], e.repoRoot), develop, 'develop no se mueve');
+    const t = await readTareaFile(e.tareasRoot, 'TASK-965');
+    assert.equal(t?.task.estado, 'en-revision');
+    assert.doesNotMatch(t?.body ?? '', /## Verificacion parcial/);
+  });
+});
+
+test('finish (TASK-106, MEN-3): el rojo de la completa en un reintento dice que solo se commiteo la anotacion', async () => {
+  await conEntorno(({ sel }) => NIVEL2(sel), async (e) => {
+    const task = sampleTask({ id: 'TASK-966' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    const t0 = await readTareaFile(e.tareasRoot, 'TASK-966');
+    await writeTareaFile(e.tareasRoot, t0!.task, `${t0!.body.replace(/\s*$/, '')}\n\n## Verificacion parcial\n\n- 2026-11-10: todo en src; se ejecuta la selectiva en verde\n`);
+    commitAll(e.repoRoot, 'intento anterior');
+    await enLaRama(e, 'lib/util.ts');
+    await e.desenlace('completa', 'ko');
+    const develop = git(['rev-parse', 'develop'], e.repoRoot);
+    await assert.rejects(
+      () => finish(e, 'TASK-966'),
+      (err: unknown) =>
+        err instanceof FinishCommandError &&
+        /No se ha mergeado nada; solo se ha commiteado en la rama la anotacion del intento \([0-9a-f]+\)/.test(err.message) &&
+        !/No se ha tocado nada/.test(err.message)
+    );
+    assert.equal(git(['rev-parse', 'develop'], e.repoRoot), develop);
   });
 });
