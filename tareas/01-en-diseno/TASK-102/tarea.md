@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 973799
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
@@ -41,3 +41,9 @@ Tercera parte de TASK-100 (troceada por la regla de una hora, decision de Carlos
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T00:08:16Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-11T00:17:19Z | diseno | agente:a6510894427772cf0,ae4845017e3f37876,ad5af49c426af7f1e | 56 | 137410 | 808016 | 28317 | 44 | 973799 | - | - |
