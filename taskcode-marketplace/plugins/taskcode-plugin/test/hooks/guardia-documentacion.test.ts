@@ -208,7 +208,8 @@ test('comandoSoloIntegra: solo un merge, cambiar de carpeta o de rama y consulta
     'bash scripts/merge-feature-to-develop.sh feature/x',
     'bash -c "git checkout develop && git merge x"',
     'git checkout -q develop && git switch --detach develop && git merge x',
-    'cd C:\repo && git merge x',
+    // NUE-3 de la revision de TASK-101: barra real (antes '\r' era un retorno de carro).
+    'cd C:\\repo && git merge x',
   ]) {
     assert.equal(comandoSoloIntegra(ok), true, ok);
   }
@@ -239,13 +240,16 @@ test('comandoSoloIntegra: solo un merge, cambiar de carpeta o de rama y consulta
     'git checkout -fB docs code && git checkout develop && git merge docs',
     'git checkout -qB docs code && git checkout develop && git merge docs',
     'git checkout -Bdocs code && git checkout develop && git merge docs',
-    'git checkout -\B docs code && git checkout develop && git merge docs',
+    // NUE-3: barra real; '-\B' en TS es solo '-B'.
+    'git checkout -\\B docs code && git checkout develop && git merge docs',
     'git switch -fC docs code && git switch develop && git merge docs',
     'git switch -Cdocs code && git switch develop && git merge docs',
     'git switch --force-c docs code && git switch develop && git merge docs',
-    'git switch -\C docs code && git switch develop && git merge docs',
-    'bash -lc "git checkout -\B docs code && git checkout develop && git merge docs"',
+    'git switch -\\C docs code && git switch develop && git merge docs',
+    'bash -lc "git checkout -\\B docs code && git checkout develop && git merge docs"',
     "sh -c 'git checkout -fB docs code && git checkout develop && git merge docs'",
+    // NUE-3 (TASK-103): bash quita la barra y queda --output=...; solo lo para la comprobacion de barra.
+    'git log --outpu\\t=.git/refs/heads/docs && git merge docs',
     // NUE-2: un merge disfrazado con una opcion de --abort/--quit no cuenta en analizarComando.
     'git checkout docs && git merge -m --abort code && git checkout develop && git merge --no-ff docs',
     'git merge -m --quit code; git merge docs',

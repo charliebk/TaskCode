@@ -9,8 +9,11 @@
  *   1. El texto no contiene `merge`: deja pasar (lo decide el punto de
  *      entrada, antes incluso de cargar este modulo).
  *   2. `analizarComando` no encuentra un merge ni un script de cierre.
- *   3. No es un repo, o la config no declara `comando_verificacion`, o no se
- *      puede leer: deja pasar (la puerta de `finish` sigue ahi).
+ *   3. No es un repo, no hay config o no declara `comando_verificacion`: deja
+ *      pasar (la puerta de `finish` sigue ahi). TASK-103: si la config existe
+ *      pero no se puede leer, un merge hacia develop, main o master (lista
+ *      fija: sin config no se sabe `rama_base`) BLOQUEA siempre, con el error
+ *      y como arreglarlo: una config mal escrita no desactiva el guardian.
  *   4. El destino no es la rama de integracion (`rama_base`) ni la principal.
  *   5. La fuente ya esta integrada: es ancestro del destino, de la principal
  *      (el backmerge de recuperacion que pide `finish`) o de origin/<destino>.
@@ -33,7 +36,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { analizarComando } from '../core/comando-merge.js';
-import { raizDelRepo, resolverConfigConAvisos } from '../core/config.js';
+import { ConfigError, raizDelRepo, resolverConfigConAvisos } from '../core/config.js';
 import { huellaDeCommit, leerMemo } from '../fs/verificacion.js';
 import { comandoSoloIntegra } from '../core/comando-merge.js';
 import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
@@ -74,16 +77,29 @@ function esAncestro(a, b, cwd) {
  * podria dejar pasar el merge).
  */
 export const PRESUPUESTO_EXENCION_MS = 20_000;
+/** TASK-103: lo que se protege cuando la config no se puede leer (sin ella no se sabe `rama_base`). */
+const PROTEGIDAS_SIN_CONFIG = new Set(['develop', 'main', 'master']);
 export function decidirPreToolUse(entrada) {
     const comando = comandoCandidato(entrada);
     if (comando === null)
         return PASAR;
-    const ops = analizarComando(comando);
-    if (ops.length === 0)
-        return PASAR;
     if (typeof entrada.cwd !== 'string' || entrada.cwd === '' || !existsSync(entrada.cwd))
         return PASAR;
     const cwd = entrada.cwd;
+    // TASK-103: `git checkout README.md` no cambia HEAD; una rama (tambien la que
+    // solo esta en origin: el DWIM de checkout), un tag o un commit, si.
+    const esRevision = (n) => {
+        // `HEAD` y `@` resuelven a un commit pero te dejan en la misma rama (NUE-1 de
+        // la ronda 2): no cambian el destino. Sin distinguir mayusculas, por Windows.
+        if (/^(?:head|@)$/i.test(n))
+            return false;
+        return (existeRef(`refs/heads/${n}`, cwd) ||
+            existeRef(`refs/remotes/origin/${n}`, cwd) ||
+            git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${n}^{commit}`], cwd).ok);
+    };
+    const ops = analizarComando(comando, esRevision);
+    if (ops.length === 0)
+        return PASAR;
     const contexto = { soloIntegra: comandoSoloIntegra(comando), inicioMs: Date.now() };
     // 3 y 4: hasta saber que algo entra en develop/main, cualquier fallo deja pasar.
     const pendientes = [];
@@ -94,9 +110,16 @@ export function decidirPreToolUse(entrada) {
             let config;
             try {
                 raiz = raizDelRepo(dirOp);
-                config = resolverConfigConAvisos(raiz).config;
             }
             catch {
+                continue;
+            }
+            try {
+                config = resolverConfigConAvisos(raiz).config;
+            }
+            catch (e) {
+                if (e instanceof ConfigError)
+                    pendientes.push(...configInvalida(op, raiz, e));
                 continue;
             }
             if (config.comando_verificacion === null)
@@ -105,7 +128,7 @@ export function decidirPreToolUse(entrada) {
             const protegidas = new Set([config.rama_base, ...(principal === null ? [] : [principal])]);
             for (const integ of integraciones(op, raiz, config.rama_base, principal)) {
                 if (protegidas.has(integ.destino))
-                    pendientes.push({ op, integ, config });
+                    pendientes.push({ tipo: 'verificar', integ, config });
             }
         }
     }
@@ -116,8 +139,10 @@ export function decidirPreToolUse(entrada) {
         return PASAR;
     // 5 a 7: ya se sabe que el comando integra en una rama protegida.
     try {
-        for (const { integ, config } of pendientes) {
-            const motivo = motivoDeBloqueo(integ, config, contexto);
+        for (const p of pendientes) {
+            if (p.tipo === 'config-invalida')
+                return { codigo: 2, stderr: mensajeConfigInvalida(p.destino, p.error) };
+            const motivo = motivoDeBloqueo(p.integ, p.config, contexto);
             if (motivo !== null)
                 return { codigo: 2, stderr: motivo };
         }
@@ -131,6 +156,21 @@ export function decidirPreToolUse(entrada) {
                 'Cierra la tarea con taskctl finish TASK-NNN, que verifica antes de mergear.',
         };
     }
+}
+/**
+ * TASK-103: con la config ilegible, los destinos de la operacion que estan en
+ * la lista fija. Se calculan con los valores por defecto (`develop`, y la
+ * principal local o `main`). Se bloquea siempre, sin mirar ancestros ni verdes.
+ */
+function configInvalida(op, raiz, error) {
+    const principal = ramaPrincipal(raiz) ?? 'main';
+    return integraciones(op, raiz, 'develop', principal)
+        .filter((integ) => PROTEGIDAS_SIN_CONFIG.has(integ.destino))
+        .map((integ) => ({ tipo: 'config-invalida', destino: integ.destino, error }));
+}
+/** El texto de un ConfigError sin su prefijo `[ERROR]`. */
+function textoDeConfigError(e) {
+    return e.message.replace(/^\[ERROR\]\s*/, '');
 }
 /** Pares fuente -> destino de una operacion. Para un merge sin destino explicito, la rama actual. */
 function integraciones(op, raiz, integracion, principal) {
@@ -196,7 +236,7 @@ function exencionDocumentacion(integ, sha, contexto) {
     if (r.tipo === 'config-invalida') {
         return {
             pasa: false,
-            detalle: `La configuracion de "${destino}" no es valida, asi que no se aplica la exencion de solo documentacion: ${r.error.message.replace(/^\[ERROR\]\s*/, '')}`,
+            detalle: `La configuracion de "${destino}" no es valida, asi que no se aplica la exencion de solo documentacion: ${textoDeConfigError(r.error)}`,
         };
     }
     const d = r.decision;
@@ -223,6 +263,15 @@ function exencionDocumentacion(integ, sha, contexto) {
         detalle: `${d.motivo}, pero no consta en verde su comprobacion de documentacion (${d.comando}) para ese commit: ` +
             'taskctl finish la ejecuta.',
     };
+}
+/** TASK-103: el texto para el agente cuando la config no se puede leer. */
+function mensajeConfigInvalida(destino, error) {
+    return [
+        `Merge bloqueado: entraria en "${destino}" y la configuracion del repositorio no se puede leer: ${textoDeConfigError(error)}`,
+        'Sin una configuracion valida no se sabe que verificacion exigir, asi que no se integra en develop, main ni master.',
+        'Corrige el fichero que nombra el error (taskctl doctor lo valida y dice como arreglarlo) y repite el merge,',
+        'o cierra la tarea con taskctl finish TASK-NNN. No integres por otra via para saltarte esta comprobacion.',
+    ].join('\n');
 }
 function mensaje(fuente, sha, destino, comando, motivo, detalle = null) {
     const quien = sha === null ? `"${fuente}"` : `"${fuente}" (${sha.slice(0, 10)})`;
