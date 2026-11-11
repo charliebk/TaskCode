@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-108-verificacion-proporcional-b5-el-guardian
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ Quinta parte de TASK-096. Decision de Carlos (D1, 2026-11-11): el guardian de me
 - [ ] El mensaje de bloqueo de un merge con codigo dice que hace falta la completa y como obtenerla (test sobre el texto)
 - [ ] Sin la clave nueva el guardian se comporta como en la 0.14.0 (test de regresion)
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-11T22:40:40Z | plan | automatico | persona | 0.14.0 |
