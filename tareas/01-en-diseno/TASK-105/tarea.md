@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-105-verificacion-proporcional-b2-decision-en
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Segunda parte de TASK-096 (troceada por la regla de una hora, decision de Carlos
 - [ ] Sin la clave no se lanza ningun git de mas y la decision es la de la 0.14.0 (test)
 - [ ] huellaDeCommit con contexto casa con la huella que guarda la selectiva para la misma base; el memo selectiva no se guarda con el arbol sucio (test por caso)
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-11T16:31:34Z | plan | automatico | persona | 0.14.0 |
