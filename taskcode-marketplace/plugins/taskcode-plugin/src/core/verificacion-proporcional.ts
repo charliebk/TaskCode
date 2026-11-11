@@ -75,9 +75,18 @@ export function documentacionDeclarada(config: ConfigDocumentacion): boolean {
   return config.rutas_documentacion.length > 0;
 }
 
-/** TASK-096: true si el proyecto activo el nivel 2 (rutas parciales y su selectiva). */
+/**
+ * TASK-096: la selectiva del nivel 2 si el proyecto lo activo (rutas parciales
+ * y su comando); null si no. Unico sitio que decide si el nivel 2 esta activo.
+ */
+export function comandoParcial(config: ConfigDocumentacion): string | null {
+  if ((config.rutas_verificacion_parcial ?? []).length === 0) return null;
+  return config.comando_verificacion_selectiva ?? null;
+}
+
+/** TASK-096: true si el proyecto activo el nivel 2. */
 export function parcialDeclarada(config: ConfigDocumentacion): boolean {
-  return (config.rutas_verificacion_parcial ?? []).length > 0 && (config.comando_verificacion_selectiva ?? null) !== null;
+  return comandoParcial(config) !== null;
 }
 
 /** TASK-096: patrones con los que Git separa lo que queda fuera de documentacion y de las rutas parciales. */
@@ -100,9 +109,8 @@ export function decidirVerificacion(
   base: string
 ): DecisionVerificacion {
   const docs = documentacionDeclarada(config);
-  const selectiva = config.comando_verificacion_selectiva ?? null;
-  const parcial = (config.rutas_verificacion_parcial ?? []).length > 0 && selectiva !== null;
-  if (!docs && !parcial) {
+  const selectiva = comandoParcial(config);
+  if (!docs && selectiva === null) {
     return { tipo: 'completa', motivo: `"${base}" no declara rutas_documentacion` };
   }
   if (diff === null) {
@@ -123,7 +131,7 @@ export function decidirVerificacion(
         `rutas_documentacion de "${base}")`,
     };
   }
-  if (!parcial) {
+  if (selectiva === null) {
     return {
       tipo: 'completa',
       motivo: `la tarea cambia rutas que no son documentacion: ${listar(diff.fueraDeDocs)}`,
