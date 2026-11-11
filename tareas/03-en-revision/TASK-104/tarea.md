@@ -42,6 +42,7 @@ Segunda mitad de TASK-102 (troceada por la regla de una hora, decision de Carlos
 | 2026-11-11T09:04:05Z | approve | automatico | automatico | 0.14.0 |
 | 2026-11-11T09:04:06Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T09:37:27Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T09:53:10Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
