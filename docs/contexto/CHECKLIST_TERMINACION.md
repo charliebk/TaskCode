@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 111 / 117 items terminados (95%)** · última actualización: 2026-11-11
+**Progreso global: 112 / 117 items terminados (96%)** · última actualización: 2026-11-11
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 16 | **10** | — |
-| **Total pendiente** | **6** | — | — |
+| ⏳ P — Agilidad sin perder calidad | 16 | **11** | — |
+| **Total pendiente** | **5** | — | — |
 
 ---
 
@@ -1115,7 +1115,7 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
-## ⏳ P — Agilidad sin perder calidad (7/11)
+## ⏳ P — Agilidad sin perder calidad (11/16)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -1153,7 +1153,13 @@ del código.
       sobre TASK-091 escrita en el plan: la completa sigue por defecto y el guardián no acepta la
       selectiva para código. 2 rondas: 3 MENOR en la 1, corregidos; aprobada en la 2. No se publica
       versión hasta cerrar TASK-109.*
-- [ ] TASK-105 — Verificación proporcional B2: decisión entre refs y huella para el nivel 2
+- [x] TASK-105 — Verificación proporcional B2: decisión entre refs y huella para el nivel 2 — cerrada el 2026-11-11
+      *La decisión entre refs calcula fueraDeParcial con un git diff extra (solo la lista excluida, SHA
+      fijados antes) cuando la base declara la clave y hay código; sin ella, cero procesos de más.
+      huellaDeCommit acepta contexto y comparte cabecera con huellaDelArbol. Decisiones de Carlos: el memo
+      selectiva no se guarda con el árbol sucio (el Stop sucio la repite; medir en ToolsaWeb antes de B3),
+      se mantiene la salida temprana sin rutas_documentacion, y el guardián y finish tratan selectiva como
+      completa con motivo neutro (cierra el hueco del guardián). 1 ronda: aprobada, 2 MENOR aceptados.*
 - [ ] TASK-106 — Verificación proporcional B3: finish verifica solo lo afectado con código parcial
 - [ ] TASK-107 — Verificación proporcional B4: Stop, review y finish deciden igual el mismo diff
 - [ ] TASK-108 — Verificación proporcional B5: el guardián de merges ante el nivel 2
