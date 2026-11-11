@@ -8,10 +8,10 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish-verificacion.ts (guarda `isWorkspaceClean` de `puertaSelectiva`, ~l. 359-365) / test/commands/finish-parcial.test.ts | implementacion |
-| MEN-1 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/transiciones.ts (`anotarLineaUnica` + `anotarCompletaTrasParcial`) | implementacion |
-| MEN-2 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish-verificacion.ts (`motivoDeLaCompleta` local) y src/fs/decision-documentacion.ts (`motivoDeLaCompleta` exportada) | implementacion |
-| MEN-3 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish-verificacion.ts (mensaje rojo de la completa, ~l. 197-203) | implementacion |
+| IMP-1 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish-verificacion.ts (guarda `isWorkspaceClean` de `puertaSelectiva`, ~l. 359-365) / test/commands/finish-parcial.test.ts | implementacion |
+| MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/transiciones.ts (`anotarLineaUnica` + `anotarCompletaTrasParcial`) | implementacion |
+| MEN-2 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish-verificacion.ts (`motivoDeLaCompleta` local) y src/fs/decision-documentacion.ts (`motivoDeLaCompleta` exportada) | implementacion |
+| MEN-3 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish-verificacion.ts (mensaje rojo de la completa, ~l. 197-203) | implementacion |
 
 ## Puerta determinista
 
