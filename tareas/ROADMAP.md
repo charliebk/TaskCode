@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-107, TASK-108, TASK-019
+- **En marcha:** TASK-107 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-108, TASK-019
 
 ## H0 — H0
 
@@ -74,7 +74,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-104 | Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion | media | TASK-102 | ✅ terminada |
 | — | TASK-105 | Verificacion proporcional B2: decision entre refs y huella para el nivel 2 | media | TASK-096 | ✅ terminada |
 | — | TASK-106 | Verificacion proporcional B3: finish verifica solo lo afectado con codigo parcial | media | TASK-105 | ✅ terminada |
-| 9 | TASK-107 | Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff | simple | TASK-106 | lista para empezar |
+| 9 | TASK-107 | Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff | simple | TASK-106 | ▶ en diseño |
 | 10 | TASK-108 | Verificacion proporcional B5: el guardian de merges ante el nivel 2 | media | TASK-106 | lista para empezar |
 | 11 | TASK-109 | Verificacion proporcional B6: documentacion y limpieza del nivel 2 | simple | TASK-107, TASK-108 | espera a TASK-107, TASK-108 |
 

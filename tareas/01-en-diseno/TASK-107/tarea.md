@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-107-verificacion-proporcional-b4-stop-review
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -30,3 +30,9 @@ Cuarta parte de TASK-096. Solo tests, sin codigo de produccion salvo que destape
 - [ ] Una prueba tabular (documentacion, parcial, transversal) comprueba que decidirStop y runReviewCommand corren el mismo comando para el mismo diff, y que finish coincide en documentacion y parcial; un turno o una ronda que solo tocan documentacion no corren la suite de tests
 - [ ] La prueba se pone roja si se desvia la decision de uno de los tres en un caso (mutacion documentada en Resultado)
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-11T21:31:01Z | plan | automatico | persona | 0.14.0 |
