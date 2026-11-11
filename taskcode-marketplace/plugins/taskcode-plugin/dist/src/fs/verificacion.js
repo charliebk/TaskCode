@@ -100,11 +100,7 @@ export function huellaDelArbol(raiz, comando, timeoutS, contexto) {
     catch {
         return null;
     }
-    const h = createHash('sha1');
-    h.update(`v${String(VERSION_MEMO)}\0${head}\0${comando}\0${String(timeoutS)}\0`);
-    // TASK-091: solo la selectiva trae contexto; la formula de la completa no cambia.
-    if (contexto !== undefined)
-        h.update(`ctx\0${contexto}\0`);
+    const h = cabeceraDeHuella(head, comando, timeoutS, contexto);
     for (const ruta of [...foto.keys()].sort())
         h.update(`${ruta}\0${foto.get(ruta)}\0`);
     return h.digest('hex');
@@ -116,14 +112,28 @@ export function huellaDelArbol(raiz, comando, timeoutS, contexto) {
  * (la de `finish`, o la del freno Stop si no habia nada sin commitear). La usa
  * el guardian de merges, que pregunta por la rama que entra sin cambiarse a
  * ella. null si `ref` no resuelve a un commit.
+ *
+ * TASK-105: `contexto` entra igual que en `huellaDelArbol`, asi que la huella de
+ * la selectiva (`contextoSelectiva`) casa con la que guardo `verificarConMemo`
+ * con ese commit en HEAD y el arbol limpio. Sin contexto, la formula de siempre.
  */
-export function huellaDeCommit(raiz, ref, comando, timeoutS) {
+export function huellaDeCommit(raiz, ref, comando, timeoutS, contexto) {
     const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
     if (sha === null || sha === '')
         return null;
+    return cabeceraDeHuella(sha, comando, timeoutS, contexto).digest('hex');
+}
+/**
+ * TASK-105: la parte comun de `huellaDelArbol` y `huellaDeCommit`, en un solo
+ * sitio: si las dos se separan, el guardian deja de casar los verdes guardados.
+ * TASK-091: solo la selectiva trae contexto; la formula de la completa no cambia.
+ */
+function cabeceraDeHuella(commit, comando, timeoutS, contexto) {
     const h = createHash('sha1');
-    h.update(`v${String(VERSION_MEMO)}\0${sha}\0${comando}\0${String(timeoutS)}\0`);
-    return h.digest('hex');
+    h.update(`v${String(VERSION_MEMO)}\0${commit}\0${comando}\0${String(timeoutS)}\0`);
+    if (contexto !== undefined)
+        h.update(`ctx\0${contexto}\0`);
+    return h;
 }
 function rutaMemo(raiz, tipo) {
     const p = git(['rev-parse', '--git-path', FICHEROS_MEMO[tipo]], raiz);
@@ -165,8 +175,10 @@ export function guardarMemo(raiz, huella, resultado, tipo = 'completa') {
  * El contexto de la huella de la selectiva: la base por su nombre y por su
  * commit (si la base avanza, lo cambiado respecto a ella tambien). Una base
  * que no resuelve entra vacia: el script del proyecto decidira que hacer.
+ * TASK-105: exportada para que quien busque la huella con `huellaDeCommit` use
+ * la misma cadena que guarda `verificarConMemo`, no una copia.
  */
-function contextoSelectiva(raiz, base) {
+export function contextoSelectiva(raiz, base) {
     const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`], raiz) ?? '';
     return `selectiva\0${base}\0${sha}`;
 }
@@ -175,6 +187,9 @@ function contextoSelectiva(raiz, base) {
  * `finish` y el guardian (que lo busca por la huella del commit limpio). Con el
  * arbol sucio no se guarda: machacaria el verde que `finish` dejo para el
  * commit (gana el ultimo en escribir). Igual que hace `finish`.
+ * TASK-105: lo mismo para la selectiva, cuyo memo buscaran finish y el guardian
+ * por la huella del commit (decision de Carlos: con el arbol sucio, el Stop
+ * vuelve a ejecutarla en vez de pisar el verde limpio).
  */
 function arbolLimpio(raiz) {
     try {
@@ -206,7 +221,7 @@ export function verificarConMemo(raiz, p, opciones = {}) {
         ...(env === undefined ? {} : { env }),
     });
     const despues = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
-    if (despues !== null && (p.tipo !== 'documentacion' || arbolLimpio(raiz)))
+    if (despues !== null && (p.tipo === 'completa' || arbolLimpio(raiz)))
         guardarMemo(raiz, despues, resultado, p.tipo);
     return { resultado, deMemo: false, cambioElArbol: huella !== null && despues !== null && huella !== despues };
 }

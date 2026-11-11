@@ -280,3 +280,28 @@ test('guardian (TASK-101): CRI-1 y CRI-2 de la revision bloquean de punta a punt
     assert.equal(guardian(e, `git merge --no-ff ${task.rama}`).codigo, 0);
   });
 });
+
+test('guardian (TASK-105): una decision selectiva bloquea a proposito, aunque su comando coincida con el de documentacion y conste en verde', async () => {
+  // El caso que antes pasaba por accidente: la selectiva y la comprobacion de
+  // documentacion son el mismo comando y su memo de documentacion esta en verde.
+  await conEntorno(
+    ({ docs }) =>
+      `${RUTAS}comando_verificacion_documentacion: "${docs}"\n` +
+      `comando_verificacion_selectiva: "${docs}"\n` +
+      'rutas_verificacion_parcial: [src/**]\n',
+    async (e) => {
+      const task = sampleTask({ id: 'TASK-961' });
+      await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+      await enLaRama(e, 'src/ui/boton.ts');
+      const huella = huellaDeCommit(e.repoRoot, task.rama, e.comandoDocs, 600) as string;
+      const verde = { comando: e.comandoDocs, estado: 'verde' as const, codigo: 0, duracionMs: 1, timeoutS: 600, bytesTotales: 0, cola: '' };
+      guardarMemo(e.repoRoot, huella, verde, 'documentacion');
+      const d = guardian(e, mergeA(task.rama));
+      assert.equal(d.codigo, 2);
+      // Motivo neutro: nada de «basta la verificacion de lo afectado» mientras se exige la completa.
+      assert.match(d.stderr ?? '', /No es solo documentacion: la tarea cambia rutas que no son documentacion\./);
+      assert.doesNotMatch(d.stderr ?? '', /basta la verificacion de lo afectado|comprobacion de documentacion/);
+      assert.equal(e.ejecutadoAlguno(), false);
+    }
+  );
+});

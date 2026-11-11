@@ -35,7 +35,7 @@ import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import { anotarVerificacionDocumentacion, anotarVerificacionOmitida } from '../core/transiciones.js';
-import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
+import { decidirVerificacionEntre, motivoDeLaCompleta } from '../fs/decision-documentacion.js';
 import { currentBranch, isWorkspaceClean } from '../fs/git.js';
 import { autoCommit, mensajeChore } from '../fs/git-commit.js';
 import { readTareaFile } from '../fs/task-store.js';
@@ -111,7 +111,7 @@ export async function puertaVerificacion(o) {
         return puertaSoloDocumentacion(o, comando, docs.decision, docs.timeoutS);
     }
     if (docs !== null) {
-        o.onAviso?.(`${o.id}: se ejecuta la verificacion completa: ${docs.decision.motivo}.`);
+        o.onAviso?.(`${o.id}: se ejecuta la verificacion completa: ${motivoDeLaCompleta(docs.decision)}.`);
     }
     const timeoutS = config.timeout_verificacion;
     const inicioMs = Date.now();

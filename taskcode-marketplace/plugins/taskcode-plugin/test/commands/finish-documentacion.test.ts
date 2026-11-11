@@ -254,3 +254,23 @@ test('finish (TASK-100): con umbral de cobertura, una tarea de solo documentacio
     }
   );
 });
+
+test('finish (TASK-105): con el nivel 2 activo y todo el codigo en rutas parciales, corre la completa sin un motivo contradictorio', async () => {
+  await conEntorno(
+    ({ docs }) => `${RUTAS_DOCS}comando_verificacion_selectiva: "${docs}"\nrutas_verificacion_parcial: [src/**]\n`,
+    async (e) => {
+      const task = sampleTask({ id: 'TASK-906' });
+      await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+      await enLaRama(e, 'src/calculo.ts', 'export const x = 1;\n');
+      const { avisos } = await finish(e, 'TASK-906');
+      assert.equal(e.ejecuciones('completa'), 1, 'finish sigue exigiendo la completa');
+      assert.equal(e.ejecuciones('docs'), 0, 'y no corre la selectiva');
+      assert.ok(integradaEnDevelop(task.rama, e.repoRoot));
+      assert.ok(
+        avisos.some((a) => /: se ejecuta la verificacion completa: la tarea cambia rutas que no son documentacion\.$/.test(a)),
+        avisos.join('\n')
+      );
+      assert.ok(!avisos.some((a) => /basta la verificacion de lo afectado/.test(a)), avisos.join('\n'));
+    }
+  );
+});

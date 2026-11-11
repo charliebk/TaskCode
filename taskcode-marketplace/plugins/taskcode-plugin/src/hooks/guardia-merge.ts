@@ -39,7 +39,7 @@ import { analizarComando, type OperacionMerge } from '../core/comando-merge.js';
 import { ConfigError, raizDelRepo, resolverConfigConAvisos, type TaskcodeConfig } from '../core/config.js';
 import { huellaDeCommit, leerMemo } from '../fs/verificacion.js';
 import { comandoSoloIntegra } from '../core/comando-merge.js';
-import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
+import { decidirVerificacionEntre, motivoDeLaCompleta } from '../fs/decision-documentacion.js';
 import { timeoutEfectivoS } from './freno-stop.js';
 
 import { PASAR, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
@@ -264,7 +264,10 @@ function exencionDocumentacion(
     };
   }
   const d = r.decision;
-  if (d.tipo === 'completa') return { pasa: false, detalle: `No es solo documentacion: ${d.motivo}.` };
+  // TASK-105: la selectiva cuenta como la completa, a proposito y no porque su
+  // comando no case con el memo de documentacion (D1: con codigo, el guardian
+  // exige la completa).
+  if (d.tipo !== 'documentacion') return { pasa: false, detalle: `No es solo documentacion: ${motivoDeLaCompleta(d)}.` };
   if (integ.release) {
     return { pasa: false, detalle: 'Un release lleva a la principal todo lo acumulado: siempre exige la verificacion completa.' };
   }
