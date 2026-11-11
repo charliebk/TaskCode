@@ -7,7 +7,7 @@ etiquetas: [verificacion, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-096-verificacion-proporcional-al-cambio-una
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -42,6 +42,7 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T15:04:19Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-11T15:17:43Z | approve | automatico | automatico | 0.14.0 |
 
 ## Coste
 
