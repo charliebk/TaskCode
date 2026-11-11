@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-103 — Guardian de merges: config invalida bloquea y merges que hoy no detecta · etiquetas: verificacion, guardian · rama fix/task-103-guardian-de-merges-con-config-invalida-b · terminada 2026-11-11 · tareas/04-terminadas/TASK-103/
 - TASK-104 — Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion · etiquetas: verificacion, agilidad · rama feature/task-104-verificacion-proporcional-a3b-las-rondas · terminada 2026-11-11 · tareas/04-terminadas/TASK-104/
 - TASK-102 — Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion · etiquetas: verificacion, agilidad · rama feature/task-102-verificacion-proporcional-a3-el-freno-st · terminada 2026-11-11 · tareas/04-terminadas/TASK-102/
 - TASK-101 — Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion · etiquetas: verificacion, agilidad · rama feature/task-101-verificacion-proporcional-a2-el-guardian · terminada 2026-11-10 · tareas/04-terminadas/TASK-101/

@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, guardian]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-103-guardian-de-merges-con-config-invalida-b
 asignado_a: charlie.bk@gmail.com
@@ -100,6 +100,7 @@ Limites que siguen documentados en el README: alias de git, `git pull`,
 | 2026-11-11T11:25:46Z | review | automatico | persona | 0.14.0 |
 | 2026-11-11T12:54:55Z | review | automatico | persona | 0.14.0 |
 | 2026-11-11T14:15:31Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T14:46:18Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -116,3 +117,9 @@ Limites que siguen documentados en el README: alias de git, `git pull`,
 - code-quality-reviewer — 784fd97
 - code-quality-reviewer — 6f1662e
 - code-quality-reviewer — 476e538
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 248 min
+- Paso de la hora: 248 min reales frente a 55 estimados

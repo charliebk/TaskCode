@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-11. No editar a mano.
 
-## Planificadas (00-planificadas) — 17
+## Planificadas (00-planificadas) — 16
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -23,10 +23,9 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 TASK-096  Verificacion proporcional B: con codigo parcial se verifica solo lo afectado                (sin asignar)
 TASK-099  Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa           (sin asignar)
-TASK-103  Guardian de merges: config invalida bloquea y merges que hoy no detecta                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 85
+## Terminadas (04-terminadas) — 86
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -115,5 +114,6 @@ TASK-098  ROADMAP de tareas generado por taskctl en todos los proyectos, sin pis
 TASK-100  Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion                        charlie.bk@gmail.com
 TASK-101  Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion      charlie.bk@gmail.com
 TASK-102  Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion  charlie.bk@gmail.com
+TASK-103  Guardian de merges: config invalida bloquea y merges que hoy no detecta                                             charlie.bk@gmail.com
 TASK-104  Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion                 charlie.bk@gmail.com
 ```
