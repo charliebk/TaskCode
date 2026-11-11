@@ -55,6 +55,6 @@ ninguna
 
 - RESUELTA (Carlos): en una ronda de solo documentación sin `comando_verificacion_selectiva` no corre nada, aunque haya comando de documentación.
 - RESUELTA (Carlos): el troceado ya está hecho; esta es A3b, la segunda mitad de TASK-102.
-- NUEVA: la cobertura en una ronda de documentación. ¿Se muestra la del último informe (arquitectura) o se oculta para que no aparezca una vieja (la duda de riesgos)? Ningún rol aportó cómo de fresco es ese informe.
-- NUEVA: ¿se acepta que el criterio 3 se pruebe solo con selectiva declarada? Sin ella, Stop y review deciden distinto por la decisión de Carlos, y el enunciado no lo dice.
+- RESUELTA (Carlos, 2026-11-11): en una ronda de documentación la cobertura se OCULTA, como con la selectiva; la petición dice que no se muestra y por qué.
+- RESUELTA (Carlos, 2026-11-11): el criterio 3 se prueba con la selectiva declarada; la divergencia sin ella (Stop corre algo, review nada) queda escrita en la documentación como decisión suya.
 - Aprobar el plan entero con `taskctl approve`: no se implementa nada antes.
