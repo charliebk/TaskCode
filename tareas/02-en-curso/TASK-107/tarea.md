@@ -57,3 +57,7 @@ Cuarta parte de TASK-096. Solo tests, sin codigo de produccion salvo que destape
 (Las mutaciones usan `process.env.MUTANTE === "x" && ...`: con un literal `false &&` TypeScript da por inalcanzable el codigo que sigue y no compila.)
 
 **Suite**: `npm test` 2213 tests, 2206 pasan, 6 fallan. Los 3 conocidos de Windows (symlink EPERM en `approve.test`, chmod NTFS y CRLF en `plan.test`); los otros 3 (`doctor-deploy-tareas`, `doctor-hooks-subagente`, `origin-deteccion` expira) pasan al reejecutar sus ficheros aislados: carga (la pasada duro 28 min). La tabla sola tarda ~38 s en caliente; no entra en `test:rapido` porque lanza procesos.
+
+## Autorrevision
+
+- code-quality-reviewer — b110aab
