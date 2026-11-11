@@ -57,3 +57,4 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 ## Autorrevision
 
 - code-quality-reviewer — 2bda5ea
+- code-quality-reviewer — 07b8f62
