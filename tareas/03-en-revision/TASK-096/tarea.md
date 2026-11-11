@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 1374110
 tokens_implementacion: 6054969
-tokens_revision: null
+tokens_revision: 1961255
 creado: 2026-11-10
 actualizado: 2026-11-11
 dependencias: [TASK-100]
@@ -52,6 +52,7 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-11T15:15:28Z | diseno | agente:a2c08b66bb6960263,afe339d0c94eadd6a,adbab668cb5880fcb,a93af7e5f319bef37 | 80 | 199162 | 1130341 | 44527 | 56 | 1374110 | - | - |
 | 2026-11-11T15:47:51Z | implementacion | sesion:0c6b150d-050c-4a98-ad70-693d94aef42b | 60 | 49617 | 5984159 | 21133 | 1 | 6054969 | - | - |
+| 2026-11-11T15:58:52Z | revision | agente:aafe4cf1f3a7ccd3e | 34 | 126267 | 1822180 | 12774 | 4 | 1961255 | 1 | - |
 
 ## Autorrevision
 
