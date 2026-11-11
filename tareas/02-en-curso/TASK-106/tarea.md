@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-106-verificacion-proporcional-b3-finish-veri
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ Tercera parte de TASK-096. Con la decision selectiva de TASK-105, puertaSoloDocu
 |---|---|---|---|---|
 | 2026-11-11T18:20:10Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-11T18:29:20Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-11T18:29:22Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
