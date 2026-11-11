@@ -39,6 +39,8 @@ interface Repo {
 interface OpcionesRepo {
   /** Lineas extra de la config (base y rama, salvo que la rama la cambie). */
   config?: (fuera: string) => string;
+  /** Tipo de la tarea en curso (por defecto feature). */
+  tipo?: 'feature' | 'hotfix';
 }
 
 function cmd(fuera: string, c: Comando): string {
@@ -67,7 +69,7 @@ async function montar(o: OpcionesRepo = {}): Promise<Repo> {
     await mkdir(path.join(raiz, 'tareas', c), { recursive: true });
     await writeFile(path.join(raiz, 'tareas', c, '.gitkeep'), '', 'utf8');
   }
-  const t = sampleTask({ id: 'TASK-102', estado: 'en-curso', rama: RAMA });
+  const t = sampleTask({ id: 'TASK-102', estado: 'en-curso', rama: RAMA, tipo: o.tipo ?? 'feature' });
   await mkdir(path.join(raiz, 'tareas', '02-en-curso', 'TASK-102'), { recursive: true });
   await writeFile(path.join(raiz, 'tareas', '02-en-curso', 'TASK-102', 'tarea.md'), serializeTareaFile(t, '## Objetivo\nx\n'), 'utf8');
   await mkdir(path.join(raiz, '.taskcode'));
@@ -283,4 +285,22 @@ test('freno (TASK-102): una config de la base invalida no bloquea: la verificaci
     assert.equal(r.ejecuciones('completa'), 1);
     assert.equal(r.ejecuciones('docs'), 0);
   });
+});
+
+test('freno (TASK-102, MEN-1/MEN-2): un hotfix no se exime por documentacion ni va a la red a por su base', async () => {
+  await conRepo(
+    async (r) => {
+      // Un origin inalcanzable: si el freno resolviera la base del hotfix, lanzaria ls-remote.
+      git(['remote', 'add', 'origin', 'https://127.0.0.1:9/x.git'], r.raiz);
+      await escribirYCommitear(r, 'docs/guia.md', 'guia ampliada\n');
+      const argvs = await procesosGit(r, async () => {
+        const d = await decidir(r);
+        assert.equal(d.codigo, 0, d.stderr);
+      });
+      assert.equal(r.ejecuciones('completa'), 1);
+      assert.equal(r.ejecuciones('docs'), 0);
+      assert.deepEqual(argvs.filter((a) => a.includes('ls-remote')), []);
+    },
+    { tipo: 'hotfix' }
+  );
 });

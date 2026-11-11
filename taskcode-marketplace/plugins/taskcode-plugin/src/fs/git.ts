@@ -699,6 +699,15 @@ const RAMA_BASE_ES_DEVELOP: Record<Task['tipo'], boolean> = {
 };
 
 /**
+ * TASK-102: true si la base del tipo se resuelve sin red (la de integracion,
+ * leida de la config). La de un hotfix es la principal, y resolverla puede
+ * costar `ls-remote`: el freno Stop, que corre en cada turno, no lo paga.
+ */
+export function baseDeTipoSinRed(tipo: Task['tipo']): boolean {
+  return RAMA_BASE_ES_DEVELOP[tipo];
+}
+
+/**
  * Rama base esperada para un tipo de tarea (seccion 8.3): la rama base
  * configurada para feature/fix/release, resolveMainBranch() para
  * hotfix.

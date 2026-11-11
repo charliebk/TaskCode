@@ -31,8 +31,8 @@
  * nada. Se decide antes que la selectiva y con `peticionDeTrabajo`, la misma
  * eleccion que usa review. Las rutas y el comando salen de la config de la
  * BASE (como en finish y en el guardian); la del arbol solo abre la puerta, asi
- * que sin la clave no hay ni un git mas que en la 0.14.0. Tarea sin tipo: no se
- * exime nada.
+ * que sin la clave no hay ni un git mas que en la 0.14.0. Tarea sin tipo o
+ * hotfix (su base puede costar red): no se exime nada.
  *
  * Contrato con Claude Code (spike TASK-069 y documentacion oficial): exit 0
  * deja parar; exit 2 bloquea y el stderr le llega al agente; exit 1 NO
@@ -46,7 +46,7 @@ import { ConfigError, raizDelRepo, resolverConfigConAvisos, type TaskcodeConfig 
 import { formatearVerificacionRoja, type ResultadoVerificacion } from '../core/informe-verificacion.js';
 import type { Task } from '../core/task.js';
 import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
-import { resolveBaseBranchForTipo } from '../fs/git.js';
+import { baseDeTipoSinRed, resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
 import { verificarConMemo, type PeticionVerificacion } from '../fs/verificacion.js';
 
@@ -183,7 +183,10 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       config: cfg,
       raiz,
       base: () => (tipoTarea === null ? cfg.rama_base : resolveBaseBranchForTipo(tipoTarea, raiz)),
-      baseFiable: tipoTarea !== null,
+      // Sin tipo, la base es un respaldo; en un hotfix, resolverla puede ir a
+      // la red (ls-remote) en cada turno (MEN-1 de la revision). En los dos
+      // casos no se exime nada por documentacion: la verificacion de siempre.
+      baseFiable: tipoTarea !== null && baseDeTipoSinRed(tipoTarea),
       sinSelectiva: 'completa',
     });
     const dejarParar: DecisionStop =

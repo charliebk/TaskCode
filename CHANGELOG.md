@@ -43,8 +43,9 @@ Se decide antes que la selectiva y con una sola funcion (`peticionDeTrabajo`)
 que review usara en TASK-104. Con el arbol sucio la comprobacion de
 documentacion no guarda su memo, para no pisar el verde que `finish` deja
 para el commit. Una config de la base invalida no bloquea: la verificacion de
-siempre con un aviso. Sin `rutas_documentacion` en la config, el freno no
-lanza ni un proceso git mas que en la 0.14.0.
+siempre con un aviso. Un hotfix no se exime en el freno (resolver su base
+puede costar un `ls-remote` en cada turno). Sin `rutas_documentacion` en la
+config, el freno no lanza ni un proceso git mas que en la 0.14.0.
 
 ## 0.14.0 — 2026-11-10
 

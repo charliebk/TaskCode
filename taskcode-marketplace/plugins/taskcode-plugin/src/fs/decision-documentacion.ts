@@ -135,6 +135,9 @@ export function peticionDeTrabajo(e: EntradaTrabajo): { plan: PlanVerificacion; 
   const base = (): string => (resuelta ??= e.base());
   if (documentacionDeclarada(config)) {
     if (e.baseFiable) {
+      // Sin `heldoutComoCodigo`, igual que finish (MEN-3 de la revision): los
+      // held-out de `tareas/**/aceptacion/` no los ejecuta la suite de Stop ni
+      // la de review, sino la puerta propia de finish antes de integrar.
       const r = decidirVerificacionEntre(base(), 'HEAD', e.raiz, { conArbol: true });
       if (r !== null && r.tipo === 'config-invalida') {
         avisos.push(
