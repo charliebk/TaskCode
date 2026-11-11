@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 113 / 117 items terminados (97%)** · última actualización: 2026-11-11
+**Progreso global: 114 / 117 items terminados (97%)** · última actualización: 2026-11-11
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 16 | **12** | — |
-| **Total pendiente** | **4** | — | — |
+| ⏳ P — Agilidad sin perder calidad | 16 | **13** | — |
+| **Total pendiente** | **3** | — | — |
 
 ---
 
@@ -1166,7 +1166,11 @@ del código.
       de Carlos: reutiliza solo un memo selectivo verde del mismo commit (excepción acotada a TASK-072), el hotfix
       nunca usa la selectiva pero conserva su camino de documentación, una sola tarea de ~70 min. Cobertura
       omitida en el nivel 2; release a la completa. 2 rondas: IMP-1 y 3 MENOR corregidos, ronda 2 aprobada.*
-- [ ] TASK-107 — Verificación proporcional B4: Stop, review y finish deciden igual el mismo diff
+- [x] TASK-107 — Verificación proporcional B4: Stop, review y finish deciden igual el mismo diff — cerrada el 2026-11-11
+      *Solo tests: una tabla (documentación, parcial, transversal) × (Stop, review, finish) con el vector absoluto
+      de ejecuciones por celda, 9 repos reales (decisión de Carlos). Sin divergencia: producción intacta. Stop y
+      review corren la selectiva ante lo transversal y finish la completa (divergencia acordada, fijada en la tabla).
+      4 mutantes propios y 4 del revisor, cada uno rojo en su celda. 1 ronda: aprobada, 2 MENOR aceptados.*
 - [ ] TASK-108 — Verificación proporcional B5: el guardián de merges ante el nivel 2
 - [ ] TASK-109 — Verificación proporcional B6: documentación y limpieza del nivel 2
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
