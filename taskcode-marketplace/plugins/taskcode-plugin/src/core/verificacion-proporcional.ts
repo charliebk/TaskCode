@@ -131,6 +131,11 @@ export function decidirVerificacion(
         `rutas_documentacion de "${base}")`,
     };
   }
+  // MEN-1 de la revision: sin rutas_documentacion, un diff que solo toca
+  // `tareas/**` no tiene codigo que acotar: la de siempre, como en la 0.14.0.
+  if (!docs && diff.fueraDeDocs.length === 0) {
+    return { tipo: 'completa', motivo: `"${base}" no declara rutas_documentacion` };
+  }
   if (selectiva === null) {
     return {
       tipo: 'completa',

@@ -186,6 +186,14 @@ test('decidirVerificacion (TASK-096): selectiva solo si todo el codigo cae en la
     'develop'
   );
   assert.equal(sinDocs.tipo, 'selectiva');
+  // MEN-1 de la revision: sin rutas_documentacion, un diff solo de tareas/** no es codigo parcial.
+  const soloTareas = decidirVerificacion(
+    { ...CFG_PARCIAL, rutas_documentacion: [] },
+    { todas: ['tareas/a.md'], fueraDeDocs: [], fueraDeParcial: [] },
+    'develop'
+  );
+  assert.equal(soloTareas.tipo, 'completa');
+  assert.match(soloTareas.motivo, /no declara rutas_documentacion/);
 
   const casos: Array<[string, Parameters<typeof decidirVerificacion>[1], RegExp]> = [
     ['fuera de las rutas parciales', { todas: ['src/web/b.ts', 'src/core/c.ts'], fueraDeDocs: ['src/web/b.ts', 'src/core/c.ts'], fueraDeParcial: ['src/core/c.ts'] }, /fuera de rutas_verificacion_parcial: src\/core\/c\.ts/],
@@ -216,6 +224,9 @@ test('decidirVerificacion (TASK-096): sin la clave, o sin selectiva, la decision
   assert.match(decidirVerificacion({ ...CFG, rutas_documentacion: [] }, diff, 'develop').motivo, /no declara rutas_documentacion/);
   assert.equal(parcialDeclarada(CFG), false);
   assert.equal(parcialDeclarada(CFG_PARCIAL), true);
+  // MEN-3 de la revision: hacen falta las dos cosas, rutas y selectiva.
+  assert.equal(parcialDeclarada({ ...CFG_PARCIAL, comando_verificacion_selectiva: null }), false);
+  assert.equal(parcialDeclarada({ ...CFG_PARCIAL, rutas_verificacion_parcial: [] }), false);
   assert.deepEqual(patronesParcial(CFG_PARCIAL), ['docs/**', RUTA_TAREAS_SIEMPRE_DOCUMENTACION, 'src/web/**']);
 });
 
@@ -253,6 +264,26 @@ test('config (TASK-096): rutas_verificacion_parcial es conocida, va con la selec
         'comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node s.js"\nrutas_verificacion_parcial: [../fuera/**]\n',
         'c.yml'
       ),
-    /sale del repo/
+    (e: unknown) => {
+      assert.ok(e instanceof ConfigError);
+      assert.match(e.message, /sale del repo/);
+      // MEN-2 de la revision: el error nombra la clave nueva, no rutas_documentacion.
+      assert.match(e.message, /rutas_verificacion_parcial/);
+      assert.doesNotMatch(e.message, /rutas_documentacion/);
+      return true;
+    }
+  );
+  assert.throws(
+    () =>
+      parsearConfig(
+        'comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node s.js"\nrutas_verificacion_parcial: src\n',
+        'c.yml'
+      ),
+    (e: unknown) => {
+      assert.ok(e instanceof ConfigError);
+      assert.match(e.message, /rutas_verificacion_parcial/);
+      assert.doesNotMatch(e.message, /rutas_documentacion/);
+      return true;
+    }
   );
 });
