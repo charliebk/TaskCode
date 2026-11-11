@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-11. No editar a mano.
 
-## Planificadas (00-planificadas) — 16
+## Planificadas (00-planificadas) — 20
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,11 +21,15 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-096  Verificacion proporcional B: con codigo parcial se verifica solo lo afectado                (sin asignar)
 TASK-099  Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa           (sin asignar)
+TASK-105  Verificacion proporcional B2: decision entre refs y huella para el nivel 2                  (sin asignar)
+TASK-106  Verificacion proporcional B3: finish verifica solo lo afectado con codigo parcial           (sin asignar)
+TASK-107  Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff             (sin asignar)
+TASK-108  Verificacion proporcional B5: el guardian de merges ante el nivel 2                         (sin asignar)
+TASK-109  Verificacion proporcional B6: documentacion y limpieza del nivel 2                          (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 86
+## Terminadas (04-terminadas) — 87
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -109,6 +113,7 @@ TASK-090  El guardian de secretos tolera excepciones solo en su fichero historic
 TASK-091  Verificacion selectiva por impacto en las rondas y completa obligatoria antes de integrar                           charlie.bk@gmail.com
 TASK-092  Sincronización de ficheros sueltos de la raíz de tareas/                                                            charlie.bk@gmail.com
 TASK-095  Revision que converge: desde la ronda 2 solo se verifican las correcciones                                          charlie.bk@gmail.com
+TASK-096  Verificacion proporcional B: con codigo parcial se verifica solo lo afectado                                        charlie.bk@gmail.com
 TASK-097  Regla de una hora: plan estima la duracion de punta a punta y propone trocear                                       charlie.bk@gmail.com
 TASK-098  ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes                             charlie.bk@gmail.com
 TASK-100  Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion                        charlie.bk@gmail.com

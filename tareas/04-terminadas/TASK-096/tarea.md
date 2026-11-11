@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-096-verificacion-proporcional-al-cambio-una
 asignado_a: charlie.bk@gmail.com
@@ -58,6 +58,7 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 | 2026-11-11T15:17:52Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T15:47:51Z | review | automatico | persona | 0.14.0 |
 | 2026-11-11T16:03:05Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T16:28:07Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -72,3 +73,9 @@ Objetivo principal: aumentar la agilidad sin perder calidad. Que el coste de ver
 
 - code-quality-reviewer — 2bda5ea
 - code-quality-reviewer — 07b8f62
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 70 min
+- Paso de la hora: 70 min reales frente a 45 estimados

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-096 (feature) — Verificacion proporcional B: con codigo parcial se verifica solo lo afectado (2026-11-11)
 - TASK-103 (fix) — Guardian de merges: config invalida bloquea y merges que hoy no detecta (2026-11-11)
 - TASK-104 (feature) — Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion (2026-11-11)
 - TASK-102 (feature) — Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion (2026-11-11)
