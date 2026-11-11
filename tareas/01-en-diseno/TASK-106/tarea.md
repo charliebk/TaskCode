@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 1097656
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-11
@@ -39,3 +39,9 @@ Tercera parte de TASK-096. Con la decision selectiva de TASK-105, puertaSoloDocu
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-11T18:20:10Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-11T18:27:40Z | diseno | agente:a1fb71a103a425a39,a80b09e5e7c94a2da,a4f5fe5bc4fa543a6 | 60 | 151053 | 916335 | 30208 | 43 | 1097656 | - | - |
