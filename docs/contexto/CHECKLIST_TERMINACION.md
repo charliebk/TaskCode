@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 112 / 117 items terminados (96%)** · última actualización: 2026-11-11
+**Progreso global: 113 / 117 items terminados (97%)** · última actualización: 2026-11-11
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 16 | **11** | — |
-| **Total pendiente** | **5** | — | — |
+| ⏳ P — Agilidad sin perder calidad | 16 | **12** | — |
+| **Total pendiente** | **4** | — | — |
 
 ---
 
@@ -1160,7 +1160,12 @@ del código.
       selectiva no se guarda con el árbol sucio (el Stop sucio la repite; medir en ToolsaWeb antes de B3),
       se mantiene la salida temprana sin rutas_documentacion, y el guardián y finish tratan selectiva como
       completa con motivo neutro (cierra el hueco del guardián). 1 ronda: aprobada, 2 MENOR aceptados.*
-- [ ] TASK-106 — Verificación proporcional B3: finish verifica solo lo afectado con código parcial
+- [x] TASK-106 — Verificación proporcional B3: finish verifica solo lo afectado con código parcial — cerrada el 2026-11-11
+      *Con rutas_verificacion_parcial en la base y todo el código dentro, finish corre la selectiva (RAMA_BASE,
+      su timeout) en vez de la completa, lo dice y lo anota tras el verde en «Verificacion parcial». Decisiones
+      de Carlos: reutiliza solo un memo selectivo verde del mismo commit (excepción acotada a TASK-072), el hotfix
+      nunca usa la selectiva pero conserva su camino de documentación, una sola tarea de ~70 min. Cobertura
+      omitida en el nivel 2; release a la completa. 2 rondas: IMP-1 y 3 MENOR corregidos, ronda 2 aprobada.*
 - [ ] TASK-107 — Verificación proporcional B4: Stop, review y finish deciden igual el mismo diff
 - [ ] TASK-108 — Verificación proporcional B5: el guardián de merges ante el nivel 2
 - [ ] TASK-109 — Verificación proporcional B6: documentación y limpieza del nivel 2
