@@ -6,7 +6,9 @@ Los desacuerdos entre roles se senalan, no se promedian.)
 
 ## Enfoque propuesto
 
-Duracion estimada: 270 min (de la rama abierta al cierre con merge; señales: unos 7 ficheros de código —`core/config.ts`, `core/verificacion-proporcional.ts`, `fs/decision-documentacion.ts`, `fs/verificacion.ts`, `commands/finish-verificacion.ts`, `commands/finish-cobertura.ts`, `hooks/guardia-merge.ts`— más 3 o 4 ficheros de test nuevos con procesos; 4 capas: core, fs, commands, hooks, más docs; 7 criterios). Pasa de 60 min: la persona ya decidió trocear (partición abajo).
+Duracion estimada: 45 min (solo B1, lo que queda en esta tarea tras trocear: 2 ficheros de codigo, `core/config.ts` y `core/verificacion-proporcional.ts`, y sus tests en `test:rapido`; 1 capa; 5 criterios. Las demas partes son TASK-105 a TASK-109).
+
+Estimacion de la tarea entera antes de trocear: 270 min (de la rama abierta al cierre con merge; señales: unos 7 ficheros de código —`core/config.ts`, `core/verificacion-proporcional.ts`, `fs/decision-documentacion.ts`, `fs/verificacion.ts`, `commands/finish-verificacion.ts`, `commands/finish-cobertura.ts`, `hooks/guardia-merge.ts`— más 3 o 4 ficheros de test nuevos con procesos; 4 capas: core, fs, commands, hooks, más docs; 7 criterios). Pasa de 60 min: la persona ya decidió trocear (partición abajo).
 
 - Se crea una clave opt-in en `.taskcode/config.yml`, leída de la rama base, y un tercer resultado `selectiva` en `DecisionVerificacion`. El proyecto sigue decidiendo qué tests corren con su `comando_verificacion_selectiva` (arquitectura). No se crea ningún módulo nuevo (arquitectura).
 - Se extienden `decidirVerificacionEntre` (un segundo pathspec, perezoso), `huellaDeCommit(…, contexto?)`, `puertaSoloDocumentacion` → `puertaProporcional` y la sección de `tarea.md` (arquitectura). `peticionDeTrabajo`, el freno Stop y `review` no se tocan (arquitectura).
