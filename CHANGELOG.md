@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-107 (feature) — Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff (2026-11-11)
 - TASK-106 (feature) — Verificacion proporcional B3: finish verifica solo lo afectado con codigo parcial (2026-11-11)
 - TASK-105 (feature) — Verificacion proporcional B2: decision entre refs y huella para el nivel 2 (2026-11-11)
 - TASK-096 (feature) — Verificacion proporcional B: con codigo parcial se verifica solo lo afectado (2026-11-11)

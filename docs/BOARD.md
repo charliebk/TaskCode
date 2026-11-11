@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-11. No editar a mano.
 
-## Planificadas (00-planificadas) — 18
+## Planificadas (00-planificadas) — 17
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -22,12 +22,11 @@ TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-s
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 TASK-099  Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa           (sin asignar)
-TASK-107  Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff             (sin asignar)
 TASK-108  Verificacion proporcional B5: el guardian de merges ante el nivel 2                         (sin asignar)
 TASK-109  Verificacion proporcional B6: documentacion y limpieza del nivel 2                          (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 89
+## Terminadas (04-terminadas) — 90
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -121,4 +120,5 @@ TASK-103  Guardian de merges: config invalida bloquea y merges que hoy no detect
 TASK-104  Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion                 charlie.bk@gmail.com
 TASK-105  Verificacion proporcional B2: decision entre refs y huella para el nivel 2                                          charlie.bk@gmail.com
 TASK-106  Verificacion proporcional B3: finish verifica solo lo afectado con codigo parcial                                   charlie.bk@gmail.com
+TASK-107  Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff                                     charlie.bk@gmail.com
 ```
