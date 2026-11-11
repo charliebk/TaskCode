@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-106-verificacion-proporcional-b3-finish-veri
 asignado_a: charlie.bk@gmail.com
@@ -43,6 +43,7 @@ Tercera parte de TASK-096. Con la decision selectiva de TASK-105, puertaSoloDocu
 | 2026-11-11T18:29:22Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T19:12:13Z | review | automatico | persona | 0.14.0 |
 | 2026-11-11T20:44:44Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T21:27:43Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -79,3 +80,9 @@ Tercera parte de TASK-096. Con la decision selectiva de TASK-105, puertaSoloDocu
 **Decidido no corregir**: nota de la ronda 2 — si `autoCommit` escribiera `tarea.md` sin devolver commit, el rojo diria «No se ha tocado nada»; misma imprecision previa de la via de documentacion, sin caso real conocido. Aceptado.
 
 **Fuera de alcance (096-6)**: documentar `rutas_verificacion_parcial` en README, CHANGELOG y `verificacion-selectiva.md`; el guardian sigue exigiendo la completa hasta B5.
+
+## Duracion
+
+- Estimada: 70 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 178 min
+- Paso de la hora: 178 min reales frente a 70 estimados
