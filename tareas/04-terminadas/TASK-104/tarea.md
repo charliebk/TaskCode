@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-104-verificacion-proporcional-a3b-las-rondas
 asignado_a: charlie.bk@gmail.com
@@ -84,6 +84,7 @@ Revision por pares, dos rondas, sin CRITICO ni IMPORTANTE:
 | 2026-11-11T09:04:06Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T09:37:27Z | review | automatico | persona | 0.14.0 |
 | 2026-11-11T09:53:10Z | review | automatico | persona | 0.14.0 |
+| 2026-11-11T10:00:52Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -98,3 +99,8 @@ Revision por pares, dos rondas, sin CRITICO ni IMPORTANTE:
 
 - code-quality-reviewer — 2dfd39e
 - code-quality-reviewer — 2eb20ca
+
+## Duracion
+
+- Estimada: 50 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 57 min

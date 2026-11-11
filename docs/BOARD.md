@@ -2,32 +2,31 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-11. No editar a mano.
 
-## Planificadas (00-planificadas) — 18
+## Planificadas (00-planificadas) — 17
 
 ```text
-ID        Titulo                                                                                               Asignado
---------  ---------------------------------------------------------------------------------------------------  --------------------
-TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                             (sin asignar)
-TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                             (sin asignar)
-TASK-003  Comando taskctl new (alta individual de tarea)                                                       (sin asignar)
-TASK-004  Comando taskctl import (alta masiva desde Markdown)                                                  charlie.bk@gmail.com
-TASK-005  Comando taskctl board (listado por estado)                                                           charlie.bk@gmail.com
-TASK-006  Empaquetado del plugin y validación de carga local                                                   charlie.bk@gmail.com
-TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                              charlie.bk@gmail.com
-TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                                charlie.bk@gmail.com
-TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                                 charlie.bk@gmail.com
-TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                                   charlie.bk@gmail.com
-TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                              charlie.bk@gmail.com
-TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio           charlie.bk@gmail.com
-TASK-019  Revisión ligera sin agente para tareas triviales                                                     (sin asignar)
-TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                               (sin asignar)
-TASK-096  Verificacion proporcional B: con codigo parcial se verifica solo lo afectado                         (sin asignar)
-TASK-099  Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa                    (sin asignar)
-TASK-103  Guardian de merges: config invalida bloquea y merges que hoy no detecta                              (sin asignar)
-TASK-104  Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion  (sin asignar)
+ID        Titulo                                                                                      Asignado
+--------  ------------------------------------------------------------------------------------------  --------------------
+TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
+TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
+TASK-003  Comando taskctl new (alta individual de tarea)                                              (sin asignar)
+TASK-004  Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
+TASK-005  Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
+TASK-006  Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
+TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
+TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
+TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
+TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
+TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
+TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
+TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
+TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-096  Verificacion proporcional B: con codigo parcial se verifica solo lo afectado                (sin asignar)
+TASK-099  Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa           (sin asignar)
+TASK-103  Guardian de merges: config invalida bloquea y merges que hoy no detecta                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 84
+## Terminadas (04-terminadas) — 85
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -116,4 +115,5 @@ TASK-098  ROADMAP de tareas generado por taskctl en todos los proyectos, sin pis
 TASK-100  Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion                        charlie.bk@gmail.com
 TASK-101  Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion      charlie.bk@gmail.com
 TASK-102  Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion  charlie.bk@gmail.com
+TASK-104  Verificacion proporcional A3b: las rondas de review no corren la suite si solo cambia documentacion                 charlie.bk@gmail.com
 ```
