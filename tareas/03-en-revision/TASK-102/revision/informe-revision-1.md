@@ -2,7 +2,7 @@
 
 - Commit revisado: a0b251cc241a20ca32bd46fb87336e21f2e834e5
 - Revisor: code-quality-reviewer (agente revisor independiente, general-purpose, sonnet)
-- Veredicto: aprobada-con-correcciones
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
