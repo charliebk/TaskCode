@@ -419,3 +419,24 @@ test('guardian (TASK-108): sin rutas_verificacion_parcial, con codigo, se compor
     assert.equal(guardian(e, mergeA(task.rama)).codigo, 0);
   });
 });
+
+test('guardian (TASK-108, MEN-1/MEN-2): con nivel 2, un release con codigo conserva su detalle y un hotfix no promete la selectiva', async () => {
+  await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
+    // Release con codigo hacia develop: su detalle propio, sin la linea de la tarea.
+    git(['checkout', '-q', '-b', 'release/1.0', 'develop'], e.repoRoot);
+    await enLaRama(e, 'src/ui/boton.ts', 'export const b = 1;\n');
+    const rel = guardian(e, mergeA('release/1.0'));
+    assert.equal(rel.codigo, 2);
+    assert.match(rel.stderr ?? '', /Un release lleva a la principal todo lo acumulado: siempre exige la verificacion completa\./);
+    assert.doesNotMatch(rel.stderr ?? '', LINEA_COMPLETA);
+    // Hotfix con codigo hacia la principal: finish tampoco acepta alli la selectiva.
+    git(['checkout', '-q', 'main'], e.repoRoot);
+    git(['merge', '-q', '--ff-only', 'develop'], e.repoRoot);
+    git(['checkout', '-q', '-b', 'hotfix/1.0.1', 'main'], e.repoRoot);
+    await enLaRama(e, 'src/ui/arreglo.ts', 'export const a = 1;\n');
+    const hot = guardian(e, 'git checkout main && git merge --no-ff hotfix/1.0.1');
+    assert.equal(hot.codigo, 2);
+    assert.match(hot.stderr ?? '', /No es solo documentacion: la tarea cambia rutas que no son documentacion\.\n/);
+    assert.doesNotMatch(hot.stderr ?? '', LINEA_COMPLETA);
+  });
+});

@@ -260,14 +260,19 @@ function exencionDocumentacion(integ, sha, contexto) {
     // lee el memo `selectiva`. Su motivo propio («basta la verificacion de lo
     // afectado») contradiria el bloqueo, asi que se ensena uno neutro y una linea
     // que dice que hace falta y como integrar.
+    // MEN-1 de la revision de TASK-108: un release va antes que la selectiva, o
+    // recibiria una linea que habla de la tarea y de finish TASK-NNN.
+    if (integ.release && d.tipo !== 'completa') {
+        return { pasa: false, detalle: 'Un release lleva a la principal todo lo acumulado: siempre exige la verificacion completa.' };
+    }
     if (d.tipo === 'selectiva') {
-        return { pasa: false, detalle: `No es solo documentacion: la tarea cambia rutas que no son documentacion.\n${LINEA_SELECTIVA}` };
+        // Hacia la principal (un hotfix) finish tampoco acepta la selectiva: la
+        // linea mentiria, asi que queda solo el motivo neutro.
+        const neutro = 'No es solo documentacion: la tarea cambia rutas que no son documentacion.';
+        return { pasa: false, detalle: destino === ramaPrincipal(raiz) ? neutro : `${neutro}\n${LINEA_SELECTIVA}` };
     }
     if (d.tipo !== 'documentacion')
         return { pasa: false, detalle: `No es solo documentacion: ${d.motivo}.` };
-    if (integ.release) {
-        return { pasa: false, detalle: 'Un release lleva a la principal todo lo acumulado: siempre exige la verificacion completa.' };
-    }
     if (!contexto.soloIntegra) {
         return {
             pasa: false,
