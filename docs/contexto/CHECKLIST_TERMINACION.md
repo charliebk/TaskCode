@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 114 / 117 items terminados (97%)** · última actualización: 2026-11-11
+**Progreso global: 115 / 117 items terminados (98%)** · última actualización: 2026-11-11
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 16 | **13** | — |
-| **Total pendiente** | **3** | — | — |
+| ⏳ P — Agilidad sin perder calidad | 16 | **14** | — |
+| **Total pendiente** | **2** | — | — |
 
 ---
 
@@ -1171,7 +1171,12 @@ del código.
       de ejecuciones por celda, 9 repos reales (decisión de Carlos). Sin divergencia: producción intacta. Stop y
       review corren la selectiva ante lo transversal y finish la completa (divergencia acordada, fijada en la tabla).
       4 mutantes propios y 4 del revisor, cada uno rojo en su celda. 1 ronda: aprobada, 2 MENOR aceptados.*
-- [ ] TASK-108 — Verificación proporcional B5: el guardián de merges ante el nivel 2
+- [x] TASK-108 — Verificación proporcional B5: el guardián de merges ante el nivel 2 — cerrada el 2026-11-11
+      *D1 ya estaba en el código desde TASK-105: con código el guardián exige siempre la completa y nunca lee el
+      memo selectivo. La tarea lo fija con 6 tests y añade al bloqueo una línea que dice qué hace falta y cómo
+      integrar (finish, nunca «corre la completa y repite»); release y hotfix sin ella. Decisiones de Carlos: el
+      criterio 2 acotado a la decisión 6b, el corte por tiempo a una tarea aparte. 2 rondas: 2 MENOR corregidos,
+      1 aceptado, ronda 2 aprobada.*
 - [ ] TASK-109 — Verificación proporcional B6: documentación y limpieza del nivel 2
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
