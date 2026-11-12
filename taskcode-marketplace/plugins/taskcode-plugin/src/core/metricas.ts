@@ -54,6 +54,7 @@
  * adivinar si un 0 es un cero o una ausencia.
  */
 import { estimadaAnotada } from './duracion-estimada.js';
+import { leerCierre } from './cierre.js';
 import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre, type PrecisionFecha } from './transiciones.js';
 import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState, type TaskType } from './task.js';
 import {
@@ -211,6 +212,11 @@ export interface FilaMetricas {
   versionCierre: string | null;
   /** Solo con `--heuristica`. */
   heuristica?: HeuristicaFila;
+  /**
+   * P-1: duracion del propio cierre (verificacion + merge + artefactos), leida de la
+   * linea `- Cierre (finish)` de `## Duracion`; null si no hay linea o su fecha no vale.
+   */
+  finish: Duracion | null;
   /** TASK-097: de start a finish sin pausas (punta a punta). */
   puntaAPunta: Duracion | null;
   /** TASK-097: minutos estimados que finish anoto en `## Duracion`, o null. */
@@ -436,12 +442,18 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
     total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
+    finish: finishDe(e.body),
     puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
     estimadaMin: estimadaAnotada(e.body),
     enPausa: enPausaDe(marcas),
     veredictoRonda1: veredictoRonda1(e.informes ?? []),
     versionCierre: versionDeCierre(e.body),
   };
+}
+
+function finishDe(body: string): Duracion | null {
+  const c = leerCierre(body);
+  return c === null ? null : { valor: c.segundos * 1000, precision: 'segundo' };
 }
 
 function enPausaDe(m: Marcas): Duracion | null {
@@ -516,6 +528,8 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   // TASK-097: regla de una hora. Estimada (la que finish anoto del plan) y
   // real de punta a punta (de start a finish, sin pausas).
   { cabecera: 'estimada', valor: (f) => (f.estimadaMin === null ? '—' : `${String(f.estimadaMin)}m`) },
+  // P-1: lo que dura el propio finish; punta_a_punta ya lo incluye.
+  { cabecera: 'finish', valor: (f) => formatearDuracion(f.finish) },
   { cabecera: 'punta_a_punta', valor: (f) => formatearDuracion(f.puntaAPunta) },
 ];
 
