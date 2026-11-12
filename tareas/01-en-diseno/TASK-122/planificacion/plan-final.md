@@ -98,3 +98,7 @@ obligatoria antes de publicar cada version.
   se corra antes de publicar (el riesgo aceptado de arriba).
 - (3) Para el contexto que leen los agentes (CHECKLIST de 83 KB, README de 98 KB, ESTADO
   desfasado), dar de alta una tarea aparte en vez de hacerlo aqui.
+
+### Respuestas de la persona (Carlos, 2026-11-12)
+
+«vamos»: (1) se aprueba entera sin trocear, motivo escrito de la regla de una hora; (2) se acepta verificar por impacto en TaskCode y correr la completa solo antes de publicar; (3) el contexto que leen los agentes va en una tarea aparte.
