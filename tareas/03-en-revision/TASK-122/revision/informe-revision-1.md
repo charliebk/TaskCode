@@ -10,15 +10,15 @@ Veredicto propuesto por el revisor: aprobada-con-correcciones. Con tres IMPORTAN
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | scripts/verificar-impacto.mjs (`recortados`, ~l.221) | implementacion |
-| IMP-2 | IMPORTANTE | abierto | docs/auditoria/PERFIL-TESTS-2026-11-12.md (tabla, filas 142-192) | implementacion |
-| IMP-3 | IMPORTANTE | abierto | scripts/verificar-impacto.mjs (`main`, rama `cambiadas === null`) | implementacion |
-| MEN-1 | MENOR | abierto | scripts/verificar-impacto.mjs (`main`, bloque `try/finally`) | implementacion |
-| MEN-2 | MENOR | abierto | docs/contexto/CONVENCIONES.md:36-38 | implementacion |
-| MEN-3 | MENOR | abierto | docs/auditoria/PERFIL-TESTS-2026-11-12.md (Resumen) | implementacion |
-| MEN-4 | MENOR | abierto | src/core/evolucion.ts (`cerradasAcumuladas`) | implementacion |
-| MEN-5 | MENOR | abierto | .taskcode/config.yml frente al plugin 0.14.0 instalado | plan |
-| MEN-6 | MENOR | abierto | scripts/verificar-impacto.mjs / README / CHANGELOG | implementacion |
+| IMP-1 | IMPORTANTE | corregido | scripts/verificar-impacto.mjs (`recortados`, ~l.221) | implementacion |
+| IMP-2 | IMPORTANTE | corregido | docs/auditoria/PERFIL-TESTS-2026-11-12.md (tabla, filas 142-192) | implementacion |
+| IMP-3 | IMPORTANTE | corregido | scripts/verificar-impacto.mjs (`main`, rama `cambiadas === null`) | implementacion |
+| MEN-1 | MENOR | corregido | scripts/verificar-impacto.mjs (`main`, bloque `try/finally`) | implementacion |
+| MEN-2 | MENOR | corregido | docs/contexto/CONVENCIONES.md:36-38 | implementacion |
+| MEN-3 | MENOR | corregido | docs/auditoria/PERFIL-TESTS-2026-11-12.md (Resumen) | implementacion |
+| MEN-4 | MENOR | corregido | src/core/evolucion.ts (`cerradasAcumuladas`) | implementacion |
+| MEN-5 | MENOR | corregido | .taskcode/config.yml frente al plugin 0.14.0 instalado | plan |
+| MEN-6 | MENOR | corregido | scripts/verificar-impacto.mjs / README / CHANGELOG | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
