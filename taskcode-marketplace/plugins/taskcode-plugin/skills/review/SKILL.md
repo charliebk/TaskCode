@@ -24,6 +24,7 @@ punto, no un formalismo.
    - `veredicto`: ya hay peticion de revision; sigue en el paso 3.
    - `codex-review`: paso 5.
    - `veredicto-codex`: paso 6. **No ejecutes `codex-review`**.
+   - `verificar-menores`: ultimo bloque del paso 4 (MENORES tras aprobar).
 
    **Autorrevision**, antes de cada `taskctl review` y sin lanzar ningun
    agente: la haces tu, en tu contexto. El campo `revisores` del JSON de
@@ -96,10 +97,19 @@ punto, no un formalismo.
    cuando la persona lo diga: sin el, `review` no abre la ronda 4. Un «si»
    quiere decir corregir primero y despues abrir la ronda, nunca relanzarla
    sobre el mismo codigo.
-   En automatico, `aprobada-con-correcciones` no se corrige despues: el codigo
-   que se mergea tiene que ser el revisado (`finish` pregunta si cambia). Los
-   MENOR que merezca la pena corregir se piden como `cambios-solicitados`; el
-   resto se documentan como aceptados en el `## Resultado`.
+   **MENORES tras aprobar** (`aprobada-con-correcciones` sin CRITICO ni
+   IMPORTANTE abiertos): **nunca** se piden como `cambios-solicitados` ni
+   abren otra ronda, en ningun modo. Corrige los baratos tocando solo los
+   ficheros que cita cada MENOR (y sus tests), commitea y ejecuta
+   `taskctl verificar-menores TASK-NNN [--motivo "<por que no se corrigen
+   los demas>"]`: comprueba que lo cambiado desde el `Commit revisado` se
+   limita a eso, lo registra en `tarea.md` y deja los MENORES no corregidos
+   en `revision/menores-pendientes.md` (backlog: no bloquean `finish`).
+   Si aborta porque hay un fichero ajeno, no lo fuerces: o se deshace ese
+   cambio, o hace falta otra ronda, o una persona decide
+   `taskctl finish TASK-NNN --aceptar-sin-revisar`. `finish` no integra
+   codigo posterior al revisado sin una de las dos cosas. Un CRITICO o
+   IMPORTANTE abierto sigue siendo `cambios-solicitados` y otra ronda.
 5. **Segunda opinion** (`revision_codex: true` y primaria aprobada):
    ejecuta `taskctl codex-review TASK-NNN` una vez.
    - Si avisa de que Codex no respondio y no escribio informe, muestra el

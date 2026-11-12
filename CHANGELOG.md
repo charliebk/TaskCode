@@ -21,6 +21,21 @@
 
 ## Siguiente version — sin publicar
 
+Correccion de MENORES sin otra ronda (TASK-099, P-2 de la auditoria: 71 rondas
+abiertas solo por MENORES encontraron 2 CRITICO/IMPORTANTE en 70,2 M tokens).
+Comando nuevo `taskctl verificar-menores TASK-NNN [--motivo "<texto>"]`: tras
+una ronda aprobada sin CRITICO ni IMPORTANTE abiertos, comprueba que lo cambiado
+desde el `Commit revisado` son solo los ficheros que cita cada MENOR (o tests),
+lo anota en `## Verificacion ligera` de `tarea.md` y deja los MENORES no
+corregidos en `revision/menores-pendientes.md`, que no abre ronda ni bloquea el
+cierre. `siguiente` ya no propone otra ronda por MENORES en ningun modo: propone
+`verificar-menores` o `finish`; con un CRITICO o IMPORTANTE abierto en una ronda
+aprobada, cambiar el veredicto a `cambios-solicitados` (decision de una
+persona). **Cambio de conducta de `finish`**: ya no integra codigo commiteado
+despues del `Commit revisado` sin una verificacion ligera al dia; una persona
+puede forzarlo con `--aceptar-sin-revisar`, que queda en `## Codigo integrado
+sin revisar`. Las tareas sin `Commit revisado` en su peticion no cambian.
+
 Fix F-16 (TASK-123, critico): `finish` ya no cierra sin verificar cuando la rama
 de la tarea ya esta integrada (un merge a mano en la rama de integracion, o el
 commit que cerro alli un conflicto de `finish`). Con `comando_verificacion`, ese

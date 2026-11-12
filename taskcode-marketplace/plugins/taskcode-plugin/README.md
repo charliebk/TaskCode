@@ -196,7 +196,8 @@ tiempo que no, y era falso.
 | `plan`, `approve`, `trocear` | Diseño (brainstorm de roles y plan), aprobación del plan y troceo de una tarea de más de una hora. |
 | `start` | Abrir la rama de la tarea con el plan aprobado. |
 | `review`, `codex-review`, `veredicto` | Revisión por pares por rondas y su veredicto. |
-| `finish` | Cierre: verificación, merge `--no-ff` o merge request, tag opcional. |
+| `verificar-menores` | Tras aprobar con correcciones: registra la corrección de los MENORES sin abrir otra ronda (solo los ficheros que cita cada MENOR, o tests) y deja los no corregidos en `revision/menores-pendientes.md`. |
+| `finish` | Cierre: verificación, merge `--no-ff` o merge request, tag opcional. No integra código posterior al commit revisado sin `verificar-menores` o `--aceptar-sin-revisar` (decisión de una persona). |
 | `siguiente`, `pausa`, `cadena` | Qué fase toca y si preguntar (según `modo_flujo`); pausar el paso a la siguiente fase; bloquear el árbol mientras las fases se encadenan. |
 | `estado`, `board`, `roadmap` | En qué va la fase en curso (también en la status line), tablero y `tareas/ROADMAP.md`. |
 | `doctor`, `doctor-deploy` | Que el proyecto está listo para el flujo; que la aplicación está lista para publicarse. |

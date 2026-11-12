@@ -30,6 +30,7 @@ export const FASES_SIGUIENTE = [
   'veredicto',
   'codex-review',
   'veredicto-codex',
+  'verificar-menores',
   'finish',
   'terminada',
 ] as const;
@@ -67,6 +68,27 @@ export interface ContextoFlujo {
    * el mismo agente que implemento (riesgo del plan de TASK-055).
    */
   informeEnCommitPropio: boolean;
+  /**
+   * TASK-099, en-revision aprobada: CRITICO/IMPORTANTE (o severidad que no se
+   * reconoce) abiertos en la ultima ronda. Ausente = 0 (como antes).
+   */
+  bloqueantesAbiertos?: number;
+  /** TASK-099: MENORES abiertos en la ultima ronda. Ausente = 0 (como antes). */
+  menoresAbiertos?: number;
+  /**
+   * TASK-099: hay una verificacion ligera de la ultima ronda (`taskctl
+   * verificar-menores`) y el codigo de ahora es el que verifico. Con ella,
+   * `informeEnCommitPropio` se calcula contra el commit verificado.
+   */
+  verificacionLigeraAlDia?: boolean;
+  /**
+   * TASK-099: lo unico que separa lo revisado de lo que se cerraria es codigo
+   * commiteado despues del Commit revisado (informes rellenados y
+   * commiteados, referencia fiable), no hay verificacion ligera al dia, hay
+   * MENORES abiertos y todo lo cambiado cae en su alcance (sus ficheros o
+   * tests): lo que `verificar-menores` aceptara.
+   */
+  correccionSinVerificar?: boolean;
 }
 
 /** Tope de rondas de revision: desde esta, otra ronda la decide una persona. */
@@ -272,12 +294,51 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
                 );
             }
           }
+          // TASK-099: aprobar con un bloqueante abierto es contradictorio. Un
+          // CRITICO o IMPORTANTE sigue exigiendo cambios-solicitados y otra
+          // ronda; lo deshace una persona (no hay verificacion ligera para eso).
+          if ((ctx.bloqueantesAbiertos ?? 0) > 0) {
+            return paso(
+              'veredicto',
+              false,
+              `la ronda esta aprobada pero tiene ${String(ctx.bloqueantesAbiertos)} CRITICO/IMPORTANTE abierto(s): ` +
+                'un bloqueante exige cambios-solicitados y otra ronda; lo decide una persona',
+              `taskctl veredicto ${task.id} cambios-solicitados`,
+              true
+            );
+          }
+          // TASK-099: correcciones de MENORES commiteadas tras la ronda aprobada.
+          // Nunca otra ronda: la verificacion ligera (es trabajo, como corregir
+          // tras cambios-solicitados: sigue sola solo en automatico).
+          if (ctx.correccionSinVerificar === true) {
+            return paso(
+              'verificar-menores',
+              false,
+              'hay codigo posterior al Commit revisado sin verificacion ligera: si son las correcciones de los ' +
+                'MENORES, registrarlas con verificar-menores (no se abre otra ronda)',
+              `taskctl verificar-menores ${task.id}`,
+              false,
+              true
+            );
+          }
           if (!ctx.informeEnCommitPropio) {
             return paso(
               'finish',
               true,
               'la revision esta aprobada, pero lo que se cerraria no coincide con lo revisado (codigo posterior al Commit revisado, informe sin rellenar o sin commitear, o peticion sin Commit revisado): el cierre lo decide una persona',
               `taskctl finish ${task.id}`,
+              true
+            );
+          }
+          if ((ctx.menoresAbiertos ?? 0) > 0 && ctx.verificacionLigeraAlDia !== true) {
+            return paso(
+              'verificar-menores',
+              false,
+              `la ronda esta aprobada con ${String(ctx.menoresAbiertos)} MENOR(es) abierto(s): corregir los baratos, ` +
+                'commitear y registrarlo con verificar-menores; los que no se corrijan pasan al backlog de la tarea ' +
+                '(no se abre otra ronda)',
+              `taskctl verificar-menores ${task.id}`,
+              false,
               true
             );
           }

@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   ID,
@@ -167,7 +167,9 @@ test('progreso: finish escribe su fase y la marca terminada, sin cambiar su sali
     const fallo = enGemelos(con, sin, ['finish', ID]);
     assert.equal(fallo.status, 1);
     progresoTerminado(con, 'finish', pasos, fallo.t0, fallo.t1, 'abortada');
-    for (const r of [con, sin]) commitAll(r, 'chore: limpio');
+    // TASK-099: se limpia borrando, no commiteando: un commit de codigo despues
+    // de revisar es justo lo que finish ya no integra sin verificacion ligera.
+    for (const r of [con, sin]) await rm(path.join(r, 'sucio.txt'));
     const ok = enGemelos(con, sin, ['finish', ID]);
     assert.equal(ok.status, 0, ok.stderr);
     const p = progresoTerminado(con, 'finish', pasos, ok.t0, ok.t1);

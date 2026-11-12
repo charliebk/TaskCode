@@ -97,6 +97,16 @@ export function commitRevisadoDe(peticion: string): string | null {
   return m === null ? null : (m[1] as string);
 }
 
+/**
+ * ¿Lo escribio un revisor? (IMP-1 y MEN-6 de la revision de TASK-059): una
+ * linea `- Revisor:` rellenada (no la de la plantilla) y sin la fila de
+ * ejemplo de la tabla. No prueba quien lo escribio: ese riesgo residual esta
+ * documentado y aceptado; esto descarta el informe que nadie relleno.
+ */
+export function informeRellenado(texto: string): boolean {
+  return /^- Revisor:[ \t]*(?!\(rellenar)\S/m.test(texto) && !texto.includes('(ej. IMP-1)');
+}
+
 export interface Hallazgo {
   id: string;
   severidad: string;

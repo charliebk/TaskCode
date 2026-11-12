@@ -143,6 +143,7 @@ const SKILL_DE_FASE: Record<string, string | null> = {
   veredicto: 'review',
   'codex-review': 'review',
   'veredicto-codex': 'review',
+  'verificar-menores': 'review',
   finish: 'finish',
   terminada: null,
 };

@@ -20,25 +20,18 @@ import { parseTareaFile } from '../core/tarea-file.js';
 import { resolverConfig } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
-import { commitRevisadoDe, veredictoDeRonda } from '../core/informe-revision.js';
+import { commitRevisadoDe, informeRellenado, veredictoDeRonda, } from '../core/informe-revision.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
 import { currentBranch, isAncestor, localBranchExists, lsTreeNames, mergeBase, resolveBaseBranchForTipo, runGit, showFileAtRef, } from '../fs/git.js';
 import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import { REVISION_DIRNAME } from './review.js';
+import { estadoCorreccionPosterior } from './verificar-menores.js';
+import { bloqueantesAbiertos, fueraDeAlcance, menoresAbiertos } from '../core/menores.js';
 import { duracionDelPlan, planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
 }
 /** Flags de `taskctl siguiente`: solo --json. */
 export const FLAGS_SIGUIENTE = ['--json'];
-/**
- * ¿Lo escribio un revisor? (IMP-1 y MEN-6 de la revision de TASK-059): una
- * linea `- Revisor:` rellenada (no la de la plantilla) y sin la fila de
- * ejemplo de la tabla. No prueba quien lo escribio: ese riesgo residual esta
- * documentado y aceptado; esto descarta el informe que nadie relleno.
- */
-function informeRellenado(texto) {
-    return /^- Revisor:[ \t]*(?!\(rellenar)\S/m.test(texto) && !texto.includes('(ej. IMP-1)');
-}
 /**
  * ¿Lo aprobado es exactamente lo que se reviso? (TASK-059; CRIT-1 de su
  * revision). La referencia es el `Commit revisado` que el CLI escribe en la
@@ -148,17 +141,54 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
                 duracionEstimada = await duracionDelPlan(taskDir);
         }
     }
+    const veredicto = veredictoDe(primarios);
+    // IMP-1: un informe que conserva la plantilla no lo escribio ningun revisor.
+    const rellenados = primarios.every(informeRellenado);
+    // TASK-099: con la ronda aprobada, que paso despues del Commit revisado.
+    let correccion = null;
+    if (task.estado === 'en-revision' && veredicto === 'aprobada') {
+        const revisado = revisados.find((c) => c !== null) ?? null;
+        try {
+            correccion = estadoCorreccionPosterior(body, rondaRevision, revisado, refInformes, deps.repoCwd);
+        }
+        catch {
+            correccion = null; // un SHA que Git no conoce: sin referencia, como antes
+        }
+    }
+    const alDia = correccion?.alDia === true;
+    // Con una verificacion ligera al dia, lo que se cierra se compara con lo
+    // verificado (que ya cubre lo revisado), no con el Commit revisado.
+    const referencias = alDia && correccion?.verificacion != null ? [correccion.verificacion.commitVerificado] : revisados;
+    const enCommitPropio = task.estado === 'en-revision' &&
+        rellenados &&
+        informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, referencias, deps.repoCwd);
+    const revisionLimpia = refInformes !== 'HEAD' || runGit(['status', '--porcelain', '--', dirRevisionRepo], deps.repoCwd) === '';
+    const menores = menoresAbiertos(primarios);
     const ctx = {
         planRedactado: planEstaRedactado,
         ...(duracionEstimada === undefined ? {} : { duracionEstimada }),
-        veredicto: veredictoDe(primarios),
+        veredicto,
         veredictoCodex: veredictoDe(codex),
         modoCongelado: modoCongelado(body) !== null,
         rondaRevision,
-        informeEnCommitPropio: task.estado === 'en-revision' &&
-            // IMP-1: un informe que conserva la plantilla no lo escribio ningun revisor.
-            primarios.every(informeRellenado) &&
-            informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, revisados, deps.repoCwd),
+        informeEnCommitPropio: enCommitPropio,
+        ...(task.estado === 'en-revision' && veredicto === 'aprobada'
+            ? {
+                bloqueantesAbiertos: bloqueantesAbiertos(primarios).length,
+                menoresAbiertos: menores.length,
+                verificacionLigeraAlDia: alDia,
+                correccionSinVerificar: !enCommitPropio &&
+                    !alDia &&
+                    rellenados &&
+                    revisionLimpia &&
+                    correccion !== null &&
+                    correccion.cambiados.length > 0 &&
+                    // IMP-1 de la revision: solo si son correcciones de MENORES que
+                    // verificar-menores aceptara; codigo ajeno lo decide una persona.
+                    menores.length > 0 &&
+                    fueraDeAlcance(correccion.cambiados, menores).length === 0,
+            }
+            : {}),
     };
     const modo = modoDeTarea(body, modoConfig);
     const paso = siguienteFase(task, ctx, modo);

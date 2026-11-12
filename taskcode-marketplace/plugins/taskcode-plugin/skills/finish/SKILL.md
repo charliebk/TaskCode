@@ -75,7 +75,8 @@ la tarea y `cierre` la clave `cierre_por_defecto` de la configuracion
 - **Modo `automatico`**: no preguntes. Usa `cierre`: con `merge`, merge normal
   sin tag (`taskctl finish TASK-NNN`); con `merge-request`, `taskctl finish
   TASK-NNN --merge-request`. Nunca pases `--tag` por tu cuenta: el nombre del
-  tag lo decide una persona.
+  tag lo decide una persona. Tampoco `--aceptar-sin-revisar` (integra codigo
+  posterior al revisado sin verificacion ligera): solo si una persona lo dice.
 - **Hotfix y release** no tienen merge request (se mergean a la rama principal
   con tag y backmerge) y se cierran siempre con pregunta, en cualquier modo.
   Solo pregunta el tag: el nombre sustituye al que el script habria puesto,
