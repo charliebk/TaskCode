@@ -57,3 +57,31 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T21:21:22Z | implementacion | manual | - | - | - | - | - | 300000 | - | - |
 | 2026-11-12T21:21:23Z | implementacion | sesion:f74052af-d784-4972-a5d4-69cda92cae59 | 118 | 101412 | 12631708 | 53939 | 3 | 12787177 | - | - |
+
+## Resultado
+
+Implementado: `taskctl verificar-menores` (verificacion ligera de MENORES tras
+una ronda aprobada, con backlog en `revision/menores-pendientes.md`), puerta de
+`finish` sobre el codigo posterior al `Commit revisado` (`--aceptar-sin-revisar`
+para la decision de una persona) y `siguiente` sin rondas por MENORES. Motivo
+para seguir (criterio 1): 71 rondas abiertas solo por MENORES en ToolsaWeb,
+OpenDockTrading y TaskCode encontraron 2 CRITICO/IMPORTANTE en 70,2 M tokens
+(docs/auditoria/PASOS-PLUGIN-2026-11-12.md, paso 7).
+
+Revision ronda 1 (code-quality-reviewer, cambios-solicitados), 7 mutantes en rojo:
+- IMP-1 corregido: `siguiente` encadenaba `verificar-menores` con codigo ajeno a
+  los MENORES; ahora solo si hay MENORES abiertos y todo cae en su alcance (si no,
+  finish preguntando). Test en verificar-menores.test.ts y los 3 de
+  automatico-guarda-finish vuelven a verde.
+- IMP-2 corregido: task-workflow/SKILL.md por debajo de 15 KB.
+- MEN-1 corregido: `:L42` y `(12)` reconocidos; un nombre sin carpeta solo vale
+  tal cual. Rutas con espacios: fallan cerrado (aceptado).
+- MEN-2 aceptado: un cambio solo de documentacion tras la revision tambien exige
+  la verificacion o el flag (lo conservador), y `finish` sin codigo posterior no
+  revalida bloqueantes (comportamiento anterior a esta tarea).
+- MEN-3 corregido: la skill finish dice que `--aceptar-sin-revisar` solo lo pasa
+  una persona.
+
+Decision de Carlos (2026-11-12, modo rapido): cerrar sin ronda 2; las
+correcciones de la ronda 1 se integran con `finish --aceptar-sin-revisar`.
+Verificacion: `RAMA_BASE=develop node scripts/verificar-impacto.mjs` 855/855.
