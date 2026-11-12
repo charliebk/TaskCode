@@ -8,11 +8,11 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | src/commands/siguiente.ts:253 (correccionSinVerificar) y src/core/flujo.ts:~310 | implementacion |
-| IMP-2 | IMPORTANTE | abierto | skills/task-workflow/SKILL.md | implementacion |
-| MEN-1 | MENOR | abierto | src/core/menores.ts:939 (rutasDeCelda) y :953 (mismaRuta) | implementacion |
-| MEN-2 | MENOR | abierto | src/commands/finish.ts / src/commands/verificar-menores.ts (alcance de la puerta) | especificacion |
-| MEN-3 | MENOR | abierto | skills/finish/SKILL.md | implementacion |
+| IMP-1 | IMPORTANTE | corregido | src/commands/siguiente.ts:253 (correccionSinVerificar) y src/core/flujo.ts:~310 | implementacion |
+| IMP-2 | IMPORTANTE | corregido | skills/task-workflow/SKILL.md | implementacion |
+| MEN-1 | MENOR | corregido | src/core/menores.ts:939 (rutasDeCelda) y :953 (mismaRuta) | implementacion |
+| MEN-2 | MENOR | aceptado | src/commands/finish.ts / src/commands/verificar-menores.ts (alcance de la puerta) | especificacion |
+| MEN-3 | MENOR | corregido | skills/finish/SKILL.md | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
