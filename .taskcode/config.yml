@@ -8,3 +8,7 @@ timeout_verificacion: 1800
 comando_verificacion_selectiva: "node scripts/verificar-impacto.mjs"
 rutas_documentacion: [docs/**, "*.md"]
 rutas_verificacion_parcial: [taskcode-marketplace/plugins/taskcode-plugin/src/**, taskcode-marketplace/plugins/taskcode-plugin/test/**, taskcode-marketplace/plugins/taskcode-plugin/dist/src/**]
+
+# TASK-124: doctor avisa si el documento de estado lleva mas de 14 dias sin
+# commits o va por detras de las tareas terminadas.
+documento_estado: docs/contexto/ESTADO.md

@@ -51,6 +51,7 @@ import { detectarComandosTests } from '../fs/deteccion-tests.js';
 import { hostDeRemoto, ocultarCredenciales, CLI_PLATAFORMA } from '../core/plataforma-remota.js';
 import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
+import { diaLocal, evaluarDocumentoEstado, type TareaTerminadaFecha } from '../core/documento-estado.js';
 import { resolveGitflowScriptsDir, sondearBash } from '../fs/gitflow-runner.js';
 import { urlsDeOrigin } from '../fs/git.js';
 import { sondearCli } from '../fs/merge-request.js';
@@ -100,7 +101,10 @@ export interface DoctorCommandDeps {
   configClaudeDir?: string;
   /** TASK-110: entorno donde se busca taskctl en el PATH (por defecto el del proceso). Para los tests. */
   env?: NodeJS.ProcessEnv;
-  /** TASK-110: instante de la copia de seguridad de settings.json (por defecto ahora). Para los tests. */
+  /**
+   * TASK-110: instante de la copia de seguridad de settings.json (por defecto ahora).
+   * TASK-124: tambien el "hoy" con que se mide la antiguedad de documento_estado. Para los tests.
+   */
   ahora?: Date;
 }
 
@@ -614,6 +618,71 @@ function comprobarTareas(tareasRoot: string): Comprobacion[] {
 }
 
 // ---------------------------------------------------------------------
+// Documento de estado (TASK-124)
+// ---------------------------------------------------------------------
+
+/** `id` y `actualizado` de las tareas de 04-terminadas; las que no se pueden leer se saltan (las cuenta `tareas`). */
+function leerTerminadas(tareasRoot: string): TareaTerminadaFecha[] {
+  const dir = path.join(tareasRoot, STATE_FOLDER.terminada);
+  let entradas: string[];
+  try {
+    entradas = readdirSync(dir);
+  } catch {
+    return [];
+  }
+  const terminadas: TareaTerminadaFecha[] = [];
+  for (const id of entradas) {
+    if (!isValidTaskId(id)) continue;
+    try {
+      const task = parseTareaFile(readFileSync(path.join(dir, id, 'tarea.md'), 'utf8')).task;
+      terminadas.push({ id, actualizado: task.actualizado });
+    } catch {
+      // Rota o ilegible: ya la senala la comprobacion `tareas`.
+    }
+  }
+  return terminadas;
+}
+
+/**
+ * La fecha del documento es la de su ultimo commit (`%cI`), no el mtime: el
+ * mtime cambia al clonar o al cambiar de rama y no dice cuando se escribio.
+ */
+export function comprobarDocumentoEstado(
+  cwd: string,
+  cfg: TaskcodeConfig | null,
+  repo: EstadoRepo,
+  ahora: Date
+): Comprobacion {
+  if (cfg === null) return omitida('documento-estado', 'la config no se pudo leer (ver config)');
+  const ruta = cfg.documento_estado;
+  const existe = ruta !== null && existsSync(path.join(cwd, ruta));
+  // La config valida la forma de la ruta, no lo que hay en disco: una carpeta
+  // existente no es un documento y no tiene sentido fecharla (MEN-1).
+  if (ruta !== null && existe && !statSync(path.join(cwd, ruta)).isFile()) {
+    return aviso(
+      'documento-estado',
+      `${ruta}, declarado en documento_estado, no es un fichero (es una carpeta)`,
+      `Apunta documento_estado al fichero del documento de estado (p. ej. ${ruta.replace(/\/+$/, '')}/ESTADO.md) en .taskcode/config.yml.`
+    );
+  }
+  let fecha: string | null = null;
+  if (ruta !== null && existe && repo.conCommits) {
+    const r = git(['log', '-1', '--format=%cI', '--', ruta], cwd);
+    if (r.error !== undefined || r.status !== 0) {
+      throw new Error(`git log -- ${ruta} fallo: ${r.error?.message ?? r.stderr}`);
+    }
+    fecha = r.stdout === '' ? null : r.stdout;
+  }
+  return evaluarDocumentoEstado({
+    ruta,
+    existe,
+    fechaUltimoCommit: fecha,
+    hoy: diaLocal(ahora),
+    terminadas: ruta !== null && existe && fecha !== null ? leerTerminadas(path.join(cwd, 'tareas')) : [],
+  });
+}
+
+// ---------------------------------------------------------------------
 // Plataforma (gh / glab)
 // ---------------------------------------------------------------------
 
@@ -654,7 +723,7 @@ const ARREGLO_HOOKS_SUBAGENTE =
   'Con el modo de permisos automatico, Claude Code puede denegar el lanzamiento de subagentes (Auto-Mode Bypass) si un hook ' +
   'PreToolUse reescribe el encargo. Salidas: quita Agent y Task del matcher de ese hook (si es de un plugin, con ' +
   'un hook propio de SessionStart que lo reescriba al arrancar), desactiva el plugin causante en enabledPlugins, ' +
-  'o sal del modo de permisos automatico y aprueba a mano cada lanzamiento. Ver "Problemas conocidos" en el README del plugin.';
+  'o sal del modo de permisos automatico y aprueba a mano cada lanzamiento. Ver "Problemas conocidos" en docs/problemas-conocidos.md del plugin.';
 
 /**
  * Siempre aviso como maximo: los ficheros son de terceros y el hook puede ser
@@ -837,6 +906,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg, () => detectarComandosTests(cwd))));
   cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
+  cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
   cs.push(
     ...envolver('plataforma', () =>
       comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)

@@ -184,7 +184,7 @@ export interface OpcionesInstalar {
 const ARREGLO_PATH =
   'Pon taskctl en el PATH de tu sistema (no la carpeta de la version del plugin, que cambia con cada ' +
   'actualizacion: un envoltorio que elija la version instalada mas alta, como el de "Usar taskctl fuera ' +
-  'de Claude Code" en el README del plugin), abre una terminal nueva y repite con --instalar-status-line.';
+  'de Claude Code" en docs/instalacion-y-distribucion.md del plugin), abre una terminal nueva y repite con --instalar-status-line.';
 
 export function instalarStatusLine(configDir: string, o: OpcionesInstalar): ResultadoAccion {
   const s = sondearStatusLine(configDir);
