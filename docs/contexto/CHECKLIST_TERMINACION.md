@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 16 | **15** | — |
+| ⏳ P — Agilidad sin perder calidad | 17 | **16** | — |
 | **Total pendiente** | **1** | — | — |
 
 ---
@@ -1115,7 +1115,7 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
-## ⏳ P — Agilidad sin perder calidad (11/16)
+## ⏳ P — Agilidad sin perder calidad (12/17)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -1183,6 +1183,13 @@ del código.
       rutas_verificacion_parcial no tiene efecto. Inventario: nada que borrar. 2 rondas: IMP-1 (la cobertura no
       se mide en el release) e IMP-2 (tras un conflicto, cerrarlo en develop deja un finish que no verifica,
       también en el mensaje del guardián) corregidos, ronda 2 aprobada.*
+- [x] TASK-110 — Progreso visible sin tokens: estado de cada fase en el terminal — cerrada el 2026-11-12
+      *Fichero de progreso bajo .git/taskcode/, `taskctl estado` (via rapida, 143 ms), status line instalable por
+      doctor en el settings.json de usuario (con el taskctl de la cache si no esta en el PATH, y solo si entiende
+      `estado`), progreso en plan/approve/start/review/finish y el freno Stop sin anadir salida (cero tokens),
+      contador TASKCTL_PROGRESO, reporter [x/N] de npm test y `--seguir`. Sin trocear (decision de Carlos). Paso S:
+      la status line se ve en la app de escritorio y por Remote Control. 1 ronda: IMP-1 y 5 MENOR corregidos, 2
+      aceptados; cerrada sin ronda 2 por decision de Carlos (modo rapido).*
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
 
