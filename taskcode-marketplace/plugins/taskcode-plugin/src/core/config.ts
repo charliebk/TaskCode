@@ -26,7 +26,7 @@
  * | umbral_cobertura             | null (solo informa) | commands/finish-cobertura.ts (TASK-074) |
  * | rutas_documentacion          | [] (sin efecto)   | finish-verificacion.ts (TASK-100), hooks/guardia-merge.ts (TASK-101) |
  * | comando_verificacion_documentacion | null        | finish-verificacion.ts (TASK-100), guardia-merge.ts (TASK-101) |
- * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096) |
+ * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
  * TASK-100: si todo lo que cambia la tarea frente a la base cae en esas rutas
@@ -871,19 +871,31 @@ function validarUmbralCobertura(donde: string, valor: unknown): number {
  * `** /*.lock`), que es lo que una persona espera y no lo que hace
  * `:(glob)` a secas, donde `*` no cruza carpetas.
  */
+type ClavePatrones = 'excluir_de_revision' | 'contexto_revision' | 'rutas_documentacion' | 'rutas_verificacion_parcial';
+
+/**
+ * TASK-109: el ejemplo del error de forma, uno por clave (antes las que no eran
+ * `rutas_documentacion` recibian el de `excluir_de_revision`, que habla de
+ * «excluir» y no cuadra con las demas). El tipo obliga a darlo al anadir una.
+ */
+const EJEMPLO_PATRONES: Readonly<Record<ClavePatrones, string>> = {
+  excluir_de_revision: '[**/dist/**, **/*.lock]. Para no excluir nada: excluir_de_revision: [].',
+  contexto_revision: '[docs/arquitectura.md, src/core/**]. Sin contexto extra: contexto_revision: [].',
+  rutas_documentacion: '[docs/**, README.md].',
+  rutas_verificacion_parcial: '[src/web/**]. Sin nivel 2: rutas_verificacion_parcial: [].',
+};
+
 function validarPatronesExclusion(
   donde: string,
   valor: unknown,
-  clave: 'excluir_de_revision' | 'contexto_revision' | 'rutas_documentacion' | 'rutas_verificacion_parcial' = 'excluir_de_revision',
+  clave: ClavePatrones = 'excluir_de_revision',
   anclar = true
 ): readonly string[] {
   if (!Array.isArray(valor)) {
     throw new ConfigError(
       `[ERROR] ${donde}: "${clave}" debe ser una lista entre corchetes, ` +
         `y es ${describirValor(valor)}.\n` +
-        (clave === 'rutas_documentacion'
-          ? `        Ejemplo: ${clave}: [docs/**, README.md].`
-          : `        Ejemplo: ${clave}: [**/dist/**, **/*.lock]. Para no excluir nada: ${clave}: [].`)
+        `        Ejemplo: ${clave}: ${EJEMPLO_PATRONES[clave]}`
     );
   }
   const patrones: string[] = [];

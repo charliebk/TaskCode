@@ -521,6 +521,26 @@ test('doctor (TASK-091): con las dos, ok; sin completa o con config invalida, na
   assert.deepEqual(comprobarVerificacionSelectiva(null), []);
 });
 
+const NIVEL2 = 'comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node sel.js"\nrutas_verificacion_parcial: [src/web/**]\n';
+
+test('doctor (TASK-109): con el nivel 2 activo, ok que dice que finish integra con la selectiva y el merge a mano no', () => {
+  const [c, ...resto] = comprobarVerificacionSelectiva(parsearConfig(`${NIVEL2}rutas_documentacion: [docs/**]\n`, RUTA));
+  assert.equal(resto.length, 0);
+  assert.equal(c?.nivel, 'ok');
+  assert.match(c?.mensaje ?? '', /comando_verificacion_selectiva: "node sel\.js" \(timeout 600 s\)/);
+  assert.match(c?.mensaje ?? '', /finish integra con ella si todo el codigo cae en esas rutas; un merge a mano sigue exigiendo la completa/);
+  assert.doesNotMatch(c?.mensaje ?? '', /la completa sigue siendo la puerta de finish/);
+});
+
+test('doctor (TASK-109): rutas_verificacion_parcial sin rutas_documentacion avisa en una linea con su arreglo', () => {
+  const [c, ...resto] = comprobarVerificacionSelectiva(parsearConfig(NIVEL2, RUTA));
+  assert.equal(resto.length, 0);
+  assert.equal(c?.nivel, 'aviso');
+  assert.match(c?.mensaje ?? '', /rutas_verificacion_parcial no tiene efecto sin rutas_documentacion: declara tambien rutas_documentacion/);
+  assert.doesNotMatch(c?.mensaje ?? '', /\n/);
+  assert.match(c?.arreglo ?? '', /^Declara tambien rutas_documentacion en \.taskcode\/config\.yml .* o borra rutas_verificacion_parcial$/);
+});
+
 // ---------------------------------------------------------------------
 // Guia de migracion (criterio 6): instalable, enlazada y sin marcas de este repo
 // ---------------------------------------------------------------------
