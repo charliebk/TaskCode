@@ -919,6 +919,7 @@ async function mainComando(argvEntrada) {
             const result = await runFinishCommand(tareasRoot, argv.slice(1), today(), {
                 repoCwd,
                 ahora: ahora(),
+                reloj: ahora,
                 scriptsDir: resolveGitflowScriptsDir(),
                 onAviso: (aviso) => printAvisos(aviso),
             });

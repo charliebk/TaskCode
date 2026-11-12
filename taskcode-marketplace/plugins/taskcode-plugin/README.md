@@ -114,7 +114,13 @@ al cierre con merge) se parte en varias.
   entera con el motivo). Sin la línea, `approve` solo avisa.
 - **Finish:** `tarea.md` gana `## Duracion` con la estimada y la real de punta
   a punta (sin pausas), y `taskctl metricas` las muestra en las columnas
-  `estimada` y `punta_a_punta`, para calibrar.
+  `estimada` y `punta_a_punta`, para calibrar. La fila `finish` de
+  `## Transiciones` marca el **fin** del cierre (tras la verificación completa
+  y el merge), no el instante en que arrancó el comando, así que `punta_a_punta`
+  incluye lo que tarda la verificación. `## Duracion` añade la línea
+  `- Cierre (finish): <s> s, de <inicio> a <fin>` y `metricas` la columna
+  `finish` (justo antes de `punta_a_punta`; `—` sin dato). Las tareas cerradas
+  antes no se migran: su fila `finish` sigue marcando el arranque.
 
 Cómo trocear (porción vertical pequeña frente a capas) y las señales, en la
 skill `task-workflow`, `duracion.md`.

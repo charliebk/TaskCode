@@ -183,7 +183,9 @@ const NOTA_CALENDARIO =
   'cuenta hasta la siguiente transicion que no sea pausa (una pausa sin transicion ' +
   'detras no descuenta; lo descontado va en "pausas" con --json). Con origen "registro" ' +
   'de filas antiguas (solo el dia) o mezcladas, la duracion va en dias ("N d") y no se ' +
-  'descuenta nada.';
+  'descuenta nada. "finish" es lo que tarda el propio cierre, del arranque de finish al fin ' +
+  'del merge (verificacion incluida), y "punta_a_punta" ya lo incluye; en las tareas cerradas ' +
+  'antes de medirlo "finish" sale "—" y su punta a punta acaba al arrancar finish.';
 
 interface FlagsMetricas {
   heuristica: boolean;

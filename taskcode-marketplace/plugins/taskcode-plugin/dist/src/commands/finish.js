@@ -47,6 +47,7 @@ import { puertaCobertura } from './finish-cobertura.js';
 import { runBoardCommand, boardFilePath } from './board.js';
 import { duracionDelPlan } from './approve.js';
 import { anotarDuracion } from '../core/duracion-estimada.js';
+import { anotarCierre } from '../core/cierre.js';
 import { minutosPuntaAPunta } from '../core/metricas.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
@@ -489,7 +490,11 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     for (const aviso of volcado.avisos)
         deps.onAviso?.(`${id}: ${aviso}`);
     const updated = volcado.task;
-    const conFila = registrarTransicion(volcado.body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
+    // P-1: la fila `finish` lleva el instante de FIN (tras verificacion y merge);
+    // el de inicio queda en la linea de cierre de `## Duracion`.
+    const inicioFinish = deps.ahora ?? today;
+    const finFinish = deps.reloj?.() ?? inicioFinish;
+    const conFila = registrarTransicion(volcado.body, 'finish', finFinish, resolverConfig(deps.repoCwd).modo_flujo);
     // TASK-097: regla de una hora. Estimada (del plan) y real de punta a punta,
     // para calibrar. Nunca lanza: estamos despues del merge y un fallo aqui
     // dejaria la tarea mergeada sin cerrar. Un dato que falta va como «—».
@@ -500,6 +505,10 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     catch (e) {
         deps.onAviso?.(`${id}: no se pudo anotar la duracion (${e instanceof Error ? e.message : String(e)}); el cierre sigue.`);
     }
+    // P-1: despues de anotarDuracion, que reescribe la seccion entera (y con ella
+    // la linea de un intento anterior). Pura y sin lanzar: va fuera del try para
+    // que un fallo leyendo el plan no se lleve tambien la duracion del cierre.
+    conRegistro = anotarCierre(conRegistro, inicioFinish, finFinish);
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     // Renderizado de cierre (criterio 3): plantillas desde el
     // frontmatter. BOARD.md se regenera entero reutilizando el mismo

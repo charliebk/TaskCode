@@ -91,6 +91,7 @@ import { puertaCobertura } from './finish-cobertura.js';
 import { runBoardCommand, boardFilePath } from './board.js';
 import { duracionDelPlan } from './approve.js';
 import { anotarDuracion } from '../core/duracion-estimada.js';
+import { anotarCierre } from '../core/cierre.js';
 import { minutosPuntaAPunta } from '../core/metricas.js';
 import { renderBoardMarkdown } from '../core/board-format.js';
 import { REVISION_DIRNAME } from './review.js';
@@ -260,8 +261,18 @@ export interface FinishCommandDeps {
    * resultado llega despues del merge, cuando ya no hay vuelta atras.
    */
   onAviso?: (aviso: string) => void;
-  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  /**
+   * TASK-052: instante UTC de ARRANQUE del comando (`formatearInstante`). Desde P-1
+   * es el inicio de la linea de cierre; la fila `finish` lleva el de `reloj`, o este
+   * si no hay reloj. Sin ninguno de los dos, la fila lleva solo `today`.
+   */
   ahora?: string;
+  /**
+   * P-1: reloj para el instante de FIN del comando (`formatearInstante`). La fila
+   * `finish` de `## Transiciones` se escribe con el, no con `ahora` (que es el
+   * de inicio, antes de la verificacion). Sin el, se usa `ahora` o `today`.
+   */
+  reloj?: () => string;
   /** Solo para tests: timeout de la puerta de verificacion (TASK-072), en ms. */
   verificacionTimeoutMs?: number;
   /** TASK-085: entorno del volcado de coste automatico (tests); por defecto el del proceso. */
@@ -661,7 +672,11 @@ export async function runFinishCommand(
   );
   for (const aviso of volcado.avisos) deps.onAviso?.(`${id}: ${aviso}`);
   const updated: Task = volcado.task;
-  const conFila = registrarTransicion(volcado.body, 'finish', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
+  // P-1: la fila `finish` lleva el instante de FIN (tras verificacion y merge);
+  // el de inicio queda en la linea de cierre de `## Duracion`.
+  const inicioFinish = deps.ahora ?? today;
+  const finFinish = deps.reloj?.() ?? inicioFinish;
+  const conFila = registrarTransicion(volcado.body, 'finish', finFinish, resolverConfig(deps.repoCwd).modo_flujo);
   // TASK-097: regla de una hora. Estimada (del plan) y real de punta a punta,
   // para calibrar. Nunca lanza: estamos despues del merge y un fallo aqui
   // dejaria la tarea mergeada sin cerrar. Un dato que falta va como «—».
@@ -671,6 +686,10 @@ export async function runFinishCommand(
   } catch (e: unknown) {
     deps.onAviso?.(`${id}: no se pudo anotar la duracion (${e instanceof Error ? e.message : String(e)}); el cierre sigue.`);
   }
+  // P-1: despues de anotarDuracion, que reescribe la seccion entera (y con ella
+  // la linea de un intento anterior). Pura y sin lanzar: va fuera del try para
+  // que un fallo leyendo el plan no se lleve tambien la duracion del cierre.
+  conRegistro = anotarCierre(conRegistro, inicioFinish, finFinish);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
 
   // Renderizado de cierre (criterio 3): plantillas desde el
