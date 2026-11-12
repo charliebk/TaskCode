@@ -44,8 +44,10 @@ procesan).
 ```bash
 cd taskcode-marketplace/plugins/taskcode-plugin
 npm install
-npm test             # compila y corre la suite completa (~1290 tests, ~10 min) con cobertura
-npm run test:rapido  # core y cli sin procesos (~360 tests, ~10 s): para iterar, no para cerrar
+npm test             # compila y corre la suite completa (~2170 tests, ~25 min) con cobertura: una vez por version
+npm run test:rapido  # core y cli sin procesos (~750 tests, ~15 s): para iterar
+# desde la raiz del repo: verificacion de la tarea por impacto (lo que cambia + test:rapido)
+RAMA_BASE=develop node scripts/verificar-impacto.mjs
 ```
 
 El CLI: `taskctl new | import | board | metricas [--tokens [--escribir]] | estado [--seguir] | doctor [--json] [--instalar-status-line] | doctor-deploy [--json] [--escribir] | plan |
