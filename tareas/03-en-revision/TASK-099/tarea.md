@@ -98,3 +98,7 @@ commiteaba un fichero despues de revisar y esperaba que finish cerrara: ahora
 limpia borrandolo (cambio de expectativa por la regla nueva, no se debilita).
 El primer `finish` corto la suite a los 1800 s (`timeout_verificacion`) en el
 test 1873: se cierra con `--sin-verificacion` tras correrla a mano.
+
+## Verificacion omitida
+
+- 2026-11-12T23:13:39Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
