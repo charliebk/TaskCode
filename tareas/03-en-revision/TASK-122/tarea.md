@@ -66,3 +66,7 @@ Problema que plantea Carlos (2026-11-12): si cada tarea paga algo que crece con 
 | 2026-11-12T15:32:41Z | implementacion | sesion:b6ee363f-d9c2-4a11-8e6e-4c193af66eed | 56 | 27781 | 11536598 | 13212 | 0 | 11577647 | - | - |
 | 2026-11-12T15:32:41Z | implementacion | agente:ae58c72e5d2abe125 | 390 | 627770 | 44873200 | 143239 | 37 | 45644599 | - | - |
 | 2026-11-12T15:55:09Z | revision | agente:a610c3553fe2a041a | 72 | 169118 | 4940566 | 29024 | 2 | 5138780 | 1 | - |
+
+## Verificacion omitida
+
+- 2026-11-12T16:30:11Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
