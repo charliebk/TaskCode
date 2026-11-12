@@ -124,6 +124,20 @@ reintento de `finish` que ya no verifica. Doctor: aviso nuevo y texto del `ok` c
 de forma de cada clave de patrones trae su propio ejemplo (TASK-109). Sin la
 clave, todo como antes.
 
+Duracion real del cierre (P-1). `taskctl finish` escribia su fila `finish` de
+`## Transiciones` con el instante en que arrancaba el comando, asi que
+`taskctl metricas` (`punta_a_punta`, revision, total) no contaba la
+verificacion completa que finish corre (unos 28 min medidos en ToolsaWeb,
+n=10). Ahora la fila lleva el instante de FIN, tomado tras la verificacion y
+el merge, y `punta_a_punta`, `revision` y `total` lo incluyen solos. `##
+Duracion` gana la linea `- Cierre (finish): <s> s, de <inicio> a <fin>` y
+`metricas` la columna `finish`, justo antes de `punta_a_punta` (`—` sin dato).
+
+Cambio de comportamiento: las tareas ya cerradas no se migran; su fila
+`finish` sigue marcando el arranque del comando y no llevan la linea de
+cierre, asi que sus duraciones no cambian. La tabla de `metricas` gana una
+columna.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).

@@ -18,6 +18,11 @@ pequenas cierran antes y se revisan mejor.
   real de punta a punta (de `start` a `finish`, sin pausas). `taskctl
   metricas` las muestra (`estimada`, `punta_a_punta`), para calibrar la
   estimacion con datos y no a ojo.
+  La fila `finish` marca el **fin** del cierre (tras la verificacion completa
+  y el merge), asi que la medida incluye lo que tarda la verificacion;
+  `## Duracion` anota ademas `- Cierre (finish): <s> s, de <inicio> a <fin>`
+  y `metricas` la columna `finish` (`—` sin dato). Las tareas cerradas con
+  versiones anteriores llevan en esa fila el arranque del comando.
 
 ## Como estimar: las senales
 
