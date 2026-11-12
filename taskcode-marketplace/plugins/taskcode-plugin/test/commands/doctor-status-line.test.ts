@@ -172,7 +172,18 @@ test('status line: desinstalar quita solo la suya; una ajena o ninguna no se toc
   });
 });
 
-test('status line: sin taskctl en el PATH del sistema no se instala, tampoco si solo esta en la carpeta del plugin', async () => {
+/** Carpeta `bin` de una version del plugin en la cache, como la real: el script de node y su lanzador. */
+async function crearBinPlugin(e: Entorno, version: string): Promise<string> {
+  const bin = path.join(e.config, 'plugins', 'cache', 'mk', 'taskcode-plugin', version, 'bin');
+  await crearTaskctl(bin);
+  await writeFile(path.join(bin, 'taskctl'), '#!/usr/bin/env node\n', 'utf8');
+  return bin;
+}
+
+const comandoDe = (e: Entorno): unknown =>
+  (JSON.parse(readFileSync(e.settings, 'utf8')) as { statusLine?: { command?: unknown } }).statusLine?.command;
+
+test('status line: sin taskctl en el PATH no se instala', async () => {
   await conEntorno(async (e) => {
     await settingsConCentinela(e);
     const antes = hash(e.settings);
@@ -182,17 +193,41 @@ test('status line: sin taskctl en el PATH del sistema no se instala, tampoco si 
     assert.equal(c.nivel, 'error');
     assert.match(c.mensaje, /taskctl no esta en el PATH/);
     assert.match(c.arreglo ?? '', /PATH de tu sistema/);
-    const binPlugin = path.join(e.config, 'plugins', 'cache', 'mk', 'taskcode-plugin', '0.14.0', 'bin');
-    await crearTaskctl(binPlugin);
-    const soloPlugin = doctor(e, ['--instalar-status-line'], { path: [vacio, binPlugin].join(path.delimiter) });
-    assert.equal(soloPlugin.nivel, 'error');
-    assert.match(soloPlugin.mensaje, /solo esta en el PATH que Claude Code da a su herramienta Bash/);
     assert.equal(hash(e.settings), antes, 'nada escrito');
     assert.deepEqual(copias(e), []);
-    // Con el del sistema detras del del plugin, se instala con el del sistema.
-    const ambos = doctor(e, ['--instalar-status-line'], { path: [binPlugin, e.binSistema].join(path.delimiter) });
+  });
+});
+
+test('status line: si taskctl solo esta en la cache del plugin, se instala con node y su ruta; tras actualizar se reescribe; el del sistema gana', async () => {
+  await conEntorno(async (e) => {
+    await settingsConCentinela(e);
+    const vacio = path.join(e.dir, 'vacio');
+    await mkdir(vacio);
+    const bin14 = await crearBinPlugin(e, '0.14.0');
+    const soloPlugin = doctor(e, ['--instalar-status-line'], { path: [vacio, bin14].join(path.delimiter) });
+    assert.equal(soloPlugin.nivel, 'ok', soloPlugin.mensaje);
+    const esperado14 = `node "${path.join(bin14, 'taskctl').replace(/\\/g, '/')}" estado --stdin`;
+    assert.equal(comandoDe(e), esperado14);
+    assert.match(soloPlugin.mensaje, /cache del plugin/);
+    assert.match(soloPlugin.mensaje, /repite --instalar-status-line/);
+    // Idempotente con la misma ruta.
+    const otraVez = doctor(e, ['--instalar-status-line'], { path: [vacio, bin14].join(path.delimiter) });
+    assert.match(otraVez.mensaje, /ya estaba instalada/);
+    assert.equal(copias(e).length, 1, 'la segunda vez no escribe ni copia');
+    // Tras actualizar el plugin, se reescribe con la ruta nueva.
+    const bin15 = await crearBinPlugin(e, '0.15.0');
+    const nueva = doctor(e, ['--instalar-status-line'], { path: [vacio, bin15].join(path.delimiter) });
+    assert.equal(nueva.nivel, 'ok', nueva.mensaje);
+    assert.match(nueva.mensaje, /actualizada/);
+    assert.match(String(comandoDe(e)), /0\.15\.0\/bin\/taskctl" estado --stdin$/);
+    // Con el del sistema en el PATH, gana el comando por nombre aunque el del plugin vaya delante.
+    const ambos = doctor(e, ['--instalar-status-line'], { path: [bin15, e.binSistema].join(path.delimiter) });
     assert.equal(ambos.nivel, 'ok', ambos.mensaje);
-    assert.match(ambos.mensaje, /bin-sistema/);
+    assert.equal(comandoDe(e), 'taskctl estado --stdin');
+    // Sigue siendo la nuestra: desinstalar la quita.
+    const fuera = doctor(e, ['--desinstalar-status-line'], { path: e.binSistema });
+    assert.equal(fuera.nivel, 'ok', fuera.mensaje);
+    assert.equal(comandoDe(e), undefined);
   });
 });
 

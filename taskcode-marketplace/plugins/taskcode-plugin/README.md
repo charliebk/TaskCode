@@ -820,11 +820,13 @@ escribe nada. La única escritura es la de la status line, con su flag:
   (`~/.claude/settings.json`, o el de `CLAUDE_CONFIG_DIR`): una vez, para todos
   los proyectos. Conserva el resto de claves, deja una copia
   (`settings.json.<fecha>.bak`) y escribe con fichero temporal y renombrado. Es
-  idempotente. El comando es `taskctl estado --stdin`, por el PATH: si `taskctl`
-  no está en el PATH del sistema no la instala y lo dice (la carpeta del plugin
-  que Claude Code añade al PATH de su herramienta Bash no cuenta: cambia con
-  cada actualización y no consta que la status line la vea; ver «Usar `taskctl`
-  fuera de Claude Code»). Si ya hay otra status line, no la toca.
+  idempotente. El comando es `taskctl estado --stdin` si `taskctl` está en el
+  PATH del sistema. Si solo está en la carpeta del plugin (la que Claude Code
+  añade al PATH de su herramienta Bash), usa esa copia con `node` y su ruta
+  absoluta: como la ruta lleva la versión del plugin, tras actualizarlo hay que
+  repetir `--instalar-status-line`, que la reescribe con la ruta nueva (para no
+  depender de eso, pon `taskctl` en el PATH; ver «Usar `taskctl` fuera de
+  Claude Code»). Si ya hay otra status line, no la toca.
 - `--reemplazar-status-line` (junto al anterior) sustituye una status line
   ajena; la anterior se guarda en `statusline-previa-taskctl.json`.
 - `--desinstalar-status-line` quita la de `taskctl` (una ajena no se toca) y

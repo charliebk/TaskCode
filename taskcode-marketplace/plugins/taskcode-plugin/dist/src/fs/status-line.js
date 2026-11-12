@@ -14,11 +14,12 @@
  * - Copia del fichero antes de tocarlo, y escritura con tmp+rename (Claude
  *   Code puede estar reescribiendo el mismo fichero: la ventana es minima).
  * - Idempotente: si ya esta, no se escribe.
- * - El comando es `taskctl` por el PATH, nunca una ruta a la cache del
- *   plugin (cambia con cada actualizacion y la barra se romperia sin avisar).
- *   Si `taskctl` no esta en el PATH del sistema, no se instala. La carpeta
- *   del plugin que Claude Code anade al PATH de su herramienta Bash no cuenta:
- *   es esa misma ruta de la cache.
+ * - El comando es `taskctl` por el PATH si esta en el PATH del sistema. Si
+ *   solo esta en la carpeta del plugin (la cache que Claude Code anade al
+ *   PATH de su herramienta Bash, que la status line no tiene por que ver),
+ *   decision de la persona (2026-11-12): se usa esa ruta, con `node` y la
+ *   ruta absoluta del script. Como lleva la version del plugin, volver a
+ *   pedir la instalacion tras actualizar la reescribe con la ruta nueva.
  */
 import { accessSync, constants, copyFileSync, existsSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
@@ -31,12 +32,22 @@ export const FICHERO_PREVIA = 'statusline-previa-taskctl.json';
 export function rutaSettingsUsuario(configDir) {
     return path.join(configDir, 'settings.json');
 }
-/** true si la `statusLine` es la que instala doctor (un `taskctl estado`, con o sin flags). */
+/** El comando con el script de la cache del plugin: `node "<ruta>" estado --stdin` (barras normales). */
+export function comandoDesdePlugin(script) {
+    return `node "${script.replace(/\\/g, '/')}" estado --stdin`;
+}
+/**
+ * true si la `statusLine` es la que instala doctor: un `taskctl estado` por el
+ * PATH, o `node "<...>/taskctl" estado` con la ruta de la cache, con o sin flags.
+ */
 export function esNuestra(statusLine) {
     return (esObjeto(statusLine) &&
         statusLine['type'] === 'command' &&
         typeof statusLine['command'] === 'string' &&
-        /^\s*taskctl(?:\.cmd)?\s+estado(?:\s|$)/.test(statusLine['command']));
+        /^\s*(?:taskctl(?:\.cmd)?|node\s+"[^"]*[\\/]taskctl")\s+estado(?:\s|$)/.test(statusLine['command']));
+}
+function comandoActual(statusLine) {
+    return esObjeto(statusLine) && typeof statusLine['command'] === 'string' ? statusLine['command'] : null;
 }
 function describir(statusLine) {
     if (esObjeto(statusLine) && typeof statusLine['command'] === 'string')
@@ -56,7 +67,7 @@ export function sondearStatusLine(configDir) {
     if (sl === undefined || sl === null)
         return { estado: 'ausente', ruta };
     if (esNuestra(sl))
-        return { estado: 'nuestra', ruta };
+        return { estado: 'nuestra', ruta, comando: comandoActual(sl) ?? COMANDO_STATUS_LINE };
     return { estado: 'ajena', ruta, comando: describir(sl) };
 }
 /** Una variable del entorno sin distinguir mayusculas (en Windows es `Path`, `PATH`...). */
@@ -74,6 +85,7 @@ export function buscarTaskctl(env, configDir) {
     const exts = win ? ['', ...(variable(env, 'PATHEXT') ?? '.COM;.EXE;.BAT;.CMD').split(';').filter((e) => e !== '')] : [''];
     const plugins = path.join(configDir, 'plugins');
     let soloEnPlugin = false;
+    let scriptPlugin = null;
     for (const dir of (variable(env, 'PATH') ?? '').split(path.delimiter)) {
         if (dir.trim() === '')
             continue;
@@ -90,12 +102,22 @@ export function buscarTaskctl(env, configDir) {
             }
             if (dentroDe(candidato, plugins)) {
                 soloEnPlugin = true;
+                if (scriptPlugin === null) {
+                    const script = path.join(dir, 'taskctl');
+                    try {
+                        if (statSync(script).isFile())
+                            scriptPlugin = script;
+                    }
+                    catch {
+                        /* esa carpeta no trae el script de node: se sigue buscando */
+                    }
+                }
                 continue;
             }
-            return { ruta: candidato, soloEnPlugin: false };
+            return { ruta: candidato, soloEnPlugin: false, scriptPlugin: null };
         }
     }
-    return { ruta: null, soloEnPlugin };
+    return { ruta: null, soloEnPlugin, scriptPlugin };
 }
 function sello(ahora) {
     return ahora.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
@@ -124,8 +146,6 @@ const ARREGLO_PATH = 'Pon taskctl en el PATH de tu sistema (no la carpeta de la 
     'de Claude Code" en el README del plugin), abre una terminal nueva y repite con --instalar-status-line.';
 export function instalarStatusLine(configDir, o) {
     const s = sondearStatusLine(configDir);
-    if (s.estado === 'nuestra')
-        return { tipo: 'nada', mensaje: `ya estaba instalada en ${s.ruta} (${COMANDO_STATUS_LINE})` };
     if (s.estado === 'ilegible') {
         return {
             tipo: 'rechazado',
@@ -142,16 +162,23 @@ export function instalarStatusLine(configDir, o) {
         };
     }
     const t = buscarTaskctl(o.env, configDir);
-    if (t.ruta === null) {
+    const comando = t.ruta !== null ? COMANDO_STATUS_LINE : t.scriptPlugin !== null ? comandoDesdePlugin(t.scriptPlugin) : null;
+    if (comando === null) {
         return {
             tipo: 'rechazado',
             mensaje: t.soloEnPlugin
-                ? 'no se instala: taskctl solo esta en el PATH que Claude Code da a su herramienta Bash (la carpeta del ' +
-                    'plugin, que cambia con cada actualizacion), y la status line no tiene por que verlo'
+                ? 'no se instala: taskctl solo esta en la carpeta del plugin y alli no esta su script de node'
                 : 'no se instala: taskctl no esta en el PATH, y la status line lo ejecuta por su nombre',
             arreglo: ARREGLO_PATH,
         };
     }
+    if (s.estado === 'nuestra' && s.comando === comando) {
+        return { tipo: 'nada', mensaje: `ya estaba instalada en ${s.ruta} (${comando})` };
+    }
+    const desdeCache = t.ruta === null
+        ? '; usa la copia de la cache del plugin, que lleva su version: tras actualizar el plugin, repite ' +
+            '--instalar-status-line para que apunte a la nueva'
+        : '';
     try {
         const obj = leerObjeto(s.ruta);
         const copia = copiaDeSeguridad(s.ruta, o.ahora);
@@ -160,12 +187,14 @@ export function instalarStatusLine(configDir, o) {
                 throw new Error('no se pudo guardar la status line anterior');
             }
         }
-        obj['statusLine'] = { type: 'command', command: COMANDO_STATUS_LINE };
+        obj['statusLine'] = { type: 'command', command: comando };
         if (!escribir(s.ruta, obj))
             throw new Error(`no se pudo escribir ${s.ruta}`);
         return {
             tipo: 'hecho',
-            mensaje: `instalada en ${s.ruta} (${COMANDO_STATUS_LINE}; taskctl en ${t.ruta})` +
+            mensaje: (s.estado === 'nuestra' ? `actualizada en ${s.ruta} (${comando}; antes "${s.comando}"` : `instalada en ${s.ruta} (${comando}`) +
+                `; taskctl en ${t.ruta ?? t.scriptPlugin ?? ''})` +
+                desdeCache +
                 (copia === null ? '' : `; copia previa en ${copia}`) +
                 (s.estado === 'ajena' ? `; la anterior ("${s.comando}") vuelve al desinstalar` : '') +
                 '. Se ve en la proxima sesion de Claude Code',
