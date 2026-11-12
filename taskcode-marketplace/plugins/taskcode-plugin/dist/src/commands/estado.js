@@ -101,7 +101,7 @@ export async function mainEstado(argv, o = {}) {
         rechazarFlagsDesconocidos(argv, FLAGS_ESTADO, 'estado', (m) => new Error(m));
         const sobra = argv.find((a) => !a.startsWith('-'));
         if (sobra !== undefined)
-            throw new Error(`[ERROR] taskctl estado: no admite argumentos ("${sobra}"). Uso: taskctl estado [--seguir].`);
+            throw new Error(`[ERROR] taskctl estado: no admite argumentos ("${sobra}"). Uso: taskctl estado [--seguir] [--stdin].`);
     }
     catch (e) {
         process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`);

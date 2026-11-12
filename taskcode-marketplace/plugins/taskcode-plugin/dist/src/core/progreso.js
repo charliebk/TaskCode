@@ -21,6 +21,7 @@
 export const VERSION_PROGRESO = 1;
 /** Las fases del ciclo de una tarea, en orden: la linea dice en cual va (`review (4/5)`). */
 export const FASES_CICLO = ['plan', 'approve', 'start', 'review', 'finish'];
+const RESULTADOS = ['ok', 'abortada', 'en-rojo'];
 /** Lo que dice la linea cuando no hay nada en marcha en un proyecto con tareas. */
 export const NADA_EN_MARCHA = 'Nada en marcha.';
 const SEPARADOR = ' · ';
@@ -65,7 +66,7 @@ export function validarProgreso(json) {
             .map((p) => limpiarTexto(p))
             .filter((p) => p !== null)
         : [];
-    const resultado = o['resultado'] === 'ok' || o['resultado'] === 'abortada' ? o['resultado'] : null;
+    const resultado = typeof o['resultado'] === 'string' && RESULTADOS.includes(o['resultado']) ? o['resultado'] : null;
     return {
         version: VERSION_PROGRESO,
         tarea,
@@ -117,7 +118,7 @@ export function enMarcha(e) {
  */
 export function formatearEstado(e, ahoraMs, contador) {
     if (e.terminado) {
-        const como = e.resultado === 'abortada' ? 'abortada' : 'terminada';
+        const como = e.resultado === 'abortada' ? 'abortada' : e.resultado === 'en-rojo' ? 'en rojo' : 'terminada';
         const hace = minutosDesde(e.fin ?? e.inicio, ahoraMs);
         return recortar(['Nada en marcha', `ultima: ${e.tarea}`, etiquetaFase(e.fase), `${como} hace ${String(hace)} min`].join(SEPARADOR), MAX_LINEA);
     }

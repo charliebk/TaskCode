@@ -208,7 +208,19 @@ export function instalarStatusLine(configDir, o) {
                 throw new Error('no se pudo guardar la status line anterior');
             }
         }
-        obj['statusLine'] = { type: 'command', command: comando };
+        else if (s.estado === 'ausente') {
+            // Una previa de un reemplazo antiguo es obsoleta: si la persona quito la status line
+            // a mano, desinstalar no debe resucitar la barra que ella ya habia quitado.
+            try {
+                unlinkSync(path.join(configDir, FICHERO_PREVIA));
+            }
+            catch {
+                /* no habia previa */
+            }
+        }
+        // Al actualizar la propia se conservan sus demas claves (padding, refreshInterval...).
+        const actual = s.estado === 'nuestra' && esObjeto(obj['statusLine']) ? obj['statusLine'] : {};
+        obj['statusLine'] = { ...actual, type: 'command', command: comando };
         if (!escribir(s.ruta, obj))
             throw new Error(`no se pudo escribir ${s.ruta}`);
         return {
