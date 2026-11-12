@@ -90,6 +90,32 @@ fichero como destino (solo cambia el destino una rama de `refs/heads/` o
 `refs/remotes/origin/`, un tag o un commit, que desacoplan HEAD; `HEAD` y `@`
 no lo cambian).
 
+Verificacion proporcional, nivel 2 (TASK-096, TASK-105 a TASK-109). El
+principio: el coste de verificar es proporcional al cambio. Clave nueva opcional
+`rutas_verificacion_parcial` (lista de rutas permitidas, patrones `git :(glob)`,
+leida de la config de la rama base): si todo el codigo que cambia la tarea cae
+en ellas, `finish` corre `comando_verificacion_selectiva` (con `RAMA_BASE` y
+`timeout_verificacion_selectiva`) en vez de la completa, lo dice y lo anota tras
+el verde en la seccion `## Verificacion parcial`; reutiliza un verde selectivo
+del mismo commit y la misma base. Un fichero fuera, un cambio de
+`.taskcode/config.yml`, un diff vacio, un release o un hotfix van a la completa;
+la puerta de cobertura no se evalua con la selectiva (se mide en la completa del
+release). Exige `comando_verificacion_selectiva` (la config aborta sin ella) y
+`rutas_documentacion` (sin ellas no tiene efecto; `taskctl doctor` lo avisa). El
+freno Stop, `review` y `finish` deciden igual sobre el mismo diff (TASK-107).
+
+Decision sobre TASK-091: por defecto la completa sigue siendo la puerta de
+integracion; declarar `rutas_verificacion_parcial` es la revision explicita de
+esa regla para el proyecto. Se retira, solo en ese caso, el texto de `finish`
+«aunque las rondas usaran la selectiva» y la frase de la guia «Antes de integrar
+se exige siempre la completa». El guardian de merges NO acepta la selectiva
+(decision de Carlos, TASK-108): con codigo exige siempre la completa, asi que un
+merge a mano tras un fallo de `finish` (un conflicto, por ejemplo) queda
+bloqueado; el remedio es resolver y relanzar `taskctl finish`, y el mensaje del
+guardian lo dice. Doctor: aviso nuevo y texto del `ok` con el nivel 2; el error
+de forma de cada clave de patrones trae su propio ejemplo (TASK-109). Sin la
+clave, todo como antes.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).
