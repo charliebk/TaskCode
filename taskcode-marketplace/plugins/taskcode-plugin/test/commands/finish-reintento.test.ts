@@ -186,3 +186,42 @@ test('F-16 guardian: un git commit sin MERGE_HEAD en develop, o con MERGE_HEAD e
     }
   });
 });
+
+test('F-16 guardian (IMP-1 r1): sincronizar develop con origin/develop con conflicto no bloquea el commit que lo cierra', async () => {
+  await conVerif(async (_v, repo) => {
+    const fuera = await mkdtemp(path.join(tmpdir(), 'finish-reintento-remoto-'));
+    try {
+      const remoto = path.join(fuera, 'origen.git');
+      const otro = path.join(fuera, 'otro');
+      git(['checkout', '-q', 'develop'], repo);
+      await writeFile(path.join(repo, 'comun.txt'), 'base\n', 'utf8');
+      commitAll(repo, 'comun base');
+      git(['init', '-q', '--bare', remoto], fuera);
+      git(['remote', 'add', 'origin', remoto], repo);
+      git(['push', '-q', 'origin', 'develop'], repo);
+      // Otro clon empuja un cambio a origin/develop sobre el mismo fichero.
+      git(['clone', '-q', '-b', 'develop', remoto, otro], fuera);
+      git(['config', 'user.email', 'otro@example.com'], otro);
+      git(['config', 'user.name', 'Otro'], otro);
+      await writeFile(path.join(otro, 'comun.txt'), 'version remota\n', 'utf8');
+      commitAll(otro, 'docs remota');
+      git(['push', '-q', 'origin', 'develop'], otro);
+      // Commit local en develop (documentacion suelta) y sincronizar choca.
+      await writeFile(path.join(repo, 'comun.txt'), 'version local\n', 'utf8');
+      commitAll(repo, 'docs local');
+      git(['fetch', '-q', 'origin'], repo);
+      assert.equal(decidirPreToolUse({ cwd: repo, tool_input: { command: 'git merge origin/develop' } }).codigo, 0);
+      const r = spawnSync('git', ['merge', '-q', 'origin/develop'], { cwd: repo });
+      assert.notEqual(r.status, 0, 'el merge de origin/develop debe chocar');
+      assert.ok(mergeHead(repo));
+      await writeFile(path.join(repo, 'comun.txt'), 'resuelto\n', 'utf8');
+      git(['add', '-A'], repo);
+      for (const command of ['git commit --no-edit', 'git merge --continue']) {
+        const d = decidirPreToolUse({ cwd: repo, tool_input: { command } });
+        assert.equal(d.codigo, 0, `no deberia bloquear «${command}»: ${d.stderr}`);
+      }
+    } finally {
+      await rm(fuera, { recursive: true, force: true });
+    }
+  });
+});

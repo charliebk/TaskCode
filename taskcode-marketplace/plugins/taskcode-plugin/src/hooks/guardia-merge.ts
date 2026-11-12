@@ -410,7 +410,13 @@ const REMEDIO_CIERRE =
   'otra via para saltarte esta comprobacion.';
 
 function motivoDeCierre(sha: string, rama: string, raiz: string, config: TaskcodeConfig): string | null {
+  // Lo que entra ya esta integrado (misma exencion que motivoDeBloqueo): en HEAD, en la
+  // principal o en origin/<rama> (sincronizar con el remoto con conflicto, git pull).
   if (esAncestro(sha, 'HEAD', raiz)) return null;
+  const principal = ramaPrincipal(raiz);
+  if (principal !== null && esAncestro(sha, principal, raiz)) return null;
+  const remota = `refs/remotes/origin/${rama}`;
+  if (existeRef(remota, raiz) && esAncestro(sha, remota, raiz)) return null;
   const comando = config.comando_verificacion as string;
   const timeouts = new Set([config.timeout_verificacion, timeoutEfectivoS(config.timeout_verificacion).timeoutS]);
   for (const t of timeouts) {
