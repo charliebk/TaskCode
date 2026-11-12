@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-019
+- **En marcha:** TASK-099 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-019
 
 ## H0 — H0
 
@@ -65,7 +65,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-095 | Revision que converge: desde la ronda 2 solo se verifican las correcciones | alta | — | ✅ terminada |
 | — | TASK-097 | Regla de una hora: plan estima la duracion de punta a punta y propone trocear | media | — | ✅ terminada |
 | — | TASK-098 | ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes | media | — | ✅ terminada |
-| 8 | TASK-099 | Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | — | lista para empezar |
+| 8 | TASK-099 | Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | — | ▶ en diseño |
 | — | TASK-100 | Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion | media | — | ✅ terminada |
 | — | TASK-096 | Verificacion proporcional B: con codigo parcial se verifica solo lo afectado | alta | TASK-100 | ✅ terminada |
 | — | TASK-101 | Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion | media | TASK-100 | ✅ terminada |

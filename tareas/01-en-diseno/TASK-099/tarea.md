@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [revision, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-099-correccion-de-menores-tras-aprobar-con-c
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-10
-actualizado: 2026-11-10
+actualizado: 2026-11-12
 dependencias: []
 ---
 ## Objetivo
@@ -37,3 +37,9 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 - [ ] taskctl siguiente, con solo MENORES abiertos tras aprobada-con-correcciones, no devuelve otra ronda en ningun modo, tampoco automatico, sino la verificacion ligera o finish (test)
 - [ ] Las skills review y task-workflow, el README y el CHANGELOG lo explican
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test (modo rapido, como dice el objetivo)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-12T20:20:20Z | plan | automatico | persona | 0.14.0 |
