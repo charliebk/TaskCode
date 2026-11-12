@@ -15,7 +15,7 @@ skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
-tokens_diseno: null
+tokens_diseno: 2013772
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
@@ -41,3 +41,9 @@ Mientras taskctl y sus hooks trabajan (la verificacion de finish, unos 28 min en
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-12T11:29:28Z | plan | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-12T11:39:45Z | diseno | agente:ab7ca11850566e044,a66250991c8fd3577,a887d42ba1ff54acd,a8115eab8c21b546b | 106 | 206162 | 1749170 | 58334 | 81 | 2013772 | - | - |
