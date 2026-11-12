@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-109-verificacion-proporcional-b6-documentaci
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-11
-actualizado: 2026-11-11
+actualizado: 2026-11-12
 dependencias: [TASK-107, TASK-108]
 ---
 ## Objetivo
@@ -30,3 +30,9 @@ Sexta y ultima parte de TASK-096; hasta cerrarla no se publica version. skills/t
 - [ ] verificacion-selectiva.md, README y CHANGELOG explican el principio y la clave, sin marcas de este repo; la prueba de la guia asevera el contrato literal y se pone roja si se borra la seccion
 - [ ] La decision sobre TASK-091 y lo que se retira quedan escritos; el codigo que quede sin uso se borra
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-12T01:00:33Z | plan | automatico | persona | 0.14.0 |
