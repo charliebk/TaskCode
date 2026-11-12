@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [progreso, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-110-progreso-visible-sin-tokens-estado-de-ca
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 2013772
-tokens_implementacion: null
+tokens_implementacion: 85499422
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-12
@@ -43,12 +43,15 @@ Mientras taskctl y sus hooks trabajan (la verificacion de finish, unos 28 min en
 | 2026-11-12T11:29:28Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T11:42:16Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T11:42:39Z | start | automatico | persona | 0.14.0 |
+| 2026-11-12T13:22:39Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T11:39:45Z | diseno | agente:ab7ca11850566e044,a66250991c8fd3577,a887d42ba1ff54acd,a8115eab8c21b546b | 106 | 206162 | 1749170 | 58334 | 81 | 2013772 | - | - |
+| 2026-11-12T13:22:39Z | implementacion | sesion:b6ee363f-d9c2-4a11-8e6e-4c193af66eed | 184 | 96246 | 33161199 | 56207 | 8 | 33313836 | - | - |
+| 2026-11-12T13:22:39Z | implementacion | agente:ac4e4cb44bad32677 | 326 | 430519 | 51602324 | 152417 | 37 | 52185586 | - | - |
 
 ## Autorrevision
 
