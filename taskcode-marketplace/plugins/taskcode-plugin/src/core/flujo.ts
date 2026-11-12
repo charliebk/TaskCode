@@ -83,6 +83,36 @@ export interface SiguientePaso {
   comando: string | null;
   accion: AccionFlujo;
   motivo: string;
+  /**
+   * TASK-121: cuando la accion es preguntar por la regla de una hora, las
+   * salidas entre las que elige la persona (trocear o aprobar entera).
+   */
+  salidas?: SalidaPregunta[];
+}
+
+export interface SalidaPregunta {
+  opcion: 'trocear' | 'aprobar-entera';
+  comando: string;
+  descripcion: string;
+}
+
+/** TASK-121: las dos salidas de la regla de una hora (una parte ya no se trocea). */
+export function salidasReglaUnaHora(id: string): SalidaPregunta[] {
+  const aprobar: SalidaPregunta = {
+    opcion: 'aprobar-entera',
+    comando: `taskctl approve ${id}`,
+    descripcion: 'la tarea sigue entera; antes, escribe en el plan el motivo para no trocearla',
+  };
+  if (!/^TASK-\d{3,}$/.test(id)) return [aprobar];
+  return [
+    {
+      opcion: 'trocear',
+      comando: `taskctl trocear ${id}`,
+      descripcion:
+        `pasa a ${id}a y crea ${id}b, ${id}c... en 00-planificadas con la misma rama, segun la seccion "## Troceo" del plan`,
+    },
+    aprobar,
+  ];
 }
 
 /**
@@ -155,6 +185,7 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
           comando: `taskctl approve ${task.id}`,
           accion: 'preguntar',
           motivo: describirExceso(ctx.duracionEstimada),
+          salidas: salidasReglaUnaHora(task.id),
         };
       }
       if (!ctx.modoCongelado) {

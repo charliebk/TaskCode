@@ -20,6 +20,7 @@ import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex
 import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
+import { runTrocearCommand, TrocearCommandError } from './commands/trocear.js';
 import { runDoctorCommand, DoctorCommandError } from './commands/doctor.js';
 import { runDoctorDeployCompleto, DoctorDeployCommandError } from './commands/doctor-deploy.js';
 import { DoctorDeployTareasError } from './commands/doctor-deploy-tareas.js';
@@ -84,6 +85,7 @@ Uso:
   taskctl start TASK-NNN [--asignado-a <persona>] [--push]
   taskctl plan TASK-NNN [--asignado-a <persona>] [--push]
   taskctl approve TASK-NNN [--decidido-por persona|automatico] [--push]
+  taskctl trocear TASK-NNN [--push]
   taskctl review TASK-NNN [--completa] [--ronda-extra] [--push]
   taskctl codex-review TASK-NNN [--push]
   taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados>
@@ -103,7 +105,7 @@ Uso:
   taskctl recover [<rama>]
   taskctl abort-merge
 
-Comandos: new, import, board, roadmap, metricas, start, plan, approve, review, codex-review, veredicto,
+Comandos: new, import, board, roadmap, metricas, start, plan, approve, trocear, review, codex-review, veredicto,
 finish, siguiente, estado, doctor, doctor-deploy, pausa, registrar-coste, cadena.
 estado dice en que va la tarea en curso (fase dentro del ciclo, paso dentro de la fase, x/N si el
 comando de verificacion lo escribe, minutos), leyendo solo el progreso que dejan plan, approve, start,
@@ -173,6 +175,9 @@ en docs/doctor-deploy/<fecha>.md y .json (sin commitear). --resultado <fichero.j
 agente revisor para los puntos de juicio (cada uno cita fichero y linea del commit actual, o se rechaza con su motivo).
 --crear-tareas crea una tarea por cada FALLA con ID desde TASK-9999 hacia abajo (no duplica: reutiliza la tarea abierta
 del punto). Un proyecto ajusta el catalogo en .taskcode/doctor-deploy.yml.
+trocear parte una tarea en diseno en TASK-NNNa, TASK-NNNb... segun la seccion "## Troceo" de su plan: la
+tarea pasa a ser la parte a y las demas nacen en 00-planificadas con la misma rama; regenera el ROADMAP.
+Es la salida de la regla de una hora que decide una persona (siguiente la ofrece, nunca la encadena).
 siguiente dice que fase toca y si preguntar segun modo_flujo (.taskcode/config.yml:
 manual, semiautomatico o automatico); solo lee. pausa registra que la persona
 no quiere pasar todavia a la siguiente fase. cadena bloquea el arbol mientras
@@ -619,7 +624,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
       });
       printAvisos(result.avisoIdentidad, result.avisoAtribucion, ...result.avisosWip);
       process.stdout.write(
-        `Tarea ${result.id} en curso: rama ${result.rama} creada y confirmada, ` +
+        `Tarea ${result.id} en curso: rama ${result.rama} abierta y confirmada, ` +
           `tarea movida a ${result.filePath}\n${asignacionNotice(result)}`
       );
       printAutoCommit(result.autoCommit);
@@ -713,6 +718,34 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         e instanceof ConfigError ||
         e instanceof ApproveCommandError ||
         e instanceof StateMachineError ||
+        e instanceof TaskFolderConflictError ||
+        e instanceof BaseBranchGuardError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'trocear') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const r = await runTrocearCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+      printBaseBranchSwitchNotice(r.baseBranchGuard);
+      process.stdout.write(
+        `Tarea ${r.id} troceada en ${r.ids.join(', ')}, todas en la misma rama. ` +
+          `${r.ids[0] ?? ''} sigue en diseno con el plan; las demas, en 00-planificadas.
+`
+      );
+      printAutoCommit(r.autoCommit);
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof TrocearCommandError ||
         e instanceof TaskFolderConflictError ||
         e instanceof BaseBranchGuardError
       ) {
@@ -856,7 +889,8 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         process.stdout.write(
           `Tarea ${r.id} (${r.estado}, modo ${r.modo}): siguiente fase "${r.fase}" — ${r.motivo}.\n` +
             (r.comando === null ? '' : `Comando: ${r.comando}\n`) +
-            `Accion: ${r.accion}.\n`
+            `Accion: ${r.accion}.\n` +
+            (r.salidas ?? []).map((s) => `Salida ${s.opcion}: ${s.comando} — ${s.descripcion}\n`).join('')
         );
       }
       return 0;

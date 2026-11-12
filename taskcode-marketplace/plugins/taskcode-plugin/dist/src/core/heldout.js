@@ -60,7 +60,7 @@ export function variantesHeldout(rutas, id) {
  * punto de la ruta, seguida de `/` o del final. `aceptacionX/` y `tarea.md`
  * no casan.
  */
-const RUTA_HELDOUT_RE = new RegExp(`(?:^|/)tareas/[^/]+/task-(\\d{3,})/${CARPETA_HELDOUT}(?:/|$)`);
+const RUTA_HELDOUT_RE = new RegExp(`(?:^|/)tareas/[^/]+/task-(\\d{3,})[a-z]?/${CARPETA_HELDOUT}(?:/|$)`);
 function casar(normalizada, nums) {
     const m = RUTA_HELDOUT_RE.exec(normalizada);
     if (m !== null)

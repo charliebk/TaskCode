@@ -29,7 +29,7 @@ import { STATE_FOLDER, TASK_STATES } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { runGit } from './git.js';
 const NOMBRE = 'ROADMAP.md';
-const TASK_DIR_RE = /^TASK-\d{3,}$/;
+const TASK_DIR_RE = /^TASK-\d{3,}[a-z]?$/;
 /** Lee el frontmatter de todas las tareas de las carpetas de estado. */
 export function leerTareasRoadmap(raiz) {
     const tareasRoot = path.join(raiz, 'tareas');

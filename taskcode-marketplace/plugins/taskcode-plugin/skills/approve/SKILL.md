@@ -23,8 +23,15 @@ Es el checkpoint humano: el plan no se aprueba porque un agente lo diga.
    `taskctl approve TASK-NNN --decidido-por automatico`: queda registrado como
    aprobacion automatica. El CLI lo rechaza si la tarea no se planifico en
    automatico; entonces, y en cualquier otro modo, sigue con la pregunta.
-   Pregunta a la persona si lo aprueba.
-   - **Si**: ejecuta `taskctl approve TASK-NNN`.
+   Pregunta a la persona si lo aprueba. Si `siguiente` trae `salidas` (regla
+   de una hora: el plan pasa de 60 min), la pregunta nombra las dos:
+   trocear (`taskctl trocear TASK-NNN`, segun la seccion `## Troceo` del
+   plan; ver `task-workflow/duracion.md`) o aprobar entera. Nunca troceas
+   sin su respuesta, en ningun modo.
+   - **Trocear**: ejecuta `taskctl trocear TASK-NNN` y sigue con la parte a
+     (`/taskcode-plugin:approve TASK-NNNa`).
+   - **Si** (entera): escribe en el plan el motivo para no trocear si pasa de
+     la hora, commitealo y ejecuta `taskctl approve TASK-NNN`.
    - **No**: pregunta que habria que cambiar y escribelo, con sus palabras, al
      final de `plan-final.md` en una seccion con este encabezado exacto (asi
      sobrevive a la sesion y la re-planificacion lo lee):

@@ -112,6 +112,11 @@ al cierre con merge) se parte en varias.
   `taskctl siguiente` pregunta en cualquier modo y `taskctl approve
   --decidido-por automatico` se rechaza: decide una persona (trocear o aprobar
   entera con el motivo). Sin la línea, `approve` solo avisa.
+- **Trocear:** `taskctl trocear TASK-NNN` parte la tarea según la sección
+  `## Troceo` del plan: pasa a TASK-NNNa y crea TASK-NNNb, TASK-NNNc... en
+  `00-planificadas`, todas con la misma rama, y regenera el ROADMAP en el
+  mismo commit. Cada parte se cierra con su `finish`; `start` de la parte
+  siguiente vuelve a la rama y le trae antes la base.
 - **Finish:** `tarea.md` gana `## Duracion` con la estimada y la real de punta
   a punta (sin pausas), y `taskctl metricas` las muestra en las columnas
   `estimada` y `punta_a_punta`, para calibrar. La fila `finish` de

@@ -21,7 +21,7 @@ const STATE_LABEL = {
     'en-revision': 'En revision',
     terminada: 'Terminadas',
 };
-const TASK_ID_NUM_RE = /^TASK-(\d+)$/;
+const TASK_ID_NUM_RE = /^TASK-(\d+)([a-z]?)$/;
 /**
  * Orden numerico por ID, no alfabetico (un ID de 4+ digitos, p. ej.
  * "TASK-1000", ordenaria mal por delante de "TASK-999" con un
@@ -31,7 +31,12 @@ const TASK_ID_NUM_RE = /^TASK-(\d+)$/;
  */
 function taskIdSortKey(id) {
     const m = TASK_ID_NUM_RE.exec(id);
-    return m ? parseInt(m[1], 10) : Number.POSITIVE_INFINITY;
+    // TASK-121: la letra de una parte ordena dentro de su numero (TASK-121a,
+    // TASK-121b, luego TASK-122); sin letra va delante de sus partes.
+    if (!m)
+        return Number.POSITIVE_INFINITY;
+    const letra = m[2];
+    return parseInt(m[1], 10) * 100 + (letra === '' ? 0 : letra.charCodeAt(0) - 96);
 }
 /**
  * Rangos aproximados de caracteres de ancho visual doble (East Asian

@@ -39,7 +39,11 @@ import {
   gitUserEmail,
   resolveBaseBranchForTipo,
   gitflowBaseArgs,
+  localBranchExists,
+  isAncestor,
 } from '../fs/git.js';
+import { spawnSync } from 'node:child_process';
+import { esIdTroceable } from '../core/troceo.js';
 import {
   autoCommit,
   extraerPushFlag,
@@ -271,6 +275,13 @@ async function runStart(
   }
 
   progreso.paso('rama');
+  // TASK-121: una parte de un troceo (TASK-NNNb...) sigue en la rama que
+  // abrio la parte anterior. El script cambia a ella si ya existe, pero esa
+  // rama no trae lo que la base recibio despues (el cierre de la parte
+  // anterior, el plan y la aprobacion de esta): sin traerlo, la tarea
+  // quedaria en dos carpetas. Se mira ANTES del script, que la crearia.
+  const parteEnRamaExistente = !esIdTroceable(task.id) && localBranchExists(task.rama, deps.repoCwd);
+  const ramaBaseParte = parteEnRamaExistente ? resolveBaseBranchForTipo(task.tipo, deps.repoCwd) : null;
   const scriptName = SCRIPT_BY_TYPE[task.tipo];
   // La rama va primero: los scripts toman como nombre el primer no-flag.
   const scriptArgs = [task.rama, ...gitflowBaseArgs(task.tipo, deps.repoCwd)];
@@ -294,6 +305,9 @@ async function runStart(
       `[ERROR] ${task.id}: ${scriptName} termino con codigo 0 pero la rama activa es ` +
         `"${branchNow}", no "${task.rama}". No se actualiza la tarea; revisa el repo a mano.`
     );
+  }
+  if (ramaBaseParte !== null && !isAncestor(ramaBaseParte, 'HEAD', deps.repoCwd)) {
+    traerBaseALaRama(task, ramaBaseParte, deps.repoCwd);
   }
 
   // asignadoFinal ya se resolvio arriba, junto a la comprobacion del
@@ -345,4 +359,30 @@ async function runStart(
     avisosWip,
     autoCommit: commitResult,
   };
+}
+
+/**
+ * TASK-121: trae la rama base a la rama compartida de un troceo con un merge
+ * `--no-ff`. Si hay conflicto lo deshace y aborta: la tarea no se mueve y la
+ * persona integra a mano (la rama ya esta activa).
+ */
+function traerBaseALaRama(task: Task, base: string, cwd: string): void {
+  const mensaje = `merge(${task.id}): ${base} en ${task.rama} para seguir con la parte`;
+  const r = spawnSync('git', ['merge', '--no-ff', '--no-edit', '-m', mensaje, base], { cwd, encoding: 'utf8' });
+  if (r.status === 0) return;
+  spawnSync('git', ['merge', '--abort'], { cwd, encoding: 'utf8' });
+  throw new StartCommandError(
+    `[ERROR] ${task.id}: la rama "${task.rama}" es la de la parte anterior y no se pudo traer "${base}" ` +
+      `(${lineaDeConflicto(r.stdout, r.stderr)}). El merge se ha deshecho y la tarea no se ha ` +
+      `movido. Estas en "${task.rama}": integra "${base}" a mano, commitea y reintenta "taskctl start ${task.id}".`
+  );
+}
+
+/** MEN-3 de la revision: la primera linea CONFLICT de git merge; si no hay, la primera no vacia. */
+export function lineaDeConflicto(stdout: string, stderr: string): string {
+  const lineas = `${stdout}\n${stderr}`
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l !== '');
+  return lineas.find((l) => l.startsWith('CONFLICT')) ?? lineas[0] ?? 'sin detalle';
 }

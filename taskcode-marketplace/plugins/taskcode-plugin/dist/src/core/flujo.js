@@ -17,6 +17,24 @@ export const FASES_SIGUIENTE = [
 ];
 /** Tope de rondas de revision: desde esta, otra ronda la decide una persona. */
 export const TOPE_RONDAS = 3;
+/** TASK-121: las dos salidas de la regla de una hora (una parte ya no se trocea). */
+export function salidasReglaUnaHora(id) {
+    const aprobar = {
+        opcion: 'aprobar-entera',
+        comando: `taskctl approve ${id}`,
+        descripcion: 'la tarea sigue entera; antes, escribe en el plan el motivo para no trocearla',
+    };
+    if (!/^TASK-\d{3,}$/.test(id))
+        return [aprobar];
+    return [
+        {
+            opcion: 'trocear',
+            comando: `taskctl trocear ${id}`,
+            descripcion: `pasa a ${id}a y crea ${id}b, ${id}c... en 00-planificadas con la misma rama, segun la seccion "## Troceo" del plan`,
+        },
+        aprobar,
+    ];
+}
 /**
  * Fases que abren una fase NUEVA del ciclo: en semiautomatico se pregunta
  * antes de entrar. Las demas (veredicto, la primera codex-review, otra ronda
@@ -78,6 +96,7 @@ export function siguienteFase(task, ctx, modo) {
                     comando: `taskctl approve ${task.id}`,
                     accion: 'preguntar',
                     motivo: describirExceso(ctx.duracionEstimada),
+                    salidas: salidasReglaUnaHora(task.id),
                 };
             }
             if (!ctx.modoCongelado) {

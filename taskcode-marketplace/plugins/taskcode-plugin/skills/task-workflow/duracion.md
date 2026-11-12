@@ -12,8 +12,11 @@ pequenas cierran antes y se revisan mejor.
 - **En approve** decide una persona. Con mas de 60 min, o con una cifra que
   no se entiende (`1h30`, `~90`, `90-120`), `taskctl siguiente` devuelve
   `preguntar` en cualquier modo y `taskctl approve --decidido-por automatico`
-  se rechaza. La persona elige: trocear, o aprobar entera con el motivo
-  escrito en el plan. Sin la linea, `approve` solo avisa.
+  se rechaza. La pregunta trae dos salidas (`salidas` en el JSON):
+  `taskctl trocear TASK-NNN` o aprobar entera con el motivo escrito en el
+  plan (`taskctl approve TASK-NNN`). Ningun modo trocea solo: lo decide una
+  persona, y `trocear` no lo encadena ninguna fase. Sin la linea, `approve`
+  solo avisa.
 - **En finish** se mide. `tarea.md` gana `## Duracion` con la estimada y la
   real de punta a punta (de `start` a `finish`, sin pausas). `taskctl
   metricas` las muestra (`estimada`, `punta_a_punta`), para calibrar la
@@ -41,9 +44,43 @@ de saber como hacerlo, eso va primero en su propia tarea corta.
 - **Por capas solo si cada parte se verifica sola**: la migracion con su
   test, y despues el backend que la usa. Anadir un campo y mapearlo (dos o
   tres ficheros) no se parte.
-- Cada tarea nueva lleva sus propios criterios comprobables y sus
-  dependencias (`dependencias` en el frontmatter), para que el orden quede
-  claro.
+- Cada parte lleva sus propios criterios comprobables.
+
+## Partes en la misma rama: `taskctl trocear`
+
+Las partes no son tareas nuevas con su propia rama: se numeran con el mismo
+numero y una letra (TASK-NNNa, TASK-NNNb...) y comparten la rama de la tarea.
+El plan las declara en una seccion `## Troceo`:
+
+```
+## Troceo
+
+### Parte a: <titulo>
+Lo que entrega esta parte.
+Duracion estimada: 40 min
+- [ ] criterio comprobable
+
+### Parte b: <titulo>
+...
+```
+
+Al menos dos partes, letras seguidas desde la a, cada una con objetivo,
+criterios y su propia `Duracion estimada: N min` (obligatoria: la de la parte
+a pasa a ser la del plan, y sin ella la regla volveria a preguntar). Si la persona acepta trocear, `taskctl trocear TASK-NNN` (en la
+rama base, con el plan sin aprobar):
+
+- la tarea pasa a TASK-NNNa, sigue en diseno con su plan, y su duracion
+  estimada pasa a la de la parte a;
+- crea TASK-NNNb, TASK-NNNc... en `00-planificadas` con el objetivo y los
+  criterios de su parte, la misma `rama` y la parte anterior en
+  `dependencias`;
+- regenera `tareas/ROADMAP.md` en el mismo commit, antes de empezar la a.
+
+Cada parte sigue el ciclo entero y se cierra con su propio `finish` (merge
+`--no-ff` a la base). La siguiente parte se planifica y arranca con
+`start`, que vuelve a la misma rama y le trae antes la base (el cierre de la
+parte anterior y su propio plan); si ese merge tiene conflicto, `start` lo
+deshace y pide integrarlo a mano. Una parte no se vuelve a trocear.
 
 ## Limites de la medida
 
