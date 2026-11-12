@@ -7,7 +7,7 @@ etiquetas: [verificacion, critico, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-123-f-16-finish-no-cierra-sin-verificar-tras
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,3 +38,4 @@ Hallazgo CRITICO de la auditoria del 2026-11-12, reproducido de punta a punta (d
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-12T16:30:50Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-12T16:31:27Z | approve | automatico | persona | 0.14.0 |
