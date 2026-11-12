@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 13087177
-tokens_revision: null
+tokens_revision: 6270272
 creado: 2026-11-10
 actualizado: 2026-11-12
 dependencias: []
@@ -57,6 +57,7 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T21:21:22Z | implementacion | manual | - | - | - | - | - | 300000 | - | - |
 | 2026-11-12T21:21:23Z | implementacion | sesion:f74052af-d784-4972-a5d4-69cda92cae59 | 118 | 101412 | 12631708 | 53939 | 3 | 12787177 | - | - |
+| 2026-11-12T22:06:03Z | revision | agente:acc63b734accf4154 | 80 | 183175 | 6054247 | 32770 | 8 | 6270272 | 1 | - |
 
 ## Resultado
 
