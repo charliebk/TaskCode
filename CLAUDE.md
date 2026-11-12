@@ -27,12 +27,14 @@ procesan).
    clasifican CRÍTICO / IMPORTANTE / MENOR y se documentan en el `Resultado`
    de la tarea, incluidos los que se deciden no corregir.
 3. **Evidencia, no suposición.** Si no lo has ejecutado, no lo afirmes. Los
-   tests van contra recursos reales (repos Git temporales), nunca mocks.
+   tests de integración van contra recursos reales (repos Git temporales),
+   nunca mocks; la lógica, sin Git (pirámide: ver CONVENCIONES.md).
 4. **Al cerrar cualquier item**: marcar su casilla en
    `docs/contexto/CHECKLIST_TERMINACION.md`, actualizar los contadores de la
    tabla de cabecera, y **mostrar el checklist actualizado en la respuesta**.
-5. **Ritmo de tests.** Mientras se itera, `npm run test:rapido`; la suite
-   completa, una sola vez antes de pedir la revisión y no en cada ronda.
+5. **Ritmo de tests.** Mientras se itera, `npm run test:rapido`; para
+   verificar la tarea, `node scripts/verificar-impacto.mjs` (lo que cambia +
+   `test:rapido`). La suite completa, una vez por versión antes de publicar.
 6. **Cero dependencias de runtime.** El parser de YAML-frontmatter y el de
    argumentos están hechos a mano, a propósito. No añadas librerías sin una
    razón discutida.

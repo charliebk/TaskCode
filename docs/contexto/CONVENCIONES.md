@@ -66,9 +66,21 @@ vale; lo que no vale es inventar hallazgos para tener algo que reportar.
 ## Tests
 
 - `node:test` nativo, cero frameworks.
-- **Siempre contra recursos reales**: repos Git temporales de verdad, incluido
-  un segundo repo temporal haciendo de `origin` cuando hace falta. Nunca mocks
-  de Git ni del filesystem.
+- **Pirámide (TASK-122)**: la lógica se prueba **sin Git**, como función pura
+  sobre datos (rutas, texto de `tarea.md`, salida ya leída de Git), en
+  `test/core` y `test/cli`; Git real solo en una **capa fina de integración**
+  por comando (el camino feliz, el fallo que solo da Git de verdad y la
+  vuelta atrás). Cada caso nuevo de una regla va a la capa pura; no se monta
+  otro repo temporal para probar una variante de la misma decisión. Motivo:
+  el coste de la suite debe crecer con la lógica, no con procesos `git`
+  (`docs/auditoria/PERFIL-TESTS-2026-11-12.md`).
+- **En la capa de integración, siempre contra recursos reales**: repos Git
+  temporales de verdad, incluido un segundo repo temporal haciendo de `origin`
+  cuando hace falta. Nunca mocks de Git ni del filesystem. (Lo que la capa pura
+  recibe son datos, no un Git simulado.)
+- Verificación de una tarea **por impacto** (`node scripts/verificar-impacto.mjs`:
+  tests de lo que cambia + `test:rapido`); la suite completa, una vez por
+  versión antes de publicar.
 - Los ficheros de fixture que un comando vaya a leer se escriben **fuera del
   repo bajo prueba** (si no, ensucian su workspace y disparan el guard de §8.3).
 - Un test que no falla si el comportamiento cambia no es un test.
