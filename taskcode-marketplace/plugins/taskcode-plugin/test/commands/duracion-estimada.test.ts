@@ -100,11 +100,15 @@ test('regla de una hora: finish anota la estimada y la real de punta a punta, y 
     assert.match(body, /^- Estimada: 30 min$/m);
     assert.match(body, /^- Real \(de la rama abierta al cierre con merge, sin pausas\): \d+ min$/m);
     assert.equal((body.match(/^## Duracion$/gm) ?? []).length, 1, 'una sola seccion');
+    // P-1: la linea de cierre convive con las de anotarDuracion en esa misma seccion.
+    const seccion = body.slice(body.indexOf('## Duracion')).split(/\r?\n(?=##? )/)[0] as string;
+    assert.match(seccion, /^- Estimada: 30 min$/m);
+    assert.match(seccion, /^- Cierre \(finish\): \d+ s, de \S+ a \S+$/m);
 
     const m = cliOk(repoRoot, ['metricas']);
     const cab = m.stdout.split('\n').find((l) => l.startsWith('| id ')) as string;
     assert.match(cab, /\| estimada \| finish \| punta_a_punta \|$/);
     const fila = m.stdout.split('\n').find((l) => l.startsWith(`| ${ID} `)) as string;
-    assert.match(fila, /\| 30m +\| (—|\d+s|\d+m) +\| (\d+s|\d+m) +\|$/);
+    assert.match(fila, /\| 30m +\| (\d+s|\d+m) +\| (\d+s|\d+m) +\|$/);
   });
 });

@@ -79,3 +79,16 @@ test('leerCierre: lee la linea, y null si no hay, no hay seccion o la fecha no v
   // Fuera de la seccion no cuenta.
   assert.equal(leerCierre(`## Notas\n\n${LINEA}\n`), null);
 });
+
+test('reintento de finish: anotarDuracion + anotarCierre otra vez deja una sola seccion y una sola linea de cierre', () => {
+  // La misma secuencia que finish, aplicada dos veces sobre el cuerpo (como en un reintento).
+  const cerrar = (body: string, inicio: string, fin: string): string =>
+    anotarCierre(anotarDuracion(body, { tipo: 'ok', minutos: 30 }, 45), inicio, fin);
+  const primero = cerrar('## Objetivo\nx\n\n## Notas\n\ncosas\n', A, B);
+  const segundo = cerrar(primero, '2026-11-12T11:00:00Z', '2026-11-12T11:00:20Z');
+  assert.equal(segundo.match(/^## Duracion$/gm)?.length, 1);
+  assert.equal(segundo.match(/^- Cierre \(finish\)/gm)?.length, 1);
+  assert.equal(segundo.match(/^- Estimada: 30 min$/gm)?.length, 1);
+  assert.deepEqual(leerCierre(segundo), { inicio: '2026-11-12T11:00:00Z', fin: '2026-11-12T11:00:20Z', segundos: 20 });
+  assert.ok(segundo.includes('## Notas\n\ncosas\n'));
+});
