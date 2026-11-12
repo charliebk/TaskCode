@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-122-coste-por-tarea-independiente-del-tamano
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -33,3 +33,9 @@ Problema que plantea Carlos (2026-11-12): si cada tarea paga algo que crece con 
 - [ ] Un listado reproducible da por fichero de test su duracion y cuantos procesos git lanza, y los 10 mas lentos quedan clasificados en necesita Git real o se puede probar sin Git; la regla de la piramide (logica sin Git, Git real solo en la capa de integracion) queda en docs/contexto/CONVENCIONES.md
 - [ ] taskctl metricas muestra el coste fijo por tarea (verificacion, revision y cierre) frente al numero de tareas cerradas del proyecto, para ver si crece (test con repo temporal)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-12T14:05:39Z | plan | automatico | persona | 0.14.0 |
