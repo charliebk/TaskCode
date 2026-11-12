@@ -76,6 +76,7 @@ import {
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';
+import { conProgreso, crearProgreso, type Progreso } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 import { excluirDeRevision } from '../fs/revisores-rango.js';
@@ -129,7 +130,12 @@ export interface ReviewCommandDeps {
   env?: NodeJS.ProcessEnv;
   /** TASK-085: directorio de configuracion de Claude Code (tests); por defecto CLAUDE_CONFIG_DIR o ~/.claude. */
   configDir?: string;
+  /** TASK-110: donde se escribe el progreso visible (por defecto, bajo el .git del repo). */
+  progreso?: Progreso;
 }
+
+/** TASK-110: los pasos de review, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_REVIEW: readonly string[] = ['guardas', 'integracion', 'verificacion', 'peticiones', 'commit'];
 
 /**
  * Un par peticion/informe de una ronda de revision, con el revisor al
@@ -579,6 +585,18 @@ export async function runReviewCommand(
   today: string,
   deps: ReviewCommandDeps
 ): Promise<ReviewCommandResult> {
+  // TASK-110: el progreso se marca terminado tambien si aborta.
+  const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+  return conProgreso(progreso, () => runReview(tareasRoot, argv, today, deps, progreso));
+}
+
+async function runReview(
+  tareasRoot: string,
+  argv: readonly string[],
+  today: string,
+  deps: ReviewCommandDeps,
+  progreso: Progreso
+): Promise<ReviewCommandResult> {
   // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
   rechazarFlagsDesconocidos(argv, FLAGS_REVIEW, 'review', (m) => new ReviewCommandError(m));
   const { push, resto: sinPush } = extraerPushFlag(argv);
@@ -619,6 +637,8 @@ export async function runReviewCommand(
   }
   const tipo = initial!.task.tipo;
   const rama = initial!.task.rama;
+  progreso.fase(initial!.task.id, 'review', PASOS_REVIEW, previa === null ? {} : { ronda: previa.ronda + 1 });
+  progreso.paso('guardas');
 
   // Mismo motivo que en start: el prompt interactivo de Git-Flow con
   // stdin no interactivo cancela en silencio (EOF => "No" => exit 0).
@@ -630,6 +650,7 @@ export async function runReviewCommand(
     );
   }
 
+  progreso.paso('integracion');
   const scriptName = SCRIPT_BY_TYPE[tipo];
   // TASK-040: la ronda incremental no ejecuta el update (el merge de la
   // base entraria en el delta); exige estar ya en la rama de la tarea.
@@ -763,6 +784,7 @@ export async function runReviewCommand(
   // en curso y sin ronda a medias (decision de Carlos). En la primera ronda el
   // update de Git-Flow ya integro la base (y ese merge queda hecho); en una
   // incremental la rama no se actualiza (TASK-040). Sin la clave, nada.
+  progreso.paso('verificacion');
   const verificacion = verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos);
   // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
   // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
@@ -839,6 +861,7 @@ export async function runReviewCommand(
   const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
   await mkdir(revisionDir, { recursive: true });
   const ronda = await siguienteRonda(revisionDir, RONDA_FILE_RE);
+  progreso.paso('peticiones', { ronda });
 
   // Un par de nombres (con o sin sufijo de dominio) por grupo del plan.
   // Sin fragmentar hay un unico grupo y se usa el nombre de siempre, sin
@@ -961,6 +984,7 @@ export async function runReviewCommand(
     );
   }
 
+  progreso.paso('commit');
   // TASK-085: el coste de implementacion que el hook fue anotando se suma
   // aqui, en el mismo fichero y commit que la transicion. Nunca aborta.
   const volcado = await volcarCosteAutomatico(updated, body, instanteDelVolcado(deps.ahora), {

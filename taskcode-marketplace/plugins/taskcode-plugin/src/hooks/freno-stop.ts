@@ -49,6 +49,7 @@ import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { baseDeTipoSinRed, resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
 import { verificarConMemo, type PeticionVerificacion } from '../fs/verificacion.js';
+import { crearProgreso, type Progreso } from '../fs/progreso.js';
 
 /**
  * `timeout` del hook Stop en hooks/hooks.json, en segundos. Claude Code cancela
@@ -77,6 +78,12 @@ export interface DepsFreno {
   env?: NodeJS.ProcessEnv;
   /** Solo para tests: sustituye al timeout de la verificacion (en ms). */
   timeoutMs?: number;
+  /**
+   * TASK-110: donde se escribe el progreso visible (por defecto, bajo el .git
+   * del repo). Solo se escribe cuando de verdad se va a verificar: en los
+   * demas turnos, ni un fichero. Nunca imprime ni lanza.
+   */
+  progreso?: Progreso;
 }
 
 const DEJAR_PARAR: DecisionStop = Object.freeze({ codigo: 0, stderr: '' });
@@ -207,9 +214,22 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
         ? { tipo: 'selectiva', comando: plan.comando, timeoutS, base: plan.base }
         : { tipo: plan.tipo, comando: plan.comando as string, timeoutS };
 
-    // 8 y 9
+    // 8 y 9. TASK-110: el paso se ve mientras corre; acaba "terminada" si sale
+    // en verde y "abortada" si bloquea el turno (o si algo lanza).
+    const progreso = deps.progreso ?? crearProgreso(raiz);
+    const paso = plan.tipo === 'completa' ? 'verificacion' : `verificacion ${plan.tipo}`;
+    progreso.fase(ids[0] ?? tarea, 'freno', [paso]);
+    progreso.paso(paso);
     const deOpciones = deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs };
-    const { resultado: r, deMemo, cambioElArbol } = verificarConMemo(raiz, peticion, deOpciones);
+    let verificacion: ReturnType<typeof verificarConMemo>;
+    try {
+      verificacion = verificarConMemo(raiz, peticion, deOpciones);
+    } catch (e: unknown) {
+      progreso.terminar('abortada');
+      throw e;
+    }
+    progreso.terminar(verificacion.resultado.estado === 'verde' ? 'ok' : 'abortada');
+    const { resultado: r, deMemo, cambioElArbol } = verificacion;
     if (r.estado === 'verde') return dejarParar;
     if (plan.tipo === 'documentacion') {
       avisos.push(

@@ -1,5 +1,5 @@
 /**
- * TASK-110: plan, approve y start escriben el progreso visible bajo .git, lo
+ * TASK-110: plan, approve, start, review y finish escriben el progreso visible bajo .git, lo
  * marcan terminado al acabar (tambien al abortar) y NO anaden salida: cada
  * comando se ejecuta en dos repos gemelos, uno donde el progreso no se puede
  * escribir (progreso.json es un directorio), y su stdout, stderr y codigo de
@@ -11,7 +11,20 @@ import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { ID, CONFIG_AUTO, cli, cliOk, commitAll, git, withRepo, nueva, planificar } from '../helpers/automatico-fixtures.js';
+import {
+  ID,
+  CONFIG_AUTO,
+  cli,
+  cliOk,
+  commitAll,
+  git,
+  withRepo,
+  nueva,
+  planificar,
+  hastaCodigo,
+  rellenarInforme,
+  dirRevision,
+} from '../helpers/automatico-fixtures.js';
 import { leerProgreso, rutaProgreso } from '../../src/fs/progreso.js';
 import type { EstadoProgreso } from '../../src/core/progreso.js';
 
@@ -120,5 +133,44 @@ test('progreso: start escribe su fase y la marca terminada, sin cambiar su salid
     const ok = enGemelos(con, sin, ['start', ID]);
     assert.equal(ok.status, 0, ok.stderr);
     progresoTerminado(con, 'start', ['guardas', 'rama', 'commit'], ok.t0, ok.t1);
+  });
+});
+
+test('progreso: review escribe su fase con la ronda y la marca terminada, sin cambiar su salida; si aborta, abortada', async () => {
+  await gemelos(async (con, sin, tareasCon, tareasSin) => {
+    for (const [r, t] of [[con, tareasCon], [sin, tareasSin]] as const) {
+      await hastaCodigo(r, t);
+      await writeFile(path.join(r, 'sucio.txt'), 'x\n', 'utf8');
+    }
+    const fallo = enGemelos(con, sin, ['review', ID]);
+    assert.equal(fallo.status, 1);
+    progresoTerminado(con, 'review', ['guardas', 'integracion', 'verificacion', 'peticiones', 'commit'], fallo.t0, fallo.t1, 'abortada');
+    for (const r of [con, sin]) commitAll(r, 'chore: limpio');
+    const ok = enGemelos(con, sin, ['review', ID]);
+    assert.equal(ok.status, 0, ok.stderr);
+    const p = progresoTerminado(con, 'review', ['guardas', 'integracion', 'verificacion', 'peticiones', 'commit'], ok.t0, ok.t1);
+    assert.equal(p.ronda, 1);
+    assert.equal(p.paso, 'commit', 'llego al ultimo paso');
+  });
+});
+
+test('progreso: finish escribe su fase y la marca terminada, sin cambiar su salida; si aborta, abortada', async () => {
+  await gemelos(async (con, sin, tareasCon, tareasSin) => {
+    for (const [r, t] of [[con, tareasCon], [sin, tareasSin]] as const) {
+      await hastaCodigo(r, t);
+      cliOk(r, ['review', ID]);
+      await rellenarInforme(r, path.join(dirRevision(t), 'informe-revision-1.md'));
+      cliOk(r, ['veredicto', ID, 'aprobada']);
+      await writeFile(path.join(r, 'sucio.txt'), 'x\n', 'utf8');
+    }
+    const pasos = ['puertas', 'verificacion', 'cobertura', 'held-out', 'merge', 'artefactos'];
+    const fallo = enGemelos(con, sin, ['finish', ID]);
+    assert.equal(fallo.status, 1);
+    progresoTerminado(con, 'finish', pasos, fallo.t0, fallo.t1, 'abortada');
+    for (const r of [con, sin]) commitAll(r, 'chore: limpio');
+    const ok = enGemelos(con, sin, ['finish', ID]);
+    assert.equal(ok.status, 0, ok.stderr);
+    const p = progresoTerminado(con, 'finish', pasos, ok.t0, ok.t1);
+    assert.equal(p.paso, 'artefactos', 'llego al ultimo paso');
   });
 });
