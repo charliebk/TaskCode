@@ -165,7 +165,7 @@ export const NOTA_EVOLUCION = 'Tramos de tareas terminadas en orden de cierre (s
     'dos marcas (las de solo dia van en «solo dia»); rondas = ultima ronda con informe; IMP/tarea = ' +
     'hallazgos IMPORTANTE una vez por tarea (revisor + ID), de las tareas con tabla de hallazgos; ' +
     'tok revision = media de tokens_revision registrado; KB/ronda = media por tarea de los KB de su ' +
-    'peticion de revision en cada ronda. cerradas = tareas cerradas del proyecto al acabar el tramo; ' +
+    'peticion de revision en cada ronda. cerradas = tareas cerradas con fecha de cierre al acabar el tramo; ' +
     'min punta a punta, min revision y min finish = medianas de las tareas con hora (coste fijo por tarea).';
 /** Texto de la evolucion: tabla de tramos y lo que quedo fuera. */
 export function formatearEvolucion(e, varios) {
