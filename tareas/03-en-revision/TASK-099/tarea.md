@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-099-correccion-de-menores-tras-aprobar-con-c
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: 300000
+tokens_implementacion: 13087177
 tokens_revision: null
 creado: 2026-11-10
 actualizado: 2026-11-12
@@ -45,6 +45,7 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 | 2026-11-12T20:20:20Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T21:03:22Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T21:03:24Z | start | automatico | persona | 0.14.0 |
+| 2026-11-12T21:21:23Z | review | automatico | persona | 0.14.0 |
 
 ## Autorrevision
 
@@ -55,3 +56,4 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T21:21:22Z | implementacion | manual | - | - | - | - | - | 300000 | - | - |
+| 2026-11-12T21:21:23Z | implementacion | sesion:f74052af-d784-4972-a5d4-69cda92cae59 | 118 | 101412 | 12631708 | 53939 | 3 | 12787177 | - | - |
