@@ -205,15 +205,22 @@ rutas_verificacion_parcial: [src/web/**]     # lista de rutas permitidas
   merge. Si ya hay un verde de la selectiva para ese mismo commit y esa misma
   base (del fin de turno o de `review`, con el arbol limpio), lo reutiliza.
 - **Cobertura omitida**: con la selectiva el informe seria parcial, asi que
-  la puerta de cobertura no se evalua; se mide en la completa del release.
-- **Release y hotfix van siempre a la completa**: el release lleva a la
-  principal todo lo acumulado y el hotfix integra en ella.
+  `finish` no evalua la puerta de cobertura. Ninguna puerta posterior mide esas
+  lineas: el release corre la completa, pero su puerta de cobertura solo mide
+  lo que anade la propia rama release. Si declaras `umbral_cobertura`, ten en
+  cuenta que las tareas integradas con la selectiva no se comparan con el.
+- **El release va siempre a la completa** (lleva a la principal todo lo
+  acumulado). **Un hotfix nunca usa la selectiva**: con codigo, la completa; si
+  solo cambia documentacion, conserva el camino de la seccion anterior.
 - **El guardian de merges sigue exigiendo la completa para el codigo**: un
   `git merge` a mano de una tarea con codigo queda bloqueado sin un verde de
   la completa de ese commit, aunque a `finish` le bastara la selectiva. Por
-  eso, si `finish` falla a mitad (un conflicto, por ejemplo), no repitas el
-  merge a mano: resuelve el conflicto y vuelve a lanzar `taskctl finish`, que
-  verifica y mergea por su cuenta. Un merge a mano de solo documentacion se
-  rige por la seccion anterior.
+  eso, si `finish` choca en un conflicto, no repitas el merge a mano ni lo
+  cierres en la rama de integracion: un `finish` relanzado sobre un merge ya
+  cerrado no vuelve a verificar. Abortalo (`taskctl abort-merge`), integra la
+  base en la rama de la tarea, resuelve alli el conflicto y vuelve a lanzar
+  `taskctl finish` desde la rama de la tarea, que verifica y mergea por su
+  cuenta. Un merge a mano de solo documentacion se rige por la seccion
+  anterior.
 - El fin de turno y `review` deciden igual sobre el mismo diff: corren la
   selectiva cuando la tarea toca codigo, este o no en las rutas parciales.

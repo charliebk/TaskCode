@@ -364,7 +364,9 @@ test('guardian (TASK-108): el bloqueo con codigo dice que hace falta la completa
     assert.match(texto, /No es solo documentacion: la tarea cambia rutas que no son documentacion\.\n/);
     assert.match(texto, LINEA_COMPLETA);
     assert.match(texto, /aunque taskctl finish acepte la de lo afectado \(rutas_verificacion_parcial\)/);
-    assert.match(texto, /Integra con taskctl finish TASK-NNN, que verifica y mergea por su cuenta/);
+    assert.match(texto, /Integra con taskctl finish TASK-NNN desde la rama de la tarea, que verifica y mergea por su cuenta/);
+    // IMP-2 de la revision de TASK-109: cerrar el conflicto en el destino deja un reintento sin verificacion.
+    assert.match(texto, /no lo cierres en el destino .* abortalo con taskctl abort-merge, integra la base en la rama de la tarea, resuelvelo alli/);
     assert.match(texto, /taskctl finish TASK-NNN --sin-verificacion/);
     // Ni «corre la completa y repite» (bucle: nada la guarda) ni una causa que no se comprueba.
     assert.doesNotMatch(texto, /repite el merge|corre la (verificacion )?completa|develop avanzo|huella/i);

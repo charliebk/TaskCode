@@ -98,11 +98,16 @@ en ellas, `finish` corre `comando_verificacion_selectiva` (con `RAMA_BASE` y
 `timeout_verificacion_selectiva`) en vez de la completa, lo dice y lo anota tras
 el verde en la seccion `## Verificacion parcial`; reutiliza un verde selectivo
 del mismo commit y la misma base. Un fichero fuera, un cambio de
-`.taskcode/config.yml`, un diff vacio, un release o un hotfix van a la completa;
-la puerta de cobertura no se evalua con la selectiva (se mide en la completa del
-release). Exige `comando_verificacion_selectiva` (la config aborta sin ella) y
-`rutas_documentacion` (sin ellas no tiene efecto; `taskctl doctor` lo avisa). El
-freno Stop, `review` y `finish` deciden igual sobre el mismo diff (TASK-107).
+`.taskcode/config.yml`, un diff vacio o un release van a la completa; un hotfix
+nunca usa la selectiva (con codigo, la completa; de solo documentacion, su
+camino de documentacion). Con la selectiva, `finish` no evalua la puerta de
+cobertura y ninguna puerta posterior mide esas lineas (la del release solo mide
+lo que anade la rama release): con `umbral_cobertura`, esas tareas no se
+comparan con el. Exige `comando_verificacion_selectiva` (la config aborta sin
+ella) y `rutas_documentacion` (sin ellas no tiene efecto; `taskctl doctor` lo
+avisa). El freno Stop, `review` y `finish` clasifican igual el mismo diff
+(TASK-107): ante codigo, Stop y `review` corren la selectiva y `finish` la
+completa si algo queda fuera de las rutas parciales.
 
 Decision sobre TASK-091: por defecto la completa sigue siendo la puerta de
 integracion; declarar `rutas_verificacion_parcial` es la revision explicita de
@@ -111,8 +116,10 @@ esa regla para el proyecto. Se retira, solo en ese caso, el texto de `finish`
 se exige siempre la completa». El guardian de merges NO acepta la selectiva
 (decision de Carlos, TASK-108): con codigo exige siempre la completa, asi que un
 merge a mano tras un fallo de `finish` (un conflicto, por ejemplo) queda
-bloqueado; el remedio es resolver y relanzar `taskctl finish`, y el mensaje del
-guardian lo dice. Doctor: aviso nuevo y texto del `ok` con el nivel 2; el error
+bloqueado. El remedio, que dice el mensaje del guardian: abortar el merge
+(`taskctl abort-merge`), integrar la base en la rama de la tarea, resolver alli
+y relanzar `finish`; cerrar el conflicto en la rama de integracion dejaria un
+reintento de `finish` que ya no verifica. Doctor: aviso nuevo y texto del `ok` con el nivel 2; el error
 de forma de cada clave de patrones trae su propio ejemplo (TASK-109). Sin la
 clave, todo como antes.
 

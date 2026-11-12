@@ -859,7 +859,8 @@ timeout_verificacion_selectiva: 600                                 # opcional (
   podría ser parcial.
 - **`taskctl finish`**: ejecuta la completa como siempre (salvo con
   `rutas_verificacion_parcial`, abajo); en rojo, el mensaje recuerda que se
-  exige aunque las rondas usaran la selectiva.
+  exige aunque las rondas usaran la selectiva; con `rutas_verificacion_parcial`,
+  en su lugar dice por qué tocó la completa y no la selectiva.
 - **Sin la clave**, todo funciona como antes: el `Stop` corre la completa y
   `review` no verifica.
 - Cómo escribir el clasificador y qué cambios obligan a correr todo: guía
@@ -940,12 +941,19 @@ rutas_verificacion_parcial: [src/web/**]          # lista de rutas permitidas
   `tarea.md` («Verificacion parcial») antes del merge. Reutiliza un verde de la
   selectiva del mismo commit y la misma base si lo hay (fin de turno o `review`,
   con el árbol limpio).
-- La puerta de cobertura no se evalúa (el informe sería parcial): se mide en la
-  completa del release. Release y hotfix van siempre a la completa.
+- `finish` no evalúa la puerta de cobertura (el informe sería parcial), y
+  ninguna puerta posterior mide esas líneas: el release corre la completa, pero
+  su cobertura solo mide lo que añade la propia rama release. Con
+  `umbral_cobertura`, las tareas integradas con la selectiva no se comparan con él.
+- El release va siempre a la completa. Un hotfix nunca usa la selectiva (con
+  código, la completa; de solo documentación, su camino de documentación).
 - El **guardián de merges sigue exigiendo la completa para el código**: un merge
   a mano de una tarea con código queda bloqueado sin su verde, aunque a `finish`
-  le bastara la selectiva. Si `finish` falla a mitad (un conflicto), no repitas
-  el merge a mano: resuelve y vuelve a lanzar `taskctl finish`.
+  le bastara la selectiva. Si `finish` choca en un conflicto, no repitas el
+  merge a mano ni lo cierres en la rama de integración (un `finish` relanzado
+  sobre un merge ya cerrado no vuelve a verificar): abórtalo con
+  `taskctl abort-merge`, integra la base en la rama de la tarea, resuelve allí y
+  vuelve a lanzar `taskctl finish` desde ella.
 - Sin la clave, todo funciona como antes.
 
 #### Freno de fin de turno (hook `Stop`)

@@ -196,17 +196,17 @@ ignora. La sincronizacion y sus trampas, en [sincronizacion.md](sincronizacion.m
 **Freno de fin de turno.** Con `comando_verificacion` y una tarea en curso en
 la rama actual, el hook `Stop` lo ejecuta al terminar cada turno y, si no sale
 en verde, devuelve el turno con un informe. Arregla la causa; no borres,
-saltes ni debilites tests para pasarlo. Si el rojo no es de tu cambio, dilo
+saltes ni debilites tests para pasarlo. Si el rojo no es tuyo, dilo
 al terminar: el freno solo bloquea una vez por turno. Con
 `comando_verificacion_selectiva`, el `Stop` y `review` corren esa: [verificacion-selectiva.md](verificacion-selectiva.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
-`taskctl finish` (desde la rama de la tarea) verifica antes de mergear y
-aborta en rojo. Un `git merge` o script de cierre hacia la rama de
-integracion o la principal sin verde del commit que entra queda bloqueado:
-cierra con `taskctl finish`; si falla, resuelve y relanzalo. Con
-`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;
-un merge a mano no. `--sin-verificacion` lo decide la persona, no tu.
+`taskctl finish` verifica antes de mergear y aborta en rojo. Un `git merge` o
+script de cierre hacia la rama de integracion o la principal sin verde del
+commit que entra queda bloqueado: cierra con `taskctl finish` desde la rama de
+la tarea; si choca, abortalo y resuelve en ella. Con
+`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva; un
+merge a mano no. `--sin-verificacion` lo decide la persona, no tu.
 
 **Tests held-out (`aceptacion/`).** Son de la persona: si implementas, no los
 leas ni los edites. Detalle en [heldout.md](heldout.md).

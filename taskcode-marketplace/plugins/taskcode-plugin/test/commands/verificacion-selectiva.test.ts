@@ -589,13 +589,20 @@ test('guia (TASK-109): la seccion «Codigo parcial» explica el principio y el c
     /`\.taskcode\/config\.yml`/,
     /## Verificacion parcial/,
     /Cobertura omitida/,
-    /Release y hotfix van siempre a la completa/,
+    // IMP-1 de la revision: ninguna puerta posterior mide esas lineas.
+    /Ninguna puerta posterior mide esas\s+lineas/,
+    // MEN-1: el release siempre; el hotfix nunca usa la selectiva.
+    /El release va siempre a la completa/,
+    /Un hotfix nunca usa la selectiva/,
     /El guardian de merges sigue exigiendo la completa para el codigo/,
-    /no repitas el\s+merge a mano: resuelve el conflicto y vuelve a lanzar `taskctl finish`/,
+    // IMP-2: abortar e integrar la base en la rama de la tarea, no cerrar el merge en la de integracion.
+    /no repitas el merge a mano ni lo\s+cierres en la rama de integracion/,
+    /Abortalo \(`taskctl abort-merge`\), integra la\s+base en la rama de la tarea/,
   ]) {
     assert.match(seccion, marca);
   }
   assert.doesNotMatch(seccion, /TaskCode|TASK-\d/);
   const skill = readFileSync(path.join(dir, 'SKILL.md'), 'utf8');
-  assert.match(skill, /`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;\s+un merge a mano no/);
+  assert.match(skill, /`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;\s+un\s+merge\s+a\s+mano\s+no/);
+  assert.match(skill, /desde la rama de\s+la tarea; si choca, abortalo y resuelve en ella/);
 });
