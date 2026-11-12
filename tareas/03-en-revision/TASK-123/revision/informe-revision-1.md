@@ -10,10 +10,10 @@ Veredicto propuesto por el revisor: aprobada-con-correcciones. Con dos IMPORTANT
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | src/hooks/guardia-merge.ts (`motivoDeCierre`, ~l.593) | implementacion |
-| IMP-2 | IMPORTANTE | abierto | src/commands/finish-verificacion.ts (`baseAntesDeIntegrar` / `puertaReintento`, ~l.270-307) | implementacion |
-| MEN-1 | MENOR | abierto | src/core/comando-merge.ts (`cierresDeMerge`, ~l.458) | implementacion |
-| MEN-2 | MENOR | abierto | src/hooks/guardia-merge.ts (`decidirCierreDeMerge`) | implementacion |
+| IMP-1 | IMPORTANTE | corregido | src/hooks/guardia-merge.ts (`motivoDeCierre`, ~l.593) | implementacion |
+| IMP-2 | IMPORTANTE | corregido | src/commands/finish-verificacion.ts (`baseAntesDeIntegrar` / `puertaReintento`, ~l.270-307) | implementacion |
+| MEN-1 | MENOR | aceptado | src/core/comando-merge.ts (`cierresDeMerge`, ~l.458) | implementacion |
+| MEN-2 | MENOR | aceptado | src/hooks/guardia-merge.ts (`decidirCierreDeMerge`) | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
@@ -53,9 +53,13 @@ CHANGELOG, README y el docblock prometen la misma decision proporcional (documen
 
 `cierresDeMerge` solo respeta `-C <dir>`. Con el cwd del hook en otro repo, `cd ../work && git commit --no-edit`, `cd ../work; git commit ...`, `git --git-dir=../work/.git commit` y `git --git-dir=... --work-tree=... commit` dan 0; `-C /c/...` estilo POSIX de Git Bash se resuelve mal con `path.resolve` en Windows. Mismo hueco que el guardian de merges previo con `cd`; si es consciente, anotarlo en el README.
 
+Aceptado: hueco inherente al analisis sintactico, igual que el guardian de merges previo con cd y alias; documentado en el README.
+
 ### MEN-2 — Alias de git fuera del analisis
 
 `git ci --no-edit` (alias de `commit`) da 0 con `MERGE_HEAD` en develop. Hueco inherente al analisis sintactico; basta dejarlo escrito junto a lo que el guardian no cubre.
+
+Aceptado: hueco inherente al analisis sintactico, igual que el guardian de merges previo con cd y alias; documentado en el README.
 
 ## Lecturas fuera del contexto permitido
 
