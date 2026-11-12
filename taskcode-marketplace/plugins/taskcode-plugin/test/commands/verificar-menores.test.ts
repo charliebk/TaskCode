@@ -163,6 +163,11 @@ test('codigo fuera de los MENORES: verificar-menores aborta, finish tambien, y -
     await escribir(repoRoot, 'src/a.ts', '// arreglo del MENOR\n');
     await escribir(repoRoot, 'src/otro.ts', '// cambio que nadie reviso\n');
     commitAll(repoRoot, `fix(${id}): MEN-1 y algo mas`);
+    // IMP-1 de la revision: con codigo ajeno, siguiente no encadena un
+    // verificar-menores que va a abortar: finish, y lo decide una persona.
+    const paso = await runSiguienteCommand(tareasRoot, [id, '--json'], { repoCwd: repoRoot });
+    assert.equal(paso.fase, 'finish');
+    assert.notEqual(paso.accion, 'continuar', 'nunca sigue solo con codigo sin revisar');
 
     await assert.rejects(
       () => runVerificarMenoresCommand(tareasRoot, [id], { repoCwd: repoRoot }),

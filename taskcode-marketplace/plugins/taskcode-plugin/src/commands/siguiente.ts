@@ -47,7 +47,7 @@ import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import type { Task } from '../core/task.js';
 import { REVISION_DIRNAME } from './review.js';
 import { estadoCorreccionPosterior, type EstadoCorreccion } from './verificar-menores.js';
-import { bloqueantesAbiertos, menoresAbiertos } from '../core/menores.js';
+import { bloqueantesAbiertos, fueraDeAlcance, menoresAbiertos } from '../core/menores.js';
 import { duracionDelPlan, planRedactado } from './approve.js';
 import type { LecturaDuracion } from '../core/duracion-estimada.js';
 
@@ -239,6 +239,7 @@ export async function runSiguienteCommand(
   const revisionLimpia =
     refInformes !== 'HEAD' || runGit(['status', '--porcelain', '--', dirRevisionRepo], deps.repoCwd) === '';
 
+  const menores = menoresAbiertos(primarios);
   const ctx: ContextoFlujo = {
     planRedactado: planEstaRedactado,
     ...(duracionEstimada === undefined ? {} : { duracionEstimada }),
@@ -250,7 +251,7 @@ export async function runSiguienteCommand(
     ...(task.estado === 'en-revision' && veredicto === 'aprobada'
       ? {
           bloqueantesAbiertos: bloqueantesAbiertos(primarios).length,
-          menoresAbiertos: menoresAbiertos(primarios).length,
+          menoresAbiertos: menores.length,
           verificacionLigeraAlDia: alDia,
           correccionSinVerificar:
             !enCommitPropio &&
@@ -258,7 +259,11 @@ export async function runSiguienteCommand(
             rellenados &&
             revisionLimpia &&
             correccion !== null &&
-            correccion.cambiados.length > 0,
+            correccion.cambiados.length > 0 &&
+            // IMP-1 de la revision: solo si son correcciones de MENORES que
+            // verificar-menores aceptara; codigo ajeno lo decide una persona.
+            menores.length > 0 &&
+            fueraDeAlcance(correccion.cambiados, menores).length === 0,
         }
       : {}),
   };

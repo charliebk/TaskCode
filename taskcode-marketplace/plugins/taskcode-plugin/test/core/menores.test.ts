@@ -56,6 +56,10 @@ test('rutasDeCelda quita linea, ancla, comillas invertidas y ./; separa varias',
   assert.deepEqual(rutasDeCelda('`src/a.ts` L10-20'), ['src/a.ts']);
   assert.deepEqual(rutasDeCelda('./src/a.ts#L3, test/a.test.ts:1-4'), ['src/a.ts', 'test/a.test.ts']);
   assert.deepEqual(rutasDeCelda('src\\win\\b.ts'), ['src/win/b.ts']);
+  // MEN-1 de la revision: `:L42` y `(12)` tambien.
+  assert.deepEqual(rutasDeCelda('src/a.ts:L42'), ['src/a.ts']);
+  assert.deepEqual(rutasDeCelda('src/a.ts:L10-L20'), ['src/a.ts']);
+  assert.deepEqual(rutasDeCelda('foo.ts(12)'), ['foo.ts']);
   assert.deepEqual(rutasDeCelda('—'), []);
   assert.deepEqual(rutasDeCelda(''), []);
 });
@@ -77,6 +81,9 @@ test('alcance: fichero de un MENOR (tambien por sufijo desde la raiz) y tests va
   assert.deepEqual(fueraDeAlcance(['src/a.ts', 'src/otro.ts'], menores), ['src/otro.ts']);
   // Sufijo solo tras '/': "xsrc/a.ts" no es "src/a.ts".
   assert.deepEqual(fueraDeAlcance(['xsrc/a.ts'], menores), ['xsrc/a.ts']);
+  // MEN-1: un nombre sin carpeta solo vale tal cual, no por sufijo.
+  const suelto = menoresAbiertos([informe(['| MEN-9 | MENOR | abierto | index.ts | x |'])]);
+  assert.deepEqual(fueraDeAlcance(['index.ts', 'pkg/src/critico/index.ts'], suelto), ['pkg/src/critico/index.ts']);
   // Sin MENORES, cualquier cambio que no sea test esta fuera.
   assert.deepEqual(fueraDeAlcance(['src/a.ts', 'test/x.ts'], []), ['src/a.ts']);
 });

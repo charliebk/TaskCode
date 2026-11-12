@@ -33,14 +33,21 @@ function abiertos(informes) {
 }
 /**
  * Rutas que cita una celda `Fichero`: `src/a.ts:42`, `` `src/a.ts` L10-20 ``,
- * `src/a.ts, test/a.test.ts`, `./src/a.ts#L3`. Se queda con los trozos que
- * parecen una ruta (tienen `/` o `.`), sin numero de linea ni ancla.
+ * `src/a.ts, test/a.test.ts`, `./src/a.ts#L3`, `src/a.ts:L42`, `a.ts(12)`. Se
+ * queda con los trozos que parecen una ruta (tienen `/` o `.`), sin numero de
+ * linea ni ancla. Una ruta con espacios no se reconoce: falla cerrado (el
+ * comando aborta y lo decide una persona).
  */
 export function rutasDeCelda(celda) {
     return celda
         .replace(/[`*]/g, '')
         .split(/[\s,;]+/)
-        .map((t) => t.replace(/#L?\d.*$/i, '').replace(/:\d+(?:[-:]\d+)*$/, '').replace(/^\.\//, '').replace(/\\/g, '/'))
+        .map((t) => t
+        .replace(/#L?\d.*$/i, '')
+        .replace(/\(\d+(?:[-:,]\d+)*\)$/, '')
+        .replace(/:L?\d+(?:[-:]L?\d+)*$/i, '')
+        .replace(/^\.\//, '')
+        .replace(/\\/g, '/'))
         .map((t) => t.replace(/[().]+$/, '').replace(/^\(+/, ''))
         .filter((t) => t !== '' && /[/.]/.test(t) && !/^L?\d/.test(t));
 }
@@ -50,7 +57,9 @@ export function rutasDeCelda(celda) {
  * desde la raiz (`plugins/x/src/a.ts`): vale la igualdad o el sufijo tras `/`.
  */
 export function mismaRuta(rutaDiff, citada) {
-    return rutaDiff === citada || rutaDiff.endsWith(`/${citada}`);
+    // MEN-1 de la revision: un nombre sin carpeta (`index.ts`) solo vale tal
+    // cual; por sufijo dejaria pasar cualquier `.../index.ts` del repo.
+    return rutaDiff === citada || (citada.includes('/') && rutaDiff.endsWith(`/${citada}`));
 }
 /** Heuristica de fichero de test por ruta: `test/`, `tests/`, `__tests__/`, `.test.`, `.spec.`. */
 export function esRutaDeTest(ruta) {

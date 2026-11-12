@@ -84,7 +84,9 @@ export interface ContextoFlujo {
   /**
    * TASK-099: lo unico que separa lo revisado de lo que se cerraria es codigo
    * commiteado despues del Commit revisado (informes rellenados y
-   * commiteados, referencia fiable) y no hay verificacion ligera al dia.
+   * commiteados, referencia fiable), no hay verificacion ligera al dia, hay
+   * MENORES abiertos y todo lo cambiado cae en su alcance (sus ficheros o
+   * tests): lo que `verificar-menores` aceptara.
    */
   correccionSinVerificar?: boolean;
 }
