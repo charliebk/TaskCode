@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-116-p-8-taskcode-declara-su-verificacion-y-d
 asignado_a: charlie.bk@gmail.com
@@ -37,3 +37,4 @@ TaskCode no declara comando_verificacion, asi que los frenos que construye (Stop
 |---|---|---|---|---|
 | 2026-11-12T23:20:11Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T23:20:46Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-12T23:20:48Z | start | automatico | persona | 0.14.0 |
