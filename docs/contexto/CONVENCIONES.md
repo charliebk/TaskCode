@@ -121,6 +121,12 @@ compila un `cli.ts` distinto.
 - Cuando una tarea descubre algo que contradice el plan, se anota en el propio
   documento, no se calla.
 - Nada se marca como hecho sin haberlo ejecutado.
+- **Lo cerrado se archiva** en `docs/contexto/archivo/`, movido tal cual (no
+  se resume ni se borra), para que lo que se lee en cada tarea no crezca con
+  el proyecto. Topes de lo vivo, en bytes (`wc -c`):
+  `CHECKLIST_TERMINACION.md` 20 480 y `ESTADO.md` 10 240; hay un test que los
+  comprueba. `ESTADO.md` se actualiza al cerrar cada tarea, o como mucho cada
+  14 días.
 
 ## La paradoja de bootstrapping
 

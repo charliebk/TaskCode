@@ -40,6 +40,7 @@ import { detectarComandosTests } from '../fs/deteccion-tests.js';
 import { hostDeRemoto, ocultarCredenciales, CLI_PLATAFORMA } from '../core/plataforma-remota.js';
 import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
+import { diaLocal, evaluarDocumentoEstado } from '../core/documento-estado.js';
 import { resolveGitflowScriptsDir, sondearBash } from '../fs/gitflow-runner.js';
 import { urlsDeOrigin } from '../fs/git.js';
 import { sondearCli } from '../fs/merge-request.js';
@@ -446,6 +447,58 @@ function comprobarTareas(tareasRoot) {
     return [ok('tareas', total === 0 ? 'no hay tareas todavia' : `${total} ${total === 1 ? 'tarea' : 'tareas'}: todas legibles y en la carpeta de su estado`)];
 }
 // ---------------------------------------------------------------------
+// Documento de estado (TASK-124)
+// ---------------------------------------------------------------------
+/** `id` y `actualizado` de las tareas de 04-terminadas; las que no se pueden leer se saltan (las cuenta `tareas`). */
+function leerTerminadas(tareasRoot) {
+    const dir = path.join(tareasRoot, STATE_FOLDER.terminada);
+    let entradas;
+    try {
+        entradas = readdirSync(dir);
+    }
+    catch {
+        return [];
+    }
+    const terminadas = [];
+    for (const id of entradas) {
+        if (!isValidTaskId(id))
+            continue;
+        try {
+            const task = parseTareaFile(readFileSync(path.join(dir, id, 'tarea.md'), 'utf8')).task;
+            terminadas.push({ id, actualizado: task.actualizado });
+        }
+        catch {
+            // Rota o ilegible: ya la senala la comprobacion `tareas`.
+        }
+    }
+    return terminadas;
+}
+/**
+ * La fecha del documento es la de su ultimo commit (`%cI`), no el mtime: el
+ * mtime cambia al clonar o al cambiar de rama y no dice cuando se escribio.
+ */
+export function comprobarDocumentoEstado(cwd, cfg, repo, ahora) {
+    if (cfg === null)
+        return omitida('documento-estado', 'la config no se pudo leer (ver config)');
+    const ruta = cfg.documento_estado;
+    const existe = ruta !== null && existsSync(path.join(cwd, ruta));
+    let fecha = null;
+    if (ruta !== null && existe && repo.conCommits) {
+        const r = git(['log', '-1', '--format=%cI', '--', ruta], cwd);
+        if (r.error !== undefined || r.status !== 0) {
+            throw new Error(`git log -- ${ruta} fallo: ${r.error?.message ?? r.stderr}`);
+        }
+        fecha = r.stdout === '' ? null : r.stdout;
+    }
+    return evaluarDocumentoEstado({
+        ruta,
+        existe,
+        fechaUltimoCommit: fecha,
+        hoy: diaLocal(ahora),
+        terminadas: ruta !== null && existe && fecha !== null ? leerTerminadas(path.join(cwd, 'tareas')) : [],
+    });
+}
+// ---------------------------------------------------------------------
 // Plataforma (gh / glab)
 // ---------------------------------------------------------------------
 function comprobarPlataforma(cwd, cfg, hayOrigin, timeoutMs) {
@@ -625,6 +678,7 @@ export function runDoctorCommand(argv, deps) {
     cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg, () => detectarComandosTests(cwd))));
     cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
     cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
+    cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
     cs.push(...envolver('plataforma', () => comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)));
     cs.push(...envolver('hooks-subagente', () => comprobarHooksSubagente(deps)));
     cs.push(...envolver('version-plugin', () => comprobarVersionPlugin(deps)));

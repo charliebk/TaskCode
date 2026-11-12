@@ -258,11 +258,12 @@ test('ningun fichero de dist/src commiteado lleva CR', (t) => {
 // Claude Code, Windows no sabe ejecutarlo. Dos vias, una por shell:
 //
 // - cmd: `bin/taskctl.cmd`, con los argumentos entre comillas dobles.
-// - PowerShell: la funcion de perfil del README, que llama a node SIN pasar
+// - PowerShell: la funcion de perfil de la documentacion del plugin
+//   (docs/instalacion-y-distribucion.md, enlazada desde el README), que llama a node SIN pasar
 //   por cmd. NO el .cmd: PowerShell 5.1 pasa sin comillas los argumentos
 //   sin espacios, y cmd.exe interpreta `Q&A` o `x>f` (CRIT-1 de la revision:
 //   ejecutaba comandos y vaciaba ficheros). El test de PowerShell ejecuta el
-//   fragmento del README TAL CUAL, para que la documentacion no pueda
+//   fragmento de la documentacion TAL CUAL, para que la documentacion no pueda
 //   desviarse de lo probado.
 //
 // Todo sobre el arbol de HEAD exportado, sin npm install. Solo en Windows;
@@ -335,15 +336,16 @@ function desdeCmd(cmdPath: string, args: string[], cwd?: string) {
 }
 
 /**
- * La funcion de perfil de PowerShell, extraida del propio README y apuntada
+ * La funcion de perfil de PowerShell, extraida de la documentacion del plugin
+ * (docs/instalacion-y-distribucion.md; el README la enlaza) y apuntada
  * a una cache falsa: `<cache>/9.9.9` es un junction a la raiz del plugin
  * exportado, y `0.1.0-rc.1` un directorio que la funcion debe ignorar sin
  * error (MEN-4).
  */
 async function funcionPowerShellDelReadme(cache: string): Promise<string> {
-  const readme = (await readFile(path.join(PLUGIN_ROOT, 'README.md'), 'utf8')).replace(/\r\n/g, '\n');
+  const readme = (await readFile(path.join(PLUGIN_ROOT, 'docs', 'instalacion-y-distribucion.md'), 'utf8')).replace(/\r\n/g, '\n');
   const bloque = /```powershell\n(\$taskcodeBase = [\s\S]*?)```/.exec(readme);
-  assert.ok(bloque, 'el README tiene que traer la funcion de perfil de PowerShell');
+  assert.ok(bloque, 'docs/instalacion-y-distribucion.md tiene que traer la funcion de perfil de PowerShell');
   const original = bloque[1] as string;
   const codigo = original.replace(
     /^\$taskcodeBase = .*$/m,

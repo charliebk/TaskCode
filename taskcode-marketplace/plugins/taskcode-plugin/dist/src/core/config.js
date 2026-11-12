@@ -26,6 +26,7 @@
  * | umbral_cobertura             | null (solo informa) | commands/finish-cobertura.ts (TASK-074) |
  * | rutas_documentacion          | [] (sin efecto)   | finish-verificacion.ts (TASK-100), hooks/guardia-merge.ts (TASK-101) |
  * | comando_verificacion_documentacion | null        | finish-verificacion.ts (TASK-100), guardia-merge.ts (TASK-101) |
+ * | documento_estado             | null (no se vigila) | commands/doctor.ts (TASK-124) |
  * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
@@ -163,6 +164,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
     rutas_documentacion: Object.freeze([]),
     comando_verificacion_documentacion: null,
     rutas_verificacion_parcial: Object.freeze([]),
+    documento_estado: null,
 });
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
 export const CLAVES_CONFIG = [
@@ -188,6 +190,7 @@ export const CLAVES_CONFIG = [
     'rutas_documentacion',
     'comando_verificacion_documentacion',
     'rutas_verificacion_parcial',
+    'documento_estado',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -448,6 +451,9 @@ export function parsearConfigConAvisos(contenido, ruta) {
             case 'informe_cobertura':
                 config.informe_cobertura = validarInformeCobertura(donde, par.valor);
                 break;
+            case 'documento_estado':
+                config.documento_estado = validarDocumentoEstado(donde, par.valor);
+                break;
             case 'umbral_cobertura':
                 config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
                 break;
@@ -639,6 +645,21 @@ function validarInformeCobertura(donde, valor) {
         throw new ConfigError(`[ERROR] ${donde}: "informe_cobertura" "${texto}" no vale: ${motivo}.
 ` +
             '        Es la ruta del fichero lcov relativa a la raiz del repo, p. ej. informe_cobertura: coverage/lcov.info.');
+    }
+    return path.posix.normalize(texto.replace(/\\/g, '/'));
+}
+/**
+ * TASK-124: ruta de un fichero relativa a la raiz del repo, con las mismas
+ * reglas que las de sincronizacion (no absoluta, no carpeta, no fuera del repo,
+ * no bajo .git/ ni .taskcode/; de tareas/ solo un fichero suelto en su raiz).
+ */
+function validarDocumentoEstado(donde, valor) {
+    const texto = validarTextoNoVacio(donde, 'documento_estado', valor);
+    const motivo = motivoRutaInvalida(texto, { ficheroEnRaizDeTareas: true });
+    if (motivo !== null) {
+        throw new ConfigError(`[ERROR] ${donde}: "documento_estado" "${texto}" no vale: ${motivo}.
+` +
+            '        Es la ruta del documento de estado del proyecto relativa a la raiz del repo, p. ej. documento_estado: docs/ESTADO.md.');
     }
     return path.posix.normalize(texto.replace(/\\/g, '/'));
 }

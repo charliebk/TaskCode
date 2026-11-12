@@ -253,9 +253,9 @@ test('CLI --json: el aviso lleva el id estable hooks-subagente, nivel aviso y ar
 
 const PLUGIN_ROOT = path.join(import.meta.dirname, '..', '..', '..');
 
-test('README: Problemas conocidos con sintoma, causa, diagnostico y las tres salidas', async () => {
+test('docs/problemas-conocidos.md (enlazado desde el README): Problemas conocidos con sintoma, causa, diagnostico y las tres salidas', async () => {
   const { readFile } = await import('node:fs/promises');
-  const readme = await readFile(path.join(PLUGIN_ROOT, 'README.md'), 'utf8');
+  const readme = await readFile(path.join(PLUGIN_ROOT, 'docs', 'problemas-conocidos.md'), 'utf8');
   const i = readme.indexOf('## Problemas conocidos');
   assert.ok(i >= 0, 'falta la seccion "## Problemas conocidos"');
   const seccion = readme.slice(i, readme.indexOf('\n## ', i + 1));
