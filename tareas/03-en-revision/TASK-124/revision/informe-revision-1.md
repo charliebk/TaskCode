@@ -2,7 +2,7 @@
 
 - Commit revisado: edf10933a5b50366574199266eabc7a594f20e45
 - Revisor: code-quality-reviewer
-- Veredicto: aprobada-con-correcciones (solo MENORES; ninguno bloquea el cierre. Para `taskctl veredicto`: aprobada-con-correcciones)
+- Veredicto: aprobada con correcciones
 
 Pase generico (el diff cae en docs, tests y CLI sin revisor de dominio). Modo rapido:
 una sola ronda y solo los tests afectados, no la suite completa.
