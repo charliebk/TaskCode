@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: 2013772
 tokens_implementacion: 85499422
-tokens_revision: null
+tokens_revision: 7476796
 creado: 2026-11-12
 actualizado: 2026-11-12
 dependencias: []
@@ -52,6 +52,7 @@ Mientras taskctl y sus hooks trabajan (la verificacion de finish, unos 28 min en
 | 2026-11-12T11:39:45Z | diseno | agente:ab7ca11850566e044,a66250991c8fd3577,a887d42ba1ff54acd,a8115eab8c21b546b | 106 | 206162 | 1749170 | 58334 | 81 | 2013772 | - | - |
 | 2026-11-12T13:22:39Z | implementacion | sesion:b6ee363f-d9c2-4a11-8e6e-4c193af66eed | 184 | 96246 | 33161199 | 56207 | 8 | 33313836 | - | - |
 | 2026-11-12T13:22:39Z | implementacion | agente:ac4e4cb44bad32677 | 326 | 430519 | 51602324 | 152417 | 37 | 52185586 | - | - |
+| 2026-11-12T13:47:32Z | revision | agente:a180ef1502a027106 | 92 | 195192 | 7236030 | 45482 | 11 | 7476796 | 1 | - |
 
 ## Autorrevision
 
