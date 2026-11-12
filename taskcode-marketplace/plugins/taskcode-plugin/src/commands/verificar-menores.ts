@@ -41,6 +41,7 @@ import { anotarLineaEnSeccion } from '../core/transiciones.js';
 import { readTareaFile, writeTareaFile } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
 import { isAncestor, runGit } from '../fs/git.js';
+import { resolverConfig } from '../core/config.js';
 import { autoCommit, extraerPushFlag, mensajeChore, type AutoCommitResult } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
 
@@ -69,9 +70,15 @@ export interface VerificarMenoresCommandResult {
   autoCommit: AutoCommitResult;
 }
 
-/** Pathspec de Git para «todo el repo menos `tareas/`», desde cualquier subdirectorio. */
+/**
+ * Pathspec de Git para «todo el repo menos `tareas/` y los ficheros que
+ * regenera `comando_sincronizacion`», desde cualquier subdirectorio. Los
+ * derivados viajan en los commits de cada transicion (tambien en los de
+ * despues de revisar): no son codigo que nadie reviso.
+ */
 function fueraDeTareas(cwd: string): string[] {
-  return ['--', ':(top)', `:(top,exclude)${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`];
+  const derivados = resolverConfig(cwd).rutas_sincronizacion.map((r) => `:(top,literal,exclude)${r}`);
+  return ['--', ':(top)', `:(top,exclude)${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`, ...derivados];
 }
 
 /** Ficheros (rutas desde la raiz del repo) que cambian fuera de `tareas/` entre dos commits. */

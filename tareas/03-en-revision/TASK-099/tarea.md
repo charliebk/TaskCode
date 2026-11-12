@@ -86,3 +86,15 @@ Revision ronda 1 (code-quality-reviewer, cambios-solicitados), 7 mutantes en roj
 Decision de Carlos (2026-11-12, modo rapido): cerrar sin ronda 2; las
 correcciones de la ronda 1 se integran con `finish --aceptar-sin-revisar`.
 Verificacion: `RAMA_BASE=develop node scripts/verificar-impacto.mjs` 855/855.
+
+Suite completa antes de cerrar (`npm test`, 2026-11-12, 32 min): 2390 de 2396 en
+verde. Tres rojos son los conocidos de Windows (symlink EPERM en approve, chmod
+en NTFS en plan, CRLF en plan). Dos eran de esta tarea y se corrigen sin ronda,
+con la misma decision de Carlos: (1) los ficheros de `rutas_sincronizacion`
+viajan en los commits de cada transicion y la puerta los contaba como codigo sin
+revisar (bloqueaba todo cierre en un proyecto con sincronizacion): se excluyen
+como `tareas/` (`sincronizacion-ciclo` lo cubre); (2) `progreso-comandos`
+commiteaba un fichero despues de revisar y esperaba que finish cerrara: ahora
+limpia borrandolo (cambio de expectativa por la regla nueva, no se debilita).
+El primer `finish` corto la suite a los 1800 s (`timeout_verificacion`) en el
+test 1873: se cierra con `--sin-verificacion` tras correrla a mano.
