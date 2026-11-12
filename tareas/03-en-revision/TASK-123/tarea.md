@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, critico, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-123-f-16-finish-no-cierra-sin-verificar-tras
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 24932538
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-12
@@ -40,7 +40,15 @@ Hallazgo CRITICO de la auditoria del 2026-11-12, reproducido de punta a punta (d
 | 2026-11-12T16:30:50Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T16:31:27Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T16:31:28Z | start | automatico | persona | 0.14.0 |
+| 2026-11-12T17:11:49Z | review | automatico | persona | 0.14.0 |
 
 ## Autorrevision
 
 - code-quality-reviewer — 5534695
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-12T17:11:49Z | implementacion | sesion:b6ee363f-d9c2-4a11-8e6e-4c193af66eed | 42 | 26613 | 11656137 | 11966 | 6 | 11694758 | - | - |
+| 2026-11-12T17:11:49Z | implementacion | agente:aaa77dde16d5ea9cb | 154 | 176665 | 13001627 | 59334 | 3 | 13237780 | - | - |
