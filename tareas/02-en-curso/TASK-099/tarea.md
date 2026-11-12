@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 300000
 tokens_revision: null
 creado: 2026-11-10
 actualizado: 2026-11-12
@@ -49,3 +49,9 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 ## Autorrevision
 
 - code-quality-reviewer — a8ba7cc
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-12T21:21:22Z | implementacion | manual | - | - | - | - | - | 300000 | - | - |
