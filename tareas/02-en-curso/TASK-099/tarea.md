@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-099-correccion-de-menores-tras-aprobar-con-c
 asignado_a: charlie.bk@gmail.com
@@ -44,3 +44,4 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 |---|---|---|---|---|
 | 2026-11-12T20:20:20Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T21:03:22Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-12T21:03:24Z | start | automatico | persona | 0.14.0 |
