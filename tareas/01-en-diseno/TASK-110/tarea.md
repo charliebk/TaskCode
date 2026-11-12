@@ -7,7 +7,7 @@ etiquetas: [progreso, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-110-progreso-visible-sin-tokens-estado-de-ca
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -41,6 +41,7 @@ Mientras taskctl y sus hooks trabajan (la verificacion de finish, unos 28 min en
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-12T11:29:28Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-12T11:42:16Z | approve | automatico | persona | 0.14.0 |
 
 ## Coste
 
