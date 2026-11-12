@@ -75,11 +75,15 @@ const conRepo = plantillaRepo('verificar-impacto-', async (dir) => {
 interface Seleccion {
   todo: boolean;
   motivo?: string;
+  recorte?: string;
   tests: { fichero: string; motivo: string }[];
 }
 
-function listar(raiz: string, base = 'develop'): Seleccion {
-  const r = spawnSync(process.execPath, [SCRIPT, '--listar'], { cwd: raiz, encoding: 'utf8', env: { ...process.env, RAMA_BASE: base } });
+function listar(raiz: string, base = 'develop', tope?: number): Seleccion {
+  const env: NodeJS.ProcessEnv = { ...process.env, RAMA_BASE: base };
+  if (tope === undefined) delete env['VERIFICAR_IMPACTO_TOPE'];
+  else env['VERIFICAR_IMPACTO_TOPE'] = String(tope);
+  const r = spawnSync(process.execPath, [SCRIPT, '--listar'], { cwd: raiz, encoding: 'utf8', env });
   assert.equal(r.status, 0, r.stderr);
   return JSON.parse(r.stdout) as Seleccion;
 }
@@ -175,6 +179,8 @@ test('solo documentacion y tareas: ningun test por impacto (solo los rapidos)', 
     await cambiarYCommitear(raiz, 'docs/guia.md', '# otra\n');
     await cambiarYCommitear(raiz, 'tareas/02-en-curso/TASK-001/tarea.md', 'x\n');
     await cambiarYCommitear(raiz, 'CHANGELOG.md', 'x\n');
+    await cambiarYCommitear(raiz, '.taskcode/config.yml', 'modo_flujo: automatico\n');
+    await cambiarYCommitear(raiz, `${PLUGIN}/README.md`, '# x\n');
     const s = listar(raiz);
     assert.equal(s.todo, false);
     assert.deepEqual(s.tests, []);
@@ -195,5 +201,44 @@ test('ejecuta lo elegido mas los rapidos y sale con el codigo de node --test', a
     assert.notEqual(rojo.status, 0);
     assert.match(rojo.stdout, /test\/c\.test\.ts \(test cambiado\)/);
     assert.match(rojo.stdout, /fail 1\b/);
+  });
+});
+
+test('tope: si la seleccion pasa de VERIFICAR_IMPACTO_TOPE, solo los tests directos (y lo dice)', async () => {
+  await conRepo(async (raiz) => {
+    // a.ts lo importa b.ts, y b.test.ts a b.ts: por impacto entra b.test, pero no es directo.
+    await cambiarYCommitear(raiz, `${PLUGIN}/src/a.ts`, 'export const a = 9;\n');
+    await cambiarYCommitear(raiz, `${PLUGIN}/src/c.ts`, 'export const c = 9;\n');
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 5)), ['test/b.test.ts', 'test/c.test.ts', 'test/core/x.test.ts']);
+    const s = listar(raiz, 'develop', 1);
+    assert.match(s.recorte ?? '', /2 ficheros por impacto pasan del tope de 1; se corren solo los tests directos/);
+    assert.deepEqual(ficheros(s), ['test/c.test.ts', 'test/core/x.test.ts']);
+    // Si ni los directos caben, solo los tests cambiados.
+    const cero = listar(raiz, 'develop', 0);
+    assert.match(cero.recorte ?? '', /solo los tests cambiados/);
+    assert.deepEqual(ficheros(cero), []);
+  });
+  await conRepo(async (raiz) => {
+    // La suite entera tambien se recorta a los directos.
+    await cambiarYCommitear(raiz, `${PLUGIN}/package.json`, '{"type":"module"}\n');
+    const s = listar(raiz);
+    assert.equal(s.todo, true);
+    assert.match(s.recorte ?? '', /package\.json.*se corren solo los tests directos/);
+  });
+});
+
+test('la verificacion no cambia el arbol: dist/src vuelve tal cual tras compilar', async () => {
+  await conRepo(async (raiz) => {
+    await escribir(raiz, `${PLUGIN}/dist/src/x.js`, 'export const x = 1;\n');
+    // Un build que reescribe un fichero versionado de dist/src.
+    const pkg = { type: 'module', scripts: { build: 'node -e "require(\'fs\').writeFileSync(\'dist/src/x.js\',\'cambiado\')"' } };
+    await escribir(raiz, `${PLUGIN}/package.json`, JSON.stringify(pkg));
+    git(['add', '-A'], raiz);
+    git(['commit', '-q', '-m', 'dist'], raiz);
+    await cambiarYCommitear(raiz, 'docs/guia.md', '# otra\n');
+    const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env: { ...process.env, RAMA_BASE: 'develop' } });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(git(['status', '--porcelain'], raiz), '');
+    assert.match(r.stdout, /Seleccion recortada/);
   });
 });

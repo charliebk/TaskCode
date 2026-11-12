@@ -3,8 +3,8 @@ modo_flujo: automatico
 
 # TASK-122: cada tarea verifica por impacto; la suite completa, una vez por
 # version antes de publicar. Los comandos se ejecutan desde la raiz del repo.
-# DESACTIVADO hasta acotar verificar-impacto (TASK-122): comando_verificacion: "npm --prefix taskcode-marketplace/plugins/taskcode-plugin test"
-# DESACTIVADO hasta acotar verificar-impacto (TASK-122): timeout_verificacion: 1800
-# DESACTIVADO hasta acotar verificar-impacto (TASK-122): comando_verificacion_selectiva: "node scripts/verificar-impacto.mjs"
+comando_verificacion: "npm --prefix taskcode-marketplace/plugins/taskcode-plugin test"
+timeout_verificacion: 1800
+comando_verificacion_selectiva: "node scripts/verificar-impacto.mjs"
 rutas_documentacion: [docs/**, "*.md"]
 rutas_verificacion_parcial: [taskcode-marketplace/plugins/taskcode-plugin/src/**, taskcode-marketplace/plugins/taskcode-plugin/test/**, taskcode-marketplace/plugins/taskcode-plugin/dist/src/**]

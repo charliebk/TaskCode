@@ -24,7 +24,8 @@
  *      fichero que no es documentacion, por los tests que mencionan su nombre;
  *      si nadie lo menciona, la suite entera (ante la duda, todo);
  *    - `package.json`, `package-lock.json` y `tsconfig.json`: la suite entera;
- *    - documentacion (`docs/**`, `tareas/**`, los `.md` de la raiz) y
+ *    - documentacion y config del repo (`docs/**`, `tareas/**`, `.taskcode/**`,
+ *      `.github/**`, `.claude/**`, los `.md` de la raiz) y
  *      `dist/src/**` (generado): nada.
  * 3. Siempre suma los tests de `test/core` y `test/cli` (lo de
  *    `npm run test:rapido`, ~10 s): red barata de toda la logica sin Git.
@@ -35,7 +36,8 @@
  * Cero dependencias: node >= 22.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -169,31 +171,67 @@ function testsQueDependenDe(nodos, origenes) {
   return [...tests];
 }
 
+/**
+ * Lo que no amplia la seleccion: documentacion, estado de las tareas y
+ * configuracion del propio repo (`.taskcode/`, `.github/`, `.claude/`). La
+ * config de taskctl la leen los comandos en uso, no la suite del plugin: por su
+ * nombre (`config.yml`) arrastraba 162 ficheros de test.
+ */
 function esDocumentacion(ruta) {
-  return ruta.startsWith('docs/') || ruta.startsWith('tareas/') || (!ruta.includes('/') && ruta.endsWith('.md'));
+  return (
+    ruta.startsWith('docs/') ||
+    ruta.startsWith('tareas/') ||
+    ruta.startsWith('.taskcode/') ||
+    ruta.startsWith('.github/') ||
+    ruta.startsWith('.claude/') ||
+    (!ruta.includes('/') && ruta.endsWith('.md')) ||
+    // Los .md de la raiz del plugin (README): su nombre lo cita media suite.
+    (ruta.startsWith(`${PLUGIN}/`) && !ruta.slice(PLUGIN.length + 1).includes('/') && ruta.endsWith('.md'))
+  );
 }
 
 /**
- * Decide que tests corren. Devuelve { todo, motivo?, tests: [{ fichero, motivo }] }
- * con los ficheros relativos al plugin (`test/...test.ts`); `todo` = la suite entera.
+ * Tope de ficheros de test por impacto (fuera de los de test:rapido). Por
+ * encima, la seleccion ya no es proporcional al cambio (un modulo comun como
+ * `core/config.ts` arrastra 110 de 192): se corren test:rapido mas los tests
+ * DIRECTOS de lo cambiado y se dice. Lo demas lo cubre la completa antes de
+ * publicar. Se cambia con VERIFICAR_IMPACTO_TOPE. Por que 10: en Windows,
+ * cada fichero que recorre el ciclo por CLI tarda 50-60 s con la suite en
+ * paralelo; con 14 de ellos la verificacion de TASK-122 tardo 178 s y con el
+ * tope en 10 (6 directos), 64 s.
  */
-export function seleccionar(cambiadas, nodos) {
+export const TOPE_POR_DEFECTO = 10;
+
+/**
+ * Decide que tests corren. Devuelve { todo, motivo?, tests, recorte? }: `tests`
+ * son [{ fichero, motivo }] relativos al plugin (`test/...test.ts`); `todo` =
+ * haria falta la suite entera; `recorte` (texto) = la seleccion pasaba del tope
+ * o pedia la suite entera y `tests` son solo los directos.
+ */
+export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
   const elegidos = new Map();
-  const anotar = (fichero, motivo) => {
-    if (!elegidos.has(fichero)) elegidos.set(fichero, motivo);
+  const directos = new Map();
+  const anotar = (mapa, fichero, motivo) => {
+    if (!mapa.has(fichero)) mapa.set(fichero, motivo);
   };
+  let todo = null;
   for (const ruta of cambiadas) {
     if (esDocumentacion(ruta)) continue;
     const enPlugin = ruta.startsWith(`${PLUGIN}/`);
     const rel = enPlugin ? ruta.slice(PLUGIN.length + 1) : ruta;
     if (enPlugin && rel.startsWith('dist/')) continue;
     if (enPlugin && TODO_EL_PROYECTO.has(rel)) {
-      return { todo: true, motivo: `cambia ${ruta}, que afecta a toda la suite`, tests: [] };
+      todo ??= `cambia ${ruta}, que afecta a toda la suite`;
+      continue;
     }
     if (enPlugin && rel.endsWith('.ts') && (rel.startsWith('src/') || rel.startsWith('test/'))) {
-      if (esTest(rel) && nodos.has(rel)) anotar(rel, 'test cambiado');
+      if (esTest(rel) && nodos.has(rel)) {
+        anotar(elegidos, rel, 'test cambiado');
+        anotar(directos, rel, 'test cambiado');
+      }
       if (!nodos.has(rel)) continue; // borrado: quien lo importaba tambien cambia
-      for (const t of testsQueDependenDe(nodos, [rel])) anotar(t, `importa ${rel}`);
+      for (const t of testsQueDependenDe(nodos, [rel])) anotar(elegidos, t, `importa ${rel}`);
+      for (const [f, n] of nodos) if (esTest(f) && n.importa.has(rel)) anotar(directos, f, `importa ${rel}`);
       continue;
     }
     // Ficheros que los tests usan sin importarlos.
@@ -201,12 +239,40 @@ export function seleccionar(cambiadas, nodos) {
     const nombre = path.posix.basename(ruta);
     const mencionan = marcados.length > 0 ? marcados : [...nodos].filter(([, n]) => n.texto.includes(nombre));
     if (mencionan.length === 0) {
-      return { todo: true, motivo: `ningun test referencia ${ruta}: ante la duda, la suite entera`, tests: [] };
+      todo ??= `ningun test referencia ${ruta}: ante la duda, la suite entera`;
+      continue;
     }
-    for (const t of testsQueDependenDe(nodos, mencionan.map(([f]) => f))) anotar(t, `usa ${ruta}`);
+    for (const t of testsQueDependenDe(nodos, mencionan.map(([f]) => f))) anotar(elegidos, t, `usa ${ruta}`);
+    for (const [f] of mencionan) if (esTest(f)) anotar(directos, f, `usa ${ruta}`);
   }
-  const tests = [...elegidos].map(([fichero, motivo]) => ({ fichero, motivo })).sort((a, b) => a.fichero.localeCompare(b.fichero));
-  return { todo: false, tests };
+  const lista = (mapa) => [...mapa].map(([fichero, motivo]) => ({ fichero, motivo })).sort((a, b) => a.fichero.localeCompare(b.fichero));
+  const contar = (mapa) => [...mapa.keys()].filter((f) => !enRapido(f)).length;
+  // Si ni los directos caben en el tope, solo los tests cambiados (siempre pocos).
+  const recortados = () => {
+    if (contar(directos) <= tope) return { tests: lista(directos), que: 'solo los tests directos' };
+    const cambiados = new Map([...directos].filter(([, m]) => m === 'test cambiado'));
+    return { tests: lista(cambiados), que: `solo los tests cambiados (${String(contar(directos))} directos pasan tambien del tope)` };
+  };
+  if (todo !== null) {
+    const r = recortados();
+    return { todo: true, motivo: todo, tests: r.tests, recorte: `${todo}; se corren ${r.que}` };
+  }
+  const fuera = contar(elegidos);
+  if (fuera > tope) {
+    const r = recortados();
+    return {
+      todo: false,
+      tests: r.tests,
+      recorte: `${String(fuera)} ficheros por impacto pasan del tope de ${String(tope)}; se corren ${r.que}`,
+    };
+  }
+  return { todo: false, tests: lista(elegidos) };
+}
+
+/** VERIFICAR_IMPACTO_TOPE si es un entero >= 0; si no, el de por defecto. */
+function leerTope(valor) {
+  const n = Number(valor);
+  return valor !== undefined && valor.trim() !== '' && Number.isInteger(n) && n >= 0 ? n : TOPE_POR_DEFECTO;
 }
 
 function aDist(fichero) {
@@ -232,7 +298,7 @@ function main(argv) {
   const seleccion =
     cambiadas === null
       ? { todo: true, motivo: `no existe la rama base "${base}": ante la duda, la suite entera`, tests: [] }
-      : seleccionar(cambiadas, nodos);
+      : seleccionar(cambiadas, nodos, leerTope(process.env.VERIFICAR_IMPACTO_TOPE));
   const rapido = RAPIDO.filter((d) => existsSync(path.join(dirPlugin, d)));
   const fuera = seleccion.tests.filter((t) => !enRapido(t.fichero));
 
@@ -242,38 +308,48 @@ function main(argv) {
   }
 
   console.log(`[verificar-impacto] Base: ${base}. Ficheros cambiados: ${String(cambiadas?.length ?? 0)}.`);
-  if (seleccion.todo) console.log(`[verificar-impacto] Suite entera: ${seleccion.motivo}.`);
-  else {
-    console.log(`[verificar-impacto] Siempre: ${rapido.join(', ')} (lo de test:rapido).`);
-    console.log(`[verificar-impacto] Por impacto: ${String(fuera.length)} fichero(s) de test.`);
-    for (const t of fuera) console.log(`  - ${t.fichero} (${t.motivo})`);
+  console.log(`[verificar-impacto] Siempre: ${rapido.join(', ')} (lo de test:rapido).`);
+  if (seleccion.recorte !== undefined) {
+    console.log(`[verificar-impacto] Seleccion recortada: ${seleccion.recorte}. La suite completa queda para antes de publicar.`);
   }
+  console.log(`[verificar-impacto] Por impacto: ${String(fuera.length)} fichero(s) de test.`);
+  for (const t of fuera) console.log(`  - ${t.fichero} (${t.motivo})`);
 
-  if (existsSync(path.join(dirPlugin, 'package.json'))) {
-    const scripts = JSON.parse(readFileSync(path.join(dirPlugin, 'package.json'), 'utf8')).scripts ?? {};
-    if (scripts['limpiar:test'] && npm('limpiar:test', dirPlugin) !== 0) return 1;
-    if (scripts.build && npm('build', dirPlugin) !== 0) return 1;
-  }
-  const objetivos = seleccion.todo
-    ? ['dist/test/**/*.test.js']
-    : [...rapido.map((d) => `dist/${d}/**/*.test.js`), ...fuera.map((t) => aDist(t.fichero))];
+  const objetivos = [...rapido.map((d) => `dist/${d}/**/*.test.js`), ...fuera.map((t) => aDist(t.fichero))];
   if (objetivos.length === 0) {
     console.log('[verificar-impacto] No hay tests que correr.');
     return 0;
   }
-  const inicio = Date.now();
-  // Sin NODE_TEST_CONTEXT: si quien lanza esto corre bajo node --test, el hijo
-  // se tomaria por un subtest y no imprimiria su informe.
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT;
-  const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', ...objetivos], {
-    cwd: dirPlugin,
-    env,
-    stdio: 'inherit',
-    windowsHide: true,
-  });
-  console.log(`[verificar-impacto] node --test termino con ${String(r.status)} en ${((Date.now() - inicio) / 1000).toFixed(1)} s.`);
-  return r.status ?? 1;
+  // La verificacion no puede cambiar el arbol: `npm run build` reescribe
+  // dist/src (versionado). Se guarda antes y se devuelve tal cual al acabar.
+  const distSrc = path.join(dirPlugin, 'dist', 'src');
+  const copia = mkdtempSync(path.join(tmpdir(), 'verificar-impacto-'));
+  const habiaDist = existsSync(distSrc);
+  if (habiaDist) cpSync(distSrc, path.join(copia, 'src'), { recursive: true });
+  try {
+    if (existsSync(path.join(dirPlugin, 'package.json'))) {
+      const scripts = JSON.parse(readFileSync(path.join(dirPlugin, 'package.json'), 'utf8')).scripts ?? {};
+      if (scripts['limpiar:test'] && npm('limpiar:test', dirPlugin) !== 0) return 1;
+      if (scripts.build && npm('build', dirPlugin) !== 0) return 1;
+    }
+    const inicio = Date.now();
+    // Sin NODE_TEST_CONTEXT: si quien lanza esto corre bajo node --test, el hijo
+    // se tomaria por un subtest y no imprimiria su informe.
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', ...objetivos], {
+      cwd: dirPlugin,
+      env,
+      stdio: 'inherit',
+      windowsHide: true,
+    });
+    console.log(`[verificar-impacto] node --test termino con ${String(r.status)} en ${((Date.now() - inicio) / 1000).toFixed(1)} s.`);
+    return r.status ?? 1;
+  } finally {
+    rmSync(distSrc, { recursive: true, force: true });
+    if (habiaDist) cpSync(path.join(copia, 'src'), distSrc, { recursive: true });
+    rmSync(copia, { recursive: true, force: true });
+  }
 }
 
 const invocadoDirecto = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

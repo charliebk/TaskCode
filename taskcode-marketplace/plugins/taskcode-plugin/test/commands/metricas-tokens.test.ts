@@ -11,6 +11,7 @@ import { readFile, writeFile, mkdir, mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { readTareaFile } from '../../src/fs/task-store.js';
+import { plantillaRepo } from '../helpers/repo-plantilla.js';
 import {
   MARCADOR_FIN_TOKENS,
   MARCADOR_INICIO_TOKENS,
@@ -22,7 +23,6 @@ import {
   commitAll,
   cli,
   cliOk,
-  withRepo,
   dirRevision,
   hastaCodigo,
   nueva,
@@ -54,11 +54,27 @@ async function escenario(repoRoot: string, tareasRoot: string): Promise<void> {
   assert.equal((await readTareaFile(tareasRoot, ID2))?.task.tokens_diseno, null);
 }
 
+/**
+ * TASK-122 (piramide): el escenario recorre el ciclo entero por CLI (~150
+ * procesos git). Se monta UNA vez por fichero y cada test recibe una copia; antes
+ * se repetia en los siete tests (107 s el fichero, 1167 procesos git).
+ */
+const conEscenario = plantillaRepo('taskctl-metricas-tokens-', async (repoRoot) => {
+  git(['init', '-q', '-b', 'main'], repoRoot);
+  git(['config', 'user.email', 'test@example.com'], repoRoot);
+  git(['config', 'user.name', 'Test'], repoRoot);
+  await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+  await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), CONFIG_AUTO, 'utf8');
+  await writeFile(path.join(repoRoot, 'app.txt'), 'inicial\n', 'utf8');
+  commitAll(repoRoot, 'inicial');
+  git(['checkout', '-q', '-b', 'develop'], repoRoot);
+  await escenario(repoRoot, path.join(repoRoot, 'tareas'));
+});
+
 const METRICAS_MD = (repoRoot: string): string => path.join(repoRoot, 'docs', 'METRICAS.md');
 
 test('metricas --tokens: columnas por fase y total, la tarea sin datos en la tabla y fuera del resumen, y no escribe nada', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
-    await escenario(repoRoot, tareasRoot);
+  await conEscenario(async (repoRoot, tareasRoot) => {
 
     const sin = cliOk(repoRoot, ['metricas']);
     assert.doesNotMatch(sin.stdout, /tok_/, 'sin --tokens la salida es la de siempre');
@@ -90,8 +106,7 @@ test('metricas --tokens: columnas por fase y total, la tarea sin datos en la tab
 });
 
 test('metricas --tokens --heuristica: ambas familias de columnas, y el resumen de tokens sobre la muestra', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
-    await escenario(repoRoot, tareasRoot);
+  await conEscenario(async (repoRoot, tareasRoot) => {
     const r = cliOk(repoRoot, ['metricas', '--tokens', '--heuristica']);
     const cab = r.stdout.split('\n').find((l) => l.startsWith('| id ')) as string;
     assert.match(cab, /\| tok_sin_desglose +\| puntos +\| nivel_heuristico +\|$/);
@@ -105,8 +120,7 @@ test('metricas --tokens --heuristica: ambas familias de columnas, y el resumen d
 });
 
 test('metricas: combinaciones de flags invalidas se rechazan antes de escribir nada', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
-    await escenario(repoRoot, tareasRoot);
+  await conEscenario(async (repoRoot, tareasRoot) => {
     const casos: [string[], RegExp][] = [
       [['--escribir'], /--escribir solo se admite con --tokens/],
       [['--tokens', '--escribir', '--heuristica'], /--escribir no se puede combinar con --heuristica/],
@@ -126,8 +140,7 @@ test('metricas: combinaciones de flags invalidas se rechazan antes de escribir n
 });
 
 test('metricas --tokens --escribir: crea el fichero si no existe, y la segunda vez no cambia ni un byte', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
-    await escenario(repoRoot, tareasRoot);
+  await conEscenario(async (repoRoot, tareasRoot) => {
     const a = cliOk(repoRoot, ['metricas', '--tokens', '--escribir']);
     assert.match(a.stdout, /Regenerado el bloque de tokens de .*METRICAS\.md \(recuerda commitearlo\)/);
     const primero = await readFile(METRICAS_MD(repoRoot));
@@ -149,8 +162,7 @@ test('metricas --tokens --escribir: crea el fichero si no existe, y la segunda v
 });
 
 test('metricas --tokens --escribir: solo cambia el bloque; el resto (CRLF, acentos, lo de despues) queda byte a byte', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
-    await escenario(repoRoot, tareasRoot);
+  await conEscenario(async (repoRoot, tareasRoot) => {
     const antes = '# Métricas\r\n\r\nUna sección con acentos — y CRLF.\r\n\r\n';
     const despues = '\r\n## 12. Lo escrito a mano\r\n\r\nNo tocar.\r\n\r\n```\r\nbloque de codigo\r\n```';
     await mkdir(path.dirname(METRICAS_MD(repoRoot)), { recursive: true });
@@ -185,8 +197,7 @@ test('metricas --tokens --escribir: solo cambia el bloque; el resto (CRLF, acent
 });
 
 test('metricas --tokens --escribir: sin marcadores anade el bloque al final y deja lo anterior intacto', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
-    await escenario(repoRoot, tareasRoot);
+  await conEscenario(async (repoRoot, tareasRoot) => {
     const previo = '# Métricas\n\nTexto escrito a mano.\n';
     await mkdir(path.dirname(METRICAS_MD(repoRoot)), { recursive: true });
     await writeFile(METRICAS_MD(repoRoot), previo, 'utf8');
@@ -198,8 +209,7 @@ test('metricas --tokens --escribir: sin marcadores anade el bloque al final y de
 });
 
 test('metricas --tokens --escribir: marcadores rotos o una tarea.md invalida abortan sin tocar el fichero', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
-    await escenario(repoRoot, tareasRoot);
+  await conEscenario(async (repoRoot, tareasRoot) => {
     const roto = `# M\n\n${MARCADOR_INICIO_TOKENS}\nsin cierre\n`;
     await mkdir(path.dirname(METRICAS_MD(repoRoot)), { recursive: true });
     await writeFile(METRICAS_MD(repoRoot), roto, 'utf8');
