@@ -201,10 +201,10 @@ al terminar: el freno solo bloquea una vez por turno. Con
 `comando_verificacion_selectiva`, el `Stop` y `review` corren esa: [verificacion-selectiva.md](verificacion-selectiva.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
-`taskctl finish` verifica antes de mergear y aborta en rojo. Un `git merge` o
-script de cierre hacia la rama de integracion o la principal sin verde del
-commit que entra queda bloqueado: cierra con `taskctl finish` desde la rama de
-la tarea; si choca, abortalo y resuelve en ella. Con
+`taskctl finish` verifica antes de mergear y aborta en rojo. Un merge (o el
+commit que lo cierra) hacia la de integracion o la principal sin verde se
+bloquea: cierra con `taskctl finish` desde la rama de la tarea; si choca,
+`taskctl abort-merge`, integra la base en ella y relanza `finish`. Con
 `rutas_verificacion_parcial`, `finish` puede integrar con la selectiva; un
 merge a mano no. `--sin-verificacion` lo decide la persona, no tu.
 

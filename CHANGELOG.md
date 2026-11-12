@@ -18,6 +18,20 @@
 
 ## Siguiente version — sin publicar
 
+Fix F-16 (TASK-123, critico): `finish` ya no cierra sin verificar cuando la rama
+de la tarea ya esta integrada (un merge a mano en la rama de integracion, o el
+commit que cerro alli un conflicto de `finish`). Con `comando_verificacion`, ese
+reintento verifica el arbol de la rama de integracion antes de cerrar, con la
+misma decision proporcional y reutilizando un verde del mismo arbol; en rojo
+aborta sin mover la tarea, vuelve a la rama de partida y dice que hacer.
+`--sin-verificacion` lo salta y lo anota en `## Verificacion omitida`. El
+guardian de merges trata un `git commit` (o `git merge --continue`) con
+`MERGE_HEAD` en la rama de integracion o la principal como el merge que cierra y
+lo bloquea sin un verde del arbol que se commitea; en una rama de tarea o sin
+merge en curso no se toca. El mensaje de conflicto de `finish`, el guardian y la
+guia proponen el remedio: `taskctl abort-merge`, integrar la base en la rama de
+la tarea, resolver alli y relanzar `finish` desde ella.
+
 Verificacion proporcional, parte A1 (TASK-100, primera de las tres en que se
 trocea TASK-096). Claves nuevas opcionales `rutas_documentacion` (patrones
 `git :(glob)`, sin anclar) y `comando_verificacion_documentacion`: si todo lo
