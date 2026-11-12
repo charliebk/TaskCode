@@ -20,7 +20,7 @@ tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-12
-dependencias: []
+dependencias: [TASK-115]
 ---
 ## Objetivo
 

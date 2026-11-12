@@ -29,4 +29,6 @@ La ronda 2 cuesta el 94 % de la ronda 1 en ToolsaWeb: cada revisor clona, compil
 ## Criterios de aceptacion
 - [ ] La peticion de revision trae el resultado de la verificacion de ronda (commit, huella, comando, estado) y la guia de revision dice que no se repite la suite si casa con el commit revisado (test sobre la peticion)
 - [ ] Desde la ronda 2, taskctl review solo genera peticion para los revisores con hallazgos no aceptados o cuyos ficheros toca la correccion (test con dos revisores en repo temporal)
+- [ ] Desde la ronda 2, la peticion de cada revisor lista solo sus hallazgos CRITICO e IMPORTANTE no resueltos de la ronda anterior junto al diff de la correccion, y la guia de revision pide comprobar esos y lo que toca la correccion, sin revisar de nuevo el resto ni los MENORES (test sobre la peticion)
+- [ ] Un revisor cuyos unicos pendientes son MENORES, y cuyos ficheros no toca la correccion, no se relanza en la ronda 2+ y consta asi en tarea.md (test con dos revisores en repo temporal)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test

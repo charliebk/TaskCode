@@ -20,7 +20,7 @@ tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-12
-dependencias: []
+dependencias: [TASK-111]
 ---
 ## Objetivo
 
@@ -28,8 +28,8 @@ Medido en ToolsaWeb (153 tareas terminadas, taskctl metricas, 2026-11-12): la re
 
 ## Criterios de aceptacion
 - [ ] Una clave nueva comando_verificacion_freno en .taskcode/config.yml la usa solo el freno Stop; review sigue con comando_verificacion_selectiva y finish con sus comandos, y sin la clave nueva el freno se comporta como hoy (test con repo temporal y test de regresion)
-- [ ] Una clave presupuesto_freno_s (180 por defecto cuando se declara comando_verificacion_freno) corta la verificacion del freno al agotarse: el freno no bloquea, deja parar el turno con un aviso de una linea y anota resultado excedido en el registro de TASK-111 (test con un comando que tarda mas que el presupuesto)
+- [ ] Una clave presupuesto_freno_s (180 por defecto cuando se declara comando_verificacion_freno; sin ninguna de las dos, sin tope propio como hoy) corta la verificacion que corra el freno al agotarse: el freno no bloquea, deja parar el turno con un aviso de una linea y anota resultado excedido en el registro de TASK-111 (test con un comando que tarda mas que el presupuesto)
 - [ ] Un rojo dentro del presupuesto sigue bloqueando el turno como hoy (test)
-- [ ] config.ts valida las dos claves (presupuesto entero positivo y no mayor que el timeout del hook Stop; presupuesto sin comando del freno es error) y taskctl doctor muestra que comando corre cada puerta: freno, review y finish (test)
+- [ ] config.ts valida las dos claves (presupuesto entero positivo y no mayor que el timeout del hook Stop) y taskctl doctor muestra que comando corre cada puerta: freno, review y finish (test)
 - [ ] README, CHANGELOG y la skill task-workflow explican el reparto de claves por puerta
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test

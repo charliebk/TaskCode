@@ -13,7 +13,7 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
 - **En marcha:** TASK-123 (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-111, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-121, TASK-124, TASK-125, TASK-126, TASK-127, TASK-128, TASK-129, TASK-130, TASK-019
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-121, TASK-124, TASK-019
 
 ## H0 — H0
 
@@ -78,26 +78,26 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-108 | Verificacion proporcional B5: el guardian de merges ante el nivel 2 | media | TASK-106 | ✅ terminada |
 | — | TASK-109 | Verificacion proporcional B6: documentacion y limpieza del nivel 2 | simple | TASK-107, TASK-108 | ✅ terminada |
 | — | TASK-110 | Progreso visible sin tokens: estado de cada fase en el terminal | alta | — | ✅ terminada |
-| 9 | TASK-111 | P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo | media | — | lista para empezar |
-| 10 | TASK-112 | P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes | media | — | lista para empezar |
-| 11 | TASK-113 | P-5: peticion de revision mas ligera con los tests como --stat y ruta | simple | — | lista para empezar |
-| 12 | TASK-114 | P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer | simple | — | lista para empezar |
-| 13 | TASK-115 | P-7: verificacion completa por lote de cierres en modo automatico | alta | — | lista para empezar |
-| 14 | TASK-116 | P-8: TaskCode declara su verificacion y doctor avisa cuando falta | simple | — | lista para empezar |
-| 15 | TASK-117 | P-9: new propone la complejidad a partir de tareas parecidas ya cerradas | simple | — | lista para empezar |
-| 16 | TASK-118 | P-10: linea FIN con la duracion en todos los scripts de Git-Flow | simple | — | lista para empezar |
-| 17 | TASK-119 | P-11: menos commits de proceso por tarea | media | — | lista para empezar |
-| 18 | TASK-120 | P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren | simple | — | lista para empezar |
+| 9 | TASK-112 | P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes | media | — | lista para empezar |
+| 10 | TASK-113 | P-5: peticion de revision mas ligera con los tests como --stat y ruta | simple | — | lista para empezar |
+| 11 | TASK-114 | P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer | simple | — | lista para empezar |
+| 12 | TASK-115 | P-7: verificacion completa por lote de cierres en modo automatico | alta | — | lista para empezar |
+| 13 | TASK-116 | P-8: TaskCode declara su verificacion y doctor avisa cuando falta | simple | — | lista para empezar |
+| 14 | TASK-117 | P-9: new propone la complejidad a partir de tareas parecidas ya cerradas | simple | — | lista para empezar |
+| 15 | TASK-118 | P-10: linea FIN con la duracion en todos los scripts de Git-Flow | simple | — | lista para empezar |
+| 16 | TASK-119 | P-11: menos commits de proceso por tarea | media | — | lista para empezar |
+| 17 | TASK-120 | P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren | simple | — | lista para empezar |
+| 18 | TASK-111 | P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo | media | TASK-120 | espera a TASK-120 |
 | 19 | TASK-121 | Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama | media | — | lista para empezar |
 | — | TASK-122 | Coste por tarea independiente del tamano del proyecto | alta | — | ✅ terminada |
 | 20 | TASK-123 | F-16: finish no cierra sin verificar tras un merge a mano o un conflicto | media | — | ▶ en diseño |
 | 21 | TASK-124 | Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto | media | — | lista para empezar |
-| 22 | TASK-125 | Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea | media | — | lista para empezar |
-| 23 | TASK-126 | Verificacion por tipo de rama: los tests pesados solo en la puerta de release | media | — | lista para empezar |
-| 24 | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | — | lista para empezar |
-| 25 | TASK-128 | Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores | media | — | lista para empezar |
-| 26 | TASK-129 | Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento | media | — | lista para empezar |
-| 27 | TASK-130 | Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura | simple | — | lista para empezar |
+| 22 | TASK-125 | Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea | media | TASK-111 | espera a TASK-111 |
+| 23 | TASK-126 | Verificacion por tipo de rama: los tests pesados solo en la puerta de release | media | TASK-115 | espera a TASK-115 |
+| 24 | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | TASK-112 | espera a TASK-112 |
+| 25 | TASK-128 | Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores | media | TASK-111, TASK-125 | espera a TASK-111, TASK-125 |
+| 26 | TASK-129 | Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento | media | TASK-126, TASK-128 | espera a TASK-126, TASK-128 |
+| 27 | TASK-130 | Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura | simple | TASK-129 | espera a TASK-129 |
 
 ## H1 — H1
 
