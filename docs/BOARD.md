@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-12. No editar a mano.
 
-## Planificadas (00-planificadas) — 27
+## Planificadas (00-planificadas) — 28
 
 ```text
 ID        Titulo                                                                                                      Asignado
@@ -33,10 +33,11 @@ TASK-118  P-10: linea FIN con la duracion en todos los scripts de Git-Flow      
 TASK-119  P-11: menos commits de proceso por tarea                                                                    (sin asignar)
 TASK-120  P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren                      (sin asignar)
 TASK-121  Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama                 (sin asignar)
-TASK-122  Coste por tarea independiente del tamano del proyecto                                                       (sin asignar)
+TASK-123  F-16: finish no cierra sin verificar tras un merge a mano o un conflicto                                    (sin asignar)
+TASK-124  Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto                                (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 93
+## Terminadas (04-terminadas) — 94
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -134,4 +135,5 @@ TASK-107  Verificacion proporcional B4: Stop, review y finish deciden igual el m
 TASK-108  Verificacion proporcional B5: el guardian de merges ante el nivel 2                                                 charlie.bk@gmail.com
 TASK-109  Verificacion proporcional B6: documentacion y limpieza del nivel 2                                                  charlie.bk@gmail.com
 TASK-110  Progreso visible sin tokens: estado de cada fase en el terminal                                                     charlie.bk@gmail.com
+TASK-122  Coste por tarea independiente del tamano del proyecto                                                               charlie.bk@gmail.com
 ```

@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-122-coste-por-tarea-independiente-del-tamano
 asignado_a: charlie.bk@gmail.com
@@ -54,6 +54,7 @@ Problema que plantea Carlos (2026-11-12): si cada tarea paga algo que crece con 
 | 2026-11-12T14:08:11Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T14:08:12Z | start | automatico | persona | 0.14.0 |
 | 2026-11-12T15:32:41Z | review | automatico | persona | 0.14.0 |
+| 2026-11-12T16:30:18Z | finish | automatico | persona | 0.14.0 |
 
 ## Autorrevision
 
@@ -70,3 +71,10 @@ Problema que plantea Carlos (2026-11-12): si cada tarea paga algo que crece con 
 ## Verificacion omitida
 
 - 2026-11-12T16:30:11Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 150 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 142 min
+- Paso de la hora: 142 min reales frente a 150 estimados
+- Cierre (finish): 7 s, de 2026-11-12T16:30:11Z a 2026-11-12T16:30:18Z

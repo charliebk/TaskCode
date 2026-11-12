@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-122 (feature) — Coste por tarea independiente del tamano del proyecto (2026-11-12)
 - TASK-110 (feature) — Progreso visible sin tokens: estado de cada fase en el terminal (2026-11-12)
 - TASK-109 (feature) — Verificacion proporcional B6: documentacion y limpieza del nivel 2 (2026-11-12)
 - TASK-108 (feature) — Verificacion proporcional B5: el guardian de merges ante el nivel 2 (2026-11-12)

@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-122 — Coste por tarea independiente del tamano del proyecto · etiquetas: agilidad, escala, urgente, v0.16 · rama feature/task-122-coste-por-tarea-independiente-del-tamano · terminada 2026-11-12 · tareas/04-terminadas/TASK-122/
 - TASK-110 — Progreso visible sin tokens: estado de cada fase en el terminal · etiquetas: progreso, agilidad · rama feature/task-110-progreso-visible-sin-tokens-estado-de-ca · terminada 2026-11-12 · tareas/04-terminadas/TASK-110/
 - TASK-109 — Verificacion proporcional B6: documentacion y limpieza del nivel 2 · etiquetas: verificacion, agilidad · rama feature/task-109-verificacion-proporcional-b6-documentaci · terminada 2026-11-12 · tareas/04-terminadas/TASK-109/
 - TASK-108 — Verificacion proporcional B5: el guardian de merges ante el nivel 2 · etiquetas: verificacion, agilidad · rama feature/task-108-verificacion-proporcional-b5-el-guardian · terminada 2026-11-12 · tareas/04-terminadas/TASK-108/
