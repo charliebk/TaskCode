@@ -142,6 +142,36 @@ test('documento-estado: tareas terminadas despues del ultimo commit, aviso con c
   });
 });
 
+test('documento-estado: una carpeta declarada no es un documento, aviso (MEN-1)', async () => {
+  await conRepo(async (repoRoot) => {
+    await escribir(repoRoot, '.taskcode/config.yml', 'documento_estado: docs\n');
+    await escribir(repoRoot, 'docs/x.md', 'x\n');
+    commitFechado(repoRoot, 'docs', '2026-11-12T10:00:00');
+    const c = documentoEstado(repoRoot);
+    assert.equal(c.nivel, 'aviso', c.mensaje);
+    assert.match(c.mensaje, /docs, declarado en documento_estado, no es un fichero/);
+    assert.match(c.arreglo ?? '', /docs\/ESTADO\.md/);
+  });
+});
+
+test('documento-estado: cuenta la fecha del committer, no la del autor (un rebase la renueva) (MEN-2)', async () => {
+  await conRepo(async (repoRoot) => {
+    await escribir(repoRoot, '.taskcode/config.yml', `documento_estado: ${DOC}\n`);
+    await escribir(repoRoot, DOC, '# Estado\n');
+    git(['add', '-A'], repoRoot);
+    // Autor de hace 30 dias, committer de hoy: el documento esta al dia.
+    const r = spawnSync('git', ['commit', '-q', '-m', 'docs: estado rebasado'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: { ...process.env, GIT_AUTHOR_DATE: '2026-10-13T12:00:00', GIT_COMMITTER_DATE: '2026-11-12T09:00:00' },
+    });
+    assert.equal(r.status, 0, r.stderr);
+    const c = documentoEstado(repoRoot);
+    assert.equal(c.nivel, 'ok', c.mensaje);
+    assert.match(c.mensaje, /ultimo commit 2026-11-12/);
+  });
+});
+
 test('documento-estado: sale en --json como las demas (CLI real)', async () => {
   await conRepo(async (repoRoot) => {
     await conDocumento(repoRoot, '2026-10-01T12:00:00');

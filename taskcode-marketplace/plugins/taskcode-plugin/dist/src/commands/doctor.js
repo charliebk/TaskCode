@@ -482,6 +482,11 @@ export function comprobarDocumentoEstado(cwd, cfg, repo, ahora) {
         return omitida('documento-estado', 'la config no se pudo leer (ver config)');
     const ruta = cfg.documento_estado;
     const existe = ruta !== null && existsSync(path.join(cwd, ruta));
+    // La config valida la forma de la ruta, no lo que hay en disco: una carpeta
+    // existente no es un documento y no tiene sentido fecharla (MEN-1).
+    if (ruta !== null && existe && !statSync(path.join(cwd, ruta)).isFile()) {
+        return aviso('documento-estado', `${ruta}, declarado en documento_estado, no es un fichero (es una carpeta)`, `Apunta documento_estado al fichero del documento de estado (p. ej. ${ruta.replace(/\/+$/, '')}/ESTADO.md) en .taskcode/config.yml.`);
+    }
     let fecha = null;
     if (ruta !== null && existe && repo.conCommits) {
         const r = git(['log', '-1', '--format=%cI', '--', ruta], cwd);
@@ -530,7 +535,7 @@ function comprobarPlataforma(cwd, cfg, hayOrigin, timeoutMs) {
 const ARREGLO_HOOKS_SUBAGENTE = 'Con el modo de permisos automatico, Claude Code puede denegar el lanzamiento de subagentes (Auto-Mode Bypass) si un hook ' +
     'PreToolUse reescribe el encargo. Salidas: quita Agent y Task del matcher de ese hook (si es de un plugin, con ' +
     'un hook propio de SessionStart que lo reescriba al arrancar), desactiva el plugin causante en enabledPlugins, ' +
-    'o sal del modo de permisos automatico y aprueba a mano cada lanzamiento. Ver "Problemas conocidos" en el README del plugin.';
+    'o sal del modo de permisos automatico y aprueba a mano cada lanzamiento. Ver "Problemas conocidos" en docs/problemas-conocidos.md del plugin.';
 /**
  * Siempre aviso como maximo: los ficheros son de terceros y el hook puede ser
  * inocuo. La sonda no lanza, asi que un fichero ajeno roto nunca acaba en el

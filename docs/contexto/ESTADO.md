@@ -1,6 +1,6 @@
 # Estado del proyecto — handoff
 
-> Última actualización: **2026-11-12** (TASK-124 en curso).
+> Última actualización: **2026-11-12** (TASK-124 cerrada).
 > Se actualiza al cerrar cada tarea, o como mucho cada 14 días; tope 10 240 B
 > (ver `CONVENCIONES.md`). Si lo que dice no cuadra con el repo, gana el repo
 > — y hay que corregir esto.
@@ -12,14 +12,14 @@
 
 - **Versión publicada del plugin: 0.14.0** (tag `v0.14.0`, 2026-11-10).
   Nada publicado después: `package.json` y `plugin.json` siguen en 0.14.0.
-- **Checklist**: 120 de 121 items; solo queda abierta TASK-099 (fase P).
+- **Checklist**: 121 de 122 items; solo queda abierta TASK-099 (fase P).
   Detalle en [`CHECKLIST_TERMINACION.md`](CHECKLIST_TERMINACION.md); las
   fases cerradas, en [`archivo/CHECKLIST-fases-cerradas.md`](archivo/CHECKLIST-fases-cerradas.md).
-- **En curso**: TASK-124 — contexto con tamaño máximo: lo que leen los
-  agentes no crece con el proyecto (rama
-  `feature/task-124-contexto-con-tamano-maximo-lo-que-leen-l`). Partes:
-  README del plugin por capas, archivo de CHECKLIST y ESTADO, y aviso de
-  `doctor` sobre el documento de estado.
+- **Cerrada hoy**: TASK-124 — contexto con tamaño máximo: topes en bytes
+  con test (CLAUDE.md, skills, agentes, CHECKLIST, ESTADO), README del
+  plugin partido en `docs/` del plugin, lo cerrado archivado en
+  [`archivo/`](archivo/) y `doctor` vigila este documento
+  (`documento_estado`). Siguiente en la cola: TASK-099.
 
 ## En `develop` desde la 0.14.0 (sin publicar)
 

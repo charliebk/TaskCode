@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 120 / 121 items terminados (99%)** · última actualización: 2026-11-12
+**Progreso global: 121 / 122 items terminados (99%)** · última actualización: 2026-11-12
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 20 | **19** | — |
+| ⏳ P — Agilidad sin perder calidad | 21 | **20** | — |
 | **Total pendiente** | **1** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ⏳ P — Agilidad sin perder calidad (19/20)
+## ⏳ P — Agilidad sin perder calidad (20/21)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -148,6 +148,12 @@ del código.
       start de una parte trae la base a la rama compartida. Carlos la aprobo entera (150 min). 1 ronda:
       aprobada, 6 MEN corregidos (MEN-5 en parte) y 4 mutantes muertos; suite completa con solo los 3 rojos
       de Windows, cerrada con --sin-verificacion.*
+- [x] TASK-124 — Contexto con tamaño máximo: lo que leen los agentes no crece con el proyecto — cerrada el 2026-11-12
+      *Topes en bytes con test (CLAUDE.md, skills, agentes, CHECKLIST 20 KB, ESTADO 10 KB); README del plugin
+      de 106 a 17 KB con lo detallado en docs/ del plugin (test de tamaño, enlaces y encabezados); fases
+      cerradas y ESTADO viejo a docs/contexto/archivo/; doctor vigila documento_estado. Carlos la aprobó
+      entera (150 min). 1 ronda: aprobada con correcciones, 4 MEN corregidos y 2 mutantes muertos; cerrada
+      sin ronda 2 (modo rápido).*
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
 

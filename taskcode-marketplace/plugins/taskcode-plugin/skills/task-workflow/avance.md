@@ -138,4 +138,4 @@ En los dos casos la skill termina ahi, sin volver a pasar por esta seccion.
   denegacion: ni hacer tu el trabajo del subagente ni relanzarlo con otro
   encargo. La causa habitual es un hook PreToolUse de otro plugin o de los
   settings que reescribe el encargo; las salidas estan en «Problemas
-  conocidos» del README del plugin.
+  conocidos» de docs/problemas-conocidos.md del plugin.
