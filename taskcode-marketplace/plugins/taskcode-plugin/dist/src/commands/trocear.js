@@ -12,12 +12,12 @@
  * validas no toca ningun fichero.
  */
 import path from 'node:path';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readTareaFile, moveTareaFile, writeTareaFile, listExistingTaskIds } from '../fs/task-store.js';
 import { resolverPlanFinal } from './plan.js';
 import { planRedactado } from './approve.js';
-import { ensureBaseBranchReady } from '../fs/git.js';
+import { ensureBaseBranchReady, runGit } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore } from '../fs/git-commit.js';
 import { esIdTroceable, leerPartes, planificarTroceo, planTrasTroceo, TroceoError } from '../core/troceo.js';
 export class TrocearCommandError extends Error {
@@ -75,11 +75,28 @@ export async function runTrocearCommand(tareasRoot, argv, today, deps) {
     }
     // Escritura: el plan primero (en la carpeta vieja), luego el movimiento de
     // la carpeta entera a TASK-NNNa y por ultimo las partes nuevas.
-    await writeFile(rutaPlan, planTrasTroceo(plan, partes, troceo.ids, today), 'utf8');
-    const ficheroA = await moveTareaFile(tareasRoot, filePath, troceo.parteA.task, troceo.parteA.body);
-    const ficheros = [ficheroA];
-    for (const p of troceo.resto) {
-        ficheros.push(await writeTareaFile(tareasRoot, p.task, p.body, { failIfExists: true }));
+    // MEN-5 de la revision: si algo falla a medias, se deshace. El arbol estaba
+    // limpio (ensureBaseBranchReady), asi que basta con borrar lo creado y
+    // devolver la carpeta original a como esta en HEAD.
+    const escribirParte = deps.escribirParte ?? writeTareaFile;
+    const ficheros = [];
+    const creadas = [];
+    try {
+        await writeFile(rutaPlan, planTrasTroceo(plan, partes, troceo.ids, today), 'utf8');
+        const ficheroA = await moveTareaFile(tareasRoot, filePath, troceo.parteA.task, troceo.parteA.body);
+        creadas.push(path.dirname(ficheroA));
+        ficheros.push(ficheroA);
+        for (const p of troceo.resto) {
+            creadas.push(path.join(tareasRoot, '00-planificadas', p.task.id));
+            ficheros.push(await escribirParte(tareasRoot, p.task, p.body, { failIfExists: true }));
+        }
+    }
+    catch (e) {
+        for (const dir of creadas)
+            await rm(dir, { recursive: true, force: true });
+        runGit(['checkout', 'HEAD', '--', path.relative(deps.repoCwd, taskDir).split(path.sep).join('/')], deps.repoCwd);
+        throw new TrocearCommandError(`[ERROR] ${id}: el troceo fallo a medias (${e instanceof Error ? e.message : String(e)}) y se ha deshecho: ` +
+            'la tarea sigue entera, como estaba.');
     }
     const commitResult = autoCommit({
         cwd: deps.repoCwd,

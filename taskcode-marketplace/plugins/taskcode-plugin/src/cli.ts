@@ -624,7 +624,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
       });
       printAvisos(result.avisoIdentidad, result.avisoAtribucion, ...result.avisosWip);
       process.stdout.write(
-        `Tarea ${result.id} en curso: rama ${result.rama} creada y confirmada, ` +
+        `Tarea ${result.id} en curso: rama ${result.rama} abierta y confirmada, ` +
           `tarea movida a ${result.filePath}\n${asignacionNotice(result)}`
       );
       printAutoCommit(result.autoCommit);

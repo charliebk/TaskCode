@@ -64,8 +64,9 @@ Duracion estimada: 40 min
 ...
 ```
 
-Al menos dos partes, letras seguidas desde la a, cada una con objetivo y
-criterios. Si la persona acepta trocear, `taskctl trocear TASK-NNN` (en la
+Al menos dos partes, letras seguidas desde la a, cada una con objetivo,
+criterios y su propia `Duracion estimada: N min` (obligatoria: la de la parte
+a pasa a ser la del plan, y sin ella la regla volveria a preguntar). Si la persona acepta trocear, `taskctl trocear TASK-NNN` (en la
 rama base, con el plan sin aprobar):
 
 - la tarea pasa a TASK-NNNa, sigue en diseno con su plan, y su duracion

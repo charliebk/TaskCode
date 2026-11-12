@@ -571,7 +571,7 @@ async function mainComando(argvEntrada) {
                 scriptsDir: resolveGitflowScriptsDir(),
             });
             printAvisos(result.avisoIdentidad, result.avisoAtribucion, ...result.avisosWip);
-            process.stdout.write(`Tarea ${result.id} en curso: rama ${result.rama} creada y confirmada, ` +
+            process.stdout.write(`Tarea ${result.id} en curso: rama ${result.rama} abierta y confirmada, ` +
                 `tarea movida a ${result.filePath}\n${asignacionNotice(result)}`);
             printAutoCommit(result.autoCommit);
             return 0;

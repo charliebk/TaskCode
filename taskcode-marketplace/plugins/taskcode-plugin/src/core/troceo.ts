@@ -34,11 +34,6 @@ export function esIdTroceable(id: string): boolean {
   return /^TASK-\d{3,}$/.test(id);
 }
 
-/** `TASK-121b` -> `TASK-121`; un ID sin letra se devuelve tal cual. */
-export function idRaiz(id: string): string {
-  return id.replace(/^(TASK-\d{3,})[a-z]$/, '$1');
-}
-
 const CABECERA_TROCEO_RE = /^##\s+troceo\s*$/i;
 const CABECERA_PARTE_RE = /^###\s+parte\s+([a-z])\s*[:.\-–—]\s*(.+?)\s*$/i;
 const CRITERIO_RE = /^\s*[-*]\s+\[[ xX]\]\s+(.*\S)\s*$/;
@@ -101,7 +96,9 @@ export function leerPartes(plan: string, id: string): ParteTroceo[] {
         '("### Parte a: ...", "### Parte b: ...").'
     );
   }
-  return partes.map((p, i) => {
+  // Las letras de todas las partes, antes que el contenido de cada una: un
+  // salto de letra es el error de forma, y se dice primero.
+  partes.forEach((p, i) => {
     const esperada = String.fromCharCode(97 + i);
     if (p.letra !== esperada) {
       throw new TroceoError(
@@ -109,6 +106,8 @@ export function leerPartes(plan: string, id: string): ParteTroceo[] {
           'las partes van seguidas desde la a (a, b, c...).'
       );
     }
+  });
+  return partes.map((p) => {
     const criterios: string[] = [];
     const objetivo: string[] = [];
     for (const l of p.cuerpo) {
@@ -125,13 +124,16 @@ export function leerPartes(plan: string, id: string): ParteTroceo[] {
         `${id}: la parte ${p.letra} ("${p.titulo}") no tiene criterios de aceptacion ("- [ ] ...").`
       );
     }
-    return {
-      letra: p.letra,
-      titulo: p.titulo,
-      objetivo: textoObjetivo,
-      criterios,
-      duracion: leerDuracionEstimada(p.cuerpo.join('\n')),
-    };
+    // MEN-2 de la revision: sin su propia estimacion, la parte a heredaba la
+    // de la tarea entera y la regla de una hora volvia a preguntar por ella.
+    const duracion = leerDuracionEstimada(p.cuerpo.join('\n'));
+    if (duracion.tipo !== 'ok') {
+      throw new TroceoError(
+        `${id}: la parte ${p.letra} ("${p.titulo}") no trae una "Duracion estimada: N min" legible: ` +
+          'cada parte estima la suya (entero de minutos).'
+      );
+    }
+    return { letra: p.letra, titulo: p.titulo, objetivo: textoObjetivo, criterios, duracion };
   });
 }
 

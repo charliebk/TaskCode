@@ -266,6 +266,14 @@ function traerBaseALaRama(task, base, cwd) {
         return;
     spawnSync('git', ['merge', '--abort'], { cwd, encoding: 'utf8' });
     throw new StartCommandError(`[ERROR] ${task.id}: la rama "${task.rama}" es la de la parte anterior y no se pudo traer "${base}" ` +
-        `(${(r.stderr || r.stdout || '').trim().split('\n')[0] ?? ''}). El merge se ha deshecho y la tarea no se ha ` +
+        `(${lineaDeConflicto(r.stdout, r.stderr)}). El merge se ha deshecho y la tarea no se ha ` +
         `movido. Estas en "${task.rama}": integra "${base}" a mano, commitea y reintenta "taskctl start ${task.id}".`);
+}
+/** MEN-3 de la revision: la primera linea CONFLICT de git merge; si no hay, la primera no vacia. */
+export function lineaDeConflicto(stdout, stderr) {
+    const lineas = `${stdout}\n${stderr}`
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l !== '');
+    return lineas.find((l) => l.startsWith('CONFLICT')) ?? lineas[0] ?? 'sin detalle';
 }

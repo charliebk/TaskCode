@@ -83,7 +83,7 @@ export function extraerEstructura(texto) {
         }
         const cs = celdas(linea);
         const id = cs[1] ?? '';
-        if (hito === null || cs.length !== 6 || !/^TASK-\d+$/.test(id)) {
+        if (hito === null || cs.length !== 6 || !/^TASK-\d+[a-z]?$/.test(id)) {
             noComparables.push(linea);
             continue;
         }
@@ -102,7 +102,11 @@ export function extraerEstructura(texto) {
     return { tareas, hitos, zonaManual, noComparables, duplicadas, textoPropio };
 }
 function numero(id) {
-    return Number(/(\d+)$/.exec(id)?.[1] ?? Number.MAX_SAFE_INTEGER);
+    // TASK-121: la letra de una parte ordena dentro de su numero (TASK-121a < TASK-121b < TASK-122).
+    const m = /(\d+)([a-z]?)$/.exec(id);
+    if (m === null)
+        return Number.MAX_SAFE_INTEGER;
+    return Number(m[1]) * 100 + (m[2] === '' ? 0 : m[2].charCodeAt(0) - 96);
 }
 function mismaLista(a, b) {
     const x = [...new Set(a)].sort();

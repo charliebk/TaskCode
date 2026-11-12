@@ -8,12 +8,12 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | abierto | src/core/roadmap-comparar.ts:115 | implementacion |
-| MEN-2 | MENOR | abierto | src/core/flujo.ts:185 / skills/task-workflow/duracion.md | plan |
-| MEN-3 | MENOR | abierto | src/commands/start.ts:365 | implementacion |
-| MEN-4 | MENOR | abierto | test/commands/troceo.test.ts | implementacion |
-| MEN-5 | MENOR | abierto | src/commands/trocear.ts:98 | plan |
-| MEN-6 | MENOR | abierto | src/core/troceo.ts:38 | implementacion |
+| MEN-1 | MENOR | corregido | src/core/roadmap-comparar.ts:115 | implementacion |
+| MEN-2 | MENOR | corregido | src/core/flujo.ts:185 / skills/task-workflow/duracion.md | plan |
+| MEN-3 | MENOR | corregido | src/commands/start.ts:365 | implementacion |
+| MEN-4 | MENOR | corregido | test/commands/troceo.test.ts | implementacion |
+| MEN-5 | MENOR | corregido | src/commands/trocear.ts:98 | plan |
+| MEN-6 | MENOR | corregido | src/core/troceo.ts:38 | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el

@@ -7,7 +7,8 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { readTareaFile } from '../../src/fs/task-store.js';
+import { readTareaFile, writeTareaFile } from '../../src/fs/task-store.js';
+import { runTrocearCommand } from '../../src/commands/trocear.js';
 import {
   ID,
   CONFIG_AUTO,
@@ -34,11 +35,13 @@ const TROCEO = [
   '',
   '### Parte b: Comando trocear',
   'El comando que parte la tarea.',
+  'Duracion estimada: 50 min',
   '- [ ] trocear crea las partes',
   '- [ ] el ROADMAP se regenera',
   '',
   '### Parte c: Skills',
   'Las skills explican las dos salidas.',
+  'Duracion estimada: 20 min',
   '- [ ] la skill de approve nombra trocear',
   '',
 ].join('\n');
@@ -126,6 +129,11 @@ test('troceo: trocear pasa la tarea a TASK-NNNa, crea b y c planificadas con la 
     assert.ok(board.indexOf('TASK-001c') < board.indexOf('TASK-002'));
     cliOk(repoRoot, ['metricas']);
     cliOk(repoRoot, ['roadmap']);
+    // MEN-1: el ROADMAP con partes se compara fila a fila (sin "no comparable").
+    cliOk(repoRoot, ['roadmap', '--escribir']);
+    const comp = cli(repoRoot, ['roadmap', '--comparar']);
+    assert.equal(comp.status, 0, comp.stdout + comp.stderr);
+    assert.doesNotMatch(comp.stdout + comp.stderr, /no comparable/i);
   });
 });
 
@@ -194,5 +202,65 @@ test('troceo: si la persona rechaza el troceo, approve deja la tarea entera, com
     const r = cli(repoRoot, ['trocear', ID]);
     assert.notEqual(r.status, 0);
     assert.match(r.stderr, /plan sin aprobar/);
+  });
+});
+
+test('troceo (MEN-5): si falla a medias se deshace y la tarea sigue entera', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await planGrande(repoRoot, tareasRoot, true);
+    const cabeza = git(['rev-parse', 'HEAD'], repoRoot);
+    let llamadas = 0;
+    await assert.rejects(
+      runTrocearCommand(tareasRoot, [ID], '2026-11-12', {
+        repoCwd: repoRoot,
+        escribirParte: async (root, task, body, opts) => {
+          llamadas++;
+          if (llamadas === 2) throw new Error('disco lleno simulado');
+          return writeTareaFile(root, task, body, opts);
+        },
+      }),
+      /fallo a medias \(disco lleno simulado\) y se ha deshecho/
+    );
+    assert.equal(git(['rev-parse', 'HEAD'], repoRoot), cabeza);
+    assert.equal(git(['status', '--porcelain'], repoRoot), '', 'el arbol queda como estaba');
+    assert.equal((await readTareaFile(tareasRoot, ID))?.task.estado, 'en-diseno');
+    for (const x of ['a', 'b', 'c']) assert.equal(await readTareaFile(tareasRoot, `${ID}${x}`), null);
+  });
+});
+
+test('troceo (MEN-4): si traer la base a la rama compartida choca, start lo deshace y no mueve la tarea', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await planGrande(repoRoot, tareasRoot, true);
+    cliOk(repoRoot, ['trocear', ID]);
+    const A = `${ID}a`;
+    const B = `${ID}b`;
+    const rama = (await readTareaFile(tareasRoot, A))!.task.rama;
+    cliOk(repoRoot, ['approve', A]);
+    cliOk(repoRoot, ['start', A]);
+    await codigo(repoRoot, 'parte a\n', `feat(${A}): parte a`);
+    cliOk(repoRoot, ['review', A]);
+    await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot, A), 'informe-revision-1.md'));
+    cliOk(repoRoot, ['veredicto', A, 'aprobada']);
+    cliOk(repoRoot, ['finish', A]);
+    // La rama y la base tocan la misma linea despues del cierre de a.
+    git(['checkout', '-q', rama], repoRoot);
+    await codigo(repoRoot, 'desde la rama\n', 'feat: cambio en la rama');
+    git(['checkout', '-q', 'develop'], repoRoot);
+    await codigo(repoRoot, 'desde develop\n', 'feat: cambio en develop');
+    cliOk(repoRoot, ['plan', B]);
+    await writeFile(
+      path.join(tareasRoot, '01-en-diseno', B, 'planificacion', 'plan-final.md'),
+      '# Plan\n\n## Enfoque propuesto\n\nDuracion estimada: 30 min\n\nSeguir.\n',
+      'utf8'
+    );
+    commitAll(repoRoot, `docs(${B}): plan final`);
+    cliOk(repoRoot, ['approve', B]);
+    // --asignado-a: la rama con un commit sin integrar cuenta como trabajo abierto.
+    const r = cli(repoRoot, ['start', B, '--asignado-a', 'otra@ejemplo.test']);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /no se pudo traer "develop" \(CONFLICT \(content\): Merge conflict in app\.txt\)/);
+    assert.match(r.stderr, /El merge se ha deshecho y la tarea no se ha movido/);
+    assert.equal(git(['branch', '--show-current'], repoRoot).trim(), rama);
+    assert.equal(git(['status', '--porcelain'], repoRoot), '', 'sin merge a medias');
   });
 });
