@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [flujo, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-121-troceo-de-tareas-de-mas-de-60-min-como-p
 asignado_a: charlie.bk@gmail.com
@@ -92,6 +92,7 @@ fs a mano: 380/382 (falla solo el symlink EPERM conocido de Windows, 1 skipped).
 | 2026-11-12T17:49:55Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T17:49:57Z | start | automatico | persona | 0.14.0 |
 | 2026-11-12T18:10:56Z | review | automatico | persona | 0.14.0 |
+| 2026-11-12T19:07:09Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -102,3 +103,10 @@ fs a mano: 380/382 (falla solo el symlink EPERM conocido de Windows, 1 skipped).
 ## Verificacion omitida
 
 - 2026-11-12T19:07:02Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 150 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 77 min
+- Paso de la hora: 77 min reales frente a 150 estimados
+- Cierre (finish): 7 s, de 2026-11-12T19:07:02Z a 2026-11-12T19:07:09Z

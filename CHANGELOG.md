@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-121 (feature) — Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama (2026-11-12)
 - TASK-123 (fix) — F-16: finish no cierra sin verificar tras un merge a mano o un conflicto (2026-11-12)
 - TASK-122 (feature) — Coste por tarea independiente del tamano del proyecto (2026-11-12)
 - TASK-110 (feature) — Progreso visible sin tokens: estado de cada fase en el terminal (2026-11-12)
