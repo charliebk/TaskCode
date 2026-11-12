@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-019
+- **En marcha:** TASK-116 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-112, TASK-113, TASK-114, TASK-115, TASK-117, TASK-118, TASK-119, TASK-120, TASK-019
 
 ## H0 — H0
 
@@ -82,7 +82,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 9 | TASK-113 | P-5: peticion de revision mas ligera con los tests como --stat y ruta | simple | — | lista para empezar |
 | 10 | TASK-114 | P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer | simple | — | lista para empezar |
 | 11 | TASK-115 | P-7: verificacion completa por lote de cierres en modo automatico | alta | — | lista para empezar |
-| 12 | TASK-116 | P-8: TaskCode declara su verificacion y doctor avisa cuando falta | simple | — | lista para empezar |
+| 12 | TASK-116 | P-8: TaskCode declara su verificacion y doctor avisa cuando falta | simple | — | ▶ en diseño |
 | 13 | TASK-117 | P-9: new propone la complejidad a partir de tareas parecidas ya cerradas | simple | — | lista para empezar |
 | 14 | TASK-118 | P-10: linea FIN con la duracion en todos los scripts de Git-Flow | simple | — | lista para empezar |
 | 15 | TASK-119 | P-11: menos commits de proceso por tarea | media | — | lista para empezar |
