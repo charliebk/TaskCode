@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 57222246
-tokens_revision: null
+tokens_revision: 5138780
 creado: 2026-11-12
 actualizado: 2026-11-12
 dependencias: []
@@ -53,3 +53,4 @@ Problema que plantea Carlos (2026-11-12): si cada tarea paga algo que crece con 
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T15:32:41Z | implementacion | sesion:b6ee363f-d9c2-4a11-8e6e-4c193af66eed | 56 | 27781 | 11536598 | 13212 | 0 | 11577647 | - | - |
 | 2026-11-12T15:32:41Z | implementacion | agente:ae58c72e5d2abe125 | 390 | 627770 | 44873200 | 143239 | 37 | 45644599 | - | - |
+| 2026-11-12T15:55:09Z | revision | agente:a610c3553fe2a041a | 72 | 169118 | 4940566 | 29024 | 2 | 5138780 | 1 | - |
