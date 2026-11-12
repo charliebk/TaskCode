@@ -220,6 +220,22 @@ test('ejecuta lo elegido mas los rapidos y sale con el codigo de node --test', a
   });
 });
 
+test('los tests que lanza no heredan RAMA_BASE (el freno siempre la pasa)', async () => {
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/test/c.test.ts`, "import { c } from '../src/c.js';\nvoid c; // cambio\n");
+    // Lo "compilado" de ese test (el build del repo miniatura no hace nada): pasa solo sin RAMA_BASE.
+    await escribir(
+      raiz,
+      `${PLUGIN}/dist/test/c.test.js`,
+      "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\n" +
+        "test('sin RAMA_BASE', () => { assert.equal(process.env.RAMA_BASE, undefined); });\n"
+    );
+    const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env: { ...process.env, RAMA_BASE: 'develop' } });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /test\/c\.test\.ts \(test cambiado\)/);
+  });
+});
+
 test('tope: si la seleccion pasa de VERIFICAR_IMPACTO_TOPE, solo los tests directos (y lo dice)', async () => {
   await conRepo(async (raiz) => {
     // a.ts lo importa b.ts, y b.test.ts a b.ts: por impacto entra b.test, pero no es directo.

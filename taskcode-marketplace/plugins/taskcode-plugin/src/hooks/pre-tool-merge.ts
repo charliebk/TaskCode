@@ -1,7 +1,7 @@
 /**
  * Punto de entrada del hook `PreToolUse` de Bash/PowerShell (hooks/hooks.json).
  * Corre antes de CADA comando, asi que lo primero es barato: si el texto no
- * contiene `merge` ni `aceptacion`, sale 0 sin cargar nada mas. Si no, decide
+ * contiene `merge`, `commit` (TASK-123) ni `aceptacion`, sale 0 sin cargar nada mas. Si no, decide
  * cada guardian que aplique: el de merges (guardia-merge.ts) y el de held-out
  * (guardia-heldout.ts, TASK-078). El primero que bloquea gana: sale 2 con su
  * motivo en stderr. Nunca sale con 1, que Claude Code trata como error NO
@@ -31,7 +31,7 @@ async function decidir(): Promise<Decision> {
       // deja pasar: decide el otro guardian
     }
   }
-  if (/merge/i.test(texto)) {
+  if (/merge|commit/i.test(texto)) {
     try {
       const g = await import('./guardia-merge.js');
       return g.decidirPreToolUse(g.parsearEntradaPreToolUse(texto));
@@ -42,7 +42,7 @@ async function decidir(): Promise<Decision> {
   return { codigo: 0, stderr: '' };
 }
 
-if (/merge|aceptacion/i.test(texto)) {
+if (/merge|commit|aceptacion/i.test(texto)) {
   decidir().then(
     (d) => {
       if (d.stderr !== '') process.stderr.write(`${d.stderr}\n`);

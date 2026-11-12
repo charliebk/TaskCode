@@ -184,16 +184,15 @@ test('finish (puerta): fuera de la rama de la tarea no verifica otro arbol: abor
   });
 });
 
-test('finish (puerta): no corre en el camino idempotente (los merges ya estan hechos)', async () => {
+test('finish (puerta, TASK-123): en el camino idempotente verifica el arbol de la rama de integracion y, en verde, cierra', async () => {
   await conVerificacion(async (v, repoRoot, tareasRoot) => {
     const task = sampleTask({ id: 'TASK-726' });
     await setupTaskEnRevision(repoRoot, tareasRoot, task);
     git(['checkout', '-q', 'develop'], repoRoot);
     git(['merge', '-q', '--no-ff', '-m', 'merge a mano', task.rama], repoRoot);
-    await v.desenlace('ko');
     const r = await runFinishCommand(tareasRoot, ['TASK-726'], '2026-11-04', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
     assert.equal(r.cierre, 'terminada');
-    assert.equal(v.ejecuciones(), 0);
+    assert.equal(v.ejecuciones(), 1);
   });
 });
 

@@ -4,9 +4,10 @@
  * Con `comando_verificacion` declarado, `finish` lo ejecuta SIEMPRE antes de
  * mergear o de abrir el merge request (decision de Carlos: no reutiliza el
  * memo, que no ve los ficheros ignorados) y aborta con el informe si no sale
- * en verde. Solo corre en los caminos que van a integrar algo: ni en el
- * segundo `finish --merge-request` (la plataforma ya mergeo) ni en el camino
- * idempotente (los merges ya estan hechos), donde solo bloquearia lo hecho.
+ * en verde. Solo corre en los caminos que van a integrar algo: no en el
+ * segundo `finish --merge-request` (la plataforma ya mergeo). En el camino
+ * idempotente (la rama ya integrada a mano, o tras cerrar un conflicto) corre
+ * `puertaReintento` sobre el arbol de la rama de integracion (TASK-123).
  *
  * `--sin-verificacion` la salta y lo deja escrito en la tarea. La anotacion
  * se COMMITEA en la rama de la tarea ANTES del merge: asi viaja con el merge
@@ -41,6 +42,7 @@
  * la base invalida), la completa de siempre.
  */
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
@@ -388,4 +390,121 @@ async function puertaSelectiva(
       `. Queda anotado en tarea.md (seccion "Verificacion parcial")${commit === null ? '' : `, commit ${commit}`}.`
   );
   return { resultado: { tipo: 'selectiva', comando: decision.comando, motivo: decision.motivo, deMemo: v.deMemo }, tarea };
+}
+
+// ---------------------------------------------------------------------
+// TASK-123 (F-16): la via de reintento, con la rama ya integrada.
+// ---------------------------------------------------------------------
+
+export interface PuertaReintentoOpts {
+  id: string;
+  /** La rama de la tarea, ya integrada en la de integracion. */
+  rama: string;
+  /** La rama de integracion: tiene que ser la activa (se verifica su arbol). */
+  ramaIntegracion: string;
+  sinVerificacion: boolean;
+  cwd: string;
+  /** Falso en un hotfix (integra en la principal) y en un release (siempre la completa). */
+  permitirSelectiva: boolean;
+  /** Un release lleva a la principal todo lo acumulado: siempre la completa. */
+  siempreCompleta: boolean;
+  onAviso?: (aviso: string) => void;
+  timeoutMs?: number;
+  entornoVerificacion?: () => NodeJS.ProcessEnv;
+}
+
+export type ResultadoReintento =
+  | { tipo: 'sin-comando' }
+  | { tipo: 'omitida'; comando: string }
+  | { tipo: 'verde'; que: 'completa' | 'selectiva' | 'documentacion'; deMemo: boolean };
+
+function gitOut(args: readonly string[], cwd: string): string | null {
+  const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
+  if (r.error !== undefined || r.status !== 0) return null;
+  return (r.stdout ?? '').trim();
+}
+
+/**
+ * El commit de la rama de integracion justo antes de que entrara la tarea: el
+ * primero de su historia de primeros padres que no desciende de la rama. Es la
+ * base de la decision proporcional (lo que entro con la tarea, su resolucion y
+ * lo que vino despues). null si no se puede saber (p. ej. un fast-forward, en el
+ * que los commits de la tarea son la propia historia): entonces la completa.
+ */
+function baseAntesDeIntegrar(rama: string, cwd: string): string | null {
+  const punta = gitOut(['rev-parse', '--verify', '--quiet', '--end-of-options', `${rama}^{commit}`], cwd);
+  const primeros = gitOut(['rev-list', '--first-parent', 'HEAD'], cwd);
+  const descendientes = gitOut(['rev-list', '--ancestry-path', `${rama}..HEAD`], cwd);
+  if (punta === null || primeros === null || descendientes === null) return null;
+  const nuevos = new Set(descendientes.split('\n').filter((l) => l !== ''));
+  const base = primeros.split('\n').find((c) => c !== '' && !nuevos.has(c));
+  return base === undefined || base === punta ? null : base;
+}
+
+/**
+ * TASK-123: la rama de la tarea ya esta integrada (un merge a mano, o el que
+ * cerro un conflicto de `finish`), asi que lo que se integro no paso por la
+ * puerta. Con `comando_verificacion`, antes de cerrar se verifica el arbol de la
+ * rama de integracion (donde ya esta el merge y su resolucion), con la misma
+ * decision proporcional que la puerta normal y reutilizando un verde del mismo
+ * arbol si consta en el memo. Lanza FinishCommandError en rojo, sin haber tocado
+ * la tarea. Con `--sin-verificacion` no corre nada: quien llama lo anota en el
+ * commit de cierre.
+ */
+export function puertaReintento(o: PuertaReintentoOpts): ResultadoReintento {
+  const config = resolverConfig(o.cwd);
+  const comando = config.comando_verificacion;
+  if (comando === null) return { tipo: 'sin-comando' };
+  if (o.sinVerificacion) {
+    o.onAviso?.(
+      `${o.id}: cierre con ${FLAG_SIN_VERIFICACION}: la rama ya estaba integrada en "${o.ramaIntegracion}" y no se ` +
+        `ha ejecutado "${comando}" sobre ella. Queda anotado en tarea.md (seccion "Verificacion omitida").`
+    );
+    return { tipo: 'omitida', comando };
+  }
+
+  const opciones = {
+    ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
+    ...(o.entornoVerificacion === undefined ? {} : { env: o.entornoVerificacion() }),
+  };
+  const base = o.siempreCompleta ? null : baseAntesDeIntegrar(o.rama, o.cwd);
+  const r = base === null ? null : decidirVerificacionEntre(base, 'HEAD', o.cwd);
+  const d = r !== null && r.tipo === 'decision' ? r : null;
+  let peticion: { tipo: 'completa' | 'selectiva' | 'documentacion'; comando: string; timeoutS: number; base?: string } | null = {
+    tipo: 'completa',
+    comando,
+    timeoutS: config.timeout_verificacion,
+  };
+  if (d !== null && d.decision.tipo === 'documentacion') {
+    peticion = d.decision.comando === null ? null : { tipo: 'documentacion', comando: d.decision.comando, timeoutS: d.timeoutS };
+  } else if (d !== null && d.decision.tipo === 'selectiva' && o.permitirSelectiva) {
+    peticion = { tipo: 'selectiva', comando: d.decision.comando, timeoutS: d.timeoutSelectivaS, base: base as string };
+  }
+
+  o.onAviso?.(
+    `${o.id}: la rama ya esta integrada en "${o.ramaIntegracion}" (merge hecho fuera de finish o conflicto resuelto ` +
+      'alli): se verifica el arbol de la rama de integracion antes de cerrar.'
+  );
+  if (peticion === null) return { tipo: 'verde', que: 'documentacion', deMemo: false };
+  const v = verificarConMemo(o.cwd, { ...peticion, memoSoloVerde: true }, opciones);
+  if (v.resultado.estado !== 'verde') {
+    throw new FinishCommandError(
+      `[ERROR] ${o.id}: la rama ya esta integrada en "${o.ramaIntegracion}", pero la verificacion de su arbol no sale ` +
+        `en verde (${peticion.tipo === 'completa' ? 'comando_verificacion' : `la ${peticion.tipo}`}): no se cierra la ` +
+        'tarea, que no se ha movido de carpeta.\n' +
+        `${formatearVerificacionRoja(v.resultado)}\n` +
+        `Arregla "${o.ramaIntegracion}": en la rama de la tarea, integra la base (git merge ${o.ramaIntegracion}), ` +
+        `corrige alli hasta que la verificacion salga en verde, commitea y relanza taskctl finish ${o.id} desde ` +
+        `ella. Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y ` +
+        'lo deja anotado en la tarea.'
+    );
+  }
+  if (!isWorkspaceClean(o.cwd)) {
+    throw new FinishCommandError(
+      `[ERROR] ${o.id}: la verificacion salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
+        `("${peticion.comando}" escribe ficheros versionados o no ignorados: mira git status). Ignoralos en ` +
+        '.gitignore, o descartalos, y reintenta. La tarea no se ha movido de carpeta.'
+    );
+  }
+  return { tipo: 'verde', que: peticion.tipo, deMemo: v.deMemo };
 }

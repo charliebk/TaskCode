@@ -32,7 +32,7 @@ import { parseTareaFile } from '../core/tarea-file.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
-import { registrarTransicion } from '../core/transiciones.js';
+import { anotarVerificacionOmitida, registrarTransicion } from '../core/transiciones.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { resolverConfig } from '../core/config.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, ultimaRondaAprobada } from '../fs/rondas.js';
@@ -42,7 +42,7 @@ import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeN
 import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
-import { extraerSinVerificacion, puertaVerificacion } from './finish-verificacion.js';
+import { extraerSinVerificacion, puertaReintento, puertaVerificacion } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
 import { puertaCobertura } from './finish-cobertura.js';
 import { runBoardCommand, boardFilePath } from './board.js';
@@ -384,7 +384,9 @@ async function runFinish(tareasRoot, argv, today, deps, progreso) {
     // fue el script de hotfix/release quien creo el tag.
     let commitParaTag = null;
     let tagLoPusoElScript = false;
-    if (integradaPorMergeRequest || (integradaEnDevelop && integradaEnMain))
+    // TASK-123: lo que decidio la verificacion de la via de reintento, si se paso por ella.
+    let reintento = null;
+    if (integradaPorMergeRequest)
         progreso.paso('merge');
     if (integradaPorMergeRequest) {
         const integrado = mrCtx.estado;
@@ -407,9 +409,35 @@ async function runFinish(tareasRoot, argv, today, deps, progreso) {
         if (nombreTag !== null) {
             commitParaTag = comprobarTagDeReintento(id, tipo, rama, mainBranch ?? ramaIntegracion, mainBranch !== null, nombreTag, deps.repoCwd);
         }
-        if (currentBranch(deps.repoCwd) !== ramaIntegracion) {
+        const origen = currentBranch(deps.repoCwd);
+        if (origen !== ramaIntegracion) {
             checkoutBranch(ramaIntegracion, deps.repoCwd);
         }
+        // TASK-123 (F-16): lo integrado no paso por la puerta (merge a mano, o el
+        // commit que cerro un conflicto de finish): se verifica el arbol de la rama
+        // de integracion antes de cerrar. En rojo, de vuelta a la rama de partida.
+        progreso.paso('verificacion');
+        try {
+            reintento = puertaReintento({
+                id,
+                rama,
+                ramaIntegracion,
+                sinVerificacion,
+                cwd: deps.repoCwd,
+                permitirSelectiva: tipo !== 'hotfix' && tipo !== 'release',
+                siempreCompleta: tipo === 'release',
+                ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+                ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+                entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
+            });
+        }
+        catch (e) {
+            if (origen !== '' && origen !== ramaIntegracion && isWorkspaceClean(deps.repoCwd)) {
+                checkoutBranch(origen, deps.repoCwd);
+            }
+            throw e;
+        }
+        progreso.paso('merge');
     }
     else if (mainBranch !== null && integradaEnMain && !integradaEnDevelop) {
         // Estado a medias: merge a main (y su tag) consumados, backmerge
@@ -433,9 +461,13 @@ async function runFinish(tareasRoot, argv, today, deps, progreso) {
         });
         if (code !== 0) {
             const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
+            // TASK-123: un hotfix nace de la principal: esa es su base.
+            const base = tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion;
             throw new FinishCommandError(`[ERROR] ${id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
-                'Revisa la salida de arriba (si hay un conflicto de merge, resuelvelo antes de ' +
-                'reintentar); la tarea no se ha movido de carpeta.');
+                'Revisa la salida de arriba; la tarea no se ha movido de carpeta. Si es un conflicto de merge, no ' +
+                `lo cierres en la rama destino: abortalo con taskctl abort-merge, integra la base en la rama de ` +
+                `la tarea (git checkout ${rama} && git merge ${base}), resuelvelo y commitea alli, y ` +
+                `relanza taskctl finish ${id} desde la rama de la tarea, que verifica antes de mergear.`);
         }
         // Evidencia, no suposicion (TASK-007/009): los cuatro scripts
         // terminan en la rama de integracion, con la rama de la tarea integrada; para
@@ -528,6 +560,9 @@ async function runFinish(tareasRoot, argv, today, deps, progreso) {
     // la linea de un intento anterior). Pura y sin lanzar: va fuera del try para
     // que un fallo leyendo el plan no se lleve tambien la duracion del cierre.
     conRegistro = anotarCierre(conRegistro, inicioFinish, finFinish);
+    if (reintento !== null && reintento.tipo === 'omitida') {
+        conRegistro = anotarVerificacionOmitida(conRegistro, inicioFinish, reintento.comando);
+    }
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     // Renderizado de cierre (criterio 3): plantillas desde el
     // frontmatter. BOARD.md se regenera entero reutilizando el mismo

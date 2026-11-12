@@ -598,11 +598,17 @@ test('guia (TASK-109): la seccion «Codigo parcial» explica el principio y el c
     // IMP-2: abortar e integrar la base en la rama de la tarea, no cerrar el merge en la de integracion.
     /no repitas el merge a mano ni lo\s+cierres en la rama de integracion/,
     /Abortalo \(`taskctl abort-merge`\), integra la\s+base en la rama de la tarea/,
+    // TASK-123: el reintento ya verifica, y el guardian bloquea el commit que cerraria el merge.
+    /el guardian bloquea el commit que lo\s+cerraria/,
+    /relanzado sobre ese merge verifica la\s+rama de\s+integracion y en rojo no cierra/,
+    /vuelve a lanzar\s+`taskctl finish` desde la rama de la tarea/,
   ]) {
     assert.match(seccion, marca);
   }
   assert.doesNotMatch(seccion, /TaskCode|TASK-\d/);
+  assert.doesNotMatch(seccion, /no vuelve a verificar/);
   const skill = readFileSync(path.join(dir, 'SKILL.md'), 'utf8');
   assert.match(skill, /`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;\s+un\s+merge\s+a\s+mano\s+no/);
-  assert.match(skill, /desde la rama de\s+la tarea; si choca, abortalo y resuelve en ella/);
+  // TASK-123: el remedio entero (abortar, integrar la base en la rama y relanzar finish desde ella).
+  assert.match(skill, /desde la rama de\s+la tarea; si choca,\s+`taskctl abort-merge`, integra la base en ella y relanza `finish`/);
 });

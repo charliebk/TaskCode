@@ -413,6 +413,9 @@ function main(argv) {
     // se tomaria por un subtest y no imprimiria su informe.
     const env = { ...process.env };
     delete env.NODE_TEST_CONTEXT;
+    // RAMA_BASE es para elegir la seleccion, no para los tests: un test que la herede
+    // cambia de comportamiento (el freno Stop siempre la pasa a la selectiva).
+    delete env.RAMA_BASE;
     const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', ...objetivos], {
       cwd: dirPlugin,
       env,

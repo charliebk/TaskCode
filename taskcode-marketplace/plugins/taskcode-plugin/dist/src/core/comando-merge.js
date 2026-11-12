@@ -411,3 +411,40 @@ function segmentosSoloIntegran(texto, cuenta) {
     }
     return true;
 }
+/**
+ * TASK-123 (F-16): los `git commit` y `git merge --continue` del texto, que con
+ * un merge en curso lo cierran. Devuelve el `-C <dir>` de cada uno (null: el
+ * directorio actual). Puro: si el merge esta en curso lo mira quien llama.
+ */
+export function cierresDeMerge(texto) {
+    const dirs = [];
+    for (const bruto of segmentar(texto)) {
+        const seg = sinPrefijos(bruto);
+        if (seg.length === 0)
+            continue;
+        const prog = programa(seg[0]);
+        if (prog === 'git') {
+            let i = 1;
+            let dir = null;
+            while (i < seg.length && seg[i].startsWith('-')) {
+                const op = seg[i];
+                if (GLOBALES_CON_VALOR.has(op)) {
+                    if (op === '-C')
+                        dir = seg[i + 1] ?? null;
+                    i += 2;
+                }
+                else
+                    i++;
+            }
+            const sub = (seg[i] ?? '').toLowerCase();
+            const args = seg.slice(i + 1);
+            if (sub === 'commit' || (sub === 'merge' && args.includes('--continue')))
+                dirs.push(dir);
+            continue;
+        }
+        const interior = textoDeShell(prog, seg);
+        if (interior !== null)
+            dirs.push(...cierresDeMerge(interior));
+    }
+    return dirs;
+}

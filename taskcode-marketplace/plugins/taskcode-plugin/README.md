@@ -1032,8 +1032,9 @@ rutas_verificacion_parcial: [src/web/**]          # lista de rutas permitidas
 - El **guardián de merges sigue exigiendo la completa para el código**: un merge
   a mano de una tarea con código queda bloqueado sin su verde, aunque a `finish`
   le bastara la selectiva. Si `finish` choca en un conflicto, no repitas el
-  merge a mano ni lo cierres en la rama de integración (un `finish` relanzado
-  sobre un merge ya cerrado no vuelve a verificar): abórtalo con
+  merge a mano ni lo cierres en la rama de integración (el guardián bloquea el
+  commit que lo cerraría, y un `finish` relanzado sobre ese merge verifica la
+  rama de integración y en rojo no cierra): abórtalo con
   `taskctl abort-merge`, integra la base en la rama de la tarea, resuelve allí y
   vuelve a lanzar `taskctl finish` desde ella.
 - Sin la clave, todo funciona como antes.
@@ -1121,9 +1122,14 @@ reutiliza un verde guardado, porque la huella no ve los ficheros ignorados.
 - **Verde que ensucia el árbol** (compilados, cobertura no ignorados): aborta con
   un mensaje propio antes de que el script de Git-Flow lo haga por workspace sucio.
 - Hay que lanzarlo **desde la rama de la tarea**: es el árbol que se verifica.
-- **No corre** en el segundo `finish --merge-request` (la plataforma ya mergeó)
-  ni en el camino idempotente (los merges ya están hechos): ahí solo bloquearía
-  lo hecho.
+- **No corre** en el segundo `finish --merge-request` (la plataforma ya mergeó).
+- **En el camino idempotente** (la rama ya integrada: un merge a mano, o el
+  commit que cerró un conflicto en la rama de integración) verifica el árbol de
+  la rama de integración antes de cerrar (TASK-123), con la misma decisión
+  proporcional (documentación, selectiva o completa, sobre lo que entró con la
+  tarea) y reutilizando un verde del mismo árbol. En rojo aborta sin mover la
+  tarea, vuelve a la rama de partida y dice cómo arreglarlo; `--sin-verificacion`
+  la salta y lo anota en `## Verificacion omitida`.
 - `--sin-verificacion` la salta y lo deja escrito en `tarea.md`, sección
   `## Verificacion omitida`, con un commit en la rama de la tarea **antes** del
   merge: el rastro sobrevive aunque el proceso muera después.
@@ -1243,6 +1249,17 @@ rama de integración (`rama_base`) o en la principal:
 - **Bloquea** (exit 2, el motivo le llega al agente) si no hay un **verde
   guardado para el commit que entra** —sin verde cuenta como no verde— y remite
   a `taskctl finish` (o a `--sin-verificacion`, si lo decide la persona).
+- **Bloquea el commit que cierra un merge en curso** (TASK-123): un `git commit`
+  (también `git commit -am`, `git add … && git commit`) o `git merge --continue`
+  con `MERGE_HEAD` presente en la rama de integración o la principal es el merge
+  hacia ella, y lo que se commitea es la resolución, no lo verificado en la rama
+  de la tarea. Pasa solo con un verde guardado de ese mismo árbol (el del freno
+  `Stop`) o si lo que entra ya está integrado (ancestro de `HEAD`, de la
+  principal o de `origin/<rama>`: cerrar un `git pull` o un
+  `git merge origin/develop` con conflicto no se bloquea). Propone `taskctl abort-merge`,
+  integrar la base en la rama de la tarea, resolver allí y relanzar `finish`
+  desde ella. Sin `MERGE_HEAD`, o en una rama de tarea (que es justo el
+  remedio), no se toca.
 - **Bloquea siempre si `.taskcode/config.yml` existe pero no se puede leer**
   (un valor inválido de cualquier clave) y el destino es `develop`, `main` o
   `master` —lista fija, porque sin config no se sabe `rama_base`—, aunque lo
@@ -1250,7 +1267,7 @@ rama de integración (`rama_base`) o en la principal:
   (`taskctl doctor` lo valida) y se repite el merge. Una config mal escrita no
   desactiva el guardián. *Cambia el comportamiento de la 0.14.0*, que dejaba
   pasar.
-- **Deja pasar** si el texto no contiene `merge` (sale sin cargar nada),
+- **Deja pasar** si el texto no contiene `merge` ni `commit` (sale sin cargar nada),
   `merge --abort|--continue|--quit|--skip` como opción (no como el valor de
   otra: `git merge -m --abort x` o `--message --abort x` sí mergean `x` y se
   evalúan), `merge-base`,
@@ -1264,6 +1281,9 @@ rama de integración (`rama_base`) o en la principal:
 - Nunca ejecuta la suite (su `timeout` es de 30 s): solo lee el memo.
 - Es una defensa contra despistes, no contra un agente hostil: no ve alias de
   git, `git pull`, `git push . x:develop` ni lo que se calcula en una subshell.
+  Tampoco ve el cierre de un merge con `cd <otro repo> && git commit`, con
+  `--git-dir`/`--work-tree` ni con un alias de git (`git ci`): solo respeta
+  `-C <dir>`. Es el hueco inherente al análisis sintáctico del texto.
   La red de verdad es la puerta de `finish`.
 
 `taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]`

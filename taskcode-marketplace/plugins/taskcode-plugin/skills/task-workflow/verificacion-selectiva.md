@@ -216,8 +216,9 @@ rutas_verificacion_parcial: [src/web/**]     # lista de rutas permitidas
   `git merge` a mano de una tarea con codigo queda bloqueado sin un verde de
   la completa de ese commit, aunque a `finish` le bastara la selectiva. Por
   eso, si `finish` choca en un conflicto, no repitas el merge a mano ni lo
-  cierres en la rama de integracion: un `finish` relanzado sobre un merge ya
-  cerrado no vuelve a verificar. Abortalo (`taskctl abort-merge`), integra la
+  cierres en la rama de integracion: el guardian bloquea el commit que lo
+  cerraria, y un `finish` relanzado sobre ese merge verifica la rama de
+  integracion y en rojo no cierra. Abortalo (`taskctl abort-merge`), integra la
   base en la rama de la tarea, resuelve alli el conflicto y vuelve a lanzar
   `taskctl finish` desde la rama de la tarea, que verifica y mergea por su
   cuenta. Un merge a mano de solo documentacion se rige por la seccion

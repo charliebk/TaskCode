@@ -31,7 +31,7 @@ if (d === 'ok') { console.log(tipo + ' en verde'); process.exit(0); }
 console.error('ERROR: ' + tipo + ' en rojo'); process.exit(3);
 `;
 
-type Tipo = 'completa' | 'sel';
+type Tipo = 'completa' | 'sel' | 'docs';
 
 interface Entorno {
   repoRoot: string;
@@ -50,15 +50,16 @@ const NIVEL2 = (sel: string): string =>
   `rutas_documentacion: [docs/**, trabajo-*.txt]\ncomando_verificacion_selectiva: "${sel}"\nrutas_verificacion_parcial: [src/**]\n`;
 
 async function conEntorno(
-  extra: (comandos: { completa: string; sel: string }) => string,
+  extra: (comandos: { completa: string; sel: string; docs: string }) => string,
   fn: (e: Entorno) => Promise<void>
 ): Promise<void> {
   const dir = await mkdtemp(path.join(tmpdir(), 'finish-parcial-'));
   await writeFile(path.join(dir, 'verif.cjs'), SCRIPT, 'utf8');
   await writeFile(path.join(dir, 'desenlace-completa'), 'ok', 'utf8');
   await writeFile(path.join(dir, 'desenlace-sel'), 'ok', 'utf8');
+  await writeFile(path.join(dir, 'desenlace-docs'), 'ok', 'utf8');
   const script = path.join(dir, 'verif.cjs').replace(/\\/g, '/');
-  const comandos = { completa: `node ${script} completa`, sel: `node ${script} sel` };
+  const comandos = { completa: `node ${script} completa`, sel: `node ${script} sel`, docs: `node ${script} docs` };
   try {
     await withTempRepo(async (repoRoot, tareasRoot) => {
       await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
@@ -414,5 +415,74 @@ test('finish (TASK-106, MEN-3): el rojo de la completa en un reintento dice que 
         !/No se ha tocado nada/.test(err.message)
     );
     assert.equal(git(['rev-parse', 'develop'], e.repoRoot), develop);
+  });
+});
+
+// TASK-123 (IMP-2 r1): el reintento de finish (la rama ya integrada a mano) toma
+// la misma decision proporcional que la puerta normal, sobre lo que entro con la
+// tarea: la base es el commit de la rama de integracion justo antes del merge.
+
+/** Merge a mano de la rama en develop y vuelta a la rama: lo que deja el reintento. */
+function mergeAMano(e: Entorno, rama: string): string {
+  git(['checkout', '-q', 'develop'], e.repoRoot);
+  const base = git(['rev-parse', 'HEAD'], e.repoRoot).trim();
+  git(['merge', '--no-ff', '-q', '-m', 'merge a mano', rama], e.repoRoot);
+  return base;
+}
+
+test('finish reintento (TASK-123): merge a mano de una tarea que solo cambia documentacion: corre la de documentacion, no la completa', async () => {
+  await conEntorno(
+    ({ sel, docs }) => `${NIVEL2(sel)}comando_verificacion_documentacion: "${docs}"\n`,
+    async (e) => {
+      const task = sampleTask({ id: 'TASK-961' });
+      await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+      mergeAMano(e, task.rama);
+      git(['checkout', '-q', task.rama], e.repoRoot);
+      const { avisos } = await finish(e, 'TASK-961');
+      assert.ok(avisos.some((a) => /ya esta integrada en "develop"/.test(a)), avisos.join('\n'));
+      assert.equal(e.ejecuciones('docs'), 1);
+      assert.equal(e.ejecuciones('completa'), 0);
+      assert.equal(e.ejecuciones('sel'), 0);
+      assert.equal((await readTareaFile(e.tareasRoot, 'TASK-961'))?.task.estado, 'terminada');
+    }
+  );
+});
+
+test('finish reintento (TASK-123): merge a mano de una tarea con codigo solo en rutas parciales: corre la selectiva desde la base anterior al merge', async () => {
+  await conEntorno(({ sel }) => NIVEL2(sel), async (e) => {
+    const task = sampleTask({ id: 'TASK-962' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/calculo.ts');
+    const base = mergeAMano(e, task.rama);
+    git(['checkout', '-q', task.rama], e.repoRoot);
+    await finish(e, 'TASK-962');
+    assert.equal(e.ejecuciones('sel'), 1);
+    assert.equal(e.ejecuciones('completa'), 0);
+    assert.equal(e.ramaBaseRecibida(), base);
+    assert.equal((await readTareaFile(e.tareasRoot, 'TASK-962'))?.task.estado, 'terminada');
+  });
+});
+
+test('finish reintento (TASK-123): con varios merges posteriores en develop la base sigue siendo la de antes del merge de la tarea', async () => {
+  await conEntorno(({ sel }) => NIVEL2(sel), async (e) => {
+    const task = sampleTask({ id: 'TASK-963' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/calculo.ts');
+    const base = mergeAMano(e, task.rama);
+    // Despues entran en develop otras dos ramas que solo tocan documentacion.
+    for (const n of [1, 2]) {
+      git(['checkout', '-q', '-b', `docs/otra-${n}`, 'develop'], e.repoRoot);
+      await mkdir(path.join(e.repoRoot, 'docs'), { recursive: true });
+      await writeFile(path.join(e.repoRoot, 'docs', `otra-${n}.md`), `# otra ${n}\n`, 'utf8');
+      commitAll(e.repoRoot, `docs otra ${n}`);
+      git(['checkout', '-q', 'develop'], e.repoRoot);
+      git(['merge', '--no-ff', '-q', '-m', `merge otra ${n}`, `docs/otra-${n}`], e.repoRoot);
+    }
+    git(['checkout', '-q', task.rama], e.repoRoot);
+    await finish(e, 'TASK-963');
+    // Una base tomada tras el merge de la tarea veria solo documentacion; sin base, la completa.
+    assert.equal(e.ejecuciones('sel'), 1);
+    assert.equal(e.ejecuciones('completa'), 0);
+    assert.equal(e.ramaBaseRecibida(), base);
   });
 });
