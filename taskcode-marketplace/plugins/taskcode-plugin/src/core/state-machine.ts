@@ -18,6 +18,7 @@ export type TaskCommand =
   | 'review'
   | 'codex-review'
   | 'veredicto'
+  | 'verificar-menores'
   | 'finish';
 
 export interface TransitionContext {
@@ -257,6 +258,22 @@ export function assertTransitionAllowed(
           task.estado,
           'taskctl review',
           `esta en estado "${task.estado}", no en "en-revision". taskctl veredicto solo se usa con una revision abierta.`
+        );
+      }
+      return;
+    }
+
+    case 'verificar-menores': {
+      // TASK-099: la verificacion ligera de MENORES tras una ronda aprobada.
+      // Las demas guardas (veredicto, bloqueantes, alcance) las comprueba el
+      // comando leyendo revision/ y Git; aqui solo el estado.
+      if (task.estado !== 'en-revision') {
+        throw err(
+          task.id,
+          command,
+          task.estado,
+          'taskctl review',
+          `esta en estado "${task.estado}", no en "en-revision". taskctl verificar-menores solo se usa tras una ronda de revision aprobada.`
         );
       }
       return;

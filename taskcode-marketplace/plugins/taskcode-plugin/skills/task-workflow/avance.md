@@ -51,6 +51,7 @@ segundo `finish` la cierra.
 | `veredicto` | `/taskcode-plugin:review` |
 | `codex-review` | `/taskcode-plugin:review` |
 | `veredicto-codex` | `/taskcode-plugin:review` (no lanza nada: el veredicto de la segunda opinion lo decide una persona) |
+| `verificar-menores` | `/taskcode-plugin:review` (corregir los MENORES baratos, commitear y `taskctl verificar-menores`; nunca otra ronda por MENORES) |
 | `finish` | `/taskcode-plugin:finish` |
 | `terminada` | ninguna: la tarea esta cerrada |
 

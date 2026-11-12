@@ -89,6 +89,15 @@ export function commitRevisadoDe(peticion) {
     return m === null ? null : m[1];
 }
 /**
+ * ¿Lo escribio un revisor? (IMP-1 y MEN-6 de la revision de TASK-059): una
+ * linea `- Revisor:` rellenada (no la de la plantilla) y sin la fila de
+ * ejemplo de la tabla. No prueba quien lo escribio: ese riesgo residual esta
+ * documentado y aceptado; esto descarta el informe que nadie relleno.
+ */
+export function informeRellenado(texto) {
+    return /^- Revisor:[ \t]*(?!\(rellenar)\S/m.test(texto) && !texto.includes('(ej. IMP-1)');
+}
+/**
  * De donde viene un hallazgo (TASK-063), segun la columna `Origen` que
  * rellena el revisor: el codigo no hace lo que se pedia (`implementacion`),
  * el plan era ambiguo o equivocado y el codigo lo siguio (`plan`), o el

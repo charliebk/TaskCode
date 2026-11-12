@@ -75,8 +75,13 @@ inventar hallazgos para tener algo que reportar, no.
 
 Se numeran: `peticion-revision-N.md` e `informe-revision-N.md` en
 `revision/`. **Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la
-tarea.** Los MENOR que se corrijan no abren ronda 2: basta la suite en verde,
-el commit de correccion y su nota en el `## Resultado`. La ronda 2 solo se
+tarea.** Los MENOR que se corrijan no abren ronda 2: se corrigen los
+baratos, se commitea y `taskctl verificar-menores TASK-NNN` comprueba que lo
+cambiado desde el `Commit revisado` son solo los ficheros de esos MENORES (o
+tests), lo registra en `tarea.md` y deja los no corregidos en
+`revision/menores-pendientes.md` (backlog que no bloquea `finish`). Sin esa
+verificacion, `finish` no integra codigo posterior al revisado salvo que una
+persona pase `--aceptar-sin-revisar`. La ronda 2 solo se
 pide si se corrigio algun CRITICO o IMPORTANTE (veredicto `cambios-solicitados`):
 `taskctl review` sobre la tarea en revision la genera con solo el diff desde
 la ronda anterior y los hallazgos aun abiertos de su tabla, sin integrar la

@@ -157,7 +157,8 @@ corta, falta algo de verdad.
 
 **4. Todos los hallazgos se documentan, tambien los que se decide no
 corregir.** CRITICO e IMPORTANTE se corrigen siempre. MENOR se corrige si sale
-barato; si no, se documenta con el motivo. Sin esa nota, el siguiente lector
+barato, sin abrir otra ronda (`taskctl verificar-menores`, ver `revision.md`);
+si no, queda en el backlog de la tarea con el motivo. Sin esa nota, el siguiente lector
 concluye que hay un bug donde hay una decision.
 
 **5. Un test que no falla si el comportamiento cambia no es un test.**

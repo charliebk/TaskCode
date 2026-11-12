@@ -431,7 +431,7 @@ function anotarLineaUnica(body: string, titulo: string, instante: string, texto:
   return anotarLineaEnSeccion(body, titulo, `- ${instante}: ${texto}`);
 }
 
-function anotarLineaEnSeccion(body: string, titulo: string, linea: string): string {
+export function anotarLineaEnSeccion(body: string, titulo: string, linea: string): string {
   const eol = body.includes('\r\n') ? '\r\n' : '\n';
   const lineas = body.split(/\r?\n/);
   const rango = rangoDeSeccion(lineas, titulo);

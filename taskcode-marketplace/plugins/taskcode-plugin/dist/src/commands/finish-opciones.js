@@ -22,7 +22,7 @@ import { resolverConfig } from '../core/config.js';
 export class FinishCommandError extends Error {
 }
 /** Flags de `taskctl finish`: --push, las dos opciones de cierre de TASK-060 y el salto de la verificacion (TASK-072). */
-export const FLAGS_FINISH = ['--push', '-p', '--tag', '--merge-request', '--sin-verificacion'];
+export const FLAGS_FINISH = ['--push', '-p', '--tag', '--merge-request', '--sin-verificacion', '--aceptar-sin-revisar'];
 /**
  * Saca `--tag <nombre>` / `--tag=<nombre>` y `--merge-request` de argv. Se
  * hace a mano (como `extraerPushFlag`) porque `--merge-request` es booleano

@@ -18,6 +18,7 @@ import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex-review.js';
 import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto.js';
+import { runVerificarMenoresCommand, VerificarMenoresCommandError } from './commands/verificar-menores.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
 import { runTrocearCommand, TrocearCommandError } from './commands/trocear.js';
@@ -90,7 +91,8 @@ Uso:
   taskctl codex-review TASK-NNN [--push]
   taskctl veredicto TASK-NNN <aprobada|aprobada-con-correcciones|cambios-solicitados>
                     [--informe <nombre>] [--push]
-  taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]
+  taskctl verificar-menores TASK-NNN [--motivo "<texto>"] [--push]
+  taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--aceptar-sin-revisar] [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl estado [--seguir] [--stdin]
   taskctl doctor [--json] [--instalar-status-line [--reemplazar-status-line] | --desinstalar-status-line]
@@ -106,7 +108,7 @@ Uso:
   taskctl abort-merge
 
 Comandos: new, import, board, roadmap, metricas, start, plan, approve, trocear, review, codex-review, veredicto,
-finish, siguiente, estado, doctor, doctor-deploy, pausa, registrar-coste, cadena.
+verificar-menores, finish, siguiente, estado, doctor, doctor-deploy, pausa, registrar-coste, cadena.
 estado dice en que va la tarea en curso (fase dentro del ciclo, paso dentro de la fase, x/N si el
 comando de verificacion lo escribe, minutos), leyendo solo el progreso que dejan plan, approve, start,
 review, finish y el freno de fin de turno bajo .git/: sin lanzar git. Sin nada en marcha lo dice; fuera
@@ -973,6 +975,42 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         e instanceof AutoCommitError ||
         e instanceof ConfigError ||
         e instanceof RegistrarCosteCommandError ||
+        e instanceof GitLaunchError ||
+        e instanceof GitCommandError
+      ) {
+        printCliError(e);
+        return 1;
+      }
+      throw e;
+    }
+  }
+
+  if (cmd === 'verificar-menores') {
+    const repoCwd = process.cwd();
+    const tareasRoot = path.join(repoCwd, 'tareas');
+    try {
+      const r = await runVerificarMenoresCommand(tareasRoot, argv.slice(1), { repoCwd });
+      const lista = (xs: string[]): string => (xs.length === 0 ? 'ninguno' : xs.join(', '));
+      process.stdout.write(
+        `Tarea ${r.id}: verificacion ligera de la ronda ${r.ronda} registrada (commit revisado ${r.commitRevisado.slice(0, 7)}, ` +
+          `verificado ${r.commitVerificado.slice(0, 7)}).
+` +
+          `  Ficheros cambiados: ${lista(r.ficheros)}
+  MENORES corregidos: ${lista(r.corregidos)}
+` +
+          `  MENORES pendientes: ${lista(r.pendientes)}${r.backlogPath === null ? '' : ` (backlog en ${r.backlogPath})`}
+` +
+          `Siguiente: taskctl finish ${r.id}
+`
+      );
+      printAutoCommit(r.autoCommit);
+      return 0;
+    } catch (e) {
+      if (
+        e instanceof AutoCommitError ||
+        e instanceof ConfigError ||
+        e instanceof VerificarMenoresCommandError ||
+        e instanceof StateMachineError ||
         e instanceof GitLaunchError ||
         e instanceof GitCommandError
       ) {

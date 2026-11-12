@@ -32,7 +32,9 @@ import { parseTareaFile } from '../core/tarea-file.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError } from '../core/task.js';
 import { readTareaFile, moveTareaFile, isEnoent } from '../fs/task-store.js';
-import { anotarVerificacionOmitida, registrarTransicion } from '../core/transiciones.js';
+import { anotarLineaEnSeccion, anotarVerificacionOmitida, registrarTransicion } from '../core/transiciones.js';
+import { codigoSinVerificar } from './verificar-menores.js';
+import { SECCION_CODIGO_SIN_REVISAR } from '../core/menores.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { resolverConfig } from '../core/config.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, ultimaRondaAprobada } from '../fs/rondas.js';
@@ -190,7 +192,10 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
 async function runFinish(tareasRoot, argv, today, deps, progreso) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_FINISH, 'finish', (m) => new FinishCommandError(m));
-    const { push, resto: sinPush } = extraerPushFlag(argv);
+    const { push, resto: conAceptar } = extraerPushFlag(argv);
+    // TASK-099: la persona decide integrar codigo posterior al revisado sin verificacion ligera.
+    const aceptarSinRevisar = conAceptar.includes('--aceptar-sin-revisar');
+    const sinPush = conAceptar.filter((a) => a !== '--aceptar-sin-revisar');
     const { sinVerificacion, resto: sinFlagVerificacion } = extraerSinVerificacion(sinPush);
     const { tag: nombreTag, mergeRequest: pideMergeRequest, resto } = extraerFlagsCierre(sinFlagVerificacion);
     const id = resto[0];
@@ -285,6 +290,27 @@ async function runFinish(tareasRoot, argv, today, deps, progreso) {
         validarNombreTag(nombreTag, id, deps.repoCwd);
     const mrCtx = modoMergeRequest ? resolverMergeRequest(id, rama, urlMrAnotada, deps.repoCwd) : null;
     const integradaPorMergeRequest = mrCtx !== null && mrCtx.estado.tipo === 'integrado';
+    // TASK-099 (criterio 3): no se integra codigo commiteado despues del Commit
+    // revisado sin una verificacion ligera al dia (taskctl verificar-menores) o la
+    // decision de una persona (--aceptar-sin-revisar, que queda anotada). Un MR ya
+    // integrado en la plataforma no integra nada aqui.
+    let codigoAceptado = null;
+    if (!integradaPorMergeRequest) {
+        const ref = localBranchExists(rama, deps.repoCwd) ? rama : 'HEAD';
+        const sinVerificar = await codigoSinVerificar(path.dirname(initial.filePath), initial.body, ref, deps.repoCwd);
+        if (sinVerificar !== null && !aceptarSinRevisar) {
+            throw new FinishCommandError(`[ERROR] ${id}: "${rama}" tiene codigo posterior al commit revisado en la ronda ${String(sinVerificar.ronda)} ` +
+                `(${sinVerificar.revisado.slice(0, 7)}) que ninguna verificacion ligera cubre: ${sinVerificar.cambiados.join(', ')}. ` +
+                `Si son las correcciones de los MENORES: taskctl verificar-menores ${id}. Si no, otra ronda ` +
+                `(taskctl veredicto ${id} cambios-solicitados y taskctl review ${id}), o que una persona decida ` +
+                `integrarlo sin revisar con taskctl finish ${id} --aceptar-sin-revisar. No se ha tocado nada.`);
+        }
+        if (sinVerificar !== null) {
+            codigoAceptado =
+                `taskctl finish --aceptar-sin-revisar; integrado sin revisar ni verificacion ligera el codigo de ` +
+                    `${sinVerificar.revisado.slice(0, 7)}..${rama} (ronda ${String(sinVerificar.ronda)}): ${sinVerificar.cambiados.join(', ')}`;
+        }
+    }
     // Colision de IDs ANTES de mergear (criterio 4): se comprueba contra
     // cada rama destino del merge. Para feature/fix solo la de integracion; para
     // hotfix/release tambien la principal. Un MR ya mergeado en la plataforma
@@ -562,6 +588,9 @@ async function runFinish(tareasRoot, argv, today, deps, progreso) {
     conRegistro = anotarCierre(conRegistro, inicioFinish, finFinish);
     if (reintento !== null && reintento.tipo === 'omitida') {
         conRegistro = anotarVerificacionOmitida(conRegistro, inicioFinish, reintento.comando);
+    }
+    if (codigoAceptado !== null) {
+        conRegistro = anotarLineaEnSeccion(conRegistro, SECCION_CODIGO_SIN_REVISAR, `- ${inicioFinish}: ${codigoAceptado}`);
     }
     const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
     // Renderizado de cierre (criterio 3): plantillas desde el
