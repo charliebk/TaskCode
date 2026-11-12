@@ -94,3 +94,12 @@ Carlos: «no se trocea nada, se hace todo dentro de la misma tarea TASK-110». L
 - (d) ¿`--seguir` (criterio 3) en esta tarea? Recomiendo **sacarlo a una tarea posterior o retirarlo**: Carlos lo deja en secundario, y riesgos señala que el agente lo lanzaría sin TTY y gastaría los tokens que la tarea quiere ahorrar. Si se mantiene, gana la prueba 7 de testing (es lo que el criterio permite probar) y el riesgo queda abierto y dicho.
 - (e) ¿Desinstalación de la status line en doctor desde el primer día? Recomiendo **sí** (riesgos): tras revertir, la barra muestra un error en cada refresco, y sin copia la configuración previa no se recupera.
 - (f) ¿Detección de «interrumpido» por pid + instante? Recomiendo **dejarla fuera**: no está en los criterios, y riesgos mismo la da por insuficiente en Windows sin medir.
+
+### Respuestas de la persona (Carlos, 2026-11-12)
+
+- (a) **Sí**: el criterio 2 se lee como «solo ficheros de progreso bajo `.git`, sin lanzar git».
+- (b) **`settings.json` de usuario**, instalación única; fuera de un repo con taskctl no imprime nada; sin `taskctl` en el PATH no se instala y se avisa.
+- (c) **Dentro del proceso** (mínimo de 5 ejecuciones).
+- (d) **`--seguir` se hace dentro de TASK-110**, como último paso (F), con la prueba 7 de testing; el riesgo del agente que lo lanza sin TTY queda abierto y se contiene como diga la implementación (una línea sin TTY).
+- (e) **Sí**: doctor puede desinstalar la status line desde el primer día.
+- (f) **Fuera**: no se detecta «interrumpido» por pid.
