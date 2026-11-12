@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [revision, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-099-correccion-de-menores-tras-aprobar-con-c
 asignado_a: charlie.bk@gmail.com
@@ -46,6 +46,7 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 | 2026-11-12T21:03:22Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T21:03:24Z | start | automatico | persona | 0.14.0 |
 | 2026-11-12T21:21:23Z | review | automatico | persona | 0.14.0 |
+| 2026-11-12T23:13:47Z | finish | automatico | persona | 0.14.0 |
 
 ## Autorrevision
 
@@ -102,3 +103,14 @@ test 1873: se cierra con `--sin-verificacion` tras correrla a mano.
 ## Verificacion omitida
 
 - 2026-11-12T23:13:39Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 110 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 130 min
+- Paso de la hora: 130 min reales frente a 110 estimados
+- Cierre (finish): 8 s, de 2026-11-12T23:13:39Z a 2026-11-12T23:13:47Z
+
+## Codigo integrado sin revisar
+
+- 2026-11-12T23:13:39Z: taskctl finish --aceptar-sin-revisar; integrado sin revisar ni verificacion ligera el codigo de 14556f7..feature/task-099-correccion-de-menores-tras-aprobar-con-c (ronda 1): taskcode-marketplace/plugins/taskcode-plugin/dist/src/commands/siguiente.js, taskcode-marketplace/plugins/taskcode-plugin/dist/src/commands/verificar-menores.js, taskcode-marketplace/plugins/taskcode-plugin/dist/src/core/menores.js, taskcode-marketplace/plugins/taskcode-plugin/skills/finish/SKILL.md, taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/SKILL.md, taskcode-marketplace/plugins/taskcode-plugin/src/commands/siguiente.ts, taskcode-marketplace/plugins/taskcode-plugin/src/commands/verificar-menores.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/flujo.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/menores.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/progreso-comandos.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/verificar-menores.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/menores.test.ts

@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-12. No editar a mano.
 
-## Planificadas (00-planificadas) — 31
+## Planificadas (00-planificadas) — 30
 
 ```text
 ID        Titulo                                                                                                          Asignado
@@ -21,7 +21,6 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio                      charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                                                (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                                          (sin asignar)
-TASK-099  Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa                               (sin asignar)
 TASK-111  P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo                         (sin asignar)
 TASK-112  P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes      (sin asignar)
 TASK-113  P-5: peticion de revision mas ligera con los tests como --stat y ruta                                           (sin asignar)
@@ -40,7 +39,7 @@ TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, p
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 97
+## Terminadas (04-terminadas) — 98
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -127,6 +126,7 @@ TASK-095  Revision que converge: desde la ronda 2 solo se verifican las correcci
 TASK-096  Verificacion proporcional B: con codigo parcial se verifica solo lo afectado                                        charlie.bk@gmail.com
 TASK-097  Regla de una hora: plan estima la duracion de punta a punta y propone trocear                                       charlie.bk@gmail.com
 TASK-098  ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes                             charlie.bk@gmail.com
+TASK-099  Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa                                   charlie.bk@gmail.com
 TASK-100  Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion                        charlie.bk@gmail.com
 TASK-101  Verificacion proporcional A2: el guardian de merges no exige la completa si la tarea solo cambia documentacion      charlie.bk@gmail.com
 TASK-102  Verificacion proporcional A3: el freno Stop y las rondas de review no corren la suite si solo cambia documentacion  charlie.bk@gmail.com
