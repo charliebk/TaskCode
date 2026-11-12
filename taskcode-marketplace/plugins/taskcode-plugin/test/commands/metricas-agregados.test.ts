@@ -231,3 +231,48 @@ test('--evolucion --grupos juntos: las dos secciones, en ese orden', async () =>
     assert.match(metricas(alfa, ['--grupos', '--tokens']).stderr, /--grupos no se combina con --tokens/);
   });
 });
+
+/** TASK-122: tarea con punta a punta, revision y finish medidos (minutos), cerrada el dia `dia`. */
+function conCoste(id: string, dia: string, punta: number, revision: number, finishMin: number): TareaFixture {
+  const fin = Date.parse(`${dia}T18:00:00Z`);
+  const iso = (ms: number) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  return {
+    id,
+    plan: iso(fin - (punta + 10) * 60_000),
+    start: iso(fin - punta * 60_000),
+    review: iso(fin - revision * 60_000),
+    finish: iso(fin),
+    cierreSegundos: finishMin * 60,
+  };
+}
+
+test('--evolucion (TASK-122): coste fijo por tramo frente a las cerradas, y la linea de tendencia', async () => {
+  await conRepos(async (crear) => {
+    const repo = await crear('gamma');
+    await escribirTareas(repo, [
+      conCoste('TASK-001', '2026-10-01', 60, 20, 5),
+      conCoste('TASK-002', '2026-10-02', 60, 20, 5),
+      conCoste('TASK-003', '2026-10-03', 90, 30, 5),
+      conCoste('TASK-004', '2026-10-04', 90, 30, 5),
+      conCoste('TASK-005', '2026-10-05', 120, 40, 5),
+      conCoste('TASK-006', '2026-10-06', 120, 10, 5),
+    ]);
+    const r = metricas(repo, ['--evolucion', '--tramo', '2']);
+    assert.equal(r.status, 0, r.stderr);
+    const t = filasTramo(r.stdout);
+    // Columnas nuevas al final: cerradas, min punta a punta, min revision, min finish.
+    assert.deepEqual(t.map((c) => c.slice(9)), [
+      ['2', '60 (n=2)', '20 (n=2)', '5 (n=2)'],
+      ['4', '90 (n=2)', '30 (n=2)', '5 (n=2)'],
+      ['6', '120 (n=2)', '25 (n=2)', '5 (n=2)'],
+    ]);
+    assert.match(
+      r.stdout,
+      /Coste fijo por tarea, del tramo 1 \(2 cerradas\) al 3 \(6 cerradas\): punta a punta 60 -> 120 min \(crece\); revision 20 -> 25 min \(crece\); finish 5 -> 5 min \(se mantiene\)\./
+    );
+    const j = metricas(repo, ['--evolucion', '--tramo', '3', '--json']);
+    assert.equal(j.status, 0, j.stderr);
+    const tramos = (JSON.parse(j.stdout) as { evolucion: { tramos: { cerradasAcumuladas: number; minutosRevision: { valor: number } }[] } }).evolucion.tramos;
+    assert.deepEqual(tramos.map((x) => [x.cerradasAcumuladas, x.minutosRevision.valor]), [[3, 20], [6, 30]]);
+  });
+});
