@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-122-coste-por-tarea-independiente-del-tamano
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 57222246
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-12
@@ -41,7 +41,15 @@ Problema que plantea Carlos (2026-11-12): si cada tarea paga algo que crece con 
 | 2026-11-12T14:05:39Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T14:08:11Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T14:08:12Z | start | automatico | persona | 0.14.0 |
+| 2026-11-12T15:32:41Z | review | automatico | persona | 0.14.0 |
 
 ## Autorrevision
 
 - code-quality-reviewer — 5ce9211
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-12T15:32:41Z | implementacion | sesion:b6ee363f-d9c2-4a11-8e6e-4c193af66eed | 56 | 27781 | 11536598 | 13212 | 0 | 11577647 | - | - |
+| 2026-11-12T15:32:41Z | implementacion | agente:ae58c72e5d2abe125 | 390 | 627770 | 44873200 | 143239 | 37 | 45644599 | - | - |
