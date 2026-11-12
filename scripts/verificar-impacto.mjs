@@ -15,7 +15,9 @@
  *    - un `test/**\/*.test.ts` cambiado se corre;
  *    - un `.ts` de `src/` o `test/` cambiado: los tests que lo importan, directa
  *      o transitivamente (grafo de imports relativos leido con una expresion
- *      regular, sin compilar);
+ *      regular, sin compilar). La busqueda se para en `src/cli.ts`, el
+ *      enrutador de comandos: mas alla solo entran los tests que nombran un
+ *      comando por el que el cambio llego a el (ver `testsQueDependenDe`);
  *    - un fichero que los tests usan sin importarlo: `bin/taskctl` cuenta como
  *      importado por quien lo lanza (marcador `'bin', 'taskctl'`), igual que
  *      `scripts/gitflow/**` (marcador `'scripts', 'gitflow'`); cualquier otro
@@ -44,6 +46,9 @@ const MARCADORES = [
   { patron: /['"]bin['"]\s*,\s*['"]taskctl['"]|bin\/taskctl/, dependeDe: (f) => f === 'bin/taskctl' || f === 'bin/taskctl.cmd' },
   { patron: /['"]scripts['"]\s*,\s*['"]gitflow['"]|scripts\/gitflow/, dependeDe: (f) => f.startsWith('scripts/gitflow/') },
 ];
+/** El enrutador de comandos (ver testsQueDependenDe); es lo que carga `bin/taskctl`. */
+export const ENRUTADOR = 'src/cli.ts';
+const LANZA_TASKCTL = MARCADORES[0].patron;
 const IMPORT_RE = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
 
 function git(args, cwd) {
@@ -95,6 +100,10 @@ export function grafoDelPlugin(dirPlugin) {
       const destino = resolverImport(f, m[1], existentes);
       if (destino !== null) importa.add(destino);
     }
+    // Quien lanza bin/taskctl ejecuta src/cli.ts (o la via rapida de estado) sin importarlo.
+    if (LANZA_TASKCTL.test(texto)) {
+      for (const d of [ENRUTADOR, 'src/commands/estado.ts']) if (existentes.has(d)) importa.add(d);
+    }
     nodos.set(f, { texto, importa });
   }
   return nodos;
@@ -103,7 +112,24 @@ export function grafoDelPlugin(dirPlugin) {
 const esTest = (f) => f.startsWith('test/') && f.endsWith('.test.ts');
 const enRapido = (f) => RAPIDO.some((d) => f.startsWith(`${d}/`));
 
-/** Tests que dependen (directa o transitivamente) de alguno de `origenes`. */
+/** Nombres con los que se invoca por CLI el comando de `src/commands/<x>.ts` (`finish-verificacion` -> finish). */
+function nombresDeComando(fichero) {
+  const x = path.posix.basename(fichero, '.ts');
+  return [...new Set([x, x.split('-')[0]])];
+}
+
+/**
+ * Tests que dependen (directa o transitivamente) de alguno de `origenes`.
+ *
+ * `src/cli.ts` es el enrutador de todos los comandos: casi todo test de un
+ * comando lo importa (o lanza `bin/taskctl`) para ejecutar SU comando, no los
+ * demas. Pasar por el sin filtro elegiria casi la suite entera para cualquier
+ * cambio. Asi que la busqueda se para en el y, mas alla, solo entran los tests
+ * que nombran entre comillas (en su texto o en el de un helper que importan)
+ * alguno de los comandos por los que el cambio llego al enrutador. Si el cambio
+ * es el propio enrutador, o llega a el sin pasar por ningun comando, entran
+ * todos los que dependen de el.
+ */
 function testsQueDependenDe(nodos, origenes) {
   const inverso = new Map();
   for (const [f, n] of nodos) {
@@ -112,18 +138,35 @@ function testsQueDependenDe(nodos, origenes) {
       inverso.get(d).add(f);
     }
   }
-  const vistos = new Set(origenes);
-  const cola = [...origenes];
-  while (cola.length > 0) {
-    const actual = cola.shift();
-    for (const quien of inverso.get(actual) ?? []) {
-      if (!vistos.has(quien)) {
-        vistos.add(quien);
-        cola.push(quien);
+  const buscar = (inicio, parar) => {
+    const vistos = new Set(inicio);
+    const cola = [...inicio];
+    while (cola.length > 0) {
+      const actual = cola.shift();
+      if (parar.has(actual) && !inicio.includes(actual)) continue;
+      for (const quien of inverso.get(actual) ?? []) {
+        if (!vistos.has(quien)) {
+          vistos.add(quien);
+          cola.push(quien);
+        }
       }
     }
+    return vistos;
+  };
+  const vistos = buscar(origenes, new Set([ENRUTADOR]));
+  const tests = new Set([...vistos].filter(esTest));
+  if (vistos.has(ENRUTADOR) && !origenes.includes(ENRUTADOR)) {
+    const comandos = [...vistos].filter((f) => f.startsWith('src/commands/')).flatMap(nombresDeComando);
+    const nombra = (t) => {
+      const propios = [t, ...[...(nodos.get(t)?.importa ?? [])].filter((d) => d.startsWith('test/'))];
+      const textos = propios.map((f) => nodos.get(f)?.texto ?? '');
+      return comandos.some((c) => textos.some((x) => x.includes(`'${c}'`) || x.includes(`"${c}"`)));
+    };
+    for (const t of buscar([ENRUTADOR], new Set())) {
+      if (esTest(t) && (comandos.length === 0 || nombra(t))) tests.add(t);
+    }
   }
-  return [...vistos].filter(esTest);
+  return [...tests];
 }
 
 function esDocumentacion(ruta) {

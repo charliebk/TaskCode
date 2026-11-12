@@ -48,6 +48,13 @@ const FICHEROS: Record<string, string> = {
   [`${PLUGIN}/test/lanza.test.ts`]: "import { BIN } from './helpers/h.js';\nvoid BIN;\n",
   [`${PLUGIN}/test/flujo.test.ts`]: "const S = ['scripts', 'gitflow'];\nconst Y = 'plantilla.yml';\nvoid S; void Y;\n",
   [`${PLUGIN}/test/core/x.test.ts`]: "import { c } from '../../src/c.js';\nvoid c;\n",
+  // El enrutador de comandos: quien lo importa solo depende de los comandos que nombra.
+  [`${PLUGIN}/src/cli.ts`]: "import { alfa } from './commands/alfa.js';\nimport { beta } from './commands/beta.js';\nexport const main = [alfa, beta];\n",
+  [`${PLUGIN}/src/commands/alfa.ts`]: "import { x } from '../core/x.js';\nexport const alfa = x;\n",
+  [`${PLUGIN}/src/commands/beta.ts`]: 'export const beta = 2;\n',
+  [`${PLUGIN}/src/core/x.ts`]: 'export const x = 1;\n',
+  [`${PLUGIN}/test/alfa.test.ts`]: "import { main } from '../src/cli.js';\nvoid main; const ARGS = ['alfa'];\nvoid ARGS;\n",
+  [`${PLUGIN}/test/beta.test.ts`]: "import { main } from '../src/cli.js';\nvoid main; const ARGS = ['beta'];\nvoid ARGS;\n",
   // Lo "compilado" que corre node --test (el build del repo miniatura no hace nada).
   [`${PLUGIN}/dist/test/core/x.test.js`]: PASA,
   [`${PLUGIN}/dist/test/b.test.js`]: PASA,
@@ -101,6 +108,18 @@ test('un modulo de src elige los tests que lo importan, tambien transitivamente,
     assert.equal(s.todo, false);
     assert.deepEqual(ficheros(s), ['test/b.test.ts']);
     assert.match(s.tests[0]!.motivo, /src\/a\.ts/);
+  });
+});
+
+test('el enrutador (src/cli.ts) corta: mas alla solo entran los tests que nombran el comando afectado', async () => {
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/src/core/x.ts`, 'export const x = 5;\n');
+    // alfa.test nombra 'alfa'; beta.test y lanza.test (bin/taskctl via su helper) no.
+    assert.deepEqual(ficheros(listar(raiz)), ['test/alfa.test.ts']);
+  });
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/src/cli.ts`, "export const main = [];\n");
+    assert.deepEqual(ficheros(listar(raiz)), ['test/alfa.test.ts', 'test/beta.test.ts', 'test/lanza.test.ts']);
   });
 });
 
