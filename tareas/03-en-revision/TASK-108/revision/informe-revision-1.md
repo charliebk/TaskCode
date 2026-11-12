@@ -12,8 +12,8 @@ Veredicto propuesto por el revisor: aprobada-con-correcciones. En modo automatic
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | corregido (5cd4dee) | taskcode-plugin/src/hooks/guardia-merge.ts:289-291 (rama `selectiva` de `exencionDocumentacion`) | implementacion |
-| MEN-2 | MENOR | corregido (5cd4dee) | taskcode-plugin/test/hooks/guardia-documentacion.test.ts (tests TASK-108) | implementacion |
+| MEN-1 | MENOR | corregido | taskcode-plugin/src/hooks/guardia-merge.ts:289-291 (rama `selectiva` de `exencionDocumentacion`) | implementacion |
+| MEN-2 | MENOR | corregido | taskcode-plugin/test/hooks/guardia-documentacion.test.ts (tests TASK-108) | implementacion |
 | MEN-3 | MENOR | aceptado | taskcode-plugin/src/hooks/guardia-merge.ts:258-261 (`LINEA_SELECTIVA`) | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
