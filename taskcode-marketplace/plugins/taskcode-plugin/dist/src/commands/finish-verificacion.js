@@ -197,8 +197,8 @@ async function puertaSoloDocumentacion(o, comando, decision, timeoutS) {
 /**
  * TASK-106: por que se ejecuta la completa en un proyecto que la decide (la
  * base declara `rutas_documentacion`). Una decision `selectiva` solo llega aqui
- * si la puerta no la permite: un hotfix. No es la `motivoDeLaCompleta` del
- * guardian (fs/decision-documentacion), que aun no acepta la selectiva (B5).
+ * si la puerta no la permite: un hotfix. No es el texto del guardian de merges
+ * (hooks/guardia-merge), que con codigo exige siempre la completa (TASK-108, D1).
  */
 function motivoCompletaEnFinish(d) {
     return d.tipo === 'selectiva' ? 'un hotfix integra en la principal y siempre se verifica con la completa' : d.motivo;

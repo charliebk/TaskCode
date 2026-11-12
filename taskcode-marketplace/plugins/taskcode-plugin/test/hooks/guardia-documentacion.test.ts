@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { decidirPreToolUse } from '../../src/hooks/guardia-merge.js';
 import { comandoSoloIntegra } from '../../src/core/comando-merge.js';
-import { guardarMemo, huellaDeCommit } from '../../src/fs/verificacion.js';
+import { contextoSelectiva, guardarMemo, huellaDeCommit } from '../../src/fs/verificacion.js';
 import { runFinishCommand } from '../../src/commands/finish.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
 
@@ -304,4 +304,139 @@ test('guardian (TASK-105): una decision selectiva bloquea a proposito, aunque su
       assert.equal(e.ejecutadoAlguno(), false);
     }
   );
+});
+
+// TASK-108 (B5, D1 de Carlos del 2026-11-11): con rutas_verificacion_parcial el
+// guardian nunca acepta el verde de la selectiva para codigo.
+
+const verdeDe = (comando: string) =>
+  ({ comando, estado: 'verde' as const, codigo: 0, duracionMs: 1, timeoutS: 600, bytesTotales: 0, cola: '' });
+
+/** La selectiva es otro script (cuenta en `cuenta-sel`), para que su memo no se confunda con el de documentacion. */
+const comandoSel = (docs: string) => docs.replace(/ docs$/, ' sel');
+
+const PARCIAL = (docs: string) =>
+  `${RUTAS}comando_verificacion_documentacion: "${docs}"\n` +
+  `comando_verificacion_selectiva: "${comandoSel(docs)}"\n` +
+  'rutas_verificacion_parcial: [src/**]\n';
+
+const LINEA_COMPLETA = /un merge a mano exige la verificacion completa en verde de ese commit/;
+
+test('guardian (TASK-108): con nivel 2, una tarea sin codigo pasa con el verde de su verificacion de documentacion', async () => {
+  await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
+    const task = sampleTask({ id: 'TASK-971' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'docs/guia.md');
+    assert.equal(guardian(e, mergeA(task.rama)).codigo, 2, 'sin el verde de documentacion, bloquea');
+    const huella = huellaDeCommit(e.repoRoot, task.rama, e.comandoDocs, 600) as string;
+    guardarMemo(e.repoRoot, huella, verdeDe(e.comandoDocs), 'documentacion');
+    assert.equal(guardian(e, mergeA(task.rama)).codigo, 0);
+    assert.equal(e.ejecutadoAlguno(), false);
+  });
+});
+
+test('guardian (TASK-108): con nivel 2, una tarea con codigo se bloquea aunque conste en verde el memo de la selectiva', async () => {
+  await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
+    const task = sampleTask({ id: 'TASK-972' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/ui/boton.ts', 'export const b = 1;\n');
+    const sel = comandoSel(e.comandoDocs);
+    // El memo exactamente como lo guarda la selectiva (huella con la base y su commit).
+    const huellaSel = huellaDeCommit(e.repoRoot, task.rama, sel, 600, contextoSelectiva(e.repoRoot, 'develop')) as string;
+    guardarMemo(e.repoRoot, huellaSel, verdeDe(sel), 'selectiva');
+    const d = guardian(e, mergeA(task.rama));
+    assert.equal(d.codigo, 2);
+    assert.match(d.stderr ?? '', LINEA_COMPLETA);
+    // Control: lo que faltaba era la completa; con su verde, pasa.
+    const huella = huellaDeCommit(e.repoRoot, task.rama, e.comandoCompleta, 600) as string;
+    guardarMemo(e.repoRoot, huella, verdeDe(e.comandoCompleta), 'completa');
+    assert.equal(guardian(e, mergeA(task.rama)).codigo, 0);
+    assert.equal(e.ejecutadoAlguno(), false);
+  });
+});
+
+test('guardian (TASK-108): el bloqueo con codigo dice que hace falta la completa y como integrar, sin mandar a repetir el merge', async () => {
+  await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
+    const task = sampleTask({ id: 'TASK-973' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/ui/boton.ts', 'export const b = 1;\n');
+    const texto = guardian(e, mergeA(task.rama)).stderr ?? '';
+    assert.match(texto, /No es solo documentacion: la tarea cambia rutas que no son documentacion\.\n/);
+    assert.match(texto, LINEA_COMPLETA);
+    assert.match(texto, /aunque taskctl finish acepte la de lo afectado \(rutas_verificacion_parcial\)/);
+    assert.match(texto, /Integra con taskctl finish TASK-NNN, que verifica y mergea por su cuenta/);
+    assert.match(texto, /taskctl finish TASK-NNN --sin-verificacion/);
+    // Ni «corre la completa y repite» (bucle: nada la guarda) ni una causa que no se comprueba.
+    assert.doesNotMatch(texto, /repite el merge|corre la (verificacion )?completa|develop avanzo|huella/i);
+  });
+});
+
+test('guardian (TASK-108): decide con la config del destino; la del arbol no cambia el mensaje', async () => {
+  // La config del arbol se toca sin commitear: commitearla haria que la tarea
+  // cambiara .taskcode/config.yml, que por si solo exige la completa.
+  // El arbol declara la clave; el destino (develop) no la tiene: mensaje de antes.
+  await conEntorno(({ docs }) => `${RUTAS}comando_verificacion_documentacion: "${docs}"\n`, async (e) => {
+    const task = sampleTask({ id: 'TASK-974' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/ui/boton.ts', 'export const b = 1;\n');
+    await writeFile(
+      path.join(e.repoRoot, '.taskcode', 'config.yml'),
+      `comando_verificacion: "${e.comandoCompleta}"\n${PARCIAL(e.comandoDocs)}`,
+      'utf8'
+    );
+    const d = guardian(e, mergeA(task.rama));
+    assert.equal(d.codigo, 2);
+    assert.match(d.stderr ?? '', /No es solo documentacion: la tarea cambia rutas que no son documentacion: src\/ui\/boton\.ts/);
+    assert.doesNotMatch(d.stderr ?? '', LINEA_COMPLETA);
+  });
+  // Al reves: el destino la declara y el arbol la quita de su config: manda el destino.
+  await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
+    const task = sampleTask({ id: 'TASK-975' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/ui/boton.ts', 'export const b = 1;\n');
+    await writeFile(path.join(e.repoRoot, '.taskcode', 'config.yml'), `comando_verificacion: "${e.comandoCompleta}"\n${RUTAS}`, 'utf8');
+    const d = guardian(e, mergeA(task.rama));
+    assert.equal(d.codigo, 2);
+    assert.match(d.stderr ?? '', LINEA_COMPLETA);
+  });
+});
+
+test('guardian (TASK-108): sin rutas_verificacion_parcial, con codigo, se comporta como en la 0.14.0', async () => {
+  await conEntorno(() => RUTAS, async (e) => {
+    const task = sampleTask({ id: 'TASK-976' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'src/calculo.ts', 'export const x = 1;\n');
+    const d = guardian(e, mergeA(task.rama));
+    assert.equal(d.codigo, 2);
+    const lineas = (d.stderr ?? '').split('\n');
+    assert.equal(lineas.length, 5, d.stderr);
+    assert.match(lineas[0] as string, /^Merge bloqueado: .* no consta una verificacion en verde de ese commit \(comando de verificacion: /);
+    assert.equal(lineas[1], 'No es solo documentacion: la tarea cambia rutas que no son documentacion: src/calculo.ts.');
+    assert.match(lineas[2] as string, /^Cierra la tarea con taskctl finish TASK-NNN/);
+    assert.doesNotMatch(d.stderr ?? '', LINEA_COMPLETA);
+    const huella = huellaDeCommit(e.repoRoot, task.rama, e.comandoCompleta, 600) as string;
+    guardarMemo(e.repoRoot, huella, verdeDe(e.comandoCompleta), 'completa');
+    assert.equal(guardian(e, mergeA(task.rama)).codigo, 0);
+  });
+});
+
+test('guardian (TASK-108, MEN-1/MEN-2): con nivel 2, un release con codigo conserva su detalle y un hotfix no promete la selectiva', async () => {
+  await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
+    // Release con codigo hacia develop: su detalle propio, sin la linea de la tarea.
+    git(['checkout', '-q', '-b', 'release/1.0', 'develop'], e.repoRoot);
+    await enLaRama(e, 'src/ui/boton.ts', 'export const b = 1;\n');
+    const rel = guardian(e, mergeA('release/1.0'));
+    assert.equal(rel.codigo, 2);
+    assert.match(rel.stderr ?? '', /Un release lleva a la principal todo lo acumulado: siempre exige la verificacion completa\./);
+    assert.doesNotMatch(rel.stderr ?? '', LINEA_COMPLETA);
+    // Hotfix con codigo hacia la principal: finish tampoco acepta alli la selectiva.
+    git(['checkout', '-q', 'main'], e.repoRoot);
+    git(['merge', '-q', '--ff-only', 'develop'], e.repoRoot);
+    git(['checkout', '-q', '-b', 'hotfix/1.0.1', 'main'], e.repoRoot);
+    await enLaRama(e, 'src/ui/arreglo.ts', 'export const a = 1;\n');
+    const hot = guardian(e, 'git checkout main && git merge --no-ff hotfix/1.0.1');
+    assert.equal(hot.codigo, 2);
+    assert.match(hot.stderr ?? '', /No es solo documentacion: la tarea cambia rutas que no son documentacion\.\n/);
+    assert.doesNotMatch(hot.stderr ?? '', LINEA_COMPLETA);
+  });
 });
