@@ -213,7 +213,7 @@ export interface FilaMetricas {
   /** Solo con `--heuristica`. */
   heuristica?: HeuristicaFila;
   /**
-   * P-1: duracion del propio cierre (verificacion + merge + artefactos), leida de la
+   * P-1: duracion del propio cierre (arranque de finish -> fin del merge), leida de la
    * linea `- Cierre (finish)` de `## Duracion`; null si no hay linea o su fecha no vale.
    */
   finish: Duracion | null;

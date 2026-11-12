@@ -261,7 +261,11 @@ export interface FinishCommandDeps {
    * resultado llega despues del merge, cuando ya no hay vuelta atras.
    */
   onAviso?: (aviso: string) => void;
-  /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
+  /**
+   * TASK-052: instante UTC de ARRANQUE del comando (`formatearInstante`). Desde P-1
+   * es el inicio de la linea de cierre; la fila `finish` lleva el de `reloj`, o este
+   * si no hay reloj. Sin ninguno de los dos, la fila lleva solo `today`.
+   */
   ahora?: string;
   /**
    * P-1: reloj para el instante de FIN del comando (`formatearInstante`). La fila
@@ -679,11 +683,13 @@ export async function runFinishCommand(
   let conRegistro = conFila;
   try {
     conRegistro = anotarDuracion(conFila, await duracionDelPlan(path.dirname(filePath)), minutosPuntaAPunta(conFila));
-    // P-1: despues de anotarDuracion, que reescribe la seccion entera.
-    conRegistro = anotarCierre(conRegistro, inicioFinish, finFinish);
   } catch (e: unknown) {
     deps.onAviso?.(`${id}: no se pudo anotar la duracion (${e instanceof Error ? e.message : String(e)}); el cierre sigue.`);
   }
+  // P-1: despues de anotarDuracion, que reescribe la seccion entera (y con ella
+  // la linea de un intento anterior). Pura y sin lanzar: va fuera del try para
+  // que un fallo leyendo el plan no se lleve tambien la duracion del cierre.
+  conRegistro = anotarCierre(conRegistro, inicioFinish, finFinish);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
 
   // Renderizado de cierre (criterio 3): plantillas desde el
