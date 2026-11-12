@@ -40,6 +40,7 @@ import { casillasSinMarcar } from '../core/validacion-tarea.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, resolveIntegrationBranch, localBranchExists, commitDeIntegracion, numeroDePadres, pushRama, fetchOrigin, resolverCommit, fastForwardDesde, runGit, GitCommandError, } from '../fs/git.js';
 import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { extraerSinVerificacion, puertaVerificacion } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
@@ -179,7 +180,14 @@ async function appendEntry(filePath, inicial, header, entry) {
     }
     await writeFile(filePath, insertAfterHeader(content, header, entry), 'utf8');
 }
+/** TASK-110: los pasos de finish, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_FINISH = ['puertas', 'verificacion', 'cobertura', 'held-out', 'merge', 'artefactos'];
 export async function runFinishCommand(tareasRoot, argv, today, deps) {
+    // TASK-110: el progreso se marca terminado tambien si aborta.
+    const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+    return conProgreso(progreso, () => runFinish(tareasRoot, argv, today, deps, progreso));
+}
+async function runFinish(tareasRoot, argv, today, deps, progreso) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_FINISH, 'finish', (m) => new FinishCommandError(m));
     const { push, resto: sinPush } = extraerPushFlag(argv);
@@ -204,6 +212,8 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     }
     const ctxInicial = await buildTransitionContext(path.dirname(initial.filePath));
     assertTransitionAllowed('finish', initial.task, ctxInicial);
+    progreso.fase(initial.task.id, 'finish', PASOS_FINISH);
+    progreso.paso('puertas');
     // TASK-043 (D5 de la auditoria): avisar, sin bloquear, de criterios sin
     // marcar antes de mergear. No bloquea: hay criterios que se cumplen y no
     // se marcan, y el veredicto del revisor ya es la puerta dura.
@@ -301,6 +311,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     // en los caminos que van a integrar algo (abrir el MR o ejecutar el script).
     // TASK-073: y detras, la de los tests held-out (que --sin-verificacion no salta).
     const puerta = async () => {
+        progreso.paso('verificacion');
         const r = await puertaVerificacion({
             id,
             rama,
@@ -317,9 +328,12 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             ...(tipo === 'release' ? {} : { ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion }),
             // TASK-106: un hotfix integra en la principal: nunca la selectiva (si su camino de solo documentacion).
             permitirSelectiva: tipo !== 'hotfix',
+            // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
+            entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
         });
         // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
         // de que el comando de held-out pueda reescribirlo.
+        progreso.paso('cobertura');
         puertaCobertura({
             id,
             ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion,
@@ -327,6 +341,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             cwd: deps.repoCwd,
             ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
         });
+        progreso.paso('held-out');
         puertaHeldout({
             id,
             rama,
@@ -340,6 +355,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             cwd: deps.repoCwd,
             ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
         });
+        progreso.paso('merge');
         return r;
     };
     if (mrCtx !== null && mrCtx.estado.tipo === 'ninguno') {
@@ -368,6 +384,8 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
     // fue el script de hotfix/release quien creo el tag.
     let commitParaTag = null;
     let tagLoPusoElScript = false;
+    if (integradaPorMergeRequest || (integradaEnDevelop && integradaEnMain))
+        progreso.paso('merge');
     if (integradaPorMergeRequest) {
         const integrado = mrCtx.estado;
         commitParaTag = traerIntegracionDeLaPlataforma({
@@ -473,6 +491,7 @@ export async function runFinishCommand(tareasRoot, argv, today, deps) {
             tag = ponerTag(nombreTag, commitParaTag, titulo, id, ramaDelTag, deps.repoCwd);
         }
     }
+    progreso.paso('artefactos');
     // Lectura FRESCA, ya en la rama de integracion con el merge consumado: la unica que
     // decide la escritura. El contexto de aprobacion se recalcula sobre
     // la carpeta que el merge dejo en ella.

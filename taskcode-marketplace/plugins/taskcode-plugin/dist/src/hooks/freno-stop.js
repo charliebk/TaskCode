@@ -48,6 +48,7 @@ import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { baseDeTipoSinRed, resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
 import { verificarConMemo } from '../fs/verificacion.js';
+import { crearProgreso, entornoConContador } from '../fs/progreso.js';
 /**
  * `timeout` del hook Stop en hooks/hooks.json, en segundos. Claude Code cancela
  * el hook al vencerlo y descarta su salida: el freno fallaria ABIERTO. Por eso
@@ -183,9 +184,27 @@ export async function decidirStop(entrada, deps = {}) {
         const peticion = plan.tipo === 'selectiva'
             ? { tipo: 'selectiva', comando: plan.comando, timeoutS, base: plan.base }
             : { tipo: plan.tipo, comando: plan.comando, timeoutS };
-        // 8 y 9
-        const deOpciones = deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs };
-        const { resultado: r, deMemo, cambioElArbol } = verificarConMemo(raiz, peticion, deOpciones);
+        // 8 y 9. TASK-110: el paso se ve mientras corre; acaba "terminada" si sale
+        // en verde y "abortada" si bloquea el turno (o si algo lanza).
+        const progreso = deps.progreso ?? crearProgreso(raiz);
+        const paso = plan.tipo === 'completa' ? 'verificacion' : `verificacion ${plan.tipo}`;
+        progreso.fase(ids[0] ?? tarea, 'freno', [paso]);
+        progreso.paso(paso);
+        // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
+        const deOpciones = {
+            env: entornoConContador(process.env, progreso.contador()),
+            ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+        };
+        let verificacion;
+        try {
+            verificacion = verificarConMemo(raiz, peticion, deOpciones);
+        }
+        catch (e) {
+            progreso.terminar('abortada');
+            throw e;
+        }
+        progreso.terminar(verificacion.resultado.estado === 'verde' ? 'ok' : 'abortada');
+        const { resultado: r, deMemo, cambioElArbol } = verificacion;
         if (r.estado === 'verde')
             return dejarParar;
         if (plan.tipo === 'documentacion') {

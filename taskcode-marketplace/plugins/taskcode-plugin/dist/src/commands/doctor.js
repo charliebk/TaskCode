@@ -7,7 +7,8 @@
  * configuracion, coherencia de las tareas y, si la config lo pide, el CLI de la
  * plataforma (gh/glab) y su sesion. SOLO LEE: no escribe, no commitea, no
  * cambia de rama; lo unico que sale a la red es la comprobacion de sesion de
- * la plataforma, con timeout propio corto.
+ * la plataforma, con timeout propio corto. La unica escritura (TASK-110): la
+ * status line de Claude Code, y solo con su flag explicito.
  *
  * Decisiones (plan de TASK-062, Carlos 2026-10-08):
  *
@@ -47,10 +48,19 @@ import { directorioConfigClaude } from '../fs/config-claude.js';
 import { sondearHooksClaude } from '../fs/sondas-hooks-claude.js';
 import { sondearVersionPlugin } from '../fs/sonda-version-plugin.js';
 import { compararVersiones, NOMBRE_PLUGIN } from '../core/version.js';
+import { COMANDO_STATUS_LINE, desinstalarStatusLine, instalarStatusLine, sondearStatusLine, } from '../fs/status-line.js';
 export class DoctorCommandError extends Error {
 }
-/** Flags de `taskctl doctor`: solo --json. */
-export const FLAGS_DOCTOR = ['--json'];
+/** Flags de `taskctl doctor`: --json y, desde TASK-110, los de la status line (los unicos que escriben). */
+export const FLAG_INSTALAR_STATUS_LINE = '--instalar-status-line';
+export const FLAG_REEMPLAZAR_STATUS_LINE = '--reemplazar-status-line';
+export const FLAG_DESINSTALAR_STATUS_LINE = '--desinstalar-status-line';
+export const FLAGS_DOCTOR = [
+    '--json',
+    FLAG_INSTALAR_STATUS_LINE,
+    FLAG_REEMPLAZAR_STATUS_LINE,
+    FLAG_DESINSTALAR_STATUS_LINE,
+];
 /** Espera maxima de la comprobacion de sesion de la plataforma (el unico acceso a la red). */
 export const TIMEOUT_PLATAFORMA_MS = 10_000;
 /** Espera maxima de cada `git` lanzado por doctor. */
@@ -522,6 +532,42 @@ export function comprobarVersionPlugin(deps) {
     }
 }
 // ---------------------------------------------------------------------
+// Status line de Claude Code (TASK-110)
+// ---------------------------------------------------------------------
+/**
+ * Sin flags SOLO mira y nunca da aviso ni error (no cambia el codigo de salida
+ * ni los avisos que cuentan los demas tests): `ok` si esta, `omitida` con la
+ * oferta si no. Con --instalar-status-line o --desinstalar-status-line, el
+ * resultado de la accion: `error` si se pidio y no se pudo.
+ */
+export function comprobarStatusLine(deps, accion) {
+    const id = 'status-line';
+    const configDir = deps.configClaudeDir ?? directorioConfigClaude();
+    if (accion !== 'mirar') {
+        const r = accion === 'desinstalar'
+            ? desinstalarStatusLine(configDir, deps.ahora ?? new Date())
+            : instalarStatusLine(configDir, {
+                reemplazar: accion === 'reemplazar',
+                env: deps.env ?? process.env,
+                ahora: deps.ahora ?? new Date(),
+            });
+        return r.tipo === 'rechazado' ? fallo(id, una(r.mensaje), r.arreglo) : ok(id, una(r.mensaje));
+    }
+    const s = sondearStatusLine(configDir);
+    switch (s.estado) {
+        case 'nuestra':
+            return ok(id, una(`instalada en ${s.ruta}: Claude Code muestra en que va la tarea (${COMANDO_STATUS_LINE})`));
+        case 'ausente':
+            return omitida(id, 'no instalada. Para ver en Claude Code en que va la tarea en curso (fase, paso, x/N, minutos) sin preguntar ' +
+                `al agente: taskctl doctor ${FLAG_INSTALAR_STATUS_LINE} (una vez, para todos los proyectos)`);
+        case 'ajena':
+            return omitida(id, una(`${s.ruta} ya tiene otra status line ("${s.comando}"): no se toca. Para sustituirla por la de taskctl ` +
+                `(con copia; desinstalar la devuelve): taskctl doctor ${FLAG_INSTALAR_STATUS_LINE} ${FLAG_REEMPLAZAR_STATUS_LINE}`));
+        case 'ilegible':
+            return omitida(id, una(`no se pudo leer ${s.ruta}: ${s.motivo}`));
+    }
+}
+// ---------------------------------------------------------------------
 // Orquestacion
 // ---------------------------------------------------------------------
 export function runDoctorCommand(argv, deps) {
@@ -530,6 +576,16 @@ export function runDoctorCommand(argv, deps) {
     if (sobra !== undefined) {
         throw new DoctorCommandError(`[ERROR] taskctl doctor: no admite argumentos ("${sobra}"). Uso: taskctl doctor [--json].`);
     }
+    const instalar = argv.includes(FLAG_INSTALAR_STATUS_LINE);
+    const reemplazar = argv.includes(FLAG_REEMPLAZAR_STATUS_LINE);
+    const desinstalar = argv.includes(FLAG_DESINSTALAR_STATUS_LINE);
+    if (reemplazar && !instalar) {
+        throw new DoctorCommandError(`[ERROR] taskctl doctor: ${FLAG_REEMPLAZAR_STATUS_LINE} solo vale junto a ${FLAG_INSTALAR_STATUS_LINE}. No se ha tocado nada.`);
+    }
+    if (instalar && desinstalar) {
+        throw new DoctorCommandError(`[ERROR] taskctl doctor: ${FLAG_INSTALAR_STATUS_LINE} y ${FLAG_DESINSTALAR_STATUS_LINE} se excluyen. No se ha tocado nada.`);
+    }
+    const accionStatusLine = desinstalar ? 'desinstalar' : reemplazar ? 'reemplazar' : instalar ? 'instalar' : 'mirar';
     const json = argv.includes('--json');
     const cwd = deps.repoCwd;
     const tareasRoot = path.join(cwd, 'tareas');
@@ -570,6 +626,7 @@ export function runDoctorCommand(argv, deps) {
     cs.push(...envolver('plataforma', () => comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)));
     cs.push(...envolver('hooks-subagente', () => comprobarHooksSubagente(deps)));
     cs.push(...envolver('version-plugin', () => comprobarVersionPlugin(deps)));
+    cs.push(...envolver('status-line', () => comprobarStatusLine(deps, accionStatusLine)));
     return {
         comprobaciones: cs,
         codigo: codigoSalida(cs),

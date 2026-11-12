@@ -59,6 +59,13 @@ export function extraerSinVerificacion(argv) {
     const resto = argv.filter((a) => a !== FLAG_SIN_VERIFICACION);
     return { sinVerificacion: resto.length !== argv.length, resto };
 }
+/** Las opciones de ejecucion del comando: el timeout de los tests y el entorno con el contador. */
+function opcionesEjecucion(o) {
+    return {
+        ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
+        ...(o.entornoVerificacion === undefined ? {} : { env: o.entornoVerificacion() }),
+    };
+}
 /**
  * TASK-100: la decision para esta tarea, con la config de la base, o null si
  * la base no declara rutas de documentacion (entonces ni se calcula el diff).
@@ -131,7 +138,7 @@ export async function puertaVerificacion(o) {
     }
     const timeoutS = config.timeout_verificacion;
     const inicioMs = Date.now();
-    const r = ejecutarVerificacion(o.cwd, comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
+    const r = ejecutarVerificacion(o.cwd, comando, timeoutS, opcionesEjecucion(o));
     // El memo solo con el arbol limpio: es la huella del commit que consulta el
     // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
     const limpio = isWorkspaceClean(o.cwd);
@@ -168,7 +175,7 @@ async function puertaSoloDocumentacion(o, comando, decision, timeoutS) {
     const { commit, tarea: releida } = await anotarYCommitear(o, body, 'cierre solo documentacion', 'anotar la verificacion');
     const c = { commit };
     if (decision.comando !== null) {
-        const r = ejecutarVerificacion(o.cwd, decision.comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
+        const r = ejecutarVerificacion(o.cwd, decision.comando, timeoutS, opcionesEjecucion(o));
         const limpio = isWorkspaceClean(o.cwd);
         const huella = limpio ? huellaDelArbol(o.cwd, decision.comando, timeoutS) : null;
         if (huella !== null)
@@ -254,7 +261,7 @@ async function anotarYCommitear(o, body, mensaje, que) {
  * reintento).
  */
 async function puertaSelectiva(o, comando, decision, timeoutS, ramaBase) {
-    const v = verificarConMemo(o.cwd, { tipo: 'selectiva', comando: decision.comando, timeoutS, base: ramaBase, memoSoloVerde: true }, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
+    const v = verificarConMemo(o.cwd, { tipo: 'selectiva', comando: decision.comando, timeoutS, base: ramaBase, memoSoloVerde: true }, opcionesEjecucion(o));
     if (v.resultado.estado !== 'verde') {
         throw new FinishCommandError(`[ERROR] ${o.id}: no se mergea con la verificacion selectiva en rojo (comando_verificacion_selectiva: ` +
             `${decision.motivo}). No se ha tocado nada.\n` +
