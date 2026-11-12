@@ -7,11 +7,13 @@ tarea no ha tocado esa parte. El proyecto puede declarar dos verificaciones:
 | Clave | Que corre | Quien la usa |
 |---|---|---|
 | `comando_verificacion` | **todo**, siempre | `finish` y el guardian de merges: la puerta de integracion |
-| `comando_verificacion_selectiva` | solo lo afectado por los cambios | el hook `Stop` (fin de turno) y `taskctl review` |
+| `comando_verificacion_selectiva` | solo lo afectado por los cambios | el hook `Stop` (fin de turno), `taskctl review` y, con `rutas_verificacion_parcial`, `finish` |
 
-La selectiva solo acelera las rondas. **Antes de integrar se exige siempre la
-completa** en verde sobre el commit que entra, aunque las rondas pasaran con la
-selectiva. Por eso la selectiva sin la completa es un error de configuracion.
+Por defecto la selectiva solo acelera las rondas: **antes de integrar se exige
+la completa** en verde sobre el commit que entra, aunque las rondas pasaran con
+la selectiva. La unica excepcion la declara el proyecto con
+`rutas_verificacion_parcial` (ver «Codigo parcial» al final). Por eso la
+selectiva sin la completa es un error de configuracion.
 
 ## Declarar las dos claves
 
@@ -86,9 +88,10 @@ El clasificador falla cerrado: ante la duda, corre todo. Como minimo:
   revision lleva una seccion con el tipo (selectiva o comprobacion de
   documentacion), el comando, el resultado y su salida. Sin la selectiva,
   `review` no verifica nada.
-- **`taskctl finish`**: corre la completa; en rojo no integra y dice como
-  correrla.
-- **`taskctl doctor`**: avisa si hay completa y falta la selectiva.
+- **`taskctl finish`**: corre la completa (o la selectiva, si se cumple
+  «Codigo parcial»); en rojo no integra y dice como correrla.
+- **`taskctl doctor`**: avisa si hay completa y falta la selectiva, y si
+  `rutas_verificacion_parcial` no puede tener efecto.
 
 ## Tareas de solo documentacion: `rutas_documentacion`
 
@@ -169,3 +172,48 @@ ejecutan, y romperlos rompe el comportamiento del agente:
 
 Declara carpetas concretas de documentacion para personas (`docs/**`,
 `README.md`, `CHANGELOG.md`).
+
+## Codigo parcial: `rutas_verificacion_parcial`
+
+El principio: **el coste de verificar es proporcional al cambio**. Una tarea de
+solo documentacion no corre tests; una que solo toca una parte acotada del
+codigo puede integrarse con la verificacion de lo afectado; todo lo demas,
+con la completa. Por defecto la completa es la puerta de integracion; declarar
+esta clave es aceptar, para este proyecto, que en esas rutas baste lo
+afectado.
+
+```yaml
+# .taskcode/config.yml
+comando_verificacion: "npm test"
+comando_verificacion_selectiva: "node scripts/verificar-selectiva.js"
+timeout_verificacion_selectiva: 600          # opcional; tambien vale para finish
+rutas_documentacion: [docs/**, README.md]
+rutas_verificacion_parcial: [src/web/**]     # lista de rutas permitidas
+```
+
+- **Lista de rutas permitidas, leida de la rama base**: si todo lo que la
+  tarea cambia frente a la base, salvo la documentacion, cae en esas rutas,
+  `finish` corre `comando_verificacion_selectiva` (con `RAMA_BASE` y
+  `timeout_verificacion_selectiva`) en vez de la completa. Un solo fichero
+  fuera, un cambio de `.taskcode/config.yml` o un diff vacio van a la
+  completa. La rama no puede ampliarse las rutas: se leen de la base.
+- **Exige** `comando_verificacion_selectiva` (la config aborta sin ella) y
+  `rutas_documentacion`: sin rutas de documentacion la decision no se calcula
+  y la clave no tiene efecto (`taskctl doctor` lo avisa).
+- `finish` dice en su salida que corrio la selectiva y por que, y tras el
+  verde lo anota en `tarea.md`, seccion `## Verificacion parcial`, antes del
+  merge. Si ya hay un verde de la selectiva para ese mismo commit y esa misma
+  base (del fin de turno o de `review`, con el arbol limpio), lo reutiliza.
+- **Cobertura omitida**: con la selectiva el informe seria parcial, asi que
+  la puerta de cobertura no se evalua; se mide en la completa del release.
+- **Release y hotfix van siempre a la completa**: el release lleva a la
+  principal todo lo acumulado y el hotfix integra en ella.
+- **El guardian de merges sigue exigiendo la completa para el codigo**: un
+  `git merge` a mano de una tarea con codigo queda bloqueado sin un verde de
+  la completa de ese commit, aunque a `finish` le bastara la selectiva. Por
+  eso, si `finish` falla a mitad (un conflicto, por ejemplo), no repitas el
+  merge a mano: resuelve el conflicto y vuelve a lanzar `taskctl finish`, que
+  verifica y mergea por su cuenta. Un merge a mano de solo documentacion se
+  rige por la seccion anterior.
+- El fin de turno y `review` deciden igual sobre el mismo diff: corren la
+  selectiva cuando la tarea toca codigo, este o no en las rutas parciales.

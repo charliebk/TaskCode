@@ -560,10 +560,42 @@ test('guia (TASK-091): task-workflow enlaza verificacion-selectiva.md, que expli
     /corre todo/,
     /lockfiles/,
     /La completa no se convierte en el clasificador/,
-    /Antes de integrar se exige siempre la\s+completa/,
+    // TASK-109: antes «Antes de integrar se exige siempre la completa»; el nivel 2
+    // (TASK-096) abrio una excepcion que declara el proyecto, y la guia lo dice.
+    /antes de integrar se exige\s+la completa\*\*/,
+    /La unica excepcion la declara el proyecto con\s+`rutas_verificacion_parcial`/,
     /`taskctl doctor`/,
   ]) {
     assert.match(guia, marca);
   }
   assert.doesNotMatch(guia, /TaskCode/);
+});
+
+test('guia (TASK-109): la seccion «Codigo parcial» explica el principio y el contrato del nivel 2', () => {
+  const dir = path.join(import.meta.dirname, '..', '..', '..', 'skills', 'task-workflow');
+  const guia = readFileSync(path.join(dir, 'verificacion-selectiva.md'), 'utf8');
+  const inicio = guia.indexOf('## Codigo parcial: `rutas_verificacion_parcial`');
+  assert.ok(inicio >= 0, 'falta la seccion «Codigo parcial» en verificacion-selectiva.md');
+  const fin = guia.indexOf('\n## ', inicio + 1);
+  const seccion = guia.slice(inicio, fin < 0 ? undefined : fin);
+  for (const marca of [
+    /el coste de verificar es proporcional al cambio/,
+    /Por defecto la completa es la puerta de integracion/,
+    /rutas_verificacion_parcial: \[/,
+    /Lista de rutas permitidas, leida de la rama base/,
+    /comando_verificacion_selectiva/,
+    /timeout_verificacion_selectiva/,
+    /`rutas_documentacion`: sin rutas de documentacion la decision no se calcula/,
+    /`\.taskcode\/config\.yml`/,
+    /## Verificacion parcial/,
+    /Cobertura omitida/,
+    /Release y hotfix van siempre a la completa/,
+    /El guardian de merges sigue exigiendo la completa para el codigo/,
+    /no repitas el\s+merge a mano: resuelve el conflicto y vuelve a lanzar `taskctl finish`/,
+  ]) {
+    assert.match(seccion, marca);
+  }
+  assert.doesNotMatch(seccion, /TaskCode|TASK-\d/);
+  const skill = readFileSync(path.join(dir, 'SKILL.md'), 'utf8');
+  assert.match(skill, /`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;\s+un merge a mano no/);
 });

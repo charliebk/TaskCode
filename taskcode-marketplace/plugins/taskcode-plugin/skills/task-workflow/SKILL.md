@@ -206,7 +206,9 @@ impacto: [verificacion-selectiva.md](verificacion-selectiva.md).
 antes de mergear y aborta si no sale en verde. Un `git merge` o un script de
 cierre hacia la rama de integracion o la principal queda bloqueado sin un
 verde del commit que entra: cierra siempre con `taskctl finish`. Saltarse la
-verificacion (`--sin-verificacion`) lo decide la persona, no tu.
+verificacion (`--sin-verificacion`) lo decide la persona, no tu. Si el proyecto
+declara `rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;
+un merge a mano no: tras un fallo de `finish`, resuelve y vuelve a lanzarlo.
 
 **Tests held-out (`aceptacion/`).** Son de la persona: si implementas, no los
 leas ni los edites. Detalle en [heldout.md](heldout.md).
