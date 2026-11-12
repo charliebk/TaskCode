@@ -10,12 +10,12 @@ Veredicto propuesto por el revisor: aprobada-con-correcciones. Con dos IMPORTANT
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | verificacion-selectiva.md (§ «Cobertura omitida»), README.md (viñeta de cobertura), CHANGELOG.md (párrafo del nivel 2) | especificacion |
-| IMP-2 | IMPORTANTE | abierto | verificacion-selectiva.md y README.md (viñeta del guardián), SKILL.md (línea equivalente); también `LINEA_SELECTIVA` de hooks/guardia-merge.ts | implementacion |
-| MEN-1 | MENOR | abierto | verificacion-selectiva.md (§ «Release y hotfix van siempre a la completa»), CHANGELOG.md, README.md | implementacion |
-| MEN-2 | MENOR | abierto | README.md (viñeta de `taskctl finish`) y CHANGELOG.md («deciden igual») | implementacion |
-| MEN-3 | MENOR | abierto | core/verificacion-proporcional.ts `decidirVerificacion` | plan |
-| MEN-4 | MENOR | abierto | SKILL.md (tamaño), README/CHANGELOG sin test | plan |
+| IMP-1 | IMPORTANTE | corregido | verificacion-selectiva.md (§ «Cobertura omitida»), README.md (viñeta de cobertura), CHANGELOG.md (párrafo del nivel 2) | especificacion |
+| IMP-2 | IMPORTANTE | corregido | verificacion-selectiva.md y README.md (viñeta del guardián), SKILL.md (línea equivalente); también `LINEA_SELECTIVA` de hooks/guardia-merge.ts | implementacion |
+| MEN-1 | MENOR | corregido | verificacion-selectiva.md (§ «Release y hotfix van siempre a la completa»), CHANGELOG.md, README.md | implementacion |
+| MEN-2 | MENOR | corregido | README.md (viñeta de `taskctl finish`) y CHANGELOG.md («deciden igual») | implementacion |
+| MEN-3 | MENOR | aceptado | core/verificacion-proporcional.ts `decidirVerificacion` | plan |
+| MEN-4 | MENOR | aceptado | SKILL.md (tamaño), README/CHANGELOG sin test | plan |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
@@ -69,3 +69,9 @@ En `decidirVerificacion`, las ramas `!docs && selectiva === null`, `!docs && dif
 ## Lecturas fuera del contexto permitido
 
 Para contrastar la documentación con el código: `src/core/verificacion-proporcional.ts`, `src/fs/decision-documentacion.ts`, `src/commands/finish.ts`, `finish-verificacion.ts`, `finish-cobertura.ts`, `src/fs/cobertura.ts`, `src/core/cobertura-cambios.ts`, `src/hooks/guardia-merge.ts`, `src/core/transiciones.ts`; `scripts/gitflow/merge-feature-to-develop.sh` y `_gitflow-common.sh`; `test/commands/finish-parcial.test.ts` y `test/skills/task-workflow.test.ts`; `bin/taskctl` y `package.json`.
+
+## Respuesta del implementador
+
+- IMP-1, IMP-2, MEN-1 y MEN-2 corregidos en la guia, el README, SKILL.md, el CHANGELOG y el mensaje del guardian (`LINEA_SELECTIVA`), con sus marcas en las pruebas de la guia, de SKILL.md y del guardian.
+- MEN-3 aceptado: las ramas `!docs` de `decidirVerificacion` son defensa de la funcion pura (la ejercitan sus tests unitarios); el inventario de codigo sin uso (nada que borrar) queda en el Resultado.
+- MEN-4 aceptado: SKILL.md sigue por debajo de 15 KB tambien con CRLF (15349 bytes); README y CHANGELOG sin prueba, como acepto el plan.
