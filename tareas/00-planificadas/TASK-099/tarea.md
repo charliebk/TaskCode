@@ -3,7 +3,7 @@ id: TASK-099
 titulo: "Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa"
 tipo: feature
 sprint: 0
-etiquetas: [revision, agilidad]
+etiquetas: [revision, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
 estado: planificada
@@ -24,10 +24,12 @@ dependencias: []
 ---
 ## Objetivo
 
+P-2 de la auditoria del 2026-11-12. Urgente para la version 0.16.0 (decision de Carlos, 2026-11-12): la medicion que se esperaba ya esta hecha (criterio 1), asi que se empieza ya; lo mas rapido posible y el cierre no exige la suite completa, basta con los tests afectados y npm run test:rapido. Lo que sigue es el enunciado original.
+
 En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo quedan MENORES, la sesion los pide como cambios-solicitados y se abre otra ronda entera para uno o dos MENORES (OpenDockTrading TASK-067 con la 0.14.0: ronda 3 por un unico MEN-4, unos 5 min y 0,37 M tokens). Se busca que los MENORES baratos se corrijan con una verificacion ligera sin ronda nueva, manteniendo que el codigo integrado es el revisado. NO se empieza hasta tener medidas al menos 10 tareas cerradas de punta a punta con la 0.14.0 en ToolsaWeb y OpenDockTrading (taskctl metricas --por-version) que confirmen que las rondas por MENORES pesan; si no pesan, se descarta. Objetivo: version 0.15.0.
 
 ## Criterios de aceptacion
-- [ ] Antes de planificar, plan-final.md recoge la medicion de al menos 10 tareas con la 0.14.0 (rondas abiertas solo por MENORES, su tiempo y tokens) y la decision de la persona de seguir o descartar
+- [ ] plan-final.md recoge la medicion ya hecha en docs/auditoria/PASOS-PLUGIN-2026-11-12.md (71 rondas abiertas solo por MENORES en ToolsaWeb, OpenDockTrading y TaskCode, con 2 CRITICO/IMPORTANTE nuevos y 70,2 M tokens) como motivo para seguir
 - [ ] Con solo MENORES abiertos tras aprobada-con-correcciones, corregirlos no abre una ronda completa ni acotada nueva: queda una verificacion ligera registrada en tarea.md (test en repo temporal)
 - [ ] finish sigue sin integrar codigo posterior al revisado sin esa verificacion o la decision de una persona (test)
 - [ ] Un CRITICO o IMPORTANTE abierto sigue exigiendo cambios-solicitados y otra ronda (test)
