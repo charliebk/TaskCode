@@ -7,7 +7,7 @@ etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-122-coste-por-tarea-independiente-del-tamano
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -39,3 +39,4 @@ Problema que plantea Carlos (2026-11-12): si cada tarea paga algo que crece con 
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-12T14:05:39Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-12T14:08:11Z | approve | automatico | persona | 0.14.0 |
