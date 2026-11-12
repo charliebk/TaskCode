@@ -47,6 +47,7 @@ import {
 } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol } from '../core/plan-brainstorm.js';
 import { planEsEsqueleto } from '../core/validacion-tarea.js';
+import { conProgreso, crearProgreso, type Progreso } from '../fs/progreso.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 import {
   autoCommit,
@@ -113,13 +114,30 @@ export interface ApproveCommandDeps {
   repoCwd: string;
   /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
   ahora?: string;
+  /** TASK-110: donde se escribe el progreso visible (por defecto, bajo el .git del repo). */
+  progreso?: Progreso;
 }
+
+/** TASK-110: los pasos de approve, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_APPROVE: readonly string[] = ['guardas', 'plan', 'commit'];
 
 export async function runApproveCommand(
   tareasRoot: string,
   argv: readonly string[],
   today: string,
   deps: ApproveCommandDeps
+): Promise<ApproveCommandResult> {
+  // TASK-110: el progreso se marca terminado tambien si aborta.
+  const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+  return conProgreso(progreso, () => runApprove(tareasRoot, argv, today, deps, progreso));
+}
+
+async function runApprove(
+  tareasRoot: string,
+  argv: readonly string[],
+  today: string,
+  deps: ApproveCommandDeps,
+  progreso: Progreso
 ): Promise<ApproveCommandResult> {
   // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
   rechazarFlagsDesconocidos(argv, FLAGS_APPROVE, 'approve', (m) => new ApproveCommandError(m));
@@ -147,6 +165,8 @@ export async function runApproveCommand(
     planFinalExiste: planFinalExisteEn(ubicacionInicial),
   });
   assertPlanNoAmbiguo(id, ubicacionInicial!);
+  progreso.fase(initial!.task.id, 'approve', PASOS_APPROVE);
+  progreso.paso('guardas');
 
   // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
   // tiene cambios sin commitear, o si no puede cambiar de forma
@@ -169,6 +189,7 @@ export async function runApproveCommand(
   // la plantilla sin rellenar. Se compara con las plantillas posibles (los
   // roles se eligen en un orden fijo, asi que solo hay 0..N prefijos), no
   // con textos copiados, para que siga valiendo si la plantilla cambia.
+  progreso.paso('plan');
   const rutaPlan = ubicacion!.canonicaExiste ? ubicacion!.canonica : ubicacion!.legada;
   if (await planEsPlantilla(task, rutaPlan)) {
     throw new ApproveCommandError(
@@ -211,6 +232,7 @@ export async function runApproveCommand(
     );
   }
 
+  progreso.paso('commit');
   const updated: Task = { ...task, plan_aprobado: true, actualizado: today };
   // Reaprobar un plan ya aprobado no es una transicion: sin fila nueva, y
   // asi la segunda vez sigue sin crear commit (es idempotente).
