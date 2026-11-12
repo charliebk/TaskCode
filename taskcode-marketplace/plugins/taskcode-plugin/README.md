@@ -938,6 +938,13 @@ timeout_verificacion_selectiva: 600                                 # opcional (
   en su lugar dice por qué tocó la completa y no la selectiva.
 - **Sin la clave**, todo funciona como antes: el `Stop` corre la completa y
   `review` no verifica.
+- **Ejemplo real**: el repo de TaskCode declara como selectiva
+  `node scripts/verificar-impacto.mjs` (fuera del plugin). Elige los tests de
+  lo que cambia por el grafo de imports, se para en el enrutador `src/cli.ts`
+  (y lo dice), suma los de `test:rapido` y, si lo elegido pasa de
+  `VERIFICAR_IMPACTO_TOPE` ficheros (10 por defecto), corre los tests directos
+  o, si tampoco caben, los más próximos al módulo cambiado, y dice cuántos deja
+  fuera. Con una rama base inexistente sale con error.
 - Cómo escribir el clasificador y qué cambios obligan a correr todo: guía
   instalada con el plugin, `skills/task-workflow/verificacion-selectiva.md`.
 
@@ -1579,7 +1586,14 @@ marcas; las de solo día se cuentan en «solo dia»), rondas medias, hallazgos
 IMPORTANTE por tarea, tokens de revisión medios y KB medios de la petición de
 revisión por ronda. Cada cifra lleva su `n` (las tareas que tienen ese dato);
 «— (n=0)» es que ninguna lo tiene. Dice cuántas terminadas quedan fuera por no
-tener fecha de cierre (por proyecto con varios repos).
+tener fecha de cierre (por proyecto con varios repos). Al final de cada fila,
+el coste fijo por tarea frente al tamaño del proyecto: `cerradas` (tareas
+cerradas con fecha de cierre al acabar el tramo) y las medianas de minutos de punta a punta, de la
+fase de revisión y del propio `finish` (de las tareas con hora). Una línea
+final compara el primer tramo con el último (el último completo, si hay dos o
+más) y dice si ese coste **crece**, **baja** o **se mantiene** (cambio de
+menos del 15 %): si crece con las tareas cerradas, algún paso de cada tarea
+está pagando el tamaño del proyecto.
 
 **`--grupos`** sustituye la tabla por grupos de tareas terminadas: por tipo, por
 complejidad declarada, por número de criterios (0-4, 5-6, 7 o más), por KB de

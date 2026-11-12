@@ -14,6 +14,7 @@ import { spawnSync } from 'node:child_process';
 import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { STATE_FOLDER, type Task, type TaskComplexity, type TaskState, type TaskType } from '../../src/core/task.js';
 import { TASKCTL } from './automatico-fixtures.js';
+import { lineaCierre } from '../../src/core/cierre.js';
 
 export interface RondaFixture {
   /** Linea `- Veredicto:` del informe. */
@@ -44,6 +45,12 @@ export interface TareaFixture {
   version?: string;
   /** TASK-084: filas de 5 celdas que se anaden tal cual tras las demas. */
   filasExtra?: string[];
+  /** TASK-122: instante del `start` (fila entre plan y finish); sin el, no hay fila. */
+  start?: string;
+  /** TASK-122: instante del primer `review`; sin el, no hay fila. */
+  review?: string;
+  /** TASK-122: segundos del propio finish (linea `- Cierre (finish)` de `## Duracion`). */
+  cierreSegundos?: number;
 }
 
 function git(args: string[], cwd: string): string {
@@ -86,9 +93,15 @@ function cuerpo(t: TareaFixture): string {
   const v = cinco ? ` ${t.version ?? ''} |` : '';
   const plan = t.plan === undefined ? '2026-10-01T10:00:00Z' : t.plan;
   if (plan !== null) filas.push(`| ${plan} | plan | manual | persona |${v}`);
+  if (t.start !== undefined) filas.push(`| ${t.start} | start | manual | persona |${v}`);
+  if (t.review !== undefined) filas.push(`| ${t.review} | review | manual | persona |${v}`);
   const fin = t.finish === undefined ? null : t.finish;
   if (fin !== null) filas.push(`| ${fin} | finish | manual | persona |${v}`);
   filas.push(...(t.filasExtra ?? []));
+  const duracion =
+    t.cierreSegundos === undefined || fin === null
+      ? []
+      : ['## Duracion', '', lineaCierre(new Date(Date.parse(fin) - t.cierreSegundos * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'), fin), ''];
   return [
     '## Objetivo',
     '',
@@ -103,6 +116,7 @@ function cuerpo(t: TareaFixture): string {
     cinco ? '|---|---|---|---|---|' : '|---|---|---|---|',
     ...filas,
     '',
+    ...duracion,
   ].join('\n');
 }
 
