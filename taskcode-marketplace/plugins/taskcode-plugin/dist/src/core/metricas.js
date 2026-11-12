@@ -54,6 +54,7 @@
  * adivinar si un 0 es un cero o una ausencia.
  */
 import { estimadaAnotada } from './duracion-estimada.js';
+import { leerCierre } from './cierre.js';
 import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, lecturasDeRevision, resumirCostes, } from './coste-registro.js';
@@ -269,12 +270,17 @@ export function calcularFila(e) {
         lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
         total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
+        finish: finishDe(e.body),
         puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
         estimadaMin: estimadaAnotada(e.body),
         enPausa: enPausaDe(marcas),
         veredictoRonda1: veredictoRonda1(e.informes ?? []),
         versionCierre: versionDeCierre(e.body),
     };
+}
+function finishDe(body) {
+    const c = leerCierre(body);
+    return c === null ? null : { valor: c.segundos * 1000, precision: 'segundo' };
 }
 function enPausaDe(m) {
     const ms = pausaEntre(m.plan, ultimaMarca(m), m.intervalosPausa);
@@ -340,6 +346,8 @@ export const COLUMNAS_METRICAS = [
     // TASK-097: regla de una hora. Estimada (la que finish anoto del plan) y
     // real de punta a punta (de start a finish, sin pausas).
     { cabecera: 'estimada', valor: (f) => (f.estimadaMin === null ? '—' : `${String(f.estimadaMin)}m`) },
+    // P-1: lo que dura el propio finish; punta_a_punta ya lo incluye.
+    { cabecera: 'finish', valor: (f) => formatearDuracion(f.finish) },
     { cabecera: 'punta_a_punta', valor: (f) => formatearDuracion(f.puntaAPunta) },
 ];
 /** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
