@@ -49,7 +49,7 @@ import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { baseDeTipoSinRed, resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
 import { verificarConMemo, type PeticionVerificacion } from '../fs/verificacion.js';
-import { crearProgreso, type Progreso } from '../fs/progreso.js';
+import { crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
 
 /**
  * `timeout` del hook Stop en hooks/hooks.json, en segundos. Claude Code cancela
@@ -220,7 +220,11 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
     const paso = plan.tipo === 'completa' ? 'verificacion' : `verificacion ${plan.tipo}`;
     progreso.fase(ids[0] ?? tarea, 'freno', [paso]);
     progreso.paso(paso);
-    const deOpciones = deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs };
+    // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
+    const deOpciones = {
+      env: entornoConContador(process.env, progreso.contador()),
+      ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+    };
     let verificacion: ReturnType<typeof verificarConMemo>;
     try {
       verificacion = verificarConMemo(raiz, peticion, deOpciones);

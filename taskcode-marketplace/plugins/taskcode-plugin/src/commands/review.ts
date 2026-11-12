@@ -76,7 +76,7 @@ import {
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';
-import { conProgreso, crearProgreso, type Progreso } from '../fs/progreso.js';
+import { conProgreso, crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 import { excluirDeRevision } from '../fs/revisores-rango.js';
@@ -785,7 +785,10 @@ async function runReview(
   // update de Git-Flow ya integro la base (y ese merge queda hecho); en una
   // incremental la rama no se actualiza (TASK-040). Sin la clave, nada.
   progreso.paso('verificacion');
-  const verificacion = verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos);
+  const verificacion = verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos, () =>
+    // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
+    entornoConContador(deps.env ?? process.env, progreso.contador())
+  );
   // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
   // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
   // nadie arreglo sigue ahi). Una vez por ronda y antes de escribir nada;
@@ -1085,7 +1088,8 @@ function verificacionDeRonda(
   tipoTarea: Task['tipo'],
   incremental: boolean,
   deps: ReviewCommandDeps,
-  avisos: string[]
+  avisos: string[],
+  entornoVerificacion: () => NodeJS.ProcessEnv
 ): VerificacionRonda | null {
   const selectiva = config.comando_verificacion_selectiva;
   if (selectiva === null) return null;
@@ -1120,7 +1124,7 @@ function verificacionDeRonda(
     motivo !== null
       ? { tipo: 'documentacion', comando, timeoutS: plan.timeoutS }
       : { tipo: 'selectiva', comando, timeoutS: plan.timeoutS, base },
-    deps.env === undefined ? {} : { env: deps.env }
+    { env: entornoVerificacion() }
   );
   const nombre =
     motivo !== null

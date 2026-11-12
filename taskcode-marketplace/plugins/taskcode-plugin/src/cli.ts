@@ -61,6 +61,7 @@ import { ConfigError } from './core/config.js';
 import { formatearInstante } from './core/transiciones.js';
 import { VERSION_TASKCTL } from './core/version.js';
 import { mainEstado } from './commands/estado.js';
+import { VARIABLE_PROGRESO } from './fs/progreso.js';
 
 const VERSION = VERSION_TASKCTL;
 
@@ -407,6 +408,10 @@ let sincronizacionPendiente = false;
  */
 export async function main(argv: readonly string[]): Promise<number> {
   sincronizacionPendiente = false;
+  // TASK-110: el contador de una verificacion de fuera no se hereda. taskctl da
+  // el suyo al comando de verificacion y a nadie mas (scripts de Git-Flow,
+  // held-out, tests que lanzan otros taskctl...).
+  delete process.env[VARIABLE_PROGRESO];
   const codigo = await mainComando(argv);
   return codigo === 0 && sincronizacionPendiente ? CODIGO_SINCRONIZACION_NO_APLICADA : codigo;
 }

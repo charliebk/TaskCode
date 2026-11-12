@@ -89,6 +89,19 @@ export interface PuertaVerificacionOpts {
    * poner) la ejecuta como completa: un hotfix integra en la principal.
    */
   permitirSelectiva?: boolean;
+  /**
+   * TASK-110: el entorno del comando de verificacion (con TASKCTL_PROGRESO), que
+   * se pide justo antes de lanzarlo. Sin el, el del proceso.
+   */
+  entornoVerificacion?: () => NodeJS.ProcessEnv;
+}
+
+/** Las opciones de ejecucion del comando: el timeout de los tests y el entorno con el contador. */
+function opcionesEjecucion(o: PuertaVerificacionOpts): { timeoutMs?: number; env?: NodeJS.ProcessEnv } {
+  return {
+    ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
+    ...(o.entornoVerificacion === undefined ? {} : { env: o.entornoVerificacion() }),
+  };
 }
 
 export type ResultadoPuerta =
@@ -190,7 +203,7 @@ export async function puertaVerificacion(
 
   const timeoutS = config.timeout_verificacion;
   const inicioMs = Date.now();
-  const r = ejecutarVerificacion(o.cwd, comando, timeoutS, o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs });
+  const r = ejecutarVerificacion(o.cwd, comando, timeoutS, opcionesEjecucion(o));
   // El memo solo con el arbol limpio: es la huella del commit que consulta el
   // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
   const limpio = isWorkspaceClean(o.cwd);
@@ -237,12 +250,7 @@ async function puertaSoloDocumentacion(
   const c = { commit };
 
   if (decision.comando !== null) {
-    const r = ejecutarVerificacion(
-      o.cwd,
-      decision.comando,
-      timeoutS,
-      o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }
-    );
+    const r = ejecutarVerificacion(o.cwd, decision.comando, timeoutS, opcionesEjecucion(o));
     const limpio = isWorkspaceClean(o.cwd);
     const huella = limpio ? huellaDelArbol(o.cwd, decision.comando, timeoutS) : null;
     if (huella !== null) guardarMemo(o.cwd, huella, r, 'documentacion');
@@ -352,7 +360,7 @@ async function puertaSelectiva(
   const v = verificarConMemo(
     o.cwd,
     { tipo: 'selectiva', comando: decision.comando, timeoutS, base: ramaBase, memoSoloVerde: true },
-    o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }
+    opcionesEjecucion(o)
   );
   if (v.resultado.estado !== 'verde') {
     throw new FinishCommandError(

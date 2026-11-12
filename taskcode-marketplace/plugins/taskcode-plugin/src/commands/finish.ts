@@ -84,7 +84,7 @@ import {
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';
-import { conProgreso, crearProgreso, type Progreso } from '../fs/progreso.js';
+import { conProgreso, crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { extraerSinVerificacion, puertaVerificacion } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
@@ -500,6 +500,8 @@ async function runFinish(
       ...(tipo === 'release' ? {} : { ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion }),
       // TASK-106: un hotfix integra en la principal: nunca la selectiva (si su camino de solo documentacion).
       permitirSelectiva: tipo !== 'hotfix',
+      // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
+      entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
     });
     // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
     // de que el comando de held-out pueda reescribirlo.
