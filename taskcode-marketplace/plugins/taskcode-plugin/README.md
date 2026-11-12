@@ -1254,7 +1254,9 @@ rama de integración (`rama_base`) o en la principal:
   con `MERGE_HEAD` presente en la rama de integración o la principal es el merge
   hacia ella, y lo que se commitea es la resolución, no lo verificado en la rama
   de la tarea. Pasa solo con un verde guardado de ese mismo árbol (el del freno
-  `Stop`) o si lo que entra ya está integrado. Propone `taskctl abort-merge`,
+  `Stop`) o si lo que entra ya está integrado (ancestro de `HEAD`, de la
+  principal o de `origin/<rama>`: cerrar un `git pull` o un
+  `git merge origin/develop` con conflicto no se bloquea). Propone `taskctl abort-merge`,
   integrar la base en la rama de la tarea, resolver allí y relanzar `finish`
   desde ella. Sin `MERGE_HEAD`, o en una rama de tarea (que es justo el
   remedio), no se toca.
@@ -1279,6 +1281,9 @@ rama de integración (`rama_base`) o en la principal:
 - Nunca ejecuta la suite (su `timeout` es de 30 s): solo lee el memo.
 - Es una defensa contra despistes, no contra un agente hostil: no ve alias de
   git, `git pull`, `git push . x:develop` ni lo que se calcula en una subshell.
+  Tampoco ve el cierre de un merge con `cd <otro repo> && git commit`, con
+  `--git-dir`/`--work-tree` ni con un alias de git (`git ci`): solo respeta
+  `-C <dir>`. Es el hueco inherente al análisis sintáctico del texto.
   La red de verdad es la puerta de `finish`.
 
 `taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]`
