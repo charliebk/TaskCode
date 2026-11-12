@@ -10,14 +10,14 @@ Veredicto propuesto por el revisor: aprobada-con-correcciones. Con un IMPORTANTE
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | src/cli.ts:412 (`delete process.env[VARIABLE_PROGRESO]`); test/commands/progreso-verificacion.test.ts | implementacion |
-| MEN-1 | MENOR | abierto | src/commands/finish-verificacion.ts:253 y :363; src/commands/review.ts:640; test/commands/progreso-verificacion.test.ts, progreso-comandos.test.ts | implementacion |
-| MEN-2 | MENOR | abierto | src/fs/status-line.ts (`instalarStatusLine` / `desinstalarStatusLine`, fichero `statusline-previa-taskctl.json`) | implementacion |
-| MEN-3 | MENOR | abierto | src/fs/status-line.ts (`obj['statusLine'] = { type: 'command', command: comando }`) | implementacion |
-| MEN-4 | MENOR | abierto | README.md (§ Progreso visible) y src/hooks/freno-stop.ts (`terminar('abortada')`) | implementacion |
-| MEN-5 | MENOR | abierto | src/fs/progreso.ts `escribirAtomico`, usado por src/fs/status-line.ts sobre settings.json | implementacion |
-| MEN-6 | MENOR | abierto | src/cli.ts (uso de `estado` y de `doctor`), src/commands/doctor.ts (mensaje de `sobra`) | implementacion |
-| MEN-7 | MENOR | abierto | src/fs/status-line.ts `buscarTaskctl` / `dentroDe` | plan |
+| IMP-1 | IMPORTANTE | corregido | src/cli.ts:412 (`delete process.env[VARIABLE_PROGRESO]`); test/commands/progreso-verificacion.test.ts | implementacion |
+| MEN-1 | MENOR | corregido | src/commands/finish-verificacion.ts:253 y :363; src/commands/review.ts:640; test/commands/progreso-verificacion.test.ts, progreso-comandos.test.ts | implementacion |
+| MEN-2 | MENOR | corregido | src/fs/status-line.ts (`instalarStatusLine` / `desinstalarStatusLine`, fichero `statusline-previa-taskctl.json`) | implementacion |
+| MEN-3 | MENOR | corregido | src/fs/status-line.ts (`obj['statusLine'] = { type: 'command', command: comando }`) | implementacion |
+| MEN-4 | MENOR | corregido | README.md (§ Progreso visible) y src/hooks/freno-stop.ts (`terminar('abortada')`) | implementacion |
+| MEN-5 | MENOR | aceptado | src/fs/progreso.ts `escribirAtomico`, usado por src/fs/status-line.ts sobre settings.json | implementacion |
+| MEN-6 | MENOR | corregido | src/cli.ts (uso de `estado` y de `doctor`), src/commands/doctor.ts (mensaje de `sobra`) | implementacion |
+| MEN-7 | MENOR | aceptado | src/fs/status-line.ts `buscarTaskctl` / `dentroDe` | plan |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
@@ -73,6 +73,8 @@ README dice «el freno, `freno · verificacion`»; lo real es `TASK-9 · freno �
 
 `rename` sobre un enlace simbolico lo reemplaza por un fichero normal en POSIX (stow, chezmoi). No reproducido: en Windows `symlinkSync` da `EPERM`. Ademas cada escritura deja un `settings.json.<fecha>.bak` sin limite, que puede contener tokens de `env`.
 
+Aceptado: no reproducido en Windows (symlinkSync da EPERM) y no hay usuarios conocidos con dotfiles enlazados.
+
 ### MEN-6 — Ayuda y mensajes de uso desactualizados
 
 `taskctl estado [--seguir]` no menciona `--stdin`; el error de `doctor` sigue diciendo `Uso: taskctl doctor [--json].`
@@ -80,6 +82,8 @@ README dice «el freno, `freno · verificacion`»; lo real es `TASK-9 · freno �
 ### MEN-7 — `buscarTaskctl` solo reconoce la cache bajo `<config>/plugins` (no verificado)
 
 Un plugin cargado desde otro sitio (`--plugin-dir`, cache movida) se tomaria por taskctl del sistema y se escribiria `taskctl estado --stdin`, que la status line no encontraria. Visto relacionado: con `CLAUDE_CONFIG_DIR` distinto del de la cache real, `doctor` tomo la copia de `~/.claude/plugins/...` por taskctl del sistema. La deteccion es heuristica.
+
+Aceptado: heuristica documentada; el caso `--plugin-dir` no es el uso de Carlos.
 
 ## Lecturas fuera del contexto permitido
 
