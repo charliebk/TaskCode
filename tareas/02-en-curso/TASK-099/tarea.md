@@ -45,3 +45,7 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 | 2026-11-12T20:20:20Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T21:03:22Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T21:03:24Z | start | automatico | persona | 0.14.0 |
+
+## Autorrevision
+
+- code-quality-reviewer — a8ba7cc
