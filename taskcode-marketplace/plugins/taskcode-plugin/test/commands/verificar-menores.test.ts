@@ -232,3 +232,29 @@ test('finish sin verificacion ligera y sin codigo posterior cierra como antes', 
     assert.match(cerrada.filePath, /04-terminadas/);
   });
 });
+
+test('finish con un Commit revisado que ya no es antepasado de la rama no cierra sin una persona', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const id = 'TASK-908';
+    const { revisionDir } = await montar(repoRoot, tareasRoot, id, 'aprobada', []);
+    const rama = git(['rev-parse', '--abbrev-ref', 'HEAD'], repoRoot).trim();
+    // Un commit que no esta en la rama de la tarea (como tras reescribirla).
+    git(['checkout', '-q', '-b', 'lado', 'develop'], repoRoot);
+    await escribir(repoRoot, 'lado.txt', 'x\n');
+    commitAll(repoRoot, 'commit de otra rama');
+    const ajeno = git(['rev-parse', 'HEAD'], repoRoot).trim();
+    git(['checkout', '-q', rama], repoRoot);
+    await writeFile(
+      path.join(revisionDir, 'peticion-revision-1.md'),
+      `# Peticion de revision — ${id} (ronda 1)
+
+- Commit revisado (HEAD): ${ajeno}
+`,
+      'utf8'
+    );
+    commitAll(repoRoot, `chore(${id}): peticion con un commit ajeno`);
+    await assert.rejects(() => finish(tareasRoot, repoRoot, [id]), /no se puede comparar/);
+    const cerrada = await finish(tareasRoot, repoRoot, [id, '--aceptar-sin-revisar']);
+    assert.ok((await readFile(cerrada.filePath, 'utf8')).includes(SECCION_CODIGO_SIN_REVISAR));
+  });
+});

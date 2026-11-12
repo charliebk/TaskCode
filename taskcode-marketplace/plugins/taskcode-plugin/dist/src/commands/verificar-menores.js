@@ -195,8 +195,9 @@ export async function runVerificarMenoresCommand(tareasRoot, argv, deps) {
  * Para la puerta de `finish` (criterio 3 de TASK-099): codigo commiteado en
  * `ref` despues del `Commit revisado` de la ultima ronda primaria que no
  * cubre ninguna verificacion ligera al dia; null si no lo hay. Sin `Commit
- * revisado` en la peticion (tareas anteriores a TASK-059) o con un SHA que
- * Git no conoce no hay referencia y la puerta no aplica, como antes.
+ * revisado` en la peticion (tareas anteriores a TASK-059) no hay referencia y
+ * la puerta no aplica, como antes; con uno que no se puede comparar (SHA que
+ * Git no conoce, rama reescrita tras revisar) bloquea.
  */
 export async function codigoSinVerificar(taskDir, body, ref, cwd) {
     const revisionDir = path.join(taskDir, REVISION_DIRNAME);
@@ -207,14 +208,25 @@ export async function codigoSinVerificar(taskDir, body, ref, cwd) {
     const revisado = (await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))))
         .map(commitRevisadoDe)
         .find((c) => c !== null) ?? null;
+    if (revisado === null)
+        return null;
+    // Con referencia pero sin poder comparar (SHA que Git no conoce, o rama
+    // reescrita despues de revisar) no se deja pasar: fail-closed.
+    const sinComparar = {
+        ronda: informes.ronda,
+        revisado,
+        cambiados: [`(no se puede comparar: ${revisado.slice(0, 7)} no es un antepasado de "${ref}")`],
+    };
     let estado;
     try {
         estado = estadoCorreccionPosterior(body, informes.ronda, revisado, ref, cwd);
     }
     catch {
-        return null;
+        return sinComparar;
     }
-    if (estado === null || revisado === null || estado.cambiados.length === 0 || estado.alDia)
+    if (estado === null)
+        return sinComparar;
+    if (estado.cambiados.length === 0 || estado.alDia)
         return null;
     return { ronda: informes.ronda, revisado, cambiados: estado.cambiados };
 }
