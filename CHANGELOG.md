@@ -160,6 +160,28 @@ anterior. El comando de verificacion recibe `TASKCTL_PROGRESO` (un fichero bajo
 `npm test` del propio plugin muestra `[x/N]` con un reporter sin dependencias
 junto al `spec`, con el total de la ejecucion anterior guardado bajo `.git/`.
 
+Coste por tarea independiente del tamano del proyecto (TASK-122).
+`taskctl metricas --evolucion` gana, por tramo, las tareas cerradas del
+proyecto al acabarlo (`cerradas`) y las medianas de minutos de punta a punta,
+de la fase de revision y del propio `finish` (de las tareas con hora), en
+columnas nuevas al final de la tabla y en el `--json` (`cerradasAcumuladas`,
+`minutosPuntaAPunta`, `minutosRevision`, `minutosFinish`). Una linea final
+compara el primer tramo con el ultimo (el ultimo completo si hay dos o mas) y
+dice si el coste fijo por tarea crece, baja o se mantiene (umbral 15 %). En el
+repo de TaskCode, fuera del plugin: `scripts/verificar-impacto.mjs` (los tests
+de lo que cambia la tarea, por el grafo de imports, mas los de `test:rapido`)
+es la verificacion selectiva y `.taskcode/config.yml` declara la completa,
+`rutas_documentacion` y `rutas_verificacion_parcial`, asi que `finish` verifica
+por impacto y la suite completa se corre una vez por version antes de
+publicar; `scripts/perfil-tests.mjs` lista por fichero de test su duracion y
+los procesos git que lanza. La selectiva no amplia por documentacion ni por la
+config del repo, se para en el enrutador `src/cli.ts` (mas alla solo los tests
+que nombran el comando afectado), con mas de 10 ficheros por impacto
+(`VERIFICAR_IMPACTO_TOPE`) corre solo los tests directos y lo dice, y devuelve
+`dist/src` tal cual tras compilar. Informes en `docs/auditoria/ESCALA-2026-11-12.md`
+y `PERFIL-TESTS-2026-11-12.md`; regla de la piramide en
+`docs/contexto/CONVENCIONES.md`.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).

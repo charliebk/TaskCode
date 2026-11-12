@@ -1579,7 +1579,14 @@ marcas; las de solo día se cuentan en «solo dia»), rondas medias, hallazgos
 IMPORTANTE por tarea, tokens de revisión medios y KB medios de la petición de
 revisión por ronda. Cada cifra lleva su `n` (las tareas que tienen ese dato);
 «— (n=0)» es que ninguna lo tiene. Dice cuántas terminadas quedan fuera por no
-tener fecha de cierre (por proyecto con varios repos).
+tener fecha de cierre (por proyecto con varios repos). Al final de cada fila,
+el coste fijo por tarea frente al tamaño del proyecto: `cerradas` (tareas
+cerradas al acabar el tramo) y las medianas de minutos de punta a punta, de la
+fase de revisión y del propio `finish` (de las tareas con hora). Una línea
+final compara el primer tramo con el último (el último completo, si hay dos o
+más) y dice si ese coste **crece**, **baja** o **se mantiene** (cambio de
+menos del 15 %): si crece con las tareas cerradas, algún paso de cada tarea
+está pagando el tamaño del proyecto.
 
 **`--grupos`** sustituye la tabla por grupos de tareas terminadas: por tipo, por
 complejidad declarada, por número de criterios (0-4, 5-6, 7 o más), por KB de
