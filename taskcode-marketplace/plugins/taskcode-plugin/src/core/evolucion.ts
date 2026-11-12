@@ -186,11 +186,16 @@ export function tendencia(primera: Cifra, ultima: Cifra): Tendencia {
 /**
  * TASK-122: linea que compara el coste fijo por tarea (punta a punta, revision
  * y finish) del primer tramo con el del ultimo; null con menos de dos tramos.
+ * Si hay al menos dos tramos completos, compara solo completos: un ultimo
+ * tramo de dos tareas no decide la tendencia (medido en ToolsaWeb: 2 tareas
+ * de 354 min contra 30 de 51).
  */
 export function tendenciaCosteFijo(e: Evolucion): string | null {
   if (e.tramos.length < 2) return null;
-  const a = e.tramos[0] as TramoEvolucion;
-  const b = e.tramos[e.tramos.length - 1] as TramoEvolucion;
+  const completos = e.tramos.filter((t) => t.n === e.tamanoTramo);
+  const base = completos.length >= 2 ? completos : e.tramos;
+  const a = base[0] as TramoEvolucion;
+  const b = base[base.length - 1] as TramoEvolucion;
   const parte = (nombre: string, x: Cifra, y: Cifra): string =>
     `${nombre} ${x.valor === null ? '—' : String(x.valor)} -> ${y.valor === null ? '—' : String(y.valor)} min (${tendencia(x, y)})`;
   return (

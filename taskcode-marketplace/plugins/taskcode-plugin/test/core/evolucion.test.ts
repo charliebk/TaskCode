@@ -110,3 +110,14 @@ test('TASK-122: tendencia del coste fijo con umbral del 15 % y sin datos; menos 
   assert.deepEqual(dos.tramos.map((t) => [t.cerradasAcumuladas, t.minutosPuntaAPunta.valor, t.minutosFinish.n]), [[1, 10, 0], [2, 5, 1]]);
   assert.match(tendenciaCosteFijo(dos) ?? '', /punta a punta 10 -> 5 min \(baja\); revision — -> 4 min \(sin datos\); finish — -> 1 min \(sin datos\)/);
 });
+
+test('TASK-122: con dos tramos completos o mas, un ultimo tramo parcial no decide la tendencia', () => {
+  const seg = (min: number) => ({ valor: min * 60_000, precision: 'segundo' as const });
+  const f = (n: number, min: number) => fila({ id: `TASK-00${String(n)}`, cierre: `2026-10-0${String(n)}`, puntaAPunta: seg(min) });
+  const e = calcularEvolucion([f(1, 10), f(2, 10), f(3, 10), f(4, 10), f(5, 99)], 2);
+  assert.deepEqual(e.tramos.map((t) => t.n), [2, 2, 1]);
+  assert.match(tendenciaCosteFijo(e) ?? '', /del tramo 1 \(2 cerradas\) al 2 \(4 cerradas\): punta a punta 10 -> 10 min \(se mantiene\)/);
+  // Con un solo tramo completo, el parcial si cuenta (no hay otra cosa con que comparar).
+  const corto = calcularEvolucion([f(1, 10), f(2, 10), f(3, 99)], 2);
+  assert.match(tendenciaCosteFijo(corto) ?? '', /al 2 \(3 cerradas\): punta a punta 10 -> 99 min \(crece\)/);
+});
