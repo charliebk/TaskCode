@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 19 | **18** | — |
+| ⏳ P — Agilidad sin perder calidad | 20 | **19** | — |
 | **Total pendiente** | **1** | — | — |
 
 ---
@@ -1201,6 +1201,12 @@ del código.
       mensajes y guia. Los dos casos reproducidos son tests de regresion. Arregla tambien que verificar-impacto
       pasaba RAMA_BASE a los tests. 1 ronda: 2 IMP corregidos, 2 MEN aceptados; cerrada sin ronda 2 y con
       --sin-verificacion por decision de Carlos.*
+- [x] TASK-121 — Troceo de tareas de más de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama — cerrada el 2026-11-12
+      *taskctl trocear pasa la tarea a TASK-NNNa y crea b, c... en 00-planificadas con la misma rama y el
+      ROADMAP regenerado; siguiente pregunta con dos salidas en cualquier modo; IDs con letra en todo el CLI;
+      start de una parte trae la base a la rama compartida. Carlos la aprobo entera (150 min). 1 ronda:
+      aprobada, 6 MEN corregidos (MEN-5 en parte) y 4 mutantes muertos; suite completa con solo los 3 rojos
+      de Windows, cerrada con --sin-verificacion.*
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
 
