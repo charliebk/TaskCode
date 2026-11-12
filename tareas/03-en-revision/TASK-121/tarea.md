@@ -98,3 +98,7 @@ fs a mano: 380/382 (falla solo el symlink EPERM conocido de Windows, 1 skipped).
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T18:10:56Z | implementacion | sesion:6e909599-d65b-41cb-8fcb-9656c5dde2af | 102 | 84573 | 10033511 | 41458 | 4 | 10159644 | - | - |
+
+## Verificacion omitida
+
+- 2026-11-12T19:07:02Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
