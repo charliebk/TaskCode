@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-124, TASK-019
+- **En marcha:** TASK-124 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-019
 
 ## H0 — H0
 
@@ -91,7 +91,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-121 | Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama | media | — | ✅ terminada |
 | — | TASK-122 | Coste por tarea independiente del tamano del proyecto | alta | — | ✅ terminada |
 | — | TASK-123 | F-16: finish no cierra sin verificar tras un merge a mano o un conflicto | media | — | ✅ terminada |
-| 19 | TASK-124 | Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto | media | — | lista para empezar |
+| 19 | TASK-124 | Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto | media | — | ▶ en diseño |
 | 20 | TASK-125 | Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea | media | TASK-111 | espera a TASK-111 |
 | 21 | TASK-126 | Verificacion por tipo de rama: los tests pesados solo en la puerta de release | media | TASK-115 | espera a TASK-115 |
 | 22 | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | TASK-112 | espera a TASK-112 |

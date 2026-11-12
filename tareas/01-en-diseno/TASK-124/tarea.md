@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-124-contexto-con-tamano-maximo-lo-que-leen-l
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ Sale de TASK-122 (docs/auditoria/ESCALA-2026-11-12.md): lo que leen los agentes 
 - [ ] taskctl doctor avisa si ESTADO.md lleva mas de 14 dias sin actualizarse o va por detras de las tareas cerradas (test)
 - [ ] El README del plugin pasa la referencia detallada a ficheros aparte y queda por debajo de 40 KB, sin perder contenido (test que comprueba el tamano y los enlaces)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-12T19:11:36Z | plan | automatico | persona | 0.14.0 |
