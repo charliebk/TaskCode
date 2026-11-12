@@ -7,7 +7,7 @@ etiquetas: [flujo, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-121-troceo-de-tareas-de-mas-de-60-min-como-p
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -41,3 +41,4 @@ Hoy la regla de una hora para el flujo cuando el plan estima mas de 60 min, y tr
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-12T17:48:41Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-12T17:49:55Z | approve | automatico | persona | 0.14.0 |
