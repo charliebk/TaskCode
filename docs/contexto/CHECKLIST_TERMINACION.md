@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 121 / 122 items terminados (99%)** · última actualización: 2026-11-12
+**Progreso global: 122 / 122 items terminados (100%)** · última actualización: 2026-11-12
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,8 +40,8 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 21 | **20** | — |
-| **Total pendiente** | **1** | — | — |
+| ✅ P — Agilidad sin perder calidad | 21 | **21** | — |
+| **Total pendiente** | **0** | — | — |
 
 
 Las fases cerradas (Sprint 0 y 1, A a O), las decisiones ya resueltas (#1 a
@@ -154,8 +154,13 @@ del código.
       cerradas y ESTADO viejo a docs/contexto/archivo/; doctor vigila documento_estado. Carlos la aprobó
       entera (150 min). 1 ronda: aprobada con correcciones, 4 MEN corregidos y 2 mutantes muertos; cerrada
       sin ronda 2 (modo rápido).*
-- [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
-  (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
+- [x] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa — cerrada el 2026-11-12
+      *P-2: taskctl verificar-menores (solo ficheros de los MENORES o tests; los no corregidos a
+      revision/menores-pendientes.md, que no bloquea), finish no integra codigo posterior al Commit revisado
+      sin esa verificacion o --aceptar-sin-revisar, siguiente sin rondas por MENORES. Motivo: 71 rondas por
+      MENORES, 2 CRIT/IMP, 70,2 M tokens. 1 ronda: 2 IMP y 2 MEN corregidos, 1 MEN aceptado, 7 mutantes
+      muertos; la suite completa cazo 2 rojos propios (derivados de comando_sincronizacion), corregidos;
+      cerrada sin ronda 2, con --aceptar-sin-revisar y --sin-verificacion por decision de Carlos.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
