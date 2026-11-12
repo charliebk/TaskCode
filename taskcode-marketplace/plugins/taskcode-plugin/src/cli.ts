@@ -90,7 +90,7 @@ Uso:
   taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]
   taskctl siguiente TASK-NNN [--json]
   taskctl estado
-  taskctl doctor [--json]
+  taskctl doctor [--json] [--instalar-status-line [--reemplazar-status-line] | --desinstalar-status-line]
   taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]
   taskctl pausa TASK-NNN [--push]
   taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
@@ -155,7 +155,11 @@ config pide merge request o declara plataforma, gh/glab y su sesion), hooks que 
 subagentes y si el plugin instalado esta por detras de la copia local de su marketplace (aviso, sin
 red). Una linea por comprobacion
 (ok, aviso, error u omitida) y, en cada aviso o error, el comando que lo arregla; sale con 1 si hay
-algun error. Solo lee. --json da lo mismo en una linea de JSON.
+algun error. Solo lee. --json da lo mismo en una linea de JSON. Tambien dice si esta la status line de
+Claude Code que muestra "taskctl estado"; --instalar-status-line la escribe en el settings.json de usuario
+(una vez, para todos los proyectos; conserva el resto de claves y deja copia), solo si taskctl esta en el
+PATH del sistema y sin pisar otra status line salvo con --reemplazar-status-line;
+--desinstalar-status-line la quita (y devuelve la que hubiera antes).
 doctor-deploy comprueba, antes de publicar, que la aplicacion no deja agujeros conocidos: detecta el tipo (Node,
 Rust, Python, Java, .NET, Go, PHP, Ruby, Docker, frontend) y recorre un catalogo de puntos. Cada punto sale OK
 (con evidencia), FALLA (con evidencia y arreglo), NO VERIFICADO (con lo que falta) o NO APLICA (con el motivo).
