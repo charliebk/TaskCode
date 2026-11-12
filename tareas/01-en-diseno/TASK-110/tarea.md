@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [progreso, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-110-progreso-visible-sin-tokens-estado-de-ca
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -35,3 +35,9 @@ Mientras taskctl y sus hooks trabajan (la verificacion de finish, unos 28 min en
 - [ ] npm test de TaskCode muestra [x/N] mientras corre, con un reporter sin dependencias y el total de la ejecucion anterior (test del reporter)
 - [ ] Sin tarea en curso, taskctl estado dice que no hay nada en marcha y sale con 0 (test)
 - [ ] La suite completa pasa (npm test) sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-12T11:29:28Z | plan | automatico | persona | 0.14.0 |
