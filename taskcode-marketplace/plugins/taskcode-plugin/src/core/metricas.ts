@@ -252,7 +252,7 @@ function kbPorRonda(peticiones: readonly { ronda: number; bytes: number }[]): Pe
  * deja de reconocer sus commits: hay un test que recorre el ciclo real.
  */
 const ASUNTO_CHORE_RE =
-  /^chore\((TASK-\d{3,})\): (tarea en diseno|plan aprobado|tarea en curso|peticion de revision ronda \d+|tarea terminada y artefactos de cierre|pausa registrada)$/;
+  /^chore\((TASK-\d{3,}[a-z]?)\): (tarea en diseno|plan aprobado|tarea en curso|peticion de revision ronda \d+|tarea terminada y artefactos de cierre|pausa registrada)$/;
 
 function faseDeAsunto(resumen: string): FaseMedida {
   if (resumen === 'tarea en diseno') return 'plan';

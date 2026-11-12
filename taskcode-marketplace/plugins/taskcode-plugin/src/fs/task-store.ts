@@ -24,7 +24,7 @@ import {
 import { parseTareaFile, serializeTareaFile } from '../core/tarea-file.js';
 
 const ALL_STATE_FOLDERS: readonly string[] = Object.values(STATE_FOLDER);
-const TASK_ID_RE = /^TASK-\d{3,}$/;
+const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
 
 export async function listExistingTaskIds(tareasRoot: string): Promise<string[]> {
   const ids: string[] = [];

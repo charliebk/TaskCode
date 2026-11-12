@@ -89,7 +89,7 @@ function kbPorRonda(peticiones) {
  * `mensajeChore` en cada comando). Si un comando cambia su asunto, esto
  * deja de reconocer sus commits: hay un test que recorre el ciclo real.
  */
-const ASUNTO_CHORE_RE = /^chore\((TASK-\d{3,})\): (tarea en diseno|plan aprobado|tarea en curso|peticion de revision ronda \d+|tarea terminada y artefactos de cierre|pausa registrada)$/;
+const ASUNTO_CHORE_RE = /^chore\((TASK-\d{3,}[a-z]?)\): (tarea en diseno|plan aprobado|tarea en curso|peticion de revision ronda \d+|tarea terminada y artefactos de cierre|pausa registrada)$/;
 function faseDeAsunto(resumen) {
     if (resumen === 'tarea en diseno')
         return 'plan';

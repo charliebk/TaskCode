@@ -34,7 +34,7 @@ import {
   showFileAtRef,
 } from './git.js';
 
-const TASK_ID_RE = /^TASK-\d{3,}$/;
+const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
 
 /**
  * Ramas locales que cuentan como trabajo abierto: ni la base ni la

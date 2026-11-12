@@ -36,7 +36,7 @@ import { parseTareaFile } from '../core/tarea-file.js';
 import { runGit } from './git.js';
 
 const NOMBRE = 'ROADMAP.md';
-const TASK_DIR_RE = /^TASK-\d{3,}$/;
+const TASK_DIR_RE = /^TASK-\d{3,}[a-z]?$/;
 
 /** Para que se prepara: una transicion (reglas estrictas) o `taskctl roadmap --escribir` (explicito). */
 export type ModoRoadmap = 'transicion' | 'escribir';

@@ -27,7 +27,7 @@ import { STATE_FOLDER } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { listTareasEnEstados } from './task-store.js';
 import { isAncestor, localBranchExists, localBranches, lsTreeNames, showFileAtRef, } from './git.js';
-const TASK_ID_RE = /^TASK-\d{3,}$/;
+const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
 /**
  * Ramas locales que cuentan como trabajo abierto: ni la base ni la
  * principal, y no mergeadas en ninguna de las dos.

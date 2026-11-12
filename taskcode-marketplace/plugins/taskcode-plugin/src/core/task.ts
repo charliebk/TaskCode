@@ -129,7 +129,7 @@ export const TASK_FIELD_ORDER: readonly (keyof Task)[] = [
   'dependencias',
 ];
 
-const TASK_ID_RE = /^TASK-\d{3,}$/;
+const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
 
 /** Valida el formato de un ID de tarea sin construir un Task completo.
  *  Se usa como guarda de seguridad ANTES de construir rutas de archivo
@@ -141,7 +141,7 @@ export function isValidTaskId(id: string): boolean {
 
 export class InvalidTaskIdError extends Error {
   constructor(public readonly id: string) {
-    super(`"${id}" no es un ID de tarea valido (se espera el formato TASK-NNN).`);
+    super(`"${id}" no es un ID de tarea valido (se espera el formato TASK-NNN, o TASK-NNNa si es una parte de un troceo).`);
     this.name = 'InvalidTaskIdError';
   }
 }
@@ -261,7 +261,7 @@ function requireNullableEnum<T extends string>(
 export function validateTask(data: Record<string, unknown>): Task {
   const id = requireString(data, 'id');
   if (!TASK_ID_RE.test(id)) {
-    fail('id', `El campo "id" ("${id}") debe tener el formato TASK-NNN (al menos 3 digitos).`);
+    fail('id', `El campo "id" ("${id}") debe tener el formato TASK-NNN (al menos 3 digitos) o TASK-NNNa (una parte de un troceo).`);
   }
 
   const task: Task = {

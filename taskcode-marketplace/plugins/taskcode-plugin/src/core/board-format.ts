@@ -27,7 +27,7 @@ const STATE_LABEL: Record<TaskState, string> = {
   terminada: 'Terminadas',
 };
 
-const TASK_ID_NUM_RE = /^TASK-(\d+)$/;
+const TASK_ID_NUM_RE = /^TASK-(\d+)([a-z]?)$/;
 
 /**
  * Orden numerico por ID, no alfabetico (un ID de 4+ digitos, p. ej.
@@ -38,7 +38,11 @@ const TASK_ID_NUM_RE = /^TASK-(\d+)$/;
  */
 function taskIdSortKey(id: string): number {
   const m = TASK_ID_NUM_RE.exec(id);
-  return m ? parseInt(m[1] as string, 10) : Number.POSITIVE_INFINITY;
+  // TASK-121: la letra de una parte ordena dentro de su numero (TASK-121a,
+  // TASK-121b, luego TASK-122); sin letra va delante de sus partes.
+  if (!m) return Number.POSITIVE_INFINITY;
+  const letra = m[2] as string;
+  return parseInt(m[1] as string, 10) * 100 + (letra === '' ? 0 : letra.charCodeAt(0) - 96);
 }
 
 /**
