@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, critico, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-123-f-16-finish-no-cierra-sin-verificar-tras
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ Hallazgo CRITICO de la auditoria del 2026-11-12, reproducido de punta a punta (d
 - [ ] El guardian de merges trata como merge un git commit con MERGE_HEAD presente sobre la rama de integracion o la principal, con los tres comandos del caso B (test)
 - [ ] La guia y los mensajes de finish proponen como remedio taskctl abort-merge, integrar la base en la rama de la tarea y relanzar finish desde ella (test sobre el texto)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-12T16:30:50Z | plan | automatico | persona | 0.14.0 |

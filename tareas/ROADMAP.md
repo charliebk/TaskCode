@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-111, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-121, TASK-123, TASK-124, TASK-019
+- **En marcha:** TASK-123 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-099, TASK-111, TASK-112, TASK-113, TASK-114, TASK-115, TASK-116, TASK-117, TASK-118, TASK-119, TASK-120, TASK-121, TASK-124, TASK-019
 
 ## H0 — H0
 
@@ -90,7 +90,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 18 | TASK-120 | P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren | simple | — | lista para empezar |
 | 19 | TASK-121 | Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama | media | — | lista para empezar |
 | — | TASK-122 | Coste por tarea independiente del tamano del proyecto | alta | — | ✅ terminada |
-| 20 | TASK-123 | F-16: finish no cierra sin verificar tras un merge a mano o un conflicto | media | — | lista para empezar |
+| 20 | TASK-123 | F-16: finish no cierra sin verificar tras un merge a mano o un conflicto | media | — | ▶ en diseño |
 | 21 | TASK-124 | Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto | media | — | lista para empezar |
 
 ## H1 — H1
