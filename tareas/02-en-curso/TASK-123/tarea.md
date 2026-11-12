@@ -40,3 +40,7 @@ Hallazgo CRITICO de la auditoria del 2026-11-12, reproducido de punta a punta (d
 | 2026-11-12T16:30:50Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T16:31:27Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T16:31:28Z | start | automatico | persona | 0.14.0 |
+
+## Autorrevision
+
+- code-quality-reviewer — 5534695
