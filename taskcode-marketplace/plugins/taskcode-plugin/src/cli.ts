@@ -60,6 +60,7 @@ import {
 import { ConfigError } from './core/config.js';
 import { formatearInstante } from './core/transiciones.js';
 import { VERSION_TASKCTL } from './core/version.js';
+import { mainEstado } from './commands/estado.js';
 
 const VERSION = VERSION_TASKCTL;
 
@@ -88,6 +89,7 @@ Uso:
                     [--informe <nombre>] [--push]
   taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]
   taskctl siguiente TASK-NNN [--json]
+  taskctl estado
   taskctl doctor [--json]
   taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]
   taskctl pausa TASK-NNN [--push]
@@ -101,7 +103,11 @@ Uso:
   taskctl abort-merge
 
 Comandos: new, import, board, roadmap, metricas, start, plan, approve, review, codex-review, veredicto,
-finish, siguiente, doctor, doctor-deploy, pausa, registrar-coste, cadena.
+finish, siguiente, estado, doctor, doctor-deploy, pausa, registrar-coste, cadena.
+estado dice en que va la tarea en curso (fase dentro del ciclo, paso dentro de la fase, x/N si el
+comando de verificacion lo escribe, minutos), leyendo solo el progreso que dejan plan, approve, start,
+review, finish y el freno de fin de turno bajo .git/: sin lanzar git. Sin nada en marcha lo dice; fuera
+de un repo con tareas no imprime nada. Sale siempre con 0.
 roadmap genera tareas/ROADMAP.md (hitos por sprint, orden por dependencias, complejidad, estado y
 lo que esta en marcha o listo para empezar). new, plan, approve y finish lo regeneran en su commit
 cuando cae en la rama de integracion, pero solo si lleva la marca de taskctl en su tercera linea o
@@ -413,6 +419,9 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
     process.stdout.write(`${VERSION}\n`);
     return 0;
   }
+
+  // TASK-110: normalmente llega por la via rapida de bin/taskctl, sin pasar por aqui.
+  if (cmd === 'estado') return mainEstado(argv.slice(1));
 
   if (GUARDADOS_POR_CADENA.has(cmd)) {
     let resto: string[];

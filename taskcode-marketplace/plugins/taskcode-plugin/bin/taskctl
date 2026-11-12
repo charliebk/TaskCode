@@ -1,7 +1,13 @@
 #!/usr/bin/env node
-import('../dist/src/cli.js')
-  .then(async (m) => {
-    const code = await m.main(process.argv.slice(2));
+// "taskctl estado" va por una via rapida: lo ejecuta la status line en cada
+// refresco y no debe cargar el grafo entero de comandos (dist/src/cli.js).
+const argv = process.argv.slice(2);
+const arranque =
+  argv[0] === 'estado'
+    ? import('../dist/src/commands/estado.js').then((m) => m.mainEstado(argv.slice(1)))
+    : import('../dist/src/cli.js').then((m) => m.main(argv));
+arranque
+  .then((code) => {
     process.exitCode = code;
   })
   .catch((e) => {
