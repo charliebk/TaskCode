@@ -382,7 +382,15 @@ const REMEDIO_CIERRE = 'No lo cierres aqui: abortalo con taskctl abort-merge, in
     'verificar, es taskctl finish TASK-NNN --sin-verificacion, que lo deja anotado en la tarea. No integres por ' +
     'otra via para saltarte esta comprobacion.';
 function motivoDeCierre(sha, rama, raiz, config) {
+    // Lo que entra ya esta integrado (misma exencion que motivoDeBloqueo): en HEAD, en la
+    // principal o en origin/<rama> (sincronizar con el remoto con conflicto, git pull).
     if (esAncestro(sha, 'HEAD', raiz))
+        return null;
+    const principal = ramaPrincipal(raiz);
+    if (principal !== null && esAncestro(sha, principal, raiz))
+        return null;
+    const remota = `refs/remotes/origin/${rama}`;
+    if (existeRef(remota, raiz) && esAncestro(sha, remota, raiz))
         return null;
     const comando = config.comando_verificacion;
     const timeouts = new Set([config.timeout_verificacion, timeoutEfectivoS(config.timeout_verificacion).timeoutS]);
