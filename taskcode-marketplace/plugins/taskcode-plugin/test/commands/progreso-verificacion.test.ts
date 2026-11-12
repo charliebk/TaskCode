@@ -10,15 +10,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { runFinishCommand } from '../../src/commands/finish.js';
 import { decidirStop } from '../../src/hooks/freno-stop.js';
 import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
-import { TASKCTL, ID, cliOk, withRepo, hastaCodigo } from '../helpers/automatico-fixtures.js';
-import { leerProgreso, rutaContador } from '../../src/fs/progreso.js';
+import { TASKCTL, ID, CONFIG_AUTO, cliOk, codigo, withRepo, hastaCodigo } from '../helpers/automatico-fixtures.js';
+import { entornoConContador, leerProgreso, rutaContador, VARIABLE_PROGRESO } from '../../src/fs/progreso.js';
 
 /**
  * Apunta el TASKCTL_PROGRESO que recibe, escribe en el x/N, ejecuta
@@ -127,6 +128,112 @@ test('progreso: la verificacion selectiva de review tambien recibe su contador',
       assert.equal(f.ruta(), rutaContador(repoRoot));
       assert.equal(existsSync(f.falso), false, 'el CLI no deja heredar el TASKCTL_PROGRESO de fuera');
       assert.equal(leerProgreso(repoRoot)?.contador, false, 'al terminar, el contador ya no cuenta');
+    });
+  });
+});
+
+test('progreso: entornoConContador no deja pasar un TASKCTL_PROGRESO heredado, haya contador o no', () => {
+  const base = { PATH: '/bin', [VARIABLE_PROGRESO]: '/fuera/contador-falso' };
+  const sin = entornoConContador(base, null);
+  assert.equal(Object.prototype.hasOwnProperty.call(sin, VARIABLE_PROGRESO), false, 'sin contador, la variable falsa no pasa');
+  assert.equal(sin['PATH'], '/bin', 'el resto del entorno se conserva');
+  assert.equal(entornoConContador(base, '/repo/.git/taskcode/progreso-contador')[VARIABLE_PROGRESO], '/repo/.git/taskcode/progreso-contador');
+  assert.equal(base[VARIABLE_PROGRESO], '/fuera/contador-falso', 'no toca el entorno de partida');
+});
+
+test('progreso: un TASKCTL_PROGRESO de fuera no llega a los hijos del CLI que no son la verificacion (hook de git)', async () => {
+  const fuera = await mkdtemp(path.join(tmpdir(), 'progreso-herencia-'));
+  try {
+    const volcado = path.join(fuera, 'volcado.txt');
+    const falso = path.join(fuera, 'contador-falso');
+    await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+      await hastaCodigo(repoRoot, tareasRoot);
+      // Un hook de git (vive en .git, fuera del arbol) vuelca la variable que ve cada commit del CLI.
+      const hook = path.join(repoRoot, '.git', 'hooks', 'post-commit');
+      await writeFile(hook, '#!/bin/sh\nprintf "[%s]\\n" "${TASKCTL_PROGRESO-}" >> "$VOLCADO_HERENCIA"\n', 'utf8');
+      await chmod(hook, 0o755);
+      const r = spawnSync(process.execPath, [TASKCTL, 'review', ID], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        env: { ...process.env, [VARIABLE_PROGRESO]: falso, VOLCADO_HERENCIA: volcado.replace(/\\/g, '/') },
+      });
+      assert.equal(r.status, 0, r.stderr);
+      const lineas = existsSync(volcado) ? readFileSync(volcado, 'utf8').trim().split(/\r?\n/) : [];
+      assert.ok(lineas.length > 0, 'el hook se ejecuto en algun commit del CLI');
+      assert.deepEqual(lineas.filter((l) => l !== '[]'), [], 'ningun hijo hereda el TASKCTL_PROGRESO de fuera');
+      assert.equal(existsSync(falso), false);
+    });
+  } finally {
+    await rm(fuera, { recursive: true, force: true, maxRetries: 5 });
+  }
+});
+
+/** Un fichero nuevo en la rama de la tarea (activa), commiteado. */
+async function enLaRama(repoRoot: string, ruta: string, contenido = 'x\n'): Promise<void> {
+  await mkdir(path.dirname(path.join(repoRoot, ruta)), { recursive: true });
+  await writeFile(path.join(repoRoot, ruta), contenido, 'utf8');
+  commitAll(repoRoot, `cambio en ${ruta}`);
+}
+
+/** `trabajo-*.txt` es lo que deja `setupTaskEnRevision` en la raiz: aqui cuenta como documentacion. */
+const RUTAS_DOCS = 'rutas_documentacion: [docs/**, trabajo-*.txt]\n';
+
+test('progreso: la comprobacion de documentacion de finish tambien recibe su contador', async () => {
+  await conFoto((f) =>
+    withTempRepo(async (repoRoot, tareasRoot) => {
+      await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+      await writeFile(
+        path.join(repoRoot, '.taskcode', 'config.yml'),
+        `comando_verificacion: "node -e 0"\n${RUTAS_DOCS}comando_verificacion_documentacion: "${f.comando}"\n`,
+        'utf8'
+      );
+      commitAll(repoRoot, 'config');
+      await setupTaskEnRevision(repoRoot, tareasRoot, sampleTask({ id: 'TASK-732' }));
+      await enLaRama(repoRoot, 'docs/guia.md');
+      const r = await runFinishCommand(tareasRoot, ['TASK-732'], '2026-11-12', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
+      assert.equal(r.cierre, 'terminada');
+      assert.equal(f.leer(), 'TASK-732 · finish (5/5) · verificacion (2/6) 3/10 · 0 min\n');
+      assert.equal(f.ruta(), rutaContador(repoRoot));
+      assert.equal(existsSync(f.falso), false);
+    })
+  );
+});
+
+test('progreso: la verificacion selectiva de finish tambien recibe su contador', async () => {
+  await conFoto((f) =>
+    withTempRepo(async (repoRoot, tareasRoot) => {
+      await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+      await writeFile(
+        path.join(repoRoot, '.taskcode', 'config.yml'),
+        `comando_verificacion: "node -e 0"\n${RUTAS_DOCS}comando_verificacion_selectiva: "${f.comando}"\nrutas_verificacion_parcial: [src/**]\n`,
+        'utf8'
+      );
+      commitAll(repoRoot, 'config');
+      await setupTaskEnRevision(repoRoot, tareasRoot, sampleTask({ id: 'TASK-733' }));
+      await enLaRama(repoRoot, 'src/calculo.ts', 'export const x = 1;\n');
+      const r = await runFinishCommand(tareasRoot, ['TASK-733'], '2026-11-12', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
+      assert.equal(r.cierre, 'terminada');
+      assert.equal(f.leer(), 'TASK-733 · finish (5/5) · verificacion (2/6) 3/10 · 0 min\n');
+      assert.equal(f.ruta(), rutaContador(repoRoot));
+      assert.equal(existsSync(f.falso), false);
+    })
+  );
+});
+
+test('progreso: en la segunda ronda, review dice "ronda 2" ya durante la verificacion', async () => {
+  await conFoto(async (f) => {
+    const config = `modo_flujo: automatico\ncomando_verificacion: "node -e 0"\ncomando_verificacion_selectiva: "${f.comando}"\n`;
+    await withRepo(config, async (repoRoot, tareasRoot) => {
+      await hastaCodigo(repoRoot, tareasRoot);
+      cliOk(repoRoot, ['review', ID]);
+      cliOk(repoRoot, ['veredicto', ID, 'cambios-solicitados']);
+      await codigo(repoRoot, 'correccion 1\n', `fix(${ID}): correccion 1`);
+      cliOk(repoRoot, ['review', ID]);
+      assert.deepEqual(f.leer().split('\n'), [
+        `${ID} · review (4/5) · verificacion (3/5) 3/10 · 0 min`,
+        `${ID} · review (4/5) · ronda 2 · verificacion (3/5) 3/10 · 0 min`,
+        '',
+      ]);
     });
   });
 });

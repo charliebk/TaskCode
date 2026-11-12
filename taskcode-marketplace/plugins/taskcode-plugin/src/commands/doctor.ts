@@ -73,6 +73,9 @@ export class DoctorCommandError extends Error {}
 export const FLAG_INSTALAR_STATUS_LINE = '--instalar-status-line';
 export const FLAG_REEMPLAZAR_STATUS_LINE = '--reemplazar-status-line';
 export const FLAG_DESINSTALAR_STATUS_LINE = '--desinstalar-status-line';
+/** La linea de uso, con todos los flags (la misma que la ayuda de cli.ts). */
+export const USO_DOCTOR =
+  `Uso: taskctl doctor [--json] [${FLAG_INSTALAR_STATUS_LINE} [${FLAG_REEMPLAZAR_STATUS_LINE}] | ${FLAG_DESINSTALAR_STATUS_LINE}].`;
 export const FLAGS_DOCTOR: readonly string[] = [
   '--json',
   FLAG_INSTALAR_STATUS_LINE,
@@ -773,7 +776,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   rechazarFlagsDesconocidos(argv, FLAGS_DOCTOR, 'doctor', (m) => new DoctorCommandError(m));
   const sobra = argv.find((a) => !a.startsWith('-'));
   if (sobra !== undefined) {
-    throw new DoctorCommandError(`[ERROR] taskctl doctor: no admite argumentos ("${sobra}"). Uso: taskctl doctor [--json].`);
+    throw new DoctorCommandError(`[ERROR] taskctl doctor: no admite argumentos ("${sobra}"). ${USO_DOCTOR}`);
   }
   const instalar = argv.includes(FLAG_INSTALAR_STATUS_LINE);
   const reemplazar = argv.includes(FLAG_REEMPLAZAR_STATUS_LINE);

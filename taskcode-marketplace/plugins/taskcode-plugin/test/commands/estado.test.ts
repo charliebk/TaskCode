@@ -78,6 +78,9 @@ test('estado: un flag desconocido o repetido aborta con 1', async () => {
     const r = estado(raiz, process.env, ['--json']);
     assert.equal(r.status, 1);
     assert.match(r.stderr, /taskctl estado/);
+    const suelto = estado(raiz, process.env, ['algo']);
+    assert.equal(suelto.status, 1);
+    assert.match(suelto.stderr, /Uso: taskctl estado \[--seguir\] \[--stdin\]\./, 'el uso menciona --stdin');
     const rep = estado(raiz, process.env, ['--stdin', '--stdin']);
     assert.equal(rep.status, 1);
     assert.match(rep.stderr, /"--stdin" esta repetido/);

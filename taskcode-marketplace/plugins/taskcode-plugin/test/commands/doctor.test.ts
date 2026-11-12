@@ -582,6 +582,13 @@ test('flags desconocidos y argumentos sobrantes abortan', () => {
   );
   assert.throws(() => runDoctorCommand(['--json=1'], { repoCwd: '.' }), DoctorCommandError);
   assert.throws(() => runDoctorCommand(['TASK-001'], { repoCwd: '.' }), /no admite argumentos/);
+  // TASK-110 (MEN-6): el uso lista todos los flags de doctor.
+  assert.throws(
+    () => runDoctorCommand(['TASK-001'], { repoCwd: '.' }),
+    (e: unknown) =>
+      e instanceof Error &&
+      e.message.endsWith('Uso: taskctl doctor [--json] [--instalar-status-line [--reemplazar-status-line] | --desinstalar-status-line].')
+  );
 });
 
 // ---------------------------------------------------------------------

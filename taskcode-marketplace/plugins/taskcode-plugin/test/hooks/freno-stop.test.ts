@@ -152,8 +152,8 @@ test('freno: verificacion en rojo bloquea con exit 2 y el comando, el codigo, la
       assert.match(d.stderr, /preparando[\s\S]*ERROR: 2 tests fallan/, 'stdout y stderr intercalados');
       assert.match(d.stderr, /No borres, saltes ni debilites tests/);
       assert.doesNotMatch(d.stderr, /taskcode/i, 'el texto lo leen proyectos ajenos');
-      // TASK-110: un turno bloqueado deja la fase como abortada, no "en curso".
-      assert.deepEqual([leerProgreso(r.raiz)?.terminado, leerProgreso(r.raiz)?.resultado], [true, 'abortada']);
+      // TASK-110: un turno bloqueado por la verificacion en rojo deja la fase "en rojo", no "en curso" ni "abortada".
+      assert.deepEqual([leerProgreso(r.raiz)?.terminado, leerProgreso(r.raiz)?.resultado], [true, 'en-rojo']);
     })
   );
 });

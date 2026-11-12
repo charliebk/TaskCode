@@ -858,8 +858,11 @@ del comando de verificación si lo escribe, y los minutos desde que empezó la
 fase. Los pasos: `plan` guardas, brainstorm, commit; `approve` guardas, plan,
 commit; `start` guardas, rama, commit; `review` guardas, integracion,
 verificacion, peticiones, commit; `finish` puertas, verificacion, cobertura,
-held-out, merge, artefactos; el freno, `freno · verificacion`. Sin nada en
-marcha dice `Nada en marcha.` (o la última fase y si terminó o abortó); fuera de
+held-out, merge, artefactos; el freno de fin de turno no es una fase del ciclo y
+va sin posición, con un único paso (`verificacion`, o `verificacion selectiva` /
+`verificacion documentacion`): `TASK-110 · freno · verificacion (1/1) · 0 min`.
+Sin nada en marcha dice `Nada en marcha.` (o la última fase y si terminó, abortó
+o, en el freno, terminó `en rojo` porque la verificación falló); fuera de
 un repo con `tareas/` o `.taskcode/` no imprime nada. Sale siempre con 0.
 `--stdin` toma el directorio del JSON que Claude Code pasa a la status line.
 `--seguir` refresca cada segundo hasta que la fase termina; sin terminal imprime

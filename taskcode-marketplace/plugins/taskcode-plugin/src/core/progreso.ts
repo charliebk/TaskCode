@@ -26,7 +26,12 @@ export const FASES_CICLO = ['plan', 'approve', 'start', 'review', 'finish'] as c
 export type FaseCiclo = (typeof FASES_CICLO)[number];
 /** `freno`: el freno de fin de turno, que no es una fase del ciclo (va sin posicion). */
 export type FaseProgreso = FaseCiclo | 'freno';
-export type ResultadoFase = 'ok' | 'abortada';
+/**
+ * `en-rojo`: termino sin interrumpirse pero su verificacion salio en rojo (el freno
+ * Stop). Un fichero anterior sin ese valor se sigue leyendo igual.
+ */
+export type ResultadoFase = 'ok' | 'abortada' | 'en-rojo';
+const RESULTADOS: readonly string[] = ['ok', 'abortada', 'en-rojo'];
 
 export interface EstadoProgreso {
   version: number;
@@ -99,7 +104,7 @@ export function validarProgreso(json: unknown): EstadoProgreso | null {
         .map((p) => limpiarTexto(p))
         .filter((p): p is string => p !== null)
     : [];
-  const resultado = o['resultado'] === 'ok' || o['resultado'] === 'abortada' ? o['resultado'] : null;
+  const resultado = typeof o['resultado'] === 'string' && RESULTADOS.includes(o['resultado']) ? (o['resultado'] as ResultadoFase) : null;
   return {
     version: VERSION_PROGRESO,
     tarea,
@@ -154,7 +159,7 @@ export function enMarcha(e: EstadoProgreso): boolean {
  */
 export function formatearEstado(e: EstadoProgreso, ahoraMs: number, contador: Contador | null): string {
   if (e.terminado) {
-    const como = e.resultado === 'abortada' ? 'abortada' : 'terminada';
+    const como = e.resultado === 'abortada' ? 'abortada' : e.resultado === 'en-rojo' ? 'en rojo' : 'terminada';
     const hace = minutosDesde(e.fin ?? e.inicio, ahoraMs);
     return recortar(
       ['Nada en marcha', `ultima: ${e.tarea}`, etiquetaFase(e.fase), `${como} hace ${String(hace)} min`].join(SEPARADOR),

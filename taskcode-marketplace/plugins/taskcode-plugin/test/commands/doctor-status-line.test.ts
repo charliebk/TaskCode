@@ -155,6 +155,33 @@ test('status line: una ajena no se pisa sin --reemplazar-status-line; con el se 
   });
 });
 
+test('status line: si la persona quito a mano la barra reemplazada, instalar de nuevo olvida la previa y desinstalar no la resucita', async () => {
+  await conEntorno(async (e) => {
+    await settingsConCentinela(e, { statusLine: AJENA });
+    assert.equal(doctor(e, ['--instalar-status-line', '--reemplazar-status-line']).nivel, 'ok');
+    assert.equal(existsSync(path.join(e.config, FICHERO_PREVIA)), true);
+    // La persona borra statusLine a mano.
+    await settingsConCentinela(e);
+    const c = doctor(e, ['--instalar-status-line']);
+    assert.equal(c.nivel, 'ok', c.mensaje);
+    assert.equal(existsSync(path.join(e.config, FICHERO_PREVIA)), false, 'la previa obsoleta se borra al instalar sobre ausente');
+    const d = doctor(e, ['--desinstalar-status-line']);
+    assert.equal(d.nivel, 'ok', d.mensaje);
+    assert.doesNotMatch(d.mensaje, /vuelve la anterior/);
+    assert.equal(leer(e.settings)['statusLine'], undefined, 'no vuelve "echo mi barra"');
+  });
+});
+
+test('status line: actualizar la propia conserva sus otras claves (padding, refreshInterval)', async () => {
+  await conEntorno(async (e) => {
+    await settingsConCentinela(e, { statusLine: { type: 'command', command: 'taskctl estado', padding: 2, refreshInterval: 5 } });
+    const c = doctor(e, ['--instalar-status-line']);
+    assert.equal(c.nivel, 'ok', c.mensaje);
+    assert.match(c.mensaje, /actualizada/);
+    assert.deepEqual(leer(e.settings)['statusLine'], { type: 'command', command: 'taskctl estado --stdin', padding: 2, refreshInterval: 5 });
+  });
+});
+
 test('status line: desinstalar quita solo la suya; una ajena o ninguna no se tocan', async () => {
   await conEntorno(async (e) => {
     await settingsConCentinela(e, { statusLine: NUESTRA });

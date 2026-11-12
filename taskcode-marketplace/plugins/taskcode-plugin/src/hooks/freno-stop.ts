@@ -215,7 +215,8 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
         : { tipo: plan.tipo, comando: plan.comando as string, timeoutS };
 
     // 8 y 9. TASK-110: el paso se ve mientras corre; acaba "terminada" si sale
-    // en verde y "abortada" si bloquea el turno (o si algo lanza).
+    // en verde, "en rojo" si la verificacion sale en rojo y bloquea el turno, y
+    // "abortada" solo si algo lanza.
     const progreso = deps.progreso ?? crearProgreso(raiz);
     const paso = plan.tipo === 'completa' ? 'verificacion' : `verificacion ${plan.tipo}`;
     progreso.fase(ids[0] ?? tarea, 'freno', [paso]);
@@ -232,7 +233,7 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       progreso.terminar('abortada');
       throw e;
     }
-    progreso.terminar(verificacion.resultado.estado === 'verde' ? 'ok' : 'abortada');
+    progreso.terminar(verificacion.resultado.estado === 'verde' ? 'ok' : 'en-rojo');
     const { resultado: r, deMemo, cambioElArbol } = verificacion;
     if (r.estado === 'verde') return dejarParar;
     if (plan.tipo === 'documentacion') {

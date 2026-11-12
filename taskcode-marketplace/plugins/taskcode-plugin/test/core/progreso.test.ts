@@ -67,6 +67,18 @@ test('progreso: terminada o abortada dice que no hay nada en marcha, con la ulti
     formatearEstado(estado({ terminado: true, resultado: 'abortada', fin: T0 }), T0 + 30_000, { x: 1, n: 2 }),
     'Nada en marcha · ultima: TASK-110 · review (4/5) · abortada hace 0 min'
   );
+  // El freno que termino con la verificacion en rojo no se interrumpio: dice "en rojo", no "abortada".
+  assert.equal(
+    formatearEstado(estado({ fase: 'freno', pasos: ['verificacion'], ronda: null, terminado: true, resultado: 'en-rojo', fin: T0 }), T0 + 120_000, null),
+    'Nada en marcha · ultima: TASK-110 · freno · en rojo hace 2 min'
+  );
+});
+
+test('progreso: el resultado "en-rojo" se lee; un fichero viejo con ok o abortada sigue igual', () => {
+  const base = { version: 1, tarea: 'TASK-1', fase: 'freno', inicio: 5, terminado: true, fin: 6 };
+  assert.equal(validarProgreso({ ...base, resultado: 'en-rojo' })?.resultado, 'en-rojo');
+  assert.equal(validarProgreso({ ...base, resultado: 'abortada' })?.resultado, 'abortada');
+  assert.equal(validarProgreso({ ...base, resultado: 'ok' })?.resultado, 'ok');
 });
 
 test('progreso: minutos enteros hacia abajo y nunca negativos', () => {
