@@ -68,3 +68,7 @@ Evidencia: `RAMA_BASE=develop node scripts/verificar-impacto.mjs` 939 pass, 0 fa
 | 2026-11-12T19:45:52Z | implementacion | agente:a5c8d7729428a0908 | 116 | 193734 | 8545581 | 43321 | 7 | 8782752 | - | - |
 | 2026-11-12T19:45:52Z | implementacion | agente:a8cace2c802ca727c | 54 | 129728 | 2846603 | 14944 | 9 | 2991329 | - | - |
 | 2026-11-12T19:45:52Z | implementacion | agente:a8e1d3a271f088ca1 | 80 | 148553 | 4729700 | 30974 | 3 | 4909307 | - | - |
+
+## Verificacion omitida
+
+- 2026-11-12T20:07:47Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
