@@ -40,9 +40,9 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { analizarComando } from '../core/comando-merge.js';
+import { analizarComando, cierresDeMerge } from '../core/comando-merge.js';
 import { ConfigError, raizDelRepo, resolverConfigConAvisos } from '../core/config.js';
-import { huellaDeCommit, leerMemo } from '../fs/verificacion.js';
+import { huellaDeCommit, huellaDelArbol, leerMemo } from '../fs/verificacion.js';
 import { comandoSoloIntegra } from '../core/comando-merge.js';
 import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
 import { timeoutEfectivoS } from './freno-stop.js';
@@ -54,7 +54,8 @@ export function comandoCandidato(entrada) {
     if (typeof ti !== 'object' || ti === null)
         return null;
     const cmd = ti.command;
-    if (typeof cmd !== 'string' || !/merge/i.test(cmd))
+    // TASK-123: tambien `commit`, que con un merge en curso lo cierra.
+    if (typeof cmd !== 'string' || !/merge|commit/i.test(cmd))
         return null;
     return cmd;
 }
@@ -91,6 +92,12 @@ export function decidirPreToolUse(entrada) {
     if (typeof entrada.cwd !== 'string' || entrada.cwd === '' || !existsSync(entrada.cwd))
         return PASAR;
     const cwd = entrada.cwd;
+    // TASK-123 (F-16): el commit que cierra un merge en curso en una rama protegida.
+    const cierre = decidirCierreDeMerge(comando, cwd);
+    if (cierre.codigo === 2)
+        return cierre;
+    if (!/merge/i.test(comando))
+        return PASAR;
     // TASK-103: `git checkout README.md` no cambia HEAD; una rama (tambien la que
     // solo esta en origin: el DWIM de checkout), un tag o un commit, si.
     const esRevision = (n) => {
@@ -236,8 +243,8 @@ function motivoDeBloqueo(integ, config, contexto) {
 const LINEA_SELECTIVA = 'Con codigo, un merge a mano exige la verificacion completa en verde de ese commit aunque taskctl finish ' +
     'acepte la de lo afectado (rutas_verificacion_parcial), y un merge a mano no la obtiene. Integra con taskctl ' +
     'finish TASK-NNN desde la rama de la tarea, que verifica y mergea por su cuenta. Si finish choco en un conflicto, ' +
-    'no lo cierres en el destino (el reintento ya no verificaria): abortalo con taskctl abort-merge, integra la base ' +
-    'en la rama de la tarea, resuelvelo alli y vuelve a lanzar finish.';
+    'no lo cierres en el destino: abortalo con taskctl abort-merge, integra la base en la rama de la tarea, ' +
+    'resuelvelo alli y vuelve a lanzar taskctl finish TASK-NNN desde ella.';
 /**
  * TASK-101: si lo que entra es solo documentacion segun la config del destino.
  * `detalle` explica por que no se aplica cuando el destino si la declara; null
@@ -311,5 +318,83 @@ function mensaje(fuente, sha, destino, comando, motivo, detalle = null) {
         'Cierra la tarea con taskctl finish TASK-NNN: ejecuta la verificacion y mergea con el flujo de la tarea.',
         'Si la persona decide integrar sin verificar, es taskctl finish TASK-NNN --sin-verificacion, que lo deja',
         'anotado en la tarea. No integres por otra via para saltarte esta comprobacion.',
+    ].join('\n');
+}
+/**
+ * TASK-123 (F-16): `git commit` (o `git merge --continue`) con `MERGE_HEAD`
+ * presente en la rama de integracion o la principal cierra un merge hacia ella:
+ * lo que se commitea es la resolucion, no el commit que se verifico. Se exige un
+ * verde del arbol que se va a commitear (huella del arbol de trabajo, la que
+ * guarda el freno Stop), salvo que lo que entra ya este integrado. Sin
+ * `MERGE_HEAD`, o en otra rama, no se toca. Sin `git commit` ni `merge
+ * --continue` en el texto no lanza ningun proceso. Hasta saber que cierra un
+ * merge en una rama protegida, cualquier fallo deja pasar; despues, bloquea.
+ */
+function decidirCierreDeMerge(comando, cwd) {
+    const dirs = cierresDeMerge(comando);
+    for (const dir of dirs) {
+        let raiz;
+        let rama;
+        let sha;
+        let config;
+        try {
+            raiz = raizDelRepo(dir === null ? cwd : path.resolve(cwd, dir));
+            const mh = git(['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'], raiz);
+            if (!mh.ok || mh.out === '')
+                continue;
+            sha = mh.out;
+            rama = git(['branch', '--show-current'], raiz).out;
+            if (rama === '')
+                continue;
+            try {
+                config = resolverConfigConAvisos(raiz).config;
+            }
+            catch (e) {
+                if (e instanceof ConfigError && PROTEGIDAS_SIN_CONFIG.has(rama)) {
+                    return { codigo: 2, stderr: mensajeConfigInvalida(rama, e) };
+                }
+                continue;
+            }
+            if (config.comando_verificacion === null)
+                continue;
+            const principal = ramaPrincipal(raiz);
+            if (rama !== config.rama_base && rama !== principal)
+                continue;
+        }
+        catch {
+            continue;
+        }
+        try {
+            const motivo = motivoDeCierre(sha, rama, raiz, config);
+            if (motivo !== null)
+                return { codigo: 2, stderr: motivo };
+        }
+        catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            return { codigo: 2, stderr: `No se pudo comprobar la verificacion antes de cerrar un merge en "${rama}": ${msg}\n${REMEDIO_CIERRE}` };
+        }
+    }
+    return PASAR;
+}
+const REMEDIO_CIERRE = 'No lo cierres aqui: abortalo con taskctl abort-merge, integra la base en la rama de la tarea ' +
+    '(git checkout <rama-de-la-tarea> && git merge <esta-rama>), resuelvelo y commitea alli, y vuelve a lanzar ' +
+    'taskctl finish TASK-NNN desde ella, que verifica antes de mergear. Si la persona decide integrar sin ' +
+    'verificar, es taskctl finish TASK-NNN --sin-verificacion, que lo deja anotado en la tarea. No integres por ' +
+    'otra via para saltarte esta comprobacion.';
+function motivoDeCierre(sha, rama, raiz, config) {
+    if (esAncestro(sha, 'HEAD', raiz))
+        return null;
+    const comando = config.comando_verificacion;
+    const timeouts = new Set([config.timeout_verificacion, timeoutEfectivoS(config.timeout_verificacion).timeoutS]);
+    for (const t of timeouts) {
+        const huella = huellaDelArbol(raiz, comando, t);
+        if (huella !== null && leerMemo(raiz, huella)?.estado === 'verde')
+            return null;
+    }
+    return [
+        `Commit bloqueado: cerraria en "${rama}" el merge en curso de ${sha.slice(0, 10)} y no consta una verificacion ` +
+            `en verde de ese resultado (comando de verificacion: ${comando}). Lo que se commitea es la resolucion, no ` +
+            'lo que se verifico en la rama de la tarea.',
+        REMEDIO_CIERRE,
     ].join('\n');
 }
