@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-109 — Verificacion proporcional B6: documentacion y limpieza del nivel 2 · etiquetas: verificacion, agilidad · rama feature/task-109-verificacion-proporcional-b6-documentaci · terminada 2026-11-12 · tareas/04-terminadas/TASK-109/
 - TASK-108 — Verificacion proporcional B5: el guardian de merges ante el nivel 2 · etiquetas: verificacion, agilidad · rama feature/task-108-verificacion-proporcional-b5-el-guardian · terminada 2026-11-12 · tareas/04-terminadas/TASK-108/
 - TASK-107 — Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff · etiquetas: verificacion, agilidad · rama feature/task-107-verificacion-proporcional-b4-stop-review · terminada 2026-11-11 · tareas/04-terminadas/TASK-107/
 - TASK-106 — Verificacion proporcional B3: finish verifica solo lo afectado con codigo parcial · etiquetas: verificacion, agilidad · rama feature/task-106-verificacion-proporcional-b3-finish-veri · terminada 2026-11-11 · tareas/04-terminadas/TASK-106/

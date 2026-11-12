@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-109-verificacion-proporcional-b6-documentaci
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ Sexta y ultima parte de TASK-096; hasta cerrarla no se publica version. skills/t
 | 2026-11-12T01:07:29Z | start | automatico | persona | 0.14.0 |
 | 2026-11-12T08:38:03Z | review | automatico | persona | 0.14.0 |
 | 2026-11-12T09:43:52Z | review | automatico | persona | 0.14.0 |
+| 2026-11-12T09:51:53Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -79,3 +80,9 @@ Implementado (rama feature/task-109-verificacion-proporcional-b6-documentaci), u
 - Ronda 2 (haiku, aprobada): los cuatro hallazgos corregidos verificados contra el codigo, 2 mutantes muertos, sin hallazgos nuevos.
 
 **Pendiente fuera de esta tarea** (propuesto como tarea nueva): `finish`, en su camino idempotente, cierra sin ninguna verificacion si un conflicto se resolvio cerrando el merge en la rama de integracion; con o sin nivel 2. Y con el nivel 2 y `umbral_cobertura`, las lineas de una tarea integrada con la selectiva no se comparan con el umbral en ningun sitio.
+
+## Duracion
+
+- Estimada: 90 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 524 min
+- Paso de la hora: 524 min reales frente a 90 estimados
