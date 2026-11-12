@@ -81,6 +81,9 @@ test('estado: un flag desconocido o repetido aborta con 1', async () => {
     const rep = estado(raiz, process.env, ['--stdin', '--stdin']);
     assert.equal(rep.status, 1);
     assert.match(rep.stderr, /"--stdin" esta repetido/);
+    const seguir = estado(raiz, process.env, ['--seguir', '--seguir']);
+    assert.equal(seguir.status, 1);
+    assert.match(seguir.stderr, /"--seguir" esta repetido/);
   });
 });
 

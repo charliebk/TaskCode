@@ -90,7 +90,7 @@ Uso:
                     [--informe <nombre>] [--push]
   taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]
   taskctl siguiente TASK-NNN [--json]
-  taskctl estado
+  taskctl estado [--seguir]
   taskctl doctor [--json] [--instalar-status-line [--reemplazar-status-line] | --desinstalar-status-line]
   taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]
   taskctl pausa TASK-NNN [--push]
@@ -108,7 +108,8 @@ finish, siguiente, estado, doctor, doctor-deploy, pausa, registrar-coste, cadena
 estado dice en que va la tarea en curso (fase dentro del ciclo, paso dentro de la fase, x/N si el
 comando de verificacion lo escribe, minutos), leyendo solo el progreso que dejan plan, approve, start,
 review, finish y el freno de fin de turno bajo .git/: sin lanzar git. Sin nada en marcha lo dice; fuera
-de un repo con tareas no imprime nada. Sale siempre con 0.
+de un repo con tareas no imprime nada. Sale siempre con 0. --seguir refresca cada segundo hasta que la
+fase termina; sin terminal imprime una sola linea y sale.
 roadmap genera tareas/ROADMAP.md (hitos por sprint, orden por dependencias, complejidad, estado y
 lo que esta en marcha o listo para empezar). new, plan, approve y finish lo regeneran en su commit
 cuando cae en la rama de integracion, pero solo si lleva la marca de taskctl en su tercera linea o
