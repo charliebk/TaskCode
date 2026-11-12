@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 17 | **16** | — |
+| ⏳ P — Agilidad sin perder calidad | 18 | **17** | — |
 | **Total pendiente** | **1** | — | — |
 
 ---
@@ -1115,7 +1115,7 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
-## ⏳ P — Agilidad sin perder calidad (12/17)
+## ⏳ P — Agilidad sin perder calidad (13/18)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -1190,6 +1190,11 @@ del código.
       contador TASKCTL_PROGRESO, reporter [x/N] de npm test y `--seguir`. Sin trocear (decision de Carlos). Paso S:
       la status line se ve en la app de escritorio y por Remote Control. 1 ronda: IMP-1 y 5 MENOR corregidos, 2
       aceptados; cerrada sin ronda 2 por decision de Carlos (modo rapido).*
+- [x] TASK-122 — Coste por tarea independiente del tamaño del proyecto — cerrada el 2026-11-12
+      *Verificacion por impacto en TaskCode (14 s un modulo, 70 s la rama; antes ~25 min), metricas --evolucion con
+      el coste fijo y su tendencia, informe de escala y perfil de la suite, regla de la piramide. Modo rapido: plan
+      sin brainstorm, 1 ronda (3 IMP y 6 MENOR corregidos), cerrada sin ronda 2 y con --sin-verificacion por
+      decision de Carlos.*
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
 
