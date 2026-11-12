@@ -2,7 +2,7 @@
 
 - Commit revisado: 4cb0f1a295713dc33b4d707670d7a2a209d7a8c5
 - Revisor: code-quality-reviewer (agente revisor independiente, general-purpose, modelo sonnet)
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-110 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: cambios-solicitados
 
 Veredicto propuesto por el revisor: aprobada-con-correcciones. Con un IMPORTANTE abierto (IMP-1) se escribe cambios-solicitados.
 
