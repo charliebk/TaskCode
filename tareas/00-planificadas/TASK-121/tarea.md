@@ -24,6 +24,8 @@ dependencias: []
 ---
 ## Objetivo
 
+Por que importa (Carlos, 2026-11-12): trocear ha dado problemas en otros proyectos y ha complicado el repo. Evidencia en los repos: en TaskCode, TASK-096 se partio en 10 tareas con rama, diseno, revision y cierre propios (TASK-100 a TASK-109; unas 25 h y unos 230 M tokens); en ToolsaWeb hay 83 tareas que citan una particion, con tandas de numeros dispersos como TASK-307 a TASK-320 aun planificadas; en OpenDockTrading, 16. El plan debe partir de esos casos reales (ramas, carpetas, ROADMAP e IDs que quedaron) y no solo del enunciado.
+
 Hoy la regla de una hora para el flujo cuando el plan estima mas de 60 min, y trocear crea tareas nuevas con su propia rama, diseno y cierre. Decision de Carlos (2026-11-12): trocear es condicional y solo una persona puede aceptarlo; si lo acepta, las partes se numeran con el mismo numero seguido de letras (TASK-NNNa, TASK-NNNb...), se trabajan sin salir de la rama de la tarea, se crean primero en 00-planificadas y se actualiza el ROADMAP antes de empezar TASK-NNNa, que es la tarea iniciada como principal. Como y cuando se integra en develop (al cerrar cada parte o al cerrar la ultima) lo decide el plan con la persona. Urgente para la version 0.16.0: lo mas rapido posible; el cierre no exige la suite completa, basta con los tests afectados y npm run test:rapido.
 
 ## Criterios de aceptacion
