@@ -186,10 +186,10 @@ que ha dejado de ser cierto es peor que no tenerlo.
 Claves opcionales: `rama_base`, `agente_revisor_por_defecto`, `limite_wip`,
 `modo_flujo`, `excluir_de_revision`, `cierre_por_defecto`, las dos del remoto
 (`plataforma_remota`, `url_base_remoto`), las dos de verificacion
-(`comando_verificacion`, los tests que ejecutan los frenos, y
+(`comando_verificacion`, los tests de los frenos, y
 `timeout_verificacion`) y las tres de sincronizacion de ficheros derivados
 tras cada transicion. Sin fichero, todo por defecto; un valor invalido de una
-clave conocida aborta todos los comandos, y una clave desconocida avisa y se
+clave conocida aborta, y una clave desconocida avisa y se
 ignora. La sincronizacion y sus trampas, en [sincronizacion.md](sincronizacion.md).
 `tareas/ROADMAP.md` y su zona manual, en [roadmap.md](roadmap.md).
 
@@ -198,17 +198,15 @@ la rama actual, el hook `Stop` lo ejecuta al terminar cada turno y, si no sale
 en verde, devuelve el turno con un informe. Arregla la causa; no borres,
 saltes ni debilites tests para pasarlo. Si el rojo no es de tu cambio, dilo
 al terminar: el freno solo bloquea una vez por turno. Con
-`comando_verificacion_selectiva`, el `Stop` y `review` corren esa, por
-impacto: [verificacion-selectiva.md](verificacion-selectiva.md).
+`comando_verificacion_selectiva`, el `Stop` y `review` corren esa: [verificacion-selectiva.md](verificacion-selectiva.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
-`taskctl finish` (lanzado desde la rama de la tarea) ejecuta la verificacion
-antes de mergear y aborta si no sale en verde. Un `git merge` o un script de
-cierre hacia la rama de integracion o la principal queda bloqueado sin un
-verde del commit que entra: cierra siempre con `taskctl finish`. Saltarse la
-verificacion (`--sin-verificacion`) lo decide la persona, no tu. Si el proyecto
-declara `rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;
-un merge a mano no: tras un fallo de `finish`, resuelve y vuelve a lanzarlo.
+`taskctl finish` (desde la rama de la tarea) verifica antes de mergear y
+aborta en rojo. Un `git merge` o script de cierre hacia la rama de
+integracion o la principal sin verde del commit que entra queda bloqueado:
+cierra con `taskctl finish`; si falla, resuelve y relanzalo. Con
+`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;
+un merge a mano no. `--sin-verificacion` lo decide la persona, no tu.
 
 **Tests held-out (`aceptacion/`).** Son de la persona: si implementas, no los
 leas ni los edites. Detalle en [heldout.md](heldout.md).
