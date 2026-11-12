@@ -91,6 +91,32 @@ test('cuenta por fichero los tests y los procesos git (desde node y desde bash),
     assert.match(t.stdout, /Ficheros: 1\. Tests: 1\./);
     assert.match(t.stdout, /\| 1 \| test\/sub\/con-bash\.test\.ts \| [\d.]+ \| 1 \| 1 \| 1\.0 \| 0 \|/);
     assert.match(t.stdout, /solo test\/sub/);
+
+    // Un fichero que no llega a correr sus tests (falla al cargar): se avisa,
+    // queda como «no medido» con su codigo y no suma en los totales.
+    await writeFile(path.join(dir, 'dist', 'test', 'roto.test.js'), "throw new Error('no arranca');\n");
+    // Uno con un test en rojo si se mide (sus tests corrieron), y tambien se avisa.
+    await writeFile(path.join(dir, 'dist', 'test', 'rojo.test.js'), "import { test } from 'node:test';\ntest('rojo', () => { throw new Error('x'); });\n");
+    // Ni uno sin tests propios, ni uno que desaparece antes de correr (lo que
+    // pasa si dist/test se regenera durante la medida): 0 tests.
+    await writeFile(path.join(dir, 'dist', 'test', 'vacio.test.js'), 'export {};\n');
+    await writeFile(path.join(dir, 'dist', 'test', 'z-borrado.test.js'), SIN_GIT);
+    await writeFile(
+      path.join(dir, 'dist', 'test', 'a-borra.test.js'),
+      "import { test } from 'node:test';\nimport { rmSync } from 'node:fs';\ntest('borra', () => rmSync(new URL('./z-borrado.test.js', import.meta.url)));\n"
+    );
+    const filtro = 'test/a-borra.test.ts,test/sin-git.test.ts,test/roto.test.js,test/rojo.test.ts,test/vacio.test.ts,test/z-borrado.test.ts';
+    const roto = spawnSync(process.execPath, [SCRIPT, '--dir', dir, '--sin-build', '--filtro', filtro], { encoding: 'utf8', env: ENV });
+    assert.equal(roto.status, 1, roto.stdout + roto.stderr);
+    assert.match(roto.stderr, /AVISO: test\/roto\.test\.ts no medido \(1 tests, codigo 1\)/);
+    assert.match(roto.stderr, /AVISO: test\/rojo\.test\.ts sale con codigo 1 \(1 tests en rojo\)/);
+    assert.match(roto.stderr, /AVISO: test\/vacio\.test\.ts no medido \(1 tests, codigo 0\)/);
+    assert.match(roto.stderr, /AVISO: test\/z-borrado\.test\.ts no medido \(0 tests, codigo 1\)/);
+    assert.match(roto.stdout, /Ficheros: 6 \(3 medidos, 3 no medidos; los totales son de los medidos\)\. Tests: 4\./);
+    assert.match(roto.stdout, /\| — \| test\/roto\.test\.ts \| no medido \| 1 \| — \| — \| 1 \| 1 \|/);
+    assert.match(roto.stdout, /\| \d \| test\/rojo\.test\.ts \| [\d.]+ \| 1 \| 0 \| 0\.0 \| 1 \| 1 \|/);
+    const json = spawnSync(process.execPath, [SCRIPT, '--dir', dir, '--sin-build', '--json', '--filtro', 'test/roto.test.ts'], { encoding: 'utf8', env: ENV });
+    assert.deepEqual((JSON.parse(json.stdout) as { filas: { codigo: number }[] }).filas.map((f) => f.codigo), [1]);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
