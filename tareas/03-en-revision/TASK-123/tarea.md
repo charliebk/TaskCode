@@ -62,3 +62,7 @@ Hallazgo CRITICO de la auditoria del 2026-11-12, reproducido de punta a punta (d
 | 2026-11-12T17:11:49Z | implementacion | sesion:b6ee363f-d9c2-4a11-8e6e-4c193af66eed | 42 | 26613 | 11656137 | 11966 | 6 | 11694758 | - | - |
 | 2026-11-12T17:11:49Z | implementacion | agente:aaa77dde16d5ea9cb | 154 | 176665 | 13001627 | 59334 | 3 | 13237780 | - | - |
 | 2026-11-12T17:28:04Z | revision | agente:ac3544939f545f881 | 58 | 147026 | 3623329 | 21478 | 4 | 3791891 | 1 | - |
+
+## Verificacion omitida
+
+- 2026-11-12T17:42:09Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
