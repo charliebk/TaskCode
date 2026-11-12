@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-124-contexto-con-tamano-maximo-lo-que-leen-l
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 19032337
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-12
@@ -40,3 +40,13 @@ Sale de TASK-122 (docs/auditoria/ESCALA-2026-11-12.md): lo que leen los agentes 
 | 2026-11-12T19:11:36Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T19:22:04Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T19:22:05Z | start | automatico | persona | 0.14.0 |
+| 2026-11-12T19:45:52Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-12T19:45:52Z | implementacion | sesion:0ba098a5-8f54-4573-8cde-7b3c9a838b85 | 36 | 33224 | 2304653 | 11036 | 0 | 2348949 | - | - |
+| 2026-11-12T19:45:52Z | implementacion | agente:a5c8d7729428a0908 | 116 | 193734 | 8545581 | 43321 | 7 | 8782752 | - | - |
+| 2026-11-12T19:45:52Z | implementacion | agente:a8cace2c802ca727c | 54 | 129728 | 2846603 | 14944 | 9 | 2991329 | - | - |
+| 2026-11-12T19:45:52Z | implementacion | agente:a8e1d3a271f088ca1 | 80 | 148553 | 4729700 | 30974 | 3 | 4909307 | - | - |
