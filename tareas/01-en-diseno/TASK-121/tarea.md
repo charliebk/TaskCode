@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [flujo, agilidad, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-121-troceo-de-tareas-de-mas-de-60-min-como-p
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -35,3 +35,9 @@ Hoy la regla de una hora para el flujo cuando el plan estima mas de 60 min, y tr
 - [ ] Los IDs con letra funcionan en todo el CLI (new, plan, approve, start, review, finish, siguiente, board, metricas, roadmap) y no chocan con la numeracion siguiente (test)
 - [ ] Si la persona rechaza el troceo, la tarea sigue entera con el motivo escrito en el plan, como hoy (test de regresion)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-12T17:48:41Z | plan | automatico | persona | 0.14.0 |
