@@ -23,7 +23,9 @@
  *      `scripts/gitflow/**` (marcador `'scripts', 'gitflow'`); cualquier otro
  *      fichero que no es documentacion, por los tests que mencionan su nombre;
  *      si nadie lo menciona, la suite entera (ante la duda, todo);
- *    - `package.json`, `package-lock.json` y `tsconfig.json`: la suite entera;
+ *    - `package.json`, `package-lock.json` y `tsconfig.json`: harian falta la
+ *      suite entera; se corren los tests que los nombran (con el tope de abajo)
+ *      y la completa queda para antes de publicar;
  *    - documentacion y config del repo (`docs/**`, `tareas/**`, `.taskcode/**`,
  *      `.github/**`, `.claude/**`, los `.md` de la raiz) y
  *      `dist/src/**` (generado): nada.
@@ -32,11 +34,30 @@
  * 4. Compila una vez (`npm run build`) y corre `node --test` con lo elegido.
  *    Imprime que eligio y por que, y sale con el codigo de `node --test`.
  *
+ * Tope (VERIFICAR_IMPACTO_TOPE, 10 por defecto): si lo elegido pasa del tope,
+ * se corren los tests DIRECTOS de lo cambiado; si tambien pasan, los N (= tope,
+ * minimo 1) directos mas proximos: primero los tests cambiados, luego los que
+ * se llaman como el modulo cambiado (`finish*` para `src/commands/finish.ts`),
+ * luego los de una carpeta con el nombre de la suya (`test/gitflow/` para
+ * `scripts/gitflow/*`) y despues el resto por orden alfabetico. La salida dice
+ * cuantos se dejan fuera. Nunca queda en cero lo que cambia si tiene tests.
+ *
+ * Base inexistente (RAMA_BASE o `develop`): sale con 1 y lo dice; no hay
+ * verificacion por impacto sin una base con la que comparar.
+ *
+ * Limitacion conocida: `npm run build` reescribe `dist/src` (versionado). Se
+ * guarda una copia en `<tmp>/verificar-impacto-<hash del plugin>/` con un
+ * marcador y se devuelve al acabar. Si el proceso muere a mitad (taskkill,
+ * timeout del freno), el `finally` no corre: la siguiente ejecucion encuentra
+ * la copia con su marcador, restaura `dist/src` y lo avisa. `dist/test` (no
+ * versionado) puede quedar a medias hasta el siguiente build.
+ *
  * `--listar` solo imprime la seleccion en JSON (sin compilar ni ejecutar).
  * Cero dependencias: node >= 22.
  */
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -132,7 +153,7 @@ function nombresDeComando(fichero) {
  * es el propio enrutador, o llega a el sin pasar por ningun comando, entran
  * todos los que dependen de el.
  */
-function testsQueDependenDe(nodos, origenes) {
+function testsQueDependenDe(nodos, origenes, cortes) {
   const inverso = new Map();
   for (const [f, n] of nodos) {
     for (const d of n.importa) {
@@ -159,6 +180,7 @@ function testsQueDependenDe(nodos, origenes) {
   const tests = new Set([...vistos].filter(esTest));
   if (vistos.has(ENRUTADOR) && !origenes.includes(ENRUTADOR)) {
     const comandos = [...vistos].filter((f) => f.startsWith('src/commands/')).flatMap(nombresDeComando);
+    cortes?.push(comandos.length === 0 ? 'todos sus tests (no paso por ningun comando)' : `solo los que nombran ${[...new Set(comandos)].map((c) => `'${c}'`).join(', ')}`);
     const nombra = (t) => {
       const propios = [t, ...[...(nodos.get(t)?.importa ?? [])].filter((d) => d.startsWith('test/'))];
       const textos = propios.map((f) => nodos.get(f)?.texto ?? '');
@@ -203,35 +225,46 @@ function esDocumentacion(ruta) {
 export const TOPE_POR_DEFECTO = 10;
 
 /**
- * Decide que tests corren. Devuelve { todo, motivo?, tests, recorte? }: `tests`
- * son [{ fichero, motivo }] relativos al plugin (`test/...test.ts`); `todo` =
- * haria falta la suite entera; `recorte` (texto) = la seleccion pasaba del tope
- * o pedia la suite entera y `tests` son solo los directos.
+ * Decide que tests corren. Devuelve { todo, motivo?, tests, recorte?, enrutador? }:
+ * `tests` son [{ fichero, motivo }] relativos al plugin (`test/...test.ts`);
+ * `todo` = haria falta la suite entera; `recorte` (texto) = la seleccion pasaba
+ * del tope o pedia la suite entera y `tests` son los directos (o los mas
+ * proximos); `enrutador` (texto) = la busqueda se paro en `src/cli.ts`.
  */
 export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
   const elegidos = new Map();
+  /** Directos: fichero -> { motivo, origenes } (rutas cambiadas de las que viene). */
   const directos = new Map();
   const anotar = (mapa, fichero, motivo) => {
     if (!mapa.has(fichero)) mapa.set(fichero, motivo);
   };
+  const anotarDirecto = (fichero, motivo, origen) => {
+    if (!directos.has(fichero)) directos.set(fichero, { motivo, origenes: new Set() });
+    const d = directos.get(fichero);
+    if (motivo === 'test cambiado') d.motivo = motivo;
+    d.origenes.add(origen);
+  };
   let todo = null;
+  const cortes = [];
   for (const ruta of cambiadas) {
     if (esDocumentacion(ruta)) continue;
     const enPlugin = ruta.startsWith(`${PLUGIN}/`);
     const rel = enPlugin ? ruta.slice(PLUGIN.length + 1) : ruta;
     if (enPlugin && rel.startsWith('dist/')) continue;
     if (enPlugin && TODO_EL_PROYECTO.has(rel)) {
-      todo ??= `cambia ${ruta}, que afecta a toda la suite`;
+      todo ??= `cambia ${ruta}, que afecta a toda la suite (la completa queda para antes de publicar)`;
+      // Sus directos: los tests que lo nombran.
+      for (const [f, n] of nodos) if (esTest(f) && n.texto.includes(rel)) anotarDirecto(f, `nombra ${rel}`, ruta);
       continue;
     }
     if (enPlugin && rel.endsWith('.ts') && (rel.startsWith('src/') || rel.startsWith('test/'))) {
       if (esTest(rel) && nodos.has(rel)) {
         anotar(elegidos, rel, 'test cambiado');
-        anotar(directos, rel, 'test cambiado');
+        anotarDirecto(rel, 'test cambiado', ruta);
       }
       if (!nodos.has(rel)) continue; // borrado: quien lo importaba tambien cambia
-      for (const t of testsQueDependenDe(nodos, [rel])) anotar(elegidos, t, `importa ${rel}`);
-      for (const [f, n] of nodos) if (esTest(f) && n.importa.has(rel)) anotar(directos, f, `importa ${rel}`);
+      for (const t of testsQueDependenDe(nodos, [rel], cortes)) anotar(elegidos, t, `importa ${rel}`);
+      for (const [f, n] of nodos) if (esTest(f) && n.importa.has(rel)) anotarDirecto(f, `importa ${rel}`, ruta);
       continue;
     }
     // Ficheros que los tests usan sin importarlos.
@@ -239,23 +272,36 @@ export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
     const nombre = path.posix.basename(ruta);
     const mencionan = marcados.length > 0 ? marcados : [...nodos].filter(([, n]) => n.texto.includes(nombre));
     if (mencionan.length === 0) {
-      todo ??= `ningun test referencia ${ruta}: ante la duda, la suite entera`;
+      todo ??= `ningun test referencia ${ruta}: ante la duda, la suite entera (la completa queda para antes de publicar)`;
       continue;
     }
-    for (const t of testsQueDependenDe(nodos, mencionan.map(([f]) => f))) anotar(elegidos, t, `usa ${ruta}`);
-    for (const [f] of mencionan) if (esTest(f)) anotar(directos, f, `usa ${ruta}`);
+    for (const t of testsQueDependenDe(nodos, mencionan.map(([f]) => f), cortes)) anotar(elegidos, t, `usa ${ruta}`);
+    for (const [f] of mencionan) if (esTest(f)) anotarDirecto(f, `usa ${ruta}`, ruta);
   }
-  const lista = (mapa) => [...mapa].map(([fichero, motivo]) => ({ fichero, motivo })).sort((a, b) => a.fichero.localeCompare(b.fichero));
+  const lista = (mapa) =>
+    [...mapa].map(([fichero, m]) => ({ fichero, motivo: typeof m === 'string' ? m : m.motivo })).sort((a, b) => a.fichero.localeCompare(b.fichero));
   const contar = (mapa) => [...mapa.keys()].filter((f) => !enRapido(f)).length;
-  // Si ni los directos caben en el tope, solo los tests cambiados (siempre pocos).
+  // Si ni los directos caben en el tope, los N (= tope, minimo 1) mas proximos.
   const recortados = () => {
-    if (contar(directos) <= tope) return { tests: lista(directos), que: 'solo los tests directos' };
-    const cambiados = new Map([...directos].filter(([, m]) => m === 'test cambiado'));
-    return { tests: lista(cambiados), que: `solo los tests cambiados (${String(contar(directos))} directos pasan tambien del tope)` };
+    const total = contar(directos);
+    if (total <= tope) return { tests: lista(directos), que: `los ${String(total)} tests directos` };
+    const n = Math.max(tope, 1);
+    const fueraDeRapido = [...directos].filter(([f]) => !enRapido(f));
+    const orden = fueraDeRapido
+      .map(([f, d]) => ({ f, d, p: proximidad(f, d) }))
+      .sort((a, b) => a.p - b.p || a.f.localeCompare(b.f))
+      .slice(0, n);
+    const quedan = new Map([...directos].filter(([f]) => enRapido(f)));
+    for (const { f, d } of orden) quedan.set(f, d);
+    return {
+      tests: lista(quedan),
+      que: `los ${String(n)} tests directos mas proximos de ${String(total)} (${String(total - n)} se dejan fuera)`,
+    };
   };
+  const enrutador = cortes.length === 0 ? {} : { enrutador: `la busqueda se paro en ${ENRUTADOR}; mas alla, ${[...new Set(cortes)].join('; ')}` };
   if (todo !== null) {
     const r = recortados();
-    return { todo: true, motivo: todo, tests: r.tests, recorte: `${todo}; se corren ${r.que}` };
+    return { todo: true, motivo: todo, tests: r.tests, recorte: `${todo}; se corren ${r.que}`, ...enrutador };
   }
   const fuera = contar(elegidos);
   if (fuera > tope) {
@@ -264,9 +310,30 @@ export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
       todo: false,
       tests: r.tests,
       recorte: `${String(fuera)} ficheros por impacto pasan del tope de ${String(tope)}; se corren ${r.que}`,
+      ...enrutador,
     };
   }
-  return { todo: false, tests: lista(elegidos) };
+  return { todo: false, tests: lista(elegidos), ...enrutador };
+}
+
+/**
+ * Cuanto de cerca esta el test `fichero` de lo que cambia (menor = mas cerca):
+ * 0 si es un test cambiado; 1 si se llama como el modulo cambiado
+ * (`finish.ts` -> `finish*.test.ts`); 2 si vive en una carpeta con el nombre
+ * de la del modulo (`scripts/gitflow/x.sh` -> `test/gitflow/`); 3 el resto.
+ */
+function proximidad(fichero, directo) {
+  if (directo.motivo === 'test cambiado') return 0;
+  const base = path.posix.basename(fichero).replace(/\.test\.ts$/, '');
+  const carpetas = path.posix.dirname(fichero).split('/');
+  let p = 3;
+  for (const origen of directo.origenes) {
+    const modulo = path.posix.basename(origen).replace(/\.[^.]+$/, '').replace(/^_+/, '');
+    const carpeta = path.posix.basename(path.posix.dirname(origen));
+    if (modulo !== '' && base.startsWith(modulo)) p = Math.min(p, 1);
+    else if (!['src', 'test', 'helpers', '.', ''].includes(carpeta) && carpetas.includes(carpeta)) p = Math.min(p, 2);
+  }
+  return p;
 }
 
 /** VERIFICAR_IMPACTO_TOPE si es un entero >= 0; si no, el de por defecto. */
@@ -294,11 +361,15 @@ function main(argv) {
   const dirPlugin = path.join(raiz, ...PLUGIN.split('/'));
   const base = process.env.RAMA_BASE || 'develop';
   const cambiadas = rutasCambiadas(raiz, base);
+  if (cambiadas === null) {
+    console.error(
+      `[ERROR] verificar-impacto: la rama base "${base}" no existe en este repositorio, asi que no hay con que comparar. ` +
+        `Si solo tienes la remota, creala con \`git branch ${base} origin/${base}\`; o indica otra base con RAMA_BASE=<rama>.`
+    );
+    return 1;
+  }
   const nodos = grafoDelPlugin(dirPlugin);
-  const seleccion =
-    cambiadas === null
-      ? { todo: true, motivo: `no existe la rama base "${base}": ante la duda, la suite entera`, tests: [] }
-      : seleccionar(cambiadas, nodos, leerTope(process.env.VERIFICAR_IMPACTO_TOPE));
+  const seleccion = seleccionar(cambiadas, nodos, leerTope(process.env.VERIFICAR_IMPACTO_TOPE));
   const rapido = RAPIDO.filter((d) => existsSync(path.join(dirPlugin, d)));
   const fuera = seleccion.tests.filter((t) => !enRapido(t.fichero));
 
@@ -307,8 +378,9 @@ function main(argv) {
     return 0;
   }
 
-  console.log(`[verificar-impacto] Base: ${base}. Ficheros cambiados: ${String(cambiadas?.length ?? 0)}.`);
+  console.log(`[verificar-impacto] Base: ${base}. Ficheros cambiados: ${String(cambiadas.length)}.`);
   console.log(`[verificar-impacto] Siempre: ${rapido.join(', ')} (lo de test:rapido).`);
+  if (seleccion.enrutador !== undefined) console.log(`[verificar-impacto] Enrutador: ${seleccion.enrutador}.`);
   if (seleccion.recorte !== undefined) {
     console.log(`[verificar-impacto] Seleccion recortada: ${seleccion.recorte}. La suite completa queda para antes de publicar.`);
   }
@@ -323,9 +395,13 @@ function main(argv) {
   // La verificacion no puede cambiar el arbol: `npm run build` reescribe
   // dist/src (versionado). Se guarda antes y se devuelve tal cual al acabar.
   const distSrc = path.join(dirPlugin, 'dist', 'src');
-  const copia = mkdtempSync(path.join(tmpdir(), 'verificar-impacto-'));
+  const copia = dirCopia(dirPlugin);
+  restaurarHuerfana(copia, distSrc);
+  mkdirSync(copia, { recursive: true });
   const habiaDist = existsSync(distSrc);
   if (habiaDist) cpSync(distSrc, path.join(copia, 'src'), { recursive: true });
+  // El marcador va el ultimo: sin el, la copia esta a medias y no se restaura.
+  writeFileSync(path.join(copia, MARCADOR), JSON.stringify({ dirPlugin, habiaDist, pid: process.pid }));
   try {
     if (existsSync(path.join(dirPlugin, 'package.json'))) {
       const scripts = JSON.parse(readFileSync(path.join(dirPlugin, 'package.json'), 'utf8')).scripts ?? {};
@@ -346,10 +422,43 @@ function main(argv) {
     console.log(`[verificar-impacto] node --test termino con ${String(r.status)} en ${((Date.now() - inicio) / 1000).toFixed(1)} s.`);
     return r.status ?? 1;
   } finally {
-    rmSync(distSrc, { recursive: true, force: true });
-    if (habiaDist) cpSync(path.join(copia, 'src'), distSrc, { recursive: true });
-    rmSync(copia, { recursive: true, force: true });
+    devolver(copia, distSrc, habiaDist);
   }
+}
+
+const MARCADOR = 'marcador.json';
+
+/** Carpeta de la copia de dist/src: fija por plugin, para encontrarla si una ejecucion se corta. */
+export function dirCopia(dirPlugin) {
+  const hash = createHash('sha256').update(path.resolve(dirPlugin).toLowerCase()).digest('hex').slice(0, 12);
+  return path.join(tmpdir(), `verificar-impacto-${hash}`);
+}
+
+function devolver(copia, distSrc, habiaDist) {
+  rmSync(distSrc, { recursive: true, force: true });
+  if (habiaDist) cpSync(path.join(copia, 'src'), distSrc, { recursive: true });
+  rmSync(copia, { recursive: true, force: true });
+}
+
+/** Si una ejecucion anterior murio a mitad, devuelve su dist/src y lo avisa. */
+function restaurarHuerfana(copia, distSrc) {
+  if (!existsSync(copia)) return;
+  const marcador = path.join(copia, MARCADOR);
+  if (!existsSync(marcador)) {
+    rmSync(copia, { recursive: true, force: true });
+    return;
+  }
+  let habiaDist = true;
+  try {
+    habiaDist = JSON.parse(readFileSync(marcador, 'utf8')).habiaDist !== false;
+  } catch {
+    // marcador ilegible: se asume que habia dist/src
+  }
+  console.log(
+    `[verificar-impacto] AVISO: una ejecucion anterior se corto a mitad (queda su copia en ${copia}). ` +
+      'Restauro dist/src a como estaba antes de ella.'
+  );
+  devolver(copia, distSrc, habiaDist);
 }
 
 const invocadoDirecto = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

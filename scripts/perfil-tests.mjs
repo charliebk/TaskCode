@@ -21,6 +21,15 @@
  *
  * Con --concurrencia > 1 los ficheros corren a la vez: las duraciones se
  * inflan, pero el orden relativo y el recuento de git no cambian.
+ *
+ * `--filtro` acepta una carpeta o un fichero (`test/commands/new.test.ts`), o
+ * varios separados por comas.
+ *
+ * Un fichero que da 0 tests (desaparecio), que no carga o no declara tests, o
+ * que sale con codigo != 0 sin ningun test en rojo (`dist/test` a medias o
+ * regenerandose, un import roto), se avisa
+ * por stderr y queda como «no medido»: sus numeros no suman en los totales.
+ * Uno con tests en rojo si cuenta (sus tests corrieron) y tambien se avisa.
  * Cero dependencias: node >= 22.
  */
 import { spawn, spawnSync } from 'node:child_process';
@@ -102,7 +111,7 @@ function entornoDeMedida(dirTmp) {
 
 function ficherosDeTest(dirPlugin, filtro) {
   const base = path.join(dirPlugin, 'dist', 'test');
-  const sub = filtro === null ? base : path.join(dirPlugin, 'dist', filtro);
+  const subs = filtro === null ? [base] : filtro.split(',').map((f) => path.join(dirPlugin, 'dist', f.trim().replace(/\.ts$/, '.js')));
   const salida = [];
   const recorrer = (d) => {
     if (!existsSync(d)) return;
@@ -112,8 +121,11 @@ function ficherosDeTest(dirPlugin, filtro) {
       else if (n.endsWith('.test.js')) salida.push(abs);
     }
   };
-  recorrer(sub);
-  return salida.sort();
+  for (const sub of subs) {
+    if (existsSync(sub) && statSync(sub).isFile()) salida.push(sub);
+    else recorrer(sub);
+  }
+  return [...new Set(salida)].sort();
 }
 
 function correrFichero(dirPlugin, fichero, env, dirTmp, indice) {
@@ -139,30 +151,51 @@ function correrFichero(dirPlugin, fichero, env, dirTmp, indice) {
         fallos: num('fail'),
         git: lineas.length,
         codigo,
+        // Si el fichero no llega a cargar, o no declara ningun test, node --test
+        // informa del propio fichero como unico test (`[not ]ok N - <ruta>.test.js`):
+        // eso no es medir sus tests.
+        soloElFichero: /^(?:not )?ok \d+ - .*\.test\.js\s*$/m.test(salida),
       });
     });
   });
 }
 
+/**
+ * Un fichero esta medido si corrio sus tests: da alguno, llego a cargar y, si
+ * sale con error, es por tests en rojo.
+ */
+export function medido(f) {
+  return f.tests > 0 && f.soloElFichero !== true && (f.codigo === 0 || f.fallos > 0);
+}
+
 export function formatearInforme(filas, contexto) {
-  const total = filas.reduce((s, f) => s + f.segundos, 0);
-  const git = filas.reduce((s, f) => s + f.git, 0);
+  const medidas = filas.filter(medido);
+  const sinMedir = filas.filter((f) => !medido(f));
+  const total = medidas.reduce((s, f) => s + f.segundos, 0);
+  const git = medidas.reduce((s, f) => s + f.git, 0);
+  const ficheros =
+    sinMedir.length === 0
+      ? `Ficheros: ${String(filas.length)}.`
+      : `Ficheros: ${String(filas.length)} (${String(medidas.length)} medidos, ${String(sinMedir.length)} no medidos; los totales son de los medidos).`;
   const cab = [
-    `Ficheros: ${String(filas.length)}. Tests: ${String(filas.reduce((s, f) => s + f.tests, 0))}. ` +
+    `${ficheros} Tests: ${String(medidas.reduce((s, f) => s + f.tests, 0))}. ` +
       `Suma de duraciones: ${(total / 60).toFixed(1)} min. Procesos git: ${String(git)}.`,
     contexto,
     '',
-    '| # | fichero | s | tests | git | git/test | fallos |',
-    '|---|---|---|---|---|---|---|',
+    '| # | fichero | s | tests | git | git/test | fallos | codigo |',
+    '|---|---|---|---|---|---|---|---|',
   ];
-  const cuerpo = [...filas]
+  const cuerpo = [...medidas]
     .sort((a, b) => b.segundos - a.segundos)
     .map(
       (f, i) =>
         `| ${String(i + 1)} | ${f.fichero} | ${String(f.segundos)} | ${String(f.tests)} | ${String(f.git)} | ` +
-        `${f.tests === 0 ? '—' : (f.git / f.tests).toFixed(1)} | ${String(f.fallos)} |`
+        `${(f.git / f.tests).toFixed(1)} | ${String(f.fallos)} | ${String(f.codigo)} |`
     );
-  return [...cab, ...cuerpo, ''].join('\n');
+  const noMedidos = sinMedir.map(
+    (f) => `| — | ${f.fichero} | no medido | ${String(f.tests)} | — | — | ${String(f.fallos)} | ${String(f.codigo)} |`
+  );
+  return [...cab, ...cuerpo, ...noMedidos, ''].join('\n');
 }
 
 async function main(argv) {
@@ -184,6 +217,11 @@ async function main(argv) {
         const i = siguiente++;
         const fila = await correrFichero(dirPlugin, ficheros[i], env, dirTmp, i);
         filas.push(fila);
+        if (!medido(fila)) {
+          process.stderr.write(`[perfil] AVISO: ${fila.fichero} no medido (${String(fila.tests)} tests, codigo ${String(fila.codigo)}): no llego a correr sus tests.\n`);
+        } else if (fila.codigo !== 0) {
+          process.stderr.write(`[perfil] AVISO: ${fila.fichero} sale con codigo ${String(fila.codigo)} (${String(fila.fallos)} tests en rojo).\n`);
+        }
         if (!o.json) process.stderr.write(`[perfil] ${String(filas.length)}/${String(ficheros.length)} ${fila.fichero}: ${String(fila.segundos)} s, git ${String(fila.git)}\n`);
       }
     };

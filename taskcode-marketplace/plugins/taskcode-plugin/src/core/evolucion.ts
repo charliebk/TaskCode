@@ -60,7 +60,7 @@ export interface TramoEvolucion {
   importantesPorTarea: Cifra;
   tokensRevision: Cifra;
   kbPeticionPorRonda: Cifra;
-  /** TASK-122: tareas cerradas del proyecto al acabar este tramo (las de este y las anteriores). */
+  /** TASK-122: tareas cerradas con fecha de cierre al acabar este tramo (las de este y las anteriores). */
   cerradasAcumuladas: number;
   /** TASK-122: medianas de minutos (solo precision de segundo) de punta a punta, revision y finish. */
   minutosPuntaAPunta: Cifra;
@@ -222,7 +222,7 @@ export const NOTA_EVOLUCION =
   'dos marcas (las de solo dia van en «solo dia»); rondas = ultima ronda con informe; IMP/tarea = ' +
   'hallazgos IMPORTANTE una vez por tarea (revisor + ID), de las tareas con tabla de hallazgos; ' +
   'tok revision = media de tokens_revision registrado; KB/ronda = media por tarea de los KB de su ' +
-  'peticion de revision en cada ronda. cerradas = tareas cerradas del proyecto al acabar el tramo; ' +
+  'peticion de revision en cada ronda. cerradas = tareas cerradas con fecha de cierre al acabar el tramo; ' +
   'min punta a punta, min revision y min finish = medianas de las tareas con hora (coste fijo por tarea).';
 
 /** Texto de la evolucion: tabla de tramos y lo que quedo fuera. */
