@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-109-verificacion-proporcional-b6-documentaci
 asignado_a: charlie.bk@gmail.com
@@ -37,6 +37,7 @@ Sexta y ultima parte de TASK-096; hasta cerrarla no se publica version. skills/t
 |---|---|---|---|---|
 | 2026-11-12T01:00:33Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-12T01:07:27Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-12T01:07:29Z | start | automatico | persona | 0.14.0 |
 
 ## Coste
 
