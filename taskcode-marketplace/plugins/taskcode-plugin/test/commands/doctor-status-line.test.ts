@@ -231,6 +231,24 @@ test('status line: si taskctl solo esta en la cache del plugin, se instala con n
   });
 });
 
+test('status line: si el taskctl de la cache no entiende "estado" (plugin anterior), no se instala y se dice', async () => {
+  await conEntorno(async (e) => {
+    await settingsConCentinela(e);
+    const antes = hash(e.settings);
+    const vacio = path.join(e.dir, 'vacio');
+    await mkdir(vacio);
+    const bin = await crearBinPlugin(e, '0.14.0');
+    // Como el taskctl 0.14.0 real: comando desconocido y salida 1.
+    await writeFile(path.join(bin, 'taskctl'), "console.error('[ERROR] Comando desconocido: \"estado\"'); process.exit(1);\n", 'utf8');
+    const c = doctor(e, ['--instalar-status-line'], { path: [vacio, bin].join(path.delimiter) });
+    assert.equal(c.nivel, 'error');
+    assert.match(c.mensaje, /no entiende "estado --stdin"/);
+    assert.match(c.arreglo ?? '', /Actualiza el plugin/);
+    assert.equal(hash(e.settings), antes, 'nada escrito');
+    assert.deepEqual(copias(e), []);
+  });
+});
+
 test('status line: un settings.json ilegible no se toca', async () => {
   await conEntorno(async (e) => {
     await writeFile(e.settings, '{ "roto": ', 'utf8');

@@ -21,6 +21,7 @@
  *   ruta absoluta del script. Como lleva la version del plugin, volver a
  *   pedir la instalacion tras actualizar la reescribe con la ruta nueva.
  */
+import { spawnSync } from 'node:child_process';
 import { accessSync, constants, copyFileSync, existsSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { esObjeto, leerJson } from './json-claude.js';
@@ -45,6 +46,16 @@ export function esNuestra(statusLine) {
         statusLine['type'] === 'command' &&
         typeof statusLine['command'] === 'string' &&
         /^\s*(?:taskctl(?:\.cmd)?|node\s+"[^"]*[\\/]taskctl")\s+estado(?:\s|$)/.test(statusLine['command']));
+}
+/** true si `node <script> estado --stdin` sale con 0 (un taskctl anterior a `estado` sale con 1). */
+export function entiendeEstado(script) {
+    const r = spawnSync(process.execPath, [script, 'estado', '--stdin'], {
+        input: '{}',
+        encoding: 'utf8',
+        timeout: 10_000,
+        windowsHide: true,
+    });
+    return r.status === 0;
 }
 function comandoActual(statusLine) {
     return esObjeto(statusLine) && typeof statusLine['command'] === 'string' ? statusLine['command'] : null;
@@ -170,6 +181,16 @@ export function instalarStatusLine(configDir, o) {
                 ? 'no se instala: taskctl solo esta en la carpeta del plugin y alli no esta su script de node'
                 : 'no se instala: taskctl no esta en el PATH, y la status line lo ejecuta por su nombre',
             arreglo: ARREGLO_PATH,
+        };
+    }
+    // La copia de la cache es la del plugin INSTALADO, que puede ser anterior a `estado`
+    // (pasa al instalar desde una copia de desarrollo): se prueba antes de escribir nada.
+    if (t.ruta === null && t.scriptPlugin !== null && !entiendeEstado(t.scriptPlugin)) {
+        return {
+            tipo: 'rechazado',
+            mensaje: `no se instala: el taskctl del plugin instalado (${t.scriptPlugin}) no entiende "estado --stdin"; ` +
+                'la barra mostraria un error en cada refresco',
+            arreglo: 'Actualiza el plugin a una version con "taskctl estado" y repite --instalar-status-line.',
         };
     }
     if (s.estado === 'nuestra' && s.comando === comando) {
