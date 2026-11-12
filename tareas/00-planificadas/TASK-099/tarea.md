@@ -36,4 +36,4 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 - [ ] Solo bloquean los CRITICO e IMPORTANTE: los MENORES que no se corrigen en esa verificacion ligera pasan a un backlog de la tarea (revision/menores-pendientes.md, con id, fichero y motivo) y ni abren ronda ni impiden finish (test en repo temporal)
 - [ ] taskctl siguiente, con solo MENORES abiertos tras aprobada-con-correcciones, no devuelve otra ronda en ningun modo, tampoco automatico, sino la verificacion ligera o finish (test)
 - [ ] Las skills review y task-workflow, el README y el CHANGELOG lo explican
-- [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test
+- [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test (modo rapido, como dice el objetivo)

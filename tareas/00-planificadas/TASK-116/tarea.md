@@ -27,6 +27,6 @@ dependencias: []
 TaskCode no declara comando_verificacion, asi que los frenos que construye (Stop, puerta de finish, guardian) no actuan en su propio repo, y doctor solo lo marca omitida. Para no frenar cada tarea con la suite de 25 min, la verificacion declarada es la rapida. Urgente para la version 0.16.0 (decision de Carlos, 2026-11-12): lo mas rapido posible, sin trocear salvo que haga falta; el cierre no exige la suite completa, basta con los tests afectados y npm run test:rapido. Origen: docs/auditoria/PASOS-PLUGIN-2026-11-12.md (P-8)
 
 ## Criterios de aceptacion
-- [ ] .taskcode/config.yml de TaskCode declara comando_verificacion con npm run test:rapido y taskctl doctor da ok en la comprobacion de verificacion (comprobado ejecutando doctor)
+- [ ] taskctl doctor da ok en la comprobacion de verificacion de TaskCode (comprobado ejecutando doctor). Desde TASK-122, .taskcode/config.yml ya declara comando_verificacion (la suite completa, para finish) y comando_verificacion_selectiva (scripts/verificar-impacto.mjs); no hace falta declarar test:rapido
 - [ ] doctor da aviso, no omitida, cuando el proyecto tiene tests detectables y no declara comando_verificacion, y dice cuantas tareas se cerraron asi (test)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
