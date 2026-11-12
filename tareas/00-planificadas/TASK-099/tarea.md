@@ -33,5 +33,7 @@ En modo automatico, cuando el revisor propone aprobada-con-correcciones y solo q
 - [ ] Con solo MENORES abiertos tras aprobada-con-correcciones, corregirlos no abre una ronda completa ni acotada nueva: queda una verificacion ligera registrada en tarea.md (test en repo temporal)
 - [ ] finish sigue sin integrar codigo posterior al revisado sin esa verificacion o la decision de una persona (test)
 - [ ] Un CRITICO o IMPORTANTE abierto sigue exigiendo cambios-solicitados y otra ronda (test)
+- [ ] Solo bloquean los CRITICO e IMPORTANTE: los MENORES que no se corrigen en esa verificacion ligera pasan a un backlog de la tarea (revision/menores-pendientes.md, con id, fichero y motivo) y ni abren ronda ni impiden finish (test en repo temporal)
+- [ ] taskctl siguiente, con solo MENORES abiertos tras aprobada-con-correcciones, no devuelve otra ronda en ningun modo, tampoco automatico, sino la verificacion ligera o finish (test)
 - [ ] Las skills review y task-workflow, el README y el CHANGELOG lo explican
 - [ ] La suite completa pasa en verde (npm test) sin debilitar ningun test

@@ -20,7 +20,7 @@ tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-12
-dependencias: []
+dependencias: [TASK-120]
 ---
 ## Objetivo
 
@@ -30,4 +30,5 @@ El freno Stop corre la verificacion al final de cada turno con tarea en curso (s
 - [ ] Cada ejecucion del freno Stop anade una linea con instante, modo, duracion y resultado a un registro bajo .git/taskcode/ (test con repo temporal)
 - [ ] taskctl metricas muestra por tarea cuantas veces corrio el freno y su tiempo total, con — sin dato (test)
 - [ ] Si la huella del arbol no cambio desde el ultimo verde, el freno no ejecuta la verificacion y no anade salida (test)
+- [ ] La linea del freno usa el formato comun de registro de TASK-120 con puerta freno, y el resultado distingue verde, rojo, omitido (sin cambios desde el ultimo verde) y excedido, este ultimo reservado para el presupuesto de TASK-125 (test)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test

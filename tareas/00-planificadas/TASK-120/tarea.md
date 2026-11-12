@@ -29,4 +29,5 @@ comando_sincronizacion (en ToolsaWeb, el grafo de tareas) corre en cada transici
 ## Criterios de aceptacion
 - [ ] La duracion de cada ejecucion de comando_sincronizacion queda registrada bajo .git/taskcode/ y taskctl metricas la suma por tarea (test)
 - [ ] Una clave nueva lista las fases en las que corre la sincronizacion; sin ella corre en todas, como hoy (test)
+- [ ] El registro usa un formato de linea comun para todas las puertas de verificacion (puerta, tarea, instante, modo, duracion en segundos, resultado), aqui con puerta sincronizacion, documentado para que lo reutilicen el freno Stop (TASK-111) y review y finish (TASK-128); metricas ignora las lineas de puertas que no conoce y sin registro muestra — (test)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
