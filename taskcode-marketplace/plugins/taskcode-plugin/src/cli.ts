@@ -60,6 +60,8 @@ import {
 import { ConfigError } from './core/config.js';
 import { formatearInstante } from './core/transiciones.js';
 import { VERSION_TASKCTL } from './core/version.js';
+import { mainEstado } from './commands/estado.js';
+import { VARIABLE_PROGRESO } from './fs/progreso.js';
 
 const VERSION = VERSION_TASKCTL;
 
@@ -88,7 +90,8 @@ Uso:
                     [--informe <nombre>] [--push]
   taskctl finish TASK-NNN [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push]
   taskctl siguiente TASK-NNN [--json]
-  taskctl doctor [--json]
+  taskctl estado [--seguir] [--stdin]
+  taskctl doctor [--json] [--instalar-status-line [--reemplazar-status-line] | --desinstalar-status-line]
   taskctl doctor-deploy [--json] [--escribir] [--resultado <fichero.json>] [--crear-tareas]
   taskctl pausa TASK-NNN [--push]
   taskctl registrar-coste TASK-NNN --fase <diseno|implementacion|revision> \\
@@ -101,7 +104,12 @@ Uso:
   taskctl abort-merge
 
 Comandos: new, import, board, roadmap, metricas, start, plan, approve, review, codex-review, veredicto,
-finish, siguiente, doctor, doctor-deploy, pausa, registrar-coste, cadena.
+finish, siguiente, estado, doctor, doctor-deploy, pausa, registrar-coste, cadena.
+estado dice en que va la tarea en curso (fase dentro del ciclo, paso dentro de la fase, x/N si el
+comando de verificacion lo escribe, minutos), leyendo solo el progreso que dejan plan, approve, start,
+review, finish y el freno de fin de turno bajo .git/: sin lanzar git. Sin nada en marcha lo dice; fuera
+de un repo con tareas no imprime nada. Sale siempre con 0. --seguir refresca cada segundo hasta que la
+fase termina; sin terminal imprime una sola linea y sale.
 roadmap genera tareas/ROADMAP.md (hitos por sprint, orden por dependencias, complejidad, estado y
 lo que esta en marcha o listo para empezar). new, plan, approve y finish lo regeneran en su commit
 cuando cae en la rama de integracion, pero solo si lleva la marca de taskctl en su tercera linea o
@@ -149,7 +157,11 @@ config pide merge request o declara plataforma, gh/glab y su sesion), hooks que 
 subagentes y si el plugin instalado esta por detras de la copia local de su marketplace (aviso, sin
 red). Una linea por comprobacion
 (ok, aviso, error u omitida) y, en cada aviso o error, el comando que lo arregla; sale con 1 si hay
-algun error. Solo lee. --json da lo mismo en una linea de JSON.
+algun error. Solo lee. --json da lo mismo en una linea de JSON. Tambien dice si esta la status line de
+Claude Code que muestra "taskctl estado"; --instalar-status-line la escribe en el settings.json de usuario
+(una vez, para todos los proyectos; conserva el resto de claves y deja copia), solo si taskctl esta en el
+PATH del sistema y sin pisar otra status line salvo con --reemplazar-status-line;
+--desinstalar-status-line la quita (y devuelve la que hubiera antes).
 doctor-deploy comprueba, antes de publicar, que la aplicacion no deja agujeros conocidos: detecta el tipo (Node,
 Rust, Python, Java, .NET, Go, PHP, Ruby, Docker, frontend) y recorre un catalogo de puntos. Cada punto sale OK
 (con evidencia), FALLA (con evidencia y arreglo), NO VERIFICADO (con lo que falta) o NO APLICA (con el motivo).
@@ -397,6 +409,10 @@ let sincronizacionPendiente = false;
  */
 export async function main(argv: readonly string[]): Promise<number> {
   sincronizacionPendiente = false;
+  // TASK-110: el contador de una verificacion de fuera no se hereda. taskctl da
+  // el suyo al comando de verificacion y a nadie mas (scripts de Git-Flow,
+  // held-out, tests que lanzan otros taskctl...).
+  delete process.env[VARIABLE_PROGRESO];
   const codigo = await mainComando(argv);
   return codigo === 0 && sincronizacionPendiente ? CODIGO_SINCRONIZACION_NO_APLICADA : codigo;
 }
@@ -413,6 +429,9 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
     process.stdout.write(`${VERSION}\n`);
     return 0;
   }
+
+  // TASK-110: normalmente llega por la via rapida de bin/taskctl, sin pasar por aqui.
+  if (cmd === 'estado') return mainEstado(argv.slice(1));
 
   if (GUARDADOS_POR_CADENA.has(cmd)) {
     let resto: string[];

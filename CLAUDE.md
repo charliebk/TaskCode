@@ -46,7 +46,7 @@ npm test             # compila y corre la suite completa (~1290 tests, ~10 min) 
 npm run test:rapido  # core y cli sin procesos (~360 tests, ~10 s): para iterar, no para cerrar
 ```
 
-El CLI: `taskctl new | import | board | metricas [--tokens [--escribir]] | doctor [--json] | doctor-deploy [--json] [--escribir] | plan |
+El CLI: `taskctl new | import | board | metricas [--tokens [--escribir]] | estado [--seguir] | doctor [--json] [--instalar-status-line] | doctor-deploy [--json] [--escribir] | plan |
 approve | start | review | finish [--tag <nombre>] [--merge-request] [--sin-verificacion] [--push] | registrar-coste TASK-NNN --fase <f> (--agente <id>... | --tokens N)`, más los cinco wrappers de Git-Flow: `diagnose | pause | resume |
 recover | abort-merge`. El ciclo de vida está completo: Fases A, B y C
 cerradas.

@@ -35,6 +35,7 @@ import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../
 import { registrarTransicion } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
+import { conProgreso, crearProgreso, type Progreso } from '../fs/progreso.js';
 import { ensureBaseBranchReady, gitUserEmail, type BaseBranchGuardResult } from '../fs/git.js';
 import {
   autoCommit,
@@ -354,7 +355,12 @@ export interface PlanCommandDeps {
   dirParticion?: string;
   /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
   ahora?: string;
+  /** TASK-110: donde se escribe el progreso visible (por defecto, bajo el .git del repo). */
+  progreso?: Progreso;
 }
+
+/** TASK-110: los pasos de plan, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_PLAN: readonly string[] = ['guardas', 'brainstorm', 'commit'];
 
 /**
  * TASK-044 (C3 de la auditoria): cuando la tarea es demasiado grande, la
@@ -398,6 +404,18 @@ export async function runPlanCommand(
   today: string,
   deps: PlanCommandDeps
 ): Promise<PlanCommandResult> {
+  // TASK-110: el progreso se marca terminado tambien si aborta.
+  const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+  return conProgreso(progreso, () => runPlan(tareasRoot, argv, today, deps, progreso));
+}
+
+async function runPlan(
+  tareasRoot: string,
+  argv: readonly string[],
+  today: string,
+  deps: PlanCommandDeps,
+  progreso: Progreso
+): Promise<PlanCommandResult> {
   // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
   rechazarFlagsDesconocidos(argv, FLAGS_PLAN, 'plan', (m) => new PlanCommandError(m));
   // El ID sale de los POSICIONALES, no de argv[0] a secas (item B6):
@@ -437,6 +455,8 @@ export async function runPlanCommand(
   // vieja con la carpeta real de la rama base).
   const initial = await readTareaFile(tareasRoot, id);
   assertTransitionAllowed('plan', initial ? initial.task : null);
+  progreso.fase(initial!.task.id, 'plan', PASOS_PLAN);
+  progreso.paso('guardas');
 
   // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
   // tiene cambios sin commitear, o si no puede cambiar de forma
@@ -555,6 +575,7 @@ export async function runPlanCommand(
   // movido todavia y reintentar es posible, en vez de dejarla en
   // en-diseno sin plan. El rename de moveTareaFile se lleva despues
   // la subcarpeta entera.
+  progreso.paso('brainstorm');
   const taskDir = path.dirname(filePath);
   const ubicacion = await resolverPlanFinal(taskDir);
 
@@ -1028,6 +1049,7 @@ export async function runPlanCommand(
       )
     );
   }
+  progreso.paso('commit');
   // TASK-056: la fila de plan congela el modo de flujo del config en la tarea.
   const conRegistro = registrarTransicion(body, 'plan', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);

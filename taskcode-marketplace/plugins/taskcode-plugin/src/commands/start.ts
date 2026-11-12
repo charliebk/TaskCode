@@ -47,6 +47,7 @@ import {
   type AutoCommitResult,
 } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
+import { conProgreso, crearProgreso, type Progreso } from '../fs/progreso.js';
 
 export class StartCommandError extends Error {}
 
@@ -67,7 +68,12 @@ export interface StartCommandDeps {
   scriptsDir: string;
   /** TASK-052: instante UTC de la transicion para `## Transiciones` (`formatearInstante`). Sin el, la fila lleva solo `today`. */
   ahora?: string;
+  /** TASK-110: donde se escribe el progreso visible (por defecto, bajo el .git del repo). */
+  progreso?: Progreso;
 }
+
+/** TASK-110: los pasos de start, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_START: readonly string[] = ['guardas', 'rama', 'commit'];
 
 export interface StartCommandResult {
   id: string;
@@ -92,6 +98,18 @@ export async function runStartCommand(
   argv: readonly string[],
   today: string,
   deps: StartCommandDeps
+): Promise<StartCommandResult> {
+  // TASK-110: el progreso se marca terminado tambien si aborta.
+  const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+  return conProgreso(progreso, () => runStart(tareasRoot, argv, today, deps, progreso));
+}
+
+async function runStart(
+  tareasRoot: string,
+  argv: readonly string[],
+  today: string,
+  deps: StartCommandDeps,
+  progreso: Progreso
 ): Promise<StartCommandResult> {
   // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
   rechazarFlagsDesconocidos(argv, FLAGS_START, 'start', (m) => new StartCommandError(m));
@@ -122,6 +140,8 @@ export async function runStartCommand(
   // nada.
   assertTransitionAllowed('start', existing ? existing.task : null);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
+  progreso.fase(task.id, 'start', PASOS_START);
+  progreso.paso('guardas');
 
   // Precondicion minima (ver cabecera del fichero): workspace limpio
   // ANTES de invocar el script, para no depender de su prompt
@@ -250,6 +270,7 @@ export async function runStartCommand(
     );
   }
 
+  progreso.paso('rama');
   const scriptName = SCRIPT_BY_TYPE[task.tipo];
   // La rama va primero: los scripts toman como nombre el primer no-flag.
   const scriptArgs = [task.rama, ...gitflowBaseArgs(task.tipo, deps.repoCwd)];
@@ -280,6 +301,7 @@ export async function runStartCommand(
   // las dos copias diverjan: se comprueba el limite de la MISMA
   // persona que se acaba escribiendo en el frontmatter.
   const asignadoCambiado = asignadoFinal !== task.asignado_a;
+  progreso.paso('commit');
 
   const updated: Task = {
     ...task,

@@ -23,6 +23,7 @@ import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail, resolveBaseBranchForTipo, gitflowBaseArgs, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
+import { conProgreso, crearProgreso } from '../fs/progreso.js';
 export class StartCommandError extends Error {
 }
 /** Flags de `taskctl start`: parseAsignadoAFlag (con su alias) y extraerPushFlag. */
@@ -33,7 +34,14 @@ const SCRIPT_BY_TYPE = {
     hotfix: 'create-hotfix.sh',
     release: 'create-release.sh',
 };
+/** TASK-110: los pasos de start, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_START = ['guardas', 'rama', 'commit'];
 export async function runStartCommand(tareasRoot, argv, today, deps) {
+    // TASK-110: el progreso se marca terminado tambien si aborta.
+    const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+    return conProgreso(progreso, () => runStart(tareasRoot, argv, today, deps, progreso));
+}
+async function runStart(tareasRoot, argv, today, deps, progreso) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_START, 'start', (m) => new StartCommandError(m));
     // --push fuera antes de nada (TASK-030): parseArgs trata
@@ -57,6 +65,8 @@ export async function runStartCommand(tareasRoot, argv, today, deps) {
     // nada.
     assertTransitionAllowed('start', existing ? existing.task : null);
     const { task, body, filePath } = existing;
+    progreso.fase(task.id, 'start', PASOS_START);
+    progreso.paso('guardas');
     // Precondicion minima (ver cabecera del fichero): workspace limpio
     // ANTES de invocar el script, para no depender de su prompt
     // interactivo (TASK-007, hallazgo 3: EOF => "No" => exit 0, lo que
@@ -165,6 +175,7 @@ export async function runStartCommand(tareasRoot, argv, today, deps) {
         throw new StartCommandError(`[ERROR] ${task.id}: "${task.rama}" no es un nombre de rama valido para Git. ` +
             'Corrige el campo "rama" en tarea.md antes de reintentar.');
     }
+    progreso.paso('rama');
     const scriptName = SCRIPT_BY_TYPE[task.tipo];
     // La rama va primero: los scripts toman como nombre el primer no-flag.
     const scriptArgs = [task.rama, ...gitflowBaseArgs(task.tipo, deps.repoCwd)];
@@ -189,6 +200,7 @@ export async function runStartCommand(tareasRoot, argv, today, deps) {
     // las dos copias diverjan: se comprueba el limite de la MISMA
     // persona que se acaba escribiendo en el frontmatter.
     const asignadoCambiado = asignadoFinal !== task.asignado_a;
+    progreso.paso('commit');
     const updated = {
         ...task,
         estado: 'en-curso',

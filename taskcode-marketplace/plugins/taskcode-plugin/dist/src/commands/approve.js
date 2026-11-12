@@ -29,6 +29,7 @@ import { describirExceso, leerDuracionEstimada, superaUmbral, UMBRAL_MINUTOS } f
 import { ROLES_BRAINSTORM, TODOS_LOS_ROLES, seleccionarRoles, seleccionarRolesDeTarea, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol } from '../core/plan-brainstorm.js';
 import { planEsEsqueleto } from '../core/validacion-tarea.js';
+import { conProgreso, crearProgreso } from '../fs/progreso.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 export class ApproveCommandError extends Error {
@@ -69,7 +70,14 @@ function assertPlanNoAmbiguo(id, u) {
             'y reintenta. No se ha tocado nada.');
     }
 }
+/** TASK-110: los pasos de approve, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_APPROVE = ['guardas', 'plan', 'commit'];
 export async function runApproveCommand(tareasRoot, argv, today, deps) {
+    // TASK-110: el progreso se marca terminado tambien si aborta.
+    const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+    return conProgreso(progreso, () => runApprove(tareasRoot, argv, today, deps, progreso));
+}
+async function runApprove(tareasRoot, argv, today, deps, progreso) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_APPROVE, 'approve', (m) => new ApproveCommandError(m));
     // --push se saca ANTES de leer el ID: es booleano puro y va delante
@@ -95,6 +103,8 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
         planFinalExiste: planFinalExisteEn(ubicacionInicial),
     });
     assertPlanNoAmbiguo(id, ubicacionInicial);
+    progreso.fase(initial.task.id, 'approve', PASOS_APPROVE);
+    progreso.paso('guardas');
     // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
     // tiene cambios sin commitear, o si no puede cambiar de forma
     // automatica a la rama base esperada segun initial.task.tipo.
@@ -114,6 +124,7 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
     // la plantilla sin rellenar. Se compara con las plantillas posibles (los
     // roles se eligen en un orden fijo, asi que solo hay 0..N prefijos), no
     // con textos copiados, para que siga valiendo si la plantilla cambia.
+    progreso.paso('plan');
     const rutaPlan = ubicacion.canonicaExiste ? ubicacion.canonica : ubicacion.legada;
     if (await planEsPlantilla(task, rutaPlan)) {
         throw new ApproveCommandError(`[ERROR] ${task.id}: "${rutaPlan}" es la plantilla sin rellenar: no hay plan que aprobar. ` +
@@ -145,6 +156,7 @@ export async function runApproveCommand(tareasRoot, argv, today, deps) {
         throw new ApproveCommandError(`[ERROR] ${task.id}: no se aprueba como automatico: ${describirExceso(duracion)}: ` +
             `taskctl approve ${task.id} (sin --decidido-por automatico).`);
     }
+    progreso.paso('commit');
     const updated = { ...task, plan_aprobado: true, actualizado: today };
     // Reaprobar un plan ya aprobado no es una transicion: sin fila nueva, y
     // asi la segunda vez sigue sin crear commit (es idempotente).

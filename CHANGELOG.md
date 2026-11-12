@@ -138,6 +138,27 @@ Cambio de comportamiento: las tareas ya cerradas no se migran; su fila
 cierre, asi que sus duraciones no cambian. La tabla de `metricas` gana una
 columna.
 
+Progreso visible sin tokens (TASK-110). `plan`, `approve`, `start`, `review`,
+`finish` y el freno Stop escriben en `.git/taskcode/progreso.json` la tarea, la
+fase, sus pasos declarados de antemano, el paso en marcha y el inicio, y lo
+marcan terminado al acabar (tambien al abortar). Escribirlo no anade ni una
+linea de salida a ningun comando ni hook y nunca hace fallar el comando. Comando
+nuevo `taskctl estado [--seguir] [--stdin]`: una linea como
+`TASK-110 · review (4/5) · ronda 2 · verificacion (3/5) 7/22 · 12 min`, leyendo
+solo esos ficheros, sin lanzar git, por una via rapida de `bin/taskctl` que no
+carga el resto de comandos; sin nada en marcha lo dice, fuera de un repo con
+tareas no imprime nada, y sale siempre con 0. `--seguir` refresca cada segundo
+hasta que la fase termina (sin terminal, una linea y sale). `taskctl doctor`
+dice si esta la status line de Claude Code que lo muestra y la instala solo con
+`--instalar-status-line`, en el `settings.json` de usuario (una vez, para todos
+los proyectos), conservando el resto de claves y con copia, solo si `taskctl`
+esta en el PATH del sistema y sin pisar otra salvo con
+`--reemplazar-status-line`; `--desinstalar-status-line` la quita y devuelve la
+anterior. El comando de verificacion recibe `TASKCTL_PROGRESO` (un fichero bajo
+`.git/`): si escribe `x/N`, la linea lo muestra; nadie mas hereda la variable.
+`npm test` del propio plugin muestra `[x/N]` con un reporter sin dependencias
+junto al `spec`, con el total de la ejecucion anterior guardado bajo `.git/`.
+
 ## 0.14.0 — 2026-11-10
 
 ROADMAP de tareas generado por taskctl en todos los proyectos (TASK-098).

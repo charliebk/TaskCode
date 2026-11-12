@@ -807,10 +807,79 @@ algún error (los avisos no cuentan). Comprueba:
   no ve versiones más nuevas. Si no puede comprobarlo (plugin no instalado por
   Claude Code, sin copia del marketplace, un JSON roto), `omitida` con el motivo.
   Nunca es error: no cambia el código de salida.
+- **Status line** (`status-line`): si Claude Code tiene instalada la status line
+  que muestra `taskctl estado` (ver «Progreso visible» abajo). Instalada, `ok`; si
+  no, `omitida` con el comando que la instala. Sin flags nunca es aviso ni error.
 
 `--json` escribe en stdout **solo** una línea de JSON
 (`{ok, errores, avisos, comprobaciones: [{id, nivel, mensaje, arreglo}]}`), para que
-una skill la lea. `taskctl doctor` no escribe, no commitea ni cambia de rama.
+una skill la lea. `taskctl doctor` no commitea ni cambia de rama, y sin flags no
+escribe nada. La única escritura es la de la status line, con su flag:
+
+- `--instalar-status-line` la escribe en el `settings.json` **de usuario**
+  (`~/.claude/settings.json`, o el de `CLAUDE_CONFIG_DIR`): una vez, para todos
+  los proyectos. Conserva el resto de claves, deja una copia
+  (`settings.json.<fecha>.bak`) y escribe con fichero temporal y renombrado. Es
+  idempotente. El comando es `taskctl estado --stdin` si `taskctl` está en el
+  PATH del sistema. Si solo está en la carpeta del plugin (la que Claude Code
+  añade al PATH de su herramienta Bash), usa esa copia con `node` y su ruta
+  absoluta: como la ruta lleva la versión del plugin, tras actualizarlo hay que
+  repetir `--instalar-status-line`, que la reescribe con la ruta nueva (para no
+  depender de eso, pon `taskctl` en el PATH; ver «Usar `taskctl` fuera de
+  Claude Code»). Si ya hay otra status line, no la toca.
+- `--reemplazar-status-line` (junto al anterior) sustituye una status line
+  ajena; la anterior se guarda en `statusline-previa-taskctl.json`.
+- `--desinstalar-status-line` quita la de `taskctl` (una ajena no se toca) y
+  devuelve la que hubiera antes.
+
+Con cualquiera de ellos, si lo pedido no se puede hacer la comprobación sale como
+`error` y el código de salida es 1.
+
+#### Progreso visible: `taskctl estado`, la status line y `TASKCTL_PROGRESO`
+
+Mientras `plan`, `approve`, `start`, `review`, `finish` o el freno de fin de turno
+trabajan, cada uno deja en `.git/taskcode/progreso.json` (fuera del árbol de
+trabajo: no cambia la huella de la verificación) la tarea, la fase, sus pasos
+declarados de antemano, el paso en marcha y el instante de inicio, y lo marca
+terminado al acabar, también si aborta. Escribirlo no añade ninguna salida a
+ningún comando ni hook (lo que se imprime lo lee el agente y cuesta tokens) y
+nunca hace fallar el comando: si no se puede escribir, se pierde ese tic.
+
+`taskctl estado` lo muestra en una línea, leyendo solo esos ficheros, sin lanzar
+`git` ni leer `tareas/`:
+
+```
+TASK-110 · review (4/5) · ronda 2 · verificacion (3/5) 7/22 · 12 min
+```
+
+La fase con su posición en el ciclo (plan, approve, start, review, finish), la
+ronda si es una revisión, el paso con su posición dentro de la fase, el `x/N`
+del comando de verificación si lo escribe, y los minutos desde que empezó la
+fase. Los pasos: `plan` guardas, brainstorm, commit; `approve` guardas, plan,
+commit; `start` guardas, rama, commit; `review` guardas, integracion,
+verificacion, peticiones, commit; `finish` puertas, verificacion, cobertura,
+held-out, merge, artefactos; el freno de fin de turno no es una fase del ciclo y
+va sin posición, con un único paso (`verificacion`, o `verificacion selectiva` /
+`verificacion documentacion`): `TASK-110 · freno · verificacion (1/1) · 0 min`.
+Sin nada en marcha dice `Nada en marcha.` (o la última fase y si terminó, abortó
+o, en el freno, terminó `en rojo` porque la verificación falló); fuera de
+un repo con `tareas/` o `.taskcode/` no imprime nada. Sale siempre con 0.
+`--stdin` toma el directorio del JSON que Claude Code pasa a la status line.
+`--seguir` refresca cada segundo hasta que la fase termina; sin terminal imprime
+una sola línea y sale, para que un agente que lo lance no se quede esperando.
+
+La status line de Claude Code (`taskctl doctor --instalar-status-line`) ejecuta
+`taskctl estado` en cada refresco: el estado se ve sin preguntar al agente, y no
+entra en su contexto. Se ve también en la app de escritorio y por Remote Control.
+
+`TASKCTL_PROGRESO`: el comando de verificación (`comando_verificacion`, la
+selectiva y la de documentación, en `finish`, en las rondas de `review` y en el
+freno) recibe en esta variable la ruta de un fichero bajo `.git/`. Si escribe en
+él una línea `x/N` (la última con texto cuenta), `taskctl estado` la muestra en
+el paso de verificación. Es opcional: sin escribir nada, la línea muestra el
+paso sin `x/N`. Solo lo recibe ese comando: no lo heredan los scripts de
+Git-Flow ni el de held-out, y un `TASKCTL_PROGRESO` que ya estuviera en el
+entorno se sustituye. De lo que se escriba solo se muestran los números.
 
 #### Cómo se verifica el proyecto: `comando_verificacion`
 

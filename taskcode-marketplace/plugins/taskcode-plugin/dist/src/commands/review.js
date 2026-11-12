@@ -45,6 +45,7 @@ import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 import { excluirDeRevision } from '../fs/revisores-rango.js';
@@ -81,6 +82,8 @@ export const REVISION_DIRNAME = 'revision';
  * tarea.
  */
 const RONDA_FILE_RE = /^(?:peticion|informe)-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+/** TASK-110: los pasos de review, declarados de antemano para que se sepa cuantos faltan. */
+export const PASOS_REVIEW = ['guardas', 'integracion', 'verificacion', 'peticiones', 'commit'];
 /**
  * fenceFor se mudo a core/markdown.ts en TASK-016, cuando "plan"
  * empezo a embeber tambien texto de la persona en sus peticiones. Se
@@ -371,6 +374,11 @@ function esAntepasado(sha, cwd) {
     }
 }
 export async function runReviewCommand(tareasRoot, argv, today, deps) {
+    // TASK-110: el progreso se marca terminado tambien si aborta.
+    const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
+    return conProgreso(progreso, () => runReview(tareasRoot, argv, today, deps, progreso));
+}
+async function runReview(tareasRoot, argv, today, deps, progreso) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_REVIEW, 'review', (m) => new ReviewCommandError(m));
     const { push, resto: sinPush } = extraerPushFlag(argv);
@@ -408,6 +416,8 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     }
     const tipo = initial.task.tipo;
     const rama = initial.task.rama;
+    progreso.fase(initial.task.id, 'review', PASOS_REVIEW, previa === null ? {} : { ronda: previa.ronda + 1 });
+    progreso.paso('guardas');
     // Mismo motivo que en start: el prompt interactivo de Git-Flow con
     // stdin no interactivo cancela en silencio (EOF => "No" => exit 0).
     if (!isWorkspaceClean(deps.repoCwd)) {
@@ -415,6 +425,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
             'Haz commit o stash antes de "taskctl review" — el update de Git-Flow necesita el ' +
             'workspace limpio y su prompt interactivo cancela en silencio sin terminal.');
     }
+    progreso.paso('integracion');
     const scriptName = SCRIPT_BY_TYPE[tipo];
     // TASK-040: la ronda incremental no ejecuta el update (el merge de la
     // base entraria en el delta); exige estar ya en la rama de la tarea.
@@ -537,7 +548,10 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     // en curso y sin ronda a medias (decision de Carlos). En la primera ronda el
     // update de Git-Flow ya integro la base (y ese merge queda hecho); en una
     // incremental la rama no se actualiza (TASK-040). Sin la clave, nada.
-    const verificacion = verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos);
+    progreso.paso('verificacion');
+    const verificacion = verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos, () => 
+    // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
+    entornoConContador(deps.env ?? process.env, progreso.contador()));
     // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
     // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
     // nadie arreglo sigue ahi). Una vez por ronda y antes de escribir nada;
@@ -603,6 +617,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
     const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
     await mkdir(revisionDir, { recursive: true });
     const ronda = await siguienteRonda(revisionDir, RONDA_FILE_RE);
+    progreso.paso('peticiones', { ronda });
     // Un par de nombres (con o sin sufijo de dominio) por grupo del plan.
     // Sin fragmentar hay un unico grupo y se usa el nombre de siempre, sin
     // sufijo: ninguna tarea que solo cae al generico cambia de convencion.
@@ -695,6 +710,7 @@ export async function runReviewCommand(tareasRoot, argv, today, deps) {
             '(¿restos con otro case en un filesystem case-insensitive?). La tarea NO se ha ' +
             'movido; limpia o renombra esos ficheros y reintenta.');
     }
+    progreso.paso('commit');
     // TASK-085: el coste de implementacion que el hook fue anotando se suma
     // aqui, en el mismo fichero y commit que la transicion. Nunca aborta.
     const volcado = await volcarCosteAutomatico(updated, body, instanteDelVolcado(deps.ahora), {
@@ -779,7 +795,7 @@ function seccionDeVerificacion(r, base, conCobertura) {
  * arbol sucio: el autocommit de la ronda se llevaria esos ficheros o el
  * siguiente comando abortaria por workspace sucio.
  */
-function verificacionDeRonda(id, config, base, tipoTarea, incremental, deps, avisos) {
+function verificacionDeRonda(id, config, base, tipoTarea, incremental, deps, avisos, entornoVerificacion) {
     const selectiva = config.comando_verificacion_selectiva;
     if (selectiva === null)
         return null;
@@ -811,7 +827,7 @@ function verificacionDeRonda(id, config, base, tipoTarea, incremental, deps, avi
     const motivo = plan.tipo === 'documentacion' ? plan.motivo : null;
     const v = verificarConMemo(raiz, motivo !== null
         ? { tipo: 'documentacion', comando, timeoutS: plan.timeoutS }
-        : { tipo: 'selectiva', comando, timeoutS: plan.timeoutS, base }, deps.env === undefined ? {} : { env: deps.env });
+        : { tipo: 'selectiva', comando, timeoutS: plan.timeoutS, base }, { env: entornoVerificacion() });
     const nombre = motivo !== null
         ? 'la comprobacion de documentacion (comando_verificacion_documentacion: solo cambia documentacion)'
         : `la verificacion selectiva (por impacto respecto a "${base}", en RAMA_BASE)`;

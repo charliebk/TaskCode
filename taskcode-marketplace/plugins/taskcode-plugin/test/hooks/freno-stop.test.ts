@@ -20,6 +20,12 @@ import { decidirStop, MARGEN_HOOK_S, TECHO_HOOK_S, parsearEntrada, timeoutEfecti
 import { describirResultado, recortarCola, type ResultadoVerificacion } from '../../src/core/informe-verificacion.js';
 import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { git, sampleTask } from '../helpers/finish-fixtures.js';
+import { leerProgreso, rutaProgreso } from '../../src/fs/progreso.js';
+
+/** TASK-110: en los turnos en que el freno no verifica, ni un fichero de progreso. */
+function sinProgreso(raiz: string): void {
+  assert.equal(existsSync(rutaProgreso(raiz) as string), false, 'no se escribe progreso si no se verifica');
+}
 
 const RAIZ_PLUGIN = path.join(import.meta.dirname, '..', '..', '..');
 const ENTRADA_HOOK = path.join(RAIZ_PLUGIN, 'dist', 'src', 'hooks', 'stop-verificacion.js');
@@ -117,9 +123,18 @@ function conDesenlace<T>(r: Repo, fn: () => Promise<T>): Promise<T> {
 test('freno: verificacion en verde deja parar, en silencio', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
+      const t0 = Date.now();
       const d = await decidir(r);
       assert.deepEqual(d, { codigo: 0, stderr: '' });
       assert.equal(r.ejecuciones(), 1);
+      // TASK-110: el freno escribe su progreso y lo marca terminado.
+      const p = leerProgreso(r.raiz);
+      assert.ok(p !== null);
+      assert.deepEqual(
+        [p.tarea, p.fase, p.pasos, p.paso, p.terminado, p.resultado],
+        ['TASK-071', 'freno', ['verificacion'], 'verificacion', true, 'ok']
+      );
+      assert.ok(p.inicio >= t0 - 1000 && p.inicio <= Date.now());
     })
   );
 });
@@ -137,6 +152,8 @@ test('freno: verificacion en rojo bloquea con exit 2 y el comando, el codigo, la
       assert.match(d.stderr, /preparando[\s\S]*ERROR: 2 tests fallan/, 'stdout y stderr intercalados');
       assert.match(d.stderr, /No borres, saltes ni debilites tests/);
       assert.doesNotMatch(d.stderr, /taskcode/i, 'el texto lo leen proyectos ajenos');
+      // TASK-110: un turno bloqueado por la verificacion en rojo deja la fase "en rojo", no "en curso" ni "abortada".
+      assert.deepEqual([leerProgreso(r.raiz)?.terminado, leerProgreso(r.raiz)?.resultado], [true, 'en-rojo']);
     })
   );
 });
@@ -148,6 +165,7 @@ test('freno: sin tarea en curso, rama ajena o sin comando no hace nada ni ejecut
         await writeFile(r.desenlace, 'ko', 'utf8');
         assert.deepEqual(await decidir(r), { codigo: 0, stderr: '' });
         assert.equal(r.ejecuciones(), 0);
+        sinProgreso(r.raiz);
       }),
     { tarea: false }
   );
@@ -157,6 +175,7 @@ test('freno: sin tarea en curso, rama ajena o sin comando no hace nada ni ejecut
         await writeFile(r.desenlace, 'ko', 'utf8');
         assert.deepEqual(await decidir(r), { codigo: 0, stderr: '' });
         assert.equal(r.ejecuciones(), 0);
+        sinProgreso(r.raiz);
       }),
     { rama: 'feature/otra-cosa' }
   );
@@ -166,6 +185,7 @@ test('freno: sin tarea en curso, rama ajena o sin comando no hace nada ni ejecut
         await writeFile(r.desenlace, 'ko', 'utf8');
         assert.deepEqual(await decidir(r), { codigo: 0, stderr: '' });
         assert.equal(r.ejecuciones(), 0);
+        sinProgreso(r.raiz);
       }),
     { config: 'limite_wip: 1\n' }
   );
@@ -191,6 +211,7 @@ test('freno: stop_hook_active e interruptor FRENO_VERIFICACION=0 dejan parar sin
       assert.deepEqual(await decidir(r, { stop_hook_active: true }), { codigo: 0, stderr: '' });
       assert.deepEqual(await decidir(r, {}, { env: { FRENO_VERIFICACION: '0' } }), { codigo: 0, stderr: '' });
       assert.equal(r.ejecuciones(), 0);
+      sinProgreso(r.raiz);
     })
   );
 });
