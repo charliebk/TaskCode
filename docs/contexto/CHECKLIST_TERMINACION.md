@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ⏳ P — Agilidad sin perder calidad | 18 | **17** | — |
+| ⏳ P — Agilidad sin perder calidad | 19 | **18** | — |
 | **Total pendiente** | **1** | — | — |
 
 ---
@@ -1115,7 +1115,7 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
-## ⏳ P — Agilidad sin perder calidad (13/18)
+## ⏳ P — Agilidad sin perder calidad (14/19)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -1195,6 +1195,12 @@ del código.
       el coste fijo y su tendencia, informe de escala y perfil de la suite, regla de la piramide. Modo rapido: plan
       sin brainstorm, 1 ronda (3 IMP y 6 MENOR corregidos), cerrada sin ronda 2 y con --sin-verificacion por
       decision de Carlos.*
+- [x] TASK-123 — F-16: finish no cierra sin verificar tras un merge a mano o un conflicto — cerrada el 2026-11-12
+      *CRITICO de la auditoria: el reintento de finish verifica la rama de integracion (decision proporcional y
+      memo) y el guardian bloquea el commit que cierra un merge en curso en develop/main; remedio seguro en
+      mensajes y guia. Los dos casos reproducidos son tests de regresion. Arregla tambien que verificar-impacto
+      pasaba RAMA_BASE a los tests. 1 ronda: 2 IMP corregidos, 2 MEN aceptados; cerrada sin ronda 2 y con
+      --sin-verificacion por decision de Carlos.*
 - [ ] TASK-099 — Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa
   (para la 0.15.0; no se empieza hasta medir al menos 10 tareas con la 0.14.0, decisión de Carlos)
 
