@@ -18,7 +18,11 @@ Duracion estimada: 360 min (de la rama abierta al cierre con merge, tarea entera
 - Se crean `src/core/progreso.ts` (puro: tipo, validar, `formatearEstado`) y `src/fs/progreso.ts` (`rutaProgreso` sin git, que sube hasta `.git` y sigue `gitdir:`; la comparten escritor y lector), y `src/commands/estado.ts` con vía rápida en `bin/taskctl`, sin importar el grafo de `cli.ts` ni `fs/git.ts` — arquitectura.
 - Se extienden plan, approve, start, review, finish, `finish-verificacion.ts` y `freno-stop.ts` con `deps.progreso` (`fase`/`paso`/`terminar`), `doctor.ts` + `json-claude.ts` con un escritor de `statusLine`; `TASKCTL_PROGRESO` apunta a `.git/taskcode/progreso-contador`; el reporter `test/reporter/progreso.ts` va junto a `spec` y guarda el total en `.git/taskcode/suite-total.json` — arquitectura.
 
-### Partición propuesta (pasa de 60 min; decide la persona en approve)
+### Decisión de la persona: no se trocea (2026-11-12)
+
+Carlos: «no se trocea nada, se hace todo dentro de la misma tarea TASK-110». La tarea se aprueba entera pese a los 360 min estimados; ese es el motivo escrito que pide la regla de una hora. La lista de abajo deja de ser una partición en tareas y pasa a ser **el orden de implementación dentro de TASK-110**, con un commit por paso: S (la comprobación de la status line, que sigue yendo primero y puede reabrir el diseño), A, D, B1, B2, C, E y F.
+
+### Orden de implementación (antes: partición propuesta)
 0. **S — Spike: ¿se ve la status line en la app de escritorio (pestaña Code) y por Remote Control?** Sin criterios de la lista; resultado escrito, sin código de producción. Va primero y condiciona todo lo demás (Carlos; `duracion.md`: lo que hay que investigar va antes, en su propia tarea corta). Si no se ve, la alternativa a evaluar es la salida de hooks visible para la persona (indicación del coordinador), y el diseño se reabre con Carlos.
 1. **A — Contrato y lector**: `core/progreso`, `fs/progreso`, `taskctl estado` (sin `--seguir`) con vía rápida. Criterios 2, 7, 8. Depende de S. Pruebas 5 y 6 de testing.
 2. **D — Status line en doctor**: instalación única con flag explícito, sin pisar una existente. Criterios 5 y 8. Depende de A. Sube de orden por ser el entregable principal (Carlos).
