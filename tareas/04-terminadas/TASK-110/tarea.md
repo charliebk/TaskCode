@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [progreso, agilidad]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-110-progreso-visible-sin-tokens-estado-de-ca
 asignado_a: charlie.bk@gmail.com
@@ -57,6 +57,7 @@ Mientras taskctl y sus hooks trabajan (la verificacion de finish, unos 28 min en
 | 2026-11-12T11:42:16Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T11:42:39Z | start | automatico | persona | 0.14.0 |
 | 2026-11-12T13:22:39Z | review | automatico | persona | 0.14.0 |
+| 2026-11-12T14:04:27Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -70,3 +71,10 @@ Mientras taskctl y sus hooks trabajan (la verificacion de finish, unos 28 min en
 ## Autorrevision
 
 - code-quality-reviewer — 39b27f9
+
+## Duracion
+
+- Estimada: 360 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 142 min
+- Paso de la hora: 142 min reales frente a 360 estimados
+- Cierre (finish): 8 s, de 2026-11-12T14:04:19Z a 2026-11-12T14:04:27Z
