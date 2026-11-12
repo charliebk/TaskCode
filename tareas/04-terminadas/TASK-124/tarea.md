@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-124-contexto-con-tamano-maximo-lo-que-leen-l
 asignado_a: charlie.bk@gmail.com
@@ -59,6 +59,7 @@ Evidencia: `RAMA_BASE=develop node scripts/verificar-impacto.mjs` 939 pass, 0 fa
 | 2026-11-12T19:22:04Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T19:22:05Z | start | automatico | persona | 0.14.0 |
 | 2026-11-12T19:45:52Z | review | automatico | persona | 0.14.0 |
+| 2026-11-12T20:07:55Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -72,3 +73,9 @@ Evidencia: `RAMA_BASE=develop node scripts/verificar-impacto.mjs` 939 pass, 0 fa
 ## Verificacion omitida
 
 - 2026-11-12T20:07:47Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 150 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 46 min
+- Cierre (finish): 8 s, de 2026-11-12T20:07:47Z a 2026-11-12T20:07:55Z

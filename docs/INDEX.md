@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-124 — Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto · etiquetas: agilidad, escala, urgente, v0.16 · rama feature/task-124-contexto-con-tamano-maximo-lo-que-leen-l · terminada 2026-11-12 · tareas/04-terminadas/TASK-124/
 - TASK-121 — Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama · etiquetas: flujo, agilidad, urgente, v0.16 · rama feature/task-121-troceo-de-tareas-de-mas-de-60-min-como-p · terminada 2026-11-12 · tareas/04-terminadas/TASK-121/
 - TASK-123 — F-16: finish no cierra sin verificar tras un merge a mano o un conflicto · etiquetas: verificacion, critico, urgente, v0.16 · rama fix/task-123-f-16-finish-no-cierra-sin-verificar-tras · terminada 2026-11-12 · tareas/04-terminadas/TASK-123/
 - TASK-122 — Coste por tarea independiente del tamano del proyecto · etiquetas: agilidad, escala, urgente, v0.16 · rama feature/task-122-coste-por-tarea-independiente-del-tamano · terminada 2026-11-12 · tareas/04-terminadas/TASK-122/

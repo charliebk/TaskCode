@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-12. No editar a mano.
 
-## Planificadas (00-planificadas) — 32
+## Planificadas (00-planificadas) — 31
 
 ```text
 ID        Titulo                                                                                                          Asignado
@@ -32,7 +32,6 @@ TASK-117  P-9: new propone la complejidad a partir de tareas parecidas ya cerrad
 TASK-118  P-10: linea FIN con la duracion en todos los scripts de Git-Flow                                                (sin asignar)
 TASK-119  P-11: menos commits de proceso por tarea                                                                        (sin asignar)
 TASK-120  P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren                          (sin asignar)
-TASK-124  Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto                                    (sin asignar)
 TASK-125  Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea                             (sin asignar)
 TASK-126  Verificacion por tipo de rama: los tests pesados solo en la puerta de release                                   (sin asignar)
 TASK-127  Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar                     (sin asignar)
@@ -41,7 +40,7 @@ TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, p
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 96
+## Terminadas (04-terminadas) — 97
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -142,4 +141,5 @@ TASK-110  Progreso visible sin tokens: estado de cada fase en el terminal       
 TASK-121  Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama                         charlie.bk@gmail.com
 TASK-122  Coste por tarea independiente del tamano del proyecto                                                               charlie.bk@gmail.com
 TASK-123  F-16: finish no cierra sin verificar tras un merge a mano o un conflicto                                            charlie.bk@gmail.com
+TASK-124  Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto                                        charlie.bk@gmail.com
 ```
