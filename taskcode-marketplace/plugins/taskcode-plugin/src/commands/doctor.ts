@@ -45,6 +45,7 @@ import {
 } from '../core/doctor.js';
 import { resolverConfigConAvisos, CONFIG_DEFAULTS, type TaskcodeConfig } from '../core/config.js';
 import { comandoPropuesto, type ComandoTests } from '../core/comando-tests.js';
+import { comandoParcial, documentacionDeclarada } from '../core/verificacion-proporcional.js';
 import { detectarComandosTests } from '../fs/deteccion-tests.js';
 import { hostDeRemoto, ocultarCredenciales, CLI_PLATAFORMA } from '../core/plataforma-remota.js';
 import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
@@ -460,11 +461,31 @@ export function comprobarVerificacionSelectiva(cfg: TaskcodeConfig | null): Comp
       ),
     ];
   }
+  const selectiva =
+    `comando_verificacion_selectiva: "${una(cfg.comando_verificacion_selectiva)}" ` +
+    `(timeout ${cfg.timeout_verificacion_selectiva} s)`;
+  if (comandoParcial(cfg) === null) {
+    return [ok('verificacion-selectiva', `${selectiva}; la completa sigue siendo la puerta de finish`)];
+  }
+  // TASK-109: sin rutas de documentacion la decision proporcional no se calcula
+  // y el nivel 2 nunca se activa: la clave pareceria hacer algo sin hacerlo.
+  if (!documentacionDeclarada(cfg)) {
+    const arreglo =
+      'declara tambien rutas_documentacion en .taskcode/config.yml (p. ej. rutas_documentacion: [docs/**, README.md]) ' +
+      'o borra rutas_verificacion_parcial';
+    return [
+      aviso(
+        'verificacion-selectiva',
+        `${selectiva}; rutas_verificacion_parcial no tiene efecto sin rutas_documentacion: ${arreglo}`,
+        arreglo.charAt(0).toUpperCase() + arreglo.slice(1)
+      ),
+    ];
+  }
   return [
     ok(
       'verificacion-selectiva',
-      `comando_verificacion_selectiva: "${una(cfg.comando_verificacion_selectiva)}" ` +
-        `(timeout ${cfg.timeout_verificacion_selectiva} s); la completa sigue siendo la puerta de finish`
+      `${selectiva}; con rutas_verificacion_parcial, finish integra con ella si todo el codigo cae en esas ` +
+        'rutas; un merge a mano sigue exigiendo la completa'
     ),
   ];
 }

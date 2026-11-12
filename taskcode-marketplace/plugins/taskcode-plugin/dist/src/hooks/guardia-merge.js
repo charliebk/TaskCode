@@ -235,7 +235,9 @@ function motivoDeBloqueo(integ, config, contexto) {
  */
 const LINEA_SELECTIVA = 'Con codigo, un merge a mano exige la verificacion completa en verde de ese commit aunque taskctl finish ' +
     'acepte la de lo afectado (rutas_verificacion_parcial), y un merge a mano no la obtiene. Integra con taskctl ' +
-    'finish TASK-NNN, que verifica y mergea por su cuenta; tras un conflicto, resuelvelo y vuelve a lanzar finish.';
+    'finish TASK-NNN desde la rama de la tarea, que verifica y mergea por su cuenta. Si finish choco en un conflicto, ' +
+    'no lo cierres en el destino (el reintento ya no verificaria): abortalo con taskctl abort-merge, integra la base ' +
+    'en la rama de la tarea, resuelvelo alli y vuelve a lanzar finish.';
 /**
  * TASK-101: si lo que entra es solo documentacion segun la config del destino.
  * `detalle` explica por que no se aplica cuando el destino si la declara; null

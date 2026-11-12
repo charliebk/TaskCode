@@ -12,16 +12,16 @@
 
 | | Tareas |
 |---|---|
-| Terminadas | **99** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-092, TASK-095, TASK-097, TASK-098, TASK-100, TASK-101, TASK-102, TASK-103, TASK-104) |
+| Terminadas | **105** (TASK-001 a TASK-080 salvo TASK-019, TASK-081 a TASK-092, TASK-095 a TASK-098, TASK-100 a TASK-109) |
 | Descartadas | 3 (TASK-019, TASK-093, TASK-094) |
-| **Pendientes** | **2** (TASK-096; TASK-099 para la 0.15.0) |
+| **Pendientes** | **1** (TASK-099 para la 0.15.0) |
 | Versión publicada | **0.14.0** (2026-11-10) |
 
 ---
 
 ## Pendiente
 
-### Fase P — Agilidad sin perder calidad (4/5)
+### Fase P — Agilidad sin perder calidad (5/6)
 
 Sale de la auditoría de agilidad de la 0.8 a la 0.13 (`docs/auditoria/INVENTARIO-AGILIDAD-2026-11-10.md`):
 las tareas de ToolsaWeb pasaron de 103 a 192 min de mediana de punta a punta y
@@ -30,8 +30,7 @@ las revisiones de 2,3 a 3,8 rondas. La 0.14.0 trae la revisión que converge
 
 | Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
 |---|---|---|---|---|---|
-| 1 | TASK-096 | Verificación proporcional B: con código parcial se verifica solo lo afectado | alta | media | TASK-100 |
-| 2 | TASK-099 | Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | 0.15.0 | 10 tareas medidas con la 0.14.0 |
+| 1 | TASK-099 | Corrección de MENORES tras aprobar con correcciones sin abrir otra ronda completa | media | 0.15.0 | 10 tareas medidas con la 0.14.0 |
 
 TASK-099 sale de OpenDockTrading TASK-067, la primera tarea cerrada con la 0.14.0
 (15 min de punta a punta, rondas de 1,42 M, 0,74 M y 0,37 M tokens): la ronda 3 se

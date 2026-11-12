@@ -521,6 +521,26 @@ test('doctor (TASK-091): con las dos, ok; sin completa o con config invalida, na
   assert.deepEqual(comprobarVerificacionSelectiva(null), []);
 });
 
+const NIVEL2 = 'comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node sel.js"\nrutas_verificacion_parcial: [src/web/**]\n';
+
+test('doctor (TASK-109): con el nivel 2 activo, ok que dice que finish integra con la selectiva y el merge a mano no', () => {
+  const [c, ...resto] = comprobarVerificacionSelectiva(parsearConfig(`${NIVEL2}rutas_documentacion: [docs/**]\n`, RUTA));
+  assert.equal(resto.length, 0);
+  assert.equal(c?.nivel, 'ok');
+  assert.match(c?.mensaje ?? '', /comando_verificacion_selectiva: "node sel\.js" \(timeout 600 s\)/);
+  assert.match(c?.mensaje ?? '', /finish integra con ella si todo el codigo cae en esas rutas; un merge a mano sigue exigiendo la completa/);
+  assert.doesNotMatch(c?.mensaje ?? '', /la completa sigue siendo la puerta de finish/);
+});
+
+test('doctor (TASK-109): rutas_verificacion_parcial sin rutas_documentacion avisa en una linea con su arreglo', () => {
+  const [c, ...resto] = comprobarVerificacionSelectiva(parsearConfig(NIVEL2, RUTA));
+  assert.equal(resto.length, 0);
+  assert.equal(c?.nivel, 'aviso');
+  assert.match(c?.mensaje ?? '', /rutas_verificacion_parcial no tiene efecto sin rutas_documentacion: declara tambien rutas_documentacion/);
+  assert.doesNotMatch(c?.mensaje ?? '', /\n/);
+  assert.match(c?.arreglo ?? '', /^Declara tambien rutas_documentacion en \.taskcode\/config\.yml .* o borra rutas_verificacion_parcial$/);
+});
+
 // ---------------------------------------------------------------------
 // Guia de migracion (criterio 6): instalable, enlazada y sin marcas de este repo
 // ---------------------------------------------------------------------
@@ -540,10 +560,49 @@ test('guia (TASK-091): task-workflow enlaza verificacion-selectiva.md, que expli
     /corre todo/,
     /lockfiles/,
     /La completa no se convierte en el clasificador/,
-    /Antes de integrar se exige siempre la\s+completa/,
+    // TASK-109: antes «Antes de integrar se exige siempre la completa»; el nivel 2
+    // (TASK-096) abrio una excepcion que declara el proyecto, y la guia lo dice.
+    /antes de integrar se exige\s+la completa\*\*/,
+    /La unica excepcion la declara el proyecto con\s+`rutas_verificacion_parcial`/,
     /`taskctl doctor`/,
   ]) {
     assert.match(guia, marca);
   }
   assert.doesNotMatch(guia, /TaskCode/);
+});
+
+test('guia (TASK-109): la seccion «Codigo parcial» explica el principio y el contrato del nivel 2', () => {
+  const dir = path.join(import.meta.dirname, '..', '..', '..', 'skills', 'task-workflow');
+  const guia = readFileSync(path.join(dir, 'verificacion-selectiva.md'), 'utf8');
+  const inicio = guia.indexOf('## Codigo parcial: `rutas_verificacion_parcial`');
+  assert.ok(inicio >= 0, 'falta la seccion «Codigo parcial» en verificacion-selectiva.md');
+  const fin = guia.indexOf('\n## ', inicio + 1);
+  const seccion = guia.slice(inicio, fin < 0 ? undefined : fin);
+  for (const marca of [
+    /el coste de verificar es proporcional al cambio/,
+    /Por defecto la completa es la puerta de integracion/,
+    /rutas_verificacion_parcial: \[/,
+    /Lista de rutas permitidas, leida de la rama base/,
+    /comando_verificacion_selectiva/,
+    /timeout_verificacion_selectiva/,
+    /`rutas_documentacion`: sin rutas de documentacion la decision no se calcula/,
+    /`\.taskcode\/config\.yml`/,
+    /## Verificacion parcial/,
+    /Cobertura omitida/,
+    // IMP-1 de la revision: ninguna puerta posterior mide esas lineas.
+    /Ninguna puerta posterior mide esas\s+lineas/,
+    // MEN-1: el release siempre; el hotfix nunca usa la selectiva.
+    /El release va siempre a la completa/,
+    /Un hotfix nunca usa la selectiva/,
+    /El guardian de merges sigue exigiendo la completa para el codigo/,
+    // IMP-2: abortar e integrar la base en la rama de la tarea, no cerrar el merge en la de integracion.
+    /no repitas el merge a mano ni lo\s+cierres en la rama de integracion/,
+    /Abortalo \(`taskctl abort-merge`\), integra la\s+base en la rama de la tarea/,
+  ]) {
+    assert.match(seccion, marca);
+  }
+  assert.doesNotMatch(seccion, /TaskCode|TASK-\d/);
+  const skill = readFileSync(path.join(dir, 'SKILL.md'), 'utf8');
+  assert.match(skill, /`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;\s+un\s+merge\s+a\s+mano\s+no/);
+  assert.match(skill, /desde la rama de\s+la tarea; si choca, abortalo y resuelve en ella/);
 });

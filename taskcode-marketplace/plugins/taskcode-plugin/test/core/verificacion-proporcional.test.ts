@@ -310,3 +310,25 @@ test('config (TASK-096): rutas_verificacion_parcial es conocida, va con la selec
     }
   );
 });
+
+test('config (TASK-109): el error de forma de cada clave de patrones lleva su propio ejemplo', () => {
+  const casos: Array<[string, RegExp]> = [
+    ['rutas_verificacion_parcial', /Ejemplo: rutas_verificacion_parcial: \[src\/web\/\*\*\]\. Sin nivel 2: rutas_verificacion_parcial: \[\]\./],
+    ['contexto_revision', /Ejemplo: contexto_revision: \[docs\/arquitectura\.md, src\/core\/\*\*\]\. Sin contexto extra: contexto_revision: \[\]\./],
+    ['rutas_documentacion', /Ejemplo: rutas_documentacion: \[docs\/\*\*, README\.md\]\./],
+    ['excluir_de_revision', /Ejemplo: excluir_de_revision: \[\*\*\/dist\/\*\*, \*\*\/\*\.lock\]\. Para no excluir nada: excluir_de_revision: \[\]\./],
+  ];
+  for (const [clave, ejemplo] of casos) {
+    const base = 'comando_verificacion: "npm test"\ncomando_verificacion_selectiva: "node s.js"\nrutas_documentacion: [docs/**]\n';
+    const texto = clave === 'rutas_documentacion' ? base.replace('rutas_documentacion: [docs/**]\n', '') : base;
+    assert.throws(
+      () => parsearConfig(`${texto}${clave}: src\n`, 'c.yml'),
+      (e: unknown) => {
+        assert.ok(e instanceof ConfigError, clave);
+        assert.match(e.message, ejemplo, clave);
+        if (clave !== 'excluir_de_revision') assert.doesNotMatch(e.message, /no excluir nada/, clave);
+        return true;
+      }
+    );
+  }
+});

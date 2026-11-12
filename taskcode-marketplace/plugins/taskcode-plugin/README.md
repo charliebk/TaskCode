@@ -762,7 +762,10 @@ algún error (los avisos no cuentan). Comprueba:
   (un valor inválido es error con su mensaje; una clave desconocida, aviso).
 - **Verificación selectiva** (`verificacion-selectiva`): con `comando_verificacion`
   y sin `comando_verificacion_selectiva`, `aviso` con el arreglo en la misma
-  línea; con las dos, `ok`. Sin completa no dice nada.
+  línea; con las dos, `ok` (con `rutas_verificacion_parcial`, dice que `finish`
+  puede integrar con la selectiva y un merge a mano no). Con
+  `rutas_verificacion_parcial` y sin `rutas_documentacion`, `aviso`: la clave no
+  tendría efecto. Sin completa no dice nada.
 - **Verificación**: si la config declara `comando_verificacion` (ver abajo), `ok`
   con el comando y su timeout. Sin él, depende de si el proyecto tiene tests en
   su raíz:
@@ -828,8 +831,9 @@ timeout_verificacion: 900          # opcional, en segundos (por defecto 600)
 
 Cuando la completa tarda mucho, el proyecto puede declarar además una
 verificación **selectiva**, que corre solo lo afectado por los cambios. La usan
-el freno de fin de turno y las rondas de `taskctl review`; la completa sigue
-siendo la puerta de `finish` y del guardián de merges.
+el freno de fin de turno y las rondas de `taskctl review`; por defecto la
+completa sigue siendo la puerta de `finish` y del guardián de merges (la
+excepción, más abajo: `rutas_verificacion_parcial`).
 
 ```yaml
 comando_verificacion: "npm test"                                    # la completa
@@ -853,8 +857,10 @@ timeout_verificacion_selectiva: 600                                 # opcional (
   petición lleva la sección «Verificación de esta ronda» (tipo, comando,
   resultado y final de la salida) y omite la de cobertura, porque el informe
   podría ser parcial.
-- **`taskctl finish`**: ejecuta la completa como siempre; en rojo, el mensaje
-  recuerda que se exige aunque las rondas usaran la selectiva.
+- **`taskctl finish`**: ejecuta la completa como siempre (salvo con
+  `rutas_verificacion_parcial`, abajo); en rojo, el mensaje recuerda que se
+  exige aunque las rondas usaran la selectiva; con `rutas_verificacion_parcial`,
+  en su lugar dice por qué tocó la completa y no la selectiva.
 - **Sin la clave**, todo funciona como antes: el `Stop` corre la completa y
   `review` no verifica.
 - Cómo escribir el clasificador y qué cambios obligan a correr todo: guía
@@ -909,7 +915,46 @@ comando_verificacion_documentacion: "node scripts/comprobar-docs.js"   # opciona
   cambiar lo que entra),
   en un release, ni si cambian los held-out (`tareas/.../aceptacion/`), y la
   calcula solo cuando ya iba a bloquear, con un presupuesto de 20 s.
-- El freno de fin de turno y `review` siguen corriendo la completa o la selectiva.
+
+#### Código parcial: `rutas_verificacion_parcial`
+
+El mismo principio un paso más allá: si todo el código que cambia la tarea cae
+en unas rutas acotadas, a `finish` le basta la verificación de lo afectado. Por
+defecto la completa es la puerta de integración; declarar esta clave es
+aceptar, para este proyecto, que en esas rutas baste la selectiva.
+
+```yaml
+comando_verificacion: "npm test"
+comando_verificacion_selectiva: "node scripts/verificar-selectiva.js"
+rutas_documentacion: [docs/**, README.md]
+rutas_verificacion_parcial: [src/web/**]          # lista de rutas permitidas
+```
+
+- Lista de rutas **permitidas**, leída de la config de la **rama base**: si todo
+  lo que la tarea cambia frente a la base, salvo la documentación, cae en ellas,
+  `finish` corre `comando_verificacion_selectiva` (con `RAMA_BASE` y
+  `timeout_verificacion_selectiva`) en vez de la completa. Un fichero fuera, un
+  cambio de `.taskcode/config.yml` o un diff vacío van a la completa.
+- Exige `comando_verificacion_selectiva` (la config aborta sin ella) y
+  `rutas_documentacion` (sin ellas no tiene efecto: `taskctl doctor` avisa).
+- `finish` dice que corrió la selectiva y por qué, y tras el verde lo anota en
+  `tarea.md` («Verificacion parcial») antes del merge. Reutiliza un verde de la
+  selectiva del mismo commit y la misma base si lo hay (fin de turno o `review`,
+  con el árbol limpio).
+- `finish` no evalúa la puerta de cobertura (el informe sería parcial), y
+  ninguna puerta posterior mide esas líneas: el release corre la completa, pero
+  su cobertura solo mide lo que añade la propia rama release. Con
+  `umbral_cobertura`, las tareas integradas con la selectiva no se comparan con él.
+- El release va siempre a la completa. Un hotfix nunca usa la selectiva (con
+  código, la completa; de solo documentación, su camino de documentación).
+- El **guardián de merges sigue exigiendo la completa para el código**: un merge
+  a mano de una tarea con código queda bloqueado sin su verde, aunque a `finish`
+  le bastara la selectiva. Si `finish` choca en un conflicto, no repitas el
+  merge a mano ni lo cierres en la rama de integración (un `finish` relanzado
+  sobre un merge ya cerrado no vuelve a verificar): abórtalo con
+  `taskctl abort-merge`, integra la base en la rama de la tarea, resuelve allí y
+  vuelve a lanzar `taskctl finish` desde ella.
+- Sin la clave, todo funciona como antes.
 
 #### Freno de fin de turno (hook `Stop`)
 
