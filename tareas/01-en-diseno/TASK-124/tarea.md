@@ -7,7 +7,7 @@ etiquetas: [agilidad, escala, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-124-contexto-con-tamano-maximo-lo-que-leen-l
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,3 +38,4 @@ Sale de TASK-122 (docs/auditoria/ESCALA-2026-11-12.md): lo que leen los agentes 
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-12T19:11:36Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-12T19:22:04Z | approve | automatico | persona | 0.14.0 |
