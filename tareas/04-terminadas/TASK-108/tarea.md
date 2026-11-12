@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [verificacion, agilidad]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-108-verificacion-proporcional-b5-el-guardian
 asignado_a: charlie.bk@gmail.com
@@ -42,6 +42,7 @@ Quinta parte de TASK-096. Decision de Carlos (D1, 2026-11-11): el guardian de me
 | 2026-11-11T22:48:10Z | start | automatico | persona | 0.14.0 |
 | 2026-11-11T23:14:10Z | review | automatico | persona | 0.14.0 |
 | 2026-11-12T00:15:54Z | review | automatico | persona | 0.14.0 |
+| 2026-11-12T00:59:41Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -74,3 +75,9 @@ Revision por pares:
 - Ronda 2 (haiku, aprobada): MEN-1 y MEN-2 verificados, mutantes de la correccion muertos. Dos notas anteriores a la correccion, no corregidas:
   - Un hotfix nacido de develop que se mergea a mano en develop recibe la linea de la selectiva. Fuera del flujo real: un hotfix nace de la principal y su backmerge lo deja pasar el paso 5.
   - Un arbol sin `.taskcode/config.yml` hace que el paso 3 deje pasar un merge aunque el destino declare `comando_verificacion`. Es la acotacion del criterio 2 aprobada por la persona; queda para la tarea que mueva guardian y finish a la config del destino a la vez.
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 132 min
+- Paso de la hora: 132 min reales frente a 55 estimados

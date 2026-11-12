@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-108 (feature) — Verificacion proporcional B5: el guardian de merges ante el nivel 2 (2026-11-12)
 - TASK-107 (feature) — Verificacion proporcional B4: Stop, review y finish deciden igual el mismo diff (2026-11-11)
 - TASK-106 (feature) — Verificacion proporcional B3: finish verifica solo lo afectado con codigo parcial (2026-11-11)
 - TASK-105 (feature) — Verificacion proporcional B2: decision entre refs y huella para el nivel 2 (2026-11-11)
