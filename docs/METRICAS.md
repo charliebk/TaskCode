@@ -684,6 +684,15 @@ ellas, con los commits automáticos `chore(TASK-NNN): ...`):
 | `curso` | primer `start` | primer `review` |
 | `revision` | primer `review` | último `finish` |
 | `total` (`--json`) | primer `plan` | último `finish` |
+| `punta_a_punta` | primer `start` | último `finish` |
+| `finish` (P-1) | inicio del cierre | fin del cierre (línea `Cierre (finish)` de `## Duracion`) |
+
+**P-1.** La fila `finish` lleva el instante de **fin** del cierre, tomado tras
+la verificación completa y el merge (antes llevaba el arranque del comando, y
+`revision`, `punta_a_punta` y `total` no contaban unos 28 min de verificación
+en ToolsaWeb, n=10). La columna `finish` mide justo ese tramo y va antes de
+`punta_a_punta`; `—` en las tareas cerradas antes, que no se migran y siguen
+con la fila de arranque.
 
 Son duraciones de calendario **menos las pausas**. `taskctl pausa` deja una
 sola fila: es el «no» a pasar de fase, y no existe una transición de
