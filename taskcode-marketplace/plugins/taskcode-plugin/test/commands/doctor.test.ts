@@ -15,7 +15,14 @@ import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { runDoctorCommand, envolver, DoctorCommandError } from '../../src/commands/doctor.js';
+import {
+  runDoctorCommand,
+  envolver,
+  DoctorCommandError,
+  comprobarVerificacion,
+  contarTerminadas,
+} from '../../src/commands/doctor.js';
+import { parsearConfig } from '../../src/core/config.js';
 import type { Comprobacion } from '../../src/core/doctor.js';
 import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { STATE_FOLDER, type Task } from '../../src/core/task.js';
@@ -388,6 +395,79 @@ for (const caso of CASOS_TASK_088) {
     });
   });
 }
+
+/** TASK-116: `n` tareas en 04-terminadas, commiteadas con el resto (el workspace queda limpio). */
+async function terminadas(repoRoot: string, n: number): Promise<void> {
+  for (let i = 1; i <= n; i++) {
+    await tareaEn(repoRoot, STATE_FOLDER.terminada, `TASK-${String(i).padStart(3, '0')}`, 'terminada');
+  }
+}
+
+for (const caso of [
+  { n: 3, texto: '; 3 tareas terminadas se cerraron sin verificar' },
+  { n: 1, texto: '; 1 tarea terminada se cerro sin verificar' },
+]) {
+  test(`verificacion (TASK-116): sin comando_verificacion, con tests y ${caso.n} terminada(s), el aviso las cuenta`, async () => {
+    await conRepo(async (repoRoot) => {
+      await terminadas(repoRoot, caso.n);
+      // No son IDs de tarea: no cuentan.
+      await mkdir(path.join(repoRoot, 'tareas', STATE_FOLDER.terminada, 'notas'), { recursive: true });
+      await writeFile(path.join(repoRoot, 'tareas', STATE_FOLDER.terminada, 'notas', 'x.md'), 'x\n', 'utf8');
+      await ficheros(repoRoot, { 'package.json': PKG_CON_TEST });
+      const r = doctor(repoRoot);
+      const c = por(r.comprobaciones, 'verificacion');
+      assert.equal(c.nivel, 'aviso', niveles(r.comprobaciones));
+      assert.ok(c.mensaje.endsWith(`los frenos de verificacion no actuan${caso.texto}`), c.mensaje);
+      assert.equal(c.arreglo, 'Declara en .taskcode/config.yml: comando_verificacion: "npm test"');
+      assert.equal(r.codigo, 0, niveles(r.comprobaciones));
+    });
+  });
+}
+
+test('verificacion (TASK-116): sin terminadas el aviso no menciona tareas; con la clave, ok sin recuento', async () => {
+  await conRepo(async (repoRoot) => {
+    await ficheros(repoRoot, { 'package.json': PKG_CON_TEST });
+    const sin = por(doctor(repoRoot).comprobaciones, 'verificacion');
+    assert.equal(sin.nivel, 'aviso');
+    assert.ok(sin.mensaje.endsWith('los frenos de verificacion no actuan'), sin.mensaje);
+    await terminadas(repoRoot, 2);
+    await config(repoRoot, 'comando_verificacion: "npm test"\n');
+    commitAll(repoRoot, 'config y terminadas');
+    const con = por(doctor(repoRoot).comprobaciones, 'verificacion');
+    assert.equal(con.nivel, 'ok');
+    assert.equal(con.mensaje, 'comando_verificacion: "npm test" (timeout 600 s)');
+  });
+});
+
+test('verificacion (TASK-116): sin tests detectables sigue en omitida y no cuenta las terminadas', async () => {
+  await conRepo(async (repoRoot) => {
+    await terminadas(repoRoot, 2);
+    commitAll(repoRoot, 'terminadas');
+    const c = por(doctor(repoRoot).comprobaciones, 'verificacion');
+    assert.equal(c.nivel, 'omitida');
+    assert.doesNotMatch(c.mensaje, /terminada/);
+  });
+});
+
+test('verificacion (TASK-116): contarTerminadas solo se llama en el camino del aviso', () => {
+  const noLlamar = (): number => {
+    throw new Error('no deberia contar las terminadas');
+  };
+  const npm = [{ comando: 'npm test', motivo: 'package.json con script "test"' }] as const;
+  assert.equal(comprobarVerificacion(parsearConfig('comando_verificacion: "npm test"\n', 'c.yml'), () => npm, noLlamar).nivel, 'ok');
+  assert.equal(comprobarVerificacion(parsearConfig('', 'c.yml'), () => [], noLlamar).nivel, 'omitida');
+  assert.equal(comprobarVerificacion(null, () => npm, noLlamar).nivel, 'omitida');
+  assert.match(comprobarVerificacion(parsearConfig('', 'c.yml'), () => npm, () => 27).mensaje, /; 27 tareas terminadas se cerraron sin verificar$/);
+});
+
+test('verificacion (TASK-116): contarTerminadas da 0 si la carpeta falta', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-doctor-sin-terminadas-'));
+  try {
+    assert.equal(contarTerminadas(path.join(dir, 'tareas')), 0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test('verificacion (TASK-088): manifiestos que no son tests, o en una subcarpeta, siguen en omitida', async () => {
   await conRepo(async (repoRoot) => {

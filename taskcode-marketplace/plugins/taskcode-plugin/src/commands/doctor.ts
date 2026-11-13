@@ -438,20 +438,35 @@ function comprobarConfig(cwd: string): { cs: Comprobacion[]; cfg: TaskcodeConfig
  *
  * `detectar` solo se llama cuando falta la clave: la lectura de disco no se
  * paga en los proyectos ya configurados.
+ *
+ * TASK-116 (P-8): el aviso dice ademas cuantas tareas terminadas hay
+ * (`contarTerminadas`, que solo se llama en ese camino). Son todas las de
+ * `04-terminadas`: finish no deja rastro ni sin comando ni con la puerta en
+ * verde, asi que no se puede separar una verificada de otra que no; sin la
+ * clave hoy, ninguna paso por la puerta. Una clave que existio y se quito
+ * sobrecuenta, y se acepta: el aviso no cambia el codigo de salida.
  */
 export function comprobarVerificacion(
   cfg: TaskcodeConfig | null,
-  detectar: () => readonly ComandoTests[] = () => []
+  detectar: () => readonly ComandoTests[] = () => [],
+  contarTerminadas: () => number = () => 0
 ): Comprobacion {
   if (cfg === null) return omitida('verificacion', 'config invalida: no se sabe como se verifica el proyecto (ver config)');
   if (cfg.comando_verificacion === null) {
     const detectados = detectar();
     const propuesto = comandoPropuesto(detectados);
     if (propuesto !== null) {
+      const terminadas = contarTerminadas();
+      const cerradas =
+        terminadas === 0
+          ? ''
+          : terminadas === 1
+            ? '; 1 tarea terminada se cerro sin verificar'
+            : `; ${terminadas} tareas terminadas se cerraron sin verificar`;
       return aviso(
         'verificacion',
         `sin comando_verificacion y el proyecto tiene tests (${detectados.map((d) => d.motivo).join(', ')}): ` +
-          'los frenos de verificacion no actuan',
+          `los frenos de verificacion no actuan${cerradas}`,
         `Declara en .taskcode/config.yml: comando_verificacion: "${propuesto}"`
       );
     }
@@ -462,6 +477,19 @@ export function comprobarVerificacion(
     );
   }
   return ok('verificacion', `comando_verificacion: "${una(cfg.comando_verificacion)}" (timeout ${cfg.timeout_verificacion} s)`);
+}
+
+/**
+ * TASK-116: cuantas tareas hay en `tareas/04-terminadas` (con el criterio de
+ * ID de `comprobarTareas`). Una carpeta que falta o no se lee cuenta 0: de eso
+ * ya informan `tareas-carpetas` y `tareas`.
+ */
+export function contarTerminadas(tareasRoot: string): number {
+  try {
+    return readdirSync(path.join(tareasRoot, STATE_FOLDER.terminada)).filter(isValidTaskId).length;
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -903,7 +931,13 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo, deps.timeoutGitMs ?? TIMEOUT_GIT_MS)));
 
   cs.push(...csConfig);
-  cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg, () => detectarComandosTests(cwd))));
+  cs.push(...envolver('verificacion', () => comprobarVerificacion(
+        cfg,
+        () => detectarComandosTests(cwd),
+        () => contarTerminadas(tareasRoot)
+      )
+    )
+  );
   cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
   cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
