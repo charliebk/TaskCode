@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-115, TASK-111, TASK-127, TASK-019
+- **En marcha:** TASK-127 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-115, TASK-111, TASK-019
 
 ## H0 — H0
 
@@ -94,7 +94,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-124 | Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto | media | — | ✅ terminada |
 | 10 | TASK-125 | Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea | media | TASK-111 | espera a TASK-111 |
 | 11 | TASK-126 | Verificacion por tipo de rama: los tests pesados solo en la puerta de release | media | TASK-115 | espera a TASK-115 |
-| 12 | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | TASK-112 | lista para empezar |
+| 12 | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | TASK-112 | ▶ en diseño |
 | 13 | TASK-128 | Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores | media | TASK-111, TASK-125 | espera a TASK-111, TASK-125 |
 | 14 | TASK-129 | Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento | media | TASK-126, TASK-128 | espera a TASK-126, TASK-128 |
 | 15 | TASK-130 | Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura | simple | TASK-129 | espera a TASK-129 |

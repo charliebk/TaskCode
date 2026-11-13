@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [agilidad, revision, verificacion, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-127-tope-de-rondas-de-revision-configurable
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: [TASK-112]
 ---
 ## Objetivo
@@ -33,3 +33,9 @@ Medido en ToolsaWeb (153 tareas terminadas, taskctl metricas, 2026-11-12): las r
 - [ ] Con tope_rondas: 3 el flujo se comporta como hoy (test de regresion)
 - [ ] Las skills review y task-workflow, el README y el CHANGELOG explican el tope y su valor por defecto
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T10:11:30Z | plan | automatico | persona | 0.14.0 |
