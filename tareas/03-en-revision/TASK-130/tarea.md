@@ -27,10 +27,40 @@ dependencias: [TASK-129]
 Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tarda unos 45 min y el cierre de TASK-306, con un solo test cambiado, espero 44 min 52 s. Cada tarea y cada ronda suman tests, y ninguno se retira aunque otro posterior ya cubra lo mismo. Se busca una tarea de mantenimiento periodica, propuesta por el plugin cuando la suite crece, que fusione o borre los tests redundantes sin bajar la cobertura de las lineas que ya cubrian, y una primera pasada sobre la suite de TaskCode (docs/auditoria/PERFIL-TESTS-2026-11-12.md tiene su perfil por fichero). Usa el aviso de crecimiento de TASK-129: va despues de ella. Modo rapido: el cierre no exige la suite completa, basta con los tests afectados y npm run test:rapido.
 
 ## Criterios de aceptacion
-- [ ] taskctl doctor propone abrir una tarea de poda (con el comando taskctl new ya escrito) cuando salta el aviso de crecimiento de la suite o han pasado mas de N tareas cerradas desde la ultima poda, con N configurable y 30 por defecto (test con repo temporal)
-- [ ] La skill task-workflow describe el procedimiento de poda: como localizar duplicados, que se fusiona y que se borra, y que la cobertura de las lineas que cubrian no baja (comprobado con la cobertura sobre lineas de TASK-074)
-- [ ] Primera pasada en TaskCode: la suite rapida y la completa pierden al menos un 10 % de duracion o de numero de tests sin bajar la cobertura total, con el antes y el despues anotados en el plan (comprobado con scripts/perfil-tests.mjs)
-- [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+- [x] taskctl doctor propone abrir una tarea de poda (con el comando taskctl new ya escrito) cuando salta el aviso de crecimiento de la suite o han pasado mas de N tareas cerradas desde la ultima poda, con N configurable y 30 por defecto (test con repo temporal)
+- [x] La skill task-workflow describe el procedimiento de poda: como localizar duplicados, que se fusiona y que se borra, y que la cobertura de las lineas que cubrian no baja (comprobado con la cobertura sobre lineas de TASK-074)
+- [x] Primera pasada en TaskCode: la suite rapida y la completa pierden al menos un 10 % de duracion o de numero de tests sin bajar la cobertura total, con el antes y el despues anotados en el plan (comprobado con scripts/perfil-tests.mjs)
+- [x] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Resultado
+
+**Implementado.** `doctor` (`poda-tests`) propone abrir una tarea de poda, con
+el `taskctl new` ya escrito y la etiqueta `poda`, cuando salta el aviso de
+crecimiento de la suite o hay mas de `tareas_entre_podas` (30 por defecto)
+tareas terminadas desde la ultima poda. Anexo `task-workflow/poda-tests.md`:
+localizar candidatos, fusionar o borrar y que la cobertura de lineas no baje.
+
+**Primera pasada en TaskCode** (detalle en el plan, seccion «Medida»): 28
+ficheros de test fusionados por seis agentes en paralelo. Rapida (perfil): 819
+-> 624 tests (-23,8 %); completa, tests de primer nivel: 2331 -> 1858
+(-20,3 %). Cobertura de los ficheros tocados, con el mismo `src`: 21 276 lineas
+de `src` cubiertas antes y despues, ninguna perdida. La revision cuenta las
+aserciones: iguales en 26 de 28 ficheros; en `task.test.ts` 9 `assert.throws`
+pasaron a una tabla en bucle (mismos casos) y en `wrappers.test.ts` se quitaron
+dos aserciones que el mismo test fusionado ya hacia (el plan decia «ningun
+borrado»: este es el unico, un duplicado exacto).
+
+**Evidencia.** `verificar-impacto`: 747/747 (una primera peticion de revision
+se corto a los 600 s por carga de la maquina y el memo guardo el corte; se borro
+el memo y se repitio en verde).
+
+**Revision por pares (ronda 1, code-quality-reviewer, sonnet): aprobada con
+correcciones**, sin CRITICOS ni IMPORTANTES; mutantes de doctor y de funciones
+cubiertas por tests fusionados detectados.
+- MEN-1 (corregido): faltaba el caso del limite exacto de `tareas_entre_podas`.
+- MEN-2 (aceptado): el ayudante `caso()` de las fusiones esta repetido en diez
+  ficheros; es estilo, no afecta a deteccion ni cobertura; se unifica en la
+  proxima poda.
 
 ## Transiciones
 
@@ -56,3 +86,7 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 ## Verificacion ligera
 
 - 2026-11-13T19:25:55Z: ronda 1; commit revisado 24cb77c1e25871be2337d05dc6d3ff169a15e58b; commit verificado b537d29bfa4b51520e6ed7f206c1e7579287f0ca; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/core/poda-tests.test.ts; corregidos: MEN-1; pendientes: ninguno
+
+## Verificacion omitida
+
+- 2026-11-13T19:26:31Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
