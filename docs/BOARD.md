@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 17
+## Planificadas (00-planificadas) — 16
 
 ```text
 ID        Titulo                                                                                                        Asignado
@@ -21,12 +21,11 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio                    charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                                              (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                                        (sin asignar)
-TASK-126  Verificacion por tipo de rama: los tests pesados solo en la puerta de release                                 (sin asignar)
 TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento  (sin asignar)
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                   (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 112
+## Terminadas (04-terminadas) — 113
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -140,6 +139,7 @@ TASK-122  Coste por tarea independiente del tamano del proyecto                 
 TASK-123  F-16: finish no cierra sin verificar tras un merge a mano o un conflicto                                            charlie.bk@gmail.com
 TASK-124  Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto                                        charlie.bk@gmail.com
 TASK-125  Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea                                 charlie.bk@gmail.com
+TASK-126  Verificacion por tipo de rama: los tests pesados solo en la puerta de release                                       charlie.bk@gmail.com
 TASK-127  Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar                         charlie.bk@gmail.com
 TASK-128  Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores      charlie.bk@gmail.com
 TASK-131  Tres tests con expectativas anteriores a TASK-119                                                                   charlie.bk@gmail.com

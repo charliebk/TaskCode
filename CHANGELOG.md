@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-126 (feature) — Verificacion por tipo de rama: los tests pesados solo en la puerta de release (2026-11-13)
 - Cambio de comportamiento (TASK-126): claves `comando_verificacion_pesada` y `verificacion_pesada_en` (`[release]` por defecto; admite `hotfix`). Los pesados se corren ademas de la completa solo en el finish de esos tipos de rama, y el guardian de merges exige su verde para integrar a mano una release; feature y fix no los corren. `taskctl doctor` dice que puerta corre los pesados. Sin las claves, todo como antes.
 - TASK-115 (feature) — P-7: verificacion completa por lote de cierres en modo automatico (2026-11-13)
 - Cambio de comportamiento (TASK-115): clave `verificacion_por_lote` (de la config de la rama base). Con ella, `finish` de una feature o fix que iria a la completa integra sin ella y la deja pendiente de lote en `tarea.md`; `taskctl verificar-lote` corre la completa una vez sobre la rama de integracion, anota en verde todas las pendientes y en rojo dice que tareas entraron desde la ultima completa en verde. Sin la clave, todo como antes.

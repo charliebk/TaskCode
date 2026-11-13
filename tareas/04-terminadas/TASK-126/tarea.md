@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-126-verificacion-por-tipo-de-rama-los-tests
 asignado_a: charlie.bk@gmail.com
@@ -82,6 +82,7 @@ que quita `yaIntegradaEn` muere.
 | 2026-11-13T15:09:47Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T15:36:33Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T15:57:28Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T16:10:50Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -92,3 +93,10 @@ que quita `yaIntegradaEn` muere.
 ## Verificacion omitida
 
 - 2026-11-13T16:10:30Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 80 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 81 min
+- Paso de la hora: 81 min reales frente a 80 estimados
+- Cierre (finish): 20 s, de 2026-11-13T16:10:30Z a 2026-11-13T16:10:50Z

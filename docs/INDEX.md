@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-126 — Verificacion por tipo de rama: los tests pesados solo en la puerta de release · etiquetas: agilidad, verificacion, v0.16 · rama feature/task-126-verificacion-por-tipo-de-rama-los-tests · terminada 2026-11-13 · tareas/04-terminadas/TASK-126/
 - TASK-115 — P-7: verificacion completa por lote de cierres en modo automatico · etiquetas: arreglo, urgente, v0.16 · rama feature/task-115-p-7-verificacion-completa-por-lote-de-ci · terminada 2026-11-13 · tareas/04-terminadas/TASK-115/
 - TASK-128 — Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores · etiquetas: agilidad, verificacion, metricas, v0.16 · rama feature/task-128-metricas-de-verificacion-por-puerta-tiem · terminada 2026-11-13 · tareas/04-terminadas/TASK-128/
 - TASK-125 — Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea · etiquetas: agilidad, verificacion, v0.16 · rama feature/task-125-freno-stop-con-presupuesto-de-tiempo-y-c · terminada 2026-11-13 · tareas/04-terminadas/TASK-125/
