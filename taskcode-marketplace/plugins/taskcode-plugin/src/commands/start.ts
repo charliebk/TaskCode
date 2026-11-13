@@ -342,6 +342,7 @@ async function runStart(
   // TASK-098: sin ROADMAP. Este commit cae siempre en la rama de la tarea
   // (comprobado arriba), y el ROADMAP solo se regenera en la de integracion.
   const commitResult = autoCommit({
+    fase: 'start',
     cwd: deps.repoCwd,
     rutas: [path.dirname(filePath), path.dirname(newFilePath)],
     mensaje: mensajeChore(task.id, 'tarea en curso'),

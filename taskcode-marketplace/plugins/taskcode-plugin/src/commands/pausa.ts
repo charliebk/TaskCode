@@ -90,6 +90,7 @@ export async function runPausaCommand(
   const conRegistro = registrarTransicion(body, 'pausa', deps.ahora ?? today, modoConfig, 'persona');
   const nuevo = await moveTareaFile(tareasRoot, filePath, task, conRegistro);
   const commit = autoCommit({
+    fase: 'pausa',
     cwd: deps.repoCwd,
     rutas: [path.dirname(nuevo)],
     mensaje: mensajeChore(id, 'pausa registrada'),

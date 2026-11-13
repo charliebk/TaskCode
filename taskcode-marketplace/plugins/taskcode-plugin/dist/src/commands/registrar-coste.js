@@ -379,6 +379,7 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
     await writeFile(filePath, serializeTareaFile(nueva, cuerpo), 'utf8');
     const detalle = nAgentes > 0 ? ` (${String(nAgentes)} agente${nAgentes === 1 ? '' : 's'})` : '';
     const commit = autoCommit({
+        fase: 'registrar-coste',
         cwd: deps.repoCwd,
         rutas: [filePath],
         mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),

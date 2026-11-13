@@ -328,6 +328,7 @@ async function anotarYCommitear(
   if (body !== o.initial.body) {
     await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
     c = autoCommit({
+      fase: 'finish',
       cwd: o.cwd,
       rutas: [path.dirname(o.initial.filePath)],
       mensaje: mensajeChore(o.id, mensaje),

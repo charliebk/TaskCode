@@ -11,6 +11,7 @@
  * | comando_sincronizacion       | null (desactivada)| fs/sincronizacion.ts    |
  * | rutas_sincronizacion         | []                | fs/sincronizacion.ts    |
  * | timeout_sincronizacion       | 60 (segundos)     | fs/sincronizacion.ts    |
+ * | fases_sincronizacion         | null (todas)      | fs/git-commit.ts (TASK-120) |
  * | excluir_de_revision          | dist, locks, tareas | commands/review.ts    |
  * | contexto_revision            | []                | commands/review.ts    |
  * | modo_flujo                   | manual            | core/flujo.ts, plan.ts, approve.ts |
@@ -156,6 +157,11 @@ export interface TaskcodeConfig {
   /** Segundos que se le dejan al comando antes de matarlo. */
   timeout_sincronizacion: number;
   /**
+   * TASK-120: fases (transiciones de taskctl) en las que corre
+   * `comando_sincronizacion`. null = en todas, como antes.
+   */
+  fases_sincronizacion: readonly FaseSincronizacion[] | null;
+  /**
    * Patrones (`git :(glob)`) cuyo diff no se embebe en la peticion de
    * revision: aparecen solo en un `--stat`. `[]` = no excluir nada.
    */
@@ -273,6 +279,7 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   comando_sincronizacion: null,
   rutas_sincronizacion: Object.freeze([]) as readonly string[],
   timeout_sincronizacion: 60,
+  fases_sincronizacion: null,
   excluir_de_revision: Object.freeze([
     '**/dist/**',
     '**/*.lock',
@@ -310,6 +317,7 @@ export const CLAVES_CONFIG = [
   'comando_sincronizacion',
   'rutas_sincronizacion',
   'timeout_sincronizacion',
+  'fases_sincronizacion',
   'excluir_de_revision',
   'contexto_revision',
   'modo_flujo',
@@ -576,6 +584,9 @@ export function parsearConfigConAvisos(
         break;
       case 'timeout_sincronizacion':
         config.timeout_sincronizacion = validarEnteroPositivo(donde, par.clave, par.valor);
+        break;
+      case 'fases_sincronizacion':
+        config.fases_sincronizacion = validarFasesSincronizacion(donde, par.valor);
         break;
       case 'excluir_de_revision':
         config.excluir_de_revision = validarPatronesExclusion(donde, par.valor);
@@ -990,6 +1001,52 @@ function validarComando(
  * Que la ruta no sea una carpeta no se puede saber sin disco: lo
  * comprueba resolverConfig, que si lo tiene.
  */
+/**
+ * TASK-120: las fases de taskctl cuyos commits automaticos pueden ejecutar
+ * `comando_sincronizacion` (el `fase` que cada llamador pasa a autoCommit).
+ */
+export const FASES_SINCRONIZACION = [
+  'new',
+  'import',
+  'plan',
+  'approve',
+  'start',
+  'review',
+  'veredicto',
+  'verificar-menores',
+  'finish',
+  'pausa',
+  'trocear',
+  'registrar-coste',
+  'codex-review',
+  'doctor-deploy',
+] as const;
+export type FaseSincronizacion = (typeof FASES_SINCRONIZACION)[number];
+
+function validarFasesSincronizacion(donde: string, valor: unknown): readonly FaseSincronizacion[] {
+  if (!Array.isArray(valor) || valor.length === 0) {
+    throw new ConfigError(
+      `[ERROR] ${donde}: "fases_sincronizacion" debe ser una lista no vacia entre corchetes, ` +
+        `y es ${describirValor(valor)}.
+` +
+        '        Ejemplo: fases_sincronizacion: [plan, finish]. Sin la clave, la sincronizacion ' +
+        'corre en todas las fases.'
+    );
+  }
+  const fases: FaseSincronizacion[] = [];
+  for (const elemento of valor) {
+    const fase = typeof elemento === 'string' ? elemento.trim() : '';
+    if (!(FASES_SINCRONIZACION as readonly string[]).includes(fase)) {
+      throw new ConfigError(
+        `[ERROR] ${donde}: "fases_sincronizacion" contiene "${String(elemento)}", que no es una fase. ` +
+          `Validas: ${FASES_SINCRONIZACION.join(', ')}.`
+      );
+    }
+    if (!fases.includes(fase as FaseSincronizacion)) fases.push(fase as FaseSincronizacion);
+  }
+  return fases;
+}
+
 function validarRutasSincronizacion(donde: string, valor: unknown): readonly string[] {
   if (!Array.isArray(valor) || valor.length === 0) {
     throw new ConfigError(

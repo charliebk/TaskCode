@@ -442,6 +442,23 @@ excepción un roadmap propio que vive ahí se quedaba atrasado tras cada transic
 siguen rechazando, sin distinguir mayúsculas. `informe_cobertura` no tiene esta
 excepción.
 
+**En qué fases corre: `fases_sincronizacion`** (opcional). Sin la clave, el
+comando corre en cada commit automático, como siempre (unas 8-10 veces por
+tarea). Con ella, solo en las fases listadas; las válidas son `new`, `import`,
+`plan`, `approve`, `start`, `review`, `veredicto`, `verificar-menores`,
+`finish`, `pausa`, `trocear`, `registrar-coste`, `codex-review` y
+`doctor-deploy`. Una fase desconocida o una lista vacía abortan como cualquier
+valor inválido:
+
+```yaml
+fases_sincronizacion: [plan, finish]
+```
+
+**Cuánto tarda.** Cada ejecución deja una línea en el registro de puertas
+(`.git/taskcode/puertas.log`, formato en
+[registro-puertas.md](registro-puertas.md)) con la tarea, la fase, la duración
+y el resultado; `taskctl metricas` lo suma por tarea en la columna `sinc`.
+
 ## ROADMAP de tareas (`tareas/ROADMAP.md`)
 
 `taskctl` mantiene en cada proyecto un `tareas/ROADMAP.md`: una tabla por hito

@@ -235,6 +235,7 @@ export async function runImportCommand(tareasRoot, argv, today, deps) {
     // pasada; si no se creo ninguna (todo omitido o con error), no hay
     // nada que commitear y no se crea un commit vacio.
     const autoCommitResult = autoCommit({
+        fase: 'import',
         cwd: deps.repoCwd,
         rutas: creadas.map((c) => path.dirname(c.filePath)),
         mensaje: mensajeChore('taskctl', `import de ${creadas.length} tarea(s): ${creadas.map((c) => c.id).join(', ')}`),

@@ -293,6 +293,7 @@ export async function runNewCommand(tareasRoot, argv, today, deps) {
     // recien creada, no el arbol. La decision #14 fijo commitear si y
     // subir solo con --push.
     const autoCommitResult = autoCommit({
+        fase: 'new',
         cwd: deps.repoCwd,
         rutas: [path.dirname(filePath)],
         mensaje: mensajeChore(id, 'tarea creada'),

@@ -223,6 +223,7 @@ export async function runCodexReviewCommand(
   // Se llama SIEMPRE, tambien degradado: si no hubo nada nuevo que
   // escribir, autoCommit se limita a decir "nada que commitear".
   const commitResult = autoCommit({
+    fase: 'codex-review',
     cwd: deps.repoCwd,
     rutas: [path.dirname(filePath)],
     mensaje: mensajeChore(

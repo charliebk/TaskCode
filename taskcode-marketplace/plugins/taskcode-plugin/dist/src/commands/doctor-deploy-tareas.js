@@ -92,6 +92,7 @@ export async function crearTareasDeFallas(informe, raiz, hoy) {
             creadas.push({ id, punto: p.id });
         }
         resultadoCommit = autoCommit({
+            fase: 'doctor-deploy',
             cwd: raiz,
             rutas: carpetas,
             mensaje: mensajeChore('taskctl', `doctor-deploy: ${creadas.length} tarea(s) creadas: ${creadas.map((c) => c.id).join(', ')}`),

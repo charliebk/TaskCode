@@ -130,6 +130,7 @@ export async function runTrocearCommand(
   }
 
   const commitResult = autoCommit({
+    fase: 'trocear',
     cwd: deps.repoCwd,
     rutas: [taskDir, ...ficheros.map((f) => path.dirname(f))],
     mensaje: mensajeChore(id, `troceo en ${troceo.ids.join(', ')}`),

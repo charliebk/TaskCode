@@ -796,6 +796,7 @@ async function runPlan(tareasRoot, argv, today, deps, progreso) {
     // huerfana. planificacion/plan-final.md ya cae dentro de la carpeta
     // de destino, no hace falta nombrarlo aparte.
     const commitResult = autoCommit({
+        fase: 'plan',
         cwd: deps.repoCwd,
         rutas: [path.dirname(filePath), path.dirname(newFilePath)],
         mensaje: mensajeChore(task.id, 'tarea en diseno'),

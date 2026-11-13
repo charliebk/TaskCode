@@ -107,8 +107,8 @@ test('regla de una hora: finish anota la estimada y la real de punta a punta, y 
 
     const m = cliOk(repoRoot, ['metricas']);
     const cab = m.stdout.split('\n').find((l) => l.startsWith('| id ')) as string;
-    assert.match(cab, /\| estimada \| finish \| punta_a_punta \|$/);
+    assert.match(cab, /\| estimada \| finish \| punta_a_punta \| sinc \|$/);
     const fila = m.stdout.split('\n').find((l) => l.startsWith(`| ${ID} `)) as string;
-    assert.match(fila, /\| 30m +\| (\d+s|\d+m) +\| (\d+s|\d+m) +\|$/);
+    assert.match(fila, /\| 30m +\| (\d+s|\d+m) +\| (\d+s|\d+m) +\| — +\|$/);
   });
 });

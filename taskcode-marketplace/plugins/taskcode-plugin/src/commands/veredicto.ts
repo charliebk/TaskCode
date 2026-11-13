@@ -187,6 +187,7 @@ export async function runVeredictoCommand(
   const avisos: string[] = [];
 
   const commitResult = autoCommit({
+    fase: 'veredicto',
     cwd: deps.repoCwd,
     rutas: [informePath],
     mensaje: mensajeChore(task.id, `veredicto ronda ${ronda} (${valor})`),

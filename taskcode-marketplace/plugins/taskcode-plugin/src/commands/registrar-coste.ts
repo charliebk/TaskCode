@@ -537,6 +537,7 @@ export async function runRegistrarCosteCommand(
 
   const detalle = nAgentes > 0 ? ` (${String(nAgentes)} agente${nAgentes === 1 ? '' : 's'})` : '';
   const commit = autoCommit({
+    fase: 'registrar-coste',
     cwd: deps.repoCwd,
     rutas: [filePath],
     mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),

@@ -818,6 +818,7 @@ async function runFinish(
   // ensureBaseBranchReady, asi que el resto del arbol puede tener
   // trabajo de la persona.
   const commitResult = autoCommit({
+    fase: 'finish',
     cwd: deps.repoCwd,
     rutas: [
       path.dirname(filePath),
@@ -1022,6 +1023,7 @@ async function abrirMergeRequestYAnotar(o: AbrirMergeRequestOpts): Promise<Finis
   let commit: AutoCommitResult;
   try {
     commit = autoCommit({
+      fase: 'finish',
       cwd,
       rutas: [path.dirname(filePath)],
       mensaje: mensajeChore(task.id, 'merge request abierto'),

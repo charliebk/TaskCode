@@ -181,7 +181,9 @@ sin revisión), `crit`, `imp`, `men` (hallazgos CRÍTICO, IMPORTANTE y MENOR de
 todos los informes `informe-revision-N[-<revisor>].md`, cada uno **una vez por
 tarea** con clave revisor + ID), `hall_origen` (implementación/plan/
 especificación/sin clasificar, de la columna `Origen`), `cierre` (día del último
-`finish`) y `origen` (`registro`, `git` o «—»). Un informe sin tabla de hallazgos
+`finish`), `origen` (`registro`, `git` o «—»), `estimada`, `finish`,
+`punta_a_punta` y `sinc` (lo que suma `comando_sincronizacion` en la tarea,
+del registro de puertas; «—» sin líneas). Un informe sin tabla de hallazgos
 deja `crit`/`imp`/`men`/`hall_origen` en «—»: sin dato, no cero. Con `--tokens`,
 además `tok_diseno`, `tok_curso`, `tok_revision`, `tok_total` y el desglose de
 `## Coste`: `tok_nuevos` (entrada + escritura de caché + salida),

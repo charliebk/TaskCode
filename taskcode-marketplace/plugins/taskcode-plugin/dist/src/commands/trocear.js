@@ -99,6 +99,7 @@ export async function runTrocearCommand(tareasRoot, argv, today, deps) {
             'la tarea sigue entera, como estaba.');
     }
     const commitResult = autoCommit({
+        fase: 'trocear',
         cwd: deps.repoCwd,
         rutas: [taskDir, ...ficheros.map((f) => path.dirname(f))],
         mensaje: mensajeChore(id, `troceo en ${troceo.ids.join(', ')}`),

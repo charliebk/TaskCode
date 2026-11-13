@@ -246,6 +246,7 @@ async function runApprove(
   // se pasan las dos igualmente porque autoCommit deduplica y asi el
   // dia que approve mueva algo esto no se queda corto en silencio.
   const commitResult = autoCommit({
+    fase: 'approve',
     cwd: deps.repoCwd,
     rutas: [path.dirname(filePath), path.dirname(newFilePath)],
     mensaje: mensajeChore(task.id, 'plan aprobado'),

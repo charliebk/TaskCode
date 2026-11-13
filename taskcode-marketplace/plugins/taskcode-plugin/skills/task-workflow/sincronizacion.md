@@ -24,6 +24,10 @@ un comando que reescribe esos ficheros y la lista de rutas que modifica.
 - **`timeout_sincronizacion`**: numero de segundos (entero ≥ 1) para esperar
   al comando. Opcional; por defecto, 60 segundos. Solo es valida si estan las
   otras dos claves.
+- **`fases_sincronizacion`**: lista de fases en las que corre el comando
+  (`[plan, finish]`). Opcional; sin ella corre en todas. Cada ejecucion deja su
+  duracion en el registro de puertas, dentro del directorio de Git (fuera del
+  arbol de trabajo), y `taskctl metricas` la suma por tarea (columna `sinc`).
 
 **Reglas de declaracion:**
 
