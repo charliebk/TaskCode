@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-134 (fix) — En Windows taskctl lanza el bash de Git, no el primero del PATH (2026-11-13)
 - TASK-133 (fix) — Rojos de la suite completa de la 0.16.0 y publicacion de la 0.16.1 (2026-11-13)
 
 ## 0.16.0 — 2026-11-13

@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [windows, gitflow]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-134-en-windows-taskctl-lanza-el-bash-de-git
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ taskctl lanza los scripts de Git-Flow con spawnSync('bash') (lanzarBash en src/f
 | 2026-11-13T21:28:27Z | approve | automatico | persona | 0.16.0 |
 | 2026-11-13T21:28:29Z | start | automatico | persona | 0.16.0 |
 | 2026-11-13T22:00:45Z | review | automatico | persona | 0.16.0 |
+| 2026-11-13T22:22:57Z | finish | automatico | persona | 0.16.0 |
 
 ## Coste
 
@@ -65,3 +66,9 @@ taskctl lanza los scripts de Git-Flow con spawnSync('bash') (lanzarBash en src/f
 ## Verificacion omitida
 
 - 2026-11-13T22:22:45Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 54 min
+- Cierre (finish): 12 s, de 2026-11-13T22:22:45Z a 2026-11-13T22:22:57Z
