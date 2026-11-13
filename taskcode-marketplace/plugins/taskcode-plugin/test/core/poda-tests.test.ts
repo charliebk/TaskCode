@@ -51,6 +51,12 @@ test('doctor (TASK-130): propone la poda tras mas de N tareas desde la ultima, c
     assert.equal(c?.nivel, 'ok');
     assert.match(c?.mensaje ?? '', /^2 de 3 tareas terminadas desde la ultima poda/);
   });
+  // MEN-1 (revision): exactamente N tareas no avisa («mas de N»).
+  await conTerminadas(ids(1, 3), (tareasRoot) => {
+    const [c] = comprobarPodaTests('.', tareasRoot, cfg, []);
+    assert.equal(c?.nivel, 'ok');
+    assert.match(c?.mensaje ?? '', /^3 de 3 tareas terminadas desde la ultima poda/);
+  });
   // Sin tareas terminadas, nada.
   await conTerminadas([], (tareasRoot) => assert.deepEqual(comprobarPodaTests('.', tareasRoot, cfg, []), []));
 });
