@@ -7,7 +7,7 @@ etiquetas: [windows, gitflow]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-134-en-windows-taskctl-lanza-el-bash-de-git
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ taskctl lanza los scripts de Git-Flow con spawnSync('bash') (lanzarBash en src/f
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T21:27:57Z | plan | automatico | persona | 0.16.0 |
+| 2026-11-13T21:28:27Z | approve | automatico | persona | 0.16.0 |
