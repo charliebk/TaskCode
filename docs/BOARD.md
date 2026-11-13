@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 24
+## Planificadas (00-planificadas) — 23
 
 ```text
 ID        Titulo                                                                                                          Asignado
@@ -22,7 +22,6 @@ TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-s
 TASK-019  Revisión ligera sin agente para tareas triviales                                                                (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                                          (sin asignar)
 TASK-111  P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo                         (sin asignar)
-TASK-112  P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes      (sin asignar)
 TASK-115  P-7: verificacion completa por lote de cierres en modo automatico                                               (sin asignar)
 TASK-119  P-11: menos commits de proceso por tarea                                                                        (sin asignar)
 TASK-125  Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea                             (sin asignar)
@@ -33,7 +32,7 @@ TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, p
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 104
+## Terminadas (04-terminadas) — 105
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -132,6 +131,7 @@ TASK-107  Verificacion proporcional B4: Stop, review y finish deciden igual el m
 TASK-108  Verificacion proporcional B5: el guardian de merges ante el nivel 2                                                 charlie.bk@gmail.com
 TASK-109  Verificacion proporcional B6: documentacion y limpieza del nivel 2                                                  charlie.bk@gmail.com
 TASK-110  Progreso visible sin tokens: estado de cada fase en el terminal                                                     charlie.bk@gmail.com
+TASK-112  P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes          charlie.bk@gmail.com
 TASK-113  P-5: peticion de revision mas ligera con los tests como --stat y ruta                                               charlie.bk@gmail.com
 TASK-114  P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer                                              charlie.bk@gmail.com
 TASK-116  P-8: TaskCode declara su verificacion y doctor avisa cuando falta                                                   charlie.bk@gmail.com

@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-112 — P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes · etiquetas: arreglo, urgente, v0.16 · rama feature/task-112-p-4-el-revisor-reutiliza-la-verificacion · terminada 2026-11-13 · tareas/04-terminadas/TASK-112/
 - TASK-120 — P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren · etiquetas: arreglo, urgente, v0.16 · rama feature/task-120-p-12-sincronizacion-con-su-duracion-regi · terminada 2026-11-13 · tareas/04-terminadas/TASK-120/
 - TASK-117 — P-9: new propone la complejidad a partir de tareas parecidas ya cerradas · etiquetas: arreglo, urgente, v0.16 · rama feature/task-117-p-9-new-propone-la-complejidad-a-partir · terminada 2026-11-13 · tareas/04-terminadas/TASK-117/
 - TASK-118 — P-10: linea FIN con la duracion en todos los scripts de Git-Flow · etiquetas: arreglo, urgente, v0.16 · rama feature/task-118-p-10-linea-fin-con-la-duracion-en-todos · terminada 2026-11-13 · tareas/04-terminadas/TASK-118/

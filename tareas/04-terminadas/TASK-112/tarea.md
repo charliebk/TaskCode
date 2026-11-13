@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-112-p-4-el-revisor-reutiliza-la-verificacion
 asignado_a: charlie.bk@gmail.com
@@ -70,6 +70,7 @@ tests (deberia emitirse solo en la selectiva).
 | 2026-11-13T05:40:39Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T05:42:42Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T05:59:56Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T06:25:49Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -80,3 +81,9 @@ tests (deberia emitirse solo en la selectiva).
 ## Verificacion omitida
 
 - 2026-11-13T06:25:41Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 45 min
+- Cierre (finish): 8 s, de 2026-11-13T06:25:41Z a 2026-11-13T06:25:49Z

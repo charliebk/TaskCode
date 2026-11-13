@@ -12,12 +12,12 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-112 (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-115, TASK-119, TASK-111, TASK-019
+- **En marcha:** ninguna
+- **Listas para empezar:** TASK-001, TASK-007, TASK-115, TASK-119, TASK-111, TASK-127, TASK-019
 
 ## H0 — H0
 
-60 de 77 terminadas.
+61 de 77 terminadas.
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
@@ -78,26 +78,26 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-108 | Verificacion proporcional B5: el guardian de merges ante el nivel 2 | media | TASK-106 | ✅ terminada |
 | — | TASK-109 | Verificacion proporcional B6: documentacion y limpieza del nivel 2 | simple | TASK-107, TASK-108 | ✅ terminada |
 | — | TASK-110 | Progreso visible sin tokens: estado de cada fase en el terminal | alta | — | ✅ terminada |
-| 8 | TASK-112 | P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes | media | — | ▶ en diseño |
+| — | TASK-112 | P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes | media | — | ✅ terminada |
 | — | TASK-113 | P-5: peticion de revision mas ligera con los tests como --stat y ruta | simple | — | ✅ terminada |
 | — | TASK-114 | P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer | simple | — | ✅ terminada |
-| 9 | TASK-115 | P-7: verificacion completa por lote de cierres en modo automatico | alta | — | lista para empezar |
+| 8 | TASK-115 | P-7: verificacion completa por lote de cierres en modo automatico | alta | — | lista para empezar |
 | — | TASK-116 | P-8: TaskCode declara su verificacion y doctor avisa cuando falta | simple | — | ✅ terminada |
 | — | TASK-117 | P-9: new propone la complejidad a partir de tareas parecidas ya cerradas | simple | — | ✅ terminada |
 | — | TASK-118 | P-10: linea FIN con la duracion en todos los scripts de Git-Flow | simple | — | ✅ terminada |
-| 10 | TASK-119 | P-11: menos commits de proceso por tarea | media | — | lista para empezar |
+| 9 | TASK-119 | P-11: menos commits de proceso por tarea | media | — | lista para empezar |
 | — | TASK-120 | P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren | simple | — | ✅ terminada |
-| 11 | TASK-111 | P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo | media | TASK-120 | lista para empezar |
+| 10 | TASK-111 | P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo | media | TASK-120 | lista para empezar |
 | — | TASK-121 | Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama | media | — | ✅ terminada |
 | — | TASK-122 | Coste por tarea independiente del tamano del proyecto | alta | — | ✅ terminada |
 | — | TASK-123 | F-16: finish no cierra sin verificar tras un merge a mano o un conflicto | media | — | ✅ terminada |
 | — | TASK-124 | Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto | media | — | ✅ terminada |
-| 12 | TASK-125 | Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea | media | TASK-111 | espera a TASK-111 |
-| 13 | TASK-126 | Verificacion por tipo de rama: los tests pesados solo en la puerta de release | media | TASK-115 | espera a TASK-115 |
-| 14 | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | TASK-112 | espera a TASK-112 |
-| 15 | TASK-128 | Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores | media | TASK-111, TASK-125 | espera a TASK-111, TASK-125 |
-| 16 | TASK-129 | Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento | media | TASK-126, TASK-128 | espera a TASK-126, TASK-128 |
-| 17 | TASK-130 | Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura | simple | TASK-129 | espera a TASK-129 |
+| 11 | TASK-125 | Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea | media | TASK-111 | espera a TASK-111 |
+| 12 | TASK-126 | Verificacion por tipo de rama: los tests pesados solo en la puerta de release | media | TASK-115 | espera a TASK-115 |
+| 13 | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | TASK-112 | lista para empezar |
+| 14 | TASK-128 | Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores | media | TASK-111, TASK-125 | espera a TASK-111, TASK-125 |
+| 15 | TASK-129 | Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento | media | TASK-126, TASK-128 | espera a TASK-126, TASK-128 |
+| 16 | TASK-130 | Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura | simple | TASK-129 | espera a TASK-129 |
 
 ## H1 — H1
 
@@ -105,11 +105,11 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 18 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
-| 19 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
-| 20 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
-| 21 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
-| 22 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
+| 17 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
+| 18 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
+| 19 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
+| 20 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
+| 21 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
 
 ## H2 — H2
 
@@ -138,7 +138,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-016 | Brainstorm paralelo por roles con agente unificador | alta | TASK-010 | ✅ terminada |
 | — | TASK-017 | Catálogo de skills determinista con selección en dos pasos | alta | TASK-010 | ✅ terminada |
 | — | TASK-018 | Enrutado de revisor por diff real, fragmentado por dominio | alta | TASK-013 | ✅ terminada |
-| 23 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
+| 22 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
 | — | TASK-020 | Comando taskctl codex-review (segunda opinión independiente) | media | TASK-013 | ✅ terminada |
 | — | TASK-032 | Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) | media | — | ✅ terminada |
 | — | TASK-037 | F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos | simple | — | ✅ terminada |
@@ -151,7 +151,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 24 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
+| 23 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
 | — | TASK-022 | Documentación de equipo e incorporación de colaboradores | simple | TASK-021 | ✅ terminada |
 | — | TASK-023 | Métricas de coste en tokens por fase | media | TASK-014 | ✅ terminada |
 | — | TASK-040 | F3-T1 taskctl review para la ronda 2 y siguientes | media | — | ✅ terminada |
