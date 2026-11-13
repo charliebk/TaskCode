@@ -91,3 +91,7 @@ selectiva y `review` lo repite sin volver a ejecutar hasta que cambia el arbol; 
 ## Verificacion ligera
 
 - 2026-11-13T10:01:09Z: ronda 3; commit revisado 5ba60e04321327dbee97994b26b63669d2fbe29a; commit verificado b8d71b1278a087931c37085e935b14aa27f9126f; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/fs/pendientes.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/pendientes-fase.test.ts; corregidos: MEN-6; pendientes: ninguno
+
+## Verificacion omitida
+
+- 2026-11-13T10:01:25Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
