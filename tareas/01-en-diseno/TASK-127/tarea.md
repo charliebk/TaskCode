@@ -7,7 +7,7 @@ etiquetas: [agilidad, revision, verificacion, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-127-tope-de-rondas-de-revision-configurable
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -39,3 +39,4 @@ Medido en ToolsaWeb (153 tareas terminadas, taskctl metricas, 2026-11-12): las r
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T10:11:30Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T10:13:01Z | approve | automatico | persona | 0.14.0 |
