@@ -48,3 +48,7 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T13:18:16Z | implementacion | sesion:bdb2d869-6133-422f-8b3d-f1c76840a4dc | 42 | 38971 | 8118540 | 22145 | 2 | 8179698 | - | - |
+
+## Verificacion ligera
+
+- 2026-11-13T13:52:57Z: ronda 1; commit revisado b057c57d625465ec13e9dde707a32b27236e5c21; commit verificado e419377f6f5bfca86af5c193b2a6e9c31a2ec33a; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/commands/finish-documentacion.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/finish-parcial.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/finish-verificacion.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/review-documentacion.test.ts; corregidos: ninguno; pendientes: MEN-1, MEN-2
