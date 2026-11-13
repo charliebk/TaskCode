@@ -210,9 +210,10 @@ export function verificarConMemo(raiz, p, opciones = {}) {
     }
     const contexto = p.tipo === 'selectiva' ? contextoSelectiva(raiz, p.base) : undefined;
     const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
+    const commit = git(['rev-parse', 'HEAD'], raiz)?.trim() || null;
     const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
     if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
-        return { resultado: guardado, deMemo: true, cambioElArbol: false };
+        return { resultado: guardado, deMemo: true, cambioElArbol: false, commit, huella };
     }
     const env = p.tipo === 'selectiva'
         ? { ...(opciones.env ?? process.env), [VARIABLE_RAMA_BASE]: p.base }
@@ -224,5 +225,11 @@ export function verificarConMemo(raiz, p, opciones = {}) {
     const despues = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
     if (despues !== null && (p.tipo === 'completa' || arbolLimpio(raiz)))
         guardarMemo(raiz, despues, resultado, p.tipo);
-    return { resultado, deMemo: false, cambioElArbol: huella !== null && despues !== null && huella !== despues };
+    return {
+        resultado,
+        deMemo: false,
+        cambioElArbol: huella !== null && despues !== null && huella !== despues,
+        commit,
+        huella,
+    };
 }

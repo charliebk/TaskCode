@@ -88,8 +88,11 @@ punto, no un formalismo.
    automatico, si `siguiente` da `fase: review` con `accion: continuar`, haz tu
    todo eso, commitea, deja la suite en verde y vuelve al paso 2. Desde la
    ronda 2 la ronda es una verificacion acotada: cada revisor comprueba sus
-   hallazgos pendientes y el diff de la correccion, y solo abre uno nuevo si
-   es CRITICO o lo introduce la correccion.
+   hallazgos CRITICO e IMPORTANTE pendientes y el diff de la correccion, y solo
+   abre uno nuevo si es CRITICO o lo introduce la correccion. Los MENORES no se
+   reverifican (los compruebas tu), y un revisor que solo tenia MENORES y cuyos
+   ficheros no toca la correccion no recibe peticion: `taskctl review` lo anota
+   en `## Revisores no relanzados` de `tarea.md`.
    **Tope**: tras la ronda 3 con cambios, `siguiente` pregunta en cualquier
    modo. Lo decide una persona: aceptar lo abierto (sus IDs y el motivo en el
    `## Resultado`) y cerrar, pasarlo a una tarea nueva, o corregir y abrir

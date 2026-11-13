@@ -35,7 +35,7 @@ import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertur
 import { formatearVerificacionRoja, seccionVerificacionRevision } from '../core/informe-verificacion.js';
 import { verificarConMemo, type VerificacionConMemo } from '../fs/verificacion.js';
 import { peticionDeTrabajo, type PlanVerificacion } from '../fs/decision-documentacion.js';
-import { registrarTransicion } from '../core/transiciones.js';
+import { anotarLineaEnSeccion, registrarTransicion } from '../core/transiciones.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import {
@@ -51,6 +51,7 @@ import {
   commitRevisadoDe,
   hallazgosNoCerrados,
   hallazgosPendientes,
+  severidadDe,
   veredictoDeRonda,
   type AlcanceRonda,
   type VeredictoInforme,
@@ -300,7 +301,9 @@ function instruccionesCompletas(nombreInforme: string): string {
     '## Instrucciones para el agente revisor\n\n' +
     'Eres un revisor INDEPENDIENTE del agente que implemento. Tu trabajo es\n' +
     'reproducir empiricamente, no leer el diff y opinar: clona el repo a un\n' +
-    'directorio temporal, corre la suite tu mismo y construye el caso que\n' +
+    'directorio temporal, corre la suite tu mismo (salvo que esta\n' +
+    'peticion ya traiga la verificacion de la ronda en verde para el commit revisado;\n' +
+    'entonces vale ese resultado) y construye el caso que\n' +
     `rompe el codigo antes de reportarlo. ${CLASIFICACION} Vuelca tu salida en el\n` +
     `informe de esta ronda (${nombreInforme}), sin borrar la\n` +
     'peticion.\n\n'
@@ -327,14 +330,17 @@ function instruccionesAcotadas(nombreInforme: string): string {
     '## Instrucciones para el agente revisor (verificacion acotada)\n\n' +
     'Eres un revisor INDEPENDIENTE del agente que implemento. La rama ya paso una\n' +
     'revision completa: esta ronda verifica las correcciones de la ronda anterior,\n' +
-    'no vuelve a revisar la rama entera. Haz esto, y nada mas:\n\n' +
+    'no vuelve a revisar la rama entera ni los MENORES de la ronda anterior (tu\n' +
+    'tabla solo trae CRITICOS e IMPORTANTES). Haz esto, y nada mas:\n\n' +
     '1. Comprueba, uno por uno, que cada hallazgo pendiente de tu tabla de abajo\n' +
     '   queda resuelto por el diff de esta ronda (los marcados `corregido` tambien:\n' +
     '   verificalo, no lo des por bueno). Para un CRITICO o IMPORTANTE, reproduce el\n' +
     '   fallo original y comprueba que ya no ocurre; puedes leer el repo entero si la\n' +
     '   causa no esta en el diff.\n' +
     '2. Ejecuta la suite (o el comando de verificacion del proyecto) sobre el commit\n' +
-    '   revisado y di el resultado: verificar sin ejecutar no vale.\n' +
+    '   revisado y di el resultado: verificar sin ejecutar no vale. Si esta peticion\n' +
+    '   ya trae la verificacion de la ronda en verde para ese mismo commit, no la\n' +
+    '   repitas: cita ese resultado y corre solo los tests de lo que verificas.\n' +
     '3. Busca en el diff de esta ronda el fallo que la correccion abre: es justo\n' +
     '   donde se cuelan los fallos nuevos. Si encuentras uno, construye el caso que\n' +
     '   lo rompe antes de reportarlo.\n\n' +
@@ -401,6 +407,13 @@ interface RondaPrevia {
    * hallazgos pendientes, para la ronda acotada.
    */
   seccionesPorRevisor: Map<string, string>;
+  /**
+   * TASK-112: revisores ('' = el generico) cuyos unicos pendientes son MENORES:
+   * no estan en `seccionesPorRevisor` y solo vuelven si la correccion toca su dominio.
+   */
+  soloMenores: string[];
+  /** TASK-112: cuantos MENORES pendientes tiene cada revisor ('' = el generico). */
+  menoresPorRevisor: Map<string, number>;
   /** TASK-095: hallazgos de la ronda N que no estan `corregido` ni `aceptado`. */
   sinMarcar: string[];
   /** TASK-081 y TASK-083: lo que los informes de la ronda N permiten para la N+1. */
@@ -413,11 +426,22 @@ interface RondaPrevia {
 export { modeloBaratoPermitido } from '../core/informe-revision.js';
 
 /** Tabla de pendientes de una ronda, con la nota de los informes ilegibles. */
-function seccionPendientes(ronda: number, filas: readonly string[], sinTabla: readonly string[]): string {
+function seccionPendientes(
+  ronda: number,
+  filas: readonly string[],
+  sinTabla: readonly string[],
+  menoresOmitidos = 0
+): string {
   let seccion =
     `## Hallazgos de la ronda ${String(ronda)} pendientes de verificar\n\n` +
     'Comprueba que cada uno queda resuelto por los cambios de esta ronda, y que la\n' +
     'correccion no abre otro fallo: es justo donde se cuelan.\n\n';
+  // TASK-112: en la ronda acotada solo van los CRITICOS e IMPORTANTES.
+  if (menoresOmitidos > 0) {
+    seccion +=
+      `Tus ${String(menoresOmitidos)} hallazgo(s) MENOR de la ronda ${String(ronda)} no estan en la tabla: ` +
+      'los comprueba quien coordina. No los revises de nuevo, ni el resto de la rama.\n\n';
+  }
   if (filas.length > 0) {
     seccion += '| ID | Severidad | Estado | Fichero | Informe |\n|---|---|---|---|---|\n' + filas.join('\n') + '\n';
   } else if (sinTabla.length === 0) {
@@ -454,6 +478,7 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
   const sinTabla: string[] = [];
   const sinMarcar: string[] = [];
   const porRevisor = new Map<string, string[]>();
+  const menoresPorRevisor = new Map<string, number>();
   for (const { nombre, texto } of textos) {
     const revisor = rondaYRevisorDeInforme(nombre)?.revisor ?? '';
     const lectura = hallazgosPendientes(texto);
@@ -466,13 +491,20 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
     for (const h of lectura.abiertos) {
       const fila = `| ${h.id} | ${h.severidad} | ${h.estado} | ${h.fichero} | ${nombre} |`;
       filas.push(fila);
-      propias.push(fila);
+      // TASK-112: la ronda acotada solo reverifica CRITICOS e IMPORTANTES (y
+      // lo que no tiene severidad reconocida, que no se descarta a ciegas);
+      // los MENORES los comprueba quien coordina.
+      if (severidadDe(h.severidad) === 'MENOR') menoresPorRevisor.set(revisor, (menoresPorRevisor.get(revisor) ?? 0) + 1);
+      else propias.push(fila);
     }
     porRevisor.set(revisor, propias);
   }
   const seccionesPorRevisor = new Map<string, string>();
+  const soloMenores: string[] = [];
   for (const [revisor, propias] of porRevisor) {
-    if (propias.length > 0) seccionesPorRevisor.set(revisor, seccionPendientes(informes.ronda, propias, []));
+    const menores = menoresPorRevisor.get(revisor) ?? 0;
+    if (propias.length > 0) seccionesPorRevisor.set(revisor, seccionPendientes(informes.ronda, propias, [], menores));
+    else if (menores > 0) soloMenores.push(revisor);
   }
   return {
     ronda: informes.ronda,
@@ -480,6 +512,8 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
     commit,
     seccion: seccionPendientes(informes.ronda, filas, sinTabla),
     seccionesPorRevisor,
+    soloMenores,
+    menoresPorRevisor,
     sinMarcar,
     alcance: alcanceRondaSiguiente(textos.map((t) => t.texto)),
     fueAcotada,
@@ -597,18 +631,34 @@ function planDeVerificacion(
     if (!revisores.includes(r)) revisores.push(r);
   };
   for (const r of previa.seccionesPorRevisor.keys()) anadir(r === '' ? generico : r);
-  for (const g of clasificarPorDominio(delta, catalogo).grupos) {
-    if (g.revisor !== generico) anadir(g.revisor);
+  const tocados = new Set(clasificarPorDominio(delta, catalogo).grupos.map((g) => g.revisor));
+  for (const r of tocados) {
+    if (r !== generico) anadir(r);
+  }
+  // TASK-112: quien solo tenia MENORES vuelve si la correccion toca sus
+  // ficheros (tambien el generico: los suyos son los que no son de ningun dominio).
+  for (const r of previa.soloMenores.map((x) => (x === '' ? generico : x))) {
+    if (tocados.has(r)) anadir(r);
   }
   if (revisores.length === 0) anadir(generico);
   return { fragmentado: false, grupos: revisores.map((revisor) => ({ revisor, ficheros: delta })) };
 }
 
+/** TASK-112: seccion de tarea.md con los revisores que la ronda acotada no relanzo. */
+export const SECCION_NO_RELANZADOS = '## Revisores no relanzados';
+
 /** TASK-095: seccion de un revisor sin pendientes propios en la ronda acotada. */
-function seccionSinPendientes(ronda: number): string {
+function seccionSinPendientes(ronda: number, menores = 0): string {
+  // TASK-112 (MEN-3 de su revision): quien vuelve con solo MENORES si los tiene;
+  // no van en la tabla a proposito.
+  const inicio =
+    menores > 0
+      ? `Tus ${String(menores)} hallazgo(s) MENOR de la ronda ${String(ronda)} no se reverifican (los comprueba\n` +
+        'quien coordina): recibes esta ronda porque la correccion'
+      : 'No tienes hallazgos pendientes propios: recibes esta ronda porque la correccion';
   return (
     `## Hallazgos de la ronda ${String(ronda)} pendientes de verificar\n\n` +
-    'No tienes hallazgos pendientes propios: recibes esta ronda porque la correccion\n' +
+    `${inicio}\n` +
     'toca ficheros de tu dominio. Revisa en el diff de esta ronda lo que la correccion\n' +
     'cambia en tu terreno y si abre un fallo.\n\n'
   );
@@ -869,6 +919,13 @@ async function runReview(
   const plan = acotada
     ? planDeVerificacion(previa!, ficherosTocados, catalogoRevisores, generico)
     : clasificarPorDominio(ficherosTocados, catalogoRevisores);
+  // TASK-112: quien solo tenia MENORES pendientes y no ve tocado su dominio no
+  // vuelve en la ronda acotada; consta en tarea.md (mas abajo, con el commit).
+  const noRelanzados = acotada
+    ? previa!.soloMenores
+        .map((r) => (r === '' ? generico : r))
+        .filter((r) => !plan.grupos.some((g) => g.revisor === r))
+    : [];
   // Con sufijo si hay mas de un grupo o el unico no es el generico: las
   // metricas sacan el revisor del nombre del informe.
   const conSufijo = plan.fragmentado || plan.grupos.length > 1 || plan.grupos[0]?.revisor !== generico;
@@ -1007,7 +1064,10 @@ async function runReview(
                   seccionPrevia: acotada
                     ? (previa.seccionesPorRevisor.get(escritura.revisor === generico ? '' : escritura.revisor) ??
                       previa.seccionesPorRevisor.get(escritura.revisor) ??
-                      seccionSinPendientes(previa.ronda))
+                      seccionSinPendientes(
+                        previa.ronda,
+                        previa.menoresPorRevisor.get(escritura.revisor === generico ? '' : escritura.revisor) ?? 0
+                      ))
                     : previa.seccion,
                 }
               : {}),
@@ -1056,7 +1116,15 @@ async function runReview(
   });
   avisos.push(...volcado.avisos);
   const conRegistro = registrarTransicion(volcado.body, 'review', deps.ahora ?? today, resolverConfig(deps.repoCwd).modo_flujo);
-  const newFilePath = await moveTareaFile(tareasRoot, filePath, volcado.task, conRegistro);
+  let cuerpoFinal = conRegistro;
+  for (const r of noRelanzados) {
+    cuerpoFinal = anotarLineaEnSeccion(
+      cuerpoFinal,
+      SECCION_NO_RELANZADOS,
+      `- ronda ${String(ronda)}: ${r} - solo tenia hallazgos MENOR pendientes y la correccion no toca sus ficheros`
+    );
+  }
+  const newFilePath = await moveTareaFile(tareasRoot, filePath, volcado.task, cuerpoFinal);
   const newRevisionDir = path.join(path.dirname(newFilePath), REVISION_DIRNAME);
   const informes: RevisionGrupo[] = escrituras.map((escritura) => ({
     revisor: escritura.revisor,
@@ -1113,9 +1181,19 @@ function seccionDeVerificacion(r: VerificacionRonda, base: string, conCobertura:
       motivo: r.motivo,
       deMemo: r.v.deMemo,
       conCobertura,
+      commit: r.v.commit,
+      huella: r.v.huella,
     });
   }
-  return seccionVerificacionRevision({ tipo: 'selectiva', resultado: r.v.resultado, base, deMemo: r.v.deMemo, conCobertura });
+  return seccionVerificacionRevision({
+    tipo: 'selectiva',
+    resultado: r.v.resultado,
+    base,
+    deMemo: r.v.deMemo,
+    conCobertura,
+    commit: r.v.commit,
+    huella: r.v.huella,
+  });
 }
 
 /** Lo que verifico la ronda (para la seccion de la peticion y la cobertura). */

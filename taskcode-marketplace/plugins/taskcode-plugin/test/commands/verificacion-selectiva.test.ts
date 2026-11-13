@@ -5,6 +5,7 @@
  * workspace) y leen su desenlace de un fichero junto a ellos; cuentan sus
  * ejecuciones y la selectiva apunta la RAMA_BASE que recibio.
  */
+import { NO_REPITAS } from '../../src/core/informe-verificacion.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -611,4 +612,21 @@ test('guia (TASK-109): la seccion «Codigo parcial» explica el principio y el c
   assert.match(skill, /`rutas_verificacion_parcial`, `finish` puede integrar con la selectiva;\s+un\s+merge\s+a\s+mano\s+no/);
   // TASK-123: el remedio entero (abortar, integrar la base en la rama y relanzar finish desde ella).
   assert.match(skill, /desde la rama de\s+la tarea; si choca,\s+`taskctl abort-merge`, integra la base en ella y relanza `finish`/);
+});
+
+test('review (TASK-112, criterio 1): la peticion trae commit, huella, comando y estado de la verificacion de ronda, y dice que no se repita', async () => {
+  await conScripts(async (v) => {
+    await conTareaParaReview(dosClaves(v), async (repoRoot, tareasRoot) => {
+      const r = await review(repoRoot, tareasRoot);
+      const peticion = readFileSync((r.informes[0] as { peticionPath: string }).peticionPath, 'utf8');
+      const seccion = peticion.slice(peticion.indexOf('## Verificacion de esta ronda'));
+      assert.match(seccion, new RegExp(`^- Commit verificado: ${r.commitRevisado}$`, 'm'));
+      assert.match(seccion, /^- Huella: [0-9a-f]{16,}$/m);
+      assert.match(seccion, /^- Comando: `/m);
+      assert.match(seccion, /^- Resultado: salio con codigo 0/m);
+      assert.ok(seccion.includes(NO_REPITAS), 'la guia de no repetir la suite');
+      // La guia de la ronda lo dice tambien en las instrucciones.
+      assert.match(peticion, /ya traiga la verificacion de la ronda en verde para el commit revisado/);
+    });
+  });
 });

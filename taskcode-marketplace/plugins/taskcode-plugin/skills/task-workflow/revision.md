@@ -24,7 +24,10 @@ el codigo antes de reportarlo**. Lo que mas hallazgos ha dado:
   compila algo distinto.
 
 **Una sola ejecucion de la suite por ronda:** la puerta y la linea base son la
-misma pasada de la suite completa; no se repite. Los mutantes se comprueban
+misma pasada de la suite completa; no se repite. Si la peticion ya trae la
+verificacion de la ronda en verde con un `Commit verificado` igual al
+`Commit revisado`, esa es la pasada de la ronda: el revisor la cita y no la
+vuelve a correr. Los mutantes se comprueban
 con el fichero o la clase de test concretos que cubren la linea mutada, no con
 la suite entera. Con varios revisores en paralelo en la misma maquina, la
 suite se corre con concurrencia reducida o por turnos: si no, compiten por la
@@ -95,10 +98,14 @@ crecer con el tamano de la correccion, no con el del proyecto. Desde la ronda
 2, `taskctl review` genera la ronda como verificacion acotada, con la linea
 `- Alcance: verificacion acotada al diff de las correcciones`, tambien si la
 ronda anterior dejo CRITICOS o IMPORTANTES. Revisan los revisores que tienen
-hallazgos pendientes (todo lo que no esta `aceptado`, tambien lo `corregido`:
-la correccion es justo lo que se verifica), cada uno los suyos, y los de
-dominio cuyos ficheros toca la correccion; todos con el diff entero de la
-correccion. Se verifica cada hallazgo, se ejecuta la suite y se busca el
+hallazgos CRITICO o IMPORTANTE pendientes (todo lo que no esta `aceptado`,
+tambien lo `corregido`: la correccion es justo lo que se verifica), cada uno
+los suyos, y aquellos cuyos ficheros toca la correccion; todos con el diff
+entero de la correccion. Los MENORES no se reverifican (los comprueba quien
+coordina), y un revisor que solo tenia MENORES y cuyos ficheros no toca la
+correccion no recibe peticion: consta en `## Revisores no relanzados` de
+`tarea.md`. Se verifica cada hallazgo, se ejecuta la suite (salvo que la
+peticion ya la traiga en verde para el commit revisado) y se busca el
 fallo que abre la correccion, y solo se abre un hallazgo nuevo si es CRITICO
 o lo introduce la propia correccion; no se vuelve a revisar la rama entera.
 Un merge de la base entre rondas no la cambia: se nombra en el motivo y lo

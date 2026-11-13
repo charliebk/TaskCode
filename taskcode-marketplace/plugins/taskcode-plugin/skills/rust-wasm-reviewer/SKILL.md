@@ -165,7 +165,9 @@ cada llamada) casi nunca se ve leyendo: se ve ejecutando.
 4. **Correr la suite entera antes de tocar nada**, para tener la linea base:
    `cargo test --locked --workspace` (y los tests de WebAssembly con
    `wasm-pack test` o `wasm-bindgen-test-runner` si el proyecto los tiene).
-   Una sola vez por ronda (ver revision.md).
+   Una sola vez por ronda (ver revision.md). Si la peticion ya trae la verificacion de la ronda en verde con un
+   `Commit verificado` igual al `Commit revisado`, esa es la linea base: citala
+   y no la repitas.
 5. **Construir el caso que rompe**, con datos que se parezcan a los reales:
    el fichero de entrada real del proyecto si lo hay, valores extremos
    (vacio, un elemento, NaN, infinito, coordenadas grandes, longitudes casi

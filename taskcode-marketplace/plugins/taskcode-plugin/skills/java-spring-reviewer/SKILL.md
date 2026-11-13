@@ -62,7 +62,9 @@ caso que lo demuestra**, no cuando parece que podria pasar.
 3. **Correr la suite entera antes de tocar nada**, para tener la linea base.
    Un test que ya estaba rojo antes del diff no es un hallazgo de esta
    tarea, pero si es un dato que va en el informe. Una sola vez por ronda
-   (ver revision.md).
+   (ver revision.md). Si la peticion ya trae la verificacion de la ronda en verde con un
+   `Commit verificado` igual al `Commit revisado`, esa es la linea base: citala
+   y no la repitas.
 4. **Construir el caso que rompe.** Un test nuevo que falla contra la rama,
    o una llamada real contra la aplicacion levantada. Lo que no se ha
    ejecutado no se afirma.
