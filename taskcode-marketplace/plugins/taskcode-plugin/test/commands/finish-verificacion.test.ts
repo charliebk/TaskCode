@@ -206,6 +206,11 @@ test('finish (puerta, TASK-123): en el camino idempotente verifica el arbol de l
     const r = await runFinishCommand(tareasRoot, ['TASK-726'], '2026-11-04', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
     assert.equal(r.cierre, 'terminada');
     assert.equal(v.ejecuciones(), 1);
+    // TASK-128 (MEN-1): la verificacion del arbol ya integrado tambien se anota.
+    assert.deepEqual(
+      lineasDe(repoRoot, 'finish').map((l) => [l.tarea, l.modo, l.resultado]),
+      [['TASK-726', 'completa', 'verde']]
+    );
   });
 });
 
