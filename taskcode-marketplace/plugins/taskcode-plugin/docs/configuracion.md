@@ -357,6 +357,20 @@ verificacion_pesada_en: [release, hotfix]               # opcional; por defecto 
   categoría o tag de JUnit excluida por defecto; en .NET, un `Trait` que el
   filtro normal excluye.
 
+#### Crecimiento de la suite: `umbral_crecimiento_suite`
+
+Cada verificación completa (la de `finish` y la de `taskctl verificar-lote`)
+deja en el registro de puertas una línea `suite` con el número de tests que
+dice la salida (node --test, Jest, dotnet, Maven/Surefire, cargo, pytest; `-`
+si no se reconoce o si la salida se recortó en un runner que suma por módulos: cargo
+con varios crates o Maven multimódulo) y su duración. `taskctl metricas --por-version` muestra por
+versión el mayor número de tests y la mediana de la duración de la completa, y
+`taskctl doctor` avisa (`crecimiento-suite`) si cualquiera creció más de
+`umbral_crecimiento_suite` (porcentaje entero, 20 por defecto) entre las dos
+últimas versiones con dato. Sin datos, ni avisa ni falla. Qué hacer cuando
+avisa (presupuesto de tests por criterio, marcar pesados): skill
+`task-workflow`, `tests-pesados.md`.
+
 #### Tests held-out (`aceptacion/`)
 
 Tests de aceptación que escribe la **persona** a partir de los criterios y que

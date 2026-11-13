@@ -126,3 +126,15 @@ test('formatearPorVersion: tablas en orden semver, «sin version» al final solo
   const sinNinguna = formatearPorVersion(calcularPorVersion(filas.slice(0, 2)));
   assert.doesNotMatch(sinNinguna, /^\| sin version/m, 'sin tareas sin version, no sale su fila');
 });
+
+test('por version (TASK-129, MEN-1): columnas tests (el mayor) y completa (mediana), con «—» sin dato', () => {
+  const t = (id: string, tests: number | null, completaS: number) =>
+    ({ ...fila({ id }), estado: 'terminada', versionCierre: '0.15.0', suite: { tests, completaS } }) as FilaMetricas;
+  const p = calcularPorVersion([t('TASK-1', 100, 600), t('TASK-2', 120, 800), t('TASK-3', null, 1000)]);
+  assert.deepEqual([p.versiones[0]?.tests, p.versiones[0]?.completaS], [120, 800]);
+  const texto = formatearPorVersion(p);
+  assert.match(texto, /\| tests +\| completa +\|/);
+  assert.match(texto, /\| 0\.15\.0 +\|.*\| 120 +\| 800 s +\|/);
+  const sin = formatearPorVersion(calcularPorVersion([{ ...fila({ id: 'TASK-9' }), estado: 'terminada', versionCierre: '0.16.0' } as FilaMetricas]));
+  assert.match(sin, /\| 0\.16\.0 +\|.*\| — +\| — +\|/);
+});

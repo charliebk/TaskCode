@@ -264,10 +264,17 @@ export function planTemplate(task: Task, roles: readonly RolBrainstorm[]): strin
     `${LINEA_PLANTILLA_DURACION}\n\n\n` +
     seccionRoles +
     '## Riesgos aceptados y que los contiene\n\n\n' +
-    '## Plan de pruebas\n\n\n' +
+    // TASK-129: presupuesto de tests por criterio. Solo se ANADE una linea
+    // (el detector de esqueleto compara por lineas, como en TASK-097).
+    '## Plan de pruebas\n\n' +
+    `${LINEA_PLANTILLA_PRESUPUESTO_TESTS}\n\n\n` +
     '## Lo que necesita decision de una persona\n\n'
   );
 }
+
+/** TASK-129: la linea del presupuesto de tests por criterio en la plantilla del plan. */
+export const LINEA_PLANTILLA_PRESUPUESTO_TESTS =
+  'Tests nuevos por criterio (presupuesto de 1 a 3 por criterio; si se pasa, el motivo):';
 
 export interface PlanCommandResult {
   /** TASK-043: avisos de la validacion del enunciado (no bloquean). */

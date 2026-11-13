@@ -69,8 +69,8 @@ punto, no un formalismo.
 4. Registra el coste de la revision (`task-workflow/coste.md`) con el id que
    devolvio la herramienta Agent de cada revisor:
    `taskctl registrar-coste TASK-NNN --fase revision --agente <id>
-   [--agente <id2>...]` (una vez por ronda; suma). La cifra que muestra Claude
-   Code al terminar un agente NO es su coste (es su contexto final). Tu parte,
+   [--agente <id2>...]` (una vez por ronda; suma; no es la cifra que Claude
+   Code muestra al terminar el agente). Tu parte,
    si quieres, estimada y aparte con `--tokens N`. No crea commit: queda
    pendiente con los informes.
    Escribe cada veredicto con el comando, no a mano:
@@ -79,6 +79,7 @@ punto, no un formalismo.
    completo: `--informe informe-revision-N-<revisor>.md`. Con CRITICO o
    IMPORTANTE abiertos, `cambios-solicitados`: se corrigen, se commitea, y se
    vuelve a esta skill (abre la ronda siguiente).
+   Un test que duplica a otro ya existente es MENOR.
    **Antes de abrir la ronda siguiente se corrige TODO lo de la ronda**, en
    cualquier modo: los CRITICO e IMPORTANTE siempre; un MENOR que no compense
    corregir se marca `aceptado` con su motivo en su informe o se pasa a una

@@ -241,6 +241,7 @@ La referencia detallada vive en `docs/`, un fichero por tema:
     - [Puerta de verificación en `finish`](docs/configuracion.md#puerta-de-verificación-en-finish)
     - [Verificación completa por lote: `verificacion_por_lote`](docs/configuracion.md#verificación-completa-por-lote-verificacion_por_lote)
     - [Tests pesados solo en release: `comando_verificacion_pesada`](docs/configuracion.md#tests-pesados-solo-en-release-comando_verificacion_pesada)
+    - [Crecimiento de la suite: `umbral_crecimiento_suite`](docs/configuracion.md#crecimiento-de-la-suite-umbral_crecimiento_suite)
     - [Tests held-out (`aceptacion/`)](docs/configuracion.md#tests-held-out-aceptacion)
     - [Cobertura de las líneas cambiadas](docs/configuracion.md#cobertura-de-las-líneas-cambiadas)
     - [Guardián de merges (hook `PreToolUse`)](docs/configuracion.md#guardián-de-merges-hook-pretooluse)

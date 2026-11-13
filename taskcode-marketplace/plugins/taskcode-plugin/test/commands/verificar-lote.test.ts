@@ -25,7 +25,7 @@ const fs = require('node:fs');
 const dir = __dirname;
 fs.appendFileSync(dir + '/cuenta', 'x');
 const d = fs.readFileSync(dir + '/desenlace', 'utf8').trim();
-if (d === 'ok') { console.log('todo en verde'); process.exit(0); }
+if (d === 'ok') { console.log('todo en verde'); console.log('# tests 7'); process.exit(0); }
 console.error('ERROR: 2 tests fallan'); process.exit(3);
 `;
 
@@ -129,6 +129,13 @@ test('verificar-lote (TASK-115): una completa en develop anota en verde todas la
         .filter((l) => l.puerta === 'finish' && l.modo === 'lote')
         .map((l) => l.resultado),
       ['verde']
+    );
+    // TASK-129 (IMP-1): el tamano de la completa del lote, en la ultima tarea.
+    assert.deepEqual(
+      leerRegistroPuertas(e.repoRoot)
+        .filter((l) => l.puerta === 'suite')
+        .map((l) => [l.tarea, l.modo, l.resultado]),
+      [['TASK-812', '7', 'verde']]
     );
     // Ya no queda nada pendiente: un segundo lote no ejecuta.
     const otra = await lote(e);

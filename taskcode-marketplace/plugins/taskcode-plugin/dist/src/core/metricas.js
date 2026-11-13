@@ -284,6 +284,7 @@ export function calcularFila(e) {
         review: puertaDeFila(e.review),
         finishVerificacion: puertaDeFila(e.finishVerificacion),
         rondasSoloMenores: rondasSoloMenores(e.informes ?? []),
+        suite: e.suite ?? null,
         puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
         estimadaMin: estimadaAnotada(e.body),
         enPausa: enPausaDe(marcas),
