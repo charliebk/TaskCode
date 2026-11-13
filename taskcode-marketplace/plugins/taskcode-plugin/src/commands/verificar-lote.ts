@@ -122,10 +122,17 @@ export async function runVerificarLoteCommand(
   const progreso = deps.progreso ?? crearProgreso(cwd);
   progreso.fase(ids[0] as string, 'finish', ['verificacion lote']);
   progreso.paso('verificacion lote');
-  const r = ejecutarVerificacion(cwd, comando, timeoutS, {
-    env: entornoConContador(process.env, progreso.contador()),
-    ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
-  });
+  let r: ReturnType<typeof ejecutarVerificacion>;
+  try {
+    r = ejecutarVerificacion(cwd, comando, timeoutS, {
+      env: entornoConContador(process.env, progreso.contador()),
+      ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+    });
+  } catch (e: unknown) {
+    // MEN-4 (ronda 2): si algo lanza, la fase no se queda en curso con el contador colgado.
+    progreso.terminar('abortada');
+    throw e;
+  }
   progreso.terminar(r.estado === 'verde' ? 'ok' : 'en-rojo');
   anotarPuerta(cwd, {
     puerta: PUERTA_FINISH,

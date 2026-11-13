@@ -376,12 +376,15 @@ export function pendienteDeLote(body: string): boolean {
   const lineas = body.split(/\r?\n/);
   const rango = rangoDeSeccion(lineas, SECCION_VERIFICACION_LOTE);
   if (rango === null) return false;
+  // MEN-2 (ronda 2): solo cuentan las lineas con la forma exacta que escriben
+  // finish y verificar-lote; una nota a mano con la misma frase no cambia nada.
+  const PENDIENTE = /^- \S+: pendiente de lote; /;
+  const VERDE = /^- \S+: lote en verde en [0-9a-f]+ \(taskctl verificar-lote\)$/;
   let pendiente = false;
   for (const l of lineas.slice(rango[0] + 1, rango[1])) {
     const t = l.trim();
-    if (!t.startsWith('- ')) continue;
-    if (t.includes(MARCA_PENDIENTE_LOTE)) pendiente = true;
-    else if (t.includes(MARCA_LOTE_VERDE)) pendiente = false;
+    if (PENDIENTE.test(t)) pendiente = true;
+    else if (VERDE.test(t)) pendiente = false;
   }
   return pendiente;
 }

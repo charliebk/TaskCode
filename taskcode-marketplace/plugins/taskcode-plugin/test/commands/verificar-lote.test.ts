@@ -228,3 +228,11 @@ test('lote (TASK-115, MEN-1/MEN-2): un reintento no duplica la pendiente; notas 
   const citada = '## Objetivo\n\n```\n## Verificacion por lote\n\n- 2026-11-13: pendiente de lote\n```\n';
   assert.equal(pendienteDeLote(citada), false, 'una seccion citada en un bloque de codigo no cuenta');
 });
+
+test('lote (TASK-115, MEN-2 ronda 2): una nota a mano con la frase de taskctl no resuelve ni reabre la pendiente', () => {
+  const pendiente = anotarPendienteLote('## Objetivo\nx\n', '2026-11-13', 'npm test');
+  assert.equal(pendienteDeLote(`${pendiente}- nota: lote en verde en develop el lunes\n`), true, 'sin la forma exacta no la resuelve');
+  const verde = `${pendiente}- 2026-11-14T10:00:00Z: lote en verde en abc1234 (taskctl verificar-lote)\n`;
+  assert.equal(pendienteDeLote(verde), false);
+  assert.equal(pendienteDeLote(`${verde}- revisar lo pendiente de lote antes del release\n`), false, 'ni la reabre');
+});
