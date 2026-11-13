@@ -302,10 +302,13 @@ export interface DiffParaRevision {
 }
 
 /**
- * TASK-113: globs de Git que reproducen la heuristica de fichero de test de
- * `esRutaDeTest` (core/menores.ts): carpetas `test/`, `tests/` y
- * `__tests__/` a cualquier profundidad, y nombres `*.test.*` y `*.spec.*`.
- * Los calcula Git, como el resto de patrones de la peticion.
+ * TASK-113: globs de Git equivalentes, salvo en bordes, a la heuristica de
+ * fichero de test de `esRutaDeTest` (core/menores.ts): carpetas `test/`,
+ * `tests/` y `__tests__/` a cualquier profundidad, y nombres `*.test.*` y
+ * `*.spec.*`. Los calcula Git, como el resto de patrones de la peticion.
+ * Bordes conocidos (MEN-2 de la revision): una carpeta `x.test.y/` es test
+ * para `esRutaDeTest` y no para Git, y con `core.ignorecase` Git casa
+ * `Test/`. Lo peor es embeber de mas o listar de menos: nada se pierde.
  */
 export const PATRONES_TEST: readonly string[] = [
   '**/test/**',
@@ -653,12 +656,23 @@ export function diffRangeForPaths(
  * leer.
  */
 export function statDeFicheros(desde: string, hasta: string, paths: readonly string[], cwd: string): string {
-  if (paths.length === 0) return '';
-  return runGit(
-    [...SIN_COMILLAS, 'diff', '--stat=200', `${desde}..${hasta}`, '--', ...paths.map((p) => `:(literal)${p}`)],
-    cwd
-  );
+  // Por lotes (MEN-1 de la revision): con miles de rutas largas, una sola
+  // llamada pasa del limite de la linea de comandos de Windows (ENAMETOOLONG).
+  const salidas: string[] = [];
+  for (let i = 0; i < paths.length; i += LOTE_RUTAS_STAT) {
+    const lote = paths.slice(i, i + LOTE_RUTAS_STAT);
+    salidas.push(
+      runGit(
+        [...SIN_COMILLAS, 'diff', '--stat=200', `${desde}..${hasta}`, '--', ...lote.map((p) => `:(literal)${p}`)],
+        cwd
+      ).replace(/\s+$/, '')
+    );
+  }
+  return salidas.length === 0 ? '' : `${salidas.join('\n')}\n`;
 }
+
+/** Rutas por llamada a Git en `statDeFicheros`: lejos del limite de Windows (32 K caracteres). */
+export const LOTE_RUTAS_STAT = 100;
 
 /**
  * Rutas (con "/" de Git, no separador del SO) de los ficheros bajo

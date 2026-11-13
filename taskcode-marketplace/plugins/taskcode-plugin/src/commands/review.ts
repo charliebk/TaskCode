@@ -68,6 +68,7 @@ import {
   diffParaRevision,
   diffRangeForPaths,
   statDeFicheros,
+  PATRONES_TEST,
   hayMergesEntre,
   baseDeTipoSinRed,
 } from '../fs/git.js';
@@ -490,10 +491,21 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
  * peticion): se listan con su `--stat` y su ruta, y con la orden que da su
  * diff. Sin tests, no hay seccion.
  */
+/** TASK-113: hasta cuantos tests la orden de la peticion los nombra uno a uno. */
+export const MAX_RUTAS_ORDEN_TESTS = 20;
+
 function seccionTests(desde: string, extras: ExtrasPeticion): string {
   const tests = extras.tests ?? [];
   if (tests.length === 0) return '';
-  const rutas = tests.map((t) => `":(literal)${t}"`).join(' ');
+  // Con muchos tests, la orden por rutas no cabria en una linea de comandos
+  // (MEN-1 de la revision): se pide por los patrones de test.
+  const rutas =
+    tests.length <= MAX_RUTAS_ORDEN_TESTS
+      ? tests.map((t) => `":(literal)${t}"`).join(' ')
+      : [
+          ...PATRONES_TEST.map((p) => `":(glob)${p}"`),
+          ...(extras.patrones ?? []).map((p) => `":(exclude,glob)${p}"`),
+        ].join(' ');
   const stat = (extras.statTests ?? '').replace(/\s+$/, '');
   const fence = fenceFor(stat);
   return (

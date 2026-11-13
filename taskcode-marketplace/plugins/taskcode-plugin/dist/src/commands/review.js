@@ -43,7 +43,7 @@ import { TOPE_RONDAS } from '../core/flujo.js';
 import { alcanceRondaSiguiente, commitRevisadoDe, hallazgosNoCerrados, hallazgosPendientes, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, statDeFicheros, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
@@ -289,11 +289,20 @@ async function leerRondaPrevia(revisionDir) {
  * peticion): se listan con su `--stat` y su ruta, y con la orden que da su
  * diff. Sin tests, no hay seccion.
  */
+/** TASK-113: hasta cuantos tests la orden de la peticion los nombra uno a uno. */
+export const MAX_RUTAS_ORDEN_TESTS = 20;
 function seccionTests(desde, extras) {
     const tests = extras.tests ?? [];
     if (tests.length === 0)
         return '';
-    const rutas = tests.map((t) => `":(literal)${t}"`).join(' ');
+    // Con muchos tests, la orden por rutas no cabria en una linea de comandos
+    // (MEN-1 de la revision): se pide por los patrones de test.
+    const rutas = tests.length <= MAX_RUTAS_ORDEN_TESTS
+        ? tests.map((t) => `":(literal)${t}"`).join(' ')
+        : [
+            ...PATRONES_TEST.map((p) => `":(glob)${p}"`),
+            ...(extras.patrones ?? []).map((p) => `":(exclude,glob)${p}"`),
+        ].join(' ');
     const stat = (extras.statTests ?? '').replace(/\s+$/, '');
     const fence = fenceFor(stat);
     return (`\n## Tests del diff (${tests.length} fichero(s))\n\n` +

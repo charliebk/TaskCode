@@ -12,7 +12,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile } from '../../src/fs/task-store.js';
-import { runReviewCommand } from '../../src/commands/review.js';
+import { runReviewCommand, MAX_RUTAS_ORDEN_TESTS } from '../../src/commands/review.js';
+import { statDeFicheros, LOTE_RUTAS_STAT } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -183,4 +184,43 @@ test('review (TASK-113): en la peticion fragmentada cada dominio lista solo sus 
   assert.match(bloqueDiff(generica), /diff --git a\/src\/a\.ts/);
   assert.match(generica, /test\/a\.test\.ts\s+\|/);
   assert.doesNotMatch(generica, /integracion\.rs|MARCA-TS/);
+});
+
+test('review (TASK-113, MEN-1): con mas de MAX_RUTAS_ORDEN_TESTS tests la orden pide por patrones y el --stat los lista todos', async () => {
+  const ficheros: Record<string, string> = { 'src/a.ts': 'export const a = 1;\n' };
+  // Fijo, no derivado de la constante: si el umbral subiera, el test lo veria.
+  const n = 25;
+  assert.ok(MAX_RUTAS_ORDEN_TESTS < n);
+  for (let i = 0; i < n; i++) ficheros[`test/t${i}.test.ts`] = `test('${i}', () => {});\n`;
+  const { peticiones } = await revisar(ficheros);
+  const peticion = peticiones.get('peticion-revision-1.md') as string;
+  assert.match(peticion, new RegExp(`## Tests del diff \\(${n} fichero\\(s\\)\\)`));
+  assert.match(peticion, /git diff develop\.\.HEAD -- ":\(glob\)\*\*\/test\/\*\*"/);
+  assert.match(peticion, /":\(exclude,glob\)tareas\/\*\*"/, 'la orden por patrones respeta excluir_de_revision');
+  assert.doesNotMatch(peticion, /":\(literal\)test\//, 'con tantos tests no se nombran uno a uno');
+  for (let i = 0; i < n; i++) assert.match(peticion, new RegExp(`test/t${i}\\.test\\.ts\\s+\\|`));
+});
+
+test('statDeFicheros (TASK-113, MEN-1): por lotes de LOTE_RUTAS_STAT rutas, sin perder ninguna', async () => {
+  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-tstat-lote-'));
+  try {
+    git(['init', '-q', '-b', 'main'], repoRoot);
+    git(['config', 'user.email', 'test@example.com'], repoRoot);
+    git(['config', 'user.name', 'Test'], repoRoot);
+    await writeFile(path.join(repoRoot, 'README.md'), 'repo\n', 'utf8');
+    commitAll(repoRoot, 'inicial');
+    const rutas: string[] = [];
+    await mkdir(path.join(repoRoot, 'test'), { recursive: true });
+    for (let i = 0; i < LOTE_RUTAS_STAT * 2 + 3; i++) {
+      rutas.push(`test/f${i}.test.ts`);
+      await writeFile(path.join(repoRoot, 'test', `f${i}.test.ts`), `x${i}\n`, 'utf8');
+    }
+    commitAll(repoRoot, 'tests');
+    const stat = statDeFicheros('HEAD~1', 'HEAD', rutas, repoRoot);
+    for (const r of rutas) assert.match(stat, new RegExp(`${r.replace(/\./g, '\\.')}\\s+\\|`));
+    assert.equal((stat.match(/files? changed/g) ?? []).length, 3, 'tres lotes, tres resumenes');
+    assert.equal(statDeFicheros('HEAD~1', 'HEAD', [], repoRoot), '');
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true, maxRetries: 5 }).catch(() => undefined);
+  }
 });
