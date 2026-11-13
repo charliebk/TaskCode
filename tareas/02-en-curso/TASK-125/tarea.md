@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-125-freno-stop-con-presupuesto-de-tiempo-y-c
 asignado_a: charlie.bk@gmail.com
@@ -40,3 +40,4 @@ Medido en ToolsaWeb (153 tareas terminadas, taskctl metricas, 2026-11-12): la re
 |---|---|---|---|---|
 | 2026-11-13T12:36:53Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T12:38:08Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-13T12:38:12Z | start | automatico | persona | 0.14.0 |
