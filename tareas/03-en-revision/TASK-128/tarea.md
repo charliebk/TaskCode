@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, metricas, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-128-metricas-de-verificacion-por-puerta-tiem
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 8179698
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-13
@@ -41,3 +41,10 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 | 2026-11-13T13:08:28Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T13:09:13Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T13:09:15Z | start | automatico | persona | 0.14.0 |
+| 2026-11-13T13:18:16Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-13T13:18:16Z | implementacion | sesion:bdb2d869-6133-422f-8b3d-f1c76840a4dc | 42 | 38971 | 8118540 | 22145 | 2 | 8179698 | - | - |
