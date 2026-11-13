@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-131-tres-tests-con-expectativas-anteriores-a
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ TASK-119 cambio el flujo (veredicto no commitea, el informe sin commitear lo abs
 - [ ] test/commands/automatico-guarda-finish.test.ts IMP-3 pasa: el veredicto pendiente se commitea antes de cambiar de rama y codigo colado tras el veredicto sigue preguntando
 - [ ] test/skills/fases.test.ts comprueba que la skill review dice dejar el informe sin commitear y nunca mezclarlo con codigo
 - [ ] npm run test:rapido y los tres ficheros pasan sin otro rojo que los 2 conocidos de Windows
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T11:04:28Z | plan | automatico | persona | 0.14.0 |
