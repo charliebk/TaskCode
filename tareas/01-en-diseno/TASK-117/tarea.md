@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-117-p-9-new-propone-la-complejidad-a-partir
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: []
 ---
 ## Objetivo
@@ -30,3 +30,9 @@ La complejidad declarada no predice el coste (en ToolsaWeb alta gasta menos toke
 - [ ] taskctl new sin --complejidad propone la mediana de las tareas terminadas con mas etiquetas en comun, la escribe y dice de que tareas sale (test con repo temporal)
 - [ ] Con --complejidad explicita gana la declarada y sin tareas parecidas se queda como hoy (test)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T03:32:33Z | plan | automatico | persona | 0.14.0 |
