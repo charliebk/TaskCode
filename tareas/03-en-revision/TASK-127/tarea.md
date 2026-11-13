@@ -91,3 +91,7 @@ suite completa de la 0.16.
 ## Verificacion ligera
 
 - 2026-11-13T10:58:33Z: ronda 1; commit revisado d99b84f0efa1ee186da680590acdda0dfb162f99; commit verificado b4e7ea732d9b605113071a4fb4d05a6a70249a28; ficheros: CHANGELOG.md, taskcode-marketplace/plugins/taskcode-plugin/test/commands/automatico-rondas.test.ts; corregidos: MEN-1; pendientes: ninguno
+
+## Verificacion omitida
+
+- 2026-11-13T10:58:55Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
