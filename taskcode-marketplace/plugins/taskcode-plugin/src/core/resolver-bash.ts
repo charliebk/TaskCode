@@ -19,7 +19,8 @@ export interface EntornoBash {
 }
 
 export type BashResuelto =
-  | { comando: string; origen: 'git' }
+  /** herramientas: el usr\bin de esa instalacion (mktemp, dirname, grep...), que va delante en el PATH del script. */
+  | { comando: string; origen: 'git'; herramientas: string }
   | { comando: 'bash'; origen: 'path' };
 
 /**
@@ -45,9 +46,27 @@ export function resolverBash(entorno: EntornoBash): BashResuelto {
       raiz = arriba;
       for (const rel of BASH_EN_LA_RAIZ) {
         const candidato = p.join(raiz, rel);
-        if (entorno.existe(candidato)) return { comando: candidato, origen: 'git' };
+        if (entorno.existe(candidato)) return { comando: candidato, origen: 'git', herramientas: p.join(raiz, 'usr', 'bin') };
       }
     }
   }
   return { comando: 'bash', origen: 'path' };
+}
+
+/**
+ * El entorno con el que se lanza el script. Con el bash de Git, su usr\bin va
+ * delante en el PATH: lanzado desde PowerShell, el PATH suele tener solo
+ * Git\cmd y el script no encontraria mktemp ni dirname (comprobado a mano en
+ * TASK-134). La clave del PATH se conserva tal cual viene (en Windows suele
+ * ser "Path"), para no dejar dos claves que solo difieren en mayusculas. Con
+ * el bash del PATH, el entorno no se toca (null).
+ */
+export function entornoParaBash(
+  bash: BashResuelto,
+  entorno: Readonly<Record<string, string | undefined>>
+): Record<string, string | undefined> | null {
+  if (bash.origen !== 'git') return null;
+  const clave = Object.keys(entorno).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
+  const actual = entorno[clave] ?? '';
+  return { ...entorno, [clave]: actual === '' ? bash.herramientas : `${bash.herramientas};${actual}` };
 }

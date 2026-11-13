@@ -28,7 +28,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { resolverBash } from '../core/resolver-bash.js';
+import { entornoParaBash, resolverBash } from '../core/resolver-bash.js';
 function packageRoot() {
     // dist/src/fs/gitflow-runner.js -> dist/src/fs -> dist/src -> dist -> raiz del paquete
     const moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -77,13 +77,15 @@ export function bashDeTaskctl() {
     return resolverBash({ plataforma: process.platform, path: process.env['PATH'] ?? '', existe: existsSync });
 }
 /**
- * EL unico sitio que lanza bash: `<bash> "<ruta>" args`, sin shell y con el
- * PATH heredado, con el bash de `bashDeTaskctl()`. `runGitflowScript` y la
+ * EL unico sitio que lanza bash: `<bash> "<ruta>" args`, sin shell, con el
+ * bash de `bashDeTaskctl()` y el PATH heredado (con el usr\bin de Git delante
+ * si el bash es el de Git: ver `entornoParaBash`). `runGitflowScript` y la
  * sonda de `taskctl doctor` pasan por aqui: si la sonda lanzara de otra
  * forma, podria dar OK y que los scripts fallaran (o al reves).
  */
 function lanzarBash(bash, scriptPath, args, extra) {
-    return spawnSync(bash.comando, [scriptPath, ...args], extra);
+    const env = entornoParaBash(bash, extra.env ?? process.env);
+    return spawnSync(bash.comando, [scriptPath, ...args], env === null ? extra : { ...extra, env });
 }
 export function runGitflowScript(scriptName, args, opts) {
     const scriptPath = path.join(opts.scriptsDir, scriptName);
