@@ -2,7 +2,7 @@
 
 - Commit revisado: 2973dd702046bf6189339065a8ef354421d0fcc7
 - Revisor: code-quality-reviewer
-- Veredicto: aprobada-con-correcciones (propuesto; se registra con: taskctl veredicto TASK-117 aprobada-con-correcciones)
+- Veredicto: cambios-solicitados
 
 Modo rapido: no se ejecuto la suite completa. Se compilo (`npm run build`, sin errores) y se corrio
 `node --test dist/test/core/complejidad-similar.test.js dist/test/commands/new-complejidad.test.js dist/test/commands/new.test.js dist/test/commands/new-contenido.test.js`:
