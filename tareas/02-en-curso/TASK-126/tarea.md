@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-126-verificacion-por-tipo-de-rama-los-tests
 asignado_a: charlie.bk@gmail.com
@@ -40,3 +40,4 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 |---|---|---|---|---|
 | 2026-11-13T14:48:38Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T14:49:17Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-13T14:49:23Z | start | automatico | persona | 0.14.0 |
