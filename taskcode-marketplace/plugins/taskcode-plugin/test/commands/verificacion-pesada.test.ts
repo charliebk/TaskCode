@@ -202,3 +202,40 @@ test('guia (TASK-126): la skill finish y la doc explican como separar los pesado
   const doc = readFileSync(path.join(raiz, 'docs', 'configuracion.md'), 'utf8');
   assert.match(doc, /#### Tests pesados solo en release[\s\S]*cargo test -- --ignored[\s\S]*Guardián de merges/);
 });
+
+test('finish (TASK-126, IMP-1): en el camino idempotente una release integrada a mano tambien exige los pesados', async () => {
+  await conEntorno('', async (e) => {
+    await e.desenlace('pesada', 'ko');
+    const task = sampleTask({ id: 'TASK-850', tipo: 'release', rama: 'release/task-850-q4' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    for (const destino of ['main', 'develop']) {
+      git(['checkout', '-q', destino], e.repoRoot);
+      git(['merge', '-q', '--no-ff', '-m', `merge a mano en ${destino}`, task.rama], e.repoRoot);
+    }
+    await assert.rejects(
+      () => runFinishCommand(e.tareasRoot, ['TASK-850'], '2026-11-13', { repoCwd: e.repoRoot, scriptsDir: SCRIPTS_DIR }),
+      (err: unknown) => err instanceof FinishCommandError && /no se mergea con los tests pesados en rojo/.test(err.message)
+    );
+    assert.deepEqual([e.ejecuciones('completa'), e.ejecuciones('pesada')], [1, 1]);
+  });
+});
+
+test('guardian (TASK-126, MEN-1): un hotfix exige los pesados solo si verificacion_pesada_en lo lista', async () => {
+  for (const [extra, esperado] of [
+    ['', 0],
+    ['verificacion_pesada_en: [release, hotfix]\n', 2],
+  ] as const) {
+    await conEntorno(extra, async (e) => {
+      const cfg = resolverConfig(e.repoRoot);
+      git(['checkout', '-q', '-b', 'hotfix/task-851-a', 'main'], e.repoRoot);
+      await writeFile(path.join(e.repoRoot, 'h.txt'), 'h\n', 'utf8');
+      commitAll(e.repoRoot, 'h');
+      const huella = huellaDeCommit(e.repoRoot, 'hotfix/task-851-a', cfg.comando_verificacion as string, cfg.timeout_verificacion) as string;
+      guardarMemo(e.repoRoot, huella, { comando: 'c', estado: 'verde', codigo: 0, duracionMs: 1, timeoutS: 600, bytesTotales: 0, cola: '' });
+      const merge = 'git checkout main && git merge --no-ff hotfix/task-851-a';
+      const d = decidirPreToolUse({ cwd: e.repoRoot, tool_input: { command: merge } });
+      assert.equal(d.codigo, esperado, d.stderr);
+      if (esperado === 2) assert.match(d.stderr, /una rama hotfix exige tambien los tests pesados/);
+    });
+  }
+});

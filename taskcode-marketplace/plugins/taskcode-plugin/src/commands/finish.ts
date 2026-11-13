@@ -679,6 +679,18 @@ async function runFinish(
         ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
         entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
       });
+      // TASK-126 (IMP-1 de la revision): tambien en el camino idempotente, tras la
+      // completa en verde, los pesados de los tipos de verificacion_pesada_en.
+      if (reintento.tipo === 'verde' && reintento.que === 'completa') {
+        puertaPesada({
+          id,
+          tipo,
+          cwd: deps.repoCwd,
+          env: entornoConContador(process.env, progreso.contador()),
+          ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+          ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+        });
+      }
     } catch (e: unknown) {
       if (origen !== '' && origen !== ramaIntegracion && isWorkspaceClean(deps.repoCwd)) {
         checkoutBranch(origen, deps.repoCwd);
