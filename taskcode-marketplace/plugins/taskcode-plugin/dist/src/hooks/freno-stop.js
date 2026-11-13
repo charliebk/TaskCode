@@ -244,7 +244,9 @@ export async function decidirStop(entrada, deps = {}) {
                 guardarUltimoVerde(raiz, peticion.tipo, verificacion.huella);
             return dejarParar;
         }
-        anotar('rojo', duracionS);
+        // IMP-1 (revision TASK-111): un rojo servido del memo compartido sigue
+        // bloqueando, pero no ha ejecutado nada: no cuenta como ejecucion.
+        anotar(deMemo ? 'omitido' : 'rojo', duracionS);
         if (plan.tipo === 'documentacion') {
             avisos.push(`Es la comprobacion de documentacion (comando_verificacion_documentacion): ${plan.motivo}. ` +
                 'Antes de integrar se vuelve a exigir.');

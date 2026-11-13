@@ -55,7 +55,7 @@ declarada, no hay puerta y no hay línea.
 | Campo | Valor |
 |---|---|
 | `modo` | El tipo de verificación: `completa`, `selectiva` o `documentacion` |
-| `resultado` | `verde` (ejecutó y salió bien), `rojo` (cualquier otro desenlace: bloquea el turno), `omitido` (no ejecutó: la huella del árbol es la de su último verde, o el memo de la verificación ya la tenía en verde) o `excedido` (agotó su presupuesto de tiempo) |
+| `resultado` | `verde` (ejecutó y salió bien), `rojo` (ejecutó y no salió bien: bloquea el turno), `omitido` (no ejecutó: la huella del árbol es la de su último verde, o el memo de la verificación ya tenía su resultado; si ese resultado es rojo, el turno se sigue bloqueando) o `excedido` (agotó su presupuesto de tiempo) |
 | `duracion_s` | Tiempo de reloj de la verificación; `0.0` cuando se omite |
 
 El último verde del freno se guarda aparte, en

@@ -66,7 +66,8 @@ export function tareaDeMensaje(mensaje) {
  * TASK-111: la puerta del freno Stop. `modo` es el tipo de verificacion
  * (`completa`, `selectiva`, `documentacion`) y `resultado` uno de estos:
  * `verde` (ejecuto en verde), `rojo` (cualquier otro desenlace: bloquea),
- * `omitido` (no ejecuto: sin cambios desde el ultimo verde) y `excedido`
+ * `omitido` (no ejecuto: sin cambios desde el ultimo verde, o resultado del
+ * memo compartido, que si es rojo sigue bloqueando) y `excedido`
  * (agoto su presupuesto de tiempo; lo escribe el presupuesto del freno).
  */
 export const PUERTA_FRENO = 'freno';

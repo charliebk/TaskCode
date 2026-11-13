@@ -25,6 +25,7 @@ const path = require('node:path');
 fs.appendFileSync(path.join(__dirname, 'cuenta'), 'x');
 const d = fs.readFileSync(path.join(__dirname, 'desenlace'), 'utf8').trim();
 if (d === 'ok') { console.log('verde'); process.exit(0); }
+if (d === 'ensucia-ok') { fs.writeFileSync('generado.txt', String(Date.now())); process.exit(0); }
 console.error('ERROR: 1 test falla'); process.exit(1);
 `;
 
@@ -32,7 +33,7 @@ interface Repo {
   raiz: string;
   fuera: string;
   ejecuciones(): number;
-  desenlace(d: 'ok' | 'ko'): Promise<void>;
+  desenlace(d: 'ok' | 'ko' | 'ensucia-ok'): Promise<void>;
 }
 
 async function conRepo(fn: (r: Repo) => Promise<void>, o: { selectiva?: boolean; tarea?: boolean } = {}): Promise<void> {
@@ -179,4 +180,49 @@ test('freno (TASK-111): sin tarea en curso no hay linea', async () => {
     },
     { tarea: false }
   );
+});
+
+test('freno (TASK-111, IMP-1): un rojo del memo compartido sigue bloqueando pero se anota omitido, no como ejecucion', async () => {
+  await conRepo(async (r) => {
+    await r.desenlace('ko');
+    await writeFile(path.join(r.raiz, 'src', 'app.ts'), 'export const a = 3;\n', 'utf8');
+    assert.equal((await decidir(r)).codigo, 2);
+    const segunda = await decidir(r);
+    assert.equal(segunda.codigo, 2, 'sigue bloqueando');
+    assert.match(segunda.stderr, /resultado guardado de la ultima verificacion/);
+    assert.equal(r.ejecuciones(), 1, 'el comando corrio una vez');
+    assert.deepEqual(
+      lineasFreno(r).map((l) => l.resultado),
+      ['rojo', 'omitido']
+    );
+  });
+});
+
+test('freno (TASK-111, MEN-1): un verde servido del memo compartido se anota omitido', async () => {
+  await conRepo(async (r) => {
+    assert.equal((await decidir(r)).codigo, 0);
+    // Sin el ultimo verde del freno, el turno llega al memo compartido de la completa.
+    rmSync(path.join(r.raiz, '.git', 'taskcode', 'freno-ultimo-verde.json'), { force: true });
+    assert.equal((await decidir(r)).codigo, 0);
+    assert.equal(r.ejecuciones(), 1);
+    assert.deepEqual(
+      lineasFreno(r).map((l) => l.resultado),
+      ['verde', 'omitido']
+    );
+  });
+});
+
+test('freno (TASK-111, MEN-1): un verde que cambia el arbol no se guarda como ultimo verde', async () => {
+  await conRepo(async (r) => {
+    await r.desenlace('ensucia-ok');
+    assert.equal((await decidir(r)).codigo, 0);
+    assert.equal(r.ejecuciones(), 1);
+    assert.equal(existsSync(path.join(r.raiz, '.git', 'taskcode', 'freno-ultimo-verde.json')), false);
+    // Con un verde normal si se guarda.
+    rmSync(path.join(r.raiz, 'generado.txt'), { force: true });
+    await r.desenlace('ok');
+    await writeFile(path.join(r.raiz, 'src', 'app.ts'), 'export const a = 9;\n', 'utf8');
+    assert.equal((await decidir(r)).codigo, 0);
+    assert.equal(existsSync(path.join(r.raiz, '.git', 'taskcode', 'freno-ultimo-verde.json')), true);
+  });
 });
