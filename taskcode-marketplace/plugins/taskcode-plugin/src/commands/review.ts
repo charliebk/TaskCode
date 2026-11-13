@@ -1072,6 +1072,7 @@ async function runReview(
   // la de destino, que ya contiene revision/ con la peticion y el
   // scaffold del informe).
   const commitResult = autoCommit({
+    fase: 'review',
     cwd: deps.repoCwd,
     rutas: [path.dirname(filePath), path.dirname(newFilePath)],
     mensaje: mensajeChore(task.id, `peticion de revision ronda ${ronda}`),

@@ -138,6 +138,7 @@ export async function runVeredictoCommand(tareasRoot, argv, deps) {
     // algo que ya no distingue nada. `avisos` se conserva en el resultado.
     const avisos = [];
     const commitResult = autoCommit({
+        fase: 'veredicto',
         cwd: deps.repoCwd,
         rutas: [informePath],
         mensaje: mensajeChore(task.id, `veredicto ronda ${ronda} (${valor})`),

@@ -46,7 +46,9 @@
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { resolverConfig, resolverConfigConAvisos } from '../core/config.js';
+import { resolverConfig, resolverConfigConAvisos, type FaseSincronizacion } from '../core/config.js';
+import { tareaDeMensaje } from '../core/registro-puertas.js';
+import { anotarPuerta } from './registro-puertas.js';
 import { ROADMAP_RUTA } from '../core/roadmap.js';
 import { GitCommandError, currentBranch, isRemoteAvailable, runGit } from './git.js';
 import { prepararRoadmap, restaurarRoadmap, type ResultadoRoadmap } from './roadmap.js';
@@ -89,6 +91,12 @@ export interface AutoCommitOptions {
   push?: boolean;
   /** Solo para tests: opciones de la sincronizacion (timeout corto). */
   sincronizacion?: OpcionesSincronizacion;
+  /**
+   * TASK-120: la fase de taskctl que commitea. Con `fases_sincronizacion`, la
+   * sincronizacion solo corre en las fases listadas; es tambien el `modo` de su
+   * linea en el registro de puertas. Sin fase, corre siempre (modo `otra`).
+   */
+  fase?: FaseSincronizacion;
   /**
    * TASK-098: regenerar `tareas/ROADMAP.md` dentro de este commit. Solo
    * surte efecto si el commit cae en la rama de integracion (`rama_base`):
@@ -374,7 +382,27 @@ function regenerarRoadmap(cwd: string, rama: string): ResultadoRoadmap | null {
  */
 function sincronizar(opts: AutoCommitOptions): ResultadoSincronizacion {
   try {
-    return ejecutarSincronizacion(opts.cwd, resolverConfig(opts.cwd), opts.sincronizacion);
+    const config = resolverConfig(opts.cwd);
+    if (config.comando_sincronizacion === null) return SIN_SINCRONIZACION;
+    // TASK-120: solo en las fases declaradas (sin la clave, en todas).
+    if (
+      config.fases_sincronizacion !== null &&
+      opts.fase !== undefined &&
+      !config.fases_sincronizacion.includes(opts.fase)
+    ) {
+      return SIN_SINCRONIZACION;
+    }
+    const inicio = Date.now();
+    const r = ejecutarSincronizacion(opts.cwd, config, opts.sincronizacion);
+    anotarPuerta(opts.cwd, {
+      puerta: 'sincronizacion',
+      tarea: tareaDeMensaje(opts.mensaje) ?? '-',
+      instante: new Date().toISOString(),
+      modo: opts.fase ?? 'otra',
+      duracionS: (Date.now() - inicio) / 1000,
+      resultado: r.estado,
+    });
+    return r;
   } catch (e: unknown) {
     return {
       estado: 'fallida',

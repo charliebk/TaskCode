@@ -221,6 +221,8 @@ export interface FilaMetricas {
   puntaAPunta: Duracion | null;
   /** TASK-097: minutos estimados que finish anoto en `## Duracion`, o null. */
   estimadaMin: number | null;
+  /** TASK-120: suma de la puerta `sincronizacion` del registro de puertas; null sin lineas de la tarea. */
+  sincronizacion: Duracion | null;
 }
 
 export interface EntradaMetricas {
@@ -236,6 +238,8 @@ export interface EntradaMetricas {
   informes?: readonly InformeLeido[];
   /** Bytes de cada `peticion-revision-N[-revisor].md`. */
   peticiones?: readonly { ronda: number; bytes: number }[];
+  /** TASK-120: segundos de sincronizacion de la tarea en el registro de puertas; sin dato, null. */
+  sincronizacionS?: number | null;
 }
 
 function kbPorRonda(peticiones: readonly { ronda: number; bytes: number }[]): PeticionRonda[] {
@@ -443,6 +447,10 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
     total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
     finish: finishDe(e.body),
+    sincronizacion:
+      e.sincronizacionS === undefined || e.sincronizacionS === null
+        ? null
+        : { valor: Math.round(e.sincronizacionS * 1000), precision: 'segundo' },
     puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
     estimadaMin: estimadaAnotada(e.body),
     enPausa: enPausaDe(marcas),
@@ -531,6 +539,8 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   // P-1: lo que dura el propio finish; punta_a_punta ya lo incluye.
   { cabecera: 'finish', valor: (f) => formatearDuracion(f.finish) },
   { cabecera: 'punta_a_punta', valor: (f) => formatearDuracion(f.puntaAPunta) },
+  // TASK-120: lo que suma comando_sincronizacion en la tarea (registro de puertas).
+  { cabecera: 'sinc', valor: (f) => formatearDuracion(f.sincronizacion) },
 ];
 
 /** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */

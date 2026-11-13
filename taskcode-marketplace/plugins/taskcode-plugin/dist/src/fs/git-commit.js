@@ -47,6 +47,8 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { resolverConfig, resolverConfigConAvisos } from '../core/config.js';
+import { tareaDeMensaje } from '../core/registro-puertas.js';
+import { anotarPuerta } from './registro-puertas.js';
 import { ROADMAP_RUTA } from '../core/roadmap.js';
 import { GitCommandError, currentBranch, isRemoteAvailable, runGit } from './git.js';
 import { prepararRoadmap, restaurarRoadmap } from './roadmap.js';
@@ -283,7 +285,26 @@ function regenerarRoadmap(cwd, rama) {
  */
 function sincronizar(opts) {
     try {
-        return ejecutarSincronizacion(opts.cwd, resolverConfig(opts.cwd), opts.sincronizacion);
+        const config = resolverConfig(opts.cwd);
+        if (config.comando_sincronizacion === null)
+            return SIN_SINCRONIZACION;
+        // TASK-120: solo en las fases declaradas (sin la clave, en todas).
+        if (config.fases_sincronizacion !== null &&
+            opts.fase !== undefined &&
+            !config.fases_sincronizacion.includes(opts.fase)) {
+            return SIN_SINCRONIZACION;
+        }
+        const inicio = Date.now();
+        const r = ejecutarSincronizacion(opts.cwd, config, opts.sincronizacion);
+        anotarPuerta(opts.cwd, {
+            puerta: 'sincronizacion',
+            tarea: tareaDeMensaje(opts.mensaje) ?? '-',
+            instante: new Date().toISOString(),
+            modo: opts.fase ?? 'otra',
+            duracionS: (Date.now() - inicio) / 1000,
+            resultado: r.estado,
+        });
+        return r;
     }
     catch (e) {
         return {

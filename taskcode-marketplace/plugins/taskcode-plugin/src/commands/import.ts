@@ -335,6 +335,7 @@ export async function runImportCommand(
   // pasada; si no se creo ninguna (todo omitido o con error), no hay
   // nada que commitear y no se crea un commit vacio.
   const autoCommitResult = autoCommit({
+    fase: 'import',
     cwd: deps.repoCwd,
     rutas: creadas.map((c) => path.dirname(c.filePath)),
     mensaje: mensajeChore(

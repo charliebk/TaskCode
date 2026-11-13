@@ -149,6 +149,7 @@ export async function runCodexReviewCommand(tareasRoot, argv, _today, deps) {
     // Se llama SIEMPRE, tambien degradado: si no hubo nada nuevo que
     // escribir, autoCommit se limita a decir "nada que commitear".
     const commitResult = autoCommit({
+        fase: 'codex-review',
         cwd: deps.repoCwd,
         rutas: [path.dirname(filePath)],
         mensaje: mensajeChore(task.id, degradado ? 'codex-review degradado (sin informe)' : `informe de codex ronda ${String(ronda)}`),

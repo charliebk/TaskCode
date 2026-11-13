@@ -193,6 +193,7 @@ export async function runVerificarMenoresCommand(tareasRoot, argv, deps) {
         backlogPath = backlog;
     }
     const commitResult = autoCommit({
+        fase: 'verificar-menores',
         cwd,
         rutas: backlogPath === null ? [tareaPath] : [tareaPath, backlogPath],
         mensaje: mensajeChore(task.id, `verificacion ligera ronda ${String(ronda)}`),

@@ -270,7 +270,7 @@ test('taskctl approve: es idempotente si se invoca dos veces seguidas (ya aproba
   });
 });
 
-test('taskctl approve: propaga cualquier error de stat que NO sea ENOENT (no lo confunde con "no existe")', async () => {
+test('taskctl approve: propaga cualquier error de stat que NO sea ENOENT (no lo confunde con "no existe")', async (t) => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, sampleTask(), '');
     commitAll(repoRoot, 'tarea TASK-800');
@@ -283,7 +283,19 @@ test('taskctl approve: propaga cualquier error de stat que NO sea ENOENT (no lo 
     // hace fallar la propia lectura de tarea.md en readTareaFile con
     // el mismo EACCES, antes de llegar siquiera al codigo bajo prueba
     // — hallazgo propio al escribir este test, TASK-011.)
-    await symlink(PLAN_FINAL_FILENAME, path.join(taskDir, PLAN_FINAL_FILENAME));
+    // TASK-120: en Windows sin privilegio de symlink (ni modo desarrollador)
+    // crearlo da EPERM: es una precondicion del entorno, no el fallo que se
+    // prueba, y bloqueaba la verificacion por impacto de cualquier tarea que
+    // tocara approve.ts. Se omite con el motivo; en el CI de Linux corre entero.
+    try {
+      await symlink(PLAN_FINAL_FILENAME, path.join(taskDir, PLAN_FINAL_FILENAME));
+    } catch (e: unknown) {
+      if ((e as NodeJS.ErrnoException).code === 'EPERM') {
+        t.skip('sin privilegio para crear symlinks (EPERM)');
+        return;
+      }
+      throw e;
+    }
 
     await assert.rejects(
       () => runApproveCommand(tareasRoot, ['TASK-800'], '2026-09-05', { repoCwd: repoRoot }),
