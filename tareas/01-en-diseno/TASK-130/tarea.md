@@ -7,7 +7,7 @@ etiquetas: [agilidad, verificacion, tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-130-poda-periodica-de-tests-redundantes-fusi
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T17:25:56Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T17:26:39Z | approve | automatico | persona | 0.14.0 |
