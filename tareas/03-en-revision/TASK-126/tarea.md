@@ -57,6 +57,17 @@ correcciones, cambiada a cambios-solicitados por un IMPORTANTE.
   ahora si, con test (release integrada a mano con los pesados en rojo).
 - MEN-1 (corregido): faltaba test del guardian con hotfix (con y sin la lista).
 
+Ronda 2 (haiku, acotada): cambios-solicitados. IMP-1 y MEN-1 confirmados; un
+IMPORTANTE nuevo introducido por la correccion:
+- IMP-2 (corregido): en el camino idempotente el rojo de los pesados decia «no
+  se mergea / no se ha tocado nada» con el merge ya hecho; ahora dice que la
+  rama ya esta integrada y que se arregla hacia delante (test), y hay test del
+  camino idempotente en verde.
+
+Ronda 3 (extra, anotada en `## Rondas extra` por la regla de Carlos de aceptar
+las recomendaciones, haiku, acotada): aprobada, sin hallazgos nuevos; el mutante
+que quita `yaIntegradaEn` muere.
+
 ## Rondas extra
 
 - Ronda 3: Carlos (2026-11-13) pidio terminar la cola aceptando todas las recomendaciones; ronda acotada para verificar IMP-2 (mensaje del camino idempotente), en vez de integrar sin revisar.
@@ -77,3 +88,7 @@ correcciones, cambiada a cambios-solicitados por un IMPORTANTE.
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T15:09:47Z | implementacion | sesion:bdb2d869-6133-422f-8b3d-f1c76840a4dc | 22 | 24129 | 5781240 | 17330 | 0 | 5822721 | - | - |
+
+## Verificacion omitida
+
+- 2026-11-13T16:10:30Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
