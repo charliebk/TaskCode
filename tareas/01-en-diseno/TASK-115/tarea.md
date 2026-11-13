@@ -7,7 +7,7 @@ etiquetas: [arreglo, urgente, v0.16]
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-115-p-7-verificacion-completa-por-lote-de-ci
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,3 +38,4 @@ En ToolsaWeb cada finish corre la verificacion completa (28 min de mediana) aunq
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T13:54:02Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T13:54:27Z | approve | automatico | persona | 0.14.0 |
