@@ -7,6 +7,7 @@ import {
   runGitflowScript,
   GitflowScriptLaunchError,
   sondearBash,
+  bashDeTaskctl,
 } from '../../src/fs/gitflow-runner.js';
 
 test('resolveGitflowScriptsDir: respeta CLAUDE_PLUGIN_ROOT cuando esta definida', () => {
@@ -123,4 +124,35 @@ test('sondearBash: un script que no existe no lanza y no es OK', () => {
   const r = sondearBash({ scriptsDir: path.join(import.meta.dirname, 'no-existe'), cwd: process.cwd() });
   assert.equal(r.ok, false);
   if (!r.ok) assert.equal(r.causa, 'fallo');
+});
+
+test('TASK-134: con un bash falso el primero del PATH, Windows usa el bash de Git y POSIX el del PATH como siempre', async () => {
+  const { mkdtempSync, writeFileSync, chmodSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const scriptsDir = path.join(import.meta.dirname, '..', '..', '..', 'scripts', 'gitflow');
+  const falso = mkdtempSync(path.join(tmpdir(), 'taskctl-bash-falso-'));
+  const guardado = process.env['PATH'];
+  try {
+    if (process.platform === 'win32') {
+      // Como el bash.exe de System32: esta delante y no sirve para abrir el script.
+      writeFileSync(path.join(falso, 'bash.exe'), 'no es un ejecutable');
+    } else {
+      writeFileSync(path.join(falso, 'bash'), '#!/bin/sh\necho "bash falso" >&2\nexit 7\n');
+      chmodSync(path.join(falso, 'bash'), 0o755);
+    }
+    process.env['PATH'] = `${falso}${path.delimiter}${guardado ?? ''}`;
+    const r = sondearBash({ scriptsDir, cwd: process.cwd() });
+    if (process.platform === 'win32') {
+      assert.equal(r.bash.origen, 'git', `sin git.exe con bash al lado en el PATH de esta maquina: ${JSON.stringify(r.bash)}`);
+      assert.equal(r.ok, true, JSON.stringify(r));
+      assert.equal(bashDeTaskctl().comando, r.bash.comando, 'la sonda y los scripts lanzan el mismo bash');
+    } else {
+      assert.deepEqual(r.bash, { comando: 'bash', origen: 'path' });
+      assert.equal(r.ok, false, 'en POSIX se sigue lanzando el bash del PATH, aqui el falso');
+      if (!r.ok) assert.match(r.detalle, /codigo 7/);
+    }
+  } finally {
+    process.env['PATH'] = guardado;
+    rmSync(falso, { recursive: true, force: true });
+  }
 });

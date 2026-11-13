@@ -204,7 +204,8 @@ function comprobarGit(cwd: string): Comprobacion {
 
 function arregloBash(): string {
   return process.platform === 'win32'
-    ? 'Instala Git for Windows (https://git-scm.com/download/win) y pon su carpeta usr\\bin al PRINCIPIO del PATH, ' +
+    ? 'Instala Git for Windows (https://git-scm.com/download/win) con git.exe en el PATH: taskctl usa el bash de esa ' +
+        'instalacion (usr\\bin\\bash.exe). Si aun asi falla, pon su carpeta usr\\bin al PRINCIPIO del PATH, ' +
         'antes de C:\\Windows\\System32 (ahi vive el bash de WSL, que no vale). En PowerShell, para esta terminal: ' +
         '$env:Path = "C:\\Program Files\\Git\\usr\\bin;" + $env:Path ; para siempre, editalo en las variables de ' +
         'entorno del sistema y abre una terminal nueva. Despues repite taskctl doctor.'
@@ -214,14 +215,21 @@ function arregloBash(): string {
 
 function comprobarBash(deps: DoctorCommandDeps): Comprobacion {
   const r = sondearBash({ scriptsDir: deps.scriptsDir ?? resolveGitflowScriptsDir(), cwd: deps.repoCwd });
-  if (r.ok) return ok('bash', `bash ejecuta los scripts de Git-Flow${r.version === '' ? '' : ` (bash ${r.version})`}`);
+  // TASK-134: en Windows se dice que bash se usa, y si no aparecio el de Git junto a git.exe.
+  const cual =
+    r.bash.origen === 'git'
+      ? `; bash de Git: ${r.bash.comando}`
+      : process.platform === 'win32'
+        ? '; no se encontro el bash de Git junto a git.exe: se usa el "bash" del PATH'
+        : '';
+  if (r.ok) return ok('bash', `bash ejecuta los scripts de Git-Flow${r.version === '' ? '' : ` (bash ${r.version})`}${cual}`);
   const que =
     r.causa === 'no-lanzable'
-      ? `no se pudo lanzar "bash" (${una(r.detalle)})`
+      ? `no se pudo lanzar "${r.bash.comando}" (${una(r.detalle)})`
       : r.causa === 'timeout'
         ? 'bash no termino el script de prueba a tiempo'
         : `bash no pudo ejecutar el script de prueba de Git-Flow (${una(r.detalle)})`;
-  return fallo('bash', que, arregloBash());
+  return fallo('bash', `${que}${cual}`, arregloBash());
 }
 
 // ---------------------------------------------------------------------
