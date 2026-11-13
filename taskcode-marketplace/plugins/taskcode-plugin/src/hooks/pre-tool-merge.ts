@@ -9,6 +9,7 @@
  * bloqueante; el fallo de un guardian deja pasar y no impide decidir al otro.
  */
 import { readFileSync } from 'node:fs';
+import { nombraHeldout, puedeIntegrar } from './prefiltro.js';
 
 let texto = '';
 try {
@@ -17,9 +18,9 @@ try {
   texto = '';
 }
 
-// TASK-114: prefiltro sin cargar el guardian: `merge`/`commit` y ademas `git` o
-// un `.sh` (el guardian decide con la regla exacta, INVOCA_GIT_O_CIERRE).
-const puedeIntegrar = /merge|commit/i.test(texto) && /git|\.sh/i.test(texto);
+// TASK-114: prefiltros sin cargar ningun guardian (prefiltro.ts, sin dependencias).
+const integra = puedeIntegrar(texto);
+const heldout = nombraHeldout(texto);
 
 interface Decision {
   codigo: 0 | 2;
@@ -27,7 +28,7 @@ interface Decision {
 }
 
 async function decidir(): Promise<Decision> {
-  if (/aceptacion/i.test(texto)) {
+  if (heldout) {
     try {
       const [g, e] = await Promise.all([import('./guardia-heldout.js'), import('./entrada-pretooluse.js')]);
       const d = g.decidirHeldout(e.parsearEntradaPreToolUse(texto));
@@ -36,7 +37,7 @@ async function decidir(): Promise<Decision> {
       // deja pasar: decide el otro guardian
     }
   }
-  if (puedeIntegrar) {
+  if (integra) {
     try {
       const g = await import('./guardia-merge.js');
       return g.decidirPreToolUse(g.parsearEntradaPreToolUse(texto));
@@ -47,7 +48,7 @@ async function decidir(): Promise<Decision> {
   return { codigo: 0, stderr: '' };
 }
 
-if (puedeIntegrar || /aceptacion/i.test(texto)) {
+if (integra || heldout) {
   decidir().then(
     (d) => {
       if (d.stderr !== '') process.stderr.write(`${d.stderr}\n`);

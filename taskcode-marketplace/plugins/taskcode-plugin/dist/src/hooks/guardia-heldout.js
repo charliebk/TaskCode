@@ -74,11 +74,13 @@ export function ramaActual(cwd) {
     return '';
 }
 /**
- * TASK-114: false solo si la config del repo se lee y no declara
- * `comando_heldout` (sin held-out, `finish` no los ejecuta y no hay nada que
- * proteger). Sin procesos: la raiz sale de buscar `.git` hacia arriba. Una
- * config que no se puede leer cuenta como que si los declara: un error no
- * apaga el guardian.
+ * TASK-114: false solo si la config del arbol de trabajo se lee y no declara
+ * `comando_heldout`. Sin procesos: la raiz sale de buscar `.git` hacia
+ * arriba. Una config que no se puede leer cuenta como que si los declara: un
+ * error no apaga el guardian. Riesgo aceptado (MEN-3 de la revision): `finish`
+ * lee la clave de la config de la rama BASE; una rama abierta antes de que la
+ * base la declarara tiene el guardian apagado aunque `finish` exija sus
+ * held-out.
  */
 export function declaraHeldout(cwd) {
     try {

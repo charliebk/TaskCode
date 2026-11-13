@@ -68,6 +68,9 @@ export function comandoCandidato(entrada: EntradaPreToolUse): string | null {
  * TASK-114: la palabra `git` (tambien `git.exe`, `/usr/bin/git`) o el nombre de
  * un script de cierre (`merge-<tipo>-to-<destino>.sh`, como en comando-merge.ts).
  * El punto de entrada (pre-tool-merge.ts) aplica un prefiltro mas laxo.
+ * Se acepta (MEN-2 de la revision) que la ofuscacion con comillas partidas
+ * (`g''it merge x`) la esquive: el guardian es un freno contra despistes, y la
+ * puerta de `finish` sigue verificando.
  */
 export const INVOCA_GIT_O_CIERRE = /\bgit\b|merge-[a-z]+-to-[a-z]+\.sh/i;
 

@@ -13,6 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { decidirHeldout, declaraHeldout } from '../../src/hooks/guardia-heldout.js';
 import { comandoCandidato, INVOCA_GIT_O_CIERRE } from '../../src/hooks/guardia-merge.js';
+import { nombraHeldout, puedeIntegrar } from '../../src/hooks/prefiltro.js';
 import { git } from '../helpers/finish-fixtures.js';
 
 const RAIZ_PLUGIN = path.join(import.meta.dirname, '..', '..', '..');
@@ -106,4 +107,15 @@ test('salida temprana (TASK-114, criterio 2): un comando sin git ni script de ci
       assert.equal(r.stderr, '');
     }
   });
+});
+
+test('salida temprana (TASK-114, MEN-1): el prefiltro del punto de entrada no carga el guardian sin git ni script', () => {
+  for (const t of ['grep -rn merge src', 'npm run commit-lint', 'echo commit', 'ls']) {
+    assert.equal(puedeIntegrar(t), false, t);
+  }
+  for (const t of ['git merge x', 'git commit -m x', 'bash merge-feature-to-develop.sh f', '& git.exe merge x']) {
+    assert.equal(puedeIntegrar(t), true, t);
+  }
+  assert.equal(nombraHeldout('cat tareas/02-en-curso/TASK-1/ACEPTACION/x'), true);
+  assert.equal(nombraHeldout('cat src/a.ts'), false);
 });
