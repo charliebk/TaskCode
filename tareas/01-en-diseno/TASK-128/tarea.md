@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [agilidad, verificacion, metricas, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-128-metricas-de-verificacion-por-puerta-tiem
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: [TASK-111, TASK-125]
 ---
 ## Objetivo
@@ -33,3 +33,9 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 - [ ] Con tareas cerradas antes de este cambio, sin registro, metricas y metricas --por-version siguen dando la misma salida en las columnas que ya existian (test de regresion sobre un repo con datos de la 0.14)
 - [ ] README y CHANGELOG describen las columnas nuevas
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T13:08:28Z | plan | automatico | persona | 0.14.0 |
