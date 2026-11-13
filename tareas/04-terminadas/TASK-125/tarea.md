@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-125-freno-stop-con-presupuesto-de-tiempo-y-c
 asignado_a: charlie.bk@gmail.com
@@ -66,6 +66,7 @@ Cerrados con `verificar-menores`, sin ronda 2 (modo rapido).
 | 2026-11-13T12:38:08Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T12:38:12Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T12:51:18Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T13:07:37Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -80,3 +81,9 @@ Cerrados con `verificar-menores`, sin ronda 2 (modo rapido).
 ## Verificacion omitida
 
 - 2026-11-13T13:07:28Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 75 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 29 min
+- Cierre (finish): 9 s, de 2026-11-13T13:07:28Z a 2026-11-13T13:07:37Z

@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-125 — Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea · etiquetas: agilidad, verificacion, v0.16 · rama feature/task-125-freno-stop-con-presupuesto-de-tiempo-y-c · terminada 2026-11-13 · tareas/04-terminadas/TASK-125/
 - TASK-111 — P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo · etiquetas: arreglo, urgente, v0.16 · rama feature/task-111-p-3-registrar-cada-ejecucion-del-freno-s · terminada 2026-11-13 · tareas/04-terminadas/TASK-111/
 - TASK-131 — Tres tests con expectativas anteriores a TASK-119 · etiquetas: tests, v0.16 · rama fix/task-131-tres-tests-con-expectativas-anteriores-a · terminada 2026-11-13 · tareas/04-terminadas/TASK-131/
 - TASK-127 — Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar · etiquetas: agilidad, revision, verificacion, v0.16 · rama feature/task-127-tope-de-rondas-de-revision-configurable · terminada 2026-11-13 · tareas/04-terminadas/TASK-127/

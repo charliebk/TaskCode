@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-125 (feature) — Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea (2026-11-13)
 - TASK-111 (feature) — P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo (2026-11-13)
 - Cambio de comportamiento (TASK-111): el freno Stop anota cada ejecucion en el registro de puertas (puerta `freno`: verde, rojo, omitido o excedido) y `taskctl metricas` la resume en las columnas `freno_n` y `freno`. Si la huella del arbol es la de su ultimo verde, el freno ya no vuelve a verificar, tampoco con cambios sin commitear.
 - TASK-131 (fix) — Tres tests con expectativas anteriores a TASK-119 (2026-11-13)
