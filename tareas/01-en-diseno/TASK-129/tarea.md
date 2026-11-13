@@ -7,7 +7,7 @@ etiquetas: [agilidad, verificacion, tests, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-129-freno-al-crecimiento-de-la-suite-presupu
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,3 +38,4 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T16:11:15Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T16:11:41Z | approve | automatico | persona | 0.14.0 |
