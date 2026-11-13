@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-114-p-6-hooks-pretooluse-que-salen-pronto-cu
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 4260864
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-13
@@ -38,3 +38,10 @@ Los hooks PreToolUse del plugin arrancan node y su logica en cada llamada a una 
 | 2026-11-13T01:44:38Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T01:44:58Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T01:45:00Z | start | automatico | persona | 0.14.0 |
+| 2026-11-13T02:00:34Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-13T02:00:34Z | implementacion | sesion:1fb23e40-df0f-4598-9be1-751ce6506e3c | 30 | 20785 | 4227552 | 12497 | 0 | 4260864 | - | - |
