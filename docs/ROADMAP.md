@@ -26,6 +26,7 @@
 | Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
 |---|---|---|---|---|---|
 | 1 | TASK-133 | Rojos de la suite completa de la 0.16.0 y publicación de la 0.16.1 | simple | urgente | — |
+| 2 | TASK-134 | En Windows taskctl lanza el bash de Git, no el primero del PATH (desde PowerShell cogía el de WSL) | simple | 0.16.1 | — |
 
 Los dos arreglos (test desfasado desde TASK-119 y enlace a `poda-tests.md`) están
 hechos y guardados en el stash `arreglos-suite-0.16.0`; tras `taskctl start
