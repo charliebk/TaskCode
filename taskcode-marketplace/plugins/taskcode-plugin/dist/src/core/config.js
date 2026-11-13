@@ -146,7 +146,12 @@ export const CONFIG_DEFAULTS = Object.freeze({
     excluir_de_revision: Object.freeze([
         '**/dist/**',
         '**/*.lock',
-        '**/*-lock.*',
+        // TASK-113 (IMPORTANTE de la ronda 2): no `**/*-lock.*`, que tambien casa
+        // con codigo real (`src/services/redis-lock.ts`) y lo sacaba de la revision.
+        '**/*-lock.json',
+        '**/*-lock.yaml',
+        '**/*-lock.yml',
+        '**/*-lock.toml',
         'tareas/**',
     ]),
     contexto_revision: Object.freeze([]),

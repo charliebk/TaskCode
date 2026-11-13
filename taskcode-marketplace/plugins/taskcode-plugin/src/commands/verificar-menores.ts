@@ -42,6 +42,7 @@ import { readTareaFile, writeTareaFile } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
 import { isAncestor, runGit } from '../fs/git.js';
 import { resolverConfig } from '../core/config.js';
+import { excluirDeRevision } from '../fs/revisores-rango.js';
 import { autoCommit, extraerPushFlag, mensajeChore, type AutoCommitResult } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
 
@@ -71,14 +72,25 @@ export interface VerificarMenoresCommandResult {
 }
 
 /**
- * Pathspec de Git para «todo el repo menos `tareas/` y los ficheros que
- * regenera `comando_sincronizacion`», desde cualquier subdirectorio. Los
+ * Pathspec de Git para «todo el repo menos `tareas/`, los ficheros que
+ * regenera `comando_sincronizacion` y lo que `review` no embebe
+ * (`excluir_de_revision` y los held-out)», desde cualquier subdirectorio. Los
  * derivados viajan en los commits de cada transicion (tambien en los de
- * despues de revisar): no son codigo que nadie reviso.
+ * despues de revisar): no son codigo que nadie reviso. Lo excluido de la
+ * revision tampoco (TASK-113): el revisor nunca lo leyo, asi que un `dist/`
+ * recompilado tras corregir un MENOR no es codigo sin revisar.
  */
 function fueraDeTareas(cwd: string): string[] {
-  const derivados = resolverConfig(cwd).rutas_sincronizacion.map((r) => `:(top,literal,exclude)${r}`);
-  return ['--', ':(top)', `:(top,exclude)${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`, ...derivados];
+  const config = resolverConfig(cwd);
+  const derivados = config.rutas_sincronizacion.map((r) => `:(top,literal,exclude)${r}`);
+  const excluidos = excluirDeRevision(config.excluir_de_revision).map((p) => `:(top,glob,exclude)${p}`);
+  return [
+    '--',
+    ':(top)',
+    `:(top,exclude)${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`,
+    ...derivados,
+    ...excluidos,
+  ];
 }
 
 /** Ficheros (rutas desde la raiz del repo) que cambian fuera de `tareas/` entre dos commits. */

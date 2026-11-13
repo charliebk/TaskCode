@@ -67,6 +67,8 @@ import {
   logOneline,
   diffParaRevision,
   diffRangeForPaths,
+  statDeFicheros,
+  PATRONES_TEST,
   hayMergesEntre,
   baseDeTipoSinRed,
 } from '../fs/git.js';
@@ -240,9 +242,11 @@ export function peticionTemplate(
   const diffBlock =
     diff !== ''
       ? diff
-      : (extras.excluidos ?? []).length > 0
-        ? '(todo el diff quedo excluido: ver "Excluido del diff" mas abajo)'
-        : '(sin diferencias respecto a la base)';
+      : (extras.tests ?? []).length > 0
+        ? '(solo cambian tests: ver "Tests del diff" mas abajo)'
+        : (extras.excluidos ?? []).length > 0
+          ? '(todo el diff quedo excluido: ver "Excluido del diff" mas abajo)'
+          : '(sin diferencias respecto a la base)';
   const fence = fenceFor(commitsBlock, diffBlock);
   return (
     `# Peticion de revision — ${task.id} (ronda ${ronda})\n\n` +
@@ -278,6 +282,7 @@ export function peticionTemplate(
     `${diffBlock}\n` +
     `${fence}\n` +
     seccionExcluidos(desde, extras) +
+    seccionTests(desde, extras) +
     (extras.seccionCobertura ?? '') +
     (extras.seccionVerificacion ?? '')
   );
@@ -348,6 +353,10 @@ export interface ExtrasPeticion {
   excluidos?: readonly string[];
   /** `git diff --stat` de los excluidos. */
   stat?: string;
+  /** TASK-113: ficheros de test de esta peticion; su diff no se embebe. */
+  tests?: readonly string[];
+  /** TASK-113: `git diff --stat` de `tests`. */
+  statTests?: string;
   /** Patrones de exclusion aplicados, para la orden que recupera su diff. */
   patrones?: readonly string[];
   /** TASK-040: inicio del rango en una ronda incremental. */
@@ -475,6 +484,41 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
     alcance: alcanceRondaSiguiente(textos.map((t) => t.texto)),
     fueAcotada,
   };
+}
+
+/**
+ * TASK-113: los tests no se embeben (eran la mayor parte de los bytes de la
+ * peticion): se listan con su `--stat` y su ruta, y con la orden que da su
+ * diff. Sin tests, no hay seccion.
+ */
+/** TASK-113: hasta cuantos tests la orden de la peticion los nombra uno a uno. */
+export const MAX_RUTAS_ORDEN_TESTS = 20;
+
+function seccionTests(desde: string, extras: ExtrasPeticion): string {
+  const tests = extras.tests ?? [];
+  if (tests.length === 0) return '';
+  // Con muchos tests, la orden por rutas no cabria en una linea de comandos
+  // (MEN-1 de la revision): se pide por los patrones de test.
+  const rutas =
+    tests.length <= MAX_RUTAS_ORDEN_TESTS
+      ? tests.map((t) => `":(literal)${t}"`).join(' ')
+      : [
+          ...PATRONES_TEST.map((p) => `":(glob)${p}"`),
+          ...(extras.patrones ?? []).map((p) => `":(exclude,glob)${p}"`),
+        ].join(' ');
+  const stat = (extras.statTests ?? '').replace(/\s+$/, '');
+  const fence = fenceFor(stat);
+  return (
+    `\n## Tests del diff (${tests.length} fichero(s))\n\n` +
+    'Su diff no se embebe, para aligerar la peticion. Leelos en su ruta o pide su\n' +
+    'diff con:\n\n' +
+    `${fence}\n` +
+    `git diff ${desde}..HEAD -- ${rutas}\n` +
+    `${fence}\n\n` +
+    `${fence}\n` +
+    `${stat}\n` +
+    `${fence}\n`
+  );
 }
 
 /**
@@ -909,9 +953,22 @@ async function runReview(
       // diff entero. Sin fragmentar, el unico grupo ya es "todos los
       // ficheros" y se reusa el diff completo ya calculado arriba, para
       // no repetir la misma llamada a Git dos veces.
+      // TASK-113: los tests del grupo no se embeben; van con su --stat y su ruta.
+      const esTest = new Set(paraRevision.tests);
+      const testsDelGrupo = plan.fragmentado
+        ? escritura.ficheros.filter((f) => esTest.has(f))
+        : paraRevision.tests;
       const diffDelGrupo = plan.fragmentado
-        ? diffRangeForPaths(desde, 'HEAD', escritura.ficheros, deps.repoCwd)
+        ? diffRangeForPaths(
+            desde,
+            'HEAD',
+            escritura.ficheros.filter((f) => !esTest.has(f)),
+            deps.repoCwd
+          )
         : diff;
+      const statTestsDelGrupo = plan.fragmentado
+        ? statDeFicheros(desde, 'HEAD', testsDelGrupo, deps.repoCwd)
+        : paraRevision.statTests;
       const alcanceDiff = plan.fragmentado
         ? `Diff de tu dominio (${escritura.ficheros.length} fichero(s) de ` +
           `${ficherosTocados.length}; git diff ${desde}..HEAD -- <tus ficheros>)`
@@ -941,6 +998,8 @@ async function runReview(
             ...(modeloRonda === null ? {} : { modeloRonda }),
             excluidos: paraRevision.excluidos,
             stat: paraRevision.stat,
+            tests: testsDelGrupo,
+            statTests: statTestsDelGrupo,
             patrones: excluir,
             ...(incremental && desde !== baseBranch ? { desde } : {}),
             ...(previa !== null

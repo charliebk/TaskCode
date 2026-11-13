@@ -272,6 +272,22 @@ export function diffRange(desde, hasta, cwd) {
     return runGit(['diff', `${desde}..${hasta}`], cwd);
 }
 /**
+ * TASK-113: globs de Git equivalentes, salvo en bordes, a la heuristica de
+ * fichero de test de `esRutaDeTest` (core/menores.ts): carpetas `test/`,
+ * `tests/` y `__tests__/` a cualquier profundidad, y nombres `*.test.*` y
+ * `*.spec.*`. Los calcula Git, como el resto de patrones de la peticion.
+ * Bordes conocidos (MEN-2 de la revision): una carpeta `x.test.y/` es test
+ * para `esRutaDeTest` y no para Git, y con `core.ignorecase` Git casa
+ * `Test/`. Lo peor es embeber de mas o listar de menos: nada se pierde.
+ */
+export const PATRONES_TEST = [
+    '**/test/**',
+    '**/tests/**',
+    '**/__tests__/**',
+    '**/*.test.*',
+    '**/*.spec.*',
+];
+/**
  * El diff que se embebe en una peticion de revision (TASK-034), sin los
  * ficheros que casan con `excluir` (patrones `git :(glob)`, ya
  * normalizados por config.ts).
@@ -285,14 +301,16 @@ export function diffRange(desde, hasta, cwd) {
  */
 export function diffParaRevision(desde, hasta, excluir, cwd) {
     const rango = `${desde}..${hasta}`;
-    const sinExcluidos = pathspecSinExcluidos(excluir);
     const { incluidos, excluidos } = ficherosParaRevision(desde, hasta, excluir, cwd);
+    // Los tests son los incluidos que desaparecen al excluir tambien PATRONES_TEST.
+    const sinTests = new Set(ficherosParaRevision(desde, hasta, [...excluir, ...PATRONES_TEST], cwd).incluidos);
+    const tests = incluidos.filter((f) => !sinTests.has(f));
     return {
         incluidos,
         excluidos,
-        diff: excluir.length === 0
-            ? runGit([...SIN_COMILLAS, 'diff', rango], cwd)
-            : runGit([...SIN_COMILLAS, 'diff', rango, ...sinExcluidos], cwd),
+        tests,
+        statTests: statDeFicheros(desde, hasta, tests, cwd),
+        diff: runGit([...SIN_COMILLAS, 'diff', rango, ...pathspecSinExcluidos([...excluir, ...PATRONES_TEST])], cwd),
         stat: excluidos.length === 0
             ? ''
             : // --stat=200: a 80 columnas Git abrevia las rutas con ".../" y
@@ -529,6 +547,24 @@ export function diffRangeForPaths(desde, hasta, paths, cwd) {
     // o con otros ficheros.
     return runGit([...SIN_COMILLAS, 'diff', `${desde}..${hasta}`, '--', ...paths.map((p) => `:(literal)${p}`)], cwd);
 }
+/**
+ * TASK-113: `git diff --stat=200 <desde>..<hasta> -- <paths>` de rutas reales
+ * (`:(literal)`). Vacio si `paths` esta vacio, sin llamar a Git. `--stat=200`:
+ * a 80 columnas Git abrevia las rutas con ".../" y el revisor no sabria cual
+ * leer.
+ */
+export function statDeFicheros(desde, hasta, paths, cwd) {
+    // Por lotes (MEN-1 de la revision): con miles de rutas largas, una sola
+    // llamada pasa del limite de la linea de comandos de Windows (ENAMETOOLONG).
+    const salidas = [];
+    for (let i = 0; i < paths.length; i += LOTE_RUTAS_STAT) {
+        const lote = paths.slice(i, i + LOTE_RUTAS_STAT);
+        salidas.push(runGit([...SIN_COMILLAS, 'diff', '--stat=200', `${desde}..${hasta}`, '--', ...lote.map((p) => `:(literal)${p}`)], cwd).replace(/\s+$/, ''));
+    }
+    return salidas.length === 0 ? '' : `${salidas.join('\n')}\n`;
+}
+/** Rutas por llamada a Git en `statDeFicheros`: lejos del limite de Windows (32 K caracteres). */
+export const LOTE_RUTAS_STAT = 100;
 /**
  * Rutas (con "/" de Git, no separador del SO) de los ficheros bajo
  * `prefix` en el arbol de `ref`, sin tocar el working tree. Lo usa

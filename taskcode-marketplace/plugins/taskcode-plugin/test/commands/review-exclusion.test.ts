@@ -112,8 +112,13 @@ test('review (TASK-034): dist/ y los lockfiles salen del diff embebido y quedan 
     'src/b.ts': 'export const b = 1;\n',
     'dist/a.js': 'var compilado = 1;\n',
     'pkg/yarn.lock': 'lock: 1\n',
+    'src/redis-lock.ts': 'export const l = 1;\n',
+    'pnpm-lock.yaml': 'lockfileVersion: 9\n',
   });
   const diff = bloqueDiff(peticion);
+  // TASK-113 (ronda 2): "-lock" en un fichero de codigo no lo excluye.
+  assert.match(diff, /diff --git a\/src\/redis-lock\.ts/);
+  assert.doesNotMatch(diff, /pnpm-lock\.yaml/);
   assert.match(diff, /diff --git a\/src\/b\.ts/);
   assert.doesNotMatch(diff, /dist\/a\.js/, 'el diff de dist/ no se tenia que embeber');
   assert.doesNotMatch(diff, /yarn\.lock/, 'un lockfile en una subcarpeta tambien se excluye');
@@ -157,7 +162,10 @@ test('config (TASK-034): excluir_de_revision valida, ancla los patrones sin / y 
   assert.deepEqual(parsearConfig('limite_wip: 1\n', RUTA).excluir_de_revision, [
     '**/dist/**',
     '**/*.lock',
-    '**/*-lock.*',
+    '**/*-lock.json',
+    '**/*-lock.yaml',
+    '**/*-lock.yml',
+    '**/*-lock.toml',
     'tareas/**',
   ]);
   assert.deepEqual(parsearConfig('excluir_de_revision: []\n', RUTA).excluir_de_revision, []);

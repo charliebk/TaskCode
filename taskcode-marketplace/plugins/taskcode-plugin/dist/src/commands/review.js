@@ -43,7 +43,7 @@ import { TOPE_RONDAS } from '../core/flujo.js';
 import { alcanceRondaSiguiente, commitRevisadoDe, hallazgosNoCerrados, hallazgosPendientes, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
+import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
@@ -109,9 +109,11 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
     // "sin diferencias" seria falso.
     const diffBlock = diff !== ''
         ? diff
-        : (extras.excluidos ?? []).length > 0
-            ? '(todo el diff quedo excluido: ver "Excluido del diff" mas abajo)'
-            : '(sin diferencias respecto a la base)';
+        : (extras.tests ?? []).length > 0
+            ? '(solo cambian tests: ver "Tests del diff" mas abajo)'
+            : (extras.excluidos ?? []).length > 0
+                ? '(todo el diff quedo excluido: ver "Excluido del diff" mas abajo)'
+                : '(sin diferencias respecto a la base)';
     const fence = fenceFor(commitsBlock, diffBlock);
     return (`# Peticion de revision — ${task.id} (ronda ${ronda})\n\n` +
         `- Tarea: ${task.id} — ${task.titulo}\n` +
@@ -146,6 +148,7 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `${diffBlock}\n` +
         `${fence}\n` +
         seccionExcluidos(desde, extras) +
+        seccionTests(desde, extras) +
         (extras.seccionCobertura ?? '') +
         (extras.seccionVerificacion ?? ''));
 }
@@ -280,6 +283,37 @@ async function leerRondaPrevia(revisionDir) {
         alcance: alcanceRondaSiguiente(textos.map((t) => t.texto)),
         fueAcotada,
     };
+}
+/**
+ * TASK-113: los tests no se embeben (eran la mayor parte de los bytes de la
+ * peticion): se listan con su `--stat` y su ruta, y con la orden que da su
+ * diff. Sin tests, no hay seccion.
+ */
+/** TASK-113: hasta cuantos tests la orden de la peticion los nombra uno a uno. */
+export const MAX_RUTAS_ORDEN_TESTS = 20;
+function seccionTests(desde, extras) {
+    const tests = extras.tests ?? [];
+    if (tests.length === 0)
+        return '';
+    // Con muchos tests, la orden por rutas no cabria en una linea de comandos
+    // (MEN-1 de la revision): se pide por los patrones de test.
+    const rutas = tests.length <= MAX_RUTAS_ORDEN_TESTS
+        ? tests.map((t) => `":(literal)${t}"`).join(' ')
+        : [
+            ...PATRONES_TEST.map((p) => `":(glob)${p}"`),
+            ...(extras.patrones ?? []).map((p) => `":(exclude,glob)${p}"`),
+        ].join(' ');
+    const stat = (extras.statTests ?? '').replace(/\s+$/, '');
+    const fence = fenceFor(stat);
+    return (`\n## Tests del diff (${tests.length} fichero(s))\n\n` +
+        'Su diff no se embebe, para aligerar la peticion. Leelos en su ruta o pide su\n' +
+        'diff con:\n\n' +
+        `${fence}\n` +
+        `git diff ${desde}..HEAD -- ${rutas}\n` +
+        `${fence}\n\n` +
+        `${fence}\n` +
+        `${stat}\n` +
+        `${fence}\n`);
 }
 /**
  * Lo excluido del diff no desaparece: se dice que es, cuanto pesa y con
@@ -659,9 +693,17 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
             // diff entero. Sin fragmentar, el unico grupo ya es "todos los
             // ficheros" y se reusa el diff completo ya calculado arriba, para
             // no repetir la misma llamada a Git dos veces.
+            // TASK-113: los tests del grupo no se embeben; van con su --stat y su ruta.
+            const esTest = new Set(paraRevision.tests);
+            const testsDelGrupo = plan.fragmentado
+                ? escritura.ficheros.filter((f) => esTest.has(f))
+                : paraRevision.tests;
             const diffDelGrupo = plan.fragmentado
-                ? diffRangeForPaths(desde, 'HEAD', escritura.ficheros, deps.repoCwd)
+                ? diffRangeForPaths(desde, 'HEAD', escritura.ficheros.filter((f) => !esTest.has(f)), deps.repoCwd)
                 : diff;
+            const statTestsDelGrupo = plan.fragmentado
+                ? statDeFicheros(desde, 'HEAD', testsDelGrupo, deps.repoCwd)
+                : paraRevision.statTests;
             const alcanceDiff = plan.fragmentado
                 ? `Diff de tu dominio (${escritura.ficheros.length} fichero(s) de ` +
                     `${ficherosTocados.length}; git diff ${desde}..HEAD -- <tus ficheros>)`
@@ -677,6 +719,8 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
                 ...(modeloRonda === null ? {} : { modeloRonda }),
                 excluidos: paraRevision.excluidos,
                 stat: paraRevision.stat,
+                tests: testsDelGrupo,
+                statTests: statTestsDelGrupo,
                 patrones: excluir,
                 ...(incremental && desde !== baseBranch ? { desde } : {}),
                 ...(previa !== null
