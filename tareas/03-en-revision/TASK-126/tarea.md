@@ -42,6 +42,7 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 | 2026-11-13T14:49:17Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T14:49:23Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T15:09:47Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T15:36:33Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
