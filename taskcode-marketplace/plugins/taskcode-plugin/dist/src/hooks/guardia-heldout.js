@@ -26,6 +26,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { numerosHeldoutEnRuta, numerosHeldoutEnTexto, CARPETA_HELDOUT } from '../core/heldout.js';
 import { numeroDeRama } from '../core/task-id.js';
+import { CONFIG_DIR, CONFIG_FILE, parsearConfig, raizDelRepo } from '../core/config.js';
 import { PASAR } from './entrada-pretooluse.js';
 const SHELL = new Set(['Bash', 'PowerShell']);
 /** Campos de `tool_input` que llevan una ruta o un patron de ruta (file_path, notebook_path, path, pattern, glob). */
@@ -72,12 +73,35 @@ export function ramaActual(cwd) {
     }
     return '';
 }
+/**
+ * TASK-114: false solo si la config del arbol de trabajo se lee y no declara
+ * `comando_heldout`. Sin procesos: la raiz sale de buscar `.git` hacia
+ * arriba. Una config que no se puede leer cuenta como que si los declara: un
+ * error no apaga el guardian. Riesgo aceptado (MEN-3 de la revision): `finish`
+ * lee la clave de la config de la rama BASE; una rama abierta antes de que la
+ * base la declarara tiene el guardian apagado aunque `finish` exija sus
+ * held-out.
+ */
+export function declaraHeldout(cwd) {
+    try {
+        const ruta = path.join(raizDelRepo(cwd), CONFIG_DIR, CONFIG_FILE);
+        if (!existsSync(ruta))
+            return false;
+        return parsearConfig(readFileSync(ruta, 'utf8'), ruta).comando_heldout !== null;
+    }
+    catch {
+        return true;
+    }
+}
 export function decidirHeldout(entrada) {
     try {
         const nums = numerosEnEntrada(entrada);
         if (nums.length === 0)
             return PASAR;
         if (typeof entrada.cwd !== 'string' || entrada.cwd === '' || !existsSync(entrada.cwd))
+            return PASAR;
+        // TASK-114: sin held-out declarado no hay nada que proteger; sale sin lanzar git.
+        if (!declaraHeldout(entrada.cwd))
             return PASAR;
         const rama = ramaActual(entrada.cwd);
         if (rama === null || rama === '')
