@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-111-p-3-registrar-cada-ejecucion-del-freno-s
 asignado_a: charlie.bk@gmail.com
@@ -39,3 +39,4 @@ El freno Stop corre la verificacion al final de cada turno con tarea en curso (s
 |---|---|---|---|---|
 | 2026-11-13T11:32:04Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T11:33:31Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-13T11:33:48Z | start | automatico | persona | 0.14.0 |
