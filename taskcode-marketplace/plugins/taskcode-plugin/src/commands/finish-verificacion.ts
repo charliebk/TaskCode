@@ -132,6 +132,57 @@ function anotarFinish(
   });
 }
 
+export interface PuertaPesadaOpts {
+  id: string;
+  /** Tipo de la tarea (de su rama de Git-Flow). */
+  tipo: string;
+  cwd: string;
+  timeoutMs?: number;
+  env?: NodeJS.ProcessEnv;
+  onAviso?: (aviso: string) => void;
+}
+
+/**
+ * TASK-126: los tests pesados. Solo si la tarea es de un tipo de
+ * `verificacion_pesada_en` y el proyecto declara `comando_verificacion_pesada`;
+ * quien llama la invoca tras la completa en verde (feature y fix nunca llegan
+ * aqui con la lista por defecto). Guarda su memo (arbol limpio, para el
+ * guardian), anota la puerta `finish` modo `pesada` y en rojo lanza
+ * FinishCommandError sin haber tocado nada. Devuelve si corrio.
+ */
+export function puertaPesada(o: PuertaPesadaOpts): boolean {
+  const config = resolverConfig(o.cwd);
+  const comando = config.comando_verificacion_pesada;
+  if (comando === null || !(config.verificacion_pesada_en as readonly string[]).includes(o.tipo)) return false;
+  const timeoutS = config.timeout_verificacion;
+  const inicio = Date.now();
+  const r = ejecutarVerificacion(o.cwd, comando, timeoutS, {
+    ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
+    ...(o.env === undefined ? {} : { env: o.env }),
+  });
+  anotarFinish(o.cwd, o.id, 'pesada', inicio, r.estado);
+  const limpio = isWorkspaceClean(o.cwd);
+  const huella = limpio ? huellaDelArbol(o.cwd, comando, timeoutS) : null;
+  if (huella !== null) guardarMemo(o.cwd, huella, r, 'pesada');
+  if (r.estado !== 'verde') {
+    throw new FinishCommandError(
+      `[ERROR] ${o.id}: no se mergea con los tests pesados en rojo (comando_verificacion_pesada, que exigen las ` +
+        `ramas ${config.verificacion_pesada_en.join(' y ')}). La completa salio en verde; no se ha tocado nada.\n` +
+        `${formatearVerificacionRoja(r)}\n` +
+        `Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y lo deja ` +
+        'anotado en la tarea.'
+    );
+  }
+  if (!limpio) {
+    throw new FinishCommandError(
+      `[ERROR] ${o.id}: los tests pesados salieron en verde, pero han dejado cambios en el arbol de trabajo ` +
+        `("${comando}" escribe ficheros versionados o no ignorados: mira git status). No se ha mergeado nada.`
+    );
+  }
+  o.onAviso?.(`${o.id}: tests pesados en verde (comando_verificacion_pesada, rama ${o.tipo}).`);
+  return true;
+}
+
 /**
  * TASK-115: `verificacion_por_lote` de la config de la RAMA BASE (la rama de
  * la tarea no puede activarsela). Una config de la base invalida no exime de

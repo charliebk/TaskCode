@@ -330,6 +330,33 @@ verificacion_por_lote: true      # en la config de la rama de integración
 - Cada lote deja una línea en el registro de puertas (puerta `finish`, modo
   `lote`).
 
+#### Tests pesados solo en release: `comando_verificacion_pesada`
+
+Los tests lentos (rendimiento, escala, los `#[ignore]` de Rust) no hace falta
+correrlos en cada feature: basta con exigirlos antes de llegar a la principal.
+
+```yaml
+comando_verificacion: "cargo test"                      # feature, fix y todo lo demas
+comando_verificacion_pesada: "cargo test -- --ignored"  # ademas, solo en release
+verificacion_pesada_en: [release, hotfix]               # opcional; por defecto [release]
+```
+
+- `comando_verificacion_pesada` exige `comando_verificacion` y usa
+  `timeout_verificacion`. `verificacion_pesada_en` admite `release` y `hotfix`
+  (otro valor aborta; sin el comando, tambien).
+- **`finish`** de una rama de esos tipos corre los pesados **despues** de la
+  completa en verde, guarda su resultado en su propio memo
+  (`.git/freno-verificacion-pesada.json`) y anota la puerta `finish` con modo
+  `pesada`; en rojo no integra. Feature y fix no los corren nunca.
+- **Guardián de merges**: un merge a mano de una release (o de un hotfix
+  listado) exige, además del verde de la completa, el de los pesados del mismo
+  commit; feature y fix no lo piden.
+- `taskctl doctor` dice en `puertas-verificacion` qué puerta corre los pesados.
+- Cómo separarlos: en Rust, marca los lentos con `#[ignore]` y quedan fuera de
+  `cargo test`; en Node, en un directorio o glob aparte; en Java, una
+  categoría o tag de JUnit excluida por defecto; en .NET, un `Trait` que el
+  filtro normal excluye.
+
 #### Tests held-out (`aceptacion/`)
 
 Tests de aceptación que escribe la **persona** a partir de los criterios y que

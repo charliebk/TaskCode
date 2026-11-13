@@ -77,7 +77,7 @@ test('doctor (TASK-125): dice que comando corre cada puerta (freno, review, fini
   const [solo] = comprobarPuertasVerificacion(parsearConfig(COMPLETA, RUTA));
   assert.equal(solo?.id, 'puertas-verificacion');
   assert.equal(solo?.nivel, 'ok');
-  assert.equal(solo?.mensaje, 'freno "npm test", sin presupuesto; review no verifica; finish "npm test"');
+  assert.equal(solo?.mensaje, 'freno "npm test", sin presupuesto; review no verifica; finish "npm test"; sin pesados');
   const [todas] = comprobarPuertasVerificacion(
     parsearConfig(
       `${COMPLETA}comando_verificacion_selectiva: "node sel.js"\ncomando_verificacion_freno: "node rapida.js"\n`,
@@ -86,12 +86,12 @@ test('doctor (TASK-125): dice que comando corre cada puerta (freno, review, fini
   );
   assert.equal(
     todas?.mensaje,
-    'freno "node rapida.js" (comando_verificacion_freno), presupuesto 180 s; review "node sel.js"; finish "npm test"'
+    'freno "node rapida.js" (comando_verificacion_freno), presupuesto 180 s; review "node sel.js"; finish "npm test"; sin pesados'
   );
   const [sinFreno] = comprobarPuertasVerificacion(
     parsearConfig(`${COMPLETA}comando_verificacion_selectiva: "node sel.js"\npresupuesto_freno_s: 90\n`, RUTA)
   );
-  assert.match(sinFreno?.mensaje ?? '', /^freno "node sel\.js", presupuesto 90 s; review "node sel\.js"; finish "npm test"$/);
+  assert.match(sinFreno?.mensaje ?? '', /^freno "node sel\.js", presupuesto 90 s; review "node sel\.js"; finish "npm test"; sin pesados$/);
 });
 
 test('guia (TASK-125): la skill y la doc de configuracion explican el reparto de claves por puerta', async () => {

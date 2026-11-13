@@ -37,6 +37,7 @@ const FICHEROS_MEMO = Object.freeze({
     selectiva: 'freno-verificacion-selectiva.json',
     documentacion: 'freno-verificacion-documentacion.json',
     freno: 'freno-verificacion-rapida.json',
+    pesada: 'freno-verificacion-pesada.json',
 });
 const VERSION_MEMO = 1;
 /**

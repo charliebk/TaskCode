@@ -249,7 +249,7 @@ function motivoDeBloqueo(integ: Integracion, config: TaskcodeConfig, contexto: C
   for (const t of timeouts) {
     const huella = huellaDeCommit(raiz, sha.out, comando, t);
     const r = huella === null ? null : leerMemo(raiz, huella);
-    if (r?.estado === 'verde') return null;
+    if (r?.estado === 'verde') return motivoPesada(integ, sha.out, config);
     if (r !== null) rojo = true;
   }
 
@@ -263,6 +263,30 @@ function motivoDeBloqueo(integ: Integracion, config: TaskcodeConfig, contexto: C
     comando,
     rojo ? 'la ultima verificacion de ese commit NO salio en verde' : 'no consta una verificacion en verde de ese commit',
     exencion.detalle
+  );
+}
+
+/**
+ * TASK-126: con la completa en verde, una release (o un hotfix, si
+ * `verificacion_pesada_en` lo lista) exige ademas el verde de los tests
+ * pesados del mismo commit (memo `pesada`, que deja `finish`). null si pasa.
+ * Feature y fix nunca los piden.
+ */
+function motivoPesada(integ: Integracion, sha: string, config: TaskcodeConfig): string | null {
+  const comando = config.comando_verificacion_pesada;
+  if (comando === null) return null;
+  const tipo = integ.release ? 'release' : /^(?:refs\/heads\/)?hotfix\//.test(integ.fuente) ? 'hotfix' : null;
+  if (tipo === null || !(config.verificacion_pesada_en as readonly string[]).includes(tipo)) return null;
+  const huella = huellaDeCommit(integ.raiz, sha, comando, config.timeout_verificacion);
+  const r = huella === null ? null : leerMemo(integ.raiz, huella, 'pesada');
+  if (r?.estado === 'verde') return null;
+  return mensaje(
+    integ.fuente,
+    sha,
+    integ.destino,
+    comando,
+    `una rama ${tipo} exige tambien los tests pesados (comando_verificacion_pesada) y ` +
+      (r === null ? 'no consta que hayan salido en verde para ese commit' : 'su ultima ejecucion NO salio en verde')
   );
 }
 

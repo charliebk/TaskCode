@@ -85,6 +85,13 @@ la tarea y `cierre` la clave `cierre_por_defecto` de la configuracion
 Un nombre de tag que ya existe o no vale para Git aborta antes de mergear sin
 tocar nada: muestra el error y pregunta otro nombre.
 
+**Tests pesados solo en release.** Si el proyecto separa los pesados
+(rendimiento, escala) en `comando_verificacion_pesada` (p. ej. completa
+`cargo test` y pesados `cargo test -- --ignored`), `finish` los corre ademas
+de la completa solo en los tipos de `verificacion_pesada_en` (release por
+defecto; hotfix si se declara); feature y fix no. En rojo no integra: arregla
+la causa o, si la persona lo decide, `--sin-verificacion`.
+
 ## GitLab propio (autoalojado)
 
 `--merge-request` reconoce `github.com` y los hosts que contienen «gitlab». Si

@@ -421,7 +421,11 @@ export function comprobarPuertasVerificacion(cfg) {
     const freno = `freno ${comandoFreno}, ${presupuesto === null ? 'sin presupuesto' : `presupuesto ${String(presupuesto)} s`}`;
     const review = `review ${selectiva ?? 'no verifica'}`;
     const finish = `finish ${completa}${selectiva !== null && comandoParcial(cfg) !== null ? ` (o ${selectiva} con codigo parcial)` : ''}`;
-    return [ok('puertas-verificacion', `${freno}; ${review}; ${finish}`)];
+    // TASK-126: que puerta corre los tests pesados.
+    const pesados = cfg.comando_verificacion_pesada === null
+        ? 'sin pesados'
+        : `pesados "${una(cfg.comando_verificacion_pesada)}" solo en ${cfg.verificacion_pesada_en.join(' y ')}`;
+    return [ok('puertas-verificacion', `${freno}; ${review}; ${finish}; ${pesados}`)];
 }
 // ---------------------------------------------------------------------
 // Tareas

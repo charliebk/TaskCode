@@ -45,7 +45,7 @@ import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { apartarPendientes, hayCambiosFueraDeTarea, hayPendientesDeTarea, recuperarApartado, } from '../fs/pendientes.js';
-import { extraerSinVerificacion, puertaReintento, puertaVerificacion } from './finish-verificacion.js';
+import { extraerSinVerificacion, puertaPesada, puertaReintento, puertaVerificacion } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
 import { puertaCobertura } from './finish-cobertura.js';
 import { runBoardCommand, boardFilePath } from './board.js';
@@ -385,6 +385,18 @@ async function runFinish(tareasRoot, argv, today, deps, progreso, pendientes) {
             // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
             entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
         });
+        // TASK-126: los tests pesados, solo tras la completa en verde y solo en los
+        // tipos de verificacion_pesada_en (release por defecto).
+        if (r.resultado.tipo === 'verde') {
+            puertaPesada({
+                id,
+                tipo,
+                cwd: deps.repoCwd,
+                env: entornoConContador(process.env, progreso.contador()),
+                ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+                ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+            });
+        }
         // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
         // de que el comando de held-out pueda reescribirlo.
         progreso.paso('cobertura');
