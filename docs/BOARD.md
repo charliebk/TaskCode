@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 23
+## Planificadas (00-planificadas) — 22
 
 ```text
 ID        Titulo                                                                                                          Asignado
@@ -23,7 +23,6 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                                          (sin asignar)
 TASK-111  P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo                         (sin asignar)
 TASK-115  P-7: verificacion completa por lote de cierres en modo automatico                                               (sin asignar)
-TASK-119  P-11: menos commits de proceso por tarea                                                                        (sin asignar)
 TASK-125  Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea                             (sin asignar)
 TASK-126  Verificacion por tipo de rama: los tests pesados solo en la puerta de release                                   (sin asignar)
 TASK-127  Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar                     (sin asignar)
@@ -32,7 +31,7 @@ TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, p
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 105
+## Terminadas (04-terminadas) — 106
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -137,6 +136,7 @@ TASK-114  P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer
 TASK-116  P-8: TaskCode declara su verificacion y doctor avisa cuando falta                                                   charlie.bk@gmail.com
 TASK-117  P-9: new propone la complejidad a partir de tareas parecidas ya cerradas                                            charlie.bk@gmail.com
 TASK-118  P-10: linea FIN con la duracion en todos los scripts de Git-Flow                                                    charlie.bk@gmail.com
+TASK-119  P-11: menos commits de proceso por tarea                                                                            charlie.bk@gmail.com
 TASK-120  P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren                              charlie.bk@gmail.com
 TASK-121  Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama                         charlie.bk@gmail.com
 TASK-122  Coste por tarea independiente del tamano del proyecto                                                               charlie.bk@gmail.com

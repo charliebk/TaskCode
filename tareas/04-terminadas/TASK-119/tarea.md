@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-119-p-11-menos-commits-de-proceso-por-tarea
 asignado_a: charlie.bk@gmail.com
@@ -81,6 +81,7 @@ selectiva y `review` lo repite sin volver a ejecutar hasta que cambia el arbol; 
 | 2026-11-13T09:00:41Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T09:20:18Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T09:45:39Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T10:01:37Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -95,3 +96,10 @@ selectiva y `review` lo repite sin volver a ejecutar hasta que cambia el arbol; 
 ## Verificacion omitida
 
 - 2026-11-13T10:01:25Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 94 min
+- Paso de la hora: 94 min reales frente a 60 estimados
+- Cierre (finish): 12 s, de 2026-11-13T10:01:25Z a 2026-11-13T10:01:37Z
