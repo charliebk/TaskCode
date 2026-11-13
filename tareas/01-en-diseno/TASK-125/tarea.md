@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [agilidad, verificacion, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-125-freno-stop-con-presupuesto-de-tiempo-y-c
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: [TASK-111]
 ---
 ## Objetivo
@@ -33,3 +33,9 @@ Medido en ToolsaWeb (153 tareas terminadas, taskctl metricas, 2026-11-12): la re
 - [ ] config.ts valida las dos claves (presupuesto entero positivo y no mayor que el timeout del hook Stop) y taskctl doctor muestra que comando corre cada puerta: freno, review y finish (test)
 - [ ] README, CHANGELOG y la skill task-workflow explican el reparto de claves por puerta
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T12:36:53Z | plan | automatico | persona | 0.14.0 |
