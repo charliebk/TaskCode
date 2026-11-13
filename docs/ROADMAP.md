@@ -21,6 +21,16 @@
 
 ## Pendiente
 
+### 0.16.1 — rojos de la suite completa de la 0.16.0
+
+| Orden | Tarea | Título | Complejidad | Prioridad | Depende de |
+|---|---|---|---|---|---|
+| 1 | TASK-133 | Rojos de la suite completa de la 0.16.0 y publicación de la 0.16.1 | simple | urgente | — |
+
+Los dos arreglos (test desfasado desde TASK-119 y enlace a `poda-tests.md`) están
+hechos y guardados en el stash `arreglos-suite-0.16.0`; tras `taskctl start
+TASK-133`, `git stash pop`.
+
 ### Fase P — Agilidad sin perder calidad (5/6)
 
 Sale de la auditoría de agilidad de la 0.8 a la 0.13 (`docs/auditoria/INVENTARIO-AGILIDAD-2026-11-10.md`):
