@@ -235,6 +235,7 @@ La referencia detallada vive en `docs/`, un fichero por tema:
     - [Tareas de solo documentación: `rutas_documentacion`](docs/configuracion.md#tareas-de-solo-documentación-rutas_documentacion)
     - [Código parcial: `rutas_verificacion_parcial`](docs/configuracion.md#código-parcial-rutas_verificacion_parcial)
     - [Freno de fin de turno (hook `Stop`)](docs/configuracion.md#freno-de-fin-de-turno-hook-stop)
+    - [Comando y presupuesto propios del freno: `comando_verificacion_freno`](docs/configuracion.md#comando-y-presupuesto-propios-del-freno-comando_verificacion_freno)
     - [Coste de implementación automático (hooks `Stop` y `SubagentStop`)](docs/configuracion.md#coste-de-implementación-automático-hooks-stop-y-subagentstop)
     - [Puerta de verificación en `finish`](docs/configuracion.md#puerta-de-verificación-en-finish)
     - [Tests held-out (`aceptacion/`)](docs/configuracion.md#tests-held-out-aceptacion)
