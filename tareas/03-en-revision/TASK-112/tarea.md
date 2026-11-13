@@ -54,6 +54,13 @@ aprobada-con-correcciones.
 - MEN-3 (MENOR, corregido): quien vuelve con solo MENORES ya no lee "no tienes
   hallazgos pendientes", sino cuantos MENORES no se reverifican.
 
+Ronda 2 (acotada, haiku): aprobada; IMP-1 y MEN-1..3 corregidos. Notas fuera de la
+tabla, pendientes para una tarea futura: N-1, revision.md:93-94 aun dice "el revisor
+corre la suite completa una vez por ronda" sin la excepcion; N-2, en una verificacion
+de tipo documentacion la regla de no repetir puede leerse como si se hubieran corrido
+tests (deberia emitirse solo en la selectiva).
+
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
