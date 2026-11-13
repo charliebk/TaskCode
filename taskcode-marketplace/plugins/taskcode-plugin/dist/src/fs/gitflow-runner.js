@@ -25,8 +25,10 @@
  * `start`, `review` y `finish` no la pasan y se quedan con 'ignore'.
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { entornoParaBash, resolverBash } from '../core/resolver-bash.js';
 function packageRoot() {
     // dist/src/fs/gitflow-runner.js -> dist/src/fs -> dist/src -> dist -> raiz del paquete
     const moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -59,30 +61,41 @@ export function resolveGitflowScriptsDir() {
 export class GitflowScriptLaunchError extends Error {
     scriptName;
     originalError;
-    constructor(scriptName, originalError) {
-        super(`No se pudo ejecutar "bash" para lanzar ${scriptName}: ${originalError.message}`);
+    constructor(scriptName, originalError, bash = 'bash') {
+        super(`No se pudo ejecutar "${bash}" para lanzar ${scriptName}: ${originalError.message}`);
         this.scriptName = scriptName;
         this.originalError = originalError;
         this.name = 'GitflowScriptLaunchError';
     }
 }
 /**
- * EL unico sitio que lanza bash: `bash "<ruta>" args`, sin shell y con el
- * PATH heredado. `runGitflowScript` y la sonda de `taskctl doctor` pasan por
- * aqui: si la sonda lanzara de otra forma, podria dar OK y que los scripts
- * fallaran (o al reves).
+ * El bash que lanza taskctl (TASK-134): en Windows, el de la instalacion de
+ * Git que contiene el primer git.exe del PATH; si no lo hay, y fuera de
+ * Windows, "bash" del PATH. Ver core/resolver-bash.ts.
  */
-function lanzarBash(scriptPath, args, extra) {
-    return spawnSync('bash', [scriptPath, ...args], extra);
+export function bashDeTaskctl() {
+    return resolverBash({ plataforma: process.platform, path: process.env['PATH'] ?? '', existe: existsSync });
+}
+/**
+ * EL unico sitio que lanza bash: `<bash> "<ruta>" args`, sin shell, con el
+ * bash de `bashDeTaskctl()` y el PATH heredado (con el usr\bin de Git delante
+ * si el bash es el de Git: ver `entornoParaBash`). `runGitflowScript` y la
+ * sonda de `taskctl doctor` pasan por aqui: si la sonda lanzara de otra
+ * forma, podria dar OK y que los scripts fallaran (o al reves).
+ */
+function lanzarBash(bash, scriptPath, args, extra) {
+    const env = entornoParaBash(bash, extra.env ?? process.env);
+    return spawnSync(bash.comando, [scriptPath, ...args], env === null ? extra : { ...extra, env });
 }
 export function runGitflowScript(scriptName, args, opts) {
     const scriptPath = path.join(opts.scriptsDir, scriptName);
-    const result = lanzarBash(scriptPath, args, {
+    const bash = bashDeTaskctl();
+    const result = lanzarBash(bash, scriptPath, args, {
         cwd: opts.cwd,
         stdio: [opts.stdin ?? 'ignore', 'inherit', 'inherit'],
     });
     if (result.error) {
-        throw new GitflowScriptLaunchError(scriptName, result.error);
+        throw new GitflowScriptLaunchError(scriptName, result.error, bash.comando);
     }
     return { code: result.status ?? 1, signal: result.signal ?? null };
 }
@@ -99,7 +112,8 @@ const MARCA_SONDA = 'taskctl-sonda-ok';
  * para que `doctor --json` siga limpio).
  */
 export function sondearBash(opts) {
-    const r = lanzarBash(path.join(opts.scriptsDir, SONDA_BASH), [], {
+    const bash = bashDeTaskctl();
+    const r = lanzarBash(bash, path.join(opts.scriptsDir, SONDA_BASH), [], {
         cwd: opts.cwd,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -109,14 +123,14 @@ export function sondearBash(opts) {
     const limpio = (t) => String(t ?? '').replace(/\u0000/g, '').trim();
     if (r.error) {
         const agotado = r.error.code === 'ETIMEDOUT';
-        return { ok: false, causa: agotado ? 'timeout' : 'no-lanzable', detalle: limpio(r.error.message) };
+        return { bash, ok: false, causa: agotado ? 'timeout' : 'no-lanzable', detalle: limpio(r.error.message) };
     }
     const lineas = limpio(r.stdout).split(/\r?\n/);
     const marca = lineas.find((l) => l.startsWith(MARCA_SONDA));
     if (r.status === 0 && marca !== undefined) {
-        return { ok: true, version: marca.slice(MARCA_SONDA.length).trim() };
+        return { bash, ok: true, version: marca.slice(MARCA_SONDA.length).trim() };
     }
     const err = limpio(r.stderr).split(/\r?\n/).filter((x) => x !== '').slice(0, 3).join(' | ');
     const codigo = r.status === null ? `senal ${r.signal ?? 'desconocida'}` : `codigo ${r.status}`;
-    return { ok: false, causa: 'fallo', detalle: `el script de prueba termino con ${codigo}${err === '' ? '' : `: ${err}`}` };
+    return { bash, ok: false, causa: 'fallo', detalle: `el script de prueba termino con ${codigo}${err === '' ? '' : `: ${err}`}` };
 }

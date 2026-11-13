@@ -771,11 +771,22 @@ test('bash: fallo, marca de sonda, marca sin codigo y sin bash en el PATH', asyn
         const c = por(r.comprobaciones, 'bash');
         assert.equal(c.nivel, 'error');
         assert.match(c.mensaje, /no se pudo lanzar "bash"/);
+        // TASK-134 (MENOR-2): en Windows dice que no encontro el bash de Git y usa el del PATH.
+        if (WIN) assert.match(c.mensaje, /no se encontro el bash de Git junto a git\.exe: se usa el "bash" del PATH/);
+        else assert.doesNotMatch(c.mensaje, /bash de Git/);
         assert.equal(r.codigo, 1);
       } finally {
         process.env['PATH'] = guardado;
         await rm(vacio, { recursive: true, force: true });
       }
+    });
+  });
+  await caso('bash (TASK-134): con el bash de Git, doctor dice cual usa (solo Windows)', async () => {
+    if (!WIN) return;
+    await conRepo(async (repoRoot) => {
+      const c = por(doctor(repoRoot).comprobaciones, 'bash');
+      assert.equal(c.nivel, 'ok', c.mensaje);
+      assert.match(c.mensaje, /; bash de Git: .+\\usr\\bin\\bash\.exe$/);
     });
   });
 });

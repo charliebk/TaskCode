@@ -11,13 +11,20 @@
  *   bash de Git con su carpeta de herramientas, el test se salta.
  * Un control positivo (el mismo PATH CON `mktemp`) debe dar OK: sin el, el test
  * podria pasar porque el PATH montado no sirve para nada.
+ *
+ * Windows desde TASK-134: con un git.exe en el PATH, taskctl lanza el bash de
+ * esa instalacion con su usr\bin delante, asi que ahi nunca falta `mktemp`. El
+ * caso sin `mktemp` monta entonces un PATH SIN git (el respaldo al bash del
+ * PATH, que es donde puede faltar) y exige que el fallo nombre a `mktemp`, la
+ * primera herramienta que usa la sonda: asi no pasa por faltar git. El control
+ * positivo conserva git y comprueba el camino normal.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { sondearBash } from '../../src/fs/gitflow-runner.js';
+import { bashDeTaskctl, sondearBash } from '../../src/fs/gitflow-runner.js';
 
 const SCRIPTS_DIR = path.join(import.meta.dirname, '..', '..', '..', 'scripts', 'gitflow');
 const WIN = process.platform === 'win32';
@@ -44,8 +51,11 @@ function montarEntorno(conMktemp: boolean): Entorno | null {
   const limpiar = () => rmSync(dir, { recursive: true, force: true });
   try {
     if (WIN) {
-      // La carpeta de bash de Git es la que tiene bash.exe Y mktemp.exe juntos.
-      const dirs = (process.env['PATH'] ?? '').split(path.delimiter);
+      // La carpeta de bash de Git es la que tiene bash.exe Y mktemp.exe juntos. Se toma de la
+      // instalacion de Git (TASK-134, MENOR-3) y no del PATH heredado: asi el test no se salta
+      // cuando la suite se lanza desde PowerShell, sin usr\bin en el PATH.
+      const b = bashDeTaskctl();
+      const dirs = [...(b.origen === 'git' ? [b.herramientas] : []), ...(process.env['PATH'] ?? '').split(path.delimiter)];
       const bashDir = dirs.find((d) => d !== '' && existsSync(path.join(d, 'bash.exe')) && existsSync(path.join(d, 'mktemp.exe')));
       const git = buscar('git');
       if (bashDir === undefined || git === null) {
@@ -65,7 +75,7 @@ function montarEntorno(conMktemp: boolean): Entorno | null {
           copyFileSync(origen, path.join(usrBin, f));
         }
       }
-      return { path: `${usrBin}${path.delimiter}${path.dirname(git)}`, limpiar };
+      return { path: conMktemp ? `${usrBin}${path.delimiter}${path.dirname(git)}` : usrBin, limpiar };
     }
     const herramientas = ['bash', 'dirname', 'grep', 'sed', 'tr', 'wc', 'rm', 'git', 'cat', 'env', ...(conMktemp ? ['mktemp'] : [])];
     for (const h of herramientas) {
@@ -112,7 +122,7 @@ test('sonda: a un entorno sin mktemp lo da por no valido (la sonda prueba mktemp
     assert.equal(r.ok, false, 'la sonda dio OK sin mktemp: no lo esta probando');
     if (!r.ok) {
       assert.equal(r.causa, 'fallo');
-      assert.match(r.detalle, /mktemp|codigo 127/);
+      assert.match(r.detalle, WIN ? /mktemp/ : /mktemp|codigo 127/);
     }
   } finally {
     e.limpiar();

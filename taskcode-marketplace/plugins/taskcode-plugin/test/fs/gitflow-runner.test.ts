@@ -7,6 +7,7 @@ import {
   runGitflowScript,
   GitflowScriptLaunchError,
   sondearBash,
+  bashDeTaskctl,
 } from '../../src/fs/gitflow-runner.js';
 
 test('resolveGitflowScriptsDir: respeta CLAUDE_PLUGIN_ROOT cuando esta definida', () => {
@@ -110,6 +111,9 @@ test('GitflowScriptLaunchError: mensaje incluye el nombre del script y el error 
   assert.match(err.message, /No se pudo ejecutar "bash"/);
   assert.equal(err.originalError, original);
   assert.equal(err.name, 'GitflowScriptLaunchError');
+  // TASK-134 (MENOR-1): con el bash de Git, el error nombra el que se intento lanzar.
+  const conRuta = new GitflowScriptLaunchError('finish.sh', original, 'C:\\Program Files\\Git\\usr\\bin\\bash.exe');
+  assert.match(conRuta.message, /No se pudo ejecutar "C:\\Program Files\\Git\\usr\\bin\\bash\.exe" para lanzar finish\.sh/);
 });
 
 test('sondearBash: el script de la sonda corre de verdad con este bash (TASK-062)', () => {
@@ -123,4 +127,43 @@ test('sondearBash: un script que no existe no lanza y no es OK', () => {
   const r = sondearBash({ scriptsDir: path.join(import.meta.dirname, 'no-existe'), cwd: process.cwd() });
   assert.equal(r.ok, false);
   if (!r.ok) assert.equal(r.causa, 'fallo');
+});
+
+test('TASK-134: con un bash falso el primero del PATH, Windows usa el bash de Git y POSIX el del PATH como siempre', async (t) => {
+  const { existsSync, mkdtempSync, writeFileSync, chmodSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const scriptsDir = path.join(import.meta.dirname, '..', '..', '..', 'scripts', 'gitflow');
+  const guardado = process.env['PATH'];
+  let resto = guardado ?? '';
+  if (process.platform === 'win32') {
+    // El PATH tipico de PowerShell: System32 (bash de WSL) y Git\cmd, SIN usr\bin.
+    const b = bashDeTaskctl();
+    const cmd = b.origen === 'git' ? path.join(path.dirname(path.dirname(b.herramientas)), 'cmd') : '';
+    if (cmd === '' || !existsSync(path.join(cmd, 'git.exe'))) return t.skip('esta maquina no tiene Git for Windows con cmd\\git.exe');
+    resto = [path.join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32'), cmd].join(path.delimiter);
+  }
+  const falso = mkdtempSync(path.join(tmpdir(), 'taskctl-bash-falso-'));
+  try {
+    if (process.platform === 'win32') {
+      // Como el bash.exe de System32: esta delante y no sirve para abrir el script.
+      writeFileSync(path.join(falso, 'bash.exe'), 'no es un ejecutable');
+    } else {
+      writeFileSync(path.join(falso, 'bash'), '#!/bin/sh\necho "bash falso" >&2\nexit 7\n');
+      chmodSync(path.join(falso, 'bash'), 0o755);
+    }
+    process.env['PATH'] = `${falso}${path.delimiter}${resto}`;
+    const r = sondearBash({ scriptsDir, cwd: process.cwd() });
+    if (process.platform === 'win32') {
+      assert.equal(r.bash.origen, 'git', `sin git.exe con bash al lado en el PATH de esta maquina: ${JSON.stringify(r.bash)}`);
+      assert.equal(r.ok, true, JSON.stringify(r));
+      assert.equal(bashDeTaskctl().comando, r.bash.comando, 'la sonda y los scripts lanzan el mismo bash');
+    } else {
+      assert.deepEqual(r.bash, { comando: 'bash', origen: 'path' });
+      assert.equal(r.ok, false, 'en POSIX se sigue lanzando el bash del PATH, aqui el falso');
+      if (!r.ok) assert.match(r.detalle, /codigo 7/);
+    }
+  } finally {
+    process.env['PATH'] = guardado;
+    rmSync(falso, { recursive: true, force: true });
+  }
 });
