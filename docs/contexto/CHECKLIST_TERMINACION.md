@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 133 / 133 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 134 / 134 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 32 | **32** | — |
+| ✅ P — Agilidad sin perder calidad | 33 | **33** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (32/32)
+## ✅ P — Agilidad sin perder calidad (33/33)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -163,6 +163,11 @@ del código.
       del último verde del freno, que omite el turno sin cambios también con el árbol sucio; métricas con freno_n y
       freno. Dos rondas: IMP-1 (rojo de memo contaba como ejecución), IMP-2 (test de cableado de metricas) y MEN-1
       corregidos; ronda 2 aprobada sin hallazgos. finish --sin-verificacion (verificar-impacto 868/868).*
+- [x] TASK-125 — Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea — cerrada el 2026-11-13
+      *comando_verificacion_freno (solo el freno, memo propio que no abre el guardián) y presupuesto_freno_s (180 s
+      por defecto con el comando, tope 3600); un corte por presupuesto deja parar y anota excedido; doctor muestra
+      puertas-verificacion. Una ronda aprobada; MEN-1 y MEN-2 corregidos con verificar-menores. Se archivaron
+      TASK-092..109 del checklist por su tope de 20 KB. finish --sin-verificacion (verificar-impacto 980/980).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
