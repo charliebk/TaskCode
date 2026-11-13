@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-111-p-3-registrar-cada-ejecucion-del-freno-s
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: [TASK-120]
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ El freno Stop corre la verificacion al final de cada turno con tarea en curso (s
 - [ ] Si la huella del arbol no cambio desde el ultimo verde, el freno no ejecuta la verificacion y no anade salida (test)
 - [ ] La linea del freno usa el formato comun de registro de TASK-120 con puerta freno, y el resultado distingue verde, rojo, omitido (sin cambios desde el ultimo verde) y excedido, este ultimo reservado para el presupuesto de TASK-125 (test)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T11:32:04Z | plan | automatico | persona | 0.14.0 |
