@@ -42,6 +42,7 @@
  * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
 import { PUERTA_FINISH, PUERTA_REVIEW, resumirFreno, resumirPuerta, sumarPorTarea } from '../core/registro-puertas.js';
+import { PUERTA_SUITE } from '../core/crecimiento-suite.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -341,11 +342,19 @@ export async function leerRepoMetricas(repo, varios) {
     // TASK-128: las verificaciones de review y de finish, de la misma lectura.
     const reviewPorTarea = resumirPuerta(registroPuertas, PUERTA_REVIEW);
     const finishPorTarea = resumirPuerta(registroPuertas, PUERTA_FINISH);
+    // TASK-129: la ultima completa en verde de cada tarea (numero de tests y duracion).
+    const suitePorTarea = new Map();
+    for (const l of registroPuertas) {
+        if (l.puerta !== PUERTA_SUITE || l.resultado !== 'verde')
+            continue;
+        suitePorTarea.set(l.tarea, { tests: /^\d+$/.test(l.modo) ? Number(l.modo) : null, completaS: l.duracionS });
+    }
     const filas = leidas.map((l) => calcularFila({
         sincronizacionS: sincPorTarea.get(l.task.task.id) ?? null,
         freno: frenoPorTarea.get(l.task.task.id) ?? null,
         review: reviewPorTarea.get(l.task.task.id) ?? null,
         finishVerificacion: finishPorTarea.get(l.task.task.id) ?? null,
+        suite: suitePorTarea.get(l.task.task.id) ?? null,
         task: l.task.task,
         body: l.task.body,
         ronda: l.ronda,

@@ -60,6 +60,17 @@ export function resumirVersion(version, filas) {
         sinTablaHallazgos: g.sinTablaHallazgos,
         hallazgosPorSeveridad: porSeveridad,
         hallazgosPorOrigen: porOrigen,
+        tests: (() => {
+            const xs = filas.map((f) => f.suite?.tests ?? null).filter((x) => x !== null);
+            return xs.length === 0 ? null : Math.max(...xs);
+        })(),
+        completaS: (() => {
+            const xs = filas.map((f) => f.suite?.completaS ?? null).filter((x) => x !== null).sort((a, b) => a - b);
+            if (xs.length === 0)
+                return null;
+            const m = Math.floor(xs.length / 2);
+            return xs.length % 2 === 1 ? xs[m] : (xs[m - 1] + xs[m]) / 2;
+        })(),
         tokens: {
             diseno: cifraTokens(filas.map((f) => f.tokens.diseno)),
             implementacion: cifraTokens(filas.map((f) => f.tokens.implementacion)),
@@ -88,12 +99,25 @@ export const NOTA_POR_VERSION = 'Solo tareas terminadas, agrupadas por la versio
     'o editadas a mano): nunca se deducen por fecha. «a la primera» y «rondas medias», de las tareas con ' +
     'revision. Hallazgos: suma de las tareas con tabla de hallazgos (n), una vez por revisor + ID; ' +
     '«sin tabla» se cuenta aparte, no como cero. Tokens: media por tarea de las que tienen dato en esa ' +
-    'fase (n). «—» = ninguna tarea del grupo tiene ese dato.';
+    'fase (n). tests y completa: el mayor numero de tests y la mediana de la duracion de la verificacion ' +
+    'completa en verde del grupo, del registro de puertas (linea suite). «—» = ninguna tarea del grupo tiene ese dato.';
 /** Texto de `--por-version`: una tabla de rondas y tokens y otra de hallazgos. */
 export function formatearPorVersion(p) {
     const grupos = [...p.versiones, ...(p.sinVersion.n > 0 ? [p.sinVersion] : [])];
     const nombre = (g) => g.version ?? 'sin version';
-    const general = tablaDeTexto(['version', 'tareas', 'con revision', 'a la primera', 'rondas medias', 'tokens diseno', 'tokens impl.', 'tokens revision'], grupos.map((g) => [
+    const general = tablaDeTexto([
+        'version',
+        'tareas',
+        'con revision',
+        'a la primera',
+        'rondas medias',
+        'tokens diseno',
+        'tokens impl.',
+        'tokens revision',
+        // TASK-129: tamano de la suite (registro de puertas, linea `suite`).
+        'tests',
+        'completa',
+    ], grupos.map((g) => [
         nombre(g),
         String(g.n),
         String(g.conRevision),
@@ -102,6 +126,8 @@ export function formatearPorVersion(p) {
         celdaTokens(g.tokens.diseno),
         celdaTokens(g.tokens.implementacion),
         celdaTokens(g.tokens.revision),
+        celda(g.tests),
+        g.completaS === null ? '—' : `${String(Math.round(g.completaS))} s`,
     ]));
     const hallazgos = tablaDeTexto(['version', 'con tabla', 'sin tabla', 'CRITICO', 'IMPORTANTE', 'MENOR', 'desconocida', 'impl.', 'plan', 'especif.', 'sin clasificar'], grupos.map((g) => {
         const s = g.hallazgosPorSeveridad;

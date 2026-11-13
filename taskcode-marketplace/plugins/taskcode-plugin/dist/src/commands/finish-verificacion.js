@@ -55,6 +55,7 @@ import { autoCommit, mensajeChore } from '../fs/git-commit.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { ejecutarVerificacion, guardarMemo, huellaDelArbol, verificarConMemo } from '../fs/verificacion.js';
 import { PUERTA_FINISH } from '../core/registro-puertas.js';
+import { contarTests, PUERTA_SUITE } from '../core/crecimiento-suite.js';
 import { configDeRef } from '../fs/config-de-ref.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
 import { FinishCommandError } from './finish-opciones.js';
@@ -139,6 +140,21 @@ function porLoteEnBase(o, ramaBase) {
     catch {
         return false;
     }
+}
+/**
+ * TASK-129: el tamano de la completa en el registro de puertas (puerta
+ * `suite`, modo = numero de tests o `-`), para el aviso de crecimiento.
+ */
+export function anotarSuite(cwd, id, inicioMs, r) {
+    const n = contarTests(r.cola);
+    anotarPuerta(cwd, {
+        puerta: PUERTA_SUITE,
+        tarea: id,
+        instante: new Date().toISOString(),
+        modo: n === null ? '-' : String(n),
+        duracionS: (Date.now() - inicioMs) / 1000,
+        resultado: r.estado === 'verde' ? 'verde' : 'rojo',
+    });
 }
 function opcionesEjecucion(o) {
     return {
@@ -230,6 +246,7 @@ export async function puertaVerificacion(o) {
     const inicioMs = Date.now();
     const r = ejecutarVerificacion(o.cwd, comando, timeoutS, opcionesEjecucion(o));
     anotarFinish(o.cwd, o.id, 'completa', inicioMs, r.estado);
+    anotarSuite(o.cwd, o.id, inicioMs, r);
     // El memo solo con el arbol limpio: es la huella del commit que consulta el
     // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
     const limpio = isWorkspaceClean(o.cwd);
@@ -449,6 +466,8 @@ export function puertaReintento(o) {
     const inicioReintento = Date.now();
     const v = verificarConMemo(o.cwd, { ...peticion, memoSoloVerde: true }, opciones);
     anotarFinish(o.cwd, o.id, peticion.tipo, inicioReintento, v.resultado.estado, v.deMemo);
+    if (peticion.tipo === 'completa' && !v.deMemo)
+        anotarSuite(o.cwd, o.id, inicioReintento, v.resultado);
     if (v.resultado.estado !== 'verde') {
         throw new FinishCommandError(`[ERROR] ${o.id}: la rama ya esta integrada en "${o.ramaIntegracion}", pero la verificacion de su arbol no sale ` +
             `en verde (${peticion.tipo === 'completa' ? 'comando_verificacion' : `la ${peticion.tipo}`}): no se cierra la ` +

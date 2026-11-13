@@ -232,6 +232,8 @@ export interface FilaMetricas {
   finishVerificacion: { ejecuciones: number; duracion: Duracion } | null;
   /** TASK-128: rondas abiertas tras una ronda sin CRITICO ni IMPORTANTE; null sin dato. */
   rondasSoloMenores: number | null;
+  /** TASK-129: la ultima completa en verde de la tarea (tests y segundos); null sin dato. */
+  suite: { tests: number | null; completaS: number } | null;
 }
 
 export interface EntradaMetricas {
@@ -255,6 +257,8 @@ export interface EntradaMetricas {
   review?: { ejecuciones: number; duracionS: number } | null;
   /** TASK-128: las verificaciones de finish de la tarea en el registro de puertas; sin dato, null. */
   finishVerificacion?: { ejecuciones: number; duracionS: number } | null;
+  /** TASK-129: la ultima linea `suite` en verde de la tarea; sin dato, null. */
+  suite?: { tests: number | null; completaS: number } | null;
 }
 
 /** TASK-111/128: el resumen de una puerta en la forma de la fila (duracion en ms). */
@@ -479,6 +483,7 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     review: puertaDeFila(e.review),
     finishVerificacion: puertaDeFila(e.finishVerificacion),
     rondasSoloMenores: rondasSoloMenores(e.informes ?? []),
+    suite: e.suite ?? null,
     puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
     estimadaMin: estimadaAnotada(e.body),
     enPausa: enPausaDe(marcas),

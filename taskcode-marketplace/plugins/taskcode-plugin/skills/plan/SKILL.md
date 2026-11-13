@@ -72,6 +72,9 @@ no deberian necesitar volver a preguntar.
    ver `task-workflow/duracion.md`) y preguntaselo a la persona: decide ella.
    Si acepta, `taskctl trocear TASK-NNN`; si no, escribe en el plan el
    motivo para no trocear y sigue con approve. Nunca troceas sin su respuesta.
+   En `## Plan de pruebas`, por cada criterio, cuantos tests nuevos preve (de 1
+   a 3; si pasa, el motivo) y cuales seran pesados (rendimiento, escala), ver
+   `task-workflow/tests-pesados.md`.
    Si el plan deja decisiones abiertas para una persona, preguntalas ahora y
    anota las respuestas en el propio plan. Si la salida de `taskctl plan`
    nombro `skills_recomendados`, dejalos anotados para la implementacion.

@@ -34,6 +34,7 @@
  * | verificacion_por_lote        | false             | commands/finish-verificacion.ts (de la base), verificar-lote.ts (TASK-115) |
  * | comando_verificacion_pesada  | null (sin pesados) | finish-verificacion.ts, hooks/guardia-merge.ts, doctor.ts (TASK-126) |
  * | verificacion_pesada_en       | [release]         | finish-verificacion.ts, hooks/guardia-merge.ts (TASK-126) |
+ * | umbral_crecimiento_suite     | 20 (%)            | commands/doctor.ts (TASK-129) |
  * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
@@ -297,6 +298,8 @@ export interface TaskcodeConfig {
   comando_verificacion_pesada: string | null;
   /** TASK-126: tipos de rama que exigen los pesados (`release`, `hotfix`); `[release]` por defecto. */
   verificacion_pesada_en: readonly TipoRamaPesada[];
+  /** TASK-129: % de crecimiento de la suite (tests o duracion de la completa) entre versiones que hace avisar a doctor. */
+  umbral_crecimiento_suite: number;
 }
 
 /** TASK-126: los tipos de rama de Git-Flow que pueden exigir la verificacion pesada. */
@@ -372,6 +375,7 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   verificacion_por_lote: false,
   comando_verificacion_pesada: null,
   verificacion_pesada_en: Object.freeze(['release']) as readonly TipoRamaPesada[],
+  umbral_crecimiento_suite: 20,
 });
 
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
@@ -406,6 +410,7 @@ export const CLAVES_CONFIG = [
   'verificacion_por_lote',
   'comando_verificacion_pesada',
   'verificacion_pesada_en',
+  'umbral_crecimiento_suite',
 ] as const;
 
 /**
@@ -725,6 +730,16 @@ export function parsearConfigConAvisos(
           par.valor,
           'comando_verificacion_pesada: "cargo test -- --ignored"'
         );
+        break;
+      case 'umbral_crecimiento_suite':
+        if (typeof par.valor !== 'number' || !Number.isInteger(par.valor) || par.valor < 1 || par.valor > 1000) {
+          throw new ConfigError(
+            `[ERROR] ${donde}: "umbral_crecimiento_suite" debe ser un porcentaje entero de 1 a 1000, y es ` +
+              `${describirValor(par.valor)}.\n        Por defecto es 20: doctor avisa si los tests o la duracion de ` +
+              'la verificacion completa crecen mas de ese porcentaje entre dos versiones.'
+          );
+        }
+        config.umbral_crecimiento_suite = par.valor;
         break;
       case 'verificacion_pesada_en':
         config.verificacion_pesada_en = validarVerificacionPesadaEn(donde, par.valor);

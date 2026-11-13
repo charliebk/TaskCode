@@ -186,9 +186,8 @@ que ha dejado de ser cierto es peor que no tenerlo.
 Claves opcionales: `rama_base`, `agente_revisor_por_defecto`, `limite_wip`,
 `modo_flujo`, `excluir_de_revision`, `cierre_por_defecto`, las dos del remoto
 (`plataforma_remota`, `url_base_remoto`), las dos de verificacion
-(`comando_verificacion`, los tests de los frenos, y
-`timeout_verificacion`) y las tres de sincronizacion de ficheros derivados
-tras cada transicion. Sin fichero, todo por defecto; un valor invalido de una
+(`comando_verificacion` y `timeout_verificacion`) y las de sincronizacion
+de ficheros derivados. Sin fichero, todo por defecto; un valor invalido de una
 clave conocida aborta, y una clave desconocida avisa y se
 ignora. La sincronizacion y sus trampas, en [sincronizacion.md](sincronizacion.md).
 `tareas/ROADMAP.md` y su zona manual, en [roadmap.md](roadmap.md).
@@ -199,6 +198,7 @@ en verde, devuelve el turno con un informe. Arregla la causa; no borres,
 saltes ni debilites tests para pasarlo. Si el rojo no es tuyo, dilo
 al terminar: solo bloquea una vez por turno.
 `comando_verificacion_selectiva` y `comando_verificacion_freno`: [verificacion-selectiva.md](verificacion-selectiva.md).
+Tests por criterio y pesados: [tests-pesados.md](tests-pesados.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
 `taskctl finish` verifica antes de mergear y aborta en rojo. Un merge (o el

@@ -33,6 +33,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { aviso, codigoSalida, error as fallo, formatearJson, formatearTexto, nodeSoportado, NODE_MINIMO, ok, omitida, } from '../core/doctor.js';
+import { avisoCrecimiento, suitePorVersion } from '../core/crecimiento-suite.js';
+import { versionDeCierre } from '../core/transiciones.js';
+import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import { resolverConfigConAvisos, CONFIG_DEFAULTS, presupuestoFreno } from '../core/config.js';
 import { comandoPropuesto } from '../core/comando-tests.js';
 import { comandoParcial, documentacionDeclarada } from '../core/verificacion-proporcional.js';
@@ -427,6 +430,43 @@ export function comprobarPuertasVerificacion(cfg) {
         : `pesados "${una(cfg.comando_verificacion_pesada)}" solo en ${cfg.verificacion_pesada_en.join(' y ')}`;
     return [ok('puertas-verificacion', `${freno}; ${review}; ${finish}; ${pesados}`)];
 }
+/**
+ * TASK-129: aviso de crecimiento de la suite. Por version de cierre de las
+ * tareas terminadas, el numero de tests y la duracion de la completa (lineas
+ * `suite` del registro de puertas); avisa si, entre las dos ultimas versiones
+ * con dato, crecieron mas de `umbral_crecimiento_suite`. Sin datos, nada: ni
+ * avisa ni falla.
+ */
+export function comprobarCrecimientoSuite(cwd, tareasRoot, cfg) {
+    if (cfg === null || cfg.comando_verificacion === null)
+        return [];
+    let ids;
+    try {
+        ids = readdirSync(path.join(tareasRoot, STATE_FOLDER.terminada)).filter(isValidTaskId);
+    }
+    catch {
+        return [];
+    }
+    const tareas = ids.map((id) => {
+        try {
+            return { id, version: versionDeCierre(readFileSync(path.join(tareasRoot, STATE_FOLDER.terminada, id, 'tarea.md'), 'utf8')) };
+        }
+        catch {
+            return { id, version: null };
+        }
+    });
+    const versiones = suitePorVersion(tareas, leerRegistroPuertas(cwd));
+    if (versiones.length === 0)
+        return [];
+    const umbral = cfg.umbral_crecimiento_suite;
+    const motivo = avisoCrecimiento(versiones, umbral);
+    if (motivo === null) {
+        return [ok('crecimiento-suite', `la suite no crecio mas del ${String(umbral)} % entre las dos ultimas versiones con dato`)];
+    }
+    const arreglo = 'Poda los tests redundantes o marca como pesados los de rendimiento y escala (comando_verificacion_pesada); ' +
+        'guia: skill task-workflow, tests-pesados.md';
+    return [aviso('crecimiento-suite', motivo, arreglo)];
+}
 // ---------------------------------------------------------------------
 // Tareas
 // ---------------------------------------------------------------------
@@ -736,6 +776,7 @@ export function runDoctorCommand(argv, deps) {
     cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg, () => detectarComandosTests(cwd), () => contarTerminadas(tareasRoot))));
     cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
     cs.push(...envolver('puertas-verificacion', () => comprobarPuertasVerificacion(cfg)));
+    cs.push(...envolver('crecimiento-suite', () => comprobarCrecimientoSuite(cwd, tareasRoot, cfg)));
     cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
     cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
     cs.push(...envolver('plataforma', () => comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)));

@@ -28,6 +28,7 @@ import { crearProgreso, entornoConContador, type Progreso } from '../fs/progreso
 import { currentBranch, isWorkspaceClean, resolveIntegrationBranch } from '../fs/git.js';
 import { autoCommit, type AutoCommitResult } from '../fs/git-commit.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
+import { anotarSuite } from './finish-verificacion.js';
 import { readTareaFile, type ReadTareaResult } from '../fs/task-store.js';
 import { ejecutarVerificacion, guardarMemo, huellaDelArbol } from '../fs/verificacion.js';
 import { spawnSync } from 'node:child_process';
@@ -142,6 +143,8 @@ export async function runVerificarLoteCommand(
     duracionS: (Date.now() - inicio) / 1000,
     resultado: r.estado === 'verde' ? 'verde' : 'rojo',
   });
+  // TASK-129: el tamano de la completa, anotado a la ultima tarea del lote.
+  anotarSuite(cwd, ids[ids.length - 1] as string, inicio, r);
   // Como finish: el memo de la completa solo con el arbol limpio (la huella del commit).
   const limpio = isWorkspaceClean(cwd);
   const huella = limpio ? huellaDelArbol(cwd, comando, timeoutS) : null;
