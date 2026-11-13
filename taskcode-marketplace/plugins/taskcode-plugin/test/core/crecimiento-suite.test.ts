@@ -125,3 +125,21 @@ test('plantilla y skills (TASK-129): presupuesto de tests por criterio, duplicad
   }
   assert.match(LINEA_PLANTILLA_PRESUPUESTO_TESTS, /presupuesto de 1 a 3 por criterio; si se pasa, el motivo/);
 });
+
+test('contarTests (TASK-129, IMP-2): con la salida recortada, cargo y Maven no dan cifra; node y pytest si', () => {
+  const cargo = 'test result: ok. 400 passed; 0 failed; 0 ignored\n';
+  assert.equal(contarTests(cargo + cargo), 800);
+  assert.equal(contarTests(cargo + cargo, { recortada: true }), null, 'faltan crates del principio');
+  assert.equal(contarTests('[INFO] Tests run: 15, Failures: 0\n', { recortada: true }), null);
+  assert.equal(contarTests('ℹ tests 868\n', { recortada: true }), 868);
+  assert.equal(contarTests('===== 30 passed in 1.2s =====\n', { recortada: true }), 30);
+});
+
+test('avisoCrecimiento (TASK-129, MEN-2): crecer exactamente el umbral no avisa; un poco mas, si', () => {
+  const v = (tests: number) => [
+    { version: '0.14.0', tests: 100, completaS: null },
+    { version: '0.15.0', tests, completaS: null },
+  ];
+  assert.equal(avisoCrecimiento(v(120), 20), null);
+  assert.match(avisoCrecimiento(v(121), 20) ?? '', /tests 100 en 0\.14\.0 -> 121/);
+});

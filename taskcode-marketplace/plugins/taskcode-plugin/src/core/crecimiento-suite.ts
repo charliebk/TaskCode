@@ -31,10 +31,15 @@ function ultimo(texto: string, re: RegExp): number | null {
 /**
  * Numero de tests de la salida de un runner. Reconoce, por este orden:
  * node --test (`ℹ tests N` / `# tests N`), Jest/Vitest (`Tests: … N total`),
- * dotnet (`Total tests: N`), Maven/Gradle (ultimo `Tests run: N`), cargo
+ * dotnet (`Total tests: N`), Maven/Surefire (ultimo `Tests run: N`), cargo
  * (suma de `test result: … N passed; M failed`) y pytest (`N passed, M failed`).
+ *
+ * IMP-2 (revision TASK-129): con `recortada` (solo se tiene el final de la
+ * salida), los runners que suman resumenes repartidos por la salida (cargo con
+ * varios crates, Maven multimodulo) darian una cifra a la baja: null (sin
+ * dato). Los que dejan el total al final (node, Jest, dotnet, pytest) valen.
  */
-export function contarTests(salida: string): number | null {
+export function contarTests(salida: string, opciones: { recortada?: boolean } = {}): number | null {
   const t = salida.replace(/\x1b\[[0-9;]*m/g, '');
   const node = ultimo(t, /^\s*(?:ℹ|#)\s+tests\s+(\d+)\s*$/gm);
   if (node !== null) return node;
@@ -42,6 +47,8 @@ export function contarTests(salida: string): number | null {
   if (jest !== null) return jest;
   const dotnet = ultimo(t, /Total tests:\s*(\d+)/g);
   if (dotnet !== null) return dotnet;
+  const pytestFinal = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
+  if (opciones.recortada === true && pytestFinal === null) return null;
   const maven = ultimo(t, /Tests run:\s*(\d+)/g);
   if (maven !== null) return maven;
   const cargo = sumar(t, /test result: \w+\.\s+(\d+) passed;\s+(\d+) failed/g);

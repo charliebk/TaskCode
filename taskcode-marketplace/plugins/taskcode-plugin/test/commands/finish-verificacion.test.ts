@@ -26,7 +26,7 @@ const fs = require('node:fs');
 const dir = __dirname;
 fs.appendFileSync(dir + '/cuenta', 'x');
 const d = fs.readFileSync(dir + '/desenlace', 'utf8').trim();
-if (d === 'ok') { console.log('todo en verde'); process.exit(0); }
+if (d === 'ok') { console.log('todo en verde'); console.log('# tests 7'); process.exit(0); }
 if (d === 'ensucia') { fs.writeFileSync('cobertura.txt', 'x'); process.exit(0); }
 console.error('ERROR: 2 tests fallan'); process.exit(3);
 `;
@@ -117,6 +117,11 @@ test('finish (puerta): en verde ejecuta la verificacion SIEMPRE (aunque haya mem
       [['TASK-721', 'completa', 'verde']]
     );
     assert.ok((lineas[0]?.duracionS ?? -1) >= 0);
+    // TASK-129 (IMP-1): y su tamano, con el numero de tests de la salida.
+    assert.deepEqual(
+      lineasDe(repoRoot, 'suite').map((l) => [l.tarea, l.modo, l.resultado]),
+      [['TASK-721', '7', 'verde']]
+    );
     assert.equal(r.cierre, 'terminada');
     assert.ok(integradaEnDevelop(task.rama, repoRoot));
     assert.equal((await readTareaFile(tareasRoot, 'TASK-721'))?.task.estado, 'terminada');
@@ -206,6 +211,11 @@ test('finish (puerta, TASK-123): en el camino idempotente verifica el arbol de l
     const r = await runFinishCommand(tareasRoot, ['TASK-726'], '2026-11-04', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
     assert.equal(r.cierre, 'terminada');
     assert.equal(v.ejecuciones(), 1);
+    // TASK-129 (IMP-1): el reintento no memoizado anota el tamano de la completa.
+    assert.deepEqual(
+      lineasDe(repoRoot, 'suite').map((l) => [l.tarea, l.modo]),
+      [['TASK-726', '7']]
+    );
     // TASK-128 (MEN-1): la verificacion del arbol ya integrado tambien se anota.
     assert.deepEqual(
       lineasDe(repoRoot, 'finish').map((l) => [l.tarea, l.modo, l.resultado]),

@@ -219,7 +219,8 @@ function porLoteEnBase(o: PuertaVerificacionOpts, ramaBase: string): boolean {
  * `suite`, modo = numero de tests o `-`), para el aviso de crecimiento.
  */
 export function anotarSuite(cwd: string, id: string, inicioMs: number, r: ResultadoVerificacion): void {
-  const n = contarTests(r.cola);
+  // IMP-2: la cola son los ultimos bytes; si la salida era mayor, se dice.
+  const n = contarTests(r.cola, { recortada: r.bytesTotales > Buffer.byteLength(r.cola, 'utf8') });
   anotarPuerta(cwd, {
     puerta: PUERTA_SUITE,
     tarea: id,
