@@ -7,7 +7,7 @@ etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-114-p-6-hooks-pretooluse-que-salen-pronto-cu
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -36,3 +36,4 @@ Los hooks PreToolUse del plugin arrancan node y su logica en cada llamada a una 
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T01:44:38Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T01:44:58Z | approve | automatico | persona | 0.14.0 |
