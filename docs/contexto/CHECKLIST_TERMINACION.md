@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 123 / 123 items terminados (100%)** · última actualización: 2026-11-12
+**Progreso global: 124 / 124 items terminados (100%)** · última actualización: 2026-11-12
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 22 | **22** | — |
+| ✅ P — Agilidad sin perder calidad | 23 | **23** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (22/22)
+## ✅ P — Agilidad sin perder calidad (23/23)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -166,6 +166,13 @@ del código.
       y con tests detectables dice ahora cuantas tareas terminadas se cerraron sin verificar (todas las de
       04-terminadas: finish no deja rastro). Modo rapido: plan sin brainstorm, 1 ronda aprobada sin hallazgos,
       4 mutantes muertos; finish con la puerta en verde.*
+- [x] TASK-113 — P-5: petición de revisión más ligera con los tests como --stat y ruta — cerrada el 2026-11-12
+      *La petición embebe el diff del código y lista los tests (globs PATRONES_TEST, calculados por Git) con su
+      --stat y la orden para pedir su diff; la propia petición de la tarea pesó 14,9 KB. Tres rondas: MEN-1
+      (ENAMETOOLONG con miles de tests: --stat por lotes y orden por patrones) y MEN-2 corregidos; ampliación
+      decidida por Carlos: verificar-menores no cuenta lo excluido de la revisión (dist/ recompilado); la ronda 2
+      halló que el patrón por defecto **/*-lock.* excluía código real (redis-lock.ts) y se acotó a
+      *-lock.json|yaml|yml|toml. Suite completa: solo los 3 rojos de Windows; finish --sin-verificacion.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
