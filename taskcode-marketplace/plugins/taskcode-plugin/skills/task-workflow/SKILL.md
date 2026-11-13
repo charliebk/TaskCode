@@ -104,8 +104,8 @@ Defaults: `--sprint 0`, sin complejidad (`null`), `--etiquetas` vacio. En
 Detalles que muerden:
 
 - **En `approve`, `review` y `finish` el ID tiene que ser el primer
-  argumento.** Esos comandos leen el primer argumento tal cual, asi que
-  `taskctl approve --loquesea TASK-NNN` intentaria usar `--loquesea` como ID.
+  argumento.** Si no, `taskctl approve --loquesea TASK-NNN` toma `--loquesea`
+  como ID.
 - **Un flag desconocido aborta** en todos los comandos, con la lista de los
   validos y el mas parecido; los booleanos no aceptan `=valor`.
 - `board` solo escribe `docs/BOARD.md` si se le pasa `--escribir`, y ese
@@ -197,7 +197,7 @@ la rama actual, el hook `Stop` lo ejecuta al terminar cada turno y, si no sale
 en verde, devuelve el turno con un informe. Arregla la causa; no borres,
 saltes ni debilites tests para pasarlo. Si el rojo no es tuyo, dilo:
 solo bloquea una vez por turno.
-Selectiva, `comando_verificacion_freno`: [verificacion-selectiva.md](verificacion-selectiva.md).
+`comando_verificacion_selectiva` y `comando_verificacion_freno`: [verificacion-selectiva.md](verificacion-selectiva.md).
 Tests por criterio y pesados: [tests-pesados.md](tests-pesados.md); poda: [poda-tests.md](poda-tests.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
