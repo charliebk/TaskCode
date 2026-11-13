@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-115-p-7-verificacion-completa-por-lote-de-ci
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: []
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ En ToolsaWeb cada finish corre la verificacion completa (28 min de mediana) aunq
 - [ ] Si la completa del lote sale en rojo, el comando dice que tareas entraron desde la ultima completa en verde (test)
 - [ ] Sin la clave, finish y el guardian de merges se comportan como hoy (test de regresion)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T13:54:02Z | plan | automatico | persona | 0.14.0 |
