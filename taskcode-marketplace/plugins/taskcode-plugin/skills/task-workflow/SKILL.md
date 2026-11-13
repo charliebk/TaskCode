@@ -195,9 +195,9 @@ ignora. La sincronizacion y sus trampas, en [sincronizacion.md](sincronizacion.m
 **Freno de fin de turno.** Con `comando_verificacion` y una tarea en curso en
 la rama actual, el hook `Stop` lo ejecuta al terminar cada turno y, si no sale
 en verde, devuelve el turno con un informe. Arregla la causa; no borres,
-saltes ni debilites tests para pasarlo. Si el rojo no es tuyo, dilo
-al terminar: solo bloquea una vez por turno.
-Selectiva y freno: [verificacion-selectiva.md](verificacion-selectiva.md).
+saltes ni debilites tests para pasarlo. Si el rojo no es tuyo, dilo:
+solo bloquea una vez por turno.
+Selectiva, `comando_verificacion_freno`: [verificacion-selectiva.md](verificacion-selectiva.md).
 Tests por criterio y pesados: [tests-pesados.md](tests-pesados.md); poda: [poda-tests.md](poda-tests.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
