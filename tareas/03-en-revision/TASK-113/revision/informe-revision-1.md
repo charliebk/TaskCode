@@ -2,7 +2,7 @@
 
 - Commit revisado: 1bb49b1d0ec8c1ff4f3321be6d5a0556de95203d
 - Revisor: code-quality-reviewer
-- Veredicto: aprobada con correcciones
+- Veredicto: cambios-solicitados
 
 ## Hallazgos
 
