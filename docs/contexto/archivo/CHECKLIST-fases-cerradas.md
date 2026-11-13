@@ -1084,3 +1084,71 @@ tarda unos 40 minutos y se repetía en cada ronda de revisión.
       por la misma frase del mensaje de `review` (describía un momento, no un
       estado); MEN-1 de la ronda 5 aceptado. Publicada en 0.13.0.*
 
+
+## P — primera parte (TASK-092 a TASK-109)
+
+> Movido tal cual el 2026-11-13 (TASK-125) desde el checklist vivo, que pasaba
+> de su tope de 20 KB. La fase P sigue abierta alli.
+
+- [x] TASK-092 — Sincronización de ficheros sueltos de la raíz de tareas/ — cerrada el 2026-11-10
+      *`rutas_sincronizacion` admite un fichero directamente en `tareas/` (p. ej.
+      `tareas/ROADMAP.md`), que se regenera en el commit de cada transición; siguen
+      cerradas las carpetas de estado, cualquier subcarpeta, `.taskcode/` y `.git/`,
+      ahora sin distinguir mayúsculas ni puntos/espacios finales. `informe_cobertura`
+      no cambia. Cambió la expectativa del caso `tareas/x.md` (aprobado por la
+      persona en el plan). 1 ronda, aprobada sin hallazgos, 7 mutantes detectados.
+      Pendiente de publicar en 0.14.0.*
+- [x] TASK-095 — Revisión que converge: desde la ronda 2 solo se verifican las correcciones — cerrada el 2026-11-10
+      *Corrige la regla de TASK-083 (un IMPORTANTE en cualquier estado, también corregido,
+      relanzaba una ronda completa desde la base: hasta 14 rondas). Desde la ronda 2 la
+      ronda es acotada: cada revisor verifica sus pendientes (todo salvo aceptado), los
+      dominios que toca la corrección también la ven, y solo se abren hallazgos nuevos
+      CRÍTICOS o causados por la corrección; completa solo con --completa, sin commit
+      revisado fiable o con informes ilegibles. Tope: siguiente pregunta en cualquier modo
+      y review exige --ronda-extra para la ronda 4. No se retira ningún revisor. 2 rondas:
+      6 MENOR en la 1 (MEN-4 y parte de MEN-5 aceptados), aprobada en la 2. Pendiente de
+      publicar en 0.14.0.*
+- [x] TASK-097 — Regla de una hora: plan estima la duración de punta a punta y propone trocear — cerrada el 2026-11-10
+- [x] TASK-098 — ROADMAP de tareas generado por taskctl en todos los proyectos, sin pisar los existentes — cerrada el 2026-11-10
+- [x] TASK-100 — Verificación proporcional A1: finish no corre la suite si la tarea solo cambia documentación — cerrada el 2026-11-10
+- [x] TASK-101 — Verificación proporcional A2: el guardián de merges — cerrada el 2026-11-10
+- [x] TASK-102 — Verificación proporcional A3a: el freno Stop no corre la suite si solo cambia documentación — cerrada el 2026-11-11
+- [x] TASK-104 — Verificación proporcional A3b: las rondas de review no corren la suite si solo cambia documentación — cerrada el 2026-11-11
+- [x] TASK-103 — Guardián de merges: config inválida bloquea y merges que hoy no detecta — cerrada el 2026-11-11
+- [x] TASK-096 — Verificación proporcional B1: clave `rutas_verificacion_parcial` y decisión `selectiva` en core — cerrada el 2026-11-11
+      *Troceada en el plan por la regla de una hora (270 min; decisión de Carlos): B1 es esta, el
+      resto son TASK-105 a TASK-109. Clave opt-in leída de la base (lista de rutas permitidas, exige
+      la selectiva) y tercer resultado de la decisión pura; nada observable cambia todavía. Decisión
+      sobre TASK-091 escrita en el plan: la completa sigue por defecto y el guardián no acepta la
+      selectiva para código. 2 rondas: 3 MENOR en la 1, corregidos; aprobada en la 2. No se publica
+      versión hasta cerrar TASK-109.*
+- [x] TASK-105 — Verificación proporcional B2: decisión entre refs y huella para el nivel 2 — cerrada el 2026-11-11
+      *La decisión entre refs calcula fueraDeParcial con un git diff extra (solo la lista excluida, SHA
+      fijados antes) cuando la base declara la clave y hay código; sin ella, cero procesos de más.
+      huellaDeCommit acepta contexto y comparte cabecera con huellaDelArbol. Decisiones de Carlos: el memo
+      selectiva no se guarda con el árbol sucio (el Stop sucio la repite; medir en ToolsaWeb antes de B3),
+      se mantiene la salida temprana sin rutas_documentacion, y el guardián y finish tratan selectiva como
+      completa con motivo neutro (cierra el hueco del guardián). 1 ronda: aprobada, 2 MENOR aceptados.*
+- [x] TASK-106 — Verificación proporcional B3: finish verifica solo lo afectado con código parcial — cerrada el 2026-11-11
+      *Con rutas_verificacion_parcial en la base y todo el código dentro, finish corre la selectiva (RAMA_BASE,
+      su timeout) en vez de la completa, lo dice y lo anota tras el verde en «Verificacion parcial». Decisiones
+      de Carlos: reutiliza solo un memo selectivo verde del mismo commit (excepción acotada a TASK-072), el hotfix
+      nunca usa la selectiva pero conserva su camino de documentación, una sola tarea de ~70 min. Cobertura
+      omitida en el nivel 2; release a la completa. 2 rondas: IMP-1 y 3 MENOR corregidos, ronda 2 aprobada.*
+- [x] TASK-107 — Verificación proporcional B4: Stop, review y finish deciden igual el mismo diff — cerrada el 2026-11-11
+      *Solo tests: una tabla (documentación, parcial, transversal) × (Stop, review, finish) con el vector absoluto
+      de ejecuciones por celda, 9 repos reales (decisión de Carlos). Sin divergencia: producción intacta. Stop y
+      review corren la selectiva ante lo transversal y finish la completa (divergencia acordada, fijada en la tabla).
+      4 mutantes propios y 4 del revisor, cada uno rojo en su celda. 1 ronda: aprobada, 2 MENOR aceptados.*
+- [x] TASK-108 — Verificación proporcional B5: el guardián de merges ante el nivel 2 — cerrada el 2026-11-11
+      *D1 ya estaba en el código desde TASK-105: con código el guardián exige siempre la completa y nunca lee el
+      memo selectivo. La tarea lo fija con 6 tests y añade al bloqueo una línea que dice qué hace falta y cómo
+      integrar (finish, nunca «corre la completa y repite»); release y hotfix sin ella. Decisiones de Carlos: el
+      criterio 2 acotado a la decisión 6b, el corte por tiempo a una tarea aparte. 2 rondas: 2 MENOR corregidos,
+      1 aceptado, ronda 2 aprobada.*
+- [x] TASK-109 — Verificación proporcional B6: documentación y limpieza del nivel 2 — cerrada el 2026-11-12
+      *Cierra TASK-096. Guía, SKILL.md, README y CHANGELOG explican el nivel 2 (prueba de contrato que se pone
+      roja si se borra la sección); ejemplo propio por clave en el error de config; doctor avisa si
+      rutas_verificacion_parcial no tiene efecto. Inventario: nada que borrar. 2 rondas: IMP-1 (la cobertura no
+      se mide en el release) e IMP-2 (tras un conflicto, cerrarlo en develop deja un finish que no verifica,
+      también en el mensaje del guardián) corregidos, ronda 2 aprobada.*

@@ -204,6 +204,47 @@ caso sale 0 sin lanzar ningún proceso (ni `git`). Cuando actúa:
   `comando_verificacion` de la config.
 - Los subagentes no disparan `Stop` (disparan `SubagentStop`), así que el freno
   no los frena; y no actúa si la persona interrumpe el turno (Esc).
+- **Registro**: cada vez que decide verificar anota una línea en el registro
+  de puertas (puerta `freno`: `verde`, `rojo`, `omitido` o `excedido`) y no
+  vuelve a verificar si la huella del árbol es la de su último verde, también
+  con cambios sin commitear. Ver [registro-puertas.md](registro-puertas.md).
+
+#### Comando y presupuesto propios del freno: `comando_verificacion_freno`
+
+Cada puerta corre su propio comando, así que el freno de fin de turno puede ser
+más rápido sin abaratar la verificación de las rondas ni la de `finish`:
+
+| Puerta | Comando |
+|---|---|
+| Freno de fin de turno (`Stop`) | `comando_verificacion_freno`; sin ella, `comando_verificacion_selectiva`; sin ella, `comando_verificacion` |
+| Rondas de `taskctl review` | `comando_verificacion_selectiva` (sin ella, no verifica) |
+| `taskctl finish` y guardián | `comando_verificacion` (o la selectiva con `rutas_verificacion_parcial`) |
+
+```yaml
+comando_verificacion: "npm test"                                    # finish y guardián
+comando_verificacion_selectiva: "node scripts/verificar-selectiva.js" # review
+comando_verificacion_freno: "node scripts/verificar-rapida.js"      # solo el freno
+presupuesto_freno_s: 180                                            # opcional
+```
+
+- `comando_verificacion_freno` exige `comando_verificacion` (la puerta sigue
+  siendo la completa). Recibe la rama base en `RAMA_BASE` y guarda su resultado
+  en su propio memo (`.git/freno-verificacion-rapida.json`): su verde nunca
+  abre un merge ni lo reutiliza `finish`.
+- `presupuesto_freno_s`: segundos que puede tardar la verificación del freno
+  (de 1 a 3600, el `timeout` del hook). Con `comando_verificacion_freno` y sin
+  la clave, 180; sin ninguna de las dos, sin tope propio, como antes. Puede ir
+  sola: entonces pone tope a la verificación de siempre.
+- Si la verificación agota el presupuesto, se corta, el freno **deja parar el
+  turno** con un aviso de una línea y anota `excedido` en el registro de
+  puertas. Un rojo dentro del presupuesto sigue bloqueando el turno. Sin
+  `comando_verificacion_freno`, un corte por un `timeout_verificacion*` menor
+  que el presupuesto también bloquea (es un rojo); con él solo manda el
+  presupuesto.
+- `taskctl doctor` dice en `puertas-verificacion` qué comando corre cada
+  puerta y el presupuesto del freno.
+- Los documentales se deciden antes, igual que siempre: una tarea de solo
+  documentación corre `comando_verificacion_documentacion`, no el del freno.
 
 #### Coste de implementación automático (hooks `Stop` y `SubagentStop`)
 

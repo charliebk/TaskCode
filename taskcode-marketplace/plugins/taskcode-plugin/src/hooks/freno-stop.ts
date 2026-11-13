@@ -48,13 +48,20 @@
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ConfigError, raizDelRepo, resolverConfigConAvisos, type TaskcodeConfig } from '../core/config.js';
+import {
+  ConfigError,
+  presupuestoFreno,
+  raizDelRepo,
+  resolverConfigConAvisos,
+  TECHO_HOOK_STOP_S,
+  type TaskcodeConfig,
+} from '../core/config.js';
 import { formatearVerificacionRoja, type ResultadoVerificacion } from '../core/informe-verificacion.js';
 import type { Task } from '../core/task.js';
 import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { baseDeTipoSinRed, resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
-import { contextoSelectiva, huellaDelArbol, verificarConMemo, type PeticionVerificacion } from '../fs/verificacion.js';
+import { contextoDePeticion, huellaDelArbol, verificarConMemo, type PeticionVerificacion } from '../fs/verificacion.js';
 import { crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
 import { PUERTA_FRENO, type LineaPuerta, type ResultadoFreno } from '../core/registro-puertas.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
@@ -66,7 +73,7 @@ import { esUltimoVerde, guardarUltimoVerde } from '../fs/freno-ultimo-verde.js';
  * la verificacion se corta antes, con margen para escribir el informe. Un test
  * comprueba que coincide con hooks.json.
  */
-export const TECHO_HOOK_S = 3600;
+export const TECHO_HOOK_S = TECHO_HOOK_STOP_S;
 export const MARGEN_HOOK_S = 60;
 /** Variable de entorno que apaga el freno: `FRENO_VERIFICACION=0`. */
 export const INTERRUPTOR = 'FRENO_VERIFICACION';
@@ -211,19 +218,42 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       avisosDecision.length === 0 ? DEJAR_PARAR : { codigo: 0, stderr: avisosDecision.join('\n') };
     // Solo documentacion sin comprobacion declarada: no hay nada que correr.
     if (plan.tipo === 'nada' || (plan.tipo === 'documentacion' && plan.comando === null)) return dejarParar;
-    const clave = plan.tipo === 'selectiva' ? 'timeout_verificacion_selectiva' : 'timeout_verificacion';
-    const { timeoutS, recortado } = timeoutEfectivoS(plan.timeoutS);
+    // TASK-125: con comando_verificacion_freno, el freno corre ese comando en
+    // vez de la completa o la selectiva (la documentacion se decide igual), y
+    // con presupuesto lo corta al agotarse sin bloquear el turno.
+    const presupuesto = presupuestoFreno(cfg);
+    const rapido = cfg.comando_verificacion_freno !== null && (plan.tipo === 'completa' || plan.tipo === 'selectiva');
+    const timeoutPlan = rapido ? (presupuesto as number) : plan.timeoutS;
+    const clave = rapido
+      ? 'presupuesto_freno_s'
+      : plan.tipo === 'selectiva'
+        ? 'timeout_verificacion_selectiva'
+        : 'timeout_verificacion';
+    const porPresupuesto = presupuesto !== null && presupuesto <= timeoutPlan;
+    const pedido = porPresupuesto ? (presupuesto as number) : timeoutPlan;
+    const { timeoutS, recortado } = timeoutEfectivoS(pedido);
     const avisos: string[] = [...avisosDecision];
     if (recortado) {
       avisos.push(
-        `${clave} pide ${String(plan.timeoutS)} s, pero este freno tiene un tope de ` +
+        `${porPresupuesto ? 'presupuesto_freno_s' : clave} pide ${String(pedido)} s, pero este freno tiene un tope de ` +
           `${String(timeoutS)} s: se ha usado el tope.`
       );
     }
-    const peticion: PeticionVerificacion =
-      plan.tipo === 'selectiva'
-        ? { tipo: 'selectiva', comando: plan.comando, timeoutS, base: plan.base }
-        : { tipo: plan.tipo, comando: plan.comando as string, timeoutS };
+    let peticion: PeticionVerificacion;
+    if (rapido) {
+      const base =
+        plan.tipo === 'selectiva'
+          ? plan.base
+          : tipoTarea !== null && baseDeTipoSinRed(tipoTarea)
+            ? resolveBaseBranchForTipo(tipoTarea, raiz)
+            : cfg.rama_base;
+      peticion = { tipo: 'freno', comando: cfg.comando_verificacion_freno as string, timeoutS, base };
+    } else {
+      peticion =
+        plan.tipo === 'selectiva'
+          ? { tipo: 'selectiva', comando: plan.comando, timeoutS, base: plan.base }
+          : { tipo: plan.tipo, comando: plan.comando as string, timeoutS };
+    }
     const idTarea = ids[0] ?? tarea;
     const anotar = (resultado: ResultadoFreno, duracionS: number): void => {
       (deps.anotarPuerta ?? anotarPuerta)(raiz, {
@@ -240,12 +270,7 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
     // ni se escribe nada (salvo los avisos de la decision): el turno no cambio
     // nada que verificar. Vale tambien con el arbol sucio, donde el memo
     // compartido de la selectiva no se guarda (TASK-105).
-    const huella = huellaDelArbol(
-      raiz,
-      peticion.comando,
-      peticion.timeoutS,
-      peticion.tipo === 'selectiva' ? contextoSelectiva(raiz, peticion.base as string) : undefined
-    );
+    const huella = huellaDelArbol(raiz, peticion.comando, peticion.timeoutS, contextoDePeticion(raiz, peticion));
     if (huella !== null && esUltimoVerde(raiz, peticion.tipo, huella)) {
       anotar('omitido', 0);
       return dejarParar;
@@ -255,7 +280,7 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
     // en verde, "en rojo" si la verificacion sale en rojo y bloquea el turno, y
     // "abortada" solo si algo lanza.
     const progreso = deps.progreso ?? crearProgreso(raiz);
-    const paso = plan.tipo === 'completa' ? 'verificacion' : `verificacion ${plan.tipo}`;
+    const paso = peticion.tipo === 'completa' ? 'verificacion' : `verificacion ${peticion.tipo}`;
     progreso.fase(ids[0] ?? tarea, 'freno', [paso]);
     progreso.paso(paso);
     // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
@@ -272,8 +297,18 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       throw e;
     }
     const duracionS = (Date.now() - inicio) / 1000;
-    progreso.terminar(verificacion.resultado.estado === 'verde' ? 'ok' : 'en-rojo');
     const { resultado: r, deMemo, cambioElArbol } = verificacion;
+    // TASK-125: cortada por el presupuesto -> no bloquea: una linea y `excedido`.
+    // Review y finish la vuelven a exigir con sus comandos.
+    if (r.estado === 'cortada' && porPresupuesto) {
+      progreso.terminar('ok');
+      anotar(deMemo ? 'omitido' : 'excedido', duracionS);
+      const aviso =
+        `Aviso: la verificacion del freno de fin de turno supero su presupuesto (${String(timeoutS)} s, ` +
+        'presupuesto_freno_s) y se corto sin resultado; review y finish la vuelven a exigir.';
+      return { codigo: 0, stderr: [...avisos, aviso].join('\n') };
+    }
+    progreso.terminar(r.estado === 'verde' ? 'ok' : 'en-rojo');
     if (r.estado === 'verde') {
       // TASK-111: un verde del memo compartido tampoco ha ejecutado nada.
       anotar(deMemo ? 'omitido' : 'verde', duracionS);
@@ -293,6 +328,12 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       avisos.push(
         `Es la verificacion selectiva (por impacto respecto a ${peticion.base as string}); antes de integrar ` +
           'se exige ademas la completa.'
+      );
+    }
+    if (peticion.tipo === 'freno') {
+      avisos.push(
+        'Es el comando del freno (comando_verificacion_freno); review y finish corren ademas los suyos antes ' +
+          'de integrar.'
       );
     }
     if (deMemo) {

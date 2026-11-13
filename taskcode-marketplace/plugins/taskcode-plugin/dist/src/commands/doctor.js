@@ -33,7 +33,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { aviso, codigoSalida, error as fallo, formatearJson, formatearTexto, nodeSoportado, NODE_MINIMO, ok, omitida, } from '../core/doctor.js';
-import { resolverConfigConAvisos, CONFIG_DEFAULTS } from '../core/config.js';
+import { resolverConfigConAvisos, CONFIG_DEFAULTS, presupuestoFreno } from '../core/config.js';
 import { comandoPropuesto } from '../core/comando-tests.js';
 import { comandoParcial, documentacionDeclarada } from '../core/verificacion-proporcional.js';
 import { detectarComandosTests } from '../fs/deteccion-tests.js';
@@ -400,6 +400,29 @@ export function comprobarVerificacionSelectiva(cfg) {
             'rutas; un merge a mano sigue exigiendo la completa'),
     ];
 }
+/**
+ * TASK-125: que comando corre cada puerta de verificacion. Solo con
+ * `comando_verificacion` (sin el no hay puertas: lo dice `verificacion`).
+ * - freno (hook Stop): `comando_verificacion_freno`, si no la selectiva, si no
+ *   la completa; y su presupuesto o «sin presupuesto».
+ * - review: la selectiva, o «no verifica».
+ * - finish: la completa (y la selectiva con codigo parcial).
+ * Siempre `ok`: es informacion, no un fallo.
+ */
+export function comprobarPuertasVerificacion(cfg) {
+    if (cfg === null || cfg.comando_verificacion === null)
+        return [];
+    const completa = `"${una(cfg.comando_verificacion)}"`;
+    const selectiva = cfg.comando_verificacion_selectiva === null ? null : `"${una(cfg.comando_verificacion_selectiva)}"`;
+    const comandoFreno = cfg.comando_verificacion_freno !== null
+        ? `"${una(cfg.comando_verificacion_freno)}" (comando_verificacion_freno)`
+        : (selectiva ?? completa);
+    const presupuesto = presupuestoFreno(cfg);
+    const freno = `freno ${comandoFreno}, ${presupuesto === null ? 'sin presupuesto' : `presupuesto ${String(presupuesto)} s`}`;
+    const review = `review ${selectiva ?? 'no verifica'}`;
+    const finish = `finish ${completa}${selectiva !== null && comandoParcial(cfg) !== null ? ` (o ${selectiva} con codigo parcial)` : ''}`;
+    return [ok('puertas-verificacion', `${freno}; ${review}; ${finish}`)];
+}
 // ---------------------------------------------------------------------
 // Tareas
 // ---------------------------------------------------------------------
@@ -708,6 +731,7 @@ export function runDoctorCommand(argv, deps) {
     cs.push(...csConfig);
     cs.push(...envolver('verificacion', () => comprobarVerificacion(cfg, () => detectarComandosTests(cwd), () => contarTerminadas(tareasRoot))));
     cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
+    cs.push(...envolver('puertas-verificacion', () => comprobarPuertasVerificacion(cfg)));
     cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
     cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
     cs.push(...envolver('plataforma', () => comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)));

@@ -36,6 +36,7 @@ const FICHEROS_MEMO = Object.freeze({
     completa: 'freno-verificacion.json',
     selectiva: 'freno-verificacion-selectiva.json',
     documentacion: 'freno-verificacion-documentacion.json',
+    freno: 'freno-verificacion-rapida.json',
 });
 const VERSION_MEMO = 1;
 /**
@@ -199,6 +200,21 @@ function arbolLimpio(raiz) {
         return false;
     }
 }
+/** TASK-125: el comando del freno recibe la base si se conoce (opcional); la selectiva, siempre. */
+function conRamaBase(p) {
+    return p.tipo === 'selectiva' || (p.tipo === 'freno' && p.base !== undefined && p.base !== '');
+}
+/**
+ * El contexto con el que entra la peticion en su huella (undefined en la
+ * completa y la de documentacion). Exportado para que el freno calcule la
+ * misma huella que `verificarConMemo` (TASK-111/125).
+ */
+export function contextoDePeticion(raiz, p) {
+    if (!conRamaBase(p))
+        return undefined;
+    const ctx = contextoSelectiva(raiz, p.base);
+    return p.tipo === 'selectiva' ? ctx : `freno\0${ctx}`;
+}
 /**
  * Ejecuta la verificacion pedida, salvo que la ultima con la misma huella
  * este guardada: entonces devuelve esa. Guarda el resultado en el memo de su
@@ -208,14 +224,15 @@ export function verificarConMemo(raiz, p, opciones = {}) {
     if (p.tipo === 'selectiva' && (p.base === undefined || p.base === '')) {
         throw new Error('la verificacion selectiva necesita la rama base');
     }
-    const contexto = p.tipo === 'selectiva' ? contextoSelectiva(raiz, p.base) : undefined;
+    const conBase = conRamaBase(p);
+    const contexto = contextoDePeticion(raiz, p);
     const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
     const commit = git(['rev-parse', 'HEAD'], raiz)?.trim() || null;
     const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
     if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
         return { resultado: guardado, deMemo: true, cambioElArbol: false, commit, huella };
     }
-    const env = p.tipo === 'selectiva'
+    const env = conBase
         ? { ...(opciones.env ?? process.env), [VARIABLE_RAMA_BASE]: p.base }
         : opciones.env;
     const resultado = ejecutarVerificacion(raiz, p.comando, p.timeoutS, {
@@ -223,8 +240,10 @@ export function verificarConMemo(raiz, p, opciones = {}) {
         ...(env === undefined ? {} : { env }),
     });
     const despues = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
-    if (despues !== null && (p.tipo === 'completa' || arbolLimpio(raiz)))
+    // TASK-125: el memo del freno solo lo lee el freno: se guarda tambien con el arbol sucio.
+    if (despues !== null && (p.tipo === 'completa' || p.tipo === 'freno' || arbolLimpio(raiz))) {
         guardarMemo(raiz, despues, resultado, p.tipo);
+    }
     return {
         resultado,
         deMemo: false,

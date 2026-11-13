@@ -29,6 +29,8 @@
  * | comando_verificacion_documentacion | null        | finish-verificacion.ts (TASK-100), guardia-merge.ts (TASK-101) |
  * | documento_estado             | null (no se vigila) | commands/doctor.ts (TASK-124) |
  * | tope_rondas                  | 2                 | core/flujo.ts (siguiente), commands/review.ts (TASK-127) |
+ * | comando_verificacion_freno   | null (el freno usa la de siempre) | hooks/freno-stop.ts, commands/doctor.ts (TASK-125) |
+ * | presupuesto_freno_s          | null (180 con comando_verificacion_freno) | hooks/freno-stop.ts (TASK-125) |
  * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
@@ -263,6 +265,33 @@ export interface TaskcodeConfig {
    * ronda mas (anotada en `tarea.md`) o redisenar lo abierto en otra tarea.
    */
   tope_rondas: number;
+  /**
+   * TASK-125: comando que corre SOLO el freno Stop en vez de la completa o la
+   * selectiva (review y finish siguen con las suyas). null = el de siempre.
+   * Exige `comando_verificacion`. Recibe la rama base en RAMA_BASE.
+   */
+  comando_verificacion_freno: string | null;
+  /**
+   * TASK-125: segundos que puede tardar la verificacion del freno; al
+   * agotarse se corta, se anota `excedido` y se deja parar el turno. null =
+   * 180 con `comando_verificacion_freno`, sin tope propio sin el (ver
+   * `presupuestoFreno`). No mas que `TECHO_HOOK_STOP_S`.
+   */
+  presupuesto_freno_s: number | null;
+}
+
+/**
+ * TASK-125: `timeout` del hook Stop en hooks/hooks.json, en segundos. El
+ * presupuesto del freno no puede pasarlo (el hook se cancelaria antes).
+ */
+export const TECHO_HOOK_STOP_S = 3600;
+/** TASK-125: presupuesto del freno cuando se declara su comando sin presupuesto. */
+export const PRESUPUESTO_FRENO_POR_DEFECTO_S = 180;
+
+/** TASK-125: el presupuesto efectivo del freno, o null si no tiene tope propio. */
+export function presupuestoFreno(cfg: Pick<TaskcodeConfig, 'comando_verificacion_freno' | 'presupuesto_freno_s'>): number | null {
+  if (cfg.presupuesto_freno_s !== null) return cfg.presupuesto_freno_s;
+  return cfg.comando_verificacion_freno === null ? null : PRESUPUESTO_FRENO_POR_DEFECTO_S;
 }
 
 export const PLATAFORMAS_REMOTAS: readonly Plataforma[] = ['github', 'gitlab'];
@@ -315,6 +344,8 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   rutas_verificacion_parcial: Object.freeze([]) as readonly string[],
   documento_estado: null,
   tope_rondas: 2,
+  comando_verificacion_freno: null,
+  presupuesto_freno_s: null,
 });
 
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
@@ -344,6 +375,8 @@ export const CLAVES_CONFIG = [
   'rutas_verificacion_parcial',
   'documento_estado',
   'tope_rondas',
+  'comando_verificacion_freno',
+  'presupuesto_freno_s',
 ] as const;
 
 /**
@@ -645,6 +678,17 @@ export function parsearConfigConAvisos(
       case 'tope_rondas':
         config.tope_rondas = validarTopeRondas(donde, par.valor);
         break;
+      case 'comando_verificacion_freno':
+        config.comando_verificacion_freno = validarComando(
+          donde,
+          par.clave,
+          par.valor,
+          'comando_verificacion_freno: "node scripts/verificar-rapida.js"'
+        );
+        break;
+      case 'presupuesto_freno_s':
+        config.presupuesto_freno_s = validarPresupuestoFreno(donde, par.valor);
+        break;
       case 'umbral_cobertura':
         config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
         break;
@@ -785,6 +829,14 @@ function validarVerificacionCompleta(ruta: string, vistas: ReadonlySet<string>):
 ` +
         '        La selectiva solo acelera las rondas; antes de integrar se exige la completa. Declara la ' +
         'completa (por ejemplo comando_verificacion: "npm test"), o borra la selectiva.'
+    );
+  }
+  // TASK-125: el comando rapido del freno no sustituye a la puerta de finish.
+  if (vistas.has('comando_verificacion_freno') && !vistas.has('comando_verificacion')) {
+    throw new ConfigError(
+      `[ERROR] ${ruta}: "comando_verificacion_freno" necesita tambien "comando_verificacion".\n` +
+        '        El comando del freno solo acelera el fin de turno; review y finish siguen con sus ' +
+        'comandos. Declara la completa (por ejemplo comando_verificacion: "npm test"), o borra el del freno.'
     );
   }
   if (vistas.has('timeout_verificacion_selectiva') && !vistas.has('comando_verificacion_selectiva')) {
@@ -987,6 +1039,7 @@ function validarComando(
     | 'comando_sincronizacion'
     | 'comando_verificacion'
     | 'comando_verificacion_selectiva'
+    | 'comando_verificacion_freno'
     | 'comando_heldout'
     | 'comando_verificacion_documentacion',
   valor: unknown,
@@ -1228,6 +1281,20 @@ function validarTopeRondas(donde: string, valor: unknown): number {
 ` +
         `        Por defecto es ${String(CONFIG_DEFAULTS.tope_rondas)}: las rondas de revision que se abren sin ` +
         'preguntar; en la ultima, si pide cambios, decide una persona.'
+    );
+  }
+  return valor;
+}
+
+/** TASK-125: entero de 1 al `timeout` del hook Stop. */
+function validarPresupuestoFreno(donde: string, valor: unknown): number {
+  if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 1 || valor > TECHO_HOOK_STOP_S) {
+    throw new ConfigError(
+      `[ERROR] ${donde}: "presupuesto_freno_s" debe ser un numero entero de 1 a ${String(TECHO_HOOK_STOP_S)}, ` +
+        `y es ${describirValor(valor)}.\n` +
+        `        Son los segundos que puede tardar la verificacion del freno de fin de turno; no puede pasar del ` +
+        `timeout del hook Stop (${String(TECHO_HOOK_STOP_S)} s). Con comando_verificacion_freno y sin esta clave, ` +
+        `${String(PRESUPUESTO_FRENO_POR_DEFECTO_S)}.`
     );
   }
   return valor;

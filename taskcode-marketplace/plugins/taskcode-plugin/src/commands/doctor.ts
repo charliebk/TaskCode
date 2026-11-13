@@ -44,7 +44,7 @@ import {
   omitida,
   type Comprobacion,
 } from '../core/doctor.js';
-import { resolverConfigConAvisos, CONFIG_DEFAULTS, type TaskcodeConfig } from '../core/config.js';
+import { resolverConfigConAvisos, CONFIG_DEFAULTS, presupuestoFreno, type TaskcodeConfig } from '../core/config.js';
 import { comandoPropuesto, type ComandoTests } from '../core/comando-tests.js';
 import { comandoParcial, documentacionDeclarada } from '../core/verificacion-proporcional.js';
 import { detectarComandosTests } from '../fs/deteccion-tests.js';
@@ -545,6 +545,30 @@ export function comprobarVerificacionSelectiva(cfg: TaskcodeConfig | null): Comp
   ];
 }
 
+/**
+ * TASK-125: que comando corre cada puerta de verificacion. Solo con
+ * `comando_verificacion` (sin el no hay puertas: lo dice `verificacion`).
+ * - freno (hook Stop): `comando_verificacion_freno`, si no la selectiva, si no
+ *   la completa; y su presupuesto o «sin presupuesto».
+ * - review: la selectiva, o «no verifica».
+ * - finish: la completa (y la selectiva con codigo parcial).
+ * Siempre `ok`: es informacion, no un fallo.
+ */
+export function comprobarPuertasVerificacion(cfg: TaskcodeConfig | null): Comprobacion[] {
+  if (cfg === null || cfg.comando_verificacion === null) return [];
+  const completa = `"${una(cfg.comando_verificacion)}"`;
+  const selectiva = cfg.comando_verificacion_selectiva === null ? null : `"${una(cfg.comando_verificacion_selectiva)}"`;
+  const comandoFreno =
+    cfg.comando_verificacion_freno !== null
+      ? `"${una(cfg.comando_verificacion_freno)}" (comando_verificacion_freno)`
+      : (selectiva ?? completa);
+  const presupuesto = presupuestoFreno(cfg);
+  const freno = `freno ${comandoFreno}, ${presupuesto === null ? 'sin presupuesto' : `presupuesto ${String(presupuesto)} s`}`;
+  const review = `review ${selectiva ?? 'no verifica'}`;
+  const finish = `finish ${completa}${selectiva !== null && comandoParcial(cfg) !== null ? ` (o ${selectiva} con codigo parcial)` : ''}`;
+  return [ok('puertas-verificacion', `${freno}; ${review}; ${finish}`)];
+}
+
 // ---------------------------------------------------------------------
 // Tareas
 // ---------------------------------------------------------------------
@@ -939,6 +963,7 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
     )
   );
   cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
+  cs.push(...envolver('puertas-verificacion', () => comprobarPuertasVerificacion(cfg)));
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
   cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
   cs.push(

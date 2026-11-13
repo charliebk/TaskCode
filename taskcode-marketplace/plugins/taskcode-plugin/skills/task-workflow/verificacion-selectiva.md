@@ -91,7 +91,19 @@ El clasificador falla cerrado: ante la duda, corre todo. Como minimo:
 - **`taskctl finish`**: corre la completa (o la selectiva, si se cumple
   «Codigo parcial»); en rojo no integra y dice como correrla.
 - **`taskctl doctor`**: avisa si hay completa y falta la selectiva, y si
-  `rutas_verificacion_parcial` no puede tener efecto.
+  `rutas_verificacion_parcial` no puede tener efecto; `puertas-verificacion`
+  dice que comando corre cada puerta.
+
+## Un comando propio para el freno: `comando_verificacion_freno`
+
+Cada puerta tiene su clave: el freno de fin de turno corre
+`comando_verificacion_freno` (si no, la selectiva; si no, la completa), las
+rondas de `review` la selectiva y `finish` la completa. Asi el freno puede ser
+mas rapido sin abaratar la verificacion de la ronda. Con
+`presupuesto_freno_s` (180 s por defecto si hay comando del freno; de 1 a
+3600) el freno corta su verificacion al agotarse, deja parar el turno con un
+aviso de una linea y lo anota como `excedido`: review y finish la vuelven a
+exigir. Un rojo dentro del presupuesto sigue bloqueando el turno.
 
 ## Tareas de solo documentacion: `rutas_documentacion`
 
