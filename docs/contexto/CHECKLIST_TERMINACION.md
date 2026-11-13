@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 132 / 132 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 133 / 133 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 31 | **31** | — |
+| ✅ P — Agilidad sin perder calidad | 32 | **32** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -218,6 +218,11 @@ del código.
       automatico-guarda-finish IMP-3 (commit del veredicto antes de cambiar de rama) y fases.test.ts (frases
       vigentes de la skill review) pasan a la regla de TASK-119. Una ronda aprobada sin hallazgos. develop vuelve a
       no tener más rojos que los 2 conocidos de Windows. finish --sin-verificacion (verificar-impacto 811/811).*
+- [x] TASK-111 — P-3: registrar cada ejecución del freno Stop y no correrlo si el turno no cambió código — cerrada el 2026-11-13
+      *Puerta freno en el registro de puertas (verde, rojo, omitido; excedido reservado para TASK-125); memo propio
+      del último verde del freno, que omite el turno sin cambios también con el árbol sucio; métricas con freno_n y
+      freno. Dos rondas: IMP-1 (rojo de memo contaba como ejecución), IMP-2 (test de cableado de metricas) y MEN-1
+      corregidos; ronda 2 aprobada sin hallazgos. finish --sin-verificacion (verificar-impacto 868/868).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
