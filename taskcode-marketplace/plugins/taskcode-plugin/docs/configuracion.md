@@ -362,7 +362,8 @@ verificacion_pesada_en: [release, hotfix]               # opcional; por defecto 
 Cada verificación completa (la de `finish` y la de `taskctl verificar-lote`)
 deja en el registro de puertas una línea `suite` con el número de tests que
 dice la salida (node --test, Jest, dotnet, Maven/Surefire, cargo, pytest; `-`
-si no se reconoce o si la salida se recortó en un runner que suma por módulos) y su duración. `taskctl metricas --por-version` muestra por
+si no se reconoce o si la salida se recortó en un runner que suma por módulos: cargo
+con varios crates o Maven multimódulo) y su duración. `taskctl metricas --por-version` muestra por
 versión el mayor número de tests y la mediana de la duración de la completa, y
 `taskctl doctor` avisa (`crecimiento-suite`) si cualquiera creció más de
 `umbral_crecimiento_suite` (porcentaje entero, 20 por defecto) entre las dos

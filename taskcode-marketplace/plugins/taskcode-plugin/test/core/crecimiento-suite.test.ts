@@ -130,7 +130,9 @@ test('contarTests (TASK-129, IMP-2): con la salida recortada, cargo y Maven no d
   const cargo = 'test result: ok. 400 passed; 0 failed; 0 ignored\n';
   assert.equal(contarTests(cargo + cargo), 800);
   assert.equal(contarTests(cargo + cargo, { recortada: true }), null, 'faltan crates del principio');
-  assert.equal(contarTests('[INFO] Tests run: 15, Failures: 0\n', { recortada: true }), null);
+  // IMP-3 (ronda 2): Maven de un solo modulo deja el total al final; el multimodulo no.
+  assert.equal(contarTests('[INFO] Tests run: 15, Failures: 0\n', { recortada: true }), 15);
+  assert.equal(contarTests('[INFO] Tests run: 15, Failures: 0\n[INFO] Reactor Summary for app:\n', { recortada: true }), null);
   assert.equal(contarTests('ℹ tests 868\n', { recortada: true }), 868);
   assert.equal(contarTests('===== 30 passed in 1.2s =====\n', { recortada: true }), 30);
 });
@@ -142,4 +144,26 @@ test('avisoCrecimiento (TASK-129, MEN-2): crecer exactamente el umbral no avisa;
   ];
   assert.equal(avisoCrecimiento(v(120), 20), null);
   assert.match(avisoCrecimiento(v(121), 20) ?? '', /tests 100 en 0\.14\.0 -> 121/);
+});
+
+test('anotarSuite (TASK-129, ronda 2): con la salida recortada de cargo anota «-», y con la entera, la cifra', async () => {
+  const { anotarSuite } = await import('../../src/commands/finish-verificacion.js');
+  const { leerRegistroPuertas } = await import('../../src/fs/registro-puertas.js');
+  const raiz = await mkdtemp(path.join(tmpdir(), 'anotar-suite-'));
+  try {
+    spawnSync('git', ['init', '-q'], { cwd: raiz });
+    const cola = 'test result: ok. 400 passed; 0 failed; 0 ignored\n';
+    const base = { comando: 'cargo test', estado: 'verde' as const, codigo: 0, duracionMs: 1, timeoutS: 600 };
+    anotarSuite(raiz, 'TASK-1', Date.now(), { ...base, cola, bytesTotales: Buffer.byteLength(cola) });
+    anotarSuite(raiz, 'TASK-2', Date.now(), { ...base, cola, bytesTotales: 90000 });
+    assert.deepEqual(
+      leerRegistroPuertas(raiz).filter((l) => l.puerta === 'suite').map((l) => [l.tarea, l.modo]),
+      [
+        ['TASK-1', '400'],
+        ['TASK-2', '-'],
+      ]
+    );
+  } finally {
+    await rm(raiz, { recursive: true, force: true, maxRetries: 5 });
+  }
 });

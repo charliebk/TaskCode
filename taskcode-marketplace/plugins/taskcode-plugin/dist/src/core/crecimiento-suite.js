@@ -22,7 +22,9 @@ function ultimo(texto, re) {
  * IMP-2 (revision TASK-129): con `recortada` (solo se tiene el final de la
  * salida), los runners que suman resumenes repartidos por la salida (cargo con
  * varios crates, Maven multimodulo) darian una cifra a la baja: null (sin
- * dato). Los que dejan el total al final (node, Jest, dotnet, pytest) valen.
+ * dato). Los que dejan el total al final (node, Jest, dotnet, pytest, y Maven
+ * de un solo modulo, cuyo ultimo `Tests run:` es el total) valen. IMP-3: el
+ * multimodulo se reconoce por su `Reactor Summary`, que va al final.
  */
 export function contarTests(salida, opciones = {}) {
     const t = salida.replace(/\x1b\[[0-9;]*m/g, '');
@@ -36,11 +38,11 @@ export function contarTests(salida, opciones = {}) {
     if (dotnet !== null)
         return dotnet;
     const pytestFinal = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
-    if (opciones.recortada === true && pytestFinal === null)
-        return null;
     const maven = ultimo(t, /Tests run:\s*(\d+)/g);
     if (maven !== null)
-        return maven;
+        return opciones.recortada === true && /Reactor Summary/.test(t) ? null : maven;
+    if (opciones.recortada === true && pytestFinal === null)
+        return null;
     const cargo = sumar(t, /test result: \w+\.\s+(\d+) passed;\s+(\d+) failed/g);
     if (cargo !== null)
         return cargo;
