@@ -76,3 +76,7 @@ tests (deberia emitirse solo en la selectiva).
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T05:42:42Z | implementacion | sesion:1fb23e40-df0f-4598-9be1-751ce6506e3c | 2 | 2171 | 557067 | 611 | 0 | 559851 | - | - |
+
+## Verificacion omitida
+
+- 2026-11-13T06:25:41Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
