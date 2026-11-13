@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 130 / 130 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 131 / 131 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 29 | **29** | — |
+| ✅ P — Agilidad sin perder calidad | 30 | **30** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -206,6 +206,13 @@ del código.
       IMP-1 (tests de los caminos de error) y MEN-1..6 corregidos, incluido MEN-3 (en merge request lo pendiente
       se commitea antes de subir la rama). La propia tarea se cerró ya con el flujo nuevo. finish --sin-verificacion
       (modo rápido: verificar-impacto y tests afectados en verde, solo los 2 rojos de Windows).*
+- [x] TASK-127 — Tope de rondas de revisión configurable, 2 por defecto, y decisión de una persona al llegar — cerrada el 2026-11-13
+      *Clave tope_rondas (1 a 10, 2 por defecto) leída de la config de la rama base por siguiente y review. En el
+      tope, siguiente pregunta en todos los modos con tres salidas (cerrar, ronda extra, volver a diseño = tarea
+      nueva, decisión de Carlos); review --ronda-extra exige «- Ronda N:» bajo «## Rondas extra» en tarea.md, una
+      por ronda. tope_rondas: 3 = comportamiento anterior. No se troceó (70 min estimados, decisión de Carlos).
+      Una ronda: IMP-1 (test de que la rama no se sube el tope, mata el mutante) y MEN-1 (CHANGELOG) corregidos
+      sin ronda 2, MEN-2 aceptado. Lateral: 3 tests ya rojos en develop desde TASK-119. finish --sin-verificacion.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
