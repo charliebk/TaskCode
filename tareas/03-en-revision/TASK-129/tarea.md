@@ -68,6 +68,9 @@ IMPORTANTE nuevo introducido por la correccion:
   quedaba sin cifra; ahora solo el multimodulo (`Reactor Summary`) da `-`.
   Test nuevo del cableado de `recortada` en `anotarSuite`.
 
+Ronda 3 (extra, anotada en `## Rondas extra`, haiku, acotada): aprobada, sin
+hallazgos nuevos.
+
 ## Rondas extra
 
 - Ronda 3: Carlos (2026-11-13) pidio terminar la cola aceptando todas las recomendaciones; ronda acotada para verificar IMP-3, en vez de integrar sin revisar.
@@ -88,3 +91,7 @@ IMPORTANTE nuevo introducido por la correccion:
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T16:34:21Z | implementacion | sesion:bdb2d869-6133-422f-8b3d-f1c76840a4dc | 46 | 39987 | 13882223 | 25805 | 2 | 13948061 | - | - |
+
+## Verificacion omitida
+
+- 2026-11-13T17:25:32Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
