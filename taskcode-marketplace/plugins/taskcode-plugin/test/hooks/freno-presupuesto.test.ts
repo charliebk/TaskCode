@@ -180,3 +180,19 @@ test('freno (TASK-125): un timeout de la selectiva menor que el presupuesto sigu
     );
   });
 });
+
+test('freno (TASK-125, MEN-1): el memo del comando del freno se guarda tambien con el arbol sucio', async () => {
+  await conRepo('comando_verificacion_freno: "<freno>"\n', async (r) => {
+    await r.desenlace('ko');
+    await writeFile(path.join(r.raiz, 'src', 'app.ts'), 'export const a = 3;\n', 'utf8');
+    assert.equal((await decidir(r)).codigo, 2);
+    const segunda = await decidir(r);
+    assert.equal(segunda.codigo, 2, 'el rojo guardado sigue bloqueando');
+    assert.match(segunda.stderr, /resultado guardado de la ultima verificacion/);
+    assert.equal(r.ejecuciones('freno'), 1, 'el segundo turno sale del memo, sin ejecutar');
+    assert.deepEqual(
+      freno(r).map((l) => l.resultado),
+      ['rojo', 'omitido']
+    );
+  });
+});

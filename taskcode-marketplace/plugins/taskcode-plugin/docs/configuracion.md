@@ -237,8 +237,10 @@ presupuesto_freno_s: 180                                            # opcional
   sola: entonces pone tope a la verificación de siempre.
 - Si la verificación agota el presupuesto, se corta, el freno **deja parar el
   turno** con un aviso de una línea y anota `excedido` en el registro de
-  puertas. Un rojo dentro del presupuesto sigue bloqueando el turno; un corte
-  por un `timeout_verificacion*` menor que el presupuesto también (es un rojo).
+  puertas. Un rojo dentro del presupuesto sigue bloqueando el turno. Sin
+  `comando_verificacion_freno`, un corte por un `timeout_verificacion*` menor
+  que el presupuesto también bloquea (es un rojo); con él solo manda el
+  presupuesto.
 - `taskctl doctor` dice en `puertas-verificacion` qué comando corre cada
   puerta y el presupuesto del freno.
 - Los documentales se deciden antes, igual que siempre: una tarea de solo
