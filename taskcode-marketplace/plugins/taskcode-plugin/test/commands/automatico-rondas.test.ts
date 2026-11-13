@@ -93,6 +93,26 @@ test('tope de rondas (TASK-127, por defecto 2): la ronda 2 pregunta con tres sal
   });
 });
 
+// IMP-1 de la revision de TASK-127: el tope sale de la config de la rama base.
+// Subirlo en la rama de la tarea (sin tocar develop) no cambia nada.
+test('tope de rondas (TASK-127): la rama de la tarea no puede subirse el tope; manda el de develop', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await hastaCodigo(repoRoot, tareasRoot);
+    await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), `${CONFIG_AUTO}tope_rondas: 5\n`, 'utf8');
+    commitAll(repoRoot, `chore(${ID}): la rama se sube el tope`);
+    for (const ronda of [1, 2]) {
+      cliOk(repoRoot, ['review', ID]);
+      cliOk(repoRoot, ['veredicto', ID, 'cambios-solicitados']);
+      if (ronda === 1) await codigo(repoRoot, 'correccion 1\n', `fix(${ID}): correccion 1`);
+    }
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['review', 'preguntar'], 'siguiente usa el tope de develop (2)');
+    await codigo(repoRoot, 'correccion 2\n', `fix(${ID}): correccion 2`);
+    const r = cli(repoRoot, ['review', ID]);
+    assert.notEqual(r.status, 0, 'review usa el tope de develop (2), no el 5 de la rama');
+    assert.match(r.stderr + r.stdout, /tope de rondas \(2\)/);
+  });
+});
+
 test('hotfix en automatico con revision aprobada en commit propio: finish pregunta', async () => {
   await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
     await hastaCodigo(repoRoot, tareasRoot, 'hotfix');
