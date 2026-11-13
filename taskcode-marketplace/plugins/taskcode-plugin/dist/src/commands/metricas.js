@@ -41,7 +41,7 @@
  * y los CRITICO/IMPORTANTE de su informe; `--json` lo lleva en `lecturasRevision`.
  * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
-import { resumirFreno, sumarPorTarea } from '../core/registro-puertas.js';
+import { PUERTA_FINISH, PUERTA_REVIEW, resumirFreno, resumirPuerta, sumarPorTarea } from '../core/registro-puertas.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -50,7 +50,7 @@ import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, TASK_COMPLEXITIES } from '../core/task.js';
 import { cargarHeuristica, nivelHeuristico, puntuarTarea } from '../core/heuristica.js';
 import { leerTransiciones } from '../core/transiciones.js';
-import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, COLUMNA_PROYECTO, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, etiquetaTarea, notasFilaEnriquecida, formatearLecturasRevision, lecturasRevisionJson, pausasJson, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, resumenSinCoste, } from '../core/metricas.js';
+import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, lineaTotalesPuertas, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, COLUMNA_PROYECTO, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, etiquetaTarea, notasFilaEnriquecida, formatearLecturasRevision, lecturasRevisionJson, pausasJson, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, resumenSinCoste, } from '../core/metricas.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme, } from '../fs/rondas.js';
 import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
@@ -338,9 +338,14 @@ export async function leerRepoMetricas(repo, varios) {
     const registroPuertas = leerRegistroPuertas(repo.ruta);
     const sincPorTarea = sumarPorTarea(registroPuertas, 'sincronizacion');
     const frenoPorTarea = resumirFreno(registroPuertas);
+    // TASK-128: las verificaciones de review y de finish, de la misma lectura.
+    const reviewPorTarea = resumirPuerta(registroPuertas, PUERTA_REVIEW);
+    const finishPorTarea = resumirPuerta(registroPuertas, PUERTA_FINISH);
     const filas = leidas.map((l) => calcularFila({
         sincronizacionS: sincPorTarea.get(l.task.task.id) ?? null,
         freno: frenoPorTarea.get(l.task.task.id) ?? null,
+        review: reviewPorTarea.get(l.task.task.id) ?? null,
+        finishVerificacion: finishPorTarea.get(l.task.task.id) ?? null,
         task: l.task.task,
         body: l.task.body,
         ronda: l.ronda,
@@ -517,6 +522,9 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
         return {
             output: [
                 formatearTabla(filas, columnas),
+                '',
+                // TASK-128: la fila de totales de las puertas de verificacion.
+                lineaTotalesPuertas(filas),
                 '',
                 ...notasFilaEnriquecida(filas, varios),
                 '',

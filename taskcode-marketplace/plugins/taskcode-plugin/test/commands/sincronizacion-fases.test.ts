@@ -142,3 +142,43 @@ test('metricas (TASK-111): sin lineas del freno, freno_n y freno salen con "—"
     assert.deepEqual([celda(r.stdout, 'TASK-920', 'freno_n'), celda(r.stdout, 'TASK-920', 'freno')], ['—', '—']);
   });
 });
+
+test('metricas (TASK-128): el CLI lee review y finish del registro real y escribe la fila de totales de las puertas', async () => {
+  await withRepoSincronizado(null, async (repoRoot) => {
+    const ruta = rutaRegistroPuertas(repoRoot) as string;
+    await mkdir(path.dirname(ruta), { recursive: true });
+    await appendFile(
+      ruta,
+      [
+        'review\tTASK-920\t2026-11-13T00:00:00.000Z\tselectiva\t60.0\tverde',
+        'review\tTASK-920\t2026-11-13T00:01:00.000Z\tselectiva\t0.0\tomitido',
+        'finish\tTASK-920\t2026-11-13T00:02:00.000Z\tcompleta\t600.0\tverde',
+        'freno\tTASK-920\t2026-11-13T00:03:00.000Z\tselectiva\t120.0\tverde',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+    const r = spawnSync(process.execPath, [BIN, 'metricas'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.deepEqual(
+      ['review_n', 'review_v', 'finish_n', 'finish_v'].map((c) => celda(r.stdout, 'TASK-920', c)),
+      ['1', '1m', '1', '10m'],
+      r.stdout
+    );
+    assert.match(r.stdout, /^Puertas de verificacion \(todas las tareas\): freno 1 \(2m\), review 1 \(1m\), finish 1 \(10m\)$/m);
+  });
+});
+
+test('metricas (TASK-128, regresion): sin registro, las columnas anteriores no cambian y las nuevas salen con «—»', async () => {
+  await withRepoSincronizado(null, async (repoRoot) => {
+    const r = spawnSync(process.execPath, [BIN, 'metricas'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.deepEqual(
+      ['review_n', 'review_v', 'finish_n', 'finish_v'].map((c) => celda(r.stdout, 'TASK-920', c)),
+      ['—', '—', '—', '—']
+    );
+    assert.match(r.stdout, /^Puertas de verificacion \(todas las tareas\): freno —, review —, finish —$/m);
+    const pv = spawnSync(process.execPath, [BIN, 'metricas', '--por-version'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(pv.status, 0, pv.stderr);
+  });
+});

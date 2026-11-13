@@ -58,7 +58,7 @@ import { leerCierre } from './cierre.js';
 import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, lecturasDeRevision, resumirCostes, } from './coste-registro.js';
-import { leerHallazgos, resumirHallazgos, veredictoDeRonda, } from './informe-revision.js';
+import { leerHallazgos, resumirHallazgos, rondasSoloMenores, veredictoDeRonda, } from './informe-revision.js';
 import { extraerSecciones } from './tarea-body.js';
 /**
  * Clave de una tarea en cualquier Map de metricas: (proyecto, id). Hoy hay
@@ -75,6 +75,12 @@ export function claveTarea(proyecto, id) {
  */
 export function etiquetaTarea(f, varios) {
     return varios ? `${f.proyecto}/${f.id}` : f.id;
+}
+/** TASK-111/128: el resumen de una puerta en la forma de la fila (duracion en ms). */
+function puertaDeFila(r) {
+    return r === undefined || r === null
+        ? null
+        : { ejecuciones: r.ejecuciones, duracion: { valor: Math.round(r.duracionS * 1000), precision: 'segundo' } };
 }
 function kbPorRonda(peticiones) {
     const bytes = new Map();
@@ -274,9 +280,10 @@ export function calcularFila(e) {
         sincronizacion: e.sincronizacionS === undefined || e.sincronizacionS === null
             ? null
             : { valor: Math.round(e.sincronizacionS * 1000), precision: 'segundo' },
-        freno: e.freno === undefined || e.freno === null
-            ? null
-            : { ejecuciones: e.freno.ejecuciones, duracion: { valor: Math.round(e.freno.duracionS * 1000), precision: 'segundo' } },
+        freno: puertaDeFila(e.freno),
+        review: puertaDeFila(e.review),
+        finishVerificacion: puertaDeFila(e.finishVerificacion),
+        rondasSoloMenores: rondasSoloMenores(e.informes ?? []),
         puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
         estimadaMin: estimadaAnotada(e.body),
         enPausa: enPausaDe(marcas),
@@ -360,7 +367,30 @@ export const COLUMNAS_METRICAS = [
     // TASK-111: el freno Stop de la tarea: cuantas veces corrio de verdad y cuanto sumo.
     { cabecera: 'freno_n', valor: (f) => (f.freno === null ? '—' : String(f.freno.ejecuciones)) },
     { cabecera: 'freno', valor: (f) => (f.freno === null ? '—' : formatearDuracion(f.freno.duracion)) },
+    // TASK-128: las verificaciones de review y de finish, y las rondas abiertas solo por MENORES.
+    { cabecera: 'review_n', valor: (f) => (f.review === null ? '—' : String(f.review.ejecuciones)) },
+    { cabecera: 'review_v', valor: (f) => (f.review === null ? '—' : formatearDuracion(f.review.duracion)) },
+    { cabecera: 'finish_n', valor: (f) => (f.finishVerificacion === null ? '—' : String(f.finishVerificacion.ejecuciones)) },
+    { cabecera: 'finish_v', valor: (f) => (f.finishVerificacion === null ? '—' : formatearDuracion(f.finishVerificacion.duracion)) },
+    { cabecera: 'rondas_men', valor: (f) => (f.rondasSoloMenores === null ? '—' : String(f.rondasSoloMenores)) },
 ];
+/**
+ * TASK-128: la fila de totales de las puertas de verificacion, debajo de la
+ * tabla: ejecuciones y tiempo de cada puerta sumando todas las tareas. Una
+ * puerta sin lineas en ninguna tarea sale con `—`.
+ */
+export function lineaTotalesPuertas(filas) {
+    const total = (sel) => {
+        const con = filas.map(sel).filter((x) => x !== null);
+        if (con.length === 0)
+            return '—';
+        const n = con.reduce((a, x) => a + x.ejecuciones, 0);
+        const ms = con.reduce((a, x) => a + x.duracion.valor, 0);
+        return `${String(n)} (${formatearDuracion({ valor: ms, precision: 'segundo' })})`;
+    };
+    return (`Puertas de verificacion (todas las tareas): freno ${total((f) => f.freno)}, ` +
+        `review ${total((f) => f.review)}, finish ${total((f) => f.finishVerificacion)}`);
+}
 /** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
 export const COLUMNA_PROYECTO = { cabecera: 'proyecto', valor: (f) => f.proyecto };
 /** Las que anade `--heuristica`. */

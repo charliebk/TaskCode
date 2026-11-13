@@ -88,6 +88,6 @@ test('la columna finish va justo antes de punta_a_punta, tambien en la tabla', (
   const tabla = formatearTabla([calcularFila(entrada(CIERRE))], COLUMNAS_METRICAS);
   const [cab, , fila] = tabla.split('\n') as [string, string, string];
   // TASK-111: freno_n y freno, sin dato, detras de sinc.
-  assert.match(cab, /\| estimada \| finish \| punta_a_punta \| sinc \| freno_n \| freno \|$/);
-  assert.match(fila, /\| 30m +\| 28m +\| 2h 00m +\| — +\| — +\| — +\|$/);
+  assert.match(cab, /\| estimada \| finish \| punta_a_punta \| sinc \| freno_n \| freno \| review_n \| review_v \| finish_n \| finish_v \| rondas_men \|$/);
+  assert.match(fila, /\| 30m +\| 28m +\| 2h 00m +\| — +\| — +\| — +\| — +\| — +\| — +\| — +\| — +\|$/);
 });

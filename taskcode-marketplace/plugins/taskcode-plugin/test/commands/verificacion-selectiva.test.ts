@@ -6,6 +6,7 @@
  * ejecuciones y la selectiva apunta la RAMA_BASE que recibio.
  */
 import { NO_REPITAS } from '../../src/core/informe-verificacion.js';
+import { leerRegistroPuertas } from '../../src/fs/registro-puertas.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -296,6 +297,13 @@ test('review (TASK-091): con la clave corre la selectiva con la base y la petici
       assert.equal(v.ejecuciones('selectiva'), 1);
       assert.equal(v.ejecuciones('completa'), 0, 'review no corre la completa');
       assert.equal(v.base('selectiva'), 'develop');
+      // TASK-128: la verificacion de la ronda queda en el registro de puertas.
+      assert.deepEqual(
+        leerRegistroPuertas(repoRoot)
+          .filter((l) => l.puerta === 'review')
+          .map((l) => [l.tarea, l.modo, l.resultado]),
+        [['TASK-600', 'selectiva', 'verde']]
+      );
       const peticion = readFileSync((r.informes[0] as { peticionPath: string }).peticionPath, 'utf8');
       assert.match(peticion, /## Verificacion de esta ronda/);
       assert.match(peticion, /- Tipo: selectiva \(por impacto respecto a `develop`/);
@@ -328,6 +336,13 @@ test('review (TASK-091): selectiva en rojo aborta sin ronda; la tarea sigue en c
         }
       );
       assert.equal((await readTareaFile(tareasRoot, 'TASK-600'))?.task.estado, 'en-curso');
+      // TASK-128: el rojo tambien se anota, antes de abortar.
+      assert.deepEqual(
+        leerRegistroPuertas(repoRoot)
+          .filter((l) => l.puerta === 'review')
+          .map((l) => l.resultado),
+        ['rojo']
+      );
       const carpeta = path.join(tareasRoot, '02-en-curso', 'TASK-600');
       const revision = path.join(carpeta, 'revision');
       assert.ok(!existsSync(revision) || (await readdir(revision)).length === 0, 'no queda ninguna ronda a medias');
