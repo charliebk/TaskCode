@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-113-p-5-peticion-de-revision-mas-ligera-con
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 4539807
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-13
@@ -38,3 +38,10 @@ La peticion de la ronda 1 pesa 116 KB de mediana en ToolsaWeb (unos 30 K tokens 
 | 2026-11-13T00:11:26Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T00:12:08Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T00:12:10Z | start | automatico | persona | 0.14.0 |
+| 2026-11-13T00:33:38Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-13T00:33:38Z | implementacion | sesion:1fb23e40-df0f-4598-9be1-751ce6506e3c | 64 | 34450 | 4488616 | 16677 | 5 | 4539807 | - | - |
