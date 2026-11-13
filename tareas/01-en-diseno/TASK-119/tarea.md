@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-119-p-11-menos-commits-de-proceso-por-tarea
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: []
 ---
 ## Objetivo
@@ -30,3 +30,9 @@ Cada tarea deja 23-26 commits de los que 3-4 son de codigo: coste, veredicto, pe
 - [ ] registrar-coste y veredicto no crean commit propio: su cambio entra en el commit del siguiente comando de fase sin que la guarda de workspace limpio lo bloquee (test con repo temporal)
 - [ ] Un ciclo completo new, plan, approve, start, review con una ronda y finish deja como mucho la mitad de commits de proceso que hoy (test que los cuenta)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T08:27:07Z | plan | automatico | persona | 0.14.0 |
