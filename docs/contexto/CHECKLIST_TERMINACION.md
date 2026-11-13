@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 136 / 136 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 137 / 137 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 35 | **35** | — |
+| ✅ P — Agilidad sin perder calidad | 36 | **36** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (35/35)
+## ✅ P — Agilidad sin perder calidad (36/36)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -179,6 +179,11 @@ del código.
       verde todas las pendientes y en rojo lista las que entraron desde la última en verde. Forma decidida por la regla
       de aceptar recomendaciones (revisable). Dos rondas: IMP-1 (hotfix/release fuera del lote, con test) y MEN-1..4
       corregidos. finish --sin-verificacion (verificar-impacto 919/919).*
+- [x] TASK-126 — Verificación por tipo de rama: los tests pesados solo en la puerta de release — cerrada el 2026-11-13
+      *comando_verificacion_pesada y verificacion_pesada_en ([release] por defecto, admite hotfix): finish los corre tras
+      la completa solo en esos tipos (también en el camino idempotente) y el guardián exige su verde para integrar una
+      release a mano; doctor dice qué puerta los corre; skill finish y docs con cargo test -- --ignored. Tres rondas
+      (la 3.ª extra, anotada): IMP-1, IMP-2 y MEN-1 corregidos. finish --sin-verificacion (verificar-impacto 957/957).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
