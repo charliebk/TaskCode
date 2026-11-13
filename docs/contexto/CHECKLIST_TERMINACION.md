@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 134 / 134 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 135 / 135 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 33 | **33** | — |
+| ✅ P — Agilidad sin perder calidad | 34 | **34** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (33/33)
+## ✅ P — Agilidad sin perder calidad (34/34)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -168,6 +168,11 @@ del código.
       por defecto con el comando, tope 3600); un corte por presupuesto deja parar y anota excedido; doctor muestra
       puertas-verificacion. Una ronda aprobada; MEN-1 y MEN-2 corregidos con verificar-menores. Se archivaron
       TASK-092..109 del checklist por su tope de 20 KB. finish --sin-verificacion (verificar-impacto 980/980).*
+- [x] TASK-128 — Métricas de verificación por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores — cerrada el 2026-11-13
+      *review y finish anotan cada verificación (también en rojo) en el registro de puertas; metricas añade review_n,
+      review_v, finish_n, finish_v y rondas_men, y la fila de totales de las puertas; columnas anteriores intactas.
+      Una ronda aprobada con correcciones: MEN-1 y MEN-2 (tests de tres anotaciones de finish y del modo de review)
+      corregidos sin ronda 2, mutantes comprobados. finish --sin-verificacion (verificar-impacto 896/896).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
