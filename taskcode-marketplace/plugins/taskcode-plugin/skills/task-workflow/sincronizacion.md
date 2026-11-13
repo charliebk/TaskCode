@@ -95,7 +95,7 @@ workspace, o actualizar el config).
 **Otra clave opcional, `excluir_de_revision`:** patrones (semantica de
 `git :(glob)`) cuyo diff no se embebe en la peticion de revision; aparecen en
 un `--stat` con la orden para pedirlos. Por defecto
-`[**/dist/**, **/*.lock, **/*-lock.*, tareas/**]`; definirla **sustituye** esa
+`[**/dist/**, **/*.lock, **/*-lock.json, **/*-lock.yaml, **/*-lock.yml, **/*-lock.toml, tareas/**]`; definirla **sustituye** esa
 lista (incluye `tareas/**` si la quieres mantener) y `[]` no excluye nada.
 
 **Compatibilidad con versiones anteriores del plugin:**

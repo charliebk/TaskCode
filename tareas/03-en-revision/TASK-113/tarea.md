@@ -52,6 +52,26 @@ aprobada-con-correcciones, sin CRITICOS ni IMPORTANTES.
   peor es embeber de mas o listar de menos; se documenta en el comentario y no se
   unifica.
 
+Ampliacion de alcance (decision de Carlos, 2026-11-13): `verificar-menores` bloqueaba
+el cierre solo por el `dist/` recompilado de los MENORES. Ahora `fueraDeTareas` excluye
+tambien `excluir_de_revision` y los held-out: lo que la revision no lee no es codigo
+sin revisar.
+
+Ronda 2 (acotada, general-purpose + code-quality-reviewer, haiku): MEN-1 y MEN-2
+corregidos; cambios-solicitados por un hallazgo nuevo:
+
+- NUEVO-1 (IMPORTANTE, corregido): el patron por defecto `**/*-lock.*` casaba con
+  codigo real (`src/services/redis-lock.ts`); con la ampliacion, ese codigo saltaba la
+  puerta de finish, y ya antes `review` no lo embebia (fallo de TASK-034). Por decision
+  de Carlos se acota a `**/*-lock.json|yaml|yml|toml` (config.ts y
+  skills/task-workflow/sincronizacion.md). Tests nuevos en review-exclusion y
+  verificar-menores; mutante (volver a `*-lock.*`) cazado.
+- Notas de la ronda 2 que no se corrigen: el lote de `statDeFicheros` va por numero de
+  rutas y no por bytes (100 rutas de 300 caracteres seguirian por debajo de 32 K);
+  `diffRangeForPaths` (TASK-018) tiene el mismo riesgo de ENAMETOOLONG en la peticion
+  fragmentada, fuera de esta tarea; `review` aplica la exclusion relativa al cwd y
+  `verificar-menores` con `:(top)`, sin efecto porque taskctl corre desde la raiz.
+
 Modo rapido (decision de Carlos, 2026-11-12): los MENORES se corrigen sin ronda 2;
 el coordinador verifico los tests afectados (`review-tests-stat`, `review-exclusion`,
 `review-dominios`) y los mutantes. Verificacion por impacto en verde (848 pass, 0 fail).

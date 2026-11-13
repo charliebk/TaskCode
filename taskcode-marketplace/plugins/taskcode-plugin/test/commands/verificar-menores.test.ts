@@ -215,6 +215,21 @@ test('TASK-113: lo excluido de la revision (dist/ recompilado, lockfile) no es c
     assert.ok(!(await readFile(cerrada.filePath, 'utf8')).includes(SECCION_CODIGO_SIN_REVISAR));
   });
 });
+
+test('TASK-113 (ronda 2): un fichero de codigo con "-lock" en el nombre si es codigo sin revisar', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const id = 'TASK-909';
+    await montar(repoRoot, tareasRoot, id, 'aprobada con correcciones', [FILA_MEN1]);
+    await escribir(repoRoot, 'src/a.ts', '// arreglo del MENOR\n');
+    await escribir(repoRoot, 'src/services/redis-lock.ts', '// codigo que nadie reviso\n');
+    commitAll(repoRoot, `fix(${id}): MEN-1 y algo mas`);
+    await assert.rejects(
+      () => runVerificarMenoresCommand(tareasRoot, [id], { repoCwd: repoRoot }),
+      /src\/services\/redis-lock\.ts/
+    );
+  });
+});
+
 test('una verificacion vieja no vale: codigo nuevo despues de verificar vuelve a bloquear finish', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     const id = 'TASK-905';
