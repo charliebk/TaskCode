@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-132-ayudante-caso-de-los-tests-fusionados-en
 asignado_a: charlie.bk@gmail.com
@@ -36,3 +36,4 @@ La poda de TASK-130 dejo la misma funcion caso() copiada en diez ficheros de tes
 |---|---|---|---|---|
 | 2026-11-13T19:27:38Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T19:28:09Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-13T19:28:11Z | start | automatico | persona | 0.14.0 |
