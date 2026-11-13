@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 131 / 131 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 132 / 132 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 30 | **30** | — |
+| ✅ P — Agilidad sin perder calidad | 31 | **31** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -213,6 +213,11 @@ del código.
       por ronda. tope_rondas: 3 = comportamiento anterior. No se troceó (70 min estimados, decisión de Carlos).
       Una ronda: IMP-1 (test de que la rama no se sube el tope, mata el mutante) y MEN-1 (CHANGELOG) corregidos
       sin ronda 2, MEN-2 aceptado. Lateral: 3 tests ya rojos en develop desde TASK-119. finish --sin-verificacion.*
+- [x] TASK-131 — Tres tests con expectativas anteriores a TASK-119 — cerrada el 2026-11-13
+      *Sin cambios de producción: automatico-ciclo (informe sin commitear → finish continúa, lo absorbe finish),
+      automatico-guarda-finish IMP-3 (commit del veredicto antes de cambiar de rama) y fases.test.ts (frases
+      vigentes de la skill review) pasan a la regla de TASK-119. Una ronda aprobada sin hallazgos. develop vuelve a
+      no tener más rojos que los 2 conocidos de Windows. finish --sin-verificacion (verificar-impacto 811/811).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
