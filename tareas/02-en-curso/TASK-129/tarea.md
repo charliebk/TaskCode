@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, tests, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-129-freno-al-crecimiento-de-la-suite-presupu
 asignado_a: charlie.bk@gmail.com
@@ -39,3 +39,4 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 |---|---|---|---|---|
 | 2026-11-13T16:11:15Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T16:11:41Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-13T16:11:43Z | start | automatico | persona | 0.14.0 |
