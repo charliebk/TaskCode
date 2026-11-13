@@ -7,7 +7,7 @@ etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-120-p-12-sincronizacion-con-su-duracion-regi
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ comando_sincronizacion (en ToolsaWeb, el grafo de tareas) corre en cada transici
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T04:17:20Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T04:18:26Z | approve | automatico | persona | 0.14.0 |
