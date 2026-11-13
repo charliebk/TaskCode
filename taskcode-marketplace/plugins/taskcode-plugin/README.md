@@ -91,9 +91,15 @@ revisa desde la rama base.
 Entre una ronda y otra se corrige **todo** lo de la ronda: los CRÍTICO e
 IMPORTANTE siempre; el MENOR que no compense se marca `aceptado` con su
 motivo o pasa a una tarea nueva. `taskctl review` avisa si se abre una ronda
-con hallazgos de la anterior sin marcar. Tras la ronda 3 con cambios,
-`taskctl siguiente` pregunta en cualquier modo y `taskctl review` no abre la
-ronda 4 sin `--ronda-extra`, que se pasa solo cuando lo decide una persona.
+con hallazgos de la anterior sin marcar. El tope de rondas es
+`tope_rondas` (de 1 a 10, **2 por defecto**, leído de la config de la rama
+base). Si la última ronda permitida pide cambios, `taskctl siguiente`
+pregunta en cualquier modo, también en automático, con tres salidas: cerrar
+con lo que hay, una ronda más o volver a diseño (lo abierto, en una tarea
+nueva). `taskctl review` no abre otra ronda sin `--ronda-extra` y sin la
+decisión de la persona en `tarea.md` (`## Rondas extra`, línea
+`- Ronda N: <quién y por qué>`); cada ronda extra vuelve a preguntar. Con
+`tope_rondas: 3` se comporta como hasta la 0.15.
 
 El motivo, medido: con la regla anterior (0.12), un IMPORTANTE en cualquier
 estado, también corregido, obligaba a una ronda completa; los revisores
@@ -235,6 +241,7 @@ La referencia detallada vive en `docs/`, un fichero por tema:
     - [Cobertura de las líneas cambiadas](docs/configuracion.md#cobertura-de-las-líneas-cambiadas)
     - [Guardián de merges (hook `PreToolUse`)](docs/configuracion.md#guardián-de-merges-hook-pretooluse)
     - [Documento de estado vigilado por `doctor`: `documento_estado`](docs/configuracion.md#documento-de-estado-vigilado-por-doctor-documento_estado)
+    - [Tope de rondas de revisión: `tope_rondas`](docs/configuracion.md#tope-de-rondas-de-revisión-tope_rondas)
   - [Sincronización de ficheros derivados](docs/configuracion.md#sincronización-de-ficheros-derivados)
   - [ROADMAP de tareas (`tareas/ROADMAP.md`)](docs/configuracion.md#roadmap-de-tareas-tareasroadmapmd)
 - [Cierre y release](docs/cierre-y-release.md)

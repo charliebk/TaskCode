@@ -67,6 +67,10 @@ interface Ctx {
 
 async function conRonda1(ficheros: string[], cuerpo: (ctx: Ctx, r1: Ronda) => Promise<void>): Promise<void> {
   await withTempRepo(async (repoRoot, tareasRoot) => {
+    // TASK-127: estos tests llegan a la ronda 3 y fijan el tope de antes (3)
+    // en la config de develop, que es de donde lo lee review.
+    await escribirFichero(repoRoot, '.taskcode/config.yml', 'tope_rondas: 3\n');
+    commitAll(repoRoot, 'config: tope de rondas 3');
     const task = sampleTask({ id: ID, rama: 'feature/task-983-alcance' });
     await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
     for (const f of ficheros) await escribirFichero(repoRoot, f, `// ${f}\n`);
@@ -277,6 +281,10 @@ test('alcance (TASK-095): el caso real que no convergia (IMPORTANTE relistado co
     await ctx.pedirCambios(r3.r, [informe([`| MEN-10 | MENOR | abierto | ${JAVA}:7 | plan |`])]);
     await ctx.corregir([JAVA]);
     await assert.rejects(ctx.review(), /tope de rondas \(3\).*--ronda-extra/s);
+    // TASK-127: el flag solo ya no basta; hace falta la decision en tarea.md.
+    await assert.rejects(ctx.review(['--ronda-extra']), /exige que conste la decision.*- Ronda 4: /s);
+    const tareaMd = path.join(ctx.tareasRoot, '03-en-revision', ID, 'tarea.md');
+    await writeFile(tareaMd, `${await readFile(tareaMd, 'utf8')}\n## Rondas extra\n- Ronda 4: Carlos, queda el MEN-10\n`, 'utf8');
     const r4 = await ctx.review(['--ronda-extra']);
     esAcotada(r4, r3.r.commitRevisado);
     assert.equal(r4.r.ronda, 4);

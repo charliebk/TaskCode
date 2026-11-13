@@ -416,6 +416,14 @@ documento_estado: docs/ESTADO.md   # opcional: sin ella no se vigila ningun docu
 
 - **`documento_estado`** (opcional; sin ella no se vigila ningún documento): ruta, relativa a la raíz del repo, del documento que resume el estado del proyecto. Solo la lee `taskctl doctor`, en la comprobación `documento-estado`. La fecha del documento es la de su último commit (`git log -1 -- <ruta>`), no la de modificación del fichero. Da aviso, con el arreglo, si el fichero no existe o no tiene commits; si ese commit tiene 15 días o más (14 aún es `ok`), y si alguna tarea de `04-terminadas` tiene `actualizado` posterior al día de ese commit, diciendo cuántas y cuál es la más reciente. Nunca es error, así que no cambia el código de salida. Un valor inválido aborta: vacío, ruta absoluta, que salga del repo, una carpeta, o bajo `.git/`, `.taskcode/` o una carpeta de estado de `tareas/`.
 
+#### Tope de rondas de revisión: `tope_rondas`
+
+```yaml
+tope_rondas: 2   # opcional: de 1 a 10; 2 por defecto
+```
+
+- **`tope_rondas`** (opcional; 2 por defecto): rondas de revisión que se abren sin preguntar. Lo leen `taskctl siguiente` y `taskctl review` de la config de la **rama base**, así que la rama de una tarea no puede subirse su propio tope. Si la última ronda permitida pide cambios, `siguiente` pregunta en cualquier modo con tres salidas (cerrar, una ronda más, volver a diseño) y `review` exige `--ronda-extra` más la línea `- Ronda N: <quién y por qué>` bajo `## Rondas extra` en `tarea.md`. Un valor fuera de 1..10 o no entero aborta. `tope_rondas: 3` es el comportamiento anterior a TASK-127.
+
 ## Sincronización de ficheros derivados
 
 Un proyecto puede regenerar en cada transición los ficheros que derivan del

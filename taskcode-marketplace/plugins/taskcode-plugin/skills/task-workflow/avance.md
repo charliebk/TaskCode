@@ -79,18 +79,20 @@ diciendo que toca hacer ese trabajo, commitearlo y despues
 `/taskcode-plugin:review TASK-NNN`. En `automatico` devuelve `continuar`: el
 trabajo lo hace la skill (`start` implementa, `review` corrige) y sigue.
 
-Excepcion: tras la ronda 3 con cambios (el tope de rondas), `siguiente`
-devuelve `preguntar` en **cualquier** modo, y su `motivo` nombra las salidas:
-aceptar lo abierto (IDs y motivo en el `## Resultado`) y cerrar, pasarlo a una
-tarea nueva, o corregir y abrir otra ronda con `taskctl review TASK-NNN
---ronda-extra`. Ese flag solo se pasa si la persona dice que si; sin el,
-`review` no abre la ronda 4.
+Excepcion: si la ultima ronda permitida pide cambios (el tope de rondas,
+`tope_rondas` de la config de la rama base, 2 por defecto), `siguiente`
+devuelve `preguntar` en **cualquier** modo, con tres `salidas`: `cerrar`
+(lo abierto, `aceptado` con IDs y motivo en el `## Resultado`),
+`ronda-extra` (anotar `- Ronda N: <quien y por que>` bajo `## Rondas extra`
+en `tarea.md` y `taskctl review TASK-NNN --ronda-extra`) y
+`volver-a-diseno` (lo abierto, en una tarea nueva). Elige la persona; sin la
+linea, `review` no abre la ronda.
 
 En `automatico`, `siguiente` solo pregunta en sus guardas: aprobar una tarea
 sin modo congelado, cerrar hotfix o release, cerrar cuando lo que se
 mergearia no coincide con lo revisado (codigo posterior al `Commit revisado`
-de la peticion, informe sin rellenar), otra ronda desde la
-ronda 3, y el veredicto de la segunda opinion.
+de la peticion, informe sin rellenar), otra ronda pasado el tope
+de rondas, y el veredicto de la segunda opinion.
 
 ## Encadenar la skill siguiente (la cadena)
 

@@ -16,8 +16,11 @@ export const FASES_SIGUIENTE = [
     'finish',
     'terminada',
 ];
-/** Tope de rondas de revision: desde esta, otra ronda la decide una persona. */
-export const TOPE_RONDAS = 3;
+/**
+ * Tope de rondas de revision por defecto (TASK-127; antes 3 fijo): en la
+ * ultima, si pide cambios, otra ronda la decide una persona.
+ */
+export const TOPE_RONDAS_POR_DEFECTO = 2;
 /** TASK-121: las dos salidas de la regla de una hora (una parte ya no se trocea). */
 export function salidasReglaUnaHora(id) {
     const aprobar = {
@@ -34,6 +37,39 @@ export function salidasReglaUnaHora(id) {
             descripcion: `pasa a ${id}a y crea ${id}b, ${id}c... en 00-planificadas con la misma rama, segun la seccion "## Troceo" del plan`,
         },
         aprobar,
+    ];
+}
+/** Seccion de `tarea.md` donde consta cada ronda extra que decide una persona (TASK-127). */
+export const SECCION_RONDAS_EXTRA = '## Rondas extra';
+/** La linea que pide `review --ronda-extra` para abrir la ronda `ronda`. */
+export function lineaRondaExtra(ronda) {
+    return `- Ronda ${String(ronda)}: <quien lo decide y por que>`;
+}
+/**
+ * TASK-127: las tres salidas del tope de rondas. Ninguna la elige el agente:
+ * se pregunta en todos los modos, tambien en automatico.
+ */
+export function salidasTopeRondas(id, rondaActual) {
+    const siguiente = rondaActual + 1;
+    return [
+        {
+            opcion: 'cerrar',
+            comando: `taskctl veredicto ${id} aprobada-con-correcciones`,
+            descripcion: 'cerrar con lo que hay: marcar como aceptado lo que queda abierto, con sus IDs y el motivo en el ' +
+                'Resultado, y despues el veredicto',
+        },
+        {
+            opcion: 'ronda-extra',
+            comando: `taskctl review ${id} --ronda-extra`,
+            descripcion: `una ronda mas: corregir, commitear y anotar en tarea.md, en la seccion "${SECCION_RONDAS_EXTRA}", ` +
+                `la linea "${lineaRondaExtra(siguiente)}"; cada ronda extra vuelve a preguntar`,
+        },
+        {
+            opcion: 'volver-a-diseno',
+            comando: 'taskctl new',
+            descripcion: 'redisenar lo que queda abierto en una tarea nueva, enlazada desde el Resultado de esta, y cerrar ' +
+                'esta con lo que hay',
+        },
     ];
 }
 /**
@@ -111,7 +147,8 @@ export function siguienteFase(task, ctx, modo) {
         case 'en-revision':
             switch (ctx.veredicto) {
                 case 'cambios-solicitados':
-                    if (ctx.rondaRevision >= TOPE_RONDAS) {
+                    const tope = ctx.topeRondas ?? TOPE_RONDAS_POR_DEFECTO;
+                    if (ctx.rondaRevision >= tope) {
                         // TASK-095: en el tope se pregunta en CUALQUIER modo, tambien en
                         // manual y semiautomatico (antes se detenia sin preguntar: IMP-3 de
                         // TASK-058, IMP-2 de TASK-059). Detenerse sin decir que decidir
@@ -119,15 +156,17 @@ export function siguienteFase(task, ctx, modo) {
                         // tarea llego a 14 rondas. La pregunta nombra las salidas.
                         // El comando NO lleva --ronda-extra (MEN-6 de la revision): quien lo
                         // ejecute sin leer la accion se encuentra con review rechazando la
-                        // ronda, no con el control humano saltado. El flag va en el motivo.
+                        // ronda, no con el control humano saltado. El flag va en las salidas.
+                        // TASK-127: tope configurable y tres salidas explicitas.
                         return {
                             fase: 'review',
                             comando: `taskctl review ${task.id}`,
                             accion: 'preguntar',
-                            motivo: `la ronda ${String(ctx.rondaRevision)} tambien pidio cambios: tope de rondas alcanzado. ` +
-                                'Lo decide una persona: aceptar lo que queda abierto (con sus IDs y el motivo en el ' +
-                                'Resultado) y cerrar, pasarlo a una tarea nueva, o corregir y abrir otra ronda con ' +
-                                `"taskctl review ${task.id} --ronda-extra"`,
+                            motivo: `la ronda ${String(ctx.rondaRevision)} pidio cambios y es el tope de rondas (${String(tope)}). ` +
+                                'Lo decide una persona: cerrar con lo que hay (lo abierto, aceptado con sus IDs y el motivo ' +
+                                'en el Resultado), una ronda mas (anotada en tarea.md y con ' +
+                                `"taskctl review ${task.id} --ronda-extra") o volver a diseno (lo abierto, en una tarea nueva)`,
+                            salidas: salidasTopeRondas(task.id, ctx.rondaRevision),
                         };
                     }
                     return paso('review', false, 'la ultima ronda pidio cambios: corregir, commitear y pedir otra ronda', `taskctl review ${task.id}`, false, true);
