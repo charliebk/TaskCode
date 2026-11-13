@@ -26,16 +26,7 @@ import { DoctorDeployCatalogoError, cargarCatalogoDeploy } from '../../src/core/
 import type { InformeDeploy, ResultadoPunto } from '../../src/core/doctor-deploy.js';
 import { motivoFicheroSecreto, requirementsFijado } from '../../src/fs/sondas-deploy.js';
 import { AWS, AWS_EJEMPLO, STRIPE_LIVE as STRIPE, STRIPE_LIVE_OTRA, STRIPE_TEST_EJEMPLO } from '../helpers/claves-falsas.js';
-
-/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
-async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 const TOTAL_PUNTOS = cargarCatalogoDeploy().puntos.length;
 const b64url = (o: unknown): string => Buffer.from(JSON.stringify(o)).toString('base64url');

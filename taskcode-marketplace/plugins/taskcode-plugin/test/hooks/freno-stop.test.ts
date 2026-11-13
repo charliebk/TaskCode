@@ -21,16 +21,7 @@ import { describirResultado, recortarCola, type ResultadoVerificacion } from '..
 import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { git, sampleTask } from '../helpers/finish-fixtures.js';
 import { leerProgreso, rutaProgreso } from '../../src/fs/progreso.js';
-
-/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
-async function caso(nombre: string, fn: () => unknown): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 /** TASK-110: en los turnos en que el freno no verifica, ni un fichero de progreso. */
 function sinProgreso(raiz: string): void {

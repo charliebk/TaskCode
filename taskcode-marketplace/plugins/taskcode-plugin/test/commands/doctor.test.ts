@@ -30,16 +30,7 @@ import { git, commitAll, sampleTask } from '../helpers/finish-fixtures.js';
 import { montarOrigin, URL_GITHUB, URL_GITLAB } from '../helpers/finish-origin.js';
 import { plantillaRepo } from '../helpers/repo-plantilla.js';
 import { conDoblePlataforma, sinPlataformasEnElPath } from '../helpers/plataforma-doble.js';
-
-/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
-async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 const TASKCTL = path.join(import.meta.dirname, '..', '..', '..', 'bin', 'taskctl');
 const CARPETAS = Object.values(STATE_FOLDER);

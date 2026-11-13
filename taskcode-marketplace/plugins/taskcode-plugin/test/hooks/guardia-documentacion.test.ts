@@ -15,16 +15,7 @@ import { comandoSoloIntegra } from '../../src/core/comando-merge.js';
 import { contextoSelectiva, guardarMemo, huellaDeCommit } from '../../src/fs/verificacion.js';
 import { runFinishCommand } from '../../src/commands/finish.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
-
-/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
-async function caso(nombre: string, fn: () => unknown): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 const SCRIPT = `require('node:fs').appendFileSync(__dirname + '/cuenta-' + process.argv[2], 'x');`;
 

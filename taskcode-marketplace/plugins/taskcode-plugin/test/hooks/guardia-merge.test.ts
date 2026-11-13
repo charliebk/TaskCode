@@ -17,16 +17,7 @@ import { decidirPreToolUse } from '../../src/hooks/guardia-merge.js';
 import { guardarMemo, huellaDeCommit, huellaDelArbol } from '../../src/fs/verificacion.js';
 import type { ResultadoVerificacion } from '../../src/core/informe-verificacion.js';
 import { git } from '../helpers/finish-fixtures.js';
-
-/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
-async function caso(nombre: string, fn: () => unknown): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 const RAIZ_PLUGIN = path.join(import.meta.dirname, '..', '..', '..');
 const ENTRADA_HOOK = path.join(RAIZ_PLUGIN, 'dist', 'src', 'hooks', 'pre-tool-merge.js');

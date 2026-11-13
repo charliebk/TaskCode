@@ -21,16 +21,7 @@ import {
   GitLaunchError,
   runCodexReview,
 } from '../../src/fs/git.js';
-
-/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
-async function caso(nombre: string, fn: () => unknown): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 function git(args: string[], cwd: string): void {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });

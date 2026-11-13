@@ -15,16 +15,7 @@ import type { Comprobacion } from '../../src/core/doctor.js';
 import { STATE_FOLDER } from '../../src/core/task.js';
 import { git } from '../helpers/finish-fixtures.js';
 import { plantillaRepo } from '../helpers/repo-plantilla.js';
-
-/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
-async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 const TASKCTL = path.join(import.meta.dirname, '..', '..', '..', 'bin', 'taskctl');
 
