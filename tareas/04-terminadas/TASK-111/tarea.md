@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-111-p-3-registrar-cada-ejecucion-del-freno-s
 asignado_a: charlie.bk@gmail.com
@@ -72,6 +72,7 @@ medido de la consulta (en la practica 0.0 s), no un 0 forzado.
 | 2026-11-13T11:33:48Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T11:45:04Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T12:24:37Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T12:36:15Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -82,3 +83,10 @@ medido de la consulta (en la practica 0.0 s), no un 0 forzado.
 ## Verificacion omitida
 
 - 2026-11-13T12:36:04Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 62 min
+- Paso de la hora: 62 min reales frente a 60 estimados
+- Cierre (finish): 11 s, de 2026-11-13T12:36:04Z a 2026-11-13T12:36:15Z
