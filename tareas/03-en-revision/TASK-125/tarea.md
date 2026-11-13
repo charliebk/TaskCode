@@ -48,3 +48,7 @@ Medido en ToolsaWeb (153 tareas terminadas, taskctl metricas, 2026-11-12): la re
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T12:51:18Z | implementacion | sesion:bdb2d869-6133-422f-8b3d-f1c76840a4dc | 56 | 49546 | 8596010 | 28450 | 2 | 8674062 | - | - |
+
+## Verificacion ligera
+
+- 2026-11-13T13:06:49Z: ronda 1; commit revisado 8cde3133c9bd024e7207c690a7698d7c2e1bcda4; commit verificado 3d60a6747b2ef4b1e2d307d6136bbbaceedaff58; ficheros: taskcode-marketplace/plugins/taskcode-plugin/docs/configuracion.md, taskcode-marketplace/plugins/taskcode-plugin/test/hooks/freno-presupuesto.test.ts; corregidos: MEN-1, MEN-2; pendientes: ninguno
