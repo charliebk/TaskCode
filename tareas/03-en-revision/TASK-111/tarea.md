@@ -41,6 +41,7 @@ El freno Stop corre la verificacion al final de cada turno con tarea en curso (s
 | 2026-11-13T11:33:31Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T11:33:48Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T11:45:04Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T12:24:37Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
