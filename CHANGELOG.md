@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-132 (fix) — Ayudante caso() de los tests fusionados en un unico helper compartido (2026-11-13)
 - TASK-130 (feature) — Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura (2026-11-13)
 - Cambio de comportamiento (TASK-130): `doctor` propone abrir una tarea de poda de tests (`poda-tests`, con el comando `taskctl new` escrito) cuando la suite crece mas del umbral o tras `tareas_entre_podas` (30 por defecto) tareas terminadas desde la ultima poda; anexo `poda-tests.md` con el procedimiento. Primera pasada sobre la suite de TaskCode: tests redundantes fusionados sin bajar la cobertura.
 - TASK-129 (feature) — Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento (2026-11-13)

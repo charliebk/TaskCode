@@ -23,7 +23,7 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 115
+## Terminadas (04-terminadas) — 116
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -143,4 +143,5 @@ TASK-128  Metricas de verificacion por puerta: tiempo y ejecuciones de freno, re
 TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento        charlie.bk@gmail.com
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                         charlie.bk@gmail.com
 TASK-131  Tres tests con expectativas anteriores a TASK-119                                                                   charlie.bk@gmail.com
+TASK-132  Ayudante caso() de los tests fusionados en un unico helper compartido                                               charlie.bk@gmail.com
 ```

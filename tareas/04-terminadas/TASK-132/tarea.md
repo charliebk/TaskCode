@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-132-ayudante-caso-de-los-tests-fusionados-en
 asignado_a: charlie.bk@gmail.com
@@ -50,6 +50,7 @@ CRITICOS ni IMPORTANTES; una nota informativa (la firma amplia es compatible).
 | 2026-11-13T19:28:09Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T19:28:11Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T19:33:28Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T19:39:11Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -60,3 +61,9 @@ CRITICOS ni IMPORTANTES; una nota informativa (la firma amplia es compatible).
 ## Verificacion omitida
 
 - 2026-11-13T19:39:00Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 20 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 11 min
+- Cierre (finish): 11 s, de 2026-11-13T19:39:00Z a 2026-11-13T19:39:11Z
