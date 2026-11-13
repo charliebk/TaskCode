@@ -2,7 +2,7 @@
 
 - Commit revisado: 97e6e77579454c2352597d8a12327c4c669e8382
 - Revisor: code-quality-reviewer
-- Veredicto: aprobada-con-correcciones
+- Veredicto: cambios-solicitados
 
 (Modo rapido: sin suite completa ni verificar-impacto. Pase generico, profundidad: a fondo en guardia-heldout.ts, guardia-merge.ts y pre-tool-merge.ts.)
 
