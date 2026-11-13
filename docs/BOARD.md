@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 18
+## Planificadas (00-planificadas) — 17
 
 ```text
 ID        Titulo                                                                                                        Asignado
@@ -21,13 +21,12 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio                    charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                                              (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                                        (sin asignar)
-TASK-115  P-7: verificacion completa por lote de cierres en modo automatico                                             (sin asignar)
 TASK-126  Verificacion por tipo de rama: los tests pesados solo en la puerta de release                                 (sin asignar)
 TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento  (sin asignar)
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                   (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 111
+## Terminadas (04-terminadas) — 112
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -130,6 +129,7 @@ TASK-111  P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno
 TASK-112  P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes          charlie.bk@gmail.com
 TASK-113  P-5: peticion de revision mas ligera con los tests como --stat y ruta                                               charlie.bk@gmail.com
 TASK-114  P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer                                              charlie.bk@gmail.com
+TASK-115  P-7: verificacion completa por lote de cierres en modo automatico                                                   charlie.bk@gmail.com
 TASK-116  P-8: TaskCode declara su verificacion y doctor avisa cuando falta                                                   charlie.bk@gmail.com
 TASK-117  P-9: new propone la complejidad a partir de tareas parecidas ya cerradas                                            charlie.bk@gmail.com
 TASK-118  P-10: linea FIN con la duracion en todos los scripts de Git-Flow                                                    charlie.bk@gmail.com

@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-115-p-7-verificacion-completa-por-lote-de-ci
 asignado_a: charlie.bk@gmail.com
@@ -84,6 +84,7 @@ lanza). Las celdas Fichero de MEN-2 y MEN-4 se normalizaron a la ruta del repo
 | 2026-11-13T13:54:29Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T14:02:29Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T14:32:21Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T14:48:21Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -98,3 +99,9 @@ lanza). Las celdas Fichero de MEN-2 y MEN-4 se normalizaron a la ruta del repo
 ## Verificacion omitida
 
 - 2026-11-13T14:48:06Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 80 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 54 min
+- Cierre (finish): 15 s, de 2026-11-13T14:48:06Z a 2026-11-13T14:48:21Z
