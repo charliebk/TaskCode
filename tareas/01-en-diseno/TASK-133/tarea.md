@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [tests, publicacion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-133-rojos-de-la-suite-completa-de-la-0-16-0
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ La suite completa de la 0.16.0 dio dos rojos reales ademas de los dos conocidos 
 - [ ] task-workflow/SKILL.md enlaza poda-tests.md y sigue por debajo de 15 KB; los tests de skills pasan
 - [ ] La suite completa solo falla en los dos tests conocidos de plan.test.ts
 - [ ] Version 0.16.1 publicada: marketplace, plugin, package, version.ts, CHANGELOG, tag v0.16.1, push y release en GitHub
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T20:25:56Z | plan | automatico | persona | 0.16.0 |
