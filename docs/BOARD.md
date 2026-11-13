@@ -30,7 +30,7 @@ TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, p
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 107
+## Terminadas (04-terminadas) — 108
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -142,4 +142,5 @@ TASK-122  Coste por tarea independiente del tamano del proyecto                 
 TASK-123  F-16: finish no cierra sin verificar tras un merge a mano o un conflicto                                            charlie.bk@gmail.com
 TASK-124  Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto                                        charlie.bk@gmail.com
 TASK-127  Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar                         charlie.bk@gmail.com
+TASK-131  Tres tests con expectativas anteriores a TASK-119                                                                   charlie.bk@gmail.com
 ```

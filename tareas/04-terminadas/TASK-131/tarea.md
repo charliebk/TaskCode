@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-131-tres-tests-con-expectativas-anteriores-a
 asignado_a: charlie.bk@gmail.com
@@ -55,6 +55,7 @@ por finish y el aborto con cambios fuera de la carpeta de la tarea).
 | 2026-11-13T11:04:46Z | approve | automatico | automatico | 0.14.0 |
 | 2026-11-13T11:04:47Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T11:07:56Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T11:22:35Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -65,3 +66,9 @@ por finish y el aborto con cambios fuera de la carpeta de la tarea).
 ## Verificacion omitida
 
 - 2026-11-13T11:22:22Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 25 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 18 min
+- Cierre (finish): 13 s, de 2026-11-13T11:22:22Z a 2026-11-13T11:22:35Z

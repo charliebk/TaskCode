@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-131 (fix) — Tres tests con expectativas anteriores a TASK-119 (2026-11-13)
 - TASK-127 (feature) — Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar (2026-11-13)
 - Cambio de comportamiento (TASK-127): el tope de rondas de revision pasa a ser la clave `tope_rondas` (1 a 10, leida de la rama base) y por defecto baja de 3 a 2. En el tope, `siguiente` pregunta en todos los modos (cerrar, una ronda mas o volver a diseno) y `review --ronda-extra` exige la linea `- Ronda N:` bajo `## Rondas extra` en `tarea.md`. `tope_rondas: 3` devuelve el comportamiento anterior.
 - TASK-119 (feature) — P-11: menos commits de proceso por tarea (2026-11-13)
