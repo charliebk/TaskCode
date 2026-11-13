@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-120 (feature) — P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren (2026-11-13)
 - TASK-117 (feature) — P-9: new propone la complejidad a partir de tareas parecidas ya cerradas (2026-11-13)
 - TASK-118 (feature) — P-10: linea FIN con la duracion en todos los scripts de Git-Flow (2026-11-13)
 - TASK-114 (feature) — P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer (2026-11-13)

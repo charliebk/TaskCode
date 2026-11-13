@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-120-p-12-sincronizacion-con-su-duracion-regi
 asignado_a: charlie.bk@gmail.com
@@ -63,6 +63,7 @@ aprobada, sin CRITICOS ni IMPORTANTES.
 | 2026-11-13T04:18:26Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T04:18:28Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T04:47:54Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T05:12:56Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -73,3 +74,9 @@ aprobada, sin CRITICOS ni IMPORTANTES.
 ## Verificacion omitida
 
 - 2026-11-13T05:12:48Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 54 min
+- Cierre (finish): 8 s, de 2026-11-13T05:12:48Z a 2026-11-13T05:12:56Z
