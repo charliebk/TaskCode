@@ -12,6 +12,16 @@ import type { PuntoCatalogo } from '../../src/core/doctor-deploy-catalogo.js';
 import type { AplicacionDetectada, InformeDeploy } from '../../src/core/doctor-deploy.js';
 import { analisis, commit, conRepo, ejecutar, escribir, NODE, punto } from '../helpers/deploy-fixtures.js';
 
+/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
+async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
+    throw e;
+  }
+}
+
 /** Los puntos que nombra el criterio 2. */
 const SEIS = ['https-obligatorio', 'cookies-seguras', 'security-headers', 'rate-limits', 'backups-y-migraciones', 'health-check'];
 
@@ -97,80 +107,80 @@ function marcadorDe(informe: InformeDeploy, id: string): string[] {
 // Deteccion, una fixture por tipo
 // ---------------------------------------------------------------------
 
-test('web: vite.config.ts lo decide; sin cli, api ni libreria', async () => {
-  await conRepo(WEB, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['web']);
-    assert.deepEqual(marcadorDe(j, 'web'), ['vite.config.ts']);
-    assert.equal(j.version, 3);
+test('deteccion JS: web, api, cli y libreria', async () => {
+  await caso('web: vite.config.ts lo decide; sin cli, api ni libreria', async () => {
+    await conRepo(WEB, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['web']);
+      assert.deepEqual(marcadorDe(j, 'web'), ['vite.config.ts']);
+      assert.equal(j.version, 3);
+    });
+  });
+  await caso('api: package.json con express', async () => {
+    await conRepo(API, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['api']);
+      assert.deepEqual(j.aplicaciones[0]?.marcadores, [{ fichero: 'package.json', contiene: '"express"' }]);
+    });
+  });
+  await caso('cli: package.json con "bin"; no sale libreria, api ni react-native', async () => {
+    await conRepo(CLI, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['cli']);
+      assert.deepEqual(j.aplicaciones[0]?.marcadores, [{ fichero: 'package.json', contiene: '"bin"' }]);
+    });
+  });
+  await caso('libreria: package.json con "exports"', async () => {
+    await conRepo(LIBRERIA, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['libreria']);
+      assert.deepEqual(marcadorDe(j, 'libreria'), ['package.json']);
+    });
   });
 });
 
-test('api: package.json con express', async () => {
-  await conRepo(API, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['api']);
-    assert.deepEqual(j.aplicaciones[0]?.marcadores, [{ fichero: 'package.json', contiene: '"express"' }]);
+test('deteccion movil nativa: android, ios y flutter', async () => {
+  await caso('android nativo: app/build.gradle con com.android.application y el manifiesto a 3 carpetas', async () => {
+    await conRepo(ANDROID, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['android']);
+      const m = marcadorDe(j, 'android');
+      assert.ok(m.includes('app/build.gradle'), m.join(', '));
+      assert.ok(m.includes('app/src/main/AndroidManifest.xml'), m.join(', '));
+    });
+  });
+  await caso('ios: project.pbxproj con SDKROOT = iphoneos', async () => {
+    await conRepo(IOS, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['ios']);
+      assert.deepEqual(j.aplicaciones[0]?.marcadores, [{ fichero: 'MiApp.xcodeproj/project.pbxproj', contiene: 'iphoneos' }]);
+    });
+  });
+  await caso('flutter: pubspec.yaml con sdk: flutter (y sus carpetas android e ios)', async () => {
+    await conRepo(FLUTTER, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['android', 'flutter', 'ios']);
+      assert.deepEqual(marcadorDe(j, 'flutter'), ['pubspec.yaml']);
+      // El manifiesto de android/app/src/main/ esta a 4 carpetas: no es lo que detecta Android.
+      assert.deepEqual(marcadorDe(j, 'android'), ['android/app/build.gradle']);
+    });
   });
 });
 
-test('android nativo: app/build.gradle con com.android.application y el manifiesto a 3 carpetas', async () => {
-  await conRepo(ANDROID, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['android']);
-    const m = marcadorDe(j, 'android');
-    assert.ok(m.includes('app/build.gradle'), m.join(', '));
-    assert.ok(m.includes('app/src/main/AndroidManifest.xml'), m.join(', '));
+test('react native: estructura real y solo manifiesto de raiz', async () => {
+  await caso('react native: package.json con react-native, con la estructura real (manifiesto a 4 carpetas)', async () => {
+    await conRepo(REACT_NATIVE, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['android', 'ios', 'react-native']);
+      assert.deepEqual(marcadorDe(j, 'react-native'), ['metro.config.js', 'package.json']);
+      assert.ok(!marcadorDe(j, 'android').includes('android/app/src/main/AndroidManifest.xml'));
+    });
   });
-});
-
-test('ios: project.pbxproj con SDKROOT = iphoneos', async () => {
-  await conRepo(IOS, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['ios']);
-    assert.deepEqual(j.aplicaciones[0]?.marcadores, [{ fichero: 'MiApp.xcodeproj/project.pbxproj', contiene: 'iphoneos' }]);
-  });
-});
-
-test('flutter: pubspec.yaml con sdk: flutter (y sus carpetas android e ios)', async () => {
-  await conRepo(FLUTTER, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['android', 'flutter', 'ios']);
-    assert.deepEqual(marcadorDe(j, 'flutter'), ['pubspec.yaml']);
-    // El manifiesto de android/app/src/main/ esta a 4 carpetas: no es lo que detecta Android.
-    assert.deepEqual(marcadorDe(j, 'android'), ['android/app/build.gradle']);
-  });
-});
-
-test('react native: package.json con react-native, con la estructura real (manifiesto a 4 carpetas)', async () => {
-  await conRepo(REACT_NATIVE, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['android', 'ios', 'react-native']);
-    assert.deepEqual(marcadorDe(j, 'react-native'), ['metro.config.js', 'package.json']);
-    assert.ok(!marcadorDe(j, 'android').includes('android/app/src/main/AndroidManifest.xml'));
-  });
-});
-
-test('react native sin carpeta android ni ios: se detecta igual por su manifiesto de raiz', async () => {
-  const soloRaiz = Object.fromEntries(Object.entries(REACT_NATIVE).filter(([k]) => !k.startsWith('android/') && !k.startsWith('ios/')));
-  await conRepo(soloRaiz, async (raiz, op) => {
-    assert.deepEqual(ids(analisis(raiz, op)), ['react-native']);
-  });
-});
-
-test('cli: package.json con "bin"; no sale libreria, api ni react-native', async () => {
-  await conRepo(CLI, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['cli']);
-    assert.deepEqual(j.aplicaciones[0]?.marcadores, [{ fichero: 'package.json', contiene: '"bin"' }]);
-  });
-});
-
-test('libreria: package.json con "exports"', async () => {
-  await conRepo(LIBRERIA, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['libreria']);
-    assert.deepEqual(marcadorDe(j, 'libreria'), ['package.json']);
+  await caso('react native sin carpeta android ni ios: se detecta igual por su manifiesto de raiz', async () => {
+    const soloRaiz = Object.fromEntries(Object.entries(REACT_NATIVE).filter(([k]) => !k.startsWith('android/') && !k.startsWith('ios/')));
+    await conRepo(soloRaiz, async (raiz, op) => {
+      assert.deepEqual(ids(analisis(raiz, op)), ['react-native']);
+    });
   });
 });
 
@@ -178,36 +188,35 @@ test('libreria: package.json con "exports"', async () => {
 // Negativos
 // ---------------------------------------------------------------------
 
-test('negativo: un package.json sin bin ni react-native no sale cli ni react-native (ni ningun tipo)', async () => {
-  await conRepo(NODE, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), []);
-    assert.deepEqual(j.tipos.map((t) => t.id).sort(), ['node', 'npm']);
+test('negativos de deteccion de aplicacion', async () => {
+  await caso('negativo: un package.json sin bin ni react-native no sale cli ni react-native (ni ningun tipo)', async () => {
+    await conRepo(NODE, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), []);
+      assert.deepEqual(j.tipos.map((t) => t.id).sort(), ['node', 'npm']);
+    });
   });
-});
-
-test('negativo: pubspec.yaml de un paquete Dart sin flutter, y build.gradle de Java sin Android', async () => {
-  await conRepo(
-    {
-      'pubspec.yaml': 'name: utilidades\nenvironment:\n  sdk: ">=3.0.0 <4.0.0"\ndependencies:\n  path: ^1.9.0\n',
-      'build.gradle': 'plugins {\n  id "java-library"\n}\n',
-      'lib/utilidades.dart': 'int suma(int a, int b) => a + b;\n',
-    },
-    async (raiz, op) => {
+  await caso('negativo: pubspec.yaml de un paquete Dart sin flutter, y build.gradle de Java sin Android', async () => {
+    await conRepo(
+      {
+        'pubspec.yaml': 'name: utilidades\nenvironment:\n  sdk: ">=3.0.0 <4.0.0"\ndependencies:\n  path: ^1.9.0\n',
+        'build.gradle': 'plugins {\n  id "java-library"\n}\n',
+        'lib/utilidades.dart': 'int suma(int a, int b) => a + b;\n',
+      },
+      async (raiz, op) => {
+        assert.deepEqual(ids(analisis(raiz, op)), []);
+      }
+    );
+  });
+  await caso('negativo: la palabra en otro fichero que no es marcador no cuenta (README con "bin" y react-native)', async () => {
+    await conRepo({ ...NODE, 'README.md': 'Instala con "bin" y usa "react-native" o "express".\n' }, async (raiz, op) => {
       assert.deepEqual(ids(analisis(raiz, op)), []);
-    }
-  );
-});
-
-test('negativo: la palabra en otro fichero que no es marcador no cuenta (README con "bin" y react-native)', async () => {
-  await conRepo({ ...NODE, 'README.md': 'Instala con "bin" y usa "react-native" o "express".\n' }, async (raiz, op) => {
-    assert.deepEqual(ids(analisis(raiz, op)), []);
+    });
   });
-});
-
-test('negativo: un marcador mas hondo que 3 carpetas no cuenta', async () => {
-  await conRepo({ ...NODE, 'a/b/c/d/package.json': '{"bin":{"x":"x.js"}}\n' }, async (raiz, op) => {
-    assert.deepEqual(ids(analisis(raiz, op)), []);
+  await caso('negativo: un marcador mas hondo que 3 carpetas no cuenta', async () => {
+    await conRepo({ ...NODE, 'a/b/c/d/package.json': '{"bin":{"x":"x.js"}}\n' }, async (raiz, op) => {
+      assert.deepEqual(ids(analisis(raiz, op)), []);
+    });
   });
 });
 
@@ -249,30 +258,30 @@ for (const [nombre, fixture] of [
   });
 }
 
-test('un tipo movil no apaga los puntos de servicio (solo cli o libreria lo hacen)', async () => {
-  await conRepo(REACT_NATIVE, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', id);
-  });
-});
-
-test('dentro del eje basta con uno: un repo con marcadores de cli y de web aplica', async () => {
-  await conRepo({ ...CLI, 'vite.config.ts': 'export default {};\n' }, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['cli', 'web']);
-    for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', id);
-  });
-});
-
-test('cli y api a la vez (un servidor express con bin) aplica', async () => {
-  await conRepo(
-    { ...API, 'package.json': '{"name":"srv","bin":{"srv":"src/server.js"},"dependencies":{"express":"^4.19.0"}}\n' },
-    async (raiz, op) => {
+test('aplicacion: movil no apaga servicio, basta uno por eje y cli con api', async () => {
+  await caso('un tipo movil no apaga los puntos de servicio (solo cli o libreria lo hacen)', async () => {
+    await conRepo(REACT_NATIVE, async (raiz, op) => {
       const j = analisis(raiz, op);
-      assert.deepEqual(ids(j), ['api', 'cli']);
       for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', id);
-    }
-  );
+    });
+  });
+  await caso('dentro del eje basta con uno: un repo con marcadores de cli y de web aplica', async () => {
+    await conRepo({ ...CLI, 'vite.config.ts': 'export default {};\n' }, async (raiz, op) => {
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['cli', 'web']);
+      for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', id);
+    });
+  });
+  await caso('cli y api a la vez (un servidor express con bin) aplica', async () => {
+    await conRepo(
+      { ...API, 'package.json': '{"name":"srv","bin":{"srv":"src/server.js"},"dependencies":{"express":"^4.19.0"}}\n' },
+      async (raiz, op) => {
+        const j = analisis(raiz, op);
+        assert.deepEqual(ids(j), ['api', 'cli']);
+        for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', id);
+      }
+    );
+  });
 });
 
 // ---------------------------------------------------------------------
@@ -349,32 +358,32 @@ test('motivoNoAplicaPorAplicacion: tabla de la regla', () => {
 // Salidas: texto, informe en Markdown y JSON
 // ---------------------------------------------------------------------
 
-test('la salida de texto y el informe dicen la aplicacion detectada y su marcador', async () => {
-  await conRepo(CLI, async (raiz, op) => {
-    const texto = ejecutar(raiz, op, []).salida;
-    assert.match(texto, /^Aplicacion detectada: Herramienta de linea de comandos \[cli\] \(package\.json contiene "bin"\)$/m);
-    const r = ejecutar(raiz, op, ['--escribir']);
-    const md = await readFile(r.rutaInforme as string, 'utf8');
-    assert.match(md, /^- Aplicacion detectada: Herramienta de linea de comandos \[cli\] \(package\.json contiene "bin"\)$/m);
-    const j = JSON.parse(await readFile(r.rutaJson as string, 'utf8')) as InformeDeploy;
-    assert.equal(j.version, 3);
-    assert.deepEqual(j.aplicaciones.map((a) => a.id), ['cli']);
+test('salida y marcador: texto e informe, sin tipo y marcador sin versionar', async () => {
+  await caso('la salida de texto y el informe dicen la aplicacion detectada y su marcador', async () => {
+    await conRepo(CLI, async (raiz, op) => {
+      const texto = ejecutar(raiz, op, []).salida;
+      assert.match(texto, /^Aplicacion detectada: Herramienta de linea de comandos \[cli\] \(package\.json contiene "bin"\)$/m);
+      const r = ejecutar(raiz, op, ['--escribir']);
+      const md = await readFile(r.rutaInforme as string, 'utf8');
+      assert.match(md, /^- Aplicacion detectada: Herramienta de linea de comandos \[cli\] \(package\.json contiene "bin"\)$/m);
+      const j = JSON.parse(await readFile(r.rutaJson as string, 'utf8')) as InformeDeploy;
+      assert.equal(j.version, 3);
+      assert.deepEqual(j.aplicaciones.map((a) => a.id), ['cli']);
+    });
   });
-});
-
-test('sin tipo de aplicacion, el texto lo dice y que los puntos aplican', async () => {
-  await conRepo(NODE, async (raiz, op) => {
-    assert.match(ejecutar(raiz, op, []).salida, /^Aplicacion detectada: ninguna \(.*aplican\)$/m);
+  await caso('sin tipo de aplicacion, el texto lo dice y que los puntos aplican', async () => {
+    await conRepo(NODE, async (raiz, op) => {
+      assert.match(ejecutar(raiz, op, []).salida, /^Aplicacion detectada: ninguna \(.*aplican\)$/m);
+    });
   });
-});
-
-test('un fichero marcador sin versionar (no ignorado) tambien cuenta, como en los tipos', async () => {
-  await conRepo(NODE, async (raiz, op) => {
-    await escribir(raiz, { 'herramienta/package.json': '{"bin":"cli.js"}\n' });
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['cli']);
-    assert.deepEqual(j.aplicaciones[0]?.rutas, ['herramienta']);
-    await commit(raiz, 'herramienta');
+  await caso('un fichero marcador sin versionar (no ignorado) tambien cuenta, como en los tipos', async () => {
+    await conRepo(NODE, async (raiz, op) => {
+      await escribir(raiz, { 'herramienta/package.json': '{"bin":"cli.js"}\n' });
+      const j = analisis(raiz, op);
+      assert.deepEqual(ids(j), ['cli']);
+      assert.deepEqual(j.aplicaciones[0]?.rutas, ['herramienta']);
+      await commit(raiz, 'herramienta');
+    });
   });
 });
 
@@ -383,41 +392,42 @@ test('un fichero marcador sin versionar (no ignorado) tambien cuenta, como en lo
 // senal de servicio independiente del framework, no se queda en "cli" a secas.
 // ---------------------------------------------------------------------
 
-test('IMP-1: CLI que tambien es servidor (apollo, trpc, aiohttp, rocket, next) sale api y los puntos aplican', async () => {
-  const casos: Record<string, Record<string, string>> = {
-    apollo: { 'package.json': '{"name":"g","bin":{"g":"s.js"},"dependencies":{"apollo-server":"3"}}\n' },
-    trpc: { 'package.json': '{"name":"t","bin":{"t":"s.js"},"dependencies":{"@trpc/server":"10"}}\n' },
-    next: { 'package.json': '{"name":"n","bin":{"n":"s.js"},"dependencies":{"next":"14"}}\n' },
-    aiohttp: { 'pyproject.toml': '[project]\nname = "a"\ndependencies = ["aiohttp>=3"]\n[project.scripts]\na = "a:main"\n' },
-    rocket: { 'Cargo.toml': '[package]\nname = "r"\n[[bin]]\nname = "r"\n[dependencies]\nrocket = "0.5"\n' },
-  };
-  for (const [nombre, ficheros] of Object.entries(casos)) {
-    await conRepo({ ...GITIGNORE, ...ficheros }, async (raiz, op) => {
+test('IMP-1: CLI que es servidor y senales de servicio sin framework', async () => {
+  await caso('IMP-1: CLI que tambien es servidor (apollo, trpc, aiohttp, rocket, next) sale api y los puntos aplican', async () => {
+    const casos: Record<string, Record<string, string>> = {
+      apollo: { 'package.json': '{"name":"g","bin":{"g":"s.js"},"dependencies":{"apollo-server":"3"}}\n' },
+      trpc: { 'package.json': '{"name":"t","bin":{"t":"s.js"},"dependencies":{"@trpc/server":"10"}}\n' },
+      next: { 'package.json': '{"name":"n","bin":{"n":"s.js"},"dependencies":{"next":"14"}}\n' },
+      aiohttp: { 'pyproject.toml': '[project]\nname = "a"\ndependencies = ["aiohttp>=3"]\n[project.scripts]\na = "a:main"\n' },
+      rocket: { 'Cargo.toml': '[package]\nname = "r"\n[[bin]]\nname = "r"\n[dependencies]\nrocket = "0.5"\n' },
+    };
+    for (const [nombre, ficheros] of Object.entries(casos)) {
+      await conRepo({ ...GITIGNORE, ...ficheros }, async (raiz, op) => {
+        const j = analisis(raiz, op);
+        assert.ok(ids(j).includes('api'), `${nombre}: ${JSON.stringify(ids(j))}`);
+        for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', `${nombre}: ${id}`);
+      });
+    }
+  });
+  await caso('IMP-1: senales de servicio sin framework conocido (EXPOSE, ports:, Procfile web:) cuentan como api', async () => {
+    const cli = { ...GITIGNORE, 'package.json': '{"name":"c","bin":{"c":"s.js"}}\n' };
+    const casos: Record<string, Record<string, string>> = {
+      expose: { Dockerfile: 'FROM node:22\nEXPOSE 8080\nUSER node\n' },
+      ports: { 'compose.yaml': 'services:\n  app:\n    image: app\n    ports:\n      - "8080:8080"\n' },
+      procfile: { Procfile: 'web: node s.js\n' },
+    };
+    for (const [nombre, ficheros] of Object.entries(casos)) {
+      await conRepo({ ...cli, ...ficheros }, async (raiz, op) => {
+        const j = analisis(raiz, op);
+        assert.deepEqual(ids(j), ['api', 'cli'], nombre);
+        for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', `${nombre}: ${id}`);
+      });
+    }
+    // Y una CLI de verdad, sin ninguna senal de servidor, sigue apagando los puntos.
+    await conRepo(cli, async (raiz, op) => {
       const j = analisis(raiz, op);
-      assert.ok(ids(j).includes('api'), `${nombre}: ${JSON.stringify(ids(j))}`);
-      for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', `${nombre}: ${id}`);
+      assert.deepEqual(ids(j), ['cli']);
+      for (const id of SEIS) assert.equal(punto(j, id).estado, 'no-aplica', id);
     });
-  }
-});
-
-test('IMP-1: senales de servicio sin framework conocido (EXPOSE, ports:, Procfile web:) cuentan como api', async () => {
-  const cli = { ...GITIGNORE, 'package.json': '{"name":"c","bin":{"c":"s.js"}}\n' };
-  const casos: Record<string, Record<string, string>> = {
-    expose: { Dockerfile: 'FROM node:22\nEXPOSE 8080\nUSER node\n' },
-    ports: { 'compose.yaml': 'services:\n  app:\n    image: app\n    ports:\n      - "8080:8080"\n' },
-    procfile: { Procfile: 'web: node s.js\n' },
-  };
-  for (const [nombre, ficheros] of Object.entries(casos)) {
-    await conRepo({ ...cli, ...ficheros }, async (raiz, op) => {
-      const j = analisis(raiz, op);
-      assert.deepEqual(ids(j), ['api', 'cli'], nombre);
-      for (const id of SEIS) assert.notEqual(punto(j, id).estado, 'no-aplica', `${nombre}: ${id}`);
-    });
-  }
-  // Y una CLI de verdad, sin ninguna senal de servidor, sigue apagando los puntos.
-  await conRepo(cli, async (raiz, op) => {
-    const j = analisis(raiz, op);
-    assert.deepEqual(ids(j), ['cli']);
-    for (const id of SEIS) assert.equal(punto(j, id).estado, 'no-aplica', id);
   });
 });

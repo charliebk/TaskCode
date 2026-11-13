@@ -16,6 +16,16 @@ import { STATE_FOLDER } from '../../src/core/task.js';
 import { git } from '../helpers/finish-fixtures.js';
 import { plantillaRepo } from '../helpers/repo-plantilla.js';
 
+/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
+async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
+    throw e;
+  }
+}
+
 const TASKCTL = path.join(import.meta.dirname, '..', '..', '..', 'bin', 'taskctl');
 
 const conRepo = plantillaRepo('taskctl-doctor-hooks-', async (repoRoot) => {
@@ -70,159 +80,157 @@ function hooks(repoRoot: string, config: string): Comprobacion[] {
   );
 }
 
-test('plugin habilitado con PreToolUse sobre Agent: AVISO con origen, ruta y matcher; codigo 0', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      const ruta = await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
-      const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: config });
-      const cs = r.comprobaciones.filter((c) => c.id === 'hooks-subagente');
-      assert.equal(cs.length, 1, JSON.stringify(cs));
-      const c = cs[0] as Comprobacion;
-      assert.equal(c.nivel, 'aviso');
-      assert.ok(c.mensaje.includes('plugin ctx@mkt'), c.mensaje);
-      assert.ok(c.mensaje.includes(ruta), c.mensaje);
-      assert.ok(c.mensaje.includes('"Agent"'), c.mensaje);
-      assert.match(c.arreglo ?? '', /Auto-Mode Bypass/);
-      assert.match(c.arreglo ?? '', /SessionStart/);
-      assert.match(c.arreglo ?? '', /enabledPlugins/);
-      assert.equal(r.codigo, 0);
+test('hooks: plugin habilitado, en linea y como ruta, y origen de cada settings', async () => {
+  await caso('plugin habilitado con PreToolUse sobre Agent: AVISO con origen, ruta y matcher; codigo 0', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        const ruta = await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
+        const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: config });
+        const cs = r.comprobaciones.filter((c) => c.id === 'hooks-subagente');
+        assert.equal(cs.length, 1, JSON.stringify(cs));
+        const c = cs[0] as Comprobacion;
+        assert.equal(c.nivel, 'aviso');
+        assert.ok(c.mensaje.includes('plugin ctx@mkt'), c.mensaje);
+        assert.ok(c.mensaje.includes(ruta), c.mensaje);
+        assert.ok(c.mensaje.includes('"Agent"'), c.mensaje);
+        assert.match(c.arreglo ?? '', /Auto-Mode Bypass/);
+        assert.match(c.arreglo ?? '', /SessionStart/);
+        assert.match(c.arreglo ?? '', /enabledPlugins/);
+        assert.equal(r.codigo, 0);
+      });
+    });
+  });
+  await caso('hooks en linea en plugin.json y como ruta: avisan', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        const enLinea = path.dirname(path.dirname(await instalarPlugin(config, 'a@mkt', {})));
+        await escribirJson(path.join(enLinea, '.claude-plugin', 'plugin.json'), { name: 'a', ...HOOK_AGENT });
+        const comoRuta = path.dirname(path.dirname(await instalarPlugin(config, 'b@mkt', {})));
+        await escribirJson(path.join(comoRuta, 'otros', 'h.json'), { hooks: { PreToolUse: [{ matcher: 'Task' }] } });
+        await escribirJson(path.join(comoRuta, '.claude-plugin', 'plugin.json'), { name: 'b', hooks: './otros/h.json' });
+        const cs = hooks(repoRoot, config);
+        assert.equal(cs.length, 2, JSON.stringify(cs));
+        assert.ok(cs.every((c) => c.nivel === 'aviso'));
+        assert.ok(cs.some((c) => c.mensaje.includes('plugin a@mkt') && c.mensaje.includes('plugin.json')));
+        assert.ok(cs.some((c) => c.mensaje.includes('plugin b@mkt') && c.mensaje.includes('h.json') && c.mensaje.includes('"Task"')));
+      });
+    });
+  });
+  await caso('settings de usuario, de proyecto y local: cada uno nombra su origen y su ruta', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        const usuario = path.join(config, 'settings.json');
+        const proyecto = path.join(repoRoot, '.claude', 'settings.json');
+        const local = path.join(repoRoot, '.claude', 'settings.local.json');
+        await escribirJson(usuario, { hooks: { PreToolUse: [{ matcher: '*' }] } });
+        await escribirJson(proyecto, { hooks: { PreToolUse: [{ matcher: 'Edit|Task' }] } });
+        await escribirJson(local, { hooks: { PreToolUse: [{ matcher: '' }] } });
+        const cs = hooks(repoRoot, config);
+        assert.equal(cs.length, 3, JSON.stringify(cs));
+        const m = cs.map((c) => c.mensaje);
+        assert.ok(m.some((x) => x.startsWith('settings de usuario') && x.includes(usuario) && x.includes('"*"')), m.join('\n'));
+        assert.ok(m.some((x) => x.startsWith('settings del proyecto') && x.includes(proyecto)), m.join('\n'));
+        assert.ok(m.some((x) => x.startsWith('settings locales del proyecto') && x.includes(local)), m.join('\n'));
+      });
     });
   });
 });
 
-test('sin hooks sobre Agent/Task: ok, sin avisos de hooks', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      await instalarPlugin(config, 'ctx@mkt', HOOK_INOCUO);
-      await escribirJson(path.join(config, 'settings.json'), HOOK_INOCUO);
-      const cs = hooks(repoRoot, config);
-      assert.equal(cs.length, 1);
-      assert.equal(cs[0]?.nivel, 'ok');
-      assert.match(cs[0]?.mensaje ?? '', /ningun hook PreToolUse alcanza a Agent\/Task \(3 ficheros leidos\)/);
+test('hooks: ok sin hooks, config vacia, plugin desactivado, otro proyecto y versiones viejas', async () => {
+  await caso('sin hooks sobre Agent/Task: ok, sin avisos de hooks', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        await instalarPlugin(config, 'ctx@mkt', HOOK_INOCUO);
+        await escribirJson(path.join(config, 'settings.json'), HOOK_INOCUO);
+        const cs = hooks(repoRoot, config);
+        assert.equal(cs.length, 1);
+        assert.equal(cs[0]?.nivel, 'ok');
+        assert.match(cs[0]?.mensaje ?? '', /ningun hook PreToolUse alcanza a Agent\/Task \(3 ficheros leidos\)/);
+      });
     });
   });
-});
-
-test('config de Claude vacia o inexistente: ok', async () => {
-  await conRepo(async (repoRoot) => {
-    const cs = hooks(repoRoot, path.join(repoRoot, 'no-existe'));
-    assert.deepEqual(cs.map((c) => c.nivel), ['ok']);
-  });
-});
-
-test('plugin desactivado en enabledPlugins: no avisa; el local del proyecto puede reactivarlo', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
-      await escribirJson(path.join(config, 'settings.json'), { enabledPlugins: { 'ctx@mkt': false } });
-      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['ok']);
-      await escribirJson(path.join(repoRoot, '.claude', 'settings.local.json'), { enabledPlugins: { 'ctx@mkt': true } });
-      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso']);
-    });
-  });
-});
-
-test('instalacion de otro proyecto (projectPath distinto): no avisa', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT, { scope: 'project', projectPath: path.join(config, 'otro') });
-      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['ok']);
-      await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT, { scope: 'project', projectPath: repoRoot });
-      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso']);
-    });
-  });
-});
-
-test('versiones viejas en la cache que no estan en installed_plugins.json: no avisan', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      await instalarPlugin(config, 'ctx@mkt', HOOK_INOCUO);
-      await escribirJson(path.join(config, 'plugins', 'cache', 'mkt', 'ctx', '0.9.0', 'hooks', 'hooks.json'), HOOK_AGENT);
-      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['ok']);
-    });
-  });
-});
-
-test('hooks en linea en plugin.json y como ruta: avisan', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      const enLinea = path.dirname(path.dirname(await instalarPlugin(config, 'a@mkt', {})));
-      await escribirJson(path.join(enLinea, '.claude-plugin', 'plugin.json'), { name: 'a', ...HOOK_AGENT });
-      const comoRuta = path.dirname(path.dirname(await instalarPlugin(config, 'b@mkt', {})));
-      await escribirJson(path.join(comoRuta, 'otros', 'h.json'), { hooks: { PreToolUse: [{ matcher: 'Task' }] } });
-      await escribirJson(path.join(comoRuta, '.claude-plugin', 'plugin.json'), { name: 'b', hooks: './otros/h.json' });
-      const cs = hooks(repoRoot, config);
-      assert.equal(cs.length, 2, JSON.stringify(cs));
-      assert.ok(cs.every((c) => c.nivel === 'aviso'));
-      assert.ok(cs.some((c) => c.mensaje.includes('plugin a@mkt') && c.mensaje.includes('plugin.json')));
-      assert.ok(cs.some((c) => c.mensaje.includes('plugin b@mkt') && c.mensaje.includes('h.json') && c.mensaje.includes('"Task"')));
-    });
-  });
-});
-
-test('settings de usuario, de proyecto y local: cada uno nombra su origen y su ruta', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      const usuario = path.join(config, 'settings.json');
-      const proyecto = path.join(repoRoot, '.claude', 'settings.json');
-      const local = path.join(repoRoot, '.claude', 'settings.local.json');
-      await escribirJson(usuario, { hooks: { PreToolUse: [{ matcher: '*' }] } });
-      await escribirJson(proyecto, { hooks: { PreToolUse: [{ matcher: 'Edit|Task' }] } });
-      await escribirJson(local, { hooks: { PreToolUse: [{ matcher: '' }] } });
-      const cs = hooks(repoRoot, config);
-      assert.equal(cs.length, 3, JSON.stringify(cs));
-      const m = cs.map((c) => c.mensaje);
-      assert.ok(m.some((x) => x.startsWith('settings de usuario') && x.includes(usuario) && x.includes('"*"')), m.join('\n'));
-      assert.ok(m.some((x) => x.startsWith('settings del proyecto') && x.includes(proyecto)), m.join('\n'));
-      assert.ok(m.some((x) => x.startsWith('settings locales del proyecto') && x.includes(local)), m.join('\n'));
-    });
-  });
-});
-
-test('JSON roto o installed_plugins.json con formato desconocido: no es error, se nombra en el ok', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      await mkdir(config, { recursive: true });
-      await writeFile(path.join(config, 'settings.json'), '{ roto', 'utf8');
-      await escribirJson(path.join(config, 'plugins', 'installed_plugins.json'), { version: 99, cosas: [] });
-      const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: config });
-      const cs = r.comprobaciones.filter((c) => c.id === 'hooks-subagente');
+  await caso('config de Claude vacia o inexistente: ok', async () => {
+    await conRepo(async (repoRoot) => {
+      const cs = hooks(repoRoot, path.join(repoRoot, 'no-existe'));
       assert.deepEqual(cs.map((c) => c.nivel), ['ok']);
-      assert.match(cs[0]?.mensaje ?? '', /sin leer: .*settings\.json: .*installed_plugins\.json: formato no reconocido/);
-      assert.equal(r.codigo, 0);
+    });
+  });
+  await caso('plugin desactivado en enabledPlugins: no avisa; el local del proyecto puede reactivarlo', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
+        await escribirJson(path.join(config, 'settings.json'), { enabledPlugins: { 'ctx@mkt': false } });
+        assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['ok']);
+        await escribirJson(path.join(repoRoot, '.claude', 'settings.local.json'), { enabledPlugins: { 'ctx@mkt': true } });
+        assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso']);
+      });
+    });
+  });
+  await caso('instalacion de otro proyecto (projectPath distinto): no avisa', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT, { scope: 'project', projectPath: path.join(config, 'otro') });
+        assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['ok']);
+        await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT, { scope: 'project', projectPath: repoRoot });
+        assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso']);
+      });
+    });
+  });
+  await caso('versiones viejas en la cache que no estan en installed_plugins.json: no avisan', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        await instalarPlugin(config, 'ctx@mkt', HOOK_INOCUO);
+        await escribirJson(path.join(config, 'plugins', 'cache', 'mkt', 'ctx', '0.9.0', 'hooks', 'hooks.json'), HOOK_AGENT);
+        assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['ok']);
+      });
     });
   });
 });
 
-test('disableAllHooks en cualquiera de los settings: ok que lo dice, sin avisos (revision ronda 1, MEN-3)', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
-      await escribirJson(path.join(config, 'settings.json'), { hooks: { PreToolUse: [{ matcher: 'Agent' }] } });
-      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso', 'aviso']);
-      const local = path.join(repoRoot, '.claude', 'settings.local.json');
-      await escribirJson(local, { disableAllHooks: true });
-      const cs = hooks(repoRoot, config);
-      assert.deepEqual(cs.map((c) => c.nivel), ['ok']);
-      assert.ok(cs[0]?.mensaje.includes('disableAllHooks') && cs[0].mensaje.includes(local), cs[0]?.mensaje);
-      await escribirJson(local, { disableAllHooks: false });
-      assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso', 'aviso']);
+test('hooks: JSON roto, disableAllHooks y ficheros ilegibles con avisos', async () => {
+  await caso('JSON roto o installed_plugins.json con formato desconocido: no es error, se nombra en el ok', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        await mkdir(config, { recursive: true });
+        await writeFile(path.join(config, 'settings.json'), '{ roto', 'utf8');
+        await escribirJson(path.join(config, 'plugins', 'installed_plugins.json'), { version: 99, cosas: [] });
+        const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: config });
+        const cs = r.comprobaciones.filter((c) => c.id === 'hooks-subagente');
+        assert.deepEqual(cs.map((c) => c.nivel), ['ok']);
+        assert.match(cs[0]?.mensaje ?? '', /sin leer: .*settings\.json: .*installed_plugins\.json: formato no reconocido/);
+        assert.equal(r.codigo, 0);
+      });
     });
   });
-});
-
-test('con avisos, los ficheros ilegibles se siguen nombrando en una omitida (revision ronda 1, MEN-4)', async () => {
-  await conRepo(async (repoRoot) => {
-    await conConfig(async (config) => {
-      await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
-      const roto = path.join(repoRoot, '.claude', 'settings.json');
-      await mkdir(path.dirname(roto), { recursive: true });
-      await writeFile(roto, '{ roto', 'utf8');
-      const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: config });
-      const cs = r.comprobaciones.filter((c) => c.id === 'hooks-subagente');
-      assert.deepEqual(cs.map((c) => c.nivel), ['aviso', 'omitida']);
-      assert.ok(cs[1]?.mensaje.startsWith('ficheros sin leer al buscar hooks: ') && cs[1].mensaje.includes(roto), cs[1]?.mensaje);
-      assert.equal(r.codigo, 0);
+  await caso('disableAllHooks en cualquiera de los settings: ok que lo dice, sin avisos (revision ronda 1, MEN-3)', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
+        await escribirJson(path.join(config, 'settings.json'), { hooks: { PreToolUse: [{ matcher: 'Agent' }] } });
+        assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso', 'aviso']);
+        const local = path.join(repoRoot, '.claude', 'settings.local.json');
+        await escribirJson(local, { disableAllHooks: true });
+        const cs = hooks(repoRoot, config);
+        assert.deepEqual(cs.map((c) => c.nivel), ['ok']);
+        assert.ok(cs[0]?.mensaje.includes('disableAllHooks') && cs[0].mensaje.includes(local), cs[0]?.mensaje);
+        await escribirJson(local, { disableAllHooks: false });
+        assert.deepEqual(hooks(repoRoot, config).map((c) => c.nivel), ['aviso', 'aviso']);
+      });
+    });
+  });
+  await caso('con avisos, los ficheros ilegibles se siguen nombrando en una omitida (revision ronda 1, MEN-4)', async () => {
+    await conRepo(async (repoRoot) => {
+      await conConfig(async (config) => {
+        await instalarPlugin(config, 'ctx@mkt', HOOK_AGENT);
+        const roto = path.join(repoRoot, '.claude', 'settings.json');
+        await mkdir(path.dirname(roto), { recursive: true });
+        await writeFile(roto, '{ roto', 'utf8');
+        const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: config });
+        const cs = r.comprobaciones.filter((c) => c.id === 'hooks-subagente');
+        assert.deepEqual(cs.map((c) => c.nivel), ['aviso', 'omitida']);
+        assert.ok(cs[1]?.mensaje.startsWith('ficheros sin leer al buscar hooks: ') && cs[1].mensaje.includes(roto), cs[1]?.mensaje);
+        assert.equal(r.codigo, 0);
+      });
     });
   });
 });
@@ -253,20 +261,21 @@ test('CLI --json: el aviso lleva el id estable hooks-subagente, nivel aviso y ar
 
 const PLUGIN_ROOT = path.join(import.meta.dirname, '..', '..', '..');
 
-test('docs/problemas-conocidos.md (enlazado desde el README): Problemas conocidos con sintoma, causa, diagnostico y las tres salidas', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const readme = await readFile(path.join(PLUGIN_ROOT, 'docs', 'problemas-conocidos.md'), 'utf8');
-  const i = readme.indexOf('## Problemas conocidos');
-  assert.ok(i >= 0, 'falta la seccion "## Problemas conocidos"');
-  const seccion = readme.slice(i, readme.indexOf('\n## ', i + 1));
-  for (const frase of ['Auto-Mode Bypass', 'PreToolUse', 'Agent', 'taskctl doctor', 'hooks-subagente', 'SessionStart', 'enabledPlugins', 'Aprobar a mano']) {
-    assert.ok(seccion.includes(frase), `la seccion no menciona "${frase}"`);
-  }
-});
-
-test('skill task-workflow (avance): ante un subagente denegado, taskctl doctor y no rodear', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const avance = await readFile(path.join(PLUGIN_ROOT, 'skills', 'task-workflow', 'avance.md'), 'utf8');
-  assert.match(avance, /deniega el lanzamiento de un subagente[\s\S]{0,200}`taskctl doctor`/);
-  assert.match(avance, /No rodear la\s+denegacion/);
+test('documentacion: problemas conocidos y skill task-workflow', async () => {
+  await caso('docs/problemas-conocidos.md (enlazado desde el README): Problemas conocidos con sintoma, causa, diagnostico y las tres salidas', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const readme = await readFile(path.join(PLUGIN_ROOT, 'docs', 'problemas-conocidos.md'), 'utf8');
+    const i = readme.indexOf('## Problemas conocidos');
+    assert.ok(i >= 0, 'falta la seccion "## Problemas conocidos"');
+    const seccion = readme.slice(i, readme.indexOf('\n## ', i + 1));
+    for (const frase of ['Auto-Mode Bypass', 'PreToolUse', 'Agent', 'taskctl doctor', 'hooks-subagente', 'SessionStart', 'enabledPlugins', 'Aprobar a mano']) {
+      assert.ok(seccion.includes(frase), `la seccion no menciona "${frase}"`);
+    }
+  });
+  await caso('skill task-workflow (avance): ante un subagente denegado, taskctl doctor y no rodear', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const avance = await readFile(path.join(PLUGIN_ROOT, 'skills', 'task-workflow', 'avance.md'), 'utf8');
+    assert.match(avance, /deniega el lanzamiento de un subagente[\s\S]{0,200}`taskctl doctor`/);
+    assert.match(avance, /No rodear la\s+denegacion/);
+  });
 });

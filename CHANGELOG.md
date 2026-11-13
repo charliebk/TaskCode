@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- Cambio de comportamiento (TASK-130): `doctor` propone abrir una tarea de poda de tests (`poda-tests`, con el comando `taskctl new` escrito) cuando la suite crece mas del umbral o tras `tareas_entre_podas` (30 por defecto) tareas terminadas desde la ultima poda; anexo `poda-tests.md` con el procedimiento. Primera pasada sobre la suite de TaskCode: tests redundantes fusionados sin bajar la cobertura.
 - TASK-129 (feature) — Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento (2026-11-13)
 - Cambio de comportamiento (TASK-129): la plantilla del plan y la skill plan piden por criterio cuantos tests nuevos (presupuesto de 1 a 3, con motivo si se pasa); la skill review trata un test duplicado como MENOR; anexo `tests-pesados.md` (como marcar pesados en Node, Rust, Java y .NET). La completa anota en el registro de puertas su numero de tests (linea `suite`); `metricas --por-version` muestra tests y duracion de la completa por version, y `doctor` avisa si crecieron mas de `umbral_crecimiento_suite` (20 % por defecto).
 - TASK-126 (feature) — Verificacion por tipo de rama: los tests pesados solo en la puerta de release (2026-11-13)

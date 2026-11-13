@@ -76,8 +76,9 @@ const RUTA_FICTICIA = '/repo/.taskcode/config.yml';
 // 1. Sin fichero: comportamiento identico al de hoy
 // ---------------------------------------------------------------------
 
-test('resolverConfig: repo sin .taskcode/ devuelve los defaults', async () => {
+test('sin fichero de config: .taskcode ausente, vacio, config.yml vacio o solo comentarios -> defaults, sin quejarse', async () => {
   await withTempRepo(async (repoRoot) => {
+    // repo sin .taskcode/
     const c = resolverConfig(repoRoot);
     assert.equal(c.rama_base, 'develop');
     assert.equal(c.agente_revisor_por_defecto, 'general-purpose');
@@ -86,50 +87,37 @@ test('resolverConfig: repo sin .taskcode/ devuelve los defaults', async () => {
     // no veria un default cambiado (TASK-056, plan de pruebas).
     assert.equal(c.modo_flujo, 'manual');
     assert.deepEqual(c, { ...CONFIG_DEFAULTS });
-  });
-});
 
-test('resolverConfig: .taskcode/ existe pero sin config.yml -> defaults, sin quejarse', async () => {
-  await withTempRepo(async (repoRoot) => {
-    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
-    assert.deepEqual(resolverConfig(repoRoot), { ...CONFIG_DEFAULTS });
-  });
-});
-
-test('resolverConfig: config.yml vacio -> defaults (es una forma legitima de decir "todo por defecto")', async () => {
-  await withTempRepo(async (repoRoot) => {
-    await escribirConfig(repoRoot, '');
-    assert.deepEqual(resolverConfig(repoRoot), { ...CONFIG_DEFAULTS });
-  });
-});
-
-test('resolverConfig: config.yml con solo comentarios y lineas en blanco -> defaults', async () => {
-  await withTempRepo(async (repoRoot) => {
-    await escribirConfig(repoRoot, '# configuracion de taskcode\n\n#   rama_base: otra\n\n');
-    assert.deepEqual(resolverConfig(repoRoot), { ...CONFIG_DEFAULTS });
-  });
-});
-
-test('resolveBaseBranchForTipo: sin fichero sigue devolviendo "develop" (no-breaking)', async () => {
-  await withTempRepo(async (repoRoot) => {
+    // resolveBaseBranchForTipo: sin fichero sigue devolviendo "develop" (no-breaking)
     assert.equal(resolveBaseBranchForTipo('feature', repoRoot), 'develop');
     assert.equal(resolveBaseBranchForTipo('fix', repoRoot), 'develop');
     assert.equal(resolveBaseBranchForTipo('release', repoRoot), 'develop');
-  });
-});
 
-test('parseNewTaskArgs / parseImportArgs: sin config, el revisor por defecto sigue siendo general-purpose', () => {
-  const n = parseNewTaskArgs(['--titulo', 'x', '--tipo', 'feature']);
-  assert.equal(n.agenteRevisor, 'general-purpose');
-  const i = parseImportArgs(['fichero.md']);
-  assert.equal(i.agenteRevisor, 'general-purpose');
+    // parseNewTaskArgs / parseImportArgs: sin config, el revisor por defecto sigue siendo general-purpose
+    const n = parseNewTaskArgs(['--titulo', 'x', '--tipo', 'feature']);
+    assert.equal(n.agenteRevisor, 'general-purpose');
+    const i = parseImportArgs(['fichero.md']);
+    assert.equal(i.agenteRevisor, 'general-purpose');
+
+    // .taskcode/ existe pero sin config.yml -> defaults, sin quejarse
+    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+    assert.deepEqual(resolverConfig(repoRoot), { ...CONFIG_DEFAULTS }, '.taskcode sin config.yml');
+
+    // config.yml vacio -> defaults (es una forma legitima de decir "todo por defecto")
+    await escribirConfig(repoRoot, '');
+    assert.deepEqual(resolverConfig(repoRoot), { ...CONFIG_DEFAULTS }, 'config.yml vacio');
+
+    // config.yml con solo comentarios y lineas en blanco -> defaults
+    await escribirConfig(repoRoot, '# configuracion de taskcode\n\n#   rama_base: otra\n\n');
+    assert.deepEqual(resolverConfig(repoRoot), { ...CONFIG_DEFAULTS }, 'solo comentarios');
+  });
 });
 
 // ---------------------------------------------------------------------
 // 2. Con las tres claves: surten efecto de verdad
 // ---------------------------------------------------------------------
 
-test('resolverConfig: las tres claves puestas se leen las tres', async () => {
+test('las tres claves puestas se leen las tres; rama_base cambia feature/fix/release pero NO hotfix', async () => {
   await withTempRepo(async (repoRoot) => {
     await escribirConfig(
       repoRoot,
@@ -139,32 +127,26 @@ test('resolverConfig: las tres claves puestas se leen las tres', async () => {
     assert.equal(c.rama_base, 'integration');
     assert.equal(c.agente_revisor_por_defecto, 'revisor-de-la-casa');
     assert.equal(c.limite_wip, 3);
-  });
-});
 
-test('rama_base: cambia la rama que resolveBaseBranchForTipo devuelve para feature/fix/release', async () => {
-  await withTempRepo(async (repoRoot) => {
-    await escribirConfig(repoRoot, 'rama_base: integration\n');
+    // rama_base: cambia la rama que resolveBaseBranchForTipo devuelve para feature/fix/release
     assert.equal(resolveBaseBranchForTipo('feature', repoRoot), 'integration');
     assert.equal(resolveBaseBranchForTipo('fix', repoRoot), 'integration');
     assert.equal(resolveBaseBranchForTipo('release', repoRoot), 'integration');
-  });
-});
-
-test('rama_base: NO afecta a hotfix, que sigue colgando de la rama principal detectada', async () => {
-  // La decision #9 descarta `rama_principal` como clave porque
-  // resolveMainBranch ya detecta main/master sola. Si rama_base se
-  // colara en hotfix, esa deteccion quedaria anulada.
-  await withTempRepo(async (repoRoot) => {
-    await escribirConfig(repoRoot, 'rama_base: integration\n');
+    // rama_base: NO afecta a hotfix, que sigue colgando de la rama principal detectada.
+    // La decision #9 descarta `rama_principal` como clave porque
+    // resolveMainBranch ya detecta main/master sola. Si rama_base se
+    // colara en hotfix, esa deteccion quedaria anulada.
     assert.equal(resolveBaseBranchForTipo('hotfix', repoRoot), 'main');
   });
 });
 
-test('rama_base: taskctl new CAMBIA de verdad a la rama configurada, no solo la calcula', async () => {
+test('taskctl new: CAMBIA de verdad a la rama configurada y escribe el revisor del config en el tarea.md', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     git(['branch', 'integration'], repoRoot);
-    await escribirConfig(repoRoot, 'rama_base: integration\n');
+    await escribirConfig(
+      repoRoot,
+      'rama_base: integration\nagente_revisor_por_defecto: revisor-de-la-casa\n'
+    );
     // Se arranca desde develop: con el default, "new" se habria
     // quedado en develop sin cambiar de rama.
     assert.equal(
@@ -191,18 +173,7 @@ test('rama_base: taskctl new CAMBIA de verdad a la rama configurada, no solo la 
       }).stdout.trim(),
       'integration'
     );
-  });
-});
-
-test('agente_revisor_por_defecto: taskctl new lo escribe en el tarea.md', async () => {
-  await withTempRepo(async (repoRoot, tareasRoot) => {
-    await escribirConfig(repoRoot, 'agente_revisor_por_defecto: revisor-de-la-casa\n');
-    const result = await runNewCommand(
-      tareasRoot,
-      ['--titulo', 'Con revisor configurado', '--tipo', 'feature'],
-      '2026-09-07',
-      { repoCwd: repoRoot }
-    );
+    // agente_revisor_por_defecto: taskctl new lo escribe en el tarea.md
     const contenido = await readFile(result.filePath, 'utf8');
     assert.match(contenido, /agente_revisor: revisor-de-la-casa/);
     assert.doesNotMatch(contenido, /general-purpose/);
@@ -244,7 +215,7 @@ test('agente_revisor_por_defecto: taskctl import usa el MISMO valor que new (la 
   });
 });
 
-test('limite_wip: con limite 3, dos tareas abiertas ya no bloquean; con 1, si', () => {
+test('limite_wip: con limite 3 dos tareas abiertas ya no bloquean (con 1, si) y el mensaje dice el limite real', () => {
   const base: Task = {
     id: 'TASK-900',
     titulo: 'x',
@@ -282,36 +253,9 @@ test('limite_wip: con limite 3, dos tareas abiertas ya no bloquean; con 1, si', 
   assert.deepEqual(tareasQueBloquean(abiertas, 'carlos', 'TASK-900', 3), []);
   // Con limite 2 ya esta el cupo lleno.
   assert.equal(tareasQueBloquean(abiertas, 'carlos', 'TASK-900', 2).length, 2);
-});
 
-test('limite_wip: el mensaje de error dice el limite real, no "una sola tarea"', () => {
-  const t: TareaUbicada = {
-    task: {
-      id: 'TASK-901',
-      titulo: 'x',
-      tipo: 'feature',
-      sprint: 1,
-      etiquetas: [],
-      complejidad: 'simple',
-      modelo_sugerido: 'sonnet',
-      estado: 'en-curso',
-      plan_aprobado: true,
-      rama: 'feature/task-901-x',
-      asignado_a: 'carlos',
-      skills_recomendados: [],
-      regla_seleccion_skill: null,
-      agente_revisor: 'general-purpose',
-      ultimo_commit_revisado: null,
-      revision_codex: false,
-      tokens_diseno: null,
-      tokens_implementacion: null,
-      tokens_revision: null,
-      creado: '2026-09-07',
-      actualizado: '2026-09-07',
-      dependencias: [],
-    },
-    estadoCarpeta: 'en-curso',
-  };
+  // El mensaje de error dice el limite real, no "una sola tarea"
+  const t = ubicada('TASK-901');
   const conDefecto = mensajeWipExcedido('TASK-900', 'carlos', [t]);
   assert.ok(conDefecto.includes('Una sola tarea en curso por persona'), conDefecto);
 
@@ -325,7 +269,7 @@ test('limite_wip: el mensaje de error dice el limite real, no "una sola tarea"',
 // 3. Fallo cerrado: cada forma de invalidez aborta
 // ---------------------------------------------------------------------
 
-test('invalido: limite_wip: dos (texto) aborta y dice que espera un entero', () => {
+test('invalido: limite_wip texto, 0, -1, decimal o booleano abortan (0 no significa "sin limite")', () => {
   assert.throws(
     () => parsearConfig('limite_wip: dos\n', RUTA_FICTICIA),
     (e: unknown) => {
@@ -336,9 +280,6 @@ test('invalido: limite_wip: dos (texto) aborta y dice que espera un entero', () 
       return true;
     }
   );
-});
-
-test('invalido: limite_wip: 0 y limite_wip: -1 abortan (0 no significa "sin limite")', () => {
   for (const valor of ['0', '-1']) {
     assert.throws(
       () => parsearConfig(`limite_wip: ${valor}\n`, RUTA_FICTICIA),
@@ -350,14 +291,11 @@ test('invalido: limite_wip: 0 y limite_wip: -1 abortan (0 no significa "sin limi
       `limite_wip: ${valor} deberia abortar`
     );
   }
-});
-
-test('invalido: limite_wip decimal o booleano tambien abortan', () => {
   assert.throws(() => parsearConfig('limite_wip: 1.5\n', RUTA_FICTICIA), ConfigError);
   assert.throws(() => parsearConfig('limite_wip: true\n', RUTA_FICTICIA), ConfigError);
 });
 
-test('invalido: rama_base vacia, en comillas o sin valor, aborta', () => {
+test('invalido: rama_base vacia (en comillas o sin valor) y agente_revisor_por_defecto vacio abortan', () => {
   for (const linea of ['rama_base: ""', 'rama_base:', 'rama_base: "   "']) {
     assert.throws(
       () => parsearConfig(`${linea}\n`, RUTA_FICTICIA),
@@ -370,9 +308,7 @@ test('invalido: rama_base vacia, en comillas o sin valor, aborta', () => {
       `"${linea}" deberia abortar`
     );
   }
-});
-
-test('invalido: agente_revisor_por_defecto vacio aborta igual que rama_base', () => {
+  // agente_revisor_por_defecto vacio aborta igual que rama_base
   assert.throws(
     () => parsearConfig('agente_revisor_por_defecto: ""\n', RUTA_FICTICIA),
     (e: unknown) => {
@@ -385,7 +321,7 @@ test('invalido: agente_revisor_por_defecto vacio aborta igual que rama_base', ()
 
 // TASK-061: antes ABORTABA. Ahora avisa, sugiere la parecida, enumera las
 // validas y la ignora (el resto del fichero se lee igual).
-test('clave desconocida: avisa (no aborta), sugiere la parecida, enumera las validas y se ignora', () => {
+test('clave desconocida: avisa (no aborta), sugiere la parecida, enumera las validas y se ignora; las descartadas por la decision #9 tambien', () => {
   const { config, avisos } = parsearConfigConAvisos('limite_wp: 2\nrama_base: integration\n', RUTA_FICTICIA);
   assert.equal(avisos.length, 1);
   const aviso = avisos[0] as string;
@@ -397,21 +333,21 @@ test('clave desconocida: avisa (no aborta), sugiere la parecida, enumera las val
   assert.equal(config.limite_wip, CONFIG_DEFAULTS.limite_wip, 'la clave desconocida no se aplica ni a la parecida');
   assert.equal(config.rama_base, 'integration', 'las conocidas del mismo fichero si');
   assert.equal(parsearConfig('limite_wp: 2\n', RUTA_FICTICIA).limite_wip, CONFIG_DEFAULTS.limite_wip);
-});
 
-test('una clave descartada por la decision #9 sigue siendo desconocida: avisa (TASK-061, antes abortaba)', () => {
+  // Una clave descartada por la decision #9 sigue siendo desconocida: avisa (TASK-061, antes abortaba).
   // `remoto`, `rama_principal` y `politica_no_borrar_ramas` NO se
   // declaran. Escribirlas no puede pasar en silencio: tiene que avisar
   // de que no se leen (una clave que el usuario escribe y el plugin no
   // lee es peor que no tenerla), aunque ya no pare a nadie.
   for (const clave of ['remoto', 'rama_principal', 'politica_no_borrar_ramas']) {
-    const { avisos } = parsearConfigConAvisos(`${clave}: x\n`, RUTA_FICTICIA);
-    assert.equal(avisos.length, 1, `"${clave}" deberia avisar`);
-    assert.match(avisos[0] as string, new RegExp(`clave desconocida "${clave}"`));
+    const { avisos: avisosClave } = parsearConfigConAvisos(`${clave}: x\n`, RUTA_FICTICIA);
+    assert.equal(avisosClave.length, 1, `"${clave}" deberia avisar`);
+    assert.match(avisosClave[0] as string, new RegExp(`clave desconocida "${clave}"`));
   }
 });
 
-test('invalido: la misma clave dos veces aborta en vez de que gane la ultima en silencio', () => {
+test('invalido: clave repetida, linea sin ":" y el mensaje nombra fichero y linea', () => {
+  // la misma clave dos veces aborta en vez de que gane la ultima en silencio
   assert.throws(
     () => parsearConfig('limite_wip: 1\nlimite_wip: 5\n', RUTA_FICTICIA),
     (e: unknown) => {
@@ -420,9 +356,7 @@ test('invalido: la misma clave dos veces aborta en vez de que gane la ultima en 
       return true;
     }
   );
-});
-
-test('invalido: linea sin ":" aborta hablando de CONFIG, no de frontmatter', () => {
+  // linea sin ":" aborta hablando de CONFIG, no de frontmatter
   assert.throws(
     () => parsearConfig('rama_base develop\n', RUTA_FICTICIA),
     (e: unknown) => {
@@ -432,9 +366,7 @@ test('invalido: linea sin ":" aborta hablando de CONFIG, no de frontmatter', () 
       return true;
     }
   );
-});
-
-test('el mensaje de error nombra el fichero y la linea', () => {
+  // el mensaje de error nombra el fichero y la linea
   assert.throws(
     () => parsearConfig('# cabecera\n\nlimite_wip: 0\n', RUTA_FICTICIA),
     (e: unknown) => {
@@ -449,15 +381,12 @@ test('el mensaje de error nombra el fichero y la linea', () => {
 // 4. La invalidez llega hasta arriba: no hay caida al default
 // ---------------------------------------------------------------------
 
-test('fallo cerrado real: resolveBaseBranchForTipo NO cae a "develop" con un config roto', async () => {
-  await withTempRepo(async (repoRoot) => {
+test('fallo cerrado real: con un config roto resolveBaseBranchForTipo NO cae a "develop" y taskctl new / import abortan sin crear la tarea', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
     await escribirConfig(repoRoot, 'limite_wip: dos\n');
     assert.throws(() => resolveBaseBranchForTipo('feature', repoRoot), ConfigError);
-  });
-});
 
-test('fallo cerrado real: taskctl new aborta con un config roto y NO crea la tarea', async () => {
-  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // taskctl new aborta con un config roto y NO crea la tarea.
     // TASK-061: con `limite_wp` (clave desconocida) ya no aborta; lo roto es un valor invalido.
     await escribirConfig(repoRoot, 'limite_wip: 0\n');
     await assert.rejects(
@@ -466,12 +395,9 @@ test('fallo cerrado real: taskctl new aborta con un config roto y NO crea la tar
       }),
       ConfigError
     );
-    assert.equal(existsSync(tareasRoot), false, 'no deberia haber creado tareas/');
-  });
-});
+    assert.equal(existsSync(tareasRoot), false, 'new: no deberia haber creado tareas/');
 
-test('fallo cerrado real: taskctl import aborta con un config roto', async () => {
-  await withTempRepo(async (repoRoot, tareasRoot) => {
+    // taskctl import aborta con un config roto
     await escribirConfig(repoRoot, 'rama_base: ""\n');
     const fuera = await mkdtemp(path.join(tmpdir(), 'taskctl-import-src-'));
     try {
@@ -481,7 +407,7 @@ test('fallo cerrado real: taskctl import aborta con un config roto', async () =>
         runImportCommand(tareasRoot, [md], '2026-09-07', { repoCwd: repoRoot }),
         ConfigError
       );
-      assert.equal(existsSync(tareasRoot), false, 'no deberia haber creado tareas/');
+      assert.equal(existsSync(tareasRoot), false, 'import: no deberia haber creado tareas/');
     } finally {
       await rm(fuera, { recursive: true, force: true });
     }
@@ -492,21 +418,17 @@ test('fallo cerrado real: taskctl import aborta con un config roto', async () =>
 // 5. Sintaxis compartida con frontmatter
 // ---------------------------------------------------------------------
 
-test('sintaxis: comentario inline tras el valor se descarta', () => {
+test('sintaxis: comentario inline se descarta, comillas y espacios de sobra se recortan, CRLF no rompe', () => {
   const c = parsearConfig('rama_base: integration  # la de este equipo\nlimite_wip: 2 # dos\n', RUTA_FICTICIA);
   assert.equal(c.rama_base, 'integration');
   assert.equal(c.limite_wip, 2);
-});
 
-test('sintaxis: valores entrecomillados y con espacios de sobra se recortan', () => {
-  const c = parsearConfig('rama_base: "  integration  "\n', RUTA_FICTICIA);
-  assert.equal(c.rama_base, 'integration');
-});
+  const q = parsearConfig('rama_base: "  integration  "\n', RUTA_FICTICIA);
+  assert.equal(q.rama_base, 'integration');
 
-test('sintaxis: CRLF no rompe el parseo', () => {
-  const c = parsearConfig('rama_base: integration\r\nlimite_wip: 2\r\n', RUTA_FICTICIA);
-  assert.equal(c.rama_base, 'integration');
-  assert.equal(c.limite_wip, 2);
+  const crlf = parsearConfig('rama_base: integration\r\nlimite_wip: 2\r\n', RUTA_FICTICIA);
+  assert.equal(crlf.rama_base, 'integration');
+  assert.equal(crlf.limite_wip, 2);
 });
 
 test('el parser compartido NO cambio el comportamiento del frontmatter', () => {
@@ -528,7 +450,7 @@ test('el parser compartido NO cambio el comportamiento del frontmatter', () => {
 // 6. Donde se busca el fichero
 // ---------------------------------------------------------------------
 
-test('ubicacion: se busca en la RAIZ del repo, tambien ejecutando desde un subdirectorio', async () => {
+test('ubicacion: se busca en la RAIZ del repo (tambien desde un subdirectorio) y un .taskcode que es un FICHERO aborta', async () => {
   await withTempRepo(async (repoRoot) => {
     await escribirConfig(repoRoot, 'limite_wip: 4\n');
     const sub = path.join(repoRoot, 'docs', 'contexto');
@@ -537,6 +459,19 @@ test('ubicacion: se busca en la RAIZ del repo, tambien ejecutando desde un subdi
     assert.equal(resolverConfig(sub).limite_wip, 4);
     // Y la rama base tambien, que es lo que de verdad se usa.
     assert.equal(resolveBaseBranchForTipo('feature', sub), 'develop');
+
+    // resolverConfig: un .taskcode que es un FICHERO aborta (no cae al default en silencio).
+    // Hallazgo MENOR de la revision por pares (TASK-030): el comentario
+    // decia que este caso aborta, y en Windows caia al default. Leer
+    // ".taskcode/config.yml" con ".taskcode" siendo un fichero da
+    // ENOTDIR en POSIX pero ENOENT en Windows, asi que el errno no
+    // sirve para distinguirlo de "no hay configuracion". Es la misma
+    // trampa de TASK-027: se le pregunta al sistema de ficheros, que
+    // contesta igual en las dos plataformas.
+    await rm(path.join(repoRoot, '.taskcode'), { recursive: true, force: true });
+    await writeFile(path.join(repoRoot, '.taskcode'), 'no soy una carpeta', 'utf8');
+    assert.throws(() => resolverConfig(repoRoot), ConfigError);
+    assert.throws(() => resolverConfig(repoRoot), /existe pero no es una carpeta/);
   });
 });
 
@@ -560,32 +495,14 @@ test('ubicacion: la busqueda PARA en la raiz del repo (un config de mas arriba n
   }
 });
 
-test('resolverConfig: un .taskcode que es un FICHERO aborta (no cae al default en silencio)', async () => {
-  await withTempRepo(async (repoRoot) => {
-    // Hallazgo MENOR de la revision por pares (TASK-030): el comentario
-    // decia que este caso aborta, y en Windows caia al default. Leer
-    // ".taskcode/config.yml" con ".taskcode" siendo un fichero da
-    // ENOTDIR en POSIX pero ENOENT en Windows, asi que el errno no
-    // sirve para distinguirlo de "no hay configuracion". Es la misma
-    // trampa de TASK-027: se le pregunta al sistema de ficheros, que
-    // contesta igual en las dos plataformas.
-    await writeFile(path.join(repoRoot, '.taskcode'), 'no soy una carpeta', 'utf8');
-    assert.throws(() => resolverConfig(repoRoot), ConfigError);
-    assert.throws(() => resolverConfig(repoRoot), /existe pero no es una carpeta/);
-  });
-});
-
 // ---------------------------------------------------------------------
 // modo_flujo (TASK-056)
 // ---------------------------------------------------------------------
 
-test('parsearConfig: modo_flujo acepta los tres valores', () => {
+test('parsearConfig: modo_flujo acepta los tres valores, invalido aborta (lista los validos y sugiere el parecido) y repetido aborta', () => {
   for (const modo of ['manual', 'semiautomatico', 'automatico'] as const) {
     assert.equal(parsearConfig(`modo_flujo: ${modo}\n`, RUTA_FICTICIA).modo_flujo, modo);
   }
-});
-
-test('parsearConfig: modo_flujo invalido aborta listando los tres validos y sugiriendo el parecido', () => {
   assert.throws(
     () => parsearConfig('modo_flujo: automatic\n', RUTA_FICTICIA),
     (e: Error) =>
@@ -595,9 +512,6 @@ test('parsearConfig: modo_flujo invalido aborta listando los tres validos y sugi
   );
   assert.throws(() => parsearConfig('modo_flujo: auto\n', RUTA_FICTICIA), ConfigError);
   assert.throws(() => parsearConfig('modo_flujo:\n', RUTA_FICTICIA), ConfigError);
-});
-
-test('parsearConfig: modo_flujo repetido aborta', () => {
   assert.throws(
     () => parsearConfig('modo_flujo: manual\nmodo_flujo: automatico\n', RUTA_FICTICIA),
     ConfigError

@@ -22,6 +22,16 @@ import {
   runCodexReview,
 } from '../../src/fs/git.js';
 
+/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
+async function caso(nombre: string, fn: () => unknown): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
+    throw e;
+  }
+}
+
 function git(args: string[], cwd: string): void {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
   assert.equal(result.status, 0, `git ${args.join(' ')} fallo: ${result.stderr}`);
@@ -39,46 +49,43 @@ async function withTempRepo(fn: (repoRoot: string) => Promise<void>): Promise<vo
   }
 }
 
-test('isWorkspaceClean: true en un repo recien inicializado sin cambios', async () => {
+test('git basico: workspace limpio, rama actual, nombre de rama valido y errores de Git con su mensaje', async () => {
+await caso('isWorkspaceClean: true en un repo recien inicializado sin cambios', async () => {
   await withTempRepo(async (repoRoot) => {
     assert.equal(isWorkspaceClean(repoRoot), true);
   });
 });
-
-test('isWorkspaceClean: false si hay ficheros sin trackear', async () => {
+await caso('isWorkspaceClean: false si hay ficheros sin trackear', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     await writeFile(path.join(repoRoot, 'x.txt'), 'x', 'utf8');
     assert.equal(isWorkspaceClean(repoRoot), false);
   });
 });
-
-test('currentBranch: devuelve el nombre de la rama activa', async () => {
+await caso('currentBranch: devuelve el nombre de la rama activa', async () => {
   await withTempRepo(async (repoRoot) => {
     assert.equal(currentBranch(repoRoot), 'main');
   });
 });
-
-test('isValidBranchName: true para un nombre valido, false para uno invalido', async () => {
+await caso('isValidBranchName: true para un nombre valido, false para uno invalido', async () => {
   await withTempRepo(async (repoRoot) => {
     assert.equal(isValidBranchName('feature/algo-1001', repoRoot), true);
     assert.equal(isValidBranchName('rama con espacios', repoRoot), false);
     assert.equal(isValidBranchName('-empieza-con-guion', repoRoot), false);
   });
 });
-
-test('GitCommandError: mensaje incluye los argumentos y el stderr', () => {
+await caso('GitCommandError: mensaje incluye los argumentos y el stderr', () => {
   const err = new GitCommandError(['status', '--porcelain'], 'algo fallo\n');
   assert.match(err.message, /git status --porcelain fallo: algo fallo/);
   assert.equal(err.name, 'GitCommandError');
 });
-
-test('GitLaunchError: envuelve el error original con un mensaje claro', () => {
+await caso('GitLaunchError: envuelve el error original con un mensaje claro', () => {
   const original = new Error('spawnSync git ENOENT');
   const err = new GitLaunchError(original);
   assert.match(err.message, /No se pudo ejecutar "git"/);
   assert.equal(err.originalError, original);
   assert.equal(err.name, 'GitLaunchError');
+});
 });
 
 // --- TASK-012: resolveMainBranch / resolveBaseBranchForTipo / ensureBaseBranchReady ---
@@ -142,13 +149,13 @@ async function withClone(
   }
 }
 
-test('isRemoteAvailable: false sin origin configurado', async () => {
+test('git remoto y ramas: isRemoteAvailable, localBranchExists, resolveMainBranch y resolveBaseBranchForTipo', async () => {
+await caso('isRemoteAvailable: false sin origin configurado', async () => {
   await withTempRepo(async (repoRoot) => {
     assert.equal(isRemoteAvailable(repoRoot), false);
   });
 });
-
-test('isRemoteAvailable: true con un origin real y alcanzable (segundo repo local)', async () => {
+await caso('isRemoteAvailable: true con un origin real y alcanzable (segundo repo local)', async () => {
   await withOriginRepo(async (originRoot) => {
     await withTempRepo(async (repoRoot) => {
       git(['remote', 'add', 'origin', originRoot], repoRoot);
@@ -156,15 +163,13 @@ test('isRemoteAvailable: true con un origin real y alcanzable (segundo repo loca
     });
   });
 });
-
-test('localBranchExists: true para una rama que existe, false para una que no', async () => {
+await caso('localBranchExists: true para una rama que existe, false para una que no', async () => {
   await withPlainRepo('main', async (repoRoot) => {
     assert.equal(localBranchExists('main', repoRoot), true);
     assert.equal(localBranchExists('develop', repoRoot), false);
   });
 });
-
-test('resolveMainBranch: origin con "main" gana, aunque en local solo haya "master"', async () => {
+await caso('resolveMainBranch: origin con "main" gana, aunque en local solo haya "master"', async () => {
   await withOriginRepo(async (originRoot) => {
     // originRoot tiene main+develop, no master — sirve igual: lo que
     // importa es que exista origin/main.
@@ -174,8 +179,7 @@ test('resolveMainBranch: origin con "main" gana, aunque en local solo haya "mast
     });
   });
 });
-
-test('resolveMainBranch: origin sin "main" pero con "master" usa "master"', async () => {
+await caso('resolveMainBranch: origin sin "main" pero con "master" usa "master"', async () => {
   await withPlainRepo('master', async (originRoot) => {
     await withPlainRepo('develop', async (repoRoot) => {
       git(['remote', 'add', 'origin', originRoot], repoRoot);
@@ -183,8 +187,7 @@ test('resolveMainBranch: origin sin "main" pero con "master" usa "master"', asyn
     });
   });
 });
-
-test('resolveMainBranch: origin disponible pero sin "main" ni "master" cae a las ramas locales', async () => {
+await caso('resolveMainBranch: origin disponible pero sin "main" ni "master" cae a las ramas locales', async () => {
   await withPlainRepo('trunk', async (originRoot) => {
     await withPlainRepo('main', async (repoRoot) => {
       git(['remote', 'add', 'origin', originRoot], repoRoot);
@@ -192,40 +195,37 @@ test('resolveMainBranch: origin disponible pero sin "main" ni "master" cae a las
     });
   });
 });
-
-test('resolveMainBranch: sin remoto, usa "main" local si existe', async () => {
+await caso('resolveMainBranch: sin remoto, usa "main" local si existe', async () => {
   await withPlainRepo('main', async (repoRoot) => {
     assert.equal(resolveMainBranch(repoRoot), 'main');
   });
 });
-
-test('resolveMainBranch: sin remoto y sin "main" local, usa "master" local si existe', async () => {
+await caso('resolveMainBranch: sin remoto y sin "main" local, usa "master" local si existe', async () => {
   await withPlainRepo('master', async (repoRoot) => {
     assert.equal(resolveMainBranch(repoRoot), 'master');
   });
 });
-
-test('resolveMainBranch: sin remoto, sin "main" ni "master" en ningun lado, "master" por defecto', async () => {
+await caso('resolveMainBranch: sin remoto, sin "main" ni "master" en ningun lado, "master" por defecto', async () => {
   await withPlainRepo('trunk', async (repoRoot) => {
     assert.equal(resolveMainBranch(repoRoot), 'master');
   });
 });
-
-test('resolveBaseBranchForTipo: feature/fix/release siempre resuelven a "develop"', async () => {
+await caso('resolveBaseBranchForTipo: feature/fix/release siempre resuelven a "develop"', async () => {
   await withPlainRepo('main', async (repoRoot) => {
     assert.equal(resolveBaseBranchForTipo('feature', repoRoot), 'develop');
     assert.equal(resolveBaseBranchForTipo('fix', repoRoot), 'develop');
     assert.equal(resolveBaseBranchForTipo('release', repoRoot), 'develop');
   });
 });
-
-test('resolveBaseBranchForTipo: hotfix delega en resolveMainBranch', async () => {
+await caso('resolveBaseBranchForTipo: hotfix delega en resolveMainBranch', async () => {
   await withPlainRepo('master', async (repoRoot) => {
     assert.equal(resolveBaseBranchForTipo('hotfix', repoRoot), 'master');
   });
 });
+});
 
-test('ensureBaseBranchReady: ya en la rama base, no toca Git mas alla de comprobarlo', async () => {
+test('ensureBaseBranchReady: caminos felices, rechazos y pull --ff-only fallido', async () => {
+await caso('ensureBaseBranchReady: ya en la rama base, no toca Git mas alla de comprobarlo', async () => {
   await withOriginRepo(async (originRoot) => {
     await withClone(originRoot, async (repoRoot) => {
       git(['checkout', '-q', 'develop'], repoRoot);
@@ -235,8 +235,7 @@ test('ensureBaseBranchReady: ya en la rama base, no toca Git mas alla de comprob
     });
   });
 });
-
-test('ensureBaseBranchReady: workspace sucio aborta sin cambiar de rama', async () => {
+await caso('ensureBaseBranchReady: workspace sucio aborta sin cambiar de rama', async () => {
   await withOriginRepo(async (originRoot) => {
     await withClone(originRoot, async (repoRoot) => {
       const { writeFile } = await import('node:fs/promises');
@@ -246,8 +245,7 @@ test('ensureBaseBranchReady: workspace sucio aborta sin cambiar de rama', async 
     });
   });
 });
-
-test('ensureBaseBranchReady: rama base existe en local pero sin remoto, cambia sin intentar pull', async () => {
+await caso('ensureBaseBranchReady: rama base existe en local pero sin remoto, cambia sin intentar pull', async () => {
   await withOriginRepo(async (originRoot) => {
     await withClone(originRoot, async (repoRoot) => {
       // Crea el tracking local de develop mientras el remoto todavia
@@ -265,8 +263,7 @@ test('ensureBaseBranchReady: rama base existe en local pero sin remoto, cambia s
     });
   });
 });
-
-test('ensureBaseBranchReady: rama base existe en local y hay remoto, cambia y hace pull --ff-only de verdad', async () => {
+await caso('ensureBaseBranchReady: rama base existe en local y hay remoto, cambia y hace pull --ff-only de verdad', async () => {
   await withOriginRepo(async (originRoot) => {
     await withClone(originRoot, async (repoRoot) => {
       git(['checkout', '-q', 'develop'], repoRoot);
@@ -290,8 +287,7 @@ test('ensureBaseBranchReady: rama base existe en local y hay remoto, cambia y ha
     });
   });
 });
-
-test('ensureBaseBranchReady: rama base NO existe en local pero si en origin, crea el tracking local', async () => {
+await caso('ensureBaseBranchReady: rama base NO existe en local pero si en origin, crea el tracking local', async () => {
   await withOriginRepo(async (originRoot) => {
     await withClone(originRoot, async (repoRoot) => {
       // No se hace "git checkout develop" a mano: solo existe como
@@ -307,15 +303,13 @@ test('ensureBaseBranchReady: rama base NO existe en local pero si en origin, cre
     });
   });
 });
-
-test('ensureBaseBranchReady: rama base no existe en local ni hay remoto, rechaza sin tocar nada', async () => {
+await caso('ensureBaseBranchReady: rama base no existe en local ni hay remoto, rechaza sin tocar nada', async () => {
   await withPlainRepo('main', async (repoRoot) => {
     assert.throws(() => ensureBaseBranchReady('feature', repoRoot), BaseBranchGuardError);
     assert.equal(currentBranch(repoRoot), 'main');
   });
 });
-
-test('ensureBaseBranchReady: hay remoto pero no tiene la rama base — el checkout falla y se envuelve en BaseBranchGuardError', async () => {
+await caso('ensureBaseBranchReady: hay remoto pero no tiene la rama base — el checkout falla y se envuelve en BaseBranchGuardError', async () => {
   await withPlainRepo('main', async (originRoot) => {
     await withClone(originRoot, async (repoRoot) => {
       // origin solo tiene "main" — nunca "develop".
@@ -324,8 +318,7 @@ test('ensureBaseBranchReady: hay remoto pero no tiene la rama base — el checko
     });
   });
 });
-
-test('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only falla, el mensaje deja claro que la rama SI cambio (no se deshace)', async () => {
+await caso('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only falla, el mensaje deja claro que la rama SI cambio (no se deshace)', async () => {
   await withOriginRepo(async (originRoot) => {
     await withClone(originRoot, async (repoRoot) => {
       const { writeFile } = await import('node:fs/promises');
@@ -361,6 +354,7 @@ test('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only f
     });
   });
 });
+});
 
 // ── isInsideWorkTree / operacionEnCurso (TASK-026) ──────────────────
 // isIgnored vivia aqui y se fue en TASK-029: su unico consumidor era el
@@ -371,7 +365,8 @@ test('ensureBaseBranchReady: si el checkout tiene exito pero el pull --ff-only f
 // ronda de revision (`--no-index`, y preguntar por el fichero y no por
 // su carpeta), documentados en HALLAZGOS.md.
 
-test('isInsideWorkTree: true dentro de un repo y en un subdirectorio suyo', async () => {
+test('isInsideWorkTree y operacionEnCurso contra repos reales (merge, cherry-pick, revert y sequencer)', async () => {
+await caso('isInsideWorkTree: true dentro de un repo y en un subdirectorio suyo', async () => {
   await withTempRepo(async (repoRoot) => {
     const { mkdir } = await import('node:fs/promises');
     const sub = path.join(repoRoot, 'a', 'b');
@@ -380,8 +375,7 @@ test('isInsideWorkTree: true dentro de un repo y en un subdirectorio suyo', asyn
     assert.equal(isInsideWorkTree(sub), true);
   });
 });
-
-test('isInsideWorkTree: false en un directorio que no es un repo (sin lanzar)', async () => {
+await caso('isInsideWorkTree: false en un directorio que no es un repo (sin lanzar)', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-norepo-'));
   try {
     assert.equal(isInsideWorkTree(dir), false);
@@ -389,8 +383,7 @@ test('isInsideWorkTree: false en un directorio que no es un repo (sin lanzar)', 
     await rm(dir, { recursive: true, force: true });
   }
 });
-
-test('isInsideWorkTree: false dentro de .git y false en un repo bare', async () => {
+await caso('isInsideWorkTree: false dentro de .git y false en un repo bare', async () => {
   await withTempRepo(async (repoRoot) => {
     // Git reconoce los dos como repositorio (--git-dir diria que si),
     // pero ninguno tiene arbol de trabajo sobre el que operar.
@@ -404,8 +397,7 @@ test('isInsideWorkTree: false dentro de .git y false en un repo bare', async () 
     await rm(bareRoot, { recursive: true, force: true });
   }
 });
-
-test('operacionEnCurso: null cuando no hay nada a medias', async () => {
+await caso('operacionEnCurso: null cuando no hay nada a medias', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     await writeFile(path.join(repoRoot, 'a.txt'), 'uno\n', 'utf8');
@@ -414,8 +406,7 @@ test('operacionEnCurso: null cuando no hay nada a medias', async () => {
     assert.equal(operacionEnCurso(repoRoot), null);
   });
 });
-
-test('operacionEnCurso: "merge" con un merge en conflicto de verdad, y null tras abortarlo', async () => {
+await caso('operacionEnCurso: "merge" con un merge en conflicto de verdad, y null tras abortarlo', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     const fichero = path.join(repoRoot, 'a.txt');
@@ -444,16 +435,7 @@ test('operacionEnCurso: "merge" con un merge en conflicto de verdad, y null tras
     assert.equal(operacionEnCurso(repoRoot), null);
   });
 });
-
-// ── operacionEnCurso: cherry-pick y revert (TASK-029) ───────────────
-//
-// Los testigos que deja Git NO son simetricos entre las dos
-// operaciones, asi que estos tests provocan cada estado de verdad
-// (repo temporal, conflicto real) en vez de fabricar ficheros a mano
-// dentro de .git/: lo que se afirma es lo que hace Git, no lo que
-// suponemos que hace.
-
-test('operacionEnCurso: "cherry-pick" con un cherry-pick en conflicto de verdad, y null tras abortarlo', async () => {
+await caso('operacionEnCurso: "cherry-pick" con un cherry-pick en conflicto de verdad, y null tras abortarlo', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     const fichero = path.join(repoRoot, 'a.txt');
@@ -482,8 +464,7 @@ test('operacionEnCurso: "cherry-pick" con un cherry-pick en conflicto de verdad,
     assert.equal(operacionEnCurso(repoRoot), null);
   });
 });
-
-test('operacionEnCurso: "revert" con un revert en conflicto de verdad, y null tras abortarlo', async () => {
+await caso('operacionEnCurso: "revert" con un revert en conflicto de verdad, y null tras abortarlo', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     const fichero = path.join(repoRoot, 'a.txt');
@@ -512,8 +493,7 @@ test('operacionEnCurso: "revert" con un revert en conflicto de verdad, y null tr
     assert.equal(operacionEnCurso(repoRoot), null);
   });
 });
-
-test('operacionEnCurso: "cherry-pick" cuando solo queda .git/sequencer (resuelto con "git commit" a mano)', async () => {
+await caso('operacionEnCurso: "cherry-pick" cuando solo queda .git/sequencer (resuelto con "git commit" a mano)', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     const fichero = path.join(repoRoot, 'a.txt');
@@ -560,8 +540,7 @@ test('operacionEnCurso: "cherry-pick" cuando solo queda .git/sequencer (resuelto
     assert.equal(operacionEnCurso(repoRoot), null);
   });
 });
-
-test('operacionEnCurso: "revert" cuando solo queda .git/sequencer (lo distingue por su "todo")', async () => {
+await caso('operacionEnCurso: "revert" cuando solo queda .git/sequencer (lo distingue por su "todo")', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     const fichero = path.join(repoRoot, 'a.txt');
@@ -596,8 +575,7 @@ test('operacionEnCurso: "revert" cuando solo queda .git/sequencer (lo distingue 
     assert.equal(operacionEnCurso(repoRoot), 'revert');
   });
 });
-
-test('operacionEnCurso: null tras un "cherry-pick -n" en conflicto (Git tampoco reconoce nada que abortar)', async () => {
+await caso('operacionEnCurso: null tras un "cherry-pick -n" en conflicto (Git tampoco reconoce nada que abortar)', async () => {
   await withTempRepo(async (repoRoot) => {
     const { writeFile } = await import('node:fs/promises');
     const fichero = path.join(repoRoot, 'a.txt');
@@ -624,6 +602,15 @@ test('operacionEnCurso: null tras un "cherry-pick -n" en conflicto (Git tampoco 
     assert.equal(operacionEnCurso(repoRoot), null);
   });
 });
+});
+
+// ── operacionEnCurso: cherry-pick y revert (TASK-029) ───────────────
+//
+// Los testigos que deja Git NO son simetricos entre las dos
+// operaciones, asi que estos tests provocan cada estado de verdad
+// (repo temporal, conflicto real) en vez de fabricar ficheros a mano
+// dentro de .git/: lo que se afirma es lo que hace Git, no lo que
+// suponemos que hace.
 
 // --- TASK-020: runCodexReview contra un binario real (no inyectado) ---
 //

@@ -65,4 +65,29 @@ Nada.
 
 ## Medida
 
-(Se rellena con los numeros de antes y despues.)
+Medido el 2026-11-13 en Windows (node 22), mismo arbol salvo los tests.
+
+| | Antes | Despues | Cambio |
+|---|---|---|---|
+| Rapida (core + cli), `perfil-tests.mjs --filtro test/core,test/cli` | 819 tests, 0,5 min | 624 tests, 0,7 min | -23,8 % de tests |
+| Rapida, tests de primer nivel (`grep -c "^test("`) | 802 | 607 | -24,3 % |
+| Completa, tests de primer nivel (`grep -c "^test("` en test/**) | 2331 | 1858 | -20,3 % |
+
+- La duracion de la rapida es de medio minuto y su ruido (y el fichero de test
+  nuevo de esta tarea) la mueve mas que la poda: el criterio se cumple por
+  numero de tests. La completa no se ha cronometrado entera (32 min por pasada);
+  su recuento de primer nivel es estatico.
+- Cobertura: los 28 ficheros de test modificados, con
+  `node --test --experimental-test-coverage --test-reporter=lcov`, en un
+  worktree del arbol anterior con el mismo `src` y en el arbol nuevo: 21 276
+  lineas de `src` cubiertas antes y 21 276 despues, ninguna perdida
+  (comparacion por fichero fuente del conjunto de lineas con DA > 0). Una
+  primera comparacion con el `src` de HEAD daba 188 «perdidas» falsas en
+  `doctor.js` y `config.js`, los dos ficheros de `src` que cambia esta tarea
+  (otra numeracion de lineas); por eso se repitio con el mismo `src`.
+- Por grupos (fusiones de variantes del mismo comportamiento en un test con un
+  bloque o una tabla por caso; ningun borrado; ninguna asercion quitada):
+  heuristica -33; metricas, transiciones, state-machine, wip, task -118;
+  asignado, import-parser, frontmatter, args -47; doctor y doctor-deploy -114;
+  integracion/config, board, import, wrappers, cobertura-cambios -94;
+  fs/git y hooks -82. Total -488.

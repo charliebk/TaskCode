@@ -9,31 +9,41 @@ import { buildNewTask } from '../../src/commands/new.js';
 import { writeTareaFile, moveTareaFile, readTareaFile } from '../../src/fs/task-store.js';
 import { DEFAULT_BODY } from '../../src/commands/new.js';
 
-test('parseBoardArgs: sin flags, sin filtros', () => {
+test('parseBoardArgs: sin flags, --sprint, --asignado_a y --asignado-a (con sus errores y recortes)', () => {
+  // sin flags, sin filtros
   assert.deepEqual(parseBoardArgs([]), {});
-});
-
-test('parseBoardArgs: --sprint valido', () => {
+  // --sprint valido
   assert.deepEqual(parseBoardArgs(['--sprint', '2']), { sprint: 2 });
-});
-
-test('parseBoardArgs: --sprint invalido falla', () => {
+  // --sprint invalido falla
   assert.throws(() => parseBoardArgs(['--sprint', 'dos']), BoardCommandError);
-});
-
-test('parseBoardArgs: --asignado_a valido', () => {
+  // --asignado_a valido
   assert.deepEqual(parseBoardArgs(['--asignado_a', 'charlie.bk']), { asignadoA: 'charlie.bk' });
-});
-
-test('parseBoardArgs: --asignado_a vacio falla', () => {
+  // --asignado_a vacio falla
   assert.throws(() => parseBoardArgs(['--asignado_a', '']), BoardCommandError);
-});
-
-test('parseBoardArgs: --sprint y --asignado_a combinados', () => {
+  // --sprint y --asignado_a combinados
   assert.deepEqual(parseBoardArgs(['--sprint', '1', '--asignado_a', 'charlie.bk']), {
     sprint: 1,
     asignadoA: 'charlie.bk',
   });
+
+  // item B6: board acepta tambien --asignado-a (hallazgo IMPORTANTE de revision)
+  // --asignado-a (guion medio) filtra igual que --asignado_a.
+  // Sin esto, board devolvia EL TABLERO ENTERO con codigo 0 a quien
+  // acababa de asignar con 'plan --asignado-a carlos' y reutilizaba
+  // esa grafia: parseArgs ignora los flags que no conoce.
+  assert.deepEqual(parseBoardArgs(['--asignado-a', 'charlie.bk']), { asignadoA: 'charlie.bk' });
+  assert.deepEqual(parseBoardArgs(['--asignado-a=charlie.bk']), { asignadoA: 'charlie.bk' });
+  // pasar las dos grafias a la vez es un error
+  assert.throws(
+    () => parseBoardArgs(['--asignado-a', 'ana', '--asignado_a', 'carlos']),
+    BoardCommandError
+  );
+  // --asignado-a suelto (sin valor) falla, no filtra por true
+  assert.throws(() => parseBoardArgs(['--asignado-a']), BoardCommandError);
+  // el filtro se recorta, igual que lo hace plan al escribirlo.
+  // Asimetria detectada en la revision: plan guardaba 'pepe' y board
+  // buscaba '  pepe  ', asi que el filtro no encontraba nada.
+  assert.deepEqual(parseBoardArgs(['--asignado_a=  charlie.bk  ']), { asignadoA: 'charlie.bk' });
 });
 
 // --- integracion con disco (board es de solo lectura: no necesita Git) --
@@ -47,16 +57,23 @@ async function withTareasRoot(fn: (tareasRoot: string) => Promise<void>): Promis
   }
 }
 
-test('runBoardCommand: tareasRoot vacio -> board vacio, sin advertencias', async () => {
+test('runBoardCommand: tareasRoot vacio -> board vacio, sin advertencias; --sprint invalido falla sin leer nada de disco', async () => {
   await withTareasRoot(async (tareasRoot) => {
     const result = await runBoardCommand(tareasRoot, []);
     assert.equal(result.totalTareas, 0);
     assert.equal(result.output, '');
     assert.deepEqual(result.advertencias, []);
+
+    const t = buildNewTask('TASK-001', {
+      titulo: 'x', tipo: 'feature', sprint: 0, etiquetas: [],
+      complejidad: 'media', modeloSugerido: 'sonnet', agenteRevisor: 'general-purpose',
+    }, '2026-09-01');
+    await writeTareaFile(tareasRoot, t, DEFAULT_BODY);
+    await assert.rejects(() => runBoardCommand(tareasRoot, ['--sprint', 'x']), BoardCommandError);
   });
 });
 
-test('runBoardCommand: lista tareas de varios estados, agrupadas', async () => {
+test('runBoardCommand: lista tareas de varios estados, agrupadas; moveTareaFile realmente cambio el estado en disco', async () => {
   await withTareasRoot(async (tareasRoot) => {
     const t1 = buildNewTask('TASK-001', {
       titulo: 'Primera', tipo: 'feature', sprint: 0, etiquetas: [],
@@ -78,10 +95,14 @@ test('runBoardCommand: lista tareas de varios estados, agrupadas', async () => {
     assert.match(result.output, /En curso/);
     assert.match(result.output, /TASK-001/);
     assert.match(result.output, /TASK-002/);
+
+    // sanity check via readTareaFile: moveTareaFile realmente cambio el estado en disco
+    const read = await readTareaFile(tareasRoot, 'TASK-002');
+    assert.equal(read?.task.estado, 'en-curso');
   });
 });
 
-test('runBoardCommand: --sprint y --asignado_a filtran de punta a punta', async () => {
+test('runBoardCommand: --asignado-a y --sprint con --asignado_a filtran de punta a punta contra disco', async () => {
   await withTareasRoot(async (tareasRoot) => {
     const a = buildNewTask('TASK-001', {
       titulo: 'De charlie, sprint 1', tipo: 'feature', sprint: 1, etiquetas: [],
@@ -97,6 +118,17 @@ test('runBoardCommand: --sprint y --asignado_a filtran de punta a punta', async 
     const bPath = await writeTareaFile(tareasRoot, b, DEFAULT_BODY);
     await moveTareaFile(tareasRoot, bPath, { ...b, asignado_a: 'otra.persona' }, DEFAULT_BODY);
 
+    // --asignado-a filtra de punta a punta contra disco
+    const conGuion = await runBoardCommand(tareasRoot, ['--asignado-a', 'charlie.bk']);
+    const conGuionBajo = await runBoardCommand(tareasRoot, ['--asignado_a', 'charlie.bk']);
+
+    assert.equal(conGuion.totalTareas, 1);
+    assert.ok(conGuion.output.includes('TASK-001'), conGuion.output);
+    assert.ok(!conGuion.output.includes('TASK-002'), conGuion.output);
+    // Las dos grafias producen exactamente el mismo tablero.
+    assert.equal(conGuion.output, conGuionBajo.output);
+
+    // --sprint y --asignado_a filtran de punta a punta (se anade una tercera tarea, de otro sprint)
     const c = buildNewTask('TASK-003', {
       titulo: 'De charlie, sprint 2', tipo: 'feature', sprint: 2, etiquetas: [],
       complejidad: 'media', modeloSugerido: 'sonnet', agenteRevisor: 'general-purpose',
@@ -167,17 +199,6 @@ test('runBoardCommand: el mismo ID en dos carpetas de estado a la vez no se dupl
   });
 });
 
-test('runBoardCommand: --sprint invalido falla sin leer nada de disco', async () => {
-  await withTareasRoot(async (tareasRoot) => {
-    const t = buildNewTask('TASK-001', {
-      titulo: 'x', tipo: 'feature', sprint: 0, etiquetas: [],
-      complejidad: 'media', modeloSugerido: 'sonnet', agenteRevisor: 'general-purpose',
-    }, '2026-09-01');
-    await writeTareaFile(tareasRoot, t, DEFAULT_BODY);
-    await assert.rejects(() => runBoardCommand(tareasRoot, ['--sprint', 'x']), BoardCommandError);
-  });
-});
-
 // --- B5: --escribir regenera docs/BOARD.md (divergencia de la seccion 8) ---
 
 async function withRepoRoot(fn: (repoRoot: string, tareasRoot: string) => Promise<void>): Promise<void> {
@@ -205,26 +226,62 @@ function tareaEjemplo(id: string, titulo: string) {
   );
 }
 
-test('runBoardCommand: por defecto NO escribe nada (board sigue siendo de solo lectura)', async () => {
-  await withRepoRoot(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
-    const result = await runBoardCommand(tareasRoot, [], { repoCwd: repoRoot, today: '2026-09-06' });
-    assert.equal(result.boardPath, null);
-    await assert.rejects(() => readFile(path.join(repoRoot, 'docs', 'BOARD.md'), 'utf8'));
-  });
-});
-
-test('runBoardCommand --escribir: regenera docs/BOARD.md con las tablas dentro de vallas de codigo', async () => {
+test('runBoardCommand --escribir: no escribe por defecto, rechaza filtros y valor explicito, da error propio ante un fallo de escritura, regenera docs/BOARD.md (idempotente) y no rompe la valla con titulos de backticks', async () => {
   await withRepoRoot(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
     await writeTareaFile(tareasRoot, tareaEjemplo('TASK-002', 'Otra tarea'), DEFAULT_BODY);
+    const rutaBoard = path.join(repoRoot, 'docs', 'BOARD.md');
 
+    // Por defecto NO escribe nada (board sigue siendo de solo lectura)
+    const sinEscribir = await runBoardCommand(tareasRoot, [], { repoCwd: repoRoot, today: '2026-09-06' });
+    assert.equal(sinEscribir.boardPath, null);
+    await assert.rejects(() => readFile(rutaBoard, 'utf8'));
+
+    // Rechaza combinarse con filtros (docs/BOARD.md es el tablero completo)
+    for (const filtro of [['--sprint', '1'], ['--asignado_a', 'charlie.bk']]) {
+      await assert.rejects(
+        () =>
+          runBoardCommand(tareasRoot, ['--escribir', ...filtro], {
+            repoCwd: repoRoot,
+            today: '2026-09-06',
+          }),
+        BoardCommandError
+      );
+    }
+    // Y no dejo el fichero a medias.
+    await assert.rejects(() => readFile(rutaBoard, 'utf8'));
+
+    // Con valor explicito falla con mensaje claro
+    await assert.rejects(
+      () =>
+        runBoardCommand(tareasRoot, ['--escribir', 'si'], {
+          repoCwd: repoRoot,
+          today: '2026-09-06',
+        }),
+      BoardCommandError
+    );
+
+    // Un fallo de escritura da un error propio, no el generico de arranque (hallazgo MENOR de revision).
+    // "docs" existe como FICHERO: el mkdir de docs/ falla con EEXIST.
+    await writeFile(path.join(repoRoot, 'docs'), 'no soy una carpeta\n', 'utf8');
+    await assert.rejects(
+      () =>
+        runBoardCommand(tareasRoot, ['--escribir'], { repoCwd: repoRoot, today: '2026-09-06' }),
+      (e: unknown) => {
+        assert.ok(e instanceof BoardCommandError);
+        assert.match((e as Error).message, /No se pudo escribir/);
+        return true;
+      }
+    );
+    await rm(path.join(repoRoot, 'docs'), { force: true });
+
+    // Regenera docs/BOARD.md con las tablas dentro de vallas de codigo (crea docs/ si no existe)
     const result = await runBoardCommand(tareasRoot, ['--escribir'], {
       repoCwd: repoRoot,
       today: '2026-09-06',
     });
 
-    assert.equal(result.boardPath, path.join(repoRoot, 'docs', 'BOARD.md'));
+    assert.equal(result.boardPath, rutaBoard);
     const board = await readFile(result.boardPath as string, 'utf8');
     assert.match(board, /# Tablero de tareas/);
     assert.match(board, /Generado automaticamente por taskctl board --escribir el 2026-09-06/);
@@ -237,41 +294,32 @@ test('runBoardCommand --escribir: regenera docs/BOARD.md con las tablas dentro d
     // Vallas equilibradas (misma cantidad de aperturas que cierres).
     const vallas = board.split('\n').filter((l) => l.startsWith('```')).length;
     assert.equal(vallas % 2, 0);
-  });
-});
 
-test('runBoardCommand --escribir: crea docs/ si no existe y es idempotente al repetirlo', async () => {
-  await withRepoRoot(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
-    const primera = await runBoardCommand(tareasRoot, ['--escribir'], {
-      repoCwd: repoRoot,
-      today: '2026-09-06',
-    });
-    const contenido1 = await readFile(primera.boardPath as string, 'utf8');
+    // Es idempotente al repetirlo
     const segunda = await runBoardCommand(tareasRoot, ['--escribir'], {
       repoCwd: repoRoot,
       today: '2026-09-06',
     });
     const contenido2 = await readFile(segunda.boardPath as string, 'utf8');
-    assert.equal(contenido1, contenido2);
-  });
-});
+    assert.equal(board, contenido2);
 
-test('runBoardCommand --escribir: rechaza combinarse con filtros (docs/BOARD.md es el tablero completo)', async () => {
-  await withRepoRoot(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
-    for (const filtro of [['--sprint', '1'], ['--asignado_a', 'charlie.bk']]) {
-      await assert.rejects(
-        () =>
-          runBoardCommand(tareasRoot, ['--escribir', ...filtro], {
-            repoCwd: repoRoot,
-            today: '2026-09-06',
-          }),
-        BoardCommandError
-      );
-    }
-    // Y no dejo el fichero a medias.
-    await assert.rejects(() => readFile(path.join(repoRoot, 'docs', 'BOARD.md'), 'utf8'));
+    // Un titulo con vallas de backticks no rompe el bloque de codigo
+    await writeTareaFile(
+      tareasRoot,
+      tareaEjemplo('TASK-003', '```text intento de romper la valla'),
+      DEFAULT_BODY
+    );
+    const r = await runBoardCommand(tareasRoot, ['--escribir'], {
+      repoCwd: repoRoot,
+      today: '2026-09-06',
+    });
+    const board3 = await readFile(r.boardPath as string, 'utf8');
+    // Las lineas de la tabla empiezan por la columna ID, asi que los
+    // backticks del titulo nunca quedan al principio de linea y no
+    // pueden cerrar la valla: aperturas y cierres siguen equilibrados.
+    const vallas3 = board3.split('\n').filter((l) => l.trimEnd() === '```' || l.startsWith('```text'));
+    assert.equal(vallas3.length % 2, 0);
+    assert.match(board3, /intento de romper la valla/);
   });
 });
 
@@ -318,134 +366,5 @@ test('runBoardCommand --escribir: aborta si no hay carpeta tareas/ en vez de cre
       }
     );
     await assert.rejects(() => readFile(path.join(repoRoot, 'docs', 'BOARD.md'), 'utf8'));
-  });
-});
-
-test('runBoardCommand --escribir: un fallo de escritura da un error propio, no el generico de arranque (hallazgo MENOR de revision)', async () => {
-  await withRepoRoot(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(tareasRoot, tareaEjemplo('TASK-001', 'Una tarea'), DEFAULT_BODY);
-    // "docs" existe como FICHERO: el mkdir de docs/ falla con EEXIST.
-    await writeFile(path.join(repoRoot, 'docs'), 'no soy una carpeta\n', 'utf8');
-
-    await assert.rejects(
-      () =>
-        runBoardCommand(tareasRoot, ['--escribir'], { repoCwd: repoRoot, today: '2026-09-06' }),
-      (e: unknown) => {
-        assert.ok(e instanceof BoardCommandError);
-        assert.match((e as Error).message, /No se pudo escribir/);
-        return true;
-      }
-    );
-  });
-});
-
-test('runBoardCommand --escribir: un titulo con vallas de backticks no rompe el bloque de codigo', async () => {
-  await withRepoRoot(async (repoRoot, tareasRoot) => {
-    await writeTareaFile(
-      tareasRoot,
-      tareaEjemplo('TASK-001', '```text intento de romper la valla'),
-      DEFAULT_BODY
-    );
-    const r = await runBoardCommand(tareasRoot, ['--escribir'], {
-      repoCwd: repoRoot,
-      today: '2026-09-06',
-    });
-    const board = await readFile(r.boardPath as string, 'utf8');
-    // Las lineas de la tabla empiezan por la columna ID, asi que los
-    // backticks del titulo nunca quedan al principio de linea y no
-    // pueden cerrar la valla: aperturas y cierres siguen equilibrados.
-    const vallas = board.split('\n').filter((l) => l.trimEnd() === '```' || l.startsWith('```text'));
-    assert.equal(vallas.length % 2, 0);
-    assert.match(board, /intento de romper la valla/);
-  });
-});
-
-test('runBoardCommand --escribir: con valor explicito falla con mensaje claro', async () => {
-  await withRepoRoot(async (repoRoot, tareasRoot) => {
-    await assert.rejects(
-      () =>
-        runBoardCommand(tareasRoot, ['--escribir', 'si'], {
-          repoCwd: repoRoot,
-          today: '2026-09-06',
-        }),
-      BoardCommandError
-    );
-  });
-});
-
-test('runBoardCommand: sanity check via readTareaFile — moveTareaFile realmente cambio el estado en disco', async () => {
-  await withTareasRoot(async (tareasRoot) => {
-    const t = buildNewTask('TASK-001', {
-      titulo: 'x', tipo: 'feature', sprint: 0, etiquetas: [],
-      complejidad: 'media', modeloSugerido: 'sonnet', agenteRevisor: 'general-purpose',
-    }, '2026-09-01');
-    const p = await writeTareaFile(tareasRoot, t, DEFAULT_BODY);
-    await moveTareaFile(tareasRoot, p, { ...t, estado: 'en-curso' }, DEFAULT_BODY);
-    const read = await readTareaFile(tareasRoot, 'TASK-001');
-    assert.equal(read?.task.estado, 'en-curso');
-  });
-});
-
-// --- item B6: board acepta tambien --asignado-a (hallazgo IMPORTANTE de revision) ---
-
-test('parseBoardArgs: --asignado-a (guion medio) filtra igual que --asignado_a', () => {
-  // Sin esto, board devolvia EL TABLERO ENTERO con codigo 0 a quien
-  // acababa de asignar con 'plan --asignado-a carlos' y reutilizaba
-  // esa grafia: parseArgs ignora los flags que no conoce.
-  assert.deepEqual(parseBoardArgs(['--asignado-a', 'charlie.bk']), { asignadoA: 'charlie.bk' });
-  assert.deepEqual(parseBoardArgs(['--asignado-a=charlie.bk']), { asignadoA: 'charlie.bk' });
-});
-
-test('parseBoardArgs: pasar las dos grafias a la vez es un error', () => {
-  assert.throws(
-    () => parseBoardArgs(['--asignado-a', 'ana', '--asignado_a', 'carlos']),
-    BoardCommandError
-  );
-});
-
-test('parseBoardArgs: --asignado-a suelto (sin valor) falla, no filtra por true', () => {
-  assert.throws(() => parseBoardArgs(['--asignado-a']), BoardCommandError);
-});
-
-test('parseBoardArgs: el filtro se recorta, igual que lo hace plan al escribirlo', () => {
-  // Asimetria detectada en la revision: plan guardaba 'pepe' y board
-  // buscaba '  pepe  ', asi que el filtro no encontraba nada.
-  assert.deepEqual(parseBoardArgs(['--asignado_a=  charlie.bk  ']), { asignadoA: 'charlie.bk' });
-});
-
-test('runBoardCommand: --asignado-a filtra de punta a punta contra disco', async () => {
-  await withTareasRoot(async (tareasRoot) => {
-    const a = buildNewTask('TASK-001', {
-      titulo: 'De charlie',
-      tipo: 'feature',
-      sprint: 1,
-      etiquetas: [],
-      complejidad: 'media',
-      modeloSugerido: 'sonnet',
-      agenteRevisor: 'general-purpose',
-    }, '2026-09-05');
-    const aPath = await writeTareaFile(tareasRoot, a, DEFAULT_BODY);
-    await moveTareaFile(tareasRoot, aPath, { ...a, asignado_a: 'charlie.bk' }, DEFAULT_BODY);
-
-    const b = buildNewTask('TASK-002', {
-      titulo: 'De otra persona',
-      tipo: 'feature',
-      sprint: 1,
-      etiquetas: [],
-      complejidad: 'media',
-      modeloSugerido: 'sonnet',
-      agenteRevisor: 'general-purpose',
-    }, '2026-09-05');
-    const bPath = await writeTareaFile(tareasRoot, b, DEFAULT_BODY);
-    await moveTareaFile(tareasRoot, bPath, { ...b, asignado_a: 'otra.persona' }, DEFAULT_BODY);
-
-    const conGuion = await runBoardCommand(tareasRoot, ['--asignado-a', 'charlie.bk']);
-    const conGuionBajo = await runBoardCommand(tareasRoot, ['--asignado_a', 'charlie.bk']);
-
-    assert.equal(conGuion.totalTareas, 1);
-    assert.ok(conGuion.output.includes('TASK-001'), conGuion.output);
-    assert.ok(!conGuion.output.includes('TASK-002'), conGuion.output);
-    // Las dos grafias producen exactamente el mismo tablero.
-    assert.equal(conGuion.output, conGuionBajo.output);
   });
 });

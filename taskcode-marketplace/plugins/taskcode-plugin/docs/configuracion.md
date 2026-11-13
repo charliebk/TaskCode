@@ -371,6 +371,12 @@ versión el mayor número de tests y la mediana de la duración de la completa, 
 avisa (presupuesto de tests por criterio, marcar pesados): skill
 `task-workflow`, `tests-pesados.md`.
 
+`doctor` propone además abrir una tarea de poda de tests (`poda-tests`, con el
+`taskctl new` ya escrito y la etiqueta `poda`) cuando salta ese aviso o han
+pasado más de `tareas_entre_podas` (30 por defecto) tareas terminadas desde la
+última poda. El procedimiento (localizar, fusionar o borrar, y que la
+cobertura de líneas no baje), en `task-workflow/poda-tests.md`.
+
 #### Tests held-out (`aceptacion/`)
 
 Tests de aceptación que escribe la **persona** a partir de los criterios y que

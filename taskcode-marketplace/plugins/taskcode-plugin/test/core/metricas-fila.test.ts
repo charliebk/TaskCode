@@ -107,61 +107,6 @@ function cuerpoConCoste(filas: readonly FilaCoste[], extra = ''): string {
 
 // --- Coste -------------------------------------------------------------------
 
-test('resumirCostes: nuevos = entrada + escritura + salida, lectura de cache aparte, y lo manual queda sin desglose', () => {
-  const filas = [agente('diseno', 'agente:a1', 10, 200, 3000, 40, 7), manual('diseno', 500), agente('revision', 'agente:b2', 1, 2, 3, 4, null)];
-  const r = resumirCostes(filas, { diseno: 3750, implementacion: 900, revision: 10 });
-  assert.equal(r.conTabla, true);
-  // 10+200+3000+40 = 3250 desglosado; 3750 - 3250 = 500 (la fila manual).
-  assert.deepEqual(r.fases.diseno, {
-    registrado: 3750,
-    filas: 2,
-    desglosado: 3250,
-    nuevos: 250,
-    cacheLectura: 3000,
-    sinDesglose: 500,
-    lecturas: 7,
-  });
-  // Fase sin filas pero con total: todo sin desglose (coste anterior a la tabla).
-  assert.equal(r.fases.implementacion.sinDesglose, 900);
-  assert.equal(r.fases.implementacion.lecturas, null, 'sin filas no hay lecturas: no medido, no 0');
-  // lecturas null en la unica fila de revision: no medido.
-  assert.equal(r.fases.revision.lecturas, null);
-  assert.equal(r.fases.revision.sinDesglose, 0);
-  assert.deepEqual(r.repetidas, []);
-});
-
-test('resumirCostes: diferencia negativa sin recortar a 0; fase sin total ni filas es null', () => {
-  const r = resumirCostes([agente('implementacion', 'agente:x', 100, 100, 100, 100, 3)], {
-    diseno: null,
-    implementacion: 250,
-    revision: null,
-  });
-  assert.equal(r.fases.implementacion.sinDesglose, -150);
-  assert.equal(r.fases.diseno.sinDesglose, null);
-  // Sin tabla: conTabla false aunque haya totales.
-  assert.equal(resumirCostes([], { diseno: 5, implementacion: null, revision: null }).conTabla, false);
-});
-
-test('resumirCostes: un agente en dos filas de la misma fase es repetida (tambien dentro de una lista); manual no', () => {
-  const filas = [
-    agente('diseno', 'agente:a1', 1, 1, 1, 1, 1),
-    agente('diseno', 'agente:a1', 1, 1, 1, 1, 1),
-    agente('implementacion', 'agente:b2,c3', 1, 1, 1, 1, 1),
-    agente('implementacion', 'agente:c3', 1, 1, 1, 1, 1),
-    agente('revision', 'agente:a1', 1, 1, 1, 1, 1),
-    manual('revision', 10),
-    manual('revision', 10),
-  ];
-  const r = resumirCostes(filas, { diseno: 8, implementacion: 8, revision: 24 });
-  assert.deepEqual(r.repetidas, [
-    { fase: 'diseno', fuente: 'a1', filas: 2 },
-    { fase: 'implementacion', fuente: 'c3', filas: 2 },
-  ]);
-  // No se deduplica: las dos filas de a1 suman.
-  assert.equal(r.fases.diseno.desglosado, 8);
-  assert.equal(r.fases.diseno.sinDesglose, 0);
-});
-
 // MEN-1 de TASK-063: una seccion `## Coste` REAL con un bloque de codigo que
 // contiene una fila valida. Sin la guarda de bloques, leerCostes la contaria.
 test('leerCostes: una fila valida dentro de un bloque de codigo en una seccion ## Coste real no cuenta', () => {
@@ -173,25 +118,6 @@ test('leerCostes: una fila valida dentro de un bloque de codigo en una seccion #
 
 // --- Hallazgos ---------------------------------------------------------------
 
-test('severidadDe: sin distinguir mayusculas, tildes ni enfasis; fuera del vocabulario, null', () => {
-  for (const [celda, esperado] of [
-    ['IMPORTANTE', 'IMPORTANTE'],
-    ['Importante', 'IMPORTANTE'],
-    ['importante', 'IMPORTANTE'],
-    ['Crítico', 'CRITICO'],
-    ['**CRÍTICO**', 'CRITICO'],
-    ['menor', 'MENOR'],
-    ['Alta', null],
-    ['Major', null],
-    ['', null],
-  ] as const) {
-    assert.equal(severidadDe(celda), esperado, celda);
-  }
-  const lectura = leerHallazgos('## Hallazgos\n\n| ID | Severidad | Estado |\n|---|---|---|\n| IMP-1 | Importante | abierto |\n');
-  assert.equal(lectura.hallazgos[0]?.severidadReconocida, 'IMPORTANTE');
-  assert.equal(lectura.hallazgos[0]?.severidad, 'Importante', 'la celda original no se toca (review la imprime)');
-});
-
 const tabla = (filas: string): string =>
   `- Veredicto: aprobada\n\n## Hallazgos\n\n| ID | Severidad | Estado | Fichero | Origen |\n|---|---|---|---|---|\n${filas}`;
 
@@ -200,51 +126,6 @@ function informe(fichero: string, texto: string): InformeLeido {
   assert.ok(r, fichero);
   return { fichero, ...r, texto };
 }
-
-test('resumirHallazgos: un hallazgo repetido entre rondas cuenta una vez, con la severidad y el origen de la ultima', () => {
-  const r = resumirHallazgos([
-    informe('informe-revision-2.md', tabla('| IMP-1 | Menor | corregido | a.ts | plan |\n| MEN-2 | menor | abierto | b.ts | |\n')),
-    informe('informe-revision-1.md', tabla('| IMP-1 | IMPORTANTE | abierto | a.ts | implementacion |\n| CRIT-1 | Crítico | abierto | c.ts | especificacion |\n')),
-  ]);
-  assert.equal(r.informes, 2);
-  // IMP-1 (ronda 2 manda: MENOR, plan), CRIT-1, MEN-2.
-  assert.deepEqual(r.porSeveridad, { CRITICO: 1, IMPORTANTE: 0, MENOR: 2, desconocida: 0 });
-  assert.deepEqual(r.porOrigen, { implementacion: 0, plan: 1, especificacion: 1, 'sin clasificar': 1 });
-});
-
-test('resumirHallazgos: la clave es revisor + ID: el mismo ID de dos revisores son dos hallazgos', () => {
-  const r = resumirHallazgos([
-    informe('informe-revision-1-java-spring-reviewer.md', tabla('| MEN-1 | MENOR | abierto | a | |\n')),
-    informe('informe-revision-1-code-quality-reviewer.md', tabla('| MEN-1 | MENOR | abierto | b | |\n')),
-    informe('informe-revision-2-code-quality-reviewer.md', tabla('| men-1 | MENOR | corregido | b | |\n')),
-  ]);
-  assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 2, desconocida: 0 });
-});
-
-test('resumirHallazgos: sin informes = no medido; un informe sin tabla = sin dato (null), no cero', () => {
-  const vacio = resumirHallazgos([]);
-  assert.equal(vacio.informes, 0);
-  assert.equal(vacio.porSeveridad, null);
-  assert.equal(vacio.porOrigen, null);
-
-  const r = resumirHallazgos([
-    informe('informe-revision-1.md', '- Veredicto: cambios-solicitados\n\nTodo en prosa: falta un test.\n'),
-    informe('informe-revision-2.md', tabla('| IMP-1 | IMPORTANTE | corregido | a | |\n')),
-  ]);
-  assert.equal(r.porSeveridad, null, 'contar solo la ronda 2 daria una cifra menor que la real');
-  assert.deepEqual(r.informesSinTabla, ['informe-revision-1.md']);
-});
-
-test('resumirHallazgos: severidad fuera de vocabulario cuenta como desconocida y se lista con su fichero', () => {
-  const r = resumirHallazgos([
-    informe('informe-revision-1.md', tabla('| A-1 | Alta | abierto | a | |\n| B-1 |  | abierto | b | |\n| C-1 | menor | abierto | c | |\n')),
-  ]);
-  assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 1, desconocida: 2 });
-  assert.deepEqual(r.severidadesDesconocidas, [
-    { fichero: 'informe-revision-1.md', id: 'A-1', valor: 'Alta' },
-    { fichero: 'informe-revision-1.md', id: 'B-1', valor: '' },
-  ]);
-});
 
 test('rondaYRevisorDeInforme: ronda y sufijo; lo que no es informe, null', () => {
   assert.deepEqual(rondaYRevisorDeInforme('informe-revision-3.md'), { ronda: 3, revisor: '' });
@@ -352,91 +233,233 @@ test('notas: informes sin tabla, mediana de lecturas por fase y terminadas sin c
 
 // --- Ronda 1 de revision de TASK-064 ------------------------------------------
 
-// IMP-1: la fila-marcador «sin hallazgos» no es un hallazgo.
-test('resumirHallazgos: la fila «sin hallazgos» y sus variantes se descartan sin aviso', () => {
-  for (const marcador of [
-    '| (ninguno) | — | sin hallazgos | — | |\n',
-    '| (Ninguno) | - | - | - | |\n',
-    '| — | — | — | — | |\n',
-    '| X | | Sin hallazgos | | |\n',
-    '|  |  | abierto |  | |\n',
-  ]) {
-    const r = resumirHallazgos([informe('informe-revision-1.md', tabla(marcador))]);
-    assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 0 }, marcador);
-    assert.deepEqual(r.porOrigen, { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 0 }, marcador);
-    assert.deepEqual(r.severidadesDesconocidas, [], marcador);
+test('severidadDe: vocabulario sin mayusculas ni tildes, y primera palabra con anotaciones detras', () => {
+  // severidadDe: sin distinguir mayusculas, tildes ni enfasis; fuera del vocabulario, null
+  {
+    for (const [celda, esperado] of [
+      ['IMPORTANTE', 'IMPORTANTE'],
+      ['Importante', 'IMPORTANTE'],
+      ['importante', 'IMPORTANTE'],
+      ['Crítico', 'CRITICO'],
+      ['**CRÍTICO**', 'CRITICO'],
+      ['menor', 'MENOR'],
+      ['Alta', null],
+      ['Major', null],
+      ['', null],
+    ] as const) {
+      assert.equal(severidadDe(celda), esperado, celda);
+    }
+    const lectura = leerHallazgos('## Hallazgos\n\n| ID | Severidad | Estado |\n|---|---|---|\n| IMP-1 | Importante | abierto |\n');
+    assert.equal(lectura.hallazgos[0]?.severidadReconocida, 'IMPORTANTE');
+    assert.equal(lectura.hallazgos[0]?.severidad, 'Importante', 'la celda original no se toca (review la imprime)');
+  }
+
+  // severidadDe: por la primera palabra, con anotaciones detras
+  // IMP-2 (a): la severidad se reconoce por su primera palabra.
+  {
+    for (const [celda, esperado] of [
+      ['IMPORTANTE (no verificado por ejecucion)', 'IMPORTANTE'],
+      ['MENOR (no verificado)', 'MENOR'],
+      ['IMPORTANTE (ronda 1)', 'IMPORTANTE'],
+      ['**Crítico** (ronda 2)', 'CRITICO'],
+      ['menor, cosmetico', 'MENOR'],
+      ['Alta (ronda 1)', null],
+      ['IMPORTANTES', null],
+      ['—', null],
+    ] as const) {
+      assert.equal(severidadDe(celda), esperado, celda);
+    }
   }
 });
 
-// IMP-2 (a): la severidad se reconoce por su primera palabra.
-test('severidadDe: por la primera palabra, con anotaciones detras', () => {
-  for (const [celda, esperado] of [
-    ['IMPORTANTE (no verificado por ejecucion)', 'IMPORTANTE'],
-    ['MENOR (no verificado)', 'MENOR'],
-    ['IMPORTANTE (ronda 1)', 'IMPORTANTE'],
-    ['**Crítico** (ronda 2)', 'CRITICO'],
-    ['menor, cosmetico', 'MENOR'],
-    ['Alta (ronda 1)', null],
-    ['IMPORTANTES', null],
-    ['—', null],
-  ] as const) {
-    assert.equal(severidadDe(celda), esperado, celda);
+test('resumirHallazgos: repetidos entre rondas, clave revisor+ID, sin informes, severidad desconocida, sin hallazgos y ultima ronda', () => {
+  // resumirHallazgos: un hallazgo repetido entre rondas cuenta una vez, con la severidad y el origen de la ultima
+  {
+    const r = resumirHallazgos([
+      informe('informe-revision-2.md', tabla('| IMP-1 | Menor | corregido | a.ts | plan |\n| MEN-2 | menor | abierto | b.ts | |\n')),
+      informe('informe-revision-1.md', tabla('| IMP-1 | IMPORTANTE | abierto | a.ts | implementacion |\n| CRIT-1 | Crítico | abierto | c.ts | especificacion |\n')),
+    ]);
+    assert.equal(r.informes, 2);
+    // IMP-1 (ronda 2 manda: MENOR, plan), CRIT-1, MEN-2.
+    assert.deepEqual(r.porSeveridad, { CRITICO: 1, IMPORTANTE: 0, MENOR: 2, desconocida: 0 });
+    assert.deepEqual(r.porOrigen, { implementacion: 0, plan: 1, especificacion: 1, 'sin clasificar': 1 });
+  }
+
+  // resumirHallazgos: la clave es revisor + ID: el mismo ID de dos revisores son dos hallazgos
+  {
+    const r = resumirHallazgos([
+      informe('informe-revision-1-java-spring-reviewer.md', tabla('| MEN-1 | MENOR | abierto | a | |\n')),
+      informe('informe-revision-1-code-quality-reviewer.md', tabla('| MEN-1 | MENOR | abierto | b | |\n')),
+      informe('informe-revision-2-code-quality-reviewer.md', tabla('| men-1 | MENOR | corregido | b | |\n')),
+    ]);
+    assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 2, desconocida: 0 });
+  }
+
+  // resumirHallazgos: sin informes = no medido; un informe sin tabla = sin dato (null), no cero
+  {
+    const vacio = resumirHallazgos([]);
+    assert.equal(vacio.informes, 0);
+    assert.equal(vacio.porSeveridad, null);
+    assert.equal(vacio.porOrigen, null);
+
+    const r = resumirHallazgos([
+      informe('informe-revision-1.md', '- Veredicto: cambios-solicitados\n\nTodo en prosa: falta un test.\n'),
+      informe('informe-revision-2.md', tabla('| IMP-1 | IMPORTANTE | corregido | a | |\n')),
+    ]);
+    assert.equal(r.porSeveridad, null, 'contar solo la ronda 2 daria una cifra menor que la real');
+    assert.deepEqual(r.informesSinTabla, ['informe-revision-1.md']);
+  }
+
+  // resumirHallazgos: severidad fuera de vocabulario cuenta como desconocida y se lista con su fichero
+  {
+    const r = resumirHallazgos([
+      informe('informe-revision-1.md', tabla('| A-1 | Alta | abierto | a | |\n| B-1 |  | abierto | b | |\n| C-1 | menor | abierto | c | |\n')),
+    ]);
+    assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 1, desconocida: 2 });
+    assert.deepEqual(r.severidadesDesconocidas, [
+      { fichero: 'informe-revision-1.md', id: 'A-1', valor: 'Alta' },
+      { fichero: 'informe-revision-1.md', id: 'B-1', valor: '' },
+    ]);
+  }
+
+  // resumirHallazgos: la fila «sin hallazgos» y sus variantes se descartan sin aviso
+  // IMP-1: la fila-marcador «sin hallazgos» no es un hallazgo.
+  {
+    for (const marcador of [
+      '| (ninguno) | — | sin hallazgos | — | |\n',
+      '| (Ninguno) | - | - | - | |\n',
+      '| — | — | — | — | |\n',
+      '| X | | Sin hallazgos | | |\n',
+      '|  |  | abierto |  | |\n',
+    ]) {
+      const r = resumirHallazgos([informe('informe-revision-1.md', tabla(marcador))]);
+      assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 0 }, marcador);
+      assert.deepEqual(r.porOrigen, { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 0 }, marcador);
+      assert.deepEqual(r.severidadesDesconocidas, [], marcador);
+    }
+  }
+
+  // resumirHallazgos: severidad y origen de la ultima ronda que los reconoce, campo a campo
+  // IMP-2 (b): cada campo toma la ultima ronda en la que esta reconocido.
+  {
+    const r = resumirHallazgos([
+      informe('informe-revision-1.md', tabla('| IMP-1 | IMPORTANTE | abierto | a | plan |\n| MEN-1 | Alta | abierto | b | implementacion |\n')),
+      informe('informe-revision-2.md', tabla('| IMP-1 | IMPORTANTE (ronda 1) | corregido | a | |\n| MEN-1 | menor | corregido | b | quien sabe |\n')),
+      informe('informe-revision-3.md', tabla('| IMP-1 | ¿? | corregido | a | |\n')),
+    ]);
+    assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 1, MENOR: 1, desconocida: 0 });
+    assert.deepEqual(r.porOrigen, { implementacion: 1, plan: 1, especificacion: 0, 'sin clasificar': 0 });
+    // Los avisos siguen saliendo por cada celda no reconocida, aunque otra ronda la reconozca.
+    assert.deepEqual(
+      r.severidadesDesconocidas.map((d) => [d.fichero, d.id]),
+      [
+        ['informe-revision-1.md', 'MEN-1'],
+        ['informe-revision-3.md', 'IMP-1'],
+      ]
+    );
+    // Si ninguna ronda la reconoce, queda desconocida / sin clasificar.
+    const nunca = resumirHallazgos([
+      informe('informe-revision-1.md', tabla('| X-1 | Alta | abierto | a | |\n')),
+      informe('informe-revision-2.md', tabla('| X-1 | Major | abierto | a | ninguno |\n')),
+    ]);
+    assert.deepEqual(nunca.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 1 });
+    assert.deepEqual(nunca.porOrigen, { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 1 });
   }
 });
 
-// IMP-2 (b): cada campo toma la ultima ronda en la que esta reconocido.
-test('resumirHallazgos: severidad y origen de la ultima ronda que los reconoce, campo a campo', () => {
-  const r = resumirHallazgos([
-    informe('informe-revision-1.md', tabla('| IMP-1 | IMPORTANTE | abierto | a | plan |\n| MEN-1 | Alta | abierto | b | implementacion |\n')),
-    informe('informe-revision-2.md', tabla('| IMP-1 | IMPORTANTE (ronda 1) | corregido | a | |\n| MEN-1 | menor | corregido | b | quien sabe |\n')),
-    informe('informe-revision-3.md', tabla('| IMP-1 | ¿? | corregido | a | |\n')),
-  ]);
-  assert.deepEqual(r.porSeveridad, { CRITICO: 0, IMPORTANTE: 1, MENOR: 1, desconocida: 0 });
-  assert.deepEqual(r.porOrigen, { implementacion: 1, plan: 1, especificacion: 0, 'sin clasificar': 0 });
-  // Los avisos siguen saliendo por cada celda no reconocida, aunque otra ronda la reconozca.
-  assert.deepEqual(
-    r.severidadesDesconocidas.map((d) => [d.fichero, d.id]),
-    [
-      ['informe-revision-1.md', 'MEN-1'],
-      ['informe-revision-3.md', 'IMP-1'],
-    ]
-  );
-  // Si ninguna ronda la reconoce, queda desconocida / sin clasificar.
-  const nunca = resumirHallazgos([
-    informe('informe-revision-1.md', tabla('| X-1 | Alta | abierto | a | |\n')),
-    informe('informe-revision-2.md', tabla('| X-1 | Major | abierto | a | ninguno |\n')),
-  ]);
-  assert.deepEqual(nunca.porSeveridad, { CRITICO: 0, IMPORTANTE: 0, MENOR: 0, desconocida: 1 });
-  assert.deepEqual(nunca.porOrigen, { implementacion: 0, plan: 0, especificacion: 0, 'sin clasificar': 1 });
+test('columnas tok_*: tok_sin_desglose con fase negativa y tok_nuevos/tok_cache_lect sin desglose', () => {
+  // tok_sin_desglose: con alguna fase negativa la celda lleva "*" aunque la suma sea positiva
+  // MEN-1: un negativo en alguna fase marca la celda aunque la suma sea positiva.
+  {
+    const body = cuerpoConCoste([manual('diseno', 1000), agente('revision', 'agente:r1', 10, 20, 300, 40, 3)]);
+    const f = calcularFila(entrada({ task: tarea({ tokens_diseno: 1000, tokens_revision: 100 }), body }));
+    assert.equal(COLUMNAS_DESGLOSE_TOKENS[2]?.valor(f), '730*');
+    const sano = calcularFila(entrada({ task: tarea({ tokens_diseno: 1000 }), body: cuerpoConCoste([manual('diseno', 1000)]) }));
+    assert.equal(COLUMNAS_DESGLOSE_TOKENS[2]?.valor(sano), '1000');
+  }
+
+  // tok_nuevos y tok_cache_lect: «—» si ninguna fila de "## Coste" tiene desglose
+  // MEN-2: solo filas manual = nada medido de nuevos ni de cache.
+  {
+    const f = calcularFila(
+      entrada({ task: tarea({ tokens_diseno: 800 }), body: cuerpoConCoste([manual('diseno', 500), manual('diseno', 300)]) })
+    );
+    assert.deepEqual(COLUMNAS_DESGLOSE_TOKENS.map((c) => c.valor(f)), ['—', '—', '800']);
+  }
 });
 
-// MEN-1: un negativo en alguna fase marca la celda aunque la suma sea positiva.
-test('tok_sin_desglose: con alguna fase negativa la celda lleva "*" aunque la suma sea positiva', () => {
-  const body = cuerpoConCoste([manual('diseno', 1000), agente('revision', 'agente:r1', 10, 20, 300, 40, 3)]);
-  const f = calcularFila(entrada({ task: tarea({ tokens_diseno: 1000, tokens_revision: 100 }), body }));
-  assert.equal(COLUMNAS_DESGLOSE_TOKENS[2]?.valor(f), '730*');
-  const sano = calcularFila(entrada({ task: tarea({ tokens_diseno: 1000 }), body: cuerpoConCoste([manual('diseno', 1000)]) }));
-  assert.equal(COLUMNAS_DESGLOSE_TOKENS[2]?.valor(sano), '1000');
-});
+test('resumirCostes: nuevos, diferencia negativa, agente repetido, id repetido en la misma fuente y fila a medias', () => {
+  // resumirCostes: nuevos = entrada + escritura + salida, lectura de cache aparte, y lo manual queda sin desglose
+  {
+    const filas = [agente('diseno', 'agente:a1', 10, 200, 3000, 40, 7), manual('diseno', 500), agente('revision', 'agente:b2', 1, 2, 3, 4, null)];
+    const r = resumirCostes(filas, { diseno: 3750, implementacion: 900, revision: 10 });
+    assert.equal(r.conTabla, true);
+    // 10+200+3000+40 = 3250 desglosado; 3750 - 3250 = 500 (la fila manual).
+    assert.deepEqual(r.fases.diseno, {
+      registrado: 3750,
+      filas: 2,
+      desglosado: 3250,
+      nuevos: 250,
+      cacheLectura: 3000,
+      sinDesglose: 500,
+      lecturas: 7,
+    });
+    // Fase sin filas pero con total: todo sin desglose (coste anterior a la tabla).
+    assert.equal(r.fases.implementacion.sinDesglose, 900);
+    assert.equal(r.fases.implementacion.lecturas, null, 'sin filas no hay lecturas: no medido, no 0');
+    // lecturas null en la unica fila de revision: no medido.
+    assert.equal(r.fases.revision.lecturas, null);
+    assert.equal(r.fases.revision.sinDesglose, 0);
+    assert.deepEqual(r.repetidas, []);
+  }
 
-// MEN-2: solo filas manual = nada medido de nuevos ni de cache.
-test('tok_nuevos y tok_cache_lect: «—» si ninguna fila de "## Coste" tiene desglose', () => {
-  const f = calcularFila(
-    entrada({ task: tarea({ tokens_diseno: 800 }), body: cuerpoConCoste([manual('diseno', 500), manual('diseno', 300)]) })
-  );
-  assert.deepEqual(COLUMNAS_DESGLOSE_TOKENS.map((c) => c.valor(f)), ['—', '—', '800']);
-});
+  // resumirCostes: diferencia negativa sin recortar a 0; fase sin total ni filas es null
+  {
+    const r = resumirCostes([agente('implementacion', 'agente:x', 100, 100, 100, 100, 3)], {
+      diseno: null,
+      implementacion: 250,
+      revision: null,
+    });
+    assert.equal(r.fases.implementacion.sinDesglose, -150);
+    assert.equal(r.fases.diseno.sinDesglose, null);
+    // Sin tabla: conTabla false aunque haya totales.
+    assert.equal(resumirCostes([], { diseno: 5, implementacion: null, revision: null }).conTabla, false);
+  }
 
-// MEN-6: los dos mutantes que sobrevivieron.
-test('resumirCostes: un id repetido dentro de la misma fuente no es una fila repetida', () => {
-  const r = resumirCostes([agente('diseno', 'agente:a1,a1', 1, 1, 1, 1, 1)], { diseno: 4, implementacion: null, revision: null });
-  assert.deepEqual(r.repetidas, []);
-});
+  // resumirCostes: un agente en dos filas de la misma fase es repetida (tambien dentro de una lista); manual no
+  {
+    const filas = [
+      agente('diseno', 'agente:a1', 1, 1, 1, 1, 1),
+      agente('diseno', 'agente:a1', 1, 1, 1, 1, 1),
+      agente('implementacion', 'agente:b2,c3', 1, 1, 1, 1, 1),
+      agente('implementacion', 'agente:c3', 1, 1, 1, 1, 1),
+      agente('revision', 'agente:a1', 1, 1, 1, 1, 1),
+      manual('revision', 10),
+      manual('revision', 10),
+    ];
+    const r = resumirCostes(filas, { diseno: 8, implementacion: 8, revision: 24 });
+    assert.deepEqual(r.repetidas, [
+      { fase: 'diseno', fuente: 'a1', filas: 2 },
+      { fase: 'implementacion', fuente: 'c3', filas: 2 },
+    ]);
+    // No se deduplica: las dos filas de a1 suman.
+    assert.equal(r.fases.diseno.desglosado, 8);
+    assert.equal(r.fases.diseno.sinDesglose, 0);
+  }
 
-test('resumirCostes: una fila a medias (salida «—») no cuenta como desglose', () => {
-  const media: FilaCoste = { ...agente('diseno', 'agente:a1', 10, 20, 300, 40, 2), salida: null, total: 330 };
-  const r = resumirCostes([media], { diseno: 330, implementacion: null, revision: null });
-  assert.equal(r.fases.diseno.desglosado, 0);
-  assert.equal(r.fases.diseno.nuevos, 0);
-  assert.equal(r.fases.diseno.sinDesglose, 330);
+  // resumirCostes: un id repetido dentro de la misma fuente no es una fila repetida
+  // MEN-6: los dos mutantes que sobrevivieron.
+  {
+    const r = resumirCostes([agente('diseno', 'agente:a1,a1', 1, 1, 1, 1, 1)], { diseno: 4, implementacion: null, revision: null });
+    assert.deepEqual(r.repetidas, []);
+  }
+
+  // resumirCostes: una fila a medias (salida «—») no cuenta como desglose
+  {
+    const media: FilaCoste = { ...agente('diseno', 'agente:a1', 10, 20, 300, 40, 2), salida: null, total: 330 };
+    const r = resumirCostes([media], { diseno: 330, implementacion: null, revision: null });
+    assert.equal(r.fases.diseno.desglosado, 0);
+    assert.equal(r.fases.diseno.nuevos, 0);
+    assert.equal(r.fases.diseno.sinDesglose, 330);
+  }
 });

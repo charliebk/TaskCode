@@ -35,6 +35,7 @@
  * | comando_verificacion_pesada  | null (sin pesados) | finish-verificacion.ts, hooks/guardia-merge.ts, doctor.ts (TASK-126) |
  * | verificacion_pesada_en       | [release]         | finish-verificacion.ts, hooks/guardia-merge.ts (TASK-126) |
  * | umbral_crecimiento_suite     | 20 (%)            | commands/doctor.ts (TASK-129) |
+ * | tareas_entre_podas           | 30                | commands/doctor.ts (TASK-130) |
  * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
@@ -300,6 +301,8 @@ export interface TaskcodeConfig {
   verificacion_pesada_en: readonly TipoRamaPesada[];
   /** TASK-129: % de crecimiento de la suite (tests o duracion de la completa) entre versiones que hace avisar a doctor. */
   umbral_crecimiento_suite: number;
+  /** TASK-130: tareas terminadas desde la ultima poda de tests a partir de las que doctor la propone. */
+  tareas_entre_podas: number;
 }
 
 /** TASK-126: los tipos de rama de Git-Flow que pueden exigir la verificacion pesada. */
@@ -376,6 +379,7 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   comando_verificacion_pesada: null,
   verificacion_pesada_en: Object.freeze(['release']) as readonly TipoRamaPesada[],
   umbral_crecimiento_suite: 20,
+  tareas_entre_podas: 30,
 });
 
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
@@ -411,6 +415,7 @@ export const CLAVES_CONFIG = [
   'comando_verificacion_pesada',
   'verificacion_pesada_en',
   'umbral_crecimiento_suite',
+  'tareas_entre_podas',
 ] as const;
 
 /**
@@ -730,6 +735,16 @@ export function parsearConfigConAvisos(
           par.valor,
           'comando_verificacion_pesada: "cargo test -- --ignored"'
         );
+        break;
+      case 'tareas_entre_podas':
+        if (typeof par.valor !== 'number' || !Number.isInteger(par.valor) || par.valor < 1) {
+          throw new ConfigError(
+            `[ERROR] ${donde}: "tareas_entre_podas" debe ser un numero entero mayor o igual que 1, y es ` +
+              `${describirValor(par.valor)}.\n        Por defecto es 30: tareas terminadas desde la ultima poda de ` +
+              'tests a partir de las que doctor propone otra.'
+          );
+        }
+        config.tareas_entre_podas = par.valor;
         break;
       case 'umbral_crecimiento_suite':
         if (typeof par.valor !== 'number' || !Number.isInteger(par.valor) || par.valor < 1 || par.valor > 1000) {

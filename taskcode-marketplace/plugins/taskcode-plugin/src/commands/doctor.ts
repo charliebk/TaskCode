@@ -46,6 +46,7 @@ import {
 } from '../core/doctor.js';
 import { avisoCrecimiento, suitePorVersion } from '../core/crecimiento-suite.js';
 import { versionDeCierre } from '../core/transiciones.js';
+import { parseTareaFile } from '../core/tarea-file.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import { resolverConfigConAvisos, CONFIG_DEFAULTS, presupuestoFreno, type TaskcodeConfig } from '../core/config.js';
 import { comandoPropuesto, type ComandoTests } from '../core/comando-tests.js';
@@ -53,7 +54,6 @@ import { comandoParcial, documentacionDeclarada } from '../core/verificacion-pro
 import { detectarComandosTests } from '../fs/deteccion-tests.js';
 import { hostDeRemoto, ocultarCredenciales, CLI_PLATAFORMA } from '../core/plataforma-remota.js';
 import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
-import { parseTareaFile } from '../core/tarea-file.js';
 import { diaLocal, evaluarDocumentoEstado, type TareaTerminadaFecha } from '../core/documento-estado.js';
 import { resolveGitflowScriptsDir, sondearBash } from '../fs/gitflow-runner.js';
 import { urlsDeOrigin } from '../fs/git.js';
@@ -612,6 +612,61 @@ export function comprobarCrecimientoSuite(cwd: string, tareasRoot: string, cfg: 
   return [aviso('crecimiento-suite', motivo, arreglo)];
 }
 
+/** TASK-130: la etiqueta que marca una tarea de poda de tests. */
+export const ETIQUETA_PODA = 'poda';
+/** TASK-130: el comando con que doctor propone abrir la tarea de poda. */
+export const COMANDO_NUEVA_PODA =
+  'taskctl new --titulo "Poda de tests redundantes" --tipo feature --etiquetas poda,tests ' +
+  '--objetivo "Fusionar o borrar tests redundantes sin bajar la cobertura de las lineas que cubrian ' +
+  '(procedimiento: skill task-workflow, poda-tests.md)"';
+
+/**
+ * TASK-130: propone abrir una tarea de poda de tests cuando salta el aviso de
+ * crecimiento de la suite (TASK-129) o han pasado mas de `tareas_entre_podas`
+ * tareas terminadas desde la ultima poda (la terminada con la etiqueta `poda`
+ * de mayor numero; sin ninguna, se cuentan todas). Sin tareas terminadas, nada.
+ */
+export function comprobarPodaTests(
+  cwd: string,
+  tareasRoot: string,
+  cfg: TaskcodeConfig | null,
+  crecimiento: readonly Comprobacion[] = comprobarCrecimientoSuite(cwd, tareasRoot, cfg)
+): Comprobacion[] {
+  if (cfg === null) return [];
+  let ids: string[];
+  try {
+    ids = readdirSync(path.join(tareasRoot, STATE_FOLDER.terminada)).filter(isValidTaskId);
+  } catch {
+    return [];
+  }
+  if (ids.length === 0) return [];
+  const numero = (id: string): number => Number(/^TASK-(\d+)/.exec(id)?.[1] ?? 0);
+  let ultimaPoda = -1;
+  for (const id of ids) {
+    try {
+      const t = parseTareaFile(readFileSync(path.join(tareasRoot, STATE_FOLDER.terminada, id, 'tarea.md'), 'utf8')).task;
+      if (t.etiquetas.includes(ETIQUETA_PODA)) ultimaPoda = Math.max(ultimaPoda, numero(id));
+    } catch {
+      // ilegible: de eso avisa `tareas`
+    }
+  }
+  const desde = ids.filter((id) => numero(id) > ultimaPoda).length;
+  const n = cfg.tareas_entre_podas;
+  const crece = crecimiento.some((c) => c.nivel === 'aviso');
+  const motivos: string[] = [];
+  if (crece) motivos.push('la suite crecio mas del umbral (ver crecimiento-suite)');
+  if (desde > n) {
+    motivos.push(
+      `${String(desde)} tareas terminadas ${ultimaPoda === -1 ? 'sin ninguna poda' : 'desde la ultima poda'} ` +
+        `(tareas_entre_podas: ${String(n)})`
+    );
+  }
+  if (motivos.length === 0) {
+    return [ok('poda-tests', `${String(desde)} de ${String(n)} tareas terminadas desde la ultima poda de tests`)];
+  }
+  return [aviso('poda-tests', `toca podar los tests redundantes: ${motivos.join('; ')}`, `Abre la tarea con: ${COMANDO_NUEVA_PODA}`)];
+}
+
 // ---------------------------------------------------------------------
 // Tareas
 // ---------------------------------------------------------------------
@@ -1007,7 +1062,9 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   );
   cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
   cs.push(...envolver('puertas-verificacion', () => comprobarPuertasVerificacion(cfg)));
-  cs.push(...envolver('crecimiento-suite', () => comprobarCrecimientoSuite(cwd, tareasRoot, cfg)));
+  const crecimientoSuite = envolver('crecimiento-suite', () => comprobarCrecimientoSuite(cwd, tareasRoot, cfg));
+  cs.push(...crecimientoSuite);
+  cs.push(...envolver('poda-tests', () => comprobarPodaTests(cwd, tareasRoot, cfg, crecimientoSuite)));
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
   cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
   cs.push(

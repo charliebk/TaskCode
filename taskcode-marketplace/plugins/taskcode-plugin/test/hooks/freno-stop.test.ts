@@ -22,6 +22,16 @@ import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { git, sampleTask } from '../helpers/finish-fixtures.js';
 import { leerProgreso, rutaProgreso } from '../../src/fs/progreso.js';
 
+/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
+async function caso(nombre: string, fn: () => unknown): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
+    throw e;
+  }
+}
+
 /** TASK-110: en los turnos en que el freno no verifica, ni un fichero de progreso. */
 function sinProgreso(raiz: string): void {
   assert.equal(existsSync(rutaProgreso(raiz) as string), false, 'no se escribe progreso si no se verifica');
@@ -120,7 +130,8 @@ function conDesenlace<T>(r: Repo, fn: () => Promise<T>): Promise<T> {
   });
 }
 
-test('freno: verificacion en verde deja parar, en silencio', async () => {
+test('freno: decisiones de parar, bloquear o no hacer nada segun verificacion, tarea y config', async () => {
+await caso('freno: verificacion en verde deja parar, en silencio', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
       const t0 = Date.now();
@@ -138,8 +149,7 @@ test('freno: verificacion en verde deja parar, en silencio', async () => {
     })
   );
 });
-
-test('freno: verificacion en rojo bloquea con exit 2 y el comando, el codigo, la duracion y la cola', async () => {
+await caso('freno: verificacion en rojo bloquea con exit 2 y el comando, el codigo, la duracion y la cola', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
       await writeFile(r.desenlace, 'ko', 'utf8');
@@ -157,8 +167,7 @@ test('freno: verificacion en rojo bloquea con exit 2 y el comando, el codigo, la
     })
   );
 });
-
-test('freno: sin tarea en curso, rama ajena o sin comando no hace nada ni ejecuta el comando', async () => {
+await caso('freno: sin tarea en curso, rama ajena o sin comando no hace nada ni ejecuta el comando', async () => {
   await conRepo(
     (r) =>
       conDesenlace(r, async () => {
@@ -190,8 +199,7 @@ test('freno: sin tarea en curso, rama ajena o sin comando no hace nada ni ejecut
     { config: 'limite_wip: 1\n' }
   );
 });
-
-test('freno: fuera de un proyecto con tareas (o sin cwd) sale 0 sin tocar nada', async () => {
+await caso('freno: fuera de un proyecto con tareas (o sin cwd) sale 0 sin tocar nada', async () => {
   const vacio = await mkdtemp(path.join(tmpdir(), 'freno-stop-vacio-'));
   try {
     assert.deepEqual(await decidirStop({ cwd: vacio }), { codigo: 0, stderr: '' });
@@ -203,8 +211,7 @@ test('freno: fuera de un proyecto con tareas (o sin cwd) sale 0 sin tocar nada',
     await rm(vacio, { recursive: true, force: true });
   }
 });
-
-test('freno: stop_hook_active e interruptor FRENO_VERIFICACION=0 dejan parar sin ejecutar', async () => {
+await caso('freno: stop_hook_active e interruptor FRENO_VERIFICACION=0 dejan parar sin ejecutar', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
       await writeFile(r.desenlace, 'ko', 'utf8');
@@ -215,8 +222,60 @@ test('freno: stop_hook_active e interruptor FRENO_VERIFICACION=0 dejan parar sin
     })
   );
 });
+await caso('freno: config invalida con tarea en curso bloquea con el error de la config', async () => {
+  await conRepo(
+    (r) =>
+      conDesenlace(r, async () => {
+        const d = await decidir(r);
+        assert.equal(d.codigo, 2);
+        assert.match(d.stderr, /no se puede leer[\s\S]*timeout_verificacion[\s\S]*Corrige \.taskcode\/config\.yml/);
+        assert.equal(r.ejecuciones(), 0);
+      }),
+    { config: 'comando_verificacion: "node scripts/verif.cjs"\ntimeout_verificacion: 0\n' }
+  );
+});
+await caso('freno (MEN-1): un corte con salida corta no se rotula como truncado', async () => {
+  await conRepo((r) =>
+    conDesenlace(r, async () => {
+      await writeFile(r.desenlace, 'lento-hablando', 'utf8');
+      const d = await decidir(r, {}, { timeoutMs: 1500 });
+      assert.equal(d.codigo, 2);
+      assert.match(d.stderr, /se ha cortado/);
+      assert.match(d.stderr, /Salida:\n {4}hola/);
+      assert.doesNotMatch(d.stderr, /truncada/);
+    })
+  );
+});
+await caso('freno (MEN-2): una tarea en curso ilegible no frena, pero se avisa', async () => {
+  await conRepo((r) =>
+    conDesenlace(r, async () => {
+      await writeFile(r.desenlace, 'ko', 'utf8');
+      await writeFile(path.join(r.raiz, 'tareas', '02-en-curso', 'TASK-071', 'tarea.md'), '---\nid: [\n---\n', 'utf8');
+      const d = await decidir(r);
+      assert.equal(d.codigo, 0);
+      assert.match(d.stderr, /no se pudo leer tareas[\\/]02-en-curso[\\/]TASK-071[\\/]tarea\.md/);
+      assert.equal(r.ejecuciones(), 0);
+    })
+  );
+});
+await caso('informe (MEN-5): una muerte sin codigo no se describe como «codigo null»', () => {
+  const base: ResultadoVerificacion = {
+    estado: 'roja',
+    comando: 'x',
+    codigo: null,
+    duracionMs: 1,
+    timeoutS: 1,
+    cola: '',
+    bytesTotales: 0,
+    error: 'senal SIGKILL',
+  };
+  assert.equal(describirResultado(base), 'termino de forma anormal (senal SIGKILL)');
+  assert.equal(describirResultado({ ...base, codigo: 1 }), 'salio con codigo 1');
+});
+});
 
-test('freno: respeta el timeout y corta el comando (bloquea, no deja pasar)', async () => {
+test('freno: timeouts, memo por huella, cola acotada y punto de entrada real', async () => {
+await caso('freno: respeta el timeout y corta el comando (bloquea, no deja pasar)', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
       await writeFile(r.desenlace, 'lento', 'utf8');
@@ -229,8 +288,7 @@ test('freno: respeta el timeout y corta el comando (bloquea, no deja pasar)', as
     })
   );
 });
-
-test('freno: timeout_verificacion por encima del tope del hook se recorta y se avisa', async () => {
+await caso('freno: timeout_verificacion por encima del tope del hook se recorta y se avisa', async () => {
   await conRepo(
     (r) =>
       conDesenlace(r, async () => {
@@ -242,21 +300,7 @@ test('freno: timeout_verificacion por encima del tope del hook se recorta y se a
     { config: 'comando_verificacion: "node scripts/verif.cjs"\ntimeout_verificacion: 99999\n' }
   );
 });
-
-test('freno: config invalida con tarea en curso bloquea con el error de la config', async () => {
-  await conRepo(
-    (r) =>
-      conDesenlace(r, async () => {
-        const d = await decidir(r);
-        assert.equal(d.codigo, 2);
-        assert.match(d.stderr, /no se puede leer[\s\S]*timeout_verificacion[\s\S]*Corrige \.taskcode\/config\.yml/);
-        assert.equal(r.ejecuciones(), 0);
-      }),
-    { config: 'comando_verificacion: "node scripts/verif.cjs"\ntimeout_verificacion: 0\n' }
-  );
-});
-
-test('freno: memo por huella — mismo arbol no vuelve a ejecutar, un cambio si', async () => {
+await caso('freno: memo por huella — mismo arbol no vuelve a ejecutar, un cambio si', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
       assert.equal((await decidir(r)).codigo, 0);
@@ -297,8 +341,7 @@ test('freno: memo por huella — mismo arbol no vuelve a ejecutar, un cambio si'
     })
   );
 });
-
-test('freno: la cola va acotada, sin ANSI, sin credenciales y sin partir UTF-8', async () => {
+await caso('freno: la cola va acotada, sin ANSI, sin credenciales y sin partir UTF-8', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
       await writeFile(r.desenlace, 'ruido', 'utf8');
@@ -314,8 +357,7 @@ test('freno: la cola va acotada, sin ANSI, sin credenciales y sin partir UTF-8',
     })
   );
 });
-
-test('freno: el punto de entrada real, por stdin, sale con 2 en rojo y 0 en verde', async () => {
+await caso('freno: el punto de entrada real, por stdin, sale con 2 en rojo y 0 en verde', async () => {
   await conRepo(async (r) => {
     const env: NodeJS.ProcessEnv = { ...process.env, VERIF_DESENLACE: r.desenlace };
     delete env['FRENO_VERIFICACION'];
@@ -333,8 +375,10 @@ test('freno: el punto de entrada real, por stdin, sale con 2 en rojo y 0 en verd
     assert.equal(basura.status, 0);
   });
 });
+});
 
-test('freno: hooks.json declara el Stop en forma exec, con el tope que usa el codigo y sin nombrar el producto', () => {
+test('freno: unitarios del informe, del timeout efectivo y de hooks.json', async () => {
+await caso('freno: hooks.json declara el Stop en forma exec, con el tope que usa el codigo y sin nombrar el producto', () => {
   const texto = readFileSync(path.join(RAIZ_PLUGIN, 'hooks', 'hooks.json'), 'utf8');
   const j = JSON.parse(texto) as {
     description: string;
@@ -349,8 +393,7 @@ test('freno: hooks.json declara el Stop en forma exec, con el tope que usa el co
   assert.ok(existsSync(ENTRADA_HOOK), 'el punto de entrada existe compilado en dist/src');
   assert.doesNotMatch(j.description, /taskcode|TASK-\d/i);
 });
-
-test('freno (IMP-2): el timeout efectivo nunca supera el tope del hook menos el margen', () => {
+await caso('freno (IMP-2): el timeout efectivo nunca supera el tope del hook menos el margen', () => {
   assert.equal(TECHO_HOOK_S - MARGEN_HOOK_S, 3540, 'con 3600 s de hook quedan 60 s para escribir el informe');
   assert.deepEqual(timeoutEfectivoS(99999), { timeoutS: 3540, recortado: true });
   assert.deepEqual(timeoutEfectivoS(3541), { timeoutS: 3540, recortado: true });
@@ -358,34 +401,7 @@ test('freno (IMP-2): el timeout efectivo nunca supera el tope del hook menos el 
   assert.deepEqual(timeoutEfectivoS(600), { timeoutS: 600, recortado: false });
   assert.deepEqual(timeoutEfectivoS(1), { timeoutS: 1, recortado: false });
 });
-
-test('freno (MEN-1): un corte con salida corta no se rotula como truncado', async () => {
-  await conRepo((r) =>
-    conDesenlace(r, async () => {
-      await writeFile(r.desenlace, 'lento-hablando', 'utf8');
-      const d = await decidir(r, {}, { timeoutMs: 1500 });
-      assert.equal(d.codigo, 2);
-      assert.match(d.stderr, /se ha cortado/);
-      assert.match(d.stderr, /Salida:\n {4}hola/);
-      assert.doesNotMatch(d.stderr, /truncada/);
-    })
-  );
-});
-
-test('freno (MEN-2): una tarea en curso ilegible no frena, pero se avisa', async () => {
-  await conRepo((r) =>
-    conDesenlace(r, async () => {
-      await writeFile(r.desenlace, 'ko', 'utf8');
-      await writeFile(path.join(r.raiz, 'tareas', '02-en-curso', 'TASK-071', 'tarea.md'), '---\nid: [\n---\n', 'utf8');
-      const d = await decidir(r);
-      assert.equal(d.codigo, 0);
-      assert.match(d.stderr, /no se pudo leer tareas[\\/]02-en-curso[\\/]TASK-071[\\/]tarea\.md/);
-      assert.equal(r.ejecuciones(), 0);
-    })
-  );
-});
-
-test('freno (MEN-7): si la propia verificacion ensucia el arbol, el informe lo avisa', async () => {
+await caso('freno (MEN-7): si la propia verificacion ensucia el arbol, el informe lo avisa', async () => {
   await conRepo((r) =>
     conDesenlace(r, async () => {
       await writeFile(r.desenlace, 'ensucia', 'utf8');
@@ -395,26 +411,11 @@ test('freno (MEN-7): si la propia verificacion ensucia el arbol, el informe lo a
     })
   );
 });
-
-test('informe (MEN-7): recortarCola no parte caracteres multibyte en una linea larga', () => {
+await caso('informe (MEN-7): recortarCola no parte caracteres multibyte en una linea larga', () => {
   const { texto, recortada } = recortarCola('€'.repeat(3000), 4096, 40);
   assert.equal(recortada, true);
   assert.ok(!texto.includes('�'), 'sin caracteres partidos');
   assert.ok(Buffer.byteLength(texto, 'utf8') <= 4096);
   assert.equal(Buffer.byteLength(texto, 'utf8') % 3, 0, 'solo euros enteros');
 });
-
-test('informe (MEN-5): una muerte sin codigo no se describe como «codigo null»', () => {
-  const base: ResultadoVerificacion = {
-    estado: 'roja',
-    comando: 'x',
-    codigo: null,
-    duracionMs: 1,
-    timeoutS: 1,
-    cola: '',
-    bytesTotales: 0,
-    error: 'senal SIGKILL',
-  };
-  assert.equal(describirResultado(base), 'termino de forma anormal (senal SIGKILL)');
-  assert.equal(describirResultado({ ...base, codigo: 1 }), 'salio con codigo 1');
 });

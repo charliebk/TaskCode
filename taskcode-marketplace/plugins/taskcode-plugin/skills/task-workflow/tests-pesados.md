@@ -40,4 +40,5 @@ asi no lo corre nadie, asi que no lo marques sin declarar la clave.
 duracion de la verificacion completa (del registro de puertas), y
 `taskctl doctor` avisa si cualquiera crecio mas de `umbral_crecimiento_suite`
 (20 % por defecto) desde la version anterior. Es la senal para podar tests
-redundantes o marcar pesados.
+redundantes o marcar pesados. Como podar sin perder cobertura:
+[poda-tests.md](poda-tests.md).
