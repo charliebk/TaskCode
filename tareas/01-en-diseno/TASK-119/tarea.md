@@ -7,7 +7,7 @@ etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-119-p-11-menos-commits-de-proceso-por-tarea
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -36,3 +36,4 @@ Cada tarea deja 23-26 commits de los que 3-4 son de codigo: coste, veredicto, pe
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T08:27:07Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T08:27:45Z | approve | automatico | persona | 0.14.0 |
