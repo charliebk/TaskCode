@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 125 / 125 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 126 / 126 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 24 | **24** | — |
+| ✅ P — Agilidad sin perder calidad | 25 | **25** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (24/24)
+## ✅ P — Agilidad sin perder calidad (25/25)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -179,6 +179,10 @@ del código.
       prefiltro sin dependencias (prefiltro.ts) en el punto de entrada. Dos rondas: MEN-1 (prefiltro sin test)
       y MEN-3 (finish lee la clave de la base) corregidos, MEN-2 (ofuscación con comillas) aceptado. Suite
       completa: solo los 3 rojos de Windows; finish --sin-verificacion.*
+- [x] TASK-118 — P-10: línea FIN con la duración en todos los scripts de Git-Flow — cerrada el 2026-11-13
+      *initialize_gitflow_log instala un trap EXIT que cierra el registro con `FIN: <operación> | resultado | duración`
+      (COMPLETADO, ABORTADO o ERROR (código N)); test por cada uno de los 22 scripts que registran. Una ronda
+      aprobada; MEN-1 aceptado (con SIGTERM dice ABORTADO). Suite completa: solo los 3 rojos de Windows.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
