@@ -16,8 +16,14 @@
  *      curso: nada. HEAD desacoplado cae aqui (aceptado en el plan).
  *   7. Config invalida con tarea en curso en la rama: BLOQUEA (decision de
  *      Carlos: fallo cerrado, como el resto de la config).
- *   8. Memo: misma huella del arbol que la ultima verificacion -> su resultado.
+ *   8. Memo: misma huella del arbol que el ultimo verde del freno (TASK-111)
+ *      -> 0 sin ejecutar ni escribir; misma que la ultima verificacion del
+ *      memo compartido -> su resultado.
  *   9. Ejecutar. Verde -> 0. Cualquier otra cosa -> 2 con el informe.
+ *
+ * Registro (TASK-111): cada vez que llega al paso 8 anota una linea de la
+ * puerta `freno` en el registro de puertas (docs/registro-puertas.md): modo =
+ * tipo de verificacion; resultado verde, rojo u omitido.
  *
  * Que verificacion (TASK-091): con `comando_verificacion_selectiva`, la
  * selectiva, con la base de la tarea (la de su tipo: un hotfix va contra la
@@ -47,8 +53,11 @@ import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { baseDeTipoSinRed, resolveBaseBranchForTipo } from '../fs/git.js';
 import { listTareasEnEstados } from '../fs/task-store.js';
-import { verificarConMemo } from '../fs/verificacion.js';
+import { contextoSelectiva, huellaDelArbol, verificarConMemo } from '../fs/verificacion.js';
 import { crearProgreso, entornoConContador } from '../fs/progreso.js';
+import { PUERTA_FRENO } from '../core/registro-puertas.js';
+import { anotarPuerta } from '../fs/registro-puertas.js';
+import { esUltimoVerde, guardarUltimoVerde } from '../fs/freno-ultimo-verde.js';
 /**
  * `timeout` del hook Stop en hooks/hooks.json, en segundos. Claude Code cancela
  * el hook al vencerlo y descarta su salida: el freno fallaria ABIERTO. Por eso
@@ -184,6 +193,26 @@ export async function decidirStop(entrada, deps = {}) {
         const peticion = plan.tipo === 'selectiva'
             ? { tipo: 'selectiva', comando: plan.comando, timeoutS, base: plan.base }
             : { tipo: plan.tipo, comando: plan.comando, timeoutS };
+        const idTarea = ids[0] ?? tarea;
+        const anotar = (resultado, duracionS) => {
+            (deps.anotarPuerta ?? anotarPuerta)(raiz, {
+                puerta: PUERTA_FRENO,
+                tarea: idTarea,
+                instante: new Date().toISOString(),
+                modo: peticion.tipo,
+                duracionS,
+                resultado,
+            });
+        };
+        // 8a. TASK-111: misma huella que el ultimo verde del freno -> ni se ejecuta
+        // ni se escribe nada (salvo los avisos de la decision): el turno no cambio
+        // nada que verificar. Vale tambien con el arbol sucio, donde el memo
+        // compartido de la selectiva no se guarda (TASK-105).
+        const huella = huellaDelArbol(raiz, peticion.comando, peticion.timeoutS, peticion.tipo === 'selectiva' ? contextoSelectiva(raiz, peticion.base) : undefined);
+        if (huella !== null && esUltimoVerde(raiz, peticion.tipo, huella)) {
+            anotar('omitido', 0);
+            return dejarParar;
+        }
         // 8 y 9. TASK-110: el paso se ve mientras corre; acaba "terminada" si sale
         // en verde, "en rojo" si la verificacion sale en rojo y bloquea el turno, y
         // "abortada" solo si algo lanza.
@@ -197,6 +226,7 @@ export async function decidirStop(entrada, deps = {}) {
             ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
         };
         let verificacion;
+        const inicio = Date.now();
         try {
             verificacion = verificarConMemo(raiz, peticion, deOpciones);
         }
@@ -204,10 +234,17 @@ export async function decidirStop(entrada, deps = {}) {
             progreso.terminar('abortada');
             throw e;
         }
+        const duracionS = (Date.now() - inicio) / 1000;
         progreso.terminar(verificacion.resultado.estado === 'verde' ? 'ok' : 'en-rojo');
         const { resultado: r, deMemo, cambioElArbol } = verificacion;
-        if (r.estado === 'verde')
+        if (r.estado === 'verde') {
+            // TASK-111: un verde del memo compartido tampoco ha ejecutado nada.
+            anotar(deMemo ? 'omitido' : 'verde', duracionS);
+            if (verificacion.huella !== null && !cambioElArbol)
+                guardarUltimoVerde(raiz, peticion.tipo, verificacion.huella);
             return dejarParar;
+        }
+        anotar('rojo', duracionS);
         if (plan.tipo === 'documentacion') {
             avisos.push(`Es la comprobacion de documentacion (comando_verificacion_documentacion): ${plan.motivo}. ` +
                 'Antes de integrar se vuelve a exigir.');

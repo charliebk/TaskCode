@@ -41,3 +41,25 @@ un campo vacío se escribe `-`.
   ejecución sigue sin línea.
 - `taskctl metricas` suma la puerta `sincronizacion` por tarea en la columna
   `sinc`; sin líneas de la tarea, `—`.
+- `taskctl metricas` resume la puerta `freno` en dos columnas: `freno_n`
+  (veces que el freno ejecutó de verdad la verificación: las `omitido` no
+  cuentan) y `freno` (el tiempo de todas sus líneas); sin líneas, `—`.
+
+## Puerta `freno`
+
+El freno de fin de turno (hook `Stop`) anota una línea cada vez que llega a
+decidir si verifica una tarea en curso. Si no hay tarea en curso en la rama, no
+hay comando de verificación o solo cambia documentación sin comprobación
+declarada, no hay puerta y no hay línea.
+
+| Campo | Valor |
+|---|---|
+| `modo` | El tipo de verificación: `completa`, `selectiva` o `documentacion` |
+| `resultado` | `verde` (ejecutó y salió bien), `rojo` (cualquier otro desenlace: bloquea el turno), `omitido` (no ejecutó: la huella del árbol es la de su último verde, o el memo de la verificación ya la tenía en verde) o `excedido` (agotó su presupuesto de tiempo) |
+| `duracion_s` | Tiempo de reloj de la verificación; `0.0` cuando se omite |
+
+El último verde del freno se guarda aparte, en
+`git rev-parse --git-path taskcode/freno-ultimo-verde.json`, con la huella del
+árbol (commit, comando, timeout, base de la selectiva y contenido de lo que no
+está limpio). Por eso un turno que no cambia nada no vuelve a verificar aunque
+haya cambios sin commitear. Solo lo lee el freno: no abre ninguna otra puerta.

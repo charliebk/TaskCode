@@ -223,6 +223,8 @@ export interface FilaMetricas {
   estimadaMin: number | null;
   /** TASK-120: suma de la puerta `sincronizacion` del registro de puertas; null sin lineas de la tarea. */
   sincronizacion: Duracion | null;
+  /** TASK-111: veces que corrio el freno Stop y su tiempo total; null sin lineas de la tarea. */
+  freno: { ejecuciones: number; duracion: Duracion } | null;
 }
 
 export interface EntradaMetricas {
@@ -240,6 +242,8 @@ export interface EntradaMetricas {
   peticiones?: readonly { ronda: number; bytes: number }[];
   /** TASK-120: segundos de sincronizacion de la tarea en el registro de puertas; sin dato, null. */
   sincronizacionS?: number | null;
+  /** TASK-111: el freno Stop de la tarea en el registro de puertas; sin dato, null. */
+  freno?: { ejecuciones: number; duracionS: number } | null;
 }
 
 function kbPorRonda(peticiones: readonly { ronda: number; bytes: number }[]): PeticionRonda[] {
@@ -451,6 +455,10 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
       e.sincronizacionS === undefined || e.sincronizacionS === null
         ? null
         : { valor: Math.round(e.sincronizacionS * 1000), precision: 'segundo' },
+    freno:
+      e.freno === undefined || e.freno === null
+        ? null
+        : { ejecuciones: e.freno.ejecuciones, duracion: { valor: Math.round(e.freno.duracionS * 1000), precision: 'segundo' } },
     puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
     estimadaMin: estimadaAnotada(e.body),
     enPausa: enPausaDe(marcas),
@@ -541,6 +549,9 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   { cabecera: 'punta_a_punta', valor: (f) => formatearDuracion(f.puntaAPunta) },
   // TASK-120: lo que suma comando_sincronizacion en la tarea (registro de puertas).
   { cabecera: 'sinc', valor: (f) => formatearDuracion(f.sincronizacion) },
+  // TASK-111: el freno Stop de la tarea: cuantas veces corrio de verdad y cuanto sumo.
+  { cabecera: 'freno_n', valor: (f) => (f.freno === null ? '—' : String(f.freno.ejecuciones)) },
+  { cabecera: 'freno', valor: (f) => (f.freno === null ? '—' : formatearDuracion(f.freno.duracion)) },
 ];
 
 /** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */

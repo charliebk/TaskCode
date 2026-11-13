@@ -286,6 +286,9 @@ test('freno: memo por huella — mismo arbol no vuelve a ejecutar, un cambio si'
       const rutaMemo = path.join(r.raiz, '.git', 'freno-verificacion.json');
       const memo = JSON.parse(readFileSync(rutaMemo, 'utf8')) as { version: number };
       await writeFile(rutaMemo, JSON.stringify({ ...memo, version: 0 }), 'utf8');
+      // TASK-111: el ultimo verde del freno omitiria este turno (mismo arbol);
+      // se retira para probar solo el memo compartido.
+      await rm(path.join(r.raiz, '.git', 'taskcode', 'freno-ultimo-verde.json'), { force: true });
       assert.equal((await decidir(r)).codigo, 0);
       assert.equal(r.ejecuciones(), 4, 'memo de otra version ignorado');
       // El memo no ensucia el arbol: vive bajo .git/.
