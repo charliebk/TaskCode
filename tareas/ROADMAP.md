@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-112, TASK-115, TASK-119, TASK-120, TASK-019
+- **En marcha:** TASK-120 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-112, TASK-115, TASK-119, TASK-019
 
 ## H0 — H0
 
@@ -86,7 +86,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-117 | P-9: new propone la complejidad a partir de tareas parecidas ya cerradas | simple | — | ✅ terminada |
 | — | TASK-118 | P-10: linea FIN con la duracion en todos los scripts de Git-Flow | simple | — | ✅ terminada |
 | 10 | TASK-119 | P-11: menos commits de proceso por tarea | media | — | lista para empezar |
-| 11 | TASK-120 | P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren | simple | — | lista para empezar |
+| 11 | TASK-120 | P-12: sincronizacion con su duracion registrada y limitada a las fases que se declaren | simple | — | ▶ en diseño |
 | 12 | TASK-111 | P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno no cambio codigo | media | TASK-120 | espera a TASK-120 |
 | — | TASK-121 | Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama | media | — | ✅ terminada |
 | — | TASK-122 | Coste por tarea independiente del tamano del proyecto | alta | — | ✅ terminada |
