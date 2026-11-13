@@ -214,7 +214,15 @@ test('finish (TASK-126, IMP-1): en el camino idempotente una release integrada a
     }
     await assert.rejects(
       () => runFinishCommand(e.tareasRoot, ['TASK-850'], '2026-11-13', { repoCwd: e.repoRoot, scriptsDir: SCRIPTS_DIR }),
-      (err: unknown) => err instanceof FinishCommandError && /no se mergea con los tests pesados en rojo/.test(err.message)
+      (err: unknown) => {
+        assert.ok(err instanceof FinishCommandError);
+        // IMP-2 (ronda 2): el merge ya esta hecho; el mensaje no puede decir «no se mergea».
+        assert.doesNotMatch(err.message, /no se mergea|no se ha tocado nada/);
+        assert.match(err.message, /la rama ya esta integrada en "main" y "develop"/);
+        assert.match(err.message, /se arregla hacia delante, en la rama de integracion/);
+        assert.match(err.message, /pesada: ERROR, 1 test pesado falla/);
+        return true;
+      }
     );
     assert.deepEqual([e.ejecuciones('completa'), e.ejecuciones('pesada')], [1, 1]);
   });
@@ -238,4 +246,18 @@ test('guardian (TASK-126, MEN-1): un hotfix exige los pesados solo si verificaci
       if (esperado === 2) assert.match(d.stderr, /una rama hotfix exige tambien los tests pesados/);
     });
   }
+});
+
+test('finish (TASK-126): en el camino idempotente con los pesados en verde, una release integrada a mano se cierra', async () => {
+  await conEntorno('', async (e) => {
+    const task = sampleTask({ id: 'TASK-852', tipo: 'release', rama: 'release/task-852-q4' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    for (const destino of ['main', 'develop']) {
+      git(['checkout', '-q', destino], e.repoRoot);
+      git(['merge', '-q', '--no-ff', '-m', `merge a mano en ${destino}`, task.rama], e.repoRoot);
+    }
+    const r = await runFinishCommand(e.tareasRoot, ['TASK-852'], '2026-11-13', { repoCwd: e.repoRoot, scriptsDir: SCRIPTS_DIR });
+    assert.equal(r.cierre, 'terminada');
+    assert.deepEqual([e.ejecuciones('completa'), e.ejecuciones('pesada')], [1, 1]);
+  });
 });

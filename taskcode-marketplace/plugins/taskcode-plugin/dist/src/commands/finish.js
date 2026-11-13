@@ -503,6 +503,7 @@ async function runFinish(tareasRoot, argv, today, deps, progreso, pendientes) {
                 puertaPesada({
                     id,
                     tipo,
+                    yaIntegradaEn: mainBranch !== null && tipo !== 'feature' && tipo !== 'fix' ? [mainBranch, ramaIntegracion] : [ramaIntegracion],
                     cwd: deps.repoCwd,
                     env: entornoConContador(process.env, progreso.contador()),
                     ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),

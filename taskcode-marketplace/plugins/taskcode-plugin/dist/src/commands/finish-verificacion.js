@@ -104,6 +104,15 @@ export function puertaPesada(o) {
     const huella = limpio ? huellaDelArbol(o.cwd, comando, timeoutS) : null;
     if (huella !== null)
         guardarMemo(o.cwd, huella, r, 'pesada');
+    if (r.estado !== 'verde' && o.yaIntegradaEn !== undefined && o.yaIntegradaEn.length > 0) {
+        const ramas = o.yaIntegradaEn.map((x) => `"${x}"`).join(' y ');
+        throw new FinishCommandError(`[ERROR] ${o.id}: la rama ya esta integrada en ${ramas} (merge hecho fuera de finish), pero los tests pesados ` +
+            '(comando_verificacion_pesada) no salen en verde sobre ese arbol: no se cierra la tarea, que no se ha movido ' +
+            'de carpeta. El merge ya esta hecho y no se deshace: se arregla hacia delante, en la rama de integracion.\n' +
+            `${formatearVerificacionRoja(r)}\n` +
+            `Corrige alli hasta que los pesados salgan en verde, commitea y relanza taskctl finish ${o.id}. Si la persona ` +
+            `decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y lo deja anotado en la tarea.`);
+    }
     if (r.estado !== 'verde') {
         throw new FinishCommandError(`[ERROR] ${o.id}: no se mergea con los tests pesados en rojo (comando_verificacion_pesada, que exigen las ` +
             `ramas ${config.verificacion_pesada_en.join(' y ')}). La completa salio en verde; no se ha tocado nada.\n` +
