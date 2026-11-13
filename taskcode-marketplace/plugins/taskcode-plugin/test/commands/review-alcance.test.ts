@@ -147,8 +147,10 @@ test('alcance (TASK-095): con un IMPORTANTE abierto, uno corregido, un CRITICO a
       const p = [...r2.peticiones.values()].join('\n');
       // TASK-112: la ronda acotada solo reverifica CRITICOS e IMPORTANTES; el MENOR se nombra por su numero.
       assert.ok(!p.includes('| MEN-1 |'), 'el MENOR no va en la tabla');
-      // Con el CRITICO aceptado no le queda nada mas: vuelve solo porque la correccion toca su dominio.
+      // Con el CRITICO aceptado solo le queda el MENOR: vuelve porque la correccion toca su
+      // dominio, y la seccion lo dice (MEN-3 de la revision de TASK-112).
       if (fila !== CRIT_ACEPTADO) assert.match(p, /Tus 1 hallazgo\(s\) MENOR de la ronda 1 no estan en la tabla/);
+      else assert.match(p, /Tus 1 hallazgo\(s\) MENOR de la ronda 1 no se reverifican/);
       // Pendiente = todo lo que no esta aceptado: un corregido se verifica.
       if (fila === CRIT_ACEPTADO) assert.ok(!p.includes('| CRIT-1 |'), 'lo aceptado no se vuelve a verificar');
       else assert.ok(p.includes(fila.split('|')[1]!.trim()), `lista ${fila}`);

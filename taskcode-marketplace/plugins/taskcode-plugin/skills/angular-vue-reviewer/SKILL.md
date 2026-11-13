@@ -156,7 +156,9 @@ ejercita la vista.
    solo el servidor de desarrollo. Muchos errores de tipado solo salen ahi.
    Si no compila, ahi acaba la revision.
 4. **Correr la suite entera antes de tocar nada**, para tener la linea base.
-   Una sola vez por ronda (ver revision.md).
+   Una sola vez por ronda (ver revision.md). Si la peticion ya trae la verificacion de la ronda en verde con un
+   `Commit verificado` igual al `Commit revisado`, esa es la linea base: citala
+   y no la repitas.
 5. **Levantar la aplicacion y ejercitar la vista de verdad**, con el
    navegador, entrando y saliendo de la ruta y con datos que se parezcan a
    los reales en volumen.

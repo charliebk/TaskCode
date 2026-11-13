@@ -301,7 +301,7 @@ function instruccionesCompletas(nombreInforme: string): string {
     '## Instrucciones para el agente revisor\n\n' +
     'Eres un revisor INDEPENDIENTE del agente que implemento. Tu trabajo es\n' +
     'reproducir empiricamente, no leer el diff y opinar: clona el repo a un\n' +
-    'directorio temporal, corre la suite tu mismo (TASK-112: salvo que esta\n' +
+    'directorio temporal, corre la suite tu mismo (salvo que esta\n' +
     'peticion ya traiga la verificacion de la ronda en verde para el commit revisado;\n' +
     'entonces vale ese resultado) y construye el caso que\n' +
     `rompe el codigo antes de reportarlo. ${CLASIFICACION} Vuelca tu salida en el\n` +
@@ -330,8 +330,8 @@ function instruccionesAcotadas(nombreInforme: string): string {
     '## Instrucciones para el agente revisor (verificacion acotada)\n\n' +
     'Eres un revisor INDEPENDIENTE del agente que implemento. La rama ya paso una\n' +
     'revision completa: esta ronda verifica las correcciones de la ronda anterior,\n' +
-    'no vuelve a revisar la rama entera ni los MENORES de la ronda anterior (TASK-112:\n' +
-    'tu tabla solo trae CRITICOS e IMPORTANTES). Haz esto, y nada mas:\n\n' +
+    'no vuelve a revisar la rama entera ni los MENORES de la ronda anterior (tu\n' +
+    'tabla solo trae CRITICOS e IMPORTANTES). Haz esto, y nada mas:\n\n' +
     '1. Comprueba, uno por uno, que cada hallazgo pendiente de tu tabla de abajo\n' +
     '   queda resuelto por el diff de esta ronda (los marcados `corregido` tambien:\n' +
     '   verificalo, no lo des por bueno). Para un CRITICO o IMPORTANTE, reproduce el\n' +
@@ -412,6 +412,8 @@ interface RondaPrevia {
    * no estan en `seccionesPorRevisor` y solo vuelven si la correccion toca su dominio.
    */
   soloMenores: string[];
+  /** TASK-112: cuantos MENORES pendientes tiene cada revisor ('' = el generico). */
+  menoresPorRevisor: Map<string, number>;
   /** TASK-095: hallazgos de la ronda N que no estan `corregido` ni `aceptado`. */
   sinMarcar: string[];
   /** TASK-081 y TASK-083: lo que los informes de la ronda N permiten para la N+1. */
@@ -511,6 +513,7 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
     seccion: seccionPendientes(informes.ronda, filas, sinTabla),
     seccionesPorRevisor,
     soloMenores,
+    menoresPorRevisor,
     sinMarcar,
     alcance: alcanceRondaSiguiente(textos.map((t) => t.texto)),
     fueAcotada,
@@ -645,10 +648,17 @@ function planDeVerificacion(
 export const SECCION_NO_RELANZADOS = '## Revisores no relanzados';
 
 /** TASK-095: seccion de un revisor sin pendientes propios en la ronda acotada. */
-function seccionSinPendientes(ronda: number): string {
+function seccionSinPendientes(ronda: number, menores = 0): string {
+  // TASK-112 (MEN-3 de su revision): quien vuelve con solo MENORES si los tiene;
+  // no van en la tabla a proposito.
+  const inicio =
+    menores > 0
+      ? `Tus ${String(menores)} hallazgo(s) MENOR de la ronda ${String(ronda)} no se reverifican (los comprueba\n` +
+        'quien coordina): recibes esta ronda porque la correccion'
+      : 'No tienes hallazgos pendientes propios: recibes esta ronda porque la correccion';
   return (
     `## Hallazgos de la ronda ${String(ronda)} pendientes de verificar\n\n` +
-    'No tienes hallazgos pendientes propios: recibes esta ronda porque la correccion\n' +
+    `${inicio}\n` +
     'toca ficheros de tu dominio. Revisa en el diff de esta ronda lo que la correccion\n' +
     'cambia en tu terreno y si abre un fallo.\n\n'
   );
@@ -1054,7 +1064,10 @@ async function runReview(
                   seccionPrevia: acotada
                     ? (previa.seccionesPorRevisor.get(escritura.revisor === generico ? '' : escritura.revisor) ??
                       previa.seccionesPorRevisor.get(escritura.revisor) ??
-                      seccionSinPendientes(previa.ronda))
+                      seccionSinPendientes(
+                        previa.ronda,
+                        previa.menoresPorRevisor.get(escritura.revisor === generico ? '' : escritura.revisor) ?? 0
+                      ))
                     : previa.seccion,
                 }
               : {}),
