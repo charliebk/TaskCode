@@ -39,7 +39,9 @@ import { anotarLineaEnSeccion, registrarTransicion } from '../core/transiciones.
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, rondaYRevisorDeInforme, siguienteRonda, } from '../fs/rondas.js';
-import { TOPE_RONDAS } from '../core/flujo.js';
+import { SECCION_RONDAS_EXTRA, lineaRondaExtra } from '../core/flujo.js';
+import { configDeRef } from '../fs/config-de-ref.js';
+import { rondaExtraDecidida } from '../core/rondas-extra.js';
 import { alcanceRondaSiguiente, commitRevisadoDe, hallazgosNoCerrados, hallazgosPendientes, severidadDe, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
@@ -485,11 +487,26 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     // llamar a review sin pasar por siguiente abria rondas sin limite (una tarea
     // llego a 14). Pasado el tope, otra ronda solo con --ronda-extra, que la
     // skill pasa unicamente cuando una persona lo decide. Antes de tocar nada.
-    if (previa !== null && previa.ronda >= TOPE_RONDAS && !rondaExtra) {
-        throw new ReviewCommandError(`[ERROR] ${id}: la ronda ${String(previa.ronda)} ya es el tope de rondas (${String(TOPE_RONDAS)}). ` +
-            'Lo decide una persona: aceptar lo que queda abierto (sus IDs y el motivo en el Resultado) y ' +
-            'cerrar, pasarlo a una tarea nueva, o corregir y abrir otra ronda con ' +
-            `"taskctl review ${id} --ronda-extra".`);
+    // TASK-127: el tope sale de `tope_rondas` en la config de la rama base (la
+    // rama de la tarea no puede subirselo), y cada ronda extra exige que conste
+    // en tarea.md la decision de una persona: el flag solo ya no basta.
+    if (previa !== null) {
+        const tope = configDeRef(resolverConfig(deps.repoCwd).rama_base, deps.repoCwd).tope_rondas;
+        if (previa.ronda >= tope) {
+            const nueva = previa.ronda + 1;
+            if (!rondaExtra) {
+                throw new ReviewCommandError(`[ERROR] ${id}: la ronda ${String(previa.ronda)} ya llego al tope de rondas (${String(tope)}). ` +
+                    'Lo decide una persona: cerrar con lo que hay (lo abierto, aceptado con sus IDs y el motivo en el ' +
+                    'Resultado), volver a diseno (lo abierto, en una tarea nueva) o una ronda mas: anotar en tarea.md, ' +
+                    `seccion "${SECCION_RONDAS_EXTRA}", la linea "${lineaRondaExtra(nueva)}" y ejecutar ` +
+                    `"taskctl review ${id} --ronda-extra".`);
+            }
+            if (!rondaExtraDecidida(initial.body, nueva)) {
+                throw new ReviewCommandError(`[ERROR] ${id}: --ronda-extra pasado el tope de rondas (${String(tope)}) exige que conste la decision ` +
+                    `de una persona en tarea.md: seccion "${SECCION_RONDAS_EXTRA}" con la linea ` +
+                    `"${lineaRondaExtra(nueva)}". No se ha tocado nada.`);
+            }
+        }
     }
     const tipo = initial.task.tipo;
     const rama = initial.task.rama;

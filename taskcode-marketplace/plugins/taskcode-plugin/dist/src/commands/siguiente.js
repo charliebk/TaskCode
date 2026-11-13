@@ -17,6 +17,7 @@ import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readFile } from 'node:fs/promises';
 import { readTareaFile } from '../fs/task-store.js';
 import { parseTareaFile } from '../core/tarea-file.js';
+import { configDeRef } from '../fs/config-de-ref.js';
 import { resolverConfig } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
@@ -166,6 +167,8 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         veredictoCodex: veredictoDe(codex),
         modoCongelado: modoCongelado(body) !== null,
         rondaRevision,
+        // TASK-127: de la rama base; la rama de la tarea no puede subirse el tope.
+        ...(task.estado === 'en-revision' ? { topeRondas: configDeRef(config.rama_base, deps.repoCwd).tope_rondas } : {}),
         informeEnCommitPropio: enCommitPropio,
         ...(task.estado === 'en-revision' && veredicto === 'aprobada'
             ? {

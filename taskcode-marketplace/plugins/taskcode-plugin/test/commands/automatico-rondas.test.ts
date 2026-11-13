@@ -39,8 +39,9 @@ import {
   escribirVeredicto,
 } from '../helpers/automatico-fixtures.js';
 
-test('tope de rondas: las rondas 1 y 2 con cambios siguen solas, la 3 pregunta', async () => {
-  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+// TASK-127: regresion. Con tope_rondas: 3 el flujo es el de hasta la 0.15.
+test('tope de rondas (tope_rondas: 3): las rondas 1 y 2 con cambios siguen solas, la 3 pregunta', async () => {
+  await withRepo(`${CONFIG_AUTO}tope_rondas: 3\n`, async (repoRoot, tareasRoot) => {
     await hastaCodigo(repoRoot, tareasRoot);
     for (const ronda of [1, 2, 3]) {
       cliOk(repoRoot, ['review', ID]);
@@ -52,6 +53,43 @@ test('tope de rondas: las rondas 1 y 2 con cambios siguen solas, la 3 pregunta',
       assert.equal(s.accion, ronda < 3 ? 'continuar' : 'preguntar', `ronda ${String(ronda)}`);
       if (ronda < 3) await codigo(repoRoot, `correccion ${String(ronda)}\n`, `fix(${ID}): correccion ${String(ronda)}`);
     }
+  });
+});
+
+test('tope de rondas (TASK-127, por defecto 2): la ronda 2 pregunta con tres salidas y cada ronda extra exige su decision en tarea.md', async () => {
+  await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
+    await hastaCodigo(repoRoot, tareasRoot);
+    cliOk(repoRoot, ['review', ID]);
+    cliOk(repoRoot, ['veredicto', ID, 'cambios-solicitados']);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['review', 'continuar'], 'la ronda 1 sigue sola');
+    await codigo(repoRoot, 'correccion 1\n', `fix(${ID}): correccion 1`);
+    cliOk(repoRoot, ['review', ID]);
+    cliOk(repoRoot, ['veredicto', ID, 'cambios-solicitados']);
+    const s = siguiente(repoRoot);
+    assert.deepEqual(resumen(s), ['review', 'preguntar'], 'en automatico tambien pregunta');
+    assert.deepEqual(
+      (s.salidas as { opcion: string }[]).map((x) => x.opcion),
+      ['cerrar', 'ronda-extra', 'volver-a-diseno']
+    );
+    await codigo(repoRoot, 'correccion 2\n', `fix(${ID}): correccion 2`);
+    // Sin --ronda-extra, review no abre la ronda 3.
+    const sinFlag = cli(repoRoot, ['review', ID]);
+    assert.notEqual(sinFlag.status, 0);
+    assert.match(sinFlag.stderr + sinFlag.stdout, /tope de rondas \(2\)/);
+    // Con el flag pero sin la decision en tarea.md, tampoco: el flag solo no basta.
+    const sinDecision = cli(repoRoot, ['review', ID, '--ronda-extra']);
+    assert.notEqual(sinDecision.status, 0);
+    assert.match(sinDecision.stderr + sinDecision.stdout, /## Rondas extra.*- Ronda 3: /s);
+    const tareaMd = path.join(tareasRoot, '03-en-revision', ID, 'tarea.md');
+    await writeFile(tareaMd, `${await readFile(tareaMd, 'utf8')}\n## Rondas extra\n- Ronda 3: Carlos, falta cerrar el IMP-1\n`, 'utf8');
+    cliOk(repoRoot, ['review', ID, '--ronda-extra']);
+    cliOk(repoRoot, ['veredicto', ID, 'cambios-solicitados']);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['review', 'preguntar'], 'la ronda extra vuelve a preguntar');
+    await codigo(repoRoot, 'correccion 3\n', `fix(${ID}): correccion 3`);
+    // La linea de la ronda 3 no vale para la 4.
+    const cuarta = cli(repoRoot, ['review', ID, '--ronda-extra']);
+    assert.notEqual(cuarta.status, 0);
+    assert.match(cuarta.stderr + cuarta.stdout, /- Ronda 4: /);
   });
 });
 

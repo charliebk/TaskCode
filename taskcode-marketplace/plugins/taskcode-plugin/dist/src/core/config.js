@@ -28,6 +28,7 @@
  * | rutas_documentacion          | [] (sin efecto)   | finish-verificacion.ts (TASK-100), hooks/guardia-merge.ts (TASK-101) |
  * | comando_verificacion_documentacion | null        | finish-verificacion.ts (TASK-100), guardia-merge.ts (TASK-101) |
  * | documento_estado             | null (no se vigila) | commands/doctor.ts (TASK-124) |
+ * | tope_rondas                  | 2                 | core/flujo.ts (siguiente), commands/review.ts (TASK-127) |
  * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
@@ -172,6 +173,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
     comando_verificacion_documentacion: null,
     rutas_verificacion_parcial: Object.freeze([]),
     documento_estado: null,
+    tope_rondas: 2,
 });
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
 export const CLAVES_CONFIG = [
@@ -199,6 +201,7 @@ export const CLAVES_CONFIG = [
     'comando_verificacion_documentacion',
     'rutas_verificacion_parcial',
     'documento_estado',
+    'tope_rondas',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -464,6 +467,9 @@ export function parsearConfigConAvisos(contenido, ruta) {
                 break;
             case 'documento_estado':
                 config.documento_estado = validarDocumentoEstado(donde, par.valor);
+                break;
+            case 'tope_rondas':
+                config.tope_rondas = validarTopeRondas(donde, par.valor);
                 break;
             case 'umbral_cobertura':
                 config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
@@ -910,6 +916,18 @@ function validarEnteroPositivo(donde, clave, valor) {
         throw new ConfigError(`[ERROR] ${donde}: "${clave}" debe ser un numero entero mayor o igual que 1, ` +
             `y es ${describirValor(valor)}.\n` +
             `        Por defecto es ${CONFIG_DEFAULTS[clave]}. ${consecuencia}`);
+    }
+    return valor;
+}
+/** TASK-127: entero de 1 a 10. Mas de 10 rondas es no tener tope. */
+export const TOPE_RONDAS_MAXIMO = 10;
+function validarTopeRondas(donde, valor) {
+    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 1 || valor > TOPE_RONDAS_MAXIMO) {
+        throw new ConfigError(`[ERROR] ${donde}: "tope_rondas" debe ser un numero entero de 1 a ${String(TOPE_RONDAS_MAXIMO)}, ` +
+            `y es ${describirValor(valor)}.
+` +
+            `        Por defecto es ${String(CONFIG_DEFAULTS.tope_rondas)}: las rondas de revision que se abren sin ` +
+            'preguntar; en la ultima, si pide cambios, decide una persona.');
     }
     return valor;
 }

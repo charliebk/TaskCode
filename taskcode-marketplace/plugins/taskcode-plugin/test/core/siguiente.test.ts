@@ -98,16 +98,56 @@ const TABLA: Caso[] = [
   { nombre: 'aprobada con un IMPORTANTE abierto', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'aprobada', menoresAbiertos: 3, bloqueantesAbiertos: 1, correccionSinVerificar: true }, fase: 'veredicto', comando: 'taskctl veredicto TASK-100 cambios-solicitados', acciones: ['detener', 'preguntar', 'preguntar'] },
   // Codigo posterior que no se puede atribuir a correcciones (informe sin commitear, sin referencia): como antes.
   { nombre: 'aprobada, no coincide y no es correccion', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'aprobada', informeEnCommitPropio: false, menoresAbiertos: 1, bloqueantesAbiertos: 0, verificacionLigeraAlDia: false, correccionSinVerificar: false }, fase: 'finish', comando: 'taskctl finish TASK-100', acciones: ['detener', 'preguntar', 'preguntar'] },
-  { nombre: 'cambios en la ronda 2 (bajo el tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 2 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['detener', 'detener', 'continuar'] },
+  // TASK-127: regresion, con tope_rondas: 3 como hasta la 0.15.
+  { nombre: 'cambios en la ronda 2 (bajo el tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 2, topeRondas: 3 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['detener', 'detener', 'continuar'] },
   // TASK-095: en el tope se pregunta en TODOS los modos (antes manual y semi
   // se detenian sin decir que decidir: IMP-3 de TASK-058, IMP-2 de TASK-059),
   // y el comando NO lleva --ronda-extra (va en el motivo): ejecutarlo sin
   // preguntar choca con review, que exige el flag pasado el tope (MEN-6).
-  { nombre: 'cambios en la ronda 3 (tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 3 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['preguntar', 'preguntar', 'preguntar'] },
+  { nombre: 'cambios en la ronda 3 (tope)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 3, topeRondas: 3 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['preguntar', 'preguntar', 'preguntar'] },
+  // TASK-127: sin topeRondas rige el defecto, 2. La 1 sigue como antes; la 2
+  // pregunta en todos los modos, y cada ronda extra vuelve a preguntar.
+  { nombre: 'cambios en la ronda 1 (tope por defecto)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 1 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['detener', 'detener', 'continuar'] },
+  { nombre: 'cambios en la ronda 2 (tope por defecto)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 2 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['preguntar', 'preguntar', 'preguntar'] },
+  { nombre: 'cambios en la ronda 3 (extra, tope por defecto)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 3 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['preguntar', 'preguntar', 'preguntar'] },
+  { nombre: 'cambios en la ronda 1 (tope_rondas: 1)', task: { estado: 'en-revision', plan_aprobado: true }, ctx: { veredicto: 'cambios-solicitados', rondaRevision: 1, topeRondas: 1 }, fase: 'review', comando: 'taskctl review TASK-100', acciones: ['preguntar', 'preguntar', 'preguntar'] },
   { nombre: 'terminada', task: { estado: 'terminada', plan_aprobado: true }, fase: 'terminada', comando: null, acciones: ['detener', 'detener', 'detener'] },
 ];
 
 const MODOS: ModoFlujo[] = ['manual', 'semiautomatico', 'automatico'];
+
+/** Filas de la tabla en el tope de rondas: las unicas que preguntan en manual. */
+const EN_EL_TOPE = new Set([
+  'cambios en la ronda 3 (tope)',
+  'cambios en la ronda 2 (tope por defecto)',
+  'cambios en la ronda 3 (extra, tope por defecto)',
+  'cambios en la ronda 1 (tope_rondas: 1)',
+]);
+
+test('siguienteFase (TASK-127): en el tope, tres salidas (cerrar, ronda extra, volver a diseno) en todos los modos', () => {
+  const t = tarea({ estado: 'en-revision', plan_aprobado: true });
+  for (const modo of MODOS) {
+    const r = siguienteFase(t, { ...CTX, veredicto: 'cambios-solicitados', rondaRevision: 2 }, modo);
+    assert.equal(r.accion, 'preguntar', modo);
+    assert.deepEqual(
+      r.salidas?.map((x) => [x.opcion, x.comando]),
+      [
+        ['cerrar', 'taskctl veredicto TASK-100 aprobada-con-correcciones'],
+        ['ronda-extra', 'taskctl review TASK-100 --ronda-extra'],
+        ['volver-a-diseno', 'taskctl new'],
+      ],
+      modo
+    );
+    assert.ok(r.motivo.includes('tope de rondas (2)'), r.motivo);
+    // La ronda extra nombra la linea que review exigira: la de la ronda 3.
+    const desc = r.salidas?.[1]?.descripcion ?? '';
+    assert.ok(desc.includes('## Rondas extra') && desc.includes('- Ronda 3: '), desc);
+    // El comando del paso sigue sin el flag (MEN-6 de TASK-095).
+    assert.equal(r.comando, 'taskctl review TASK-100');
+  }
+  // Bajo el tope no hay salidas.
+  assert.equal(siguienteFase(t, { ...CTX, veredicto: 'cambios-solicitados', rondaRevision: 1 }, 'automatico').salidas, undefined);
+});
 
 test('siguienteFase: la tabla entera, por estado, contexto, tipo y modo', () => {
   for (const caso of TABLA) {
@@ -152,7 +192,7 @@ test('siguienteFase: en manual nunca encadena nada, en ningun estado', () => {
     const r = siguienteFase(tarea(caso.task), { ...CTX, ...caso.ctx }, 'manual');
     // TASK-095: el tope de rondas pregunta tambien en manual (nombra las
     // salidas); preguntar no encadena. Todo lo demas se detiene.
-    const esperada = caso.nombre === 'cambios en la ronda 3 (tope)' ? 'preguntar' : 'detener';
+    const esperada = EN_EL_TOPE.has(caso.nombre) ? 'preguntar' : 'detener';
     assert.equal(r.accion, esperada, caso.nombre);
     assert.notEqual(r.accion, 'continuar', caso.nombre);
   }

@@ -121,11 +121,14 @@ siempre; el MENOR que no compense se marca `aceptado` con su motivo o pasa a
 una tarea nueva. `taskctl review` avisa si se abre una ronda con hallazgos
 de la anterior sin marcar `corregido` ni `aceptado`.
 
-**Tope de rondas.** Tras la ronda 3 con cambios, `siguiente` pregunta en
-cualquier modo, y `taskctl review` no abre la ronda 4 sin `--ronda-extra`,
-que solo se pasa cuando lo decide una persona. Las salidas: aceptar lo
-abierto (IDs y motivo en el `## Resultado`) y cerrar, pasarlo a una tarea
-nueva, o corregir y abrir otra ronda.
+**Tope de rondas.** `tope_rondas` en `.taskcode/config.yml` (de 1 a 10, 2
+por defecto; se lee de la rama base). Si la ultima ronda permitida pide
+cambios, `siguiente` pregunta en cualquier modo, tambien en automatico, con
+tres salidas: cerrar con lo que hay (lo abierto, aceptado con IDs y motivo en
+el `## Resultado`), una ronda mas o volver a diseno (lo abierto, en una tarea
+nueva). `taskctl review` no abre la ronda siguiente sin `--ronda-extra` y sin
+la decision anotada en `tarea.md` (`## Rondas extra`, linea `- Ronda N:
+<quien y por que>`); cada ronda extra vuelve a preguntar y pide su linea.
 
 ## El informe
 

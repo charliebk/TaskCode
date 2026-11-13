@@ -94,13 +94,16 @@ punto, no un formalismo.
    reverifican (los compruebas tu), y un revisor que solo tenia MENORES y cuyos
    ficheros no toca la correccion no recibe peticion: `taskctl review` lo anota
    en `## Revisores no relanzados` de `tarea.md`.
-   **Tope**: tras la ronda 3 con cambios, `siguiente` pregunta en cualquier
-   modo. Lo decide una persona: aceptar lo abierto (sus IDs y el motivo en el
-   `## Resultado`) y cerrar, pasarlo a una tarea nueva, o corregir y abrir
-   otra ronda con `taskctl review TASK-NNN --ronda-extra`. Pasa ese flag solo
-   cuando la persona lo diga: sin el, `review` no abre la ronda 4. Un «si»
-   quiere decir corregir primero y despues abrir la ronda, nunca relanzarla
-   sobre el mismo codigo.
+   **Tope** (`tope_rondas` de la config de la rama base, 2 por defecto): si
+   la ultima ronda permitida pide cambios, `siguiente` pregunta en cualquier
+   modo, tambien en automatico, y trae tres `salidas`. Pregunta a la persona
+   y no elijas tu: **cerrar** con lo que hay (lo abierto, `aceptado` con sus
+   IDs y el motivo en el `## Resultado`); **una ronda mas** (corregir,
+   commitear, anotar en `tarea.md` bajo `## Rondas extra` la linea
+   `- Ronda N: <quien lo decide y por que>` y
+   `taskctl review TASK-NNN --ronda-extra`); o **volver a diseno** (lo abierto, en una tarea nueva con
+   `taskctl new`, enlazada desde el Resultado). Sin esa linea `review` no abre
+   la ronda, y cada ronda extra vuelve a preguntar y pide la suya.
    **MENORES tras aprobar** (`aprobada-con-correcciones` sin CRITICO ni
    IMPORTANTE abiertos): **nunca** se piden como `cambios-solicitados` ni
    abren otra ronda, en ningun modo. Corrige los baratos tocando solo los
