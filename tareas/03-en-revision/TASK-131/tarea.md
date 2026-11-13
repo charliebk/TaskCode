@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-131-tres-tests-con-expectativas-anteriores-a
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 792936
 tokens_revision: null
 creado: 2026-11-13
 actualizado: 2026-11-13
@@ -39,3 +39,10 @@ TASK-119 cambio el flujo (veredicto no commitea, el informe sin commitear lo abs
 | 2026-11-13T11:04:28Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T11:04:46Z | approve | automatico | automatico | 0.14.0 |
 | 2026-11-13T11:04:47Z | start | automatico | persona | 0.14.0 |
+| 2026-11-13T11:07:56Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-13T11:07:56Z | implementacion | sesion:11e712bd-419c-4b82-81c1-1dc7aa472f20 | 6 | 4717 | 785860 | 2353 | 0 | 792936 | - | - |
