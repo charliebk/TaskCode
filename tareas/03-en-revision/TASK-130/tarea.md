@@ -52,3 +52,7 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 | 2026-11-13T19:11:02Z | implementacion | agente:a4f464a242ed1ac49 | 66 | 127779 | 3407486 | 25732 | 4 | 3561063 | - | - |
 | 2026-11-13T19:11:02Z | implementacion | agente:a76995a8bcf811be5 | 90 | 219293 | 7595001 | 75536 | 3 | 7889920 | - | - |
 | 2026-11-13T19:11:02Z | implementacion | agente:abe9a2d046b12d1f9 | 82 | 134832 | 4555407 | 23319 | 9 | 4713640 | - | - |
+
+## Verificacion ligera
+
+- 2026-11-13T19:25:55Z: ronda 1; commit revisado 24cb77c1e25871be2337d05dc6d3ff169a15e58b; commit verificado b537d29bfa4b51520e6ed7f206c1e7579287f0ca; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/core/poda-tests.test.ts; corregidos: MEN-1; pendientes: ninguno
