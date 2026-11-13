@@ -88,6 +88,7 @@ se pisaron (`dist/src` borrado, rojo falso guardado en el memo) y hubo que resta
 | 2026-11-13T00:12:10Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T00:33:38Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T00:56:27Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T01:10:56Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
