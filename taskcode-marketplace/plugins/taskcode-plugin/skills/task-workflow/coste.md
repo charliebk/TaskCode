@@ -82,19 +82,22 @@ dilo como estimacion en el `## Resultado`.
 - **revision**: cuando terminan los revisores de la ronda; si hay varias
   rondas, se va sumando. Funciona tambien con la tarea ya `terminada`.
 
-Escribe y commitea solo el `tarea.md` de la tarea: con ese fichero a medias
-en el arbol aborta, y desde la rama base aborta si la tarea vive en su rama
+Escribe solo el `tarea.md` de la tarea y no commitea: el cambio queda
+pendiente en la carpeta de la tarea y lo incluye el commit del siguiente
+comando de fase (`approve`, `review` o `finish`). En una tarea ya terminada,
+sin fase siguiente, si commitea, y con ese fichero a medias en el arbol
+aborta. Desde la rama base aborta si la tarea vive en su rama
 (dice a cual cambiar). Con una cadena abierta exige `--cadena <testigo>`.
 
 Cada llamada deja ademas una fila en la tabla `## Coste` del cuerpo de
-`tarea.md` (en el mismo commit que el total): con `--agente`, el desglose
+`tarea.md` (junto al total): con `--agente`, el desglose
 sumado de sus agentes (entrada, escritura y lectura de cache, salida, y
 cuantas lecturas de ficheros hicieron); con `--tokens N`, una fila `manual`
 con solo el total. No la edites a mano: el total de la fase sigue siendo el
 campo `tokens_<fase>`, y la tabla es su desglose.
 
 En la fase **revision**, una llamada con varios `--agente` deja **una fila por
-agente** (en un solo commit), no una fila sumada: cada fila lleva la `ronda` y
+agente** (en una sola llamada), no una fila sumada: cada fila lleva la `ronda` y
 el `revisor` del agente, que se deducen de su transcripcion (el nombre
 `peticion-revision-N[-skill].md` que lleva el prompt con el que lo lanzaste;
 sin sufijo si la ronda no se fragmento). Lo que no se pueda deducir queda `-`,

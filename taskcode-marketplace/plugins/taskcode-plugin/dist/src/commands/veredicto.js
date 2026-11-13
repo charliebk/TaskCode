@@ -25,7 +25,7 @@ import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { extraerPushFlag } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
 export class VeredictoCommandError extends Error {
 }
@@ -137,12 +137,8 @@ export async function runVeredictoCommand(tareasRoot, argv, deps) {
     // desde la ronda 2 toda ronda es una verificacion acotada, asi que decia
     // algo que ya no distingue nada. `avisos` se conserva en el resultado.
     const avisos = [];
-    const commitResult = autoCommit({
-        fase: 'veredicto',
-        cwd: deps.repoCwd,
-        rutas: [informePath],
-        mensaje: mensajeChore(task.id, `veredicto ronda ${ronda} (${valor})`),
-        push,
-    });
-    return { id: task.id, ronda, informePath, linea, avisos, autoCommit: commitResult };
+    if (push) {
+        avisos.push(`${task.id}: --push no tiene efecto: el veredicto queda sin commitear hasta el siguiente comando de fase.`);
+    }
+    return { id: task.id, ronda, informePath, linea, avisos, autoCommit: null };
 }

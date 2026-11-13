@@ -120,7 +120,14 @@ export interface RegistrarCosteCommandResult {
   /** TASK-081: todas las filas anadidas; mas de una solo con `--fase revision` y varios agentes. */
   filas: FilaCoste[];
   filePath: string;
-  autoCommit: AutoCommitResult;
+  /**
+   * TASK-119: null si no se commitea (lo normal: el cambio queda pendiente en la
+   * carpeta de la tarea y lo absorbe el siguiente comando de fase). Solo una
+   * tarea ya terminada, sin fase siguiente, se commitea aqui.
+   */
+  autoCommit: AutoCommitResult | null;
+  /** Avisos no fatales (p. ej. --push sin commit que subir). */
+  avisos: string[];
 }
 
 const USO =
@@ -461,9 +468,11 @@ export async function runRegistrarCosteCommand(
         `Cambia a ella (git checkout ${task.rama}) y reintenta; no se ha tocado nada.`
     );
   }
-  // El commit es de este fichero entero: con ediciones a medias en el, se
-  // las llevaria.
-  if (runGit(['status', '--porcelain', '--', filePath], deps.repoCwd) !== '') {
+  // TASK-119: solo una tarea terminada se commitea aqui (no tiene fase
+  // siguiente que lo absorba). Ese commit es de este fichero entero: con
+  // ediciones a medias en el, se las llevaria.
+  const commitea = task.estado === 'terminada';
+  if (commitea && runGit(['status', '--porcelain', '--', filePath], deps.repoCwd) !== '') {
     throw new RegistrarCosteCommandError(
       `[ERROR] ${id}: tarea.md tiene cambios sin commitear. Commitealos o descartalos antes de ` +
         '"taskctl registrar-coste": su commit se los llevaria. No se ha tocado nada.'
@@ -536,13 +545,19 @@ export async function runRegistrarCosteCommand(
   await writeFile(filePath, serializeTareaFile(nueva, cuerpo), 'utf8');
 
   const detalle = nAgentes > 0 ? ` (${String(nAgentes)} agente${nAgentes === 1 ? '' : 's'})` : '';
-  const commit = autoCommit({
-    fase: 'registrar-coste',
-    cwd: deps.repoCwd,
-    rutas: [filePath],
-    mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),
-    push,
-  });
+  const avisos: string[] = [];
+  const commit = commitea
+    ? autoCommit({
+        fase: 'registrar-coste',
+        cwd: deps.repoCwd,
+        rutas: [filePath],
+        mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),
+        push,
+      })
+    : null;
+  if (!commitea && push) {
+    avisos.push(`${id}: --push no tiene efecto: el coste queda sin commitear hasta el siguiente comando de fase.`);
+  }
   return {
     id,
     fase,
@@ -554,5 +569,6 @@ export async function runRegistrarCosteCommand(
     filas,
     filePath,
     autoCommit: commit,
+    avisos,
   };
 }

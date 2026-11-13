@@ -31,6 +31,7 @@ import { registrarTransicion } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { conProgreso, crearProgreso } from '../fs/progreso.js';
+import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
 import { ensureBaseBranchReady, gitUserEmail } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { resolverAsignado } from '../core/wip.js';
@@ -291,7 +292,8 @@ async function runPlan(tareasRoot, argv, today, deps, progreso) {
     // metadata estable que ningun comando de taskctl reescribe, asi que
     // usar la lectura preliminar para esto es seguro aunque sea de antes
     // del cambio de rama.
-    const baseBranchGuard = ensureBaseBranchReady(initial.task.tipo, deps.repoCwd);
+    // TASK-119: lo pendiente de la propia tarea (plan final, coste) no bloquea: entra en este commit.
+    const baseBranchGuard = ensureBaseBranchReady(initial.task.tipo, deps.repoCwd, (c) => !hayCambiosFueraDeTarea(c, tareasRoot, initial.task.id));
     // Lectura FRESCA, ya en la rama base real (si hubo cambio, aqui es
     // donde se nota) — esta es la unica que decide si se muta algo y con
     // que contenido. Puede rechazar aunque la preliminar de arriba haya

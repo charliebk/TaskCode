@@ -88,6 +88,13 @@ import {
 } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
+import {
+  apartarPendientes,
+  hayCambiosFueraDeTarea,
+  hayPendientesDeTarea,
+  recuperarApartado,
+  type Apartado,
+} from '../fs/pendientes.js';
 import { extraerSinVerificacion, puertaReintento, puertaVerificacion, type ResultadoReintento } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
 import { puertaCobertura } from './finish-cobertura.js';
@@ -331,7 +338,18 @@ export async function runFinishCommand(
 ): Promise<FinishCommandResult> {
   // TASK-110: el progreso se marca terminado tambien si aborta.
   const progreso = deps.progreso ?? crearProgreso(deps.repoCwd);
-  return conProgreso(progreso, () => runFinish(tareasRoot, argv, today, deps, progreso));
+  // TASK-119: si aborta con lo pendiente de la tarea apartado, se devuelve si se
+  // puede sin riesgo; si no (merge a medias), el error dice como recuperarlo.
+  const pendientes: { apartado: Apartado | null } = { apartado: null };
+  return conProgreso(progreso, async () => {
+    try {
+      return await runFinish(tareasRoot, argv, today, deps, progreso, pendientes);
+    } catch (e: unknown) {
+      const nota = pendientes.apartado === null ? null : pendientes.apartado.devolverSiSePuede();
+      if (nota !== null && e instanceof Error) e.message = `${e.message}\n${nota}`;
+      throw e;
+    }
+  });
 }
 
 async function runFinish(
@@ -339,7 +357,8 @@ async function runFinish(
   argv: readonly string[],
   today: string,
   deps: FinishCommandDeps,
-  progreso: Progreso
+  progreso: Progreso,
+  pendientes: { apartado: Apartado | null }
 ): Promise<FinishCommandResult> {
   // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
   rechazarFlagsDesconocidos(argv, FLAGS_FINISH, 'finish', (m) => new FinishCommandError(m));
@@ -353,6 +372,10 @@ async function runFinish(
   if (id === undefined || id.trim() === '') {
     throw new FinishCommandError('[ERROR] Falta el ID de la tarea: taskctl finish TASK-NNN.');
   }
+
+  // TASK-119: un intento anterior que murio con lo pendiente de la tarea
+  // apartado lo recupera ahora, antes de leer nada (el veredicto vive ahi).
+  recuperarApartado(deps.repoCwd, tareasRoot, id);
 
   // Lectura PRELIMINAR (regla de la doble lectura, TASK-012): rechazo
   // rapido sin tocar Git + metadata estable (tipo/rama/titulo). La
@@ -413,7 +436,10 @@ async function runFinish(
   const rama = initial.task.rama;
   const titulo = initial.task.titulo;
 
-  if (!isWorkspaceClean(deps.repoCwd)) {
+  // TASK-119: lo pendiente de la propia tarea (veredicto, informe, coste) no
+  // cuenta: se aparta durante la verificacion y los merges y entra en el commit
+  // de cierre (o en el de la anotacion de la verificacion, si lo hay).
+  if (hayCambiosFueraDeTarea(deps.repoCwd, tareasRoot, initial.task.id)) {
     throw new FinishCommandError(
       `[ERROR] ${id}: el workspace tiene cambios sin commitear. ` +
         'Haz commit o stash antes de "taskctl finish" — los merges de Git-Flow necesitan el ' +
@@ -511,6 +537,11 @@ async function runFinish(
   // TASK-072: la puerta de verificacion, justo antes del primer efecto y solo
   // en los caminos que van a integrar algo (abrir el MR o ejecutar el script).
   // TASK-073: y detras, la de los tests held-out (que --sin-verificacion no salta).
+  // TASK-119: desde aqui empiezan los efectos. Lo pendiente de la tarea se
+  // aparta (la verificacion guarda su memo solo con el arbol limpio y los
+  // scripts lo exigen) y se devuelve antes de la escritura de cierre.
+  const apartado = apartarPendientes(deps.repoCwd, tareasRoot, initial.task.id);
+  pendientes.apartado = apartado;
   const puerta = async () => {
     progreso.paso('verificacion');
     const r = await puertaVerificacion({
@@ -518,6 +549,9 @@ async function runFinish(
       rama,
       tareasRoot,
       initial: initial as NonNullable<typeof initial>,
+      // La lectura preliminar incluye lo pendiente: si la puerta anota y
+      // commitea, lo devuelve antes y entra en ese commit.
+      antesDeAnotar: () => apartado.devolver(),
       sinVerificacion,
       cwd: deps.repoCwd,
       instante: deps.ahora ?? today,
@@ -562,6 +596,7 @@ async function runFinish(
 
   if (mrCtx !== null && mrCtx.estado.tipo === 'ninguno') {
     initial = (await puerta()).tarea;
+    apartado.devolver();
     return abrirMergeRequestYAnotar({
       tareasRoot,
       id,
@@ -736,6 +771,9 @@ async function runFinish(
     }
   }
 
+  // TASK-119: lo pendiente vuelve antes de la lectura fresca, ya con el merge
+  // hecho: entra en el commit de cierre.
+  apartado.devolver();
   progreso.paso('artefactos');
   // Lectura FRESCA, ya en la rama de integracion con el merge consumado: la unica que
   // decide la escritura. El contexto de aprobacion se recalcula sobre
@@ -984,6 +1022,21 @@ async function abrirMergeRequestYAnotar(o: AbrirMergeRequestOpts): Promise<Finis
     );
   }
   if (o.nombreTag !== null) comprobarTagLibre(o.nombreTag, id, o.push, cwd, deps.onAviso);
+
+  // TASK-119 (MEN-3 de la revision): lo pendiente de la tarea (veredicto,
+  // informe, coste) tiene que viajar en la rama que se sube: quien revisa el
+  // merge request en la plataforma lo ve. Es el unico camino que lo commitea
+  // aparte, porque la anotacion del MR va despues de la subida.
+  if (hayPendientesDeTarea(cwd, o.tareasRoot, id)) {
+    const previo = autoCommit({
+      fase: 'finish',
+      cwd,
+      rutas: [path.dirname(initial.filePath)],
+      mensaje: mensajeChore(id, 'registros de la revision'),
+      push: false,
+    });
+    for (const a of previo.avisos) deps.onAviso?.(a);
+  }
 
   // Primer efecto: subir la rama.
   try {

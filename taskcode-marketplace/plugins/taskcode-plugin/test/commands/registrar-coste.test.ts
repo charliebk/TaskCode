@@ -1,8 +1,9 @@
 /**
  * TASK-023: `taskctl registrar-coste` por CLI, contra repos Git temporales
  * reales. La evidencia sale del fichero y de `git log`, no de lo que imprime
- * el comando: suma, null intacto, un solo fichero en el commit, rechazos sin
- * efectos, tarea terminada y las precondiciones de rama y de tarea.md limpio.
+ * el comando: suma, null intacto, sin commit (TASK-119: lo absorbe el siguiente
+ * comando de fase), rechazos sin efectos, tarea terminada (que si commitea) y
+ * las precondiciones de rama y de tarea.md limpio.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,16 +32,18 @@ async function costes(tareasRoot: string): Promise<[number | null, number | null
 
 const head = (repo: string): string => git(['rev-parse', 'HEAD'], repo).trim();
 
-test('registrar-coste: suma en varias llamadas, deja null las otras fases y commitea SOLO tarea.md', async () => {
+test('registrar-coste: suma en varias llamadas, deja null las otras fases y NO commitea (TASK-119)', async () => {
   await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
     await hastaCodigo(repoRoot, tareasRoot);
     assert.deepEqual(await costes(tareasRoot), [null, null, null]);
+    const antes = head(repoRoot);
 
-    // Algo a medias en otro sitio del arbol: no puede entrar en el commit.
+    // Algo a medias en otro sitio del arbol: ni se toca ni bloquea.
     await writeFile(path.join(repoRoot, 'otro.txt'), 'a medias\n', 'utf8');
 
     const a = cliOk(repoRoot, ['registrar-coste', ID, '--fase', 'diseno', '--tokens', '1500']);
     assert.match(a.stdout, /\+1500 tokens de diseno; total de la fase: 1500/);
+    assert.match(a.stdout, /Sin commit: queda pendiente en la carpeta de la tarea/);
     assert.deepEqual(await costes(tareasRoot), [1500, null, null]);
     cliOk(repoRoot, ['registrar-coste', ID, '--fase', 'diseno', '--tokens=2500']);
     assert.deepEqual(await costes(tareasRoot), [4000, null, null], 'suma, no sobrescribe');
@@ -54,16 +57,15 @@ test('registrar-coste: suma en varias llamadas, deja null las otras fases y comm
     assert.match(texto, /^tokens_implementacion: null$/m);
     assert.match(texto, /^tokens_revision: 7$/m);
 
-    // Un commit por llamada, con solo ese fichero y el asunto esperado.
-    const log = git(['log', '-3', '--format=%s'], repoRoot).trim().split('\n');
-    assert.deepEqual(log, [
-      `chore(${ID}): coste revision +7 tokens`,
-      `chore(${ID}): coste diseno +2500 tokens`,
-      `chore(${ID}): coste diseno +1500 tokens`,
-    ]);
-    const ficheros = git(['show', '--name-only', '--format=', 'HEAD'], repoRoot).trim().split('\n');
-    assert.deepEqual(ficheros, [path.relative(repoRoot, t.filePath).split(path.sep).join('/')]);
-    assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '?? otro.txt', 'lo ajeno queda como estaba');
+    // Ningun commit: tarea.md queda pendiente y lo ajeno como estaba.
+    assert.equal(head(repoRoot), antes, 'registrar-coste no commitea');
+    const relTarea = path.relative(repoRoot, t.filePath).split(path.sep).join('/');
+    const estado = git(['status', '--porcelain'], repoRoot).split('\n').map((l) => l.trim()).filter((l) => l !== '');
+    assert.deepEqual(estado.sort(), ['?? otro.txt', `M ${relTarea}`]);
+    // --push sin commit que subir: avisa y no falla.
+    const conPush = cliOk(repoRoot, ['registrar-coste', ID, '--fase', 'revision', '--tokens', '1', '--push']);
+    assert.match(conPush.stderr, /--push no tiene efecto/);
+    assert.equal(head(repoRoot), antes);
   });
 });
 
@@ -117,8 +119,19 @@ test('registrar-coste: funciona con la tarea terminada, que vive en develop tras
     cliOk(repoRoot, ['registrar-coste', ID, '--fase', 'revision', '--tokens', '9000']);
     cliOk(repoRoot, ['registrar-coste', ID, '--fase', 'revision', '--tokens', '1000']);
     assert.deepEqual(await costes(tareasRoot), [null, null, 10000]);
+    // Sin fase siguiente que lo absorba, una tarea terminada si se commitea.
     assert.equal(git(['log', '-1', '--format=%s'], repoRoot).trim(), `chore(${ID}): coste revision +1000 tokens`);
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
+    // Y ese commit es de tarea.md entero: con ediciones a medias en el, aborta.
+    const terminada = await readTareaFile(tareasRoot, ID);
+    assert.ok(terminada);
+    const original = await readFile(terminada.filePath, 'utf8');
+    await writeFile(terminada.filePath, `${original}\nnota a medias\n`, 'utf8');
+    const sucio = cli(repoRoot, ['registrar-coste', ID, '--fase', 'revision', '--tokens', '5']);
+    assert.equal(sucio.status, 1);
+    assert.match(sucio.stderr, /tarea\.md tiene cambios sin commitear/);
+    assert.match(await readFile(terminada.filePath, 'utf8'), /nota a medias/, 'no se pierde la edicion de la persona');
+    await writeFile(terminada.filePath, original, 'utf8');
     const despues = await readTareaFile(tareasRoot, ID);
     assert.equal(despues?.task.estado, 'terminada', 'no cambia el estado');
     assert.equal(despues?.task.actualizado, t?.task.actualizado, 'ni actualizado');
@@ -138,7 +151,7 @@ test('registrar-coste entre review y finish no cambia lo que dice siguiente (mod
   });
 });
 
-test('registrar-coste: aborta con tarea.md a medias, y desde la rama base si la tarea vive en su rama', async () => {
+test('registrar-coste: suma sobre un tarea.md a medias sin perderlo, y aborta desde la rama base si la tarea vive en su rama', async () => {
   await withRepo(CONFIG_AUTO, async (repoRoot, tareasRoot) => {
     await hastaCodigo(repoRoot, tareasRoot);
     const t = await readTareaFile(tareasRoot, ID);
@@ -147,14 +160,14 @@ test('registrar-coste: aborta con tarea.md a medias, y desde la rama base si la 
     assert.match(rama, /^feature\//);
     const antes = head(repoRoot);
 
-    // tarea.md con cambios sin commitear: el commit se los llevaria.
+    // TASK-119: tarea.md con cambios sin commitear (p. ej. otro coste
+    // pendiente): como ya no commitea, suma encima sin perder nada.
     const original = await readFile(t.filePath, 'utf8');
     await writeFile(t.filePath, `${original}\nnota a medias\n`, 'utf8');
-    const sucio = cli(repoRoot, ['registrar-coste', ID, '--fase', 'diseno', '--tokens', '5']);
-    assert.equal(sucio.status, 1);
-    assert.match(sucio.stderr, /tarea\.md tiene cambios sin commitear/);
+    cliOk(repoRoot, ['registrar-coste', ID, '--fase', 'diseno', '--tokens', '5']);
     assert.equal(head(repoRoot), antes);
     assert.match(await readFile(t.filePath, 'utf8'), /nota a medias/, 'no se pierde la edicion de la persona');
+    assert.deepEqual(await costes(tareasRoot), [5, null, null]);
     await writeFile(t.filePath, original, 'utf8');
 
     // Desde develop, la copia de la tarea esta desfasada: la al dia vive en su rama.

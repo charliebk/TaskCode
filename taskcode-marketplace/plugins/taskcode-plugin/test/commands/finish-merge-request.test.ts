@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -695,3 +695,23 @@ for (const conExtra of [true, false]) {
     });
   });
 }
+
+test('TASK-119 (MEN-3): con lo pendiente de la tarea (informe sin commitear), la rama subida al PR ya lo lleva', async () => {
+  await escenario(URL_GITHUB, async (e) => {
+    const dirRevision = path.join(e.tareasRoot, '03-en-revision', ID, 'revision');
+    const informe = (await readdir(dirRevision)).find((n) => n.startsWith('informe-revision-'));
+    assert.ok(informe, 'el escenario trae un informe');
+    const ruta = path.join(dirRevision, informe);
+    await writeFile(ruta, `${await readFile(ruta, 'utf8')}\nnota pendiente del revisor\n`, 'utf8');
+    await conDoblePlataforma(SIN_PRS, async () => {
+      await finish(e, [ID, '--merge-request']);
+    });
+    const subida = ramaEnBare(e.origin.bare, e.task.rama);
+    assert.ok(subida !== null && subida !== undefined);
+    const rel = path.relative(e.repoRoot, ruta).split(path.sep).join('/');
+    assert.match(git(['show', `${subida}:${rel}`], e.repoRoot), /nota pendiente del revisor/);
+    const asuntos = git(['log', '-2', '--format=%s'], e.repoRoot).trim().split('\n');
+    assert.deepEqual(asuntos, [`chore(${ID}): merge request abierto`, `chore(${ID}): registros de la revision`]);
+    assert.equal(git(['status', '--porcelain'], e.repoRoot).trim(), '');
+  });
+});

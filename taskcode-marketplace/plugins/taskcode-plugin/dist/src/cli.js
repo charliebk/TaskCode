@@ -18,6 +18,7 @@ import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex-review.js';
 import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto.js';
+import { PendientesError } from './fs/pendientes.js';
 import { runVerificarMenoresCommand, VerificarMenoresCommandError } from './commands/verificar-menores.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
@@ -118,7 +119,9 @@ las terminadas por la version de taskctl de su ultimo finish (las que no la llev
 anotada, aparte); --json da un unico objeto JSON (solo con --repo, --evolucion,
 --tramo, --grupos y --por-version).
 Un flag repetido que no admite repeticion aborta en cualquier comando.
-registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado) y lo commitea:
+registrar-coste SUMA al coste de una fase de la tarea (en cualquier estado). No commitea: el cambio
+queda pendiente y lo incluye el commit del siguiente comando de fase (en una tarea ya terminada,
+si se commitea).
 --agente <id> lee lo gastado de la transcripcion de cada subagente (el id lo devuelve la
 herramienta Agent); --tokens N da una cifra a mano. Se excluyen, y 0 se rechaza. Cada
 llamada deja ademas una fila en la tabla "## Coste" de tarea.md: con --agente, el desglose
@@ -236,6 +239,17 @@ function printAutoCommit(r) {
     if (r.push === 'empujado') {
         process.stdout.write(`Push completado: ${r.rama} -> origin/${r.rama}.\n`);
     }
+}
+/**
+ * TASK-119: `registrar-coste` y `veredicto` no commitean: lo dicen, igual que
+ * printAutoCommit dice siempre que paso con el commit.
+ */
+function printAutoCommitOPendiente(r) {
+    if (r !== null) {
+        printAutoCommit(r);
+        return;
+    }
+    process.stdout.write('Sin commit: queda pendiente en la carpeta de la tarea y lo incluye el commit del siguiente comando de fase.\n');
 }
 /**
  * Confirmacion de --asignado-a (item B6). Solo se imprime cuando el
@@ -749,6 +763,7 @@ async function mainComando(argvEntrada) {
             if (e instanceof AutoCommitError ||
                 e instanceof ConfigError ||
                 e instanceof ReviewCommandError ||
+                e instanceof PendientesError ||
                 e instanceof StateMachineError ||
                 e instanceof TaskFolderConflictError ||
                 e instanceof GitLaunchError ||
@@ -893,7 +908,8 @@ async function mainComando(argvEntrada) {
                 process.stdout.write(`Ya anotado en ${r.fase}: ${r.reanudados.join(', ')}. Es un agente reanudado: se ha sumado solo lo ` +
                     'que crecio su transcripcion desde lo anotado (fila "agente:dif:<id>").\n');
             }
-            printAutoCommit(r.autoCommit);
+            printAvisos(...r.avisos);
+            printAutoCommitOPendiente(r.autoCommit);
             return 0;
         }
         catch (e) {
@@ -948,7 +964,7 @@ async function mainComando(argvEntrada) {
             printAvisos(...result.avisos);
             process.stdout.write(`Tarea ${result.id}: "${result.linea}" escrito en ${result.informePath} (ronda ${result.ronda}).
 `);
-            printAutoCommit(result.autoCommit);
+            printAutoCommitOPendiente(result.autoCommit);
             return 0;
         }
         catch (e) {
@@ -1073,6 +1089,7 @@ async function mainComando(argvEntrada) {
             if (e instanceof AutoCommitError ||
                 e instanceof ConfigError ||
                 e instanceof FinishCommandError ||
+                e instanceof PendientesError ||
                 e instanceof StateMachineError ||
                 e instanceof TaskFolderConflictError ||
                 e instanceof GitLaunchError ||

@@ -25,12 +25,7 @@ import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
-import {
-  autoCommit,
-  extraerPushFlag,
-  mensajeChore,
-  type AutoCommitResult,
-} from '../fs/git-commit.js';
+import { extraerPushFlag, type AutoCommitResult } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
 
 export class VeredictoCommandError extends Error {}
@@ -63,7 +58,12 @@ export interface VeredictoCommandResult {
    * el campo por contrato con quien lo lee.
    */
   avisos: string[];
-  autoCommit: AutoCommitResult;
+  /**
+   * TASK-119: siempre null. El veredicto ya no se commitea: queda pendiente en
+   * la carpeta de la tarea y lo absorbe el siguiente comando de fase (otra
+   * `review` o `finish`). Se conserva el campo por contrato con quien lo lee.
+   */
+  autoCommit: AutoCommitResult | null;
 }
 
 const PREFIJO = '- veredicto:';
@@ -186,12 +186,8 @@ export async function runVeredictoCommand(
   // algo que ya no distingue nada. `avisos` se conserva en el resultado.
   const avisos: string[] = [];
 
-  const commitResult = autoCommit({
-    fase: 'veredicto',
-    cwd: deps.repoCwd,
-    rutas: [informePath],
-    mensaje: mensajeChore(task.id, `veredicto ronda ${ronda} (${valor})`),
-    push,
-  });
-  return { id: task.id, ronda, informePath, linea, avisos, autoCommit: commitResult };
+  if (push) {
+    avisos.push(`${task.id}: --push no tiene efecto: el veredicto queda sin commitear hasta el siguiente comando de fase.`);
+  }
+  return { id: task.id, ronda, informePath, linea, avisos, autoCommit: null };
 }

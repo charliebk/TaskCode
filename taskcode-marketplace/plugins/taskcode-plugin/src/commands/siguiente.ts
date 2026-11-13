@@ -91,20 +91,19 @@ export interface SiguienteCommandResult extends SiguientePaso {
  *   repo (`:(top)`, no solo bajo el cwd: MEN-7): el codigo que se va a
  *   mergear es el que vio el revisor. Esto cubre tambien el informe
  *   commiteado junto a codigo (ese codigo aparece en el diff), que antes se
- *   tapaba con el commit limpio de `taskctl veredicto`;
- * - y no hay cambios sin commitear en la carpeta `revision/`.
+ *   tapaba con el commit limpio de `taskctl veredicto`.
+ * TASK-119: un informe sin commitear en `revision/` ya no lo impide: desde
+ * que `veredicto` no commitea es lo normal, y lo absorbe el commit de
+ * `finish`. Lo que se integra sigue siendo el codigo que vio el revisor.
  * Que el informe no sea la plantilla lo comprueba `informeRellenado`.
- * `dirRevision` es la ruta POSIX relativa a la raiz del repo, acabada en /.
  */
 function informeEnCommitPropio(
   ref: string,
-  dirRevision: string,
   nombres: readonly string[],
   revisados: readonly (string | null)[],
   cwd: string
 ): boolean {
   if (nombres.length === 0 || revisados.length === 0) return false;
-  if (ref === 'HEAD' && runGit(['status', '--porcelain', '--', dirRevision], cwd) !== '') return false;
   const tareasDesdeLaRaiz = `${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`;
   for (const revisado of revisados) {
     if (revisado === null || !isAncestor(revisado, ref, cwd)) return false;
@@ -165,7 +164,6 @@ export async function runSiguienteCommand(
   // Para la guarda del commit propio y el tope de rondas (TASK-059).
   let rondaRevision: number;
   let nombresPrimarios: string[];
-  let dirRevisionRepo: string;
   let refInformes: string;
   let revisados: (string | null)[];
   if (enOtraRama) {
@@ -186,7 +184,6 @@ export async function runSiguienteCommand(
     const ultima = nombresDeUltimaRonda(nombres, INFORME_REVISION_RE);
     rondaRevision = ultima.ronda;
     nombresPrimarios = ultima.nombres;
-    dirRevisionRepo = dirRevision;
     refInformes = rama;
     primarios = ultima.nombres.map(leer);
     revisados = nombresDeUltimaRonda(nombres, PETICION_REVISION_RE).nombres.map((n) => commitRevisadoDe(leer(n)));
@@ -199,7 +196,6 @@ export async function runSiguienteCommand(
     const ultima = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
     rondaRevision = ultima.ronda;
     nombresPrimarios = ultima.nombres;
-    dirRevisionRepo = `${path.relative(deps.repoCwd, revisionDir).split(path.sep).join('/')}/`;
     refInformes = 'HEAD';
     primarios = await Promise.all(ultima.nombres.map(leer));
     revisados = (
@@ -235,9 +231,7 @@ export async function runSiguienteCommand(
   const enCommitPropio =
     task.estado === 'en-revision' &&
     rellenados &&
-    informeEnCommitPropio(refInformes, dirRevisionRepo, nombresPrimarios, referencias, deps.repoCwd);
-  const revisionLimpia =
-    refInformes !== 'HEAD' || runGit(['status', '--porcelain', '--', dirRevisionRepo], deps.repoCwd) === '';
+    informeEnCommitPropio(refInformes, nombresPrimarios, referencias, deps.repoCwd);
 
   const menores = menoresAbiertos(primarios);
   const ctx: ContextoFlujo = {
@@ -257,7 +251,6 @@ export async function runSiguienteCommand(
             !enCommitPropio &&
             !alDia &&
             rellenados &&
-            revisionLimpia &&
             correccion !== null &&
             correccion.cambiados.length > 0 &&
             // IMP-1 de la revision: solo si son correcciones de MENORES que

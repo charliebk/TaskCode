@@ -381,6 +381,8 @@ test('review (TASK-091): en una ronda incremental, el rojo no dice que la base s
       );
       commitReview(repoRoot, 'informe ronda 1');
       await runVeredictoCommand(tareasRoot, ['TASK-600', 'cambios-solicitados'], { repoCwd: repoRoot });
+      // TASK-119: veredicto ya no commitea; para cambiar de rama a mano, se commitea aqui.
+      commitReview(repoRoot, 'veredicto ronda 1');
       // develop avanza; la correccion llega a la rama; la selectiva falla en la ronda 2.
       const rama = git(['branch', '--show-current'], repoRoot).trim();
       git(['checkout', '-q', 'develop'], repoRoot);

@@ -89,7 +89,7 @@ tarea nueva, o corregir y abrir otra ronda con `taskctl review TASK-NNN
 En `automatico`, `siguiente` solo pregunta en sus guardas: aprobar una tarea
 sin modo congelado, cerrar hotfix o release, cerrar cuando lo que se
 mergearia no coincide con lo revisado (codigo posterior al `Commit revisado`
-de la peticion, informe sin rellenar o sin commitear), otra ronda desde la
+de la peticion, informe sin rellenar), otra ronda desde la
 ronda 3, y el veredicto de la segunda opinion.
 
 ## Encadenar la skill siguiente (la cadena)

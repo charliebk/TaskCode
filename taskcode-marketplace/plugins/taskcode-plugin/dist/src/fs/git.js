@@ -702,7 +702,13 @@ export class BaseBranchGuardError extends Error {
  * (comitear y subir lo que el comando genere) queda fuera de alcance a
  * proposito — ver el Objetivo de TASK-012 en su tarea.md.
  */
-export function ensureBaseBranchReady(tipo, cwd) {
+export function ensureBaseBranchReady(tipo, cwd, 
+/**
+ * TASK-119: si se da, decide que el arbol esta limpio a efectos de la guarda
+ * (p. ej. todo menos lo pendiente de la propia tarea). Cambiar de rama exige
+ * igualmente el arbol entero limpio.
+ */
+limpioSalvoTarea) {
     const branchAntes = currentBranch(cwd);
     // Comprobacion sin red ANTES de resolver la rama base (que para
     // "hotfix" puede necesitar hasta 3 "git ls-remote"): el caso mas
@@ -713,14 +719,16 @@ export function ensureBaseBranchReady(tipo, cwd) {
     // menciona. Desde TASK-026 tambien nombra "taskctl pause", como el
     // ejemplo de la 8.3 — hasta entonces se omitia porque ese comando
     // no existia (hallazgo MENOR de revision por pares, TASK-026).
-    if (!isWorkspaceClean(cwd)) {
-        throw new BaseBranchGuardError(`[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos ("taskctl pause") o ` +
-            'comitealos antes de continuar.');
-    }
+    const sucio = () => new BaseBranchGuardError(`[ERROR] Hay cambios sin guardar en "${branchAntes}". Guardalos ("taskctl pause") o ` +
+        'comitealos antes de continuar.');
+    if (!(limpioSalvoTarea ?? isWorkspaceClean)(cwd))
+        throw sucio();
     const baseBranch = resolveBaseBranchForTipo(tipo, cwd);
     if (branchAntes === baseBranch) {
         return { baseBranch, switched: false, branchAntes };
     }
+    if (limpioSalvoTarea !== undefined && !isWorkspaceClean(cwd))
+        throw sucio();
     const remoteAvailable = isRemoteAvailable(cwd);
     const existeLocal = localBranchExists(baseBranch, cwd);
     if (!existeLocal && !remoteAvailable) {
