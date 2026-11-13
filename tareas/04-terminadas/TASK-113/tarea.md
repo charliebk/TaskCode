@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-113-p-5-peticion-de-revision-mas-ligera-con
 asignado_a: charlie.bk@gmail.com
@@ -89,6 +89,7 @@ se pisaron (`dist/src` borrado, rojo falso guardado en el memo) y hubo que resta
 | 2026-11-13T00:33:38Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T00:56:27Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T01:10:56Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T01:42:50Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -99,3 +100,10 @@ se pisaron (`dist/src` borrado, rojo falso guardado en el memo) y hubo que resta
 ## Verificacion omitida
 
 - 2026-11-13T01:42:41Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 91 min
+- Paso de la hora: 91 min reales frente a 45 estimados
+- Cierre (finish): 9 s, de 2026-11-13T01:42:41Z a 2026-11-13T01:42:50Z
