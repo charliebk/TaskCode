@@ -301,6 +301,35 @@ reutiliza un verde guardado, porque la huella no ve los ficheros ignorados.
 - `finish` tarda lo que tarde la suite: si lo lanza un agente, que su
   herramienta de shell no lo corte antes.
 
+#### Verificación completa por lote: `verificacion_por_lote`
+
+Cuando se cierran varias tareas seguidas (modo automático) y la completa tarda
+mucho, el proyecto puede correrla **una vez por lote** en vez de una por tarea:
+
+```yaml
+comando_verificacion: "npm test"
+verificacion_por_lote: true      # en la config de la rama de integración
+```
+
+- Con la clave en la config de la **rama base** (la de la rama de la tarea no
+  cuenta: una tarea no puede activársela para saltarse la completa), `finish`
+  de una feature o fix que iría a la completa **integra sin ella** y anota en
+  `tarea.md`, sección `## Verificacion por lote`, la línea «pendiente de lote»,
+  commiteada en la rama antes del merge.
+- No cambia nada más: una tarea de solo documentación, la selectiva del nivel 2
+  (`rutas_verificacion_parcial`) y los release y hotfix (van a la principal)
+  verifican como siempre. El guardián de merges tampoco cambia.
+- `taskctl verificar-lote [--push]`, desde la rama de integración con el árbol
+  limpio, busca las tareas terminadas pendientes de lote y, si hay alguna, corre
+  la completa **una vez** sobre `HEAD`:
+  - **verde**: añade a cada una «lote en verde en `<commit>`» y lo commitea;
+  - **rojo**: no anota nada y aborta diciendo qué tareas entraron desde la
+    última completa en verde (las sospechosas) con la salida de la
+    verificación. Revertir un merge o abrir una tarea de arreglo lo decide una
+    persona.
+- Cada lote deja una línea en el registro de puertas (puerta `finish`, modo
+  `lote`).
+
 #### Tests held-out (`aceptacion/`)
 
 Tests de aceptación que escribe la **persona** a partir de los criterios y que

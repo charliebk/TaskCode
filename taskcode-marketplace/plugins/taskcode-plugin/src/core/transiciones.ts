@@ -350,6 +350,31 @@ export function anotarVerificacionOmitida(body: string, instante: string, comand
   return anotarLineaEnSeccion(body, SECCION_VERIFICACION_OMITIDA, linea);
 }
 
+/** TASK-115: seccion de la verificacion por lote (pendiente en finish, resuelta por verificar-lote). */
+export const SECCION_VERIFICACION_LOTE = '## Verificacion por lote';
+/** TASK-115: lo que marca una linea pendiente de lote (la ultima de la seccion manda). */
+export const MARCA_PENDIENTE_LOTE = 'pendiente de lote';
+
+/** TASK-115: anota en finish que la completa queda pendiente de lote. */
+export function anotarPendienteLote(body: string, instante: string, comando: string): string {
+  const linea = `- ${instante}: ${MARCA_PENDIENTE_LOTE}; no se ejecuta \`${comando.replace(/`/g, "'")}\` (verificacion_por_lote)`;
+  return anotarLineaEnSeccion(body, SECCION_VERIFICACION_LOTE, linea);
+}
+
+/** TASK-115: true si la ultima linea de `## Verificacion por lote` esta pendiente. */
+export function pendienteDeLote(body: string): boolean {
+  const lineas = body.replace(/\r/g, '').split('\n');
+  const i = lineas.findIndex((l) => l.trim() === SECCION_VERIFICACION_LOTE);
+  if (i === -1) return false;
+  let ultima = '';
+  for (let j = i + 1; j < lineas.length; j++) {
+    const l = (lineas[j] as string).trim();
+    if (l.startsWith('## ')) break;
+    if (l.startsWith('- ')) ultima = l;
+  }
+  return ultima.includes(MARCA_PENDIENTE_LOTE);
+}
+
 /** TASK-100: seccion que deja `finish` cuando la tarea es solo documentacion y no corre la completa. */
 export const SECCION_VERIFICACION_DOCUMENTACION = '## Verificacion de documentacion';
 

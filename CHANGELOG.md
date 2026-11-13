@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- Cambio de comportamiento (TASK-115): clave `verificacion_por_lote` (de la config de la rama base). Con ella, `finish` de una feature o fix que iria a la completa integra sin ella y la deja pendiente de lote en `tarea.md`; `taskctl verificar-lote` corre la completa una vez sobre la rama de integracion, anota en verde todas las pendientes y en rojo dice que tareas entraron desde la ultima completa en verde. Sin la clave, todo como antes.
 - TASK-128 (feature) — Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores (2026-11-13)
 - Cambio de comportamiento (TASK-128): `review` y `finish` anotan cada verificacion en el registro de puertas (puertas `review` y `finish`). `taskctl metricas` anade las columnas `review_n`, `review_v`, `finish_n`, `finish_v` y `rondas_men` (rondas abiertas tras una ronda sin CRITICO ni IMPORTANTE) y, debajo de la tabla, la fila de totales de las puertas de verificacion. Las columnas anteriores no cambian.
 - TASK-125 (feature) — Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea (2026-11-13)

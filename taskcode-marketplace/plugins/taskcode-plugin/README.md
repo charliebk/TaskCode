@@ -203,6 +203,7 @@ tiempo que no, y era falso.
 | `start` | Abrir la rama de la tarea con el plan aprobado. |
 | `review`, `codex-review`, `veredicto` | Revisión por pares por rondas y su veredicto. |
 | `verificar-menores` | Tras aprobar con correcciones: registra la corrección de los MENORES sin abrir otra ronda (solo los ficheros que cita cada MENOR, o tests) y deja los no corregidos en `revision/menores-pendientes.md`. |
+| `verificar-lote` | Con `verificacion_por_lote`: corre la completa una vez sobre la rama de integración para todas las tareas cerradas pendientes de lote; en rojo dice qué tareas entraron desde la última en verde. |
 | `finish` | Cierre: verificación, merge `--no-ff` o merge request, tag opcional. No integra código posterior al commit revisado sin `verificar-menores` o `--aceptar-sin-revisar` (decisión de una persona). |
 | `siguiente`, `pausa`, `cadena` | Qué fase toca y si preguntar (según `modo_flujo`); pausar el paso a la siguiente fase; bloquear el árbol mientras las fases se encadenan. |
 | `estado`, `board`, `roadmap` | En qué va la fase en curso (también en la status line), tablero y `tareas/ROADMAP.md`. |
@@ -238,6 +239,7 @@ La referencia detallada vive en `docs/`, un fichero por tema:
     - [Comando y presupuesto propios del freno: `comando_verificacion_freno`](docs/configuracion.md#comando-y-presupuesto-propios-del-freno-comando_verificacion_freno)
     - [Coste de implementación automático (hooks `Stop` y `SubagentStop`)](docs/configuracion.md#coste-de-implementación-automático-hooks-stop-y-subagentstop)
     - [Puerta de verificación en `finish`](docs/configuracion.md#puerta-de-verificación-en-finish)
+    - [Verificación completa por lote: `verificacion_por_lote`](docs/configuracion.md#verificación-completa-por-lote-verificacion_por_lote)
     - [Tests held-out (`aceptacion/`)](docs/configuracion.md#tests-held-out-aceptacion)
     - [Cobertura de las líneas cambiadas](docs/configuracion.md#cobertura-de-las-líneas-cambiadas)
     - [Guardián de merges (hook `PreToolUse`)](docs/configuracion.md#guardián-de-merges-hook-pretooluse)

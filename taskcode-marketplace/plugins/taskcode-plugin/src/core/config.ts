@@ -31,6 +31,7 @@
  * | tope_rondas                  | 2                 | core/flujo.ts (siguiente), commands/review.ts (TASK-127) |
  * | comando_verificacion_freno   | null (el freno usa la de siempre) | hooks/freno-stop.ts, commands/doctor.ts (TASK-125) |
  * | presupuesto_freno_s          | null (180 con comando_verificacion_freno) | hooks/freno-stop.ts (TASK-125) |
+ * | verificacion_por_lote        | false             | commands/finish-verificacion.ts (de la base), verificar-lote.ts (TASK-115) |
  * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
@@ -278,6 +279,13 @@ export interface TaskcodeConfig {
    * `presupuestoFreno`). No mas que `TECHO_HOOK_STOP_S`.
    */
   presupuesto_freno_s: number | null;
+  /**
+   * TASK-115: `finish` de una feature o fix con codigo integra sin la
+   * completa y deja la verificacion pendiente de lote; `taskctl
+   * verificar-lote` la corre despues sobre la rama de integracion. Se lee de
+   * la config de la RAMA BASE. Exige `comando_verificacion`.
+   */
+  verificacion_por_lote: boolean;
 }
 
 /**
@@ -346,6 +354,7 @@ export const CONFIG_DEFAULTS: Readonly<TaskcodeConfig> = Object.freeze({
   tope_rondas: 2,
   comando_verificacion_freno: null,
   presupuesto_freno_s: null,
+  verificacion_por_lote: false,
 });
 
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
@@ -377,6 +386,7 @@ export const CLAVES_CONFIG = [
   'tope_rondas',
   'comando_verificacion_freno',
   'presupuesto_freno_s',
+  'verificacion_por_lote',
 ] as const;
 
 /**
@@ -689,6 +699,16 @@ export function parsearConfigConAvisos(
       case 'presupuesto_freno_s':
         config.presupuesto_freno_s = validarPresupuestoFreno(donde, par.valor);
         break;
+      case 'verificacion_por_lote':
+        if (typeof par.valor !== 'boolean') {
+          throw new ConfigError(
+            `[ERROR] ${donde}: "verificacion_por_lote" debe ser true o false, y es ${describirValor(par.valor)}.\n` +
+              '        Con true, finish de una feature o fix con codigo integra sin la completa y la deja ' +
+              'pendiente de "taskctl verificar-lote".'
+          );
+        }
+        config.verificacion_por_lote = par.valor;
+        break;
       case 'umbral_cobertura':
         config.umbral_cobertura = validarUmbralCobertura(donde, par.valor);
         break;
@@ -829,6 +849,14 @@ function validarVerificacionCompleta(ruta: string, vistas: ReadonlySet<string>):
 ` +
         '        La selectiva solo acelera las rondas; antes de integrar se exige la completa. Declara la ' +
         'completa (por ejemplo comando_verificacion: "npm test"), o borra la selectiva.'
+    );
+  }
+  // TASK-115: sin completa no hay nada que dejar pendiente de lote.
+  if (vistas.has('verificacion_por_lote') && !vistas.has('comando_verificacion')) {
+    throw new ConfigError(
+      `[ERROR] ${ruta}: "verificacion_por_lote" necesita tambien "comando_verificacion".\n` +
+        '        El lote corre la completa sobre la rama de integracion. Declarala (por ejemplo ' +
+        'comando_verificacion: "npm test"), o borra la clave.'
     );
   }
   // TASK-125: el comando rapido del freno no sustituye a la puerta de finish.
