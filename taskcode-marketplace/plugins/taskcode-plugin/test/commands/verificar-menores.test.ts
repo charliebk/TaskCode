@@ -198,6 +198,23 @@ test('codigo fuera de los MENORES: verificar-menores aborta, finish tambien, y -
   });
 });
 
+test('TASK-113: lo excluido de la revision (dist/ recompilado, lockfile) no es codigo sin revisar', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const id = 'TASK-907';
+    await montar(repoRoot, tareasRoot, id, 'aprobada con correcciones', [FILA_MEN1]);
+    await escribir(repoRoot, 'src/a.ts', '// arreglo del MENOR\n');
+    await escribir(repoRoot, 'pkg/dist/a.js', '// compilado de src/a.ts\n');
+    await escribir(repoRoot, 'pkg/package-lock.json', '{}\n');
+    commitAll(repoRoot, `fix(${id}): MEN-1 y su compilado`);
+    assert.equal(await fase(tareasRoot, repoRoot, id), 'verificar-menores');
+    const r = await runVerificarMenoresCommand(tareasRoot, [id], { repoCwd: repoRoot });
+    assert.deepEqual(r.ficheros, ['src/a.ts']);
+    assert.deepEqual(r.corregidos, ['MEN-1']);
+    const cerrada = await finish(tareasRoot, repoRoot, [id]);
+    assert.match(cerrada.filePath, /04-terminadas/);
+    assert.ok(!(await readFile(cerrada.filePath, 'utf8')).includes(SECCION_CODIGO_SIN_REVISAR));
+  });
+});
 test('una verificacion vieja no vale: codigo nuevo despues de verificar vuelve a bloquear finish', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     const id = 'TASK-905';
