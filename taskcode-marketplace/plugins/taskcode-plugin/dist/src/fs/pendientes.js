@@ -86,6 +86,12 @@ export function recuperarApartado(cwd, tareasRoot, id) {
     const { ref, rama } = encontrado;
     // MEN-4 de la revision: se devuelve solo en la rama donde se aparto.
     const actual = currentBranch(cwd);
+    if (rama === '' && actual !== '') {
+        // MEN-6 de la revision: no hay rama a la que volver; se dice el ref.
+        throw new PendientesError(`[ERROR] ${id}: hay un stash de un intento anterior ("${mensajeApartado(id)}", ${ref}) hecho con HEAD ` +
+            `desacoplado, y la rama activa es "${actual}". Aplicalo a mano donde corresponda (git stash pop ${ref}) ` +
+            'y reintenta. No se ha tocado nada.');
+    }
     if (rama !== null && rama !== actual) {
         throw new PendientesError(`[ERROR] ${id}: hay un stash de un intento anterior ("${mensajeApartado(id)}", ${ref}) hecho en "${rama}", ` +
             `y la rama activa es "${actual === '' ? 'HEAD desacoplado' : actual}". Cambiate a "${rama}" ` +

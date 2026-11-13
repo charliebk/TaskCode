@@ -305,6 +305,13 @@ test('TASK-119 (MEN-5): con HEAD desacoplado lo apartado se recupera en HEAD des
     const apartado = apartarPendientes(repo, tareasRoot, ID);
     assert.ok(apartado.activo);
     assert.match(git(['stash', 'list'], repo), /On \(no branch\)/);
+    // MEN-6: desde una rama, el error da el ref, no una rama vacia.
+    git(['checkout', '-q', '-b', 'otra'], repo);
+    assert.throws(
+      () => recuperarApartado(repo, tareasRoot, ID),
+      (e: Error) => /hecho con HEAD desacoplado/.test(e.message) && /git stash pop stash@\{0\}/.test(e.message) && !/""/.test(e.message)
+    );
+    git(['checkout', '-q', '--detach'], repo);
     assert.equal(recuperarApartado(repo, tareasRoot, ID), true);
     assert.equal(git(['stash', 'list'], repo).trim(), '');
     const t = await readTareaFile(tareasRoot, ID);
