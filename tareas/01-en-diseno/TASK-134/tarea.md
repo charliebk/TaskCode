@@ -6,13 +6,13 @@ sprint: 0
 etiquetas: [windows, gitflow]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-134-en-windows-taskctl-lanza-el-bash-de-git
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
-skills_recomendados: []
-regla_seleccion_skill: null
+skills_recomendados: [task-workflow]
+regla_seleccion_skill: solape
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
@@ -31,3 +31,9 @@ taskctl lanza los scripts de Git-Flow con spawnSync('bash') (lanzarBash en src/f
 - [ ] lanzarBash sigue siendo el unico sitio que lanza bash y la sonda de taskctl doctor usa la misma resolucion
 - [ ] Si no se encuentra el bash de Git se usa bash del PATH como hasta ahora y doctor lo dice; en Linux y macOS no cambia nada
 - [ ] Tests de la resolucion como logica pura (sin procesos) y uno de integracion con un PATH que pone primero un bash falso
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T21:27:57Z | plan | automatico | persona | 0.16.0 |

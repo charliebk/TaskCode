@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-134, TASK-019
+- **En marcha:** TASK-134 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-019
 
 ## H0 — H0
 
@@ -101,7 +101,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-131 | Tres tests con expectativas anteriores a TASK-119 | simple | — | ✅ terminada |
 | — | TASK-132 | Ayudante caso() de los tests fusionados en un unico helper compartido | simple | — | ✅ terminada |
 | — | TASK-133 | Rojos de la suite completa de la 0.16.0 y publicacion de la 0.16.1 | simple | — | ✅ terminada |
-| 8 | TASK-134 | En Windows taskctl lanza el bash de Git, no el primero del PATH | simple | — | lista para empezar |
+| 8 | TASK-134 | En Windows taskctl lanza el bash de Git, no el primero del PATH | simple | — | ▶ en diseño |
 
 ## H1 — H1
 
