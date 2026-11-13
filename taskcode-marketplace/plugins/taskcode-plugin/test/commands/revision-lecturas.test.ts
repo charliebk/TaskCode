@@ -109,7 +109,7 @@ test('metricas --tokens: dos revisores en r1 y uno en r2 salen como (ronda, revi
 
       const antes = Number(git(['rev-list', '--count', 'HEAD'], repo).trim());
       ok(repo, config, ['registrar-coste', ID, '--fase', 'revision', '--agente', X, '--agente', Y]);
-      assert.equal(Number(git(['rev-list', '--count', 'HEAD'], repo).trim()), antes + 1, 'dos agentes, UN commit');
+      assert.equal(Number(git(['rev-list', '--count', 'HEAD'], repo).trim()), antes, 'dos agentes, ningun commit (TASK-119: lo absorbe el siguiente comando de fase)');
       const tras1 = await readTareaFile(tareasRoot, ID);
       assert.deepEqual(
         leerCostes(tras1?.body ?? '').map((f) => [f.fuente, f.ronda, f.revisor, f.lecturas]),
