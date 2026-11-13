@@ -50,3 +50,7 @@ TaskCode no declara comando_verificacion, asi que los frenos que construye (Stop
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T23:51:32Z | implementacion | sesion:4684d134-7fd6-4fe8-be8f-9513ee90ff16 | 64 | 35204 | 4750212 | 12972 | 4 | 4798452 | - | - |
 | 2026-11-13T00:02:15Z | revision | agente:a7c06d0cd4c76de18 | 22 | 106288 | 991513 | 5702 | 6 | 1103525 | 1 | - |
+
+## Verificacion parcial
+
+- 2026-11-13T00:02:32Z: todo el codigo que cambia la tarea (3 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
