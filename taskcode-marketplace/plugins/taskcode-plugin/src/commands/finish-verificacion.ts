@@ -49,6 +49,7 @@ import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import {
   anotarCompletaTrasParcial,
+  anotarPendienteLote,
   anotarVerificacionDocumentacion,
   anotarVerificacionOmitida,
   anotarVerificacionParcial,
@@ -60,6 +61,7 @@ import { autoCommit, mensajeChore } from '../fs/git-commit.js';
 import { readTareaFile, type ReadTareaResult } from '../fs/task-store.js';
 import { ejecutarVerificacion, guardarMemo, huellaDelArbol, verificarConMemo } from '../fs/verificacion.js';
 import { PUERTA_FINISH } from '../core/registro-puertas.js';
+import { configDeRef } from '../fs/config-de-ref.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
 import { FinishCommandError } from './finish-opciones.js';
 
@@ -128,6 +130,19 @@ function anotarFinish(
     duracionS: (Date.now() - inicioMs) / 1000,
     resultado: deMemo ? 'omitido' : estado === 'verde' ? 'verde' : 'rojo',
   });
+}
+
+/**
+ * TASK-115: `verificacion_por_lote` de la config de la RAMA BASE (la rama de
+ * la tarea no puede activarsela). Una config de la base invalida no exime de
+ * nada: false, y la completa.
+ */
+function porLoteEnBase(o: PuertaVerificacionOpts, ramaBase: string): boolean {
+  try {
+    return configDeRef(ramaBase, o.cwd).verificacion_por_lote;
+  } catch {
+    return false;
+  }
 }
 
 function opcionesEjecucion(o: PuertaVerificacionOpts): { timeoutMs?: number; env?: NodeJS.ProcessEnv } {
@@ -216,6 +231,18 @@ export async function puertaVerificacion(
   }
   if (docs !== null && docs.decision.tipo === 'selectiva' && o.permitirSelectiva === true) {
     return puertaSelectiva(o, comando, docs.decision, docs.timeoutSelectivaS, o.ramaBase as string);
+  }
+  // TASK-115: con verificacion_por_lote en la base, una feature o fix (no release ni hotfix: van a la
+  // principal) que iria a la completa integra sin ella y queda pendiente de `taskctl verificar-lote`.
+  if (o.ramaBase !== undefined && o.permitirSelectiva === true && porLoteEnBase(o, o.ramaBase)) {
+    const body = anotarPendienteLote(o.initial.body, o.instante, comando);
+    const { commit, tarea } = await anotarYCommitear(o, body, 'cierre pendiente de lote', 'anotar el lote');
+    o.onAviso?.(
+      `${o.id}: verificacion_por_lote: no se ejecuta "${comando}" ahora; la tarea queda pendiente de lote ` +
+        `(seccion "Verificacion por lote")${commit === null ? '' : `, commit ${commit}`}. Corre ` +
+        `"taskctl verificar-lote" en "${o.ramaBase}" para verificar el lote.`
+    );
+    return { resultado: { tipo: 'omitida', commit }, tarea };
   }
   const motivoCompleta = docs === null ? null : motivoCompletaEnFinish(docs.decision);
   if (motivoCompleta !== null) {
