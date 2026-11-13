@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-116-p-8-taskcode-declara-su-verificacion-y-d
 asignado_a: charlie.bk@gmail.com
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: 4798452
 tokens_revision: 1103525
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: []
 ---
 ## Objetivo
@@ -39,6 +39,7 @@ TaskCode no declara comando_verificacion, asi que los frenos que construye (Stop
 | 2026-11-12T23:20:46Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-12T23:20:48Z | start | automatico | persona | 0.14.0 |
 | 2026-11-12T23:51:32Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T00:06:08Z | finish | automatico | persona | 0.14.0 |
 
 ## Autorrevision
 
@@ -54,3 +55,9 @@ TaskCode no declara comando_verificacion, asi que los frenos que construye (Stop
 ## Verificacion parcial
 
 - 2026-11-13T00:02:32Z: todo el codigo que cambia la tarea (3 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 30 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 45 min
+- Cierre (finish): 216 s, de 2026-11-13T00:02:32Z a 2026-11-13T00:06:08Z

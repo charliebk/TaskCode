@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-116 (feature) — P-8: TaskCode declara su verificacion y doctor avisa cuando falta (2026-11-13)
 - TASK-099 (feature) — Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa (2026-11-12)
 - TASK-124 (feature) — Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto (2026-11-12)
 - TASK-121 (feature) — Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama (2026-11-12)

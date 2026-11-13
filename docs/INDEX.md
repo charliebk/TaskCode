@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-116 — P-8: TaskCode declara su verificacion y doctor avisa cuando falta · etiquetas: arreglo, urgente, v0.16 · rama feature/task-116-p-8-taskcode-declara-su-verificacion-y-d · terminada 2026-11-13 · tareas/04-terminadas/TASK-116/
 - TASK-099 — Correccion de MENORES tras aprobar con correcciones sin abrir otra ronda completa · etiquetas: revision, agilidad, urgente, v0.16 · rama feature/task-099-correccion-de-menores-tras-aprobar-con-c · terminada 2026-11-12 · tareas/04-terminadas/TASK-099/
 - TASK-124 — Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto · etiquetas: agilidad, escala, urgente, v0.16 · rama feature/task-124-contexto-con-tamano-maximo-lo-que-leen-l · terminada 2026-11-12 · tareas/04-terminadas/TASK-124/
 - TASK-121 — Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama · etiquetas: flujo, agilidad, urgente, v0.16 · rama feature/task-121-troceo-de-tareas-de-mas-de-60-min-como-p · terminada 2026-11-12 · tareas/04-terminadas/TASK-121/

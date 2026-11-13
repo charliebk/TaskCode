@@ -1,8 +1,8 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-11-12. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 30
+## Planificadas (00-planificadas) — 29
 
 ```text
 ID        Titulo                                                                                                          Asignado
@@ -26,7 +26,6 @@ TASK-112  P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ sol
 TASK-113  P-5: peticion de revision mas ligera con los tests como --stat y ruta                                           (sin asignar)
 TASK-114  P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer                                          (sin asignar)
 TASK-115  P-7: verificacion completa por lote de cierres en modo automatico                                               (sin asignar)
-TASK-116  P-8: TaskCode declara su verificacion y doctor avisa cuando falta                                               (sin asignar)
 TASK-117  P-9: new propone la complejidad a partir de tareas parecidas ya cerradas                                        (sin asignar)
 TASK-118  P-10: linea FIN con la duracion en todos los scripts de Git-Flow                                                (sin asignar)
 TASK-119  P-11: menos commits de proceso por tarea                                                                        (sin asignar)
@@ -39,7 +38,7 @@ TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, p
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 98
+## Terminadas (04-terminadas) — 99
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -138,6 +137,7 @@ TASK-107  Verificacion proporcional B4: Stop, review y finish deciden igual el m
 TASK-108  Verificacion proporcional B5: el guardian de merges ante el nivel 2                                                 charlie.bk@gmail.com
 TASK-109  Verificacion proporcional B6: documentacion y limpieza del nivel 2                                                  charlie.bk@gmail.com
 TASK-110  Progreso visible sin tokens: estado de cada fase en el terminal                                                     charlie.bk@gmail.com
+TASK-116  P-8: TaskCode declara su verificacion y doctor avisa cuando falta                                                   charlie.bk@gmail.com
 TASK-121  Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, b, c en la misma rama                         charlie.bk@gmail.com
 TASK-122  Coste por tarea independiente del tamano del proyecto                                                               charlie.bk@gmail.com
 TASK-123  F-16: finish no cierra sin verificar tras un merge a mano o un conflicto                                            charlie.bk@gmail.com
