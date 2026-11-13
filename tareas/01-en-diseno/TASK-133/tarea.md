@@ -7,7 +7,7 @@ etiquetas: [tests, publicacion]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-133-rojos-de-la-suite-completa-de-la-0-16-0
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ La suite completa de la 0.16.0 dio dos rojos reales ademas de los dos conocidos 
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T20:25:56Z | plan | automatico | persona | 0.16.0 |
+| 2026-11-13T20:26:23Z | approve | automatico | persona | 0.16.0 |
