@@ -67,6 +67,14 @@ correcciones, cambiada a cambios-solicitados por un IMPORTANTE.
 No cubierto por tests: `finish --merge-request` con la clave (pasa por la
 misma puerta).
 
+Ronda 2 (code-quality-reviewer, haiku, acotada): aprobada con correcciones.
+IMP-1, MEN-1 y MEN-3 confirmados. Dos MENORES nuevos, corregidos con
+`verificar-menores` sin ronda 3: MEN-2 (solo cuentan las lineas con la forma
+exacta que escribe taskctl; una nota a mano con la frase no resuelve ni reabre
+la pendiente) y MEN-4 (el progreso se cierra como abortado si la verificacion
+lanza). Las celdas Fichero de MEN-2 y MEN-4 se normalizaron a la ruta del repo
+(llevaban texto que `verificar-menores` no casaba); el contenido no cambio.
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
@@ -86,3 +94,7 @@ misma puerta).
 ## Verificacion ligera
 
 - 2026-11-13T14:47:54Z: ronda 2; commit revisado 3026b9aa6a4609a4400d350785f0cd977e7be37f; commit verificado 7b55d99eb5810cc1c7da0f27f849645395cb30f7; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/verificar-lote.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/transiciones.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/verificar-lote.test.ts; corregidos: MEN-2, MEN-4; pendientes: ninguno
+
+## Verificacion omitida
+
+- 2026-11-13T14:48:06Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
