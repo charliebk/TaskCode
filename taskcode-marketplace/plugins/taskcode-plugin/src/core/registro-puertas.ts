@@ -93,11 +93,31 @@ export interface ResumenFreno {
   duracionS: number;
 }
 
+/**
+ * TASK-128: las verificaciones de ronda de `review` y las de `finish`, con el
+ * mismo formato. `modo` es el tipo de verificacion (`selectiva`,
+ * `documentacion`, `completa`; `pesada` la anadira la verificacion por tipo de
+ * rama) y `resultado` `verde`, `rojo` u `omitido` (servido de memo, sin
+ * ejecutar).
+ */
+export const PUERTA_REVIEW = 'review';
+export const PUERTA_FINISH = 'finish';
+/** Las puertas de verificacion que resume `metricas`, en su orden. */
+export const PUERTAS_VERIFICACION = Object.freeze([PUERTA_FRENO, PUERTA_REVIEW, PUERTA_FINISH] as const);
+
 /** Por tarea: cuantas veces corrio el freno y cuanto sumo. Ignora las demas puertas. */
 export function resumirFreno(lineas: readonly LineaPuerta[]): Map<string, ResumenFreno> {
+  return resumirPuerta(lineas, PUERTA_FRENO);
+}
+
+/**
+ * TASK-128: por tarea, cuantas veces ejecuto de verdad `puerta` (las `omitido`
+ * no cuentan) y cuanto sumaron todas sus lineas. Ignora las demas puertas.
+ */
+export function resumirPuerta(lineas: readonly LineaPuerta[], puerta: string): Map<string, ResumenFreno> {
   const resumen = new Map<string, ResumenFreno>();
   for (const l of lineas) {
-    if (l.puerta !== PUERTA_FRENO) continue;
+    if (l.puerta !== puerta) continue;
     const r = resumen.get(l.tarea) ?? { ejecuciones: 0, duracionS: 0 };
     if (l.resultado !== 'omitido') r.ejecuciones += 1;
     r.duracionS += l.duracionS;

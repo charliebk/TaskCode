@@ -69,6 +69,7 @@ import {
 import {
   leerHallazgos,
   resumirHallazgos,
+  rondasSoloMenores,
   veredictoDeRonda,
   type InformeLeido,
   type ResumenHallazgos,
@@ -225,6 +226,12 @@ export interface FilaMetricas {
   sincronizacion: Duracion | null;
   /** TASK-111: veces que corrio el freno Stop y su tiempo total; null sin lineas de la tarea. */
   freno: { ejecuciones: number; duracion: Duracion } | null;
+  /** TASK-128: verificaciones de ronda de review (veces y tiempo); null sin lineas de la tarea. */
+  review: { ejecuciones: number; duracion: Duracion } | null;
+  /** TASK-128: verificaciones de finish (veces y tiempo); null sin lineas de la tarea. */
+  finishVerificacion: { ejecuciones: number; duracion: Duracion } | null;
+  /** TASK-128: rondas abiertas tras una ronda sin CRITICO ni IMPORTANTE; null sin dato. */
+  rondasSoloMenores: number | null;
 }
 
 export interface EntradaMetricas {
@@ -244,6 +251,19 @@ export interface EntradaMetricas {
   sincronizacionS?: number | null;
   /** TASK-111: el freno Stop de la tarea en el registro de puertas; sin dato, null. */
   freno?: { ejecuciones: number; duracionS: number } | null;
+  /** TASK-128: las verificaciones de review de la tarea en el registro de puertas; sin dato, null. */
+  review?: { ejecuciones: number; duracionS: number } | null;
+  /** TASK-128: las verificaciones de finish de la tarea en el registro de puertas; sin dato, null. */
+  finishVerificacion?: { ejecuciones: number; duracionS: number } | null;
+}
+
+/** TASK-111/128: el resumen de una puerta en la forma de la fila (duracion en ms). */
+function puertaDeFila(
+  r: { ejecuciones: number; duracionS: number } | null | undefined
+): { ejecuciones: number; duracion: Duracion } | null {
+  return r === undefined || r === null
+    ? null
+    : { ejecuciones: r.ejecuciones, duracion: { valor: Math.round(r.duracionS * 1000), precision: 'segundo' } };
 }
 
 function kbPorRonda(peticiones: readonly { ronda: number; bytes: number }[]): PeticionRonda[] {
@@ -455,10 +475,10 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
       e.sincronizacionS === undefined || e.sincronizacionS === null
         ? null
         : { valor: Math.round(e.sincronizacionS * 1000), precision: 'segundo' },
-    freno:
-      e.freno === undefined || e.freno === null
-        ? null
-        : { ejecuciones: e.freno.ejecuciones, duracion: { valor: Math.round(e.freno.duracionS * 1000), precision: 'segundo' } },
+    freno: puertaDeFila(e.freno),
+    review: puertaDeFila(e.review),
+    finishVerificacion: puertaDeFila(e.finishVerificacion),
+    rondasSoloMenores: rondasSoloMenores(e.informes ?? []),
     puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
     estimadaMin: estimadaAnotada(e.body),
     enPausa: enPausaDe(marcas),
@@ -552,7 +572,32 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   // TASK-111: el freno Stop de la tarea: cuantas veces corrio de verdad y cuanto sumo.
   { cabecera: 'freno_n', valor: (f) => (f.freno === null ? '—' : String(f.freno.ejecuciones)) },
   { cabecera: 'freno', valor: (f) => (f.freno === null ? '—' : formatearDuracion(f.freno.duracion)) },
+  // TASK-128: las verificaciones de review y de finish, y las rondas abiertas solo por MENORES.
+  { cabecera: 'review_n', valor: (f) => (f.review === null ? '—' : String(f.review.ejecuciones)) },
+  { cabecera: 'review_v', valor: (f) => (f.review === null ? '—' : formatearDuracion(f.review.duracion)) },
+  { cabecera: 'finish_n', valor: (f) => (f.finishVerificacion === null ? '—' : String(f.finishVerificacion.ejecuciones)) },
+  { cabecera: 'finish_v', valor: (f) => (f.finishVerificacion === null ? '—' : formatearDuracion(f.finishVerificacion.duracion)) },
+  { cabecera: 'rondas_men', valor: (f) => (f.rondasSoloMenores === null ? '—' : String(f.rondasSoloMenores)) },
 ];
+
+/**
+ * TASK-128: la fila de totales de las puertas de verificacion, debajo de la
+ * tabla: ejecuciones y tiempo de cada puerta sumando todas las tareas. Una
+ * puerta sin lineas en ninguna tarea sale con `—`.
+ */
+export function lineaTotalesPuertas(filas: readonly FilaMetricas[]): string {
+  const total = (sel: (f: FilaMetricas) => { ejecuciones: number; duracion: Duracion } | null): string => {
+    const con = filas.map(sel).filter((x): x is { ejecuciones: number; duracion: Duracion } => x !== null);
+    if (con.length === 0) return '—';
+    const n = con.reduce((a, x) => a + x.ejecuciones, 0);
+    const ms = con.reduce((a, x) => a + x.duracion.valor, 0);
+    return `${String(n)} (${formatearDuracion({ valor: ms, precision: 'segundo' })})`;
+  };
+  return (
+    `Puertas de verificacion (todas las tareas): freno ${total((f) => f.freno)}, ` +
+    `review ${total((f) => f.review)}, finish ${total((f) => f.finishVerificacion)}`
+  );
+}
 
 /** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
 export const COLUMNA_PROYECTO: ColumnaMetricas = { cabecera: 'proyecto', valor: (f) => f.proyecto };

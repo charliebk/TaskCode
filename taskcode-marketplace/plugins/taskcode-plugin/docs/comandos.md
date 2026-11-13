@@ -183,7 +183,13 @@ tarea** con clave revisor + ID), `hall_origen` (implementación/plan/
 especificación/sin clasificar, de la columna `Origen`), `cierre` (día del último
 `finish`), `origen` (`registro`, `git` o «—»), `estimada`, `finish`,
 `punta_a_punta` y `sinc` (lo que suma `comando_sincronizacion` en la tarea,
-del registro de puertas; «—» sin líneas). Un informe sin tabla de hallazgos
+del registro de puertas; «—» sin líneas), `freno_n` y `freno` (veces que el
+freno de fin de turno ejecutó la verificación y su tiempo), `review_n` y
+`review_v` (verificaciones de ronda de `review`), `finish_n` y `finish_v`
+(verificaciones de `finish`) — las `omitido` (servidas de memo) no cuentan
+como ejecución — y `rondas_men` (rondas abiertas tras una ronda sin CRÍTICO ni
+IMPORTANTE; «—» sin informes o con un informe sin tabla). Debajo de la tabla,
+la fila «Puertas de verificacion (todas las tareas)» suma cada puerta. Un informe sin tabla de hallazgos
 deja `crit`/`imp`/`men`/`hall_origen` en «—»: sin dato, no cero. Con `--tokens`,
 además `tok_diseno`, `tok_curso`, `tok_revision`, `tok_total` y el desglose de
 `## Coste`: `tok_nuevos` (entrada + escritura de caché + salida),

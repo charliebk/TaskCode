@@ -18,6 +18,7 @@ import { anotarVerificacionOmitida } from '../../src/core/transiciones.js';
 import { decidirPreToolUse } from '../../src/hooks/guardia-merge.js';
 import { guardarMemo, huellaDelArbol } from '../../src/fs/verificacion.js';
 import { resolverConfig } from '../../src/core/config.js';
+import { leerRegistroPuertas } from '../../src/fs/registro-puertas.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
 
 const SCRIPT = `
@@ -83,6 +84,11 @@ test('finish (puerta): con la verificacion en rojo aborta con su salida, sin mer
       }
     );
     assert.equal(v.ejecuciones(), 1);
+    // TASK-128: el rojo de la puerta queda en el registro de puertas.
+    assert.deepEqual(
+      lineasDe(repoRoot, 'finish').map((l) => [l.tarea, l.modo, l.resultado]),
+      [['TASK-720', 'completa', 'rojo']]
+    );
     assert.equal(git(['rev-parse', 'develop'], repoRoot).trim(), developAntes, 'develop no se ha movido');
     assert.equal(git(['branch', '--show-current'], repoRoot).trim(), task.rama);
     assert.equal((await readTareaFile(tareasRoot, 'TASK-720'))?.task.estado, 'en-revision');
@@ -104,6 +110,13 @@ test('finish (puerta): en verde ejecuta la verificacion SIEMPRE (aunque haya mem
     guardarMemo(repoRoot, huella, { comando, estado: 'verde', codigo: 0, duracionMs: 1, timeoutS: 600, bytesTotales: 0, cola: '' });
     const r = await runFinishCommand(tareasRoot, ['TASK-721'], '2026-11-04', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
     assert.equal(v.ejecuciones(), 1, 'finish ejecuta aunque haya un verde guardado');
+    // TASK-128: y lo anota en el registro de puertas, con su duracion.
+    const lineas = lineasDe(repoRoot, 'finish');
+    assert.deepEqual(
+      lineas.map((l) => [l.tarea, l.modo, l.resultado]),
+      [['TASK-721', 'completa', 'verde']]
+    );
+    assert.ok((lineas[0]?.duracionS ?? -1) >= 0);
     assert.equal(r.cierre, 'terminada');
     assert.ok(integradaEnDevelop(task.rama, repoRoot));
     assert.equal((await readTareaFile(tareasRoot, 'TASK-721'))?.task.estado, 'terminada');
@@ -193,6 +206,11 @@ test('finish (puerta, TASK-123): en el camino idempotente verifica el arbol de l
     const r = await runFinishCommand(tareasRoot, ['TASK-726'], '2026-11-04', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
     assert.equal(r.cierre, 'terminada');
     assert.equal(v.ejecuciones(), 1);
+    // TASK-128 (MEN-1): la verificacion del arbol ya integrado tambien se anota.
+    assert.deepEqual(
+      lineasDe(repoRoot, 'finish').map((l) => [l.tarea, l.modo, l.resultado]),
+      [['TASK-726', 'completa', 'verde']]
+    );
   });
 });
 
@@ -225,3 +243,8 @@ test('anotarVerificacionOmitida: crea la seccion al final y en un reintento anad
   assert.ok(dos.indexOf('2026-11-05') < dos.indexOf('## Transiciones'));
   assert.equal(anotarVerificacionOmitida('a\r\n', 'f', 'c'), 'a\r\n\r\n## Verificacion omitida\r\n\r\n- f: taskctl finish --sin-verificacion; no se ejecuto `c`\r\n');
 });
+
+/** TASK-128: las lineas de `puerta` del registro de puertas del repo. */
+function lineasDe(repoRoot: string, puerta: string) {
+  return leerRegistroPuertas(repoRoot).filter((l) => l.puerta === puerta);
+}

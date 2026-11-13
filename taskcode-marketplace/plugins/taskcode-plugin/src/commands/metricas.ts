@@ -41,7 +41,7 @@
  * y los CRITICO/IMPORTANTE de su informe; `--json` lo lleva en `lecturasRevision`.
  * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
-import { resumirFreno, sumarPorTarea } from '../core/registro-puertas.js';
+import { PUERTA_FINISH, PUERTA_REVIEW, resumirFreno, resumirPuerta, sumarPorTarea } from '../core/registro-puertas.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -54,6 +54,7 @@ import { leerTransiciones } from '../core/transiciones.js';
 import {
   COLUMNAS_HEURISTICA,
   COLUMNAS_METRICAS,
+  lineaTotalesPuertas,
   COLUMNAS_TOKENS,
   COLUMNAS_DESGLOSE_TOKENS,
   COLUMNA_PROYECTO,
@@ -505,10 +506,15 @@ export async function leerRepoMetricas(repo: RepoMetricas, varios: boolean): Pro
   const registroPuertas = leerRegistroPuertas(repo.ruta);
   const sincPorTarea = sumarPorTarea(registroPuertas, 'sincronizacion');
   const frenoPorTarea = resumirFreno(registroPuertas);
+  // TASK-128: las verificaciones de review y de finish, de la misma lectura.
+  const reviewPorTarea = resumirPuerta(registroPuertas, PUERTA_REVIEW);
+  const finishPorTarea = resumirPuerta(registroPuertas, PUERTA_FINISH);
   const filas: FilaMetricas[] = leidas.map((l) =>
     calcularFila({
       sincronizacionS: sincPorTarea.get(l.task.task.id) ?? null,
       freno: frenoPorTarea.get(l.task.task.id) ?? null,
+      review: reviewPorTarea.get(l.task.task.id) ?? null,
+      finishVerificacion: finishPorTarea.get(l.task.task.id) ?? null,
       task: l.task.task,
       body: l.task.body,
       ronda: l.ronda,
@@ -699,6 +705,9 @@ export async function runMetricasCommand(
     return {
       output: [
         formatearTabla(filas, columnas),
+        '',
+        // TASK-128: la fila de totales de las puertas de verificacion.
+        lineaTotalesPuertas(filas),
         '',
         ...notasFilaEnriquecida(filas, varios),
         '',

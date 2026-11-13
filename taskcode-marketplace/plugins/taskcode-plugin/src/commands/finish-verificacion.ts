@@ -59,6 +59,8 @@ import { currentBranch, isWorkspaceClean } from '../fs/git.js';
 import { autoCommit, mensajeChore } from '../fs/git-commit.js';
 import { readTareaFile, type ReadTareaResult } from '../fs/task-store.js';
 import { ejecutarVerificacion, guardarMemo, huellaDelArbol, verificarConMemo } from '../fs/verificacion.js';
+import { PUERTA_FINISH } from '../core/registro-puertas.js';
+import { anotarPuerta } from '../fs/registro-puertas.js';
 import { FinishCommandError } from './finish-opciones.js';
 
 export const FLAG_SIN_VERIFICACION = '--sin-verificacion';
@@ -105,6 +107,29 @@ export interface PuertaVerificacionOpts {
 }
 
 /** Las opciones de ejecucion del comando: el timeout de los tests y el entorno con el contador. */
+/**
+ * TASK-128: cada verificacion de `finish` anota una linea de la puerta `finish`
+ * en el registro de puertas (docs/registro-puertas.md), tambien en rojo.
+ * `modo` = tipo de verificacion; `omitido` si salio del memo sin ejecutar.
+ */
+function anotarFinish(
+  cwd: string,
+  id: string,
+  modo: string,
+  inicioMs: number,
+  estado: string,
+  deMemo = false
+): void {
+  anotarPuerta(cwd, {
+    puerta: PUERTA_FINISH,
+    tarea: id,
+    instante: new Date().toISOString(),
+    modo,
+    duracionS: (Date.now() - inicioMs) / 1000,
+    resultado: deMemo ? 'omitido' : estado === 'verde' ? 'verde' : 'rojo',
+  });
+}
+
 function opcionesEjecucion(o: PuertaVerificacionOpts): { timeoutMs?: number; env?: NodeJS.ProcessEnv } {
   return {
     ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
@@ -212,6 +237,7 @@ export async function puertaVerificacion(
   const timeoutS = config.timeout_verificacion;
   const inicioMs = Date.now();
   const r = ejecutarVerificacion(o.cwd, comando, timeoutS, opcionesEjecucion(o));
+  anotarFinish(o.cwd, o.id, 'completa', inicioMs, r.estado);
   // El memo solo con el arbol limpio: es la huella del commit que consulta el
   // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
   const limpio = isWorkspaceClean(o.cwd);
@@ -258,7 +284,9 @@ async function puertaSoloDocumentacion(
   const c = { commit };
 
   if (decision.comando !== null) {
+    const inicioDoc = Date.now();
     const r = ejecutarVerificacion(o.cwd, decision.comando, timeoutS, opcionesEjecucion(o));
+    anotarFinish(o.cwd, o.id, 'documentacion', inicioDoc, r.estado);
     const limpio = isWorkspaceClean(o.cwd);
     const huella = limpio ? huellaDelArbol(o.cwd, decision.comando, timeoutS) : null;
     if (huella !== null) guardarMemo(o.cwd, huella, r, 'documentacion');
@@ -368,11 +396,13 @@ async function puertaSelectiva(
   timeoutS: number,
   ramaBase: string
 ): Promise<{ resultado: ResultadoPuerta; tarea: ReadTareaResult }> {
+  const inicioSel = Date.now();
   const v = verificarConMemo(
     o.cwd,
     { tipo: 'selectiva', comando: decision.comando, timeoutS, base: ramaBase, memoSoloVerde: true },
     opcionesEjecucion(o)
   );
+  anotarFinish(o.cwd, o.id, 'selectiva', inicioSel, v.resultado.estado, v.deMemo);
   if (v.resultado.estado !== 'verde') {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: no se mergea con la verificacion selectiva en rojo (comando_verificacion_selectiva: ` +
@@ -495,7 +525,9 @@ export function puertaReintento(o: PuertaReintentoOpts): ResultadoReintento {
       'alli): se verifica el arbol de la rama de integracion antes de cerrar.'
   );
   if (peticion === null) return { tipo: 'verde', que: 'documentacion', deMemo: false };
+  const inicioReintento = Date.now();
   const v = verificarConMemo(o.cwd, { ...peticion, memoSoloVerde: true }, opciones);
+  anotarFinish(o.cwd, o.id, peticion.tipo, inicioReintento, v.resultado.estado, v.deMemo);
   if (v.resultado.estado !== 'verde') {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: la rama ya esta integrada en "${o.ramaIntegracion}", pero la verificacion de su arbol no sale ` +

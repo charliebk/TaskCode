@@ -45,6 +45,17 @@ un campo vacío se escribe `-`.
   (veces que el freno ejecutó de verdad la verificación: las `omitido` no
   cuentan) y `freno` (el tiempo de todas sus líneas); sin líneas, `—`.
 
+## Puertas `review` y `finish`
+
+`taskctl review` anota una línea `review` por cada verificación de ronda (modo
+`selectiva` o `documentacion`) y `taskctl finish` una línea `finish` por cada
+verificación de cierre (modo `completa`, `selectiva`, `documentacion`, y
+`pesada` cuando se separen los tests pesados), también cuando sale en rojo y
+el comando aborta. `resultado`: `verde`, `rojo` u `omitido` (el memo ya tenía
+el verde y no se ejecutó). `--sin-verificacion` no anota nada: no hubo puerta.
+`taskctl metricas` las resume en `review_n`/`review_v` y `finish_n`/`finish_v`
+y en la fila de totales de debajo de la tabla.
+
 ## Puerta `freno`
 
 El freno de fin de turno (hook `Stop`) anota una línea cada vez que llega a

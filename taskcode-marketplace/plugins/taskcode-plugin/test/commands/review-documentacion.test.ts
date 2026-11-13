@@ -11,6 +11,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { leerRegistroPuertas } from '../../src/fs/registro-puertas.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -131,6 +132,13 @@ test('review (TASK-104): ronda de solo documentacion con selectiva y comando de 
     assert.equal(e.ejecuciones('docs'), 1);
     assert.equal(e.ejecuciones('selectiva'), 0);
     assert.equal(e.ejecuciones('completa'), 0);
+    // TASK-128 (MEN-2): la ronda de documentacion se anota con su modo.
+    assert.deepEqual(
+      leerRegistroPuertas(e.repoRoot)
+        .filter((l) => l.puerta === 'review')
+        .map((l) => [l.modo, l.resultado]),
+      [['documentacion', 'verde']]
+    );
     const peticion = peticionDe(r);
     assert.match(peticion, /## Verificacion de esta ronda/);
     assert.match(peticion, /- Tipo: comprobacion de documentacion \(comando_verificacion_documentacion\): la tarea solo cambia documentacion/);

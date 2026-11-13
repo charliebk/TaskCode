@@ -7,6 +7,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { leerRegistroPuertas } from '../../src/fs/registro-puertas.js';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -125,6 +126,10 @@ test('finish (TASK-106): codigo solo en rutas parciales: corre la selectiva, no 
     assert.equal(e.ejecuciones('sel'), 1);
     assert.equal(e.ejecuciones('completa'), 0);
     assert.equal(e.ramaBaseRecibida(), 'develop', 'la selectiva recibe RAMA_BASE');
+    // TASK-128 (MEN-1): la selectiva de finish queda en el registro de puertas.
+    assert.deepEqual(leerRegistroPuertas(e.repoRoot)
+      .filter((l) => l.puerta === 'finish')
+      .map((l) => [l.tarea, l.modo, l.resultado]), [['TASK-951', 'selectiva', 'verde']]);
     assert.ok(integrada(task.rama, 'develop', e.repoRoot));
     assert.ok(
       avisos.some((a) => /cae en rutas_verificacion_parcial de "develop".*se ejecuta la verificacion selectiva \(".*sel"\) en vez de la completa/.test(a)),
@@ -173,6 +178,10 @@ test('finish (TASK-106): con la selectiva en rojo no integra, develop no se muev
         /--sin-verificacion/.test(err.message)
     );
     assert.equal(e.ejecuciones('completa'), 0);
+    // TASK-128 (MEN-1): el rojo se anota antes de abortar.
+    assert.deepEqual(leerRegistroPuertas(e.repoRoot)
+      .filter((l) => l.puerta === 'finish')
+      .map((l) => [l.tarea, l.modo, l.resultado]), [['TASK-953', 'selectiva', 'rojo']]);
     assert.equal(git(['rev-parse', 'develop'], e.repoRoot), develop, 'develop no se mueve');
     assert.equal(git(['rev-parse', 'HEAD'], e.repoRoot), head, 'ni un commit de anotacion en la rama');
     const t = await readTareaFile(e.tareasRoot, 'TASK-953');

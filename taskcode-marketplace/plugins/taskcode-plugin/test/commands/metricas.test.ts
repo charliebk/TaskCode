@@ -81,6 +81,8 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
       'sinc',
       // TASK-111: el freno Stop (veces y tiempo), detras.
       'freno_n', 'freno',
+      // TASK-128: review y finish (veces y tiempo) y las rondas abiertas solo por MENORES.
+      'review_n', 'review_v', 'finish_n', 'finish_v', 'rondas_men',
     ]);
     const [id, complejidad, diseno, curso, revision, rondas, crit, imp, men, hallOrigen, cierre, origen, estimada, finish, puntaAPunta] = filaDe(r.stdout);
     // TASK-097: finish anoto la duracion; el plan del escenario no la dice, asi que «—».
@@ -114,8 +116,8 @@ test('ciclo completo por CLI: cada transicion con instante y metricas lo mide de
     assert.deepEqual(cabecera(h.stdout).slice(-2), ['puntos', 'nivel_heuristico']);
     const fila = filaDe(h.stdout);
     // TASK-120 y TASK-111: sinc, freno_n y freno antes de las de heuristica.
-    assert.match(fila[18] as string, /^\d+$/);
-    assert.match(fila[19] as string, /^(trivial|simple|media|alta|critica)$/);
+    assert.match(fila[23] as string, /^\d+$/);
+    assert.match(fila[24] as string, /^(trivial|simple|media|alta|critica)$/);
     assert.match(h.stdout, /Muestra: 1 tareas terminadas/);
     assert.match(h.stdout, /Por complejidad declarada:\n {2}simple +n= {2}1 +rondas medias=1\.00/);
 
@@ -211,7 +213,7 @@ test('metricas fuera de un repo Git: las tareas sin registro salen con "—" y u
       await writeFile(copia, sinRegistro, 'utf8');
       const r = cliOk(fuera, ['metricas']);
       assert.match(r.stderr, /\[AVISO\] No se pudo consultar git log/);
-      assert.deepEqual(filaDe(r.stdout).slice(2), ['—', '—', '—', '1', '0', '0', '1', '0/0/0/1', '—', '—', '—', '—', '—', '—', '—', '—']);
+      assert.deepEqual(filaDe(r.stdout).slice(2), ['—', '—', '—', '1', '0', '0', '1', '0/0/0/1', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '0']);
     } finally {
       await rm(fuera, { recursive: true, force: true });
     }

@@ -7,6 +7,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { leerRegistroPuertas } from '../../src/fs/registro-puertas.js';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -126,6 +127,10 @@ test('finish (TASK-100): solo documentacion con comando de documentacion: corre 
     const { avisos } = await finish(e, 'TASK-902');
     assert.equal(e.ejecuciones('completa'), 0);
     assert.equal(e.ejecuciones('docs'), 1);
+    // TASK-128 (MEN-1): la comprobacion de documentacion de finish queda en el registro de puertas.
+    assert.deepEqual(leerRegistroPuertas(e.repoRoot)
+      .filter((l) => l.puerta === 'finish')
+      .map((l) => [l.tarea, l.modo, l.resultado]), [['TASK-902', 'documentacion', 'verde']]);
     assert.ok(integradaEnDevelop(task.rama, e.repoRoot));
     assert.ok(avisos.some((a) => /comprobacion de documentacion \(".*docs"\) sale en verde/.test(a)), avisos.join('\n'));
     // Memo de documentacion para el commit integrado; ninguno de la completa.

@@ -422,6 +422,35 @@ export interface ResumenHallazgos {
   severidadesDesconocidas: SeveridadDesconocida[];
 }
 
+/**
+ * TASK-128: rondas abiertas solo por MENORES: cuantas rondas k >= 2 se
+ * abrieron tras una ronda k-1 cuyos informes no traen ningun CRITICO ni
+ * IMPORTANTE (en cualquier estado). null = sin dato: sin informes, o con un
+ * informe sin tabla de hallazgos en una ronda k-1 que haria falta mirar
+ * (contar solo los demas daria una cifra menor con aspecto de buena).
+ */
+export function rondasSoloMenores(informes: readonly InformeLeido[]): number | null {
+  if (informes.length === 0) return null;
+  const porRonda = new Map<number, InformeLeido[]>();
+  for (const inf of informes) porRonda.set(inf.ronda, [...(porRonda.get(inf.ronda) ?? []), inf]);
+  let cuenta = 0;
+  for (const ronda of porRonda.keys()) {
+    if (ronda < 2) continue;
+    const previos = porRonda.get(ronda - 1);
+    if (previos === undefined) continue;
+    let bloqueante = false;
+    for (const inf of previos) {
+      const { tabla, hallazgos } = leerHallazgos(inf.texto);
+      if (!tabla) return null;
+      if (hallazgos.some((h) => h.severidadReconocida === 'CRITICO' || h.severidadReconocida === 'IMPORTANTE')) {
+        bloqueante = true;
+      }
+    }
+    if (!bloqueante) cuenta++;
+  }
+  return cuenta;
+}
+
 export function resumirHallazgos(informes: readonly InformeLeido[]): ResumenHallazgos {
   const informesSinTabla: string[] = [];
   const severidadesDesconocidas: SeveridadDesconocida[] = [];

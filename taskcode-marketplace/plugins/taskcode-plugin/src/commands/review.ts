@@ -34,6 +34,8 @@ import { raizDelRepo, resolverConfig } from '../core/config.js';
 import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertura.js';
 import { formatearVerificacionRoja, seccionVerificacionRevision } from '../core/informe-verificacion.js';
 import { verificarConMemo, type VerificacionConMemo } from '../fs/verificacion.js';
+import { PUERTA_REVIEW } from '../core/registro-puertas.js';
+import { anotarPuerta } from '../fs/registro-puertas.js';
 import { peticionDeTrabajo, type PlanVerificacion } from '../fs/decision-documentacion.js';
 import { anotarLineaEnSeccion, registrarTransicion } from '../core/transiciones.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
@@ -1292,6 +1294,7 @@ function verificacionDeRonda(
   if (plan.tipo !== 'selectiva' && plan.tipo !== 'documentacion') return null;
   const comando = plan.comando as string;
   const motivo = plan.tipo === 'documentacion' ? plan.motivo : null;
+  const inicioVerificacion = Date.now();
   const v = verificarConMemo(
     raiz,
     motivo !== null
@@ -1299,6 +1302,15 @@ function verificacionDeRonda(
       : { tipo: 'selectiva', comando, timeoutS: plan.timeoutS, base },
     { env: entornoVerificacion() }
   );
+  // TASK-128: la verificacion de la ronda queda en el registro de puertas, tambien en rojo.
+  anotarPuerta(raiz, {
+    puerta: PUERTA_REVIEW,
+    tarea: id,
+    instante: new Date().toISOString(),
+    modo: motivo !== null ? 'documentacion' : 'selectiva',
+    duracionS: (Date.now() - inicioVerificacion) / 1000,
+    resultado: v.deMemo ? 'omitido' : v.resultado.estado === 'verde' ? 'verde' : 'rojo',
+  });
   const nombre =
     motivo !== null
       ? 'la comprobacion de documentacion (comando_verificacion_documentacion: solo cambia documentacion)'
