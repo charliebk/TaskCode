@@ -27,8 +27,23 @@ dependencias: []
 Los logs de Git-Flow no cierran siempre con una linea reconocible (los de create no se pueden medir), asi que la duracion de start, review y finish no se puede sacar de ellos. Urgente para la version 0.16.0 (decision de Carlos, 2026-11-12): lo mas rapido posible, sin trocear salvo que haga falta; el cierre no exige la suite completa, basta con los tests afectados y npm run test:rapido. Origen: docs/auditoria/PASOS-PLUGIN-2026-11-12.md (P-10)
 
 ## Criterios de aceptacion
-- [ ] Todos los scripts de scripts/gitflow terminan su registro con una linea FIN con la operacion, el resultado y la duracion en segundos, tambien cuando abortan (test por script)
-- [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+- [x] Todos los scripts de scripts/gitflow terminan su registro con una linea FIN con la operacion, el resultado y la duracion en segundos, tambien cuando abortan (test por script)
+- [x] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Resultado
+
+`initialize_gitflow_log` instala un `trap EXIT` que cierra el registro con
+`FIN: <operacion> | resultado: <R> | duracion: <N>s`: el resultado de `log_summary`,
+`ABORTADO` si sale 0 sin resumen o `ERROR (codigo N)`. Los 22 scripts que registran
+lo dejan (test por script en test/gitflow/linea-fin.test.ts; mutante sin el trap: 23
+rojos). Documentado en skills/task-workflow/trampas.md.
+
+Revision por pares, ronda 1 (general-purpose + code-quality-reviewer, sonnet):
+aprobada, sin CRITICOS ni IMPORTANTES.
+
+- MEN-1 (MENOR, aceptado): con SIGTERM el proceso sale con 143 pero la linea dice
+  `ABORTADO` (dentro del trap de EXIT `$?` vale 0 tras una senal). La FIN se escribe y
+  la etiqueta describe lo ocurrido; con SIGKILL no hay FIN, inevitable.
 
 ## Transiciones
 
