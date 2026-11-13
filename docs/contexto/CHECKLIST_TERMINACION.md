@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 137 / 137 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 138 / 138 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 36 | **36** | — |
+| ✅ P — Agilidad sin perder calidad | 37 | **37** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (36/36)
+## ✅ P — Agilidad sin perder calidad (37/37)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -184,6 +184,11 @@ del código.
       la completa solo en esos tipos (también en el camino idempotente) y el guardián exige su verde para integrar una
       release a mano; doctor dice qué puerta los corre; skill finish y docs con cargo test -- --ignored. Tres rondas
       (la 3.ª extra, anotada): IMP-1, IMP-2 y MEN-1 corregidos. finish --sin-verificacion (verificar-impacto 957/957).*
+- [x] TASK-129 — Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento — cerrada el 2026-11-13
+      *Plantilla del plan y skill plan con presupuesto de 1 a 3 tests por criterio; review: test duplicado = MENOR;
+      anexo tests-pesados.md (Node, Rust, Java, .NET). La completa anota su número de tests (línea suite); metricas
+      --por-version muestra tests y completa; doctor avisa (crecimiento-suite) por encima de umbral_crecimiento_suite.
+      Tres rondas (la 3.ª extra, anotada): IMP-1..3 y MEN-1..3 corregidos. finish --sin-verificacion (953/953).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
