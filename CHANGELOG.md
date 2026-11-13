@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-118 (feature) — P-10: linea FIN con la duracion en todos los scripts de Git-Flow (2026-11-13)
 - TASK-114 (feature) — P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer (2026-11-13)
 - TASK-113 (feature) — P-5: peticion de revision mas ligera con los tests como --stat y ruta (2026-11-13)
 - TASK-116 (feature) — P-8: TaskCode declara su verificacion y doctor avisa cuando falta (2026-11-13)

@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-118-p-10-linea-fin-con-la-duracion-en-todos
 asignado_a: charlie.bk@gmail.com
@@ -53,6 +53,7 @@ aprobada, sin CRITICOS ni IMPORTANTES.
 | 2026-11-13T02:50:17Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T02:50:18Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T02:59:11Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T03:32:23Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -63,3 +64,9 @@ aprobada, sin CRITICOS ni IMPORTANTES.
 ## Verificacion omitida
 
 - 2026-11-13T03:32:15Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 40 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 42 min
+- Cierre (finish): 8 s, de 2026-11-13T03:32:15Z a 2026-11-13T03:32:23Z
