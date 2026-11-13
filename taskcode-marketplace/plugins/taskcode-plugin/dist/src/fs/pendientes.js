@@ -50,7 +50,10 @@ function refApartado(cwd, id) {
     for (const linea of lineas) {
         const [ref, asunto] = linea.split('\t');
         if (ref !== undefined && asunto !== undefined && asunto.endsWith(sufijo)) {
-            const rama = asunto.startsWith('On ') ? asunto.slice(3, asunto.length - sufijo.length) : null;
+            const enAsunto = asunto.startsWith('On ') ? asunto.slice(3, asunto.length - sufijo.length) : null;
+            // MEN-5 de la revision: con HEAD desacoplado git escribe "(no branch)";
+            // currentBranch da '' en ese caso.
+            const rama = enAsunto === '(no branch)' ? '' : enAsunto;
             return { ref, rama };
         }
     }

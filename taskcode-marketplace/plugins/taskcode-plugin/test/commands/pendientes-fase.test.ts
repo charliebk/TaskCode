@@ -5,6 +5,7 @@
  * cuyas guardas solo dejan pasar eso. Contra repos Git temporales reales: la
  * evidencia sale de `git log`, `git status` y `git stash list`.
  */
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -252,3 +253,66 @@ test('TASK-119 (MEN-2, MEN-4): lo apartado no se devuelve en otra rama, ni lo re
     assert.equal(t?.task.tokens_implementacion, 200);
   });
 });
+
+test('TASK-119 (IMP-1): finish cuyo merge falla da el error del script, conserva lo apartado y el reintento lo recupera', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await hastaCodigoSinCommits(repo, tareasRoot);
+    const informe = await hastaVeredictoPendiente(repo, tareasRoot);
+    const rama = git(['branch', '--show-current'], repo).trim();
+    // develop avanza con un conflicto en app.txt (desde un worktree, sin tocar
+    // lo pendiente de este arbol): el merge de finish falla.
+    const wt = `${repo}-wt-develop`;
+    git(['worktree', 'add', '-q', wt, 'develop'], repo);
+    await writeFile(path.join(wt, 'app.txt'), 'otro en develop\n', 'utf8');
+    git(['commit', '-q', '-am', 'chore: develop avanza en app.txt'], wt);
+    git(['worktree', 'remove', '--force', wt], repo);
+
+    const r = cli(repo, ['finish', ID]);
+    assert.equal(r.status, 1, r.stdout);
+    assert.match(r.stderr, /termino con codigo/, 'el error que se ve es el del script');
+    assert.match(r.stderr, new RegExp(mensajeApartado(ID)), 'y dice donde esta lo apartado');
+    assert.match(git(['stash', 'list'], repo), new RegExp(`On ${rama}: ${mensajeApartado(ID)}`));
+
+    // Lo que indica el error: abortar, integrar la base en la rama de la tarea, resolver y reintentar.
+    git(['merge', '--abort'], repo);
+    git(['checkout', '-q', rama], repo);
+    const integrar = spawnGit(['merge', '-q', 'develop'], repo);
+    assert.notEqual(integrar, 0, 'el conflicto se reproduce en la rama de la tarea');
+    // Se resuelve con lo de la rama (lo revisado): sin codigo nuevo que verificar.
+    git(['checkout', '--ours', 'app.txt'], repo);
+    git(['add', 'app.txt'], repo);
+    git(['commit', '-q', '--no-edit'], repo);
+
+    cliOk(repo, ['finish', ID]);
+    assert.equal(git(['stash', 'list'], repo).trim(), '', 'el reintento recupero lo apartado');
+    assert.equal(git(['status', '--porcelain'], repo).trim(), '');
+    const t = await readTareaFile(tareasRoot, ID);
+    assert.equal(t?.task.estado, 'terminada');
+    assert.equal(t?.task.tokens_revision, 300);
+    const rel = path
+      .relative(repo, path.join(path.dirname(t?.filePath ?? ''), 'revision', path.basename(informe)))
+      .split(path.sep)
+      .join('/');
+    assert.match(git(['show', `HEAD:${rel}`], repo), /^- Veredicto: aprobada$/m);
+  });
+});
+
+test('TASK-119 (MEN-5): con HEAD desacoplado lo apartado se recupera en HEAD desacoplado', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await hastaCodigoSinCommits(repo, tareasRoot);
+    cliOk(repo, ['registrar-coste', ID, '--fase', 'implementacion', '--tokens', '200']);
+    git(['checkout', '-q', '--detach'], repo);
+    const apartado = apartarPendientes(repo, tareasRoot, ID);
+    assert.ok(apartado.activo);
+    assert.match(git(['stash', 'list'], repo), /On \(no branch\)/);
+    assert.equal(recuperarApartado(repo, tareasRoot, ID), true);
+    assert.equal(git(['stash', 'list'], repo).trim(), '');
+    const t = await readTareaFile(tareasRoot, ID);
+    assert.equal(t?.task.tokens_implementacion, 200);
+  });
+});
+
+/** git que puede fallar: devuelve el codigo de salida. */
+function spawnGit(args: string[], cwd: string): number | null {
+  return spawnSync('git', args, { cwd, encoding: 'utf8' }).status;
+}

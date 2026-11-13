@@ -88,7 +88,13 @@ import {
 } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
-import { apartarPendientes, hayCambiosFueraDeTarea, recuperarApartado, type Apartado } from '../fs/pendientes.js';
+import {
+  apartarPendientes,
+  hayCambiosFueraDeTarea,
+  hayPendientesDeTarea,
+  recuperarApartado,
+  type Apartado,
+} from '../fs/pendientes.js';
 import { extraerSinVerificacion, puertaReintento, puertaVerificacion, type ResultadoReintento } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
 import { puertaCobertura } from './finish-cobertura.js';
@@ -1016,6 +1022,21 @@ async function abrirMergeRequestYAnotar(o: AbrirMergeRequestOpts): Promise<Finis
     );
   }
   if (o.nombreTag !== null) comprobarTagLibre(o.nombreTag, id, o.push, cwd, deps.onAviso);
+
+  // TASK-119 (MEN-3 de la revision): lo pendiente de la tarea (veredicto,
+  // informe, coste) tiene que viajar en la rama que se sube: quien revisa el
+  // merge request en la plataforma lo ve. Es el unico camino que lo commitea
+  // aparte, porque la anotacion del MR va despues de la subida.
+  if (hayPendientesDeTarea(cwd, o.tareasRoot, id)) {
+    const previo = autoCommit({
+      fase: 'finish',
+      cwd,
+      rutas: [path.dirname(initial.filePath)],
+      mensaje: mensajeChore(id, 'registros de la revision'),
+      push: false,
+    });
+    for (const a of previo.avisos) deps.onAviso?.(a);
+  }
 
   // Primer efecto: subir la rama.
   try {
