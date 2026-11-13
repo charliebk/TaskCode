@@ -1,6 +1,14 @@
 # Changelog
 
-## Sin publicar
+## 0.16.1 — 2026-11-13
+
+Correcciones tras la 0.16.0. En Windows, taskctl lanza los scripts de Git-Flow
+con el bash de la instalacion de Git (localizado a partir de git.exe, con su
+usr/bin delante en el PATH) y no con el primero del PATH, que desde PowerShell
+suele ser el de WSL; `taskctl doctor` dice cual usa (TASK-134). La guia de
+task-workflow enlaza la de poda de tests y un test seguia esperando el commit
+propio de registrar-coste (TASK-133).
+
 - TASK-134 (fix) — En Windows taskctl lanza el bash de Git, no el primero del PATH (2026-11-13)
 - TASK-133 (fix) — Rojos de la suite completa de la 0.16.0 y publicacion de la 0.16.1 (2026-11-13)
 
