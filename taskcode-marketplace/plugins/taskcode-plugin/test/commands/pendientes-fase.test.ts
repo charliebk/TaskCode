@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { readTareaFile } from '../../src/fs/task-store.js';
-import { mensajeApartado } from '../../src/fs/pendientes.js';
+import { apartarPendientes, mensajeApartado, recuperarApartado } from '../../src/fs/pendientes.js';
 import {
   ID,
   CONFIG_AUTO,
@@ -178,5 +178,77 @@ test('TASK-119: el stash de un finish que murio lo recupera el siguiente intento
     const t = await readTareaFile(tareasRoot, ID);
     assert.equal(t?.task.estado, 'terminada');
     assert.equal(t?.task.tokens_revision, 300);
+  });
+});
+
+test('TASK-119 (MEN-1): review con conflicto en el update da el error del script y no devuelve lo apartado encima del merge', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await hastaCodigoSinCommits(repo, tareasRoot);
+    const rama = git(['branch', '--show-current'], repo).trim();
+    git(['checkout', '-q', 'develop'], repo);
+    await codigo(repo, 'otro en develop\n', 'chore: develop avanza en app.txt');
+    git(['checkout', '-q', rama], repo);
+    cliOk(repo, ['registrar-coste', ID, '--fase', 'implementacion', '--tokens', '200']);
+
+    const r = cli(repo, ['review', ID]);
+    assert.equal(r.status, 1, r.stdout);
+    assert.match(r.stderr, /termino con codigo/, 'el error que se ve es el del script');
+    assert.doesNotMatch(r.stderr, /no se pudo devolver/);
+    // El script deja el merge a medias: lo apartado se queda en su stash y el error lo dice.
+    assert.match(git(['status', '--porcelain'], repo), /^UU app\.txt/m);
+    assert.match(r.stderr, new RegExp(mensajeApartado(ID)));
+    assert.match(git(['stash', 'list'], repo), new RegExp(mensajeApartado(ID)));
+    await writeFile(path.join(repo, 'app.txt'), 'resuelto\n', 'utf8');
+    git(['add', 'app.txt'], repo);
+    git(['commit', '-q', '--no-edit'], repo);
+    // Resuelto el conflicto, el siguiente review lo recupera y lo absorbe.
+    cliOk(repo, ['review', ID]);
+    assert.equal(git(['stash', 'list'], repo).trim(), '');
+    assert.equal(git(['status', '--porcelain'], repo).trim(), '');
+    const t = await readTareaFile(tareasRoot, ID);
+    assert.equal(t?.task.estado, 'en-revision');
+    assert.equal(t?.task.tokens_implementacion, 200);
+  });
+});
+
+test('TASK-119 (IMP-1): finish que anota la verificacion mete lo pendiente en ese commit, en la rama de la tarea', async () => {
+  await withRepo(`${CONFIG_AUTO}comando_verificacion: node --version\n`, async (repo, tareasRoot) => {
+    await hastaCodigoSinCommits(repo, tareasRoot);
+    const informe = await hastaVeredictoPendiente(repo, tareasRoot);
+    const rel = path.relative(repo, informe).split(path.sep).join('/');
+    cliOk(repo, ['finish', ID, '--sin-verificacion']);
+    assert.equal(git(['stash', 'list'], repo).trim(), '');
+    assert.equal(git(['status', '--porcelain'], repo).trim(), '');
+    const anotacion = git(['log', '--format=%H %s', 'develop'], repo)
+      .split('\n')
+      .find((l) => l.endsWith(`chore(${ID}): cierre sin verificacion`));
+    assert.ok(anotacion, 'hay commit de anotacion');
+    const sha = anotacion.split(' ')[0] as string;
+    const ficheros = git(['show', '--name-only', '--format=', sha], repo);
+    assert.ok(ficheros.includes(rel), `el informe va en el commit de la anotacion: ${ficheros}`);
+    assert.match(git(['show', `${sha}:${rel}`], repo), /^- Veredicto: aprobada$/m);
+    const t = await readTareaFile(tareasRoot, ID);
+    assert.equal(t?.task.estado, 'terminada');
+    assert.equal(t?.task.tokens_revision, 300);
+  });
+});
+
+test('TASK-119 (MEN-2, MEN-4): lo apartado no se devuelve en otra rama, ni lo recupera un intento desde otra rama', async () => {
+  await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
+    await hastaCodigoSinCommits(repo, tareasRoot);
+    const rama = git(['branch', '--show-current'], repo).trim();
+    cliOk(repo, ['registrar-coste', ID, '--fase', 'implementacion', '--tokens', '200']);
+    const apartado = apartarPendientes(repo, tareasRoot, ID);
+    assert.ok(apartado.activo);
+    git(['checkout', '-q', 'develop'], repo);
+    const nota = apartado.devolverSiSePuede();
+    assert.ok(nota !== null && nota.includes(`hecho en "${rama}"`), String(nota));
+    assert.equal(git(['status', '--porcelain'], repo).trim(), '', 'nada vuelto en develop');
+    assert.throws(() => recuperarApartado(repo, tareasRoot, ID), new RegExp(`Cambiate a "${rama}"`));
+    assert.match(git(['stash', 'list'], repo), new RegExp(mensajeApartado(ID)), 'el stash sigue');
+    git(['checkout', '-q', rama], repo);
+    assert.equal(recuperarApartado(repo, tareasRoot, ID), true);
+    const t = await readTareaFile(tareasRoot, ID);
+    assert.equal(t?.task.tokens_implementacion, 200);
   });
 });

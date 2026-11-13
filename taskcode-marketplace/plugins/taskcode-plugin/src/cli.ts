@@ -18,6 +18,7 @@ import { runApproveCommand, ApproveCommandError } from './commands/approve.js';
 import { runReviewCommand, ReviewCommandError } from './commands/review.js';
 import { runCodexReviewCommand, CodexReviewCommandError } from './commands/codex-review.js';
 import { runVeredictoCommand, VeredictoCommandError } from './commands/veredicto.js';
+import { PendientesError } from './fs/pendientes.js';
 import { runVerificarMenoresCommand, VerificarMenoresCommandError } from './commands/verificar-menores.js';
 import { runFinishCommand, FinishCommandError } from './commands/finish.js';
 import { runSiguienteCommand, SiguienteCommandError } from './commands/siguiente.js';
@@ -835,6 +836,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         e instanceof AutoCommitError ||
         e instanceof ConfigError ||
         e instanceof ReviewCommandError ||
+        e instanceof PendientesError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
         e instanceof GitLaunchError ||
@@ -1197,6 +1199,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
         e instanceof AutoCommitError ||
         e instanceof ConfigError ||
         e instanceof FinishCommandError ||
+        e instanceof PendientesError ||
         e instanceof StateMachineError ||
         e instanceof TaskFolderConflictError ||
         e instanceof GitLaunchError ||

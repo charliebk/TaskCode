@@ -755,21 +755,24 @@ async function runReview(
   const scriptName = SCRIPT_BY_TYPE[tipo];
   // TASK-040: la ronda incremental no ejecuta el update (el merge de la
   // base entraria en el delta); exige estar ya en la rama de la tarea.
-  const { code, signal } = incremental
-    ? { code: 0, signal: null }
-    : conPendientesApartados(deps.repoCwd, tareasRoot, initial!.task.id, () =>
-        runGitflowScript(scriptName, [rama, ...gitflowBaseArgs(tipo, deps.repoCwd)], {
-          scriptsDir: deps.scriptsDir,
-          cwd: deps.repoCwd,
-        })
-      );
-  if (code !== 0) {
-    const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
-    throw new ReviewCommandError(
-      `[ERROR] ${id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
-        'Revisa la salida de arriba (si hay un conflicto de merge, resuelvelo y haz commit ' +
-        'antes de reintentar); la tarea no se ha movido de carpeta.'
-    );
+  // MEN-1 de la revision: el fallo del script lanza DENTRO de la ventana, para
+  // que lo apartado no se devuelva encima de un merge a medias y el error que
+  // se ve sea el del script (con la nota de como se recupera lo apartado).
+  if (!incremental) {
+    conPendientesApartados(deps.repoCwd, tareasRoot, initial!.task.id, () => {
+      const { code, signal } = runGitflowScript(scriptName, [rama, ...gitflowBaseArgs(tipo, deps.repoCwd)], {
+        scriptsDir: deps.scriptsDir,
+        cwd: deps.repoCwd,
+      });
+      if (code !== 0) {
+        const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
+        throw new ReviewCommandError(
+          `[ERROR] ${id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
+            'Revisa la salida de arriba (si hay un conflicto de merge, resuelvelo y haz commit ' +
+            'antes de reintentar); la tarea no se ha movido de carpeta.'
+        );
+      }
+    });
   }
 
   // Evidencia, no suposicion (TASK-007/009): rama activa correcta y
