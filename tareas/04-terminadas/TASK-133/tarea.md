@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, publicacion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-133-rojos-de-la-suite-completa-de-la-0-16-0
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ La suite completa de la 0.16.0 dio dos rojos reales ademas de los dos conocidos 
 | 2026-11-13T20:26:23Z | approve | automatico | persona | 0.16.0 |
 | 2026-11-13T20:26:24Z | start | automatico | persona | 0.16.0 |
 | 2026-11-13T20:37:29Z | review | automatico | persona | 0.16.0 |
+| 2026-11-13T21:26:47Z | finish | automatico | persona | 0.16.0 |
 
 ## Coste
 
@@ -58,3 +59,9 @@ La suite completa de la 0.16.0 dio dos rojos reales ademas de los dos conocidos 
 ## Verificacion omitida
 
 - 2026-11-13T21:26:22Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 20 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 60 min
+- Cierre (finish): 25 s, de 2026-11-13T21:26:22Z a 2026-11-13T21:26:47Z

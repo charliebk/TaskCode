@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 14
+## Planificadas (00-planificadas) — 15
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,9 +21,10 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-134  En Windows taskctl lanza el bash de Git, no el primero del PATH                             (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 116
+## Terminadas (04-terminadas) — 117
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -144,4 +145,5 @@ TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, p
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                         charlie.bk@gmail.com
 TASK-131  Tres tests con expectativas anteriores a TASK-119                                                                   charlie.bk@gmail.com
 TASK-132  Ayudante caso() de los tests fusionados en un unico helper compartido                                               charlie.bk@gmail.com
+TASK-133  Rojos de la suite completa de la 0.16.0 y publicacion de la 0.16.1                                                  charlie.bk@gmail.com
 ```
