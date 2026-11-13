@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 127 / 127 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 128 / 128 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 26 | **26** | — |
+| ✅ P — Agilidad sin perder calidad | 27 | **27** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (26/26)
+## ✅ P — Agilidad sin perder calidad (27/27)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -188,6 +188,11 @@ del código.
       común y dice de cuáles sale. Dos rondas: MEN-1..3 corregidos; IMP-1 aceptado y pendiente de decisión de
       Carlos: la propuesta cuenta como declarada y la heurística toma el máximo, así que solo puede subir roles.
       Incidente: un revisor creó por error un commit en develop (TASK-131 falsa, sin subir); se retiró.*
+- [x] TASK-120 — P-12: sincronización con su duración registrada y limitada a las fases que se declaren — cerrada el 2026-11-13
+      *Registro común de puertas en .git/taskcode/puertas.log (puerta, tarea, instante, modo, duración, resultado;
+      docs/registro-puertas.md para TASK-111 y TASK-128); cada sincronización anota su línea, fases_sincronizacion
+      la limita y metricas la suma en la columna sinc. De paso, el test del symlink de approve se omite sin
+      privilegio (bloqueaba la selectiva): en Windows fallan ya solo 2. Una ronda aprobada, 2 MENORES aceptados.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
