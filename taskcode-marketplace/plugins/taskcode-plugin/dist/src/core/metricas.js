@@ -274,6 +274,9 @@ export function calcularFila(e) {
         sincronizacion: e.sincronizacionS === undefined || e.sincronizacionS === null
             ? null
             : { valor: Math.round(e.sincronizacionS * 1000), precision: 'segundo' },
+        freno: e.freno === undefined || e.freno === null
+            ? null
+            : { ejecuciones: e.freno.ejecuciones, duracion: { valor: Math.round(e.freno.duracionS * 1000), precision: 'segundo' } },
         puntaAPunta: duracionSinPausas(marcas.start, marcas.finish, marcas.intervalosPausa),
         estimadaMin: estimadaAnotada(e.body),
         enPausa: enPausaDe(marcas),
@@ -354,6 +357,9 @@ export const COLUMNAS_METRICAS = [
     { cabecera: 'punta_a_punta', valor: (f) => formatearDuracion(f.puntaAPunta) },
     // TASK-120: lo que suma comando_sincronizacion en la tarea (registro de puertas).
     { cabecera: 'sinc', valor: (f) => formatearDuracion(f.sincronizacion) },
+    // TASK-111: el freno Stop de la tarea: cuantas veces corrio de verdad y cuanto sumo.
+    { cabecera: 'freno_n', valor: (f) => (f.freno === null ? '—' : String(f.freno.ejecuciones)) },
+    { cabecera: 'freno', valor: (f) => (f.freno === null ? '—' : formatearDuracion(f.freno.duracion)) },
 ];
 /** Primera columna con varios proyectos (`--repo` repetido): el ID solo no identifica la tarea. */
 export const COLUMNA_PROYECTO = { cabecera: 'proyecto', valor: (f) => f.proyecto };

@@ -41,7 +41,7 @@
  * y los CRITICO/IMPORTANTE de su informe; `--json` lo lleva en `lecturasRevision`.
  * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
-import { sumarPorTarea } from '../core/registro-puertas.js';
+import { resumirFreno, sumarPorTarea } from '../core/registro-puertas.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import path from 'node:path';
 import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -501,10 +501,14 @@ export async function leerRepoMetricas(repo: RepoMetricas, varios: boolean): Pro
   }
 
   // TASK-120: la sincronizacion de cada tarea, del registro de puertas (una lectura por repo).
-  const sincPorTarea = sumarPorTarea(leerRegistroPuertas(repo.ruta), 'sincronizacion');
+  // TASK-111: y el freno Stop, de la misma lectura.
+  const registroPuertas = leerRegistroPuertas(repo.ruta);
+  const sincPorTarea = sumarPorTarea(registroPuertas, 'sincronizacion');
+  const frenoPorTarea = resumirFreno(registroPuertas);
   const filas: FilaMetricas[] = leidas.map((l) =>
     calcularFila({
       sincronizacionS: sincPorTarea.get(l.task.task.id) ?? null,
+      freno: frenoPorTarea.get(l.task.task.id) ?? null,
       task: l.task.task,
       body: l.task.body,
       ronda: l.ronda,

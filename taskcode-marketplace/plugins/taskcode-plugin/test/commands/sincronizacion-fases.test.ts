@@ -7,7 +7,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, appendFile } from 'node:fs/promises';
+import { readFile, appendFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -98,5 +98,47 @@ test('metricas (TASK-120): sin registro la columna sinc sale con "—"', async (
     assert.equal(r.status, 0, r.stderr);
     assert.equal(celdaSinc(r.stdout, 'TASK-920'), '—');
     assert.ok(!existsSync(path.join(repoRoot, '.git', 'taskcode', 'puertas.log')));
+  });
+});
+
+/** La celda de `columna` de la fila de `id` en la tabla de `metricas`. */
+function celda(stdout: string, id: string, columna: string): string {
+  const lineas = stdout.split('\n');
+  const celdas = (l: string): string[] => l.split('|').map((c) => c.trim());
+  const cab = celdas(lineas.find((l) => l.startsWith('| id ')) ?? '');
+  const fila = celdas(lineas.find((l) => l.startsWith(`| ${id} `)) ?? '');
+  const i = cab.indexOf(columna);
+  assert.ok(i > 0, stdout);
+  return fila[i] as string;
+}
+
+test('metricas (TASK-111, criterio 2; IMP-2): el CLI lee el freno del registro real: ejecuciones sin omitidos y tiempo total', async () => {
+  await withRepoSincronizado(null, async (repoRoot) => {
+    const ruta = rutaRegistroPuertas(repoRoot) as string;
+    await mkdir(path.dirname(ruta), { recursive: true });
+    await appendFile(
+      ruta,
+      [
+        'freno\tTASK-920\t2026-11-13T00:00:00.000Z\tselectiva\t60.0\tverde',
+        'freno\tTASK-920\t2026-11-13T00:01:00.000Z\tselectiva\t65.0\trojo',
+        'freno\tTASK-920\t2026-11-13T00:02:00.000Z\tselectiva\t0.0\tomitido',
+        'freno\tTASK-999\t2026-11-13T00:02:00.000Z\tselectiva\t500.0\tverde',
+        'sincronizacion\tTASK-920\t2026-11-13T00:00:00.000Z\tplan\t900.0\taplicada',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+    const r = spawnSync(process.execPath, [BIN, 'metricas'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(celda(r.stdout, 'TASK-920', 'freno_n'), '2', r.stdout);
+    assert.equal(celda(r.stdout, 'TASK-920', 'freno'), '2m', r.stdout);
+  });
+});
+
+test('metricas (TASK-111): sin lineas del freno, freno_n y freno salen con "—"', async () => {
+  await withRepoSincronizado(null, async (repoRoot) => {
+    const r = spawnSync(process.execPath, [BIN, 'metricas'], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.deepEqual([celda(r.stdout, 'TASK-920', 'freno_n'), celda(r.stdout, 'TASK-920', 'freno')], ['—', '—']);
   });
 });

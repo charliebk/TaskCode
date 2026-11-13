@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- Cambio de comportamiento (TASK-111): el freno Stop anota cada ejecucion en el registro de puertas (puerta `freno`: verde, rojo, omitido o excedido) y `taskctl metricas` la resume en las columnas `freno_n` y `freno`. Si la huella del arbol es la de su ultimo verde, el freno ya no vuelve a verificar, tampoco con cambios sin commitear.
 - TASK-131 (fix) — Tres tests con expectativas anteriores a TASK-119 (2026-11-13)
 - TASK-127 (feature) — Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar (2026-11-13)
 - Cambio de comportamiento (TASK-127): el tope de rondas de revision pasa a ser la clave `tope_rondas` (1 a 10, leida de la rama base) y por defecto baja de 3 a 2. En el tope, `siguiente` pregunta en todos los modos (cerrar, una ronda mas o volver a diseno) y `review --ronda-extra` exige la linea `- Ronda N:` bajo `## Rondas extra` en `tarea.md`. `tope_rondas: 3` devuelve el comportamiento anterior.

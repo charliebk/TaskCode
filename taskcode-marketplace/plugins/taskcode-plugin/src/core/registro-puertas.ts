@@ -73,3 +73,35 @@ export function tareaDeMensaje(mensaje: string): string | null {
   const m = /\bTASK-\d+[a-z]?\b/.exec(mensaje);
   return m === null ? null : m[0];
 }
+
+/**
+ * TASK-111: la puerta del freno Stop. `modo` es el tipo de verificacion
+ * (`completa`, `selectiva`, `documentacion`) y `resultado` uno de estos:
+ * `verde` (ejecuto en verde), `rojo` (cualquier otro desenlace: bloquea),
+ * `omitido` (no ejecuto: sin cambios desde el ultimo verde, o resultado del
+ * memo compartido, que si es rojo sigue bloqueando) y `excedido`
+ * (agoto su presupuesto de tiempo; lo escribe el presupuesto del freno).
+ */
+export const PUERTA_FRENO = 'freno';
+export const RESULTADOS_FRENO = Object.freeze(['verde', 'rojo', 'omitido', 'excedido'] as const);
+export type ResultadoFreno = (typeof RESULTADOS_FRENO)[number];
+
+export interface ResumenFreno {
+  /** Veces que el freno ejecuto de verdad la verificacion (las `omitido` no cuentan). */
+  ejecuciones: number;
+  /** Segundos de todas sus lineas. */
+  duracionS: number;
+}
+
+/** Por tarea: cuantas veces corrio el freno y cuanto sumo. Ignora las demas puertas. */
+export function resumirFreno(lineas: readonly LineaPuerta[]): Map<string, ResumenFreno> {
+  const resumen = new Map<string, ResumenFreno>();
+  for (const l of lineas) {
+    if (l.puerta !== PUERTA_FRENO) continue;
+    const r = resumen.get(l.tarea) ?? { ejecuciones: 0, duracionS: 0 };
+    if (l.resultado !== 'omitido') r.ejecuciones += 1;
+    r.duracionS += l.duracionS;
+    resumen.set(l.tarea, r);
+  }
+  return resumen;
+}
