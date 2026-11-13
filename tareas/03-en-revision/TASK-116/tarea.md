@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 4798452
-tokens_revision: null
+tokens_revision: 1103525
 creado: 2026-11-12
 actualizado: 2026-11-12
 dependencias: []
@@ -49,3 +49,4 @@ TaskCode no declara comando_verificacion, asi que los frenos que construye (Stop
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-12T23:51:32Z | implementacion | sesion:4684d134-7fd6-4fe8-be8f-9513ee90ff16 | 64 | 35204 | 4750212 | 12972 | 4 | 4798452 | - | - |
+| 2026-11-13T00:02:15Z | revision | agente:a7c06d0cd4c76de18 | 22 | 106288 | 991513 | 5702 | 6 | 1103525 | 1 | - |
