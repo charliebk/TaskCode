@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-130 — Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura · etiquetas: agilidad, verificacion, tests, v0.16 · rama feature/task-130-poda-periodica-de-tests-redundantes-fusi · terminada 2026-11-13 · tareas/04-terminadas/TASK-130/
 - TASK-129 — Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento · etiquetas: agilidad, verificacion, tests, v0.16 · rama feature/task-129-freno-al-crecimiento-de-la-suite-presupu · terminada 2026-11-13 · tareas/04-terminadas/TASK-129/
 - TASK-126 — Verificacion por tipo de rama: los tests pesados solo en la puerta de release · etiquetas: agilidad, verificacion, v0.16 · rama feature/task-126-verificacion-por-tipo-de-rama-los-tests · terminada 2026-11-13 · tareas/04-terminadas/TASK-126/
 - TASK-115 — P-7: verificacion completa por lote de cierres en modo automatico · etiquetas: arreglo, urgente, v0.16 · rama feature/task-115-p-7-verificacion-completa-por-lote-de-ci · terminada 2026-11-13 · tareas/04-terminadas/TASK-115/

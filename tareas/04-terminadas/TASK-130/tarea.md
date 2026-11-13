@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-130-poda-periodica-de-tests-redundantes-fusi
 asignado_a: charlie.bk@gmail.com
@@ -70,6 +70,7 @@ cubiertas por tests fusionados detectados.
 | 2026-11-13T17:26:39Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T17:26:40Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T19:11:02Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T19:26:53Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -90,3 +91,10 @@ cubiertas por tests fusionados detectados.
 ## Verificacion omitida
 
 - 2026-11-13T19:26:31Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 120 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 120 min
+- Paso de la hora: 120 min reales frente a 120 estimados
+- Cierre (finish): 22 s, de 2026-11-13T19:26:31Z a 2026-11-13T19:26:53Z
