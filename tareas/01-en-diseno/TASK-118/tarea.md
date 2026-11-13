@@ -7,7 +7,7 @@ etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-118-p-10-linea-fin-con-la-duracion-en-todos
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -35,3 +35,4 @@ Los logs de Git-Flow no cierran siempre con una linea reconocible (los de create
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T02:49:42Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T02:50:17Z | approve | automatico | persona | 0.14.0 |
