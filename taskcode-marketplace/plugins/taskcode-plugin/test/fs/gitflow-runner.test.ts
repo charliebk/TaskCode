@@ -126,12 +126,20 @@ test('sondearBash: un script que no existe no lanza y no es OK', () => {
   if (!r.ok) assert.equal(r.causa, 'fallo');
 });
 
-test('TASK-134: con un bash falso el primero del PATH, Windows usa el bash de Git y POSIX el del PATH como siempre', async () => {
-  const { mkdtempSync, writeFileSync, chmodSync, rmSync } = await import('node:fs');
+test('TASK-134: con un bash falso el primero del PATH, Windows usa el bash de Git y POSIX el del PATH como siempre', async (t) => {
+  const { existsSync, mkdtempSync, writeFileSync, chmodSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const scriptsDir = path.join(import.meta.dirname, '..', '..', '..', 'scripts', 'gitflow');
-  const falso = mkdtempSync(path.join(tmpdir(), 'taskctl-bash-falso-'));
   const guardado = process.env['PATH'];
+  let resto = guardado ?? '';
+  if (process.platform === 'win32') {
+    // El PATH tipico de PowerShell: System32 (bash de WSL) y Git\cmd, SIN usr\bin.
+    const b = bashDeTaskctl();
+    const cmd = b.origen === 'git' ? path.join(path.dirname(path.dirname(b.herramientas)), 'cmd') : '';
+    if (cmd === '' || !existsSync(path.join(cmd, 'git.exe'))) return t.skip('esta maquina no tiene Git for Windows con cmd\\git.exe');
+    resto = [path.join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32'), cmd].join(path.delimiter);
+  }
+  const falso = mkdtempSync(path.join(tmpdir(), 'taskctl-bash-falso-'));
   try {
     if (process.platform === 'win32') {
       // Como el bash.exe de System32: esta delante y no sirve para abrir el script.
@@ -140,7 +148,7 @@ test('TASK-134: con un bash falso el primero del PATH, Windows usa el bash de Gi
       writeFileSync(path.join(falso, 'bash'), '#!/bin/sh\necho "bash falso" >&2\nexit 7\n');
       chmodSync(path.join(falso, 'bash'), 0o755);
     }
-    process.env['PATH'] = `${falso}${path.delimiter}${guardado ?? ''}`;
+    process.env['PATH'] = `${falso}${path.delimiter}${resto}`;
     const r = sondearBash({ scriptsDir, cwd: process.cwd() });
     if (process.platform === 'win32') {
       assert.equal(r.bash.origen, 'git', `sin git.exe con bash al lado en el PATH de esta maquina: ${JSON.stringify(r.bash)}`);
