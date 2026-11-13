@@ -27,9 +27,34 @@ dependencias: []
 La complejidad declarada no predice el coste (en ToolsaWeb alta gasta menos tokens que media) y OpenDockTrading no la declara nunca, pero decide cuantos roles de diseno se lanzan. Que new proponga la de las tareas cerradas mas parecidas. Urgente para la version 0.16.0 (decision de Carlos, 2026-11-12): lo mas rapido posible, sin trocear salvo que haga falta; el cierre no exige la suite completa, basta con los tests afectados y npm run test:rapido. Origen: docs/auditoria/PASOS-PLUGIN-2026-11-12.md (P-9)
 
 ## Criterios de aceptacion
-- [ ] taskctl new sin --complejidad propone la mediana de las tareas terminadas con mas etiquetas en comun, la escribe y dice de que tareas sale (test con repo temporal)
-- [ ] Con --complejidad explicita gana la declarada y sin tareas parecidas se queda como hoy (test)
-- [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+- [x] taskctl new sin --complejidad propone la mediana de las tareas terminadas con mas etiquetas en comun, la escribe y dice de que tareas sale (test con repo temporal)
+- [x] Con --complejidad explicita gana la declarada y sin tareas parecidas se queda como hoy (test)
+- [x] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Resultado
+
+`taskctl new` sin `--complejidad` lee las terminadas y, si alguna con complejidad
+declarada comparte etiquetas, escribe la mediana de las que comparten mas (la
+inferior de las centrales si son pares) y dice de cuales sale. Logica pura en
+`src/core/complejidad-similar.ts`; con `--complejidad` gana la declarada y sin
+parecidas queda null.
+
+Revision por pares, ronda 1 (general-purpose + code-quality-reviewer, sonnet):
+aprobada-con-correcciones.
+
+- IMP-1 (IMPORTANTE, aceptado): la propuesta se escribe como complejidad declarada y
+  `resolverNumeroAgentes` toma el maximo entre declarada y heuristica (TASK-042, C4),
+  asi que una propuesta solo puede subir el numero de roles del diseno, nunca
+  bajarlo. Se acepta porque el criterio 1 pide escribirla; queda documentado en
+  new.ts y senalado a Carlos para decidir si la propuesta debe tratarse distinto de
+  una declarada.
+- MEN-1 (MENOR, corregido): comentario de new.ts desactualizado.
+- MEN-2 (MENOR, corregido): el CLI dice que con pares la mediana es la inferior.
+- MEN-3 (MENOR, corregido): test de una terminada ilegible en el camino de `new`.
+- Incidente del revisor: por una variable mal expandida ejecuto `taskctl new` en el
+  repo real y dejo en develop el commit 7ecad66 (TASK-131 falsa), sin subir. El
+  coordinador lo comprobo (un solo commit, solo TASK-131 y ROADMAP.md, en ningun
+  remoto) y devolvio develop a 0ccfe63 con `git branch -f`.
 
 ## Transiciones
 

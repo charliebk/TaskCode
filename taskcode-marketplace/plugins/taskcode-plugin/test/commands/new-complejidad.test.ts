@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -99,6 +99,24 @@ test('new (TASK-117, criterio 2): con --complejidad gana la declarada, y sin par
   });
 });
 
+test('new (TASK-117, MEN-3): una terminada ilegible se ignora y no aborta new', async () => {
+  await conRepo(TERMINADAS, async (repoRoot, tareasRoot) => {
+    const rota = path.join(tareasRoot, '04-terminadas', 'TASK-006');
+    await mkdir(rota, { recursive: true });
+    await writeFile(path.join(rota, 'tarea.md'), '---\nid: TASK-006\netiquetas: [cli, git\n---\n', 'utf8');
+    git(['add', '-A'], repoRoot);
+    git(['commit', '-q', '-m', 'terminada rota'], repoRoot);
+    const r = await runNewCommand(
+      tareasRoot,
+      ['--titulo', 'Con rota', '--tipo', 'feature', '--etiquetas', 'cli,git'],
+      '2026-11-13',
+      { repoCwd: repoRoot }
+    );
+    assert.equal(r.id, 'TASK-007');
+    assert.deepEqual(r.complejidadPropuesta?.desde, ['TASK-001', 'TASK-002', 'TASK-003']);
+  });
+});
+
 test('new (TASK-117): el CLI dice la complejidad propuesta y de que tareas sale', async () => {
   await conRepo(TERMINADAS, async (repoRoot) => {
     const cli = path.join(import.meta.dirname, '..', '..', '..', 'bin', 'taskctl');
@@ -109,7 +127,7 @@ test('new (TASK-117): el CLI dice la complejidad propuesta y de que tareas sale'
     assert.equal(r.status, 0, r.stderr);
     assert.match(
       r.stdout,
-      /Complejidad propuesta: simple \(mediana de TASK-001, TASK-002, TASK-003, TASK-004, con 1 etiqueta\(s\) en comun\)/
+      /Complejidad propuesta: simple \(mediana, la inferior si son pares, de TASK-001, TASK-002, TASK-003, TASK-004, con 1 etiqueta\(s\) en comun\)/
     );
   });
 });

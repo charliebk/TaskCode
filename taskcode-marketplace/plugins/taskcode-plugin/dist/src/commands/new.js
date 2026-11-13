@@ -27,8 +27,13 @@ export class NewTaskArgError extends Error {
 export const FLAGS_NEW = ['--titulo', '--tipo', '--sprint', '--etiquetas', '--complejidad', '--modelo-sugerido', '--agente-revisor', '--objetivo', '--criterio', '--desde', '--push', '-p'];
 const DEFAULT_SPRINT = 0;
 /**
- * Sin --complejidad la tarea nace sin declararla (null): la decide la
- * heuristica al planificar (TASK-042, decision C4). Antes era `media`.
+ * Valor de `parseNewTaskArgs` sin --complejidad: null. Antes era `media`
+ * (TASK-042, decision C4). Desde TASK-117, `runNewCommand` escribe en su
+ * lugar la complejidad propuesta por las terminadas parecidas, si la hay; si
+ * no, la tarea nace con null y la decide la heuristica al planificar. Ojo
+ * (IMP-1 de la revision, aceptado): la propuesta cuenta como declarada, y la
+ * heuristica toma el maximo entre declarada y propia, asi que solo puede
+ * subir el numero de roles.
  */
 const DEFAULT_COMPLEJIDAD = null;
 const DEFAULT_MODELO = 'sonnet';
