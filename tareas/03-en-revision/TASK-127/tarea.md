@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, revision, verificacion, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-127-tope-de-rondas-de-revision-configurable
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 8900780
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-13
@@ -41,3 +41,10 @@ Medido en ToolsaWeb (153 tareas terminadas, taskctl metricas, 2026-11-12): las r
 | 2026-11-13T10:11:30Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T10:13:01Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T10:13:04Z | start | automatico | persona | 0.14.0 |
+| 2026-11-13T10:39:38Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-13T10:39:38Z | implementacion | sesion:11e712bd-419c-4b82-81c1-1dc7aa472f20 | 92 | 67793 | 8796694 | 36201 | 23 | 8900780 | - | - |
