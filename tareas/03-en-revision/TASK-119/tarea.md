@@ -39,6 +39,7 @@ Cada tarea deja 23-26 commits de los que 3-4 son de codigo: coste, veredicto, pe
 | 2026-11-13T08:27:45Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T08:27:46Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T09:00:41Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T09:20:18Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
