@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, tests, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-129-freno-al-crecimiento-de-la-suite-presupu
 asignado_a: charlie.bk@gmail.com
@@ -85,6 +85,7 @@ hallazgos nuevos.
 | 2026-11-13T16:34:21Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T17:07:22Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T17:18:29Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T17:25:41Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -95,3 +96,10 @@ hallazgos nuevos.
 ## Verificacion omitida
 
 - 2026-11-13T17:25:32Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 85 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 74 min
+- Paso de la hora: 74 min reales frente a 85 estimados
+- Cierre (finish): 9 s, de 2026-11-13T17:25:32Z a 2026-11-13T17:25:41Z

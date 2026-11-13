@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-129 (feature) — Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento (2026-11-13)
 - Cambio de comportamiento (TASK-129): la plantilla del plan y la skill plan piden por criterio cuantos tests nuevos (presupuesto de 1 a 3, con motivo si se pasa); la skill review trata un test duplicado como MENOR; anexo `tests-pesados.md` (como marcar pesados en Node, Rust, Java y .NET). La completa anota en el registro de puertas su numero de tests (linea `suite`); `metricas --por-version` muestra tests y duracion de la completa por version, y `doctor` avisa si crecieron mas de `umbral_crecimiento_suite` (20 % por defecto).
 - TASK-126 (feature) — Verificacion por tipo de rama: los tests pesados solo en la puerta de release (2026-11-13)
 - Cambio de comportamiento (TASK-126): claves `comando_verificacion_pesada` y `verificacion_pesada_en` (`[release]` por defecto; admite `hotfix`). Los pesados se corren ademas de la completa solo en el finish de esos tipos de rama, y el guardian de merges exige su verde para integrar a mano una release; feature y fix no los corren. `taskctl doctor` dice que puerta corre los pesados. Sin las claves, todo como antes.

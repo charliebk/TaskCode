@@ -2,30 +2,29 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 16
+## Planificadas (00-planificadas) — 15
 
 ```text
-ID        Titulo                                                                                                        Asignado
---------  ------------------------------------------------------------------------------------------------------------  --------------------
-TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                                      (sin asignar)
-TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                                      (sin asignar)
-TASK-003  Comando taskctl new (alta individual de tarea)                                                                (sin asignar)
-TASK-004  Comando taskctl import (alta masiva desde Markdown)                                                           charlie.bk@gmail.com
-TASK-005  Comando taskctl board (listado por estado)                                                                    charlie.bk@gmail.com
-TASK-006  Empaquetado del plugin y validación de carga local                                                            charlie.bk@gmail.com
-TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                                       charlie.bk@gmail.com
-TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                                         charlie.bk@gmail.com
-TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                                          charlie.bk@gmail.com
-TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                                            charlie.bk@gmail.com
-TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                                       charlie.bk@gmail.com
-TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio                    charlie.bk@gmail.com
-TASK-019  Revisión ligera sin agente para tareas triviales                                                              (sin asignar)
-TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                                        (sin asignar)
-TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento  (sin asignar)
-TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                   (sin asignar)
+ID        Titulo                                                                                      Asignado
+--------  ------------------------------------------------------------------------------------------  --------------------
+TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
+TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
+TASK-003  Comando taskctl new (alta individual de tarea)                                              (sin asignar)
+TASK-004  Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
+TASK-005  Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
+TASK-006  Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
+TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
+TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
+TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
+TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
+TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
+TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
+TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
+TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                 (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 113
+## Terminadas (04-terminadas) — 114
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -142,5 +141,6 @@ TASK-125  Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota
 TASK-126  Verificacion por tipo de rama: los tests pesados solo en la puerta de release                                       charlie.bk@gmail.com
 TASK-127  Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar                         charlie.bk@gmail.com
 TASK-128  Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores      charlie.bk@gmail.com
+TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento        charlie.bk@gmail.com
 TASK-131  Tres tests con expectativas anteriores a TASK-119                                                                   charlie.bk@gmail.com
 ```
