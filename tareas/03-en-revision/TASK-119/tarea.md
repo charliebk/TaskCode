@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-119-p-11-menos-commits-de-proceso-por-tarea
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 20468686
 tokens_revision: null
 creado: 2026-11-12
 actualizado: 2026-11-13
@@ -38,3 +38,10 @@ Cada tarea deja 23-26 commits de los que 3-4 son de codigo: coste, veredicto, pe
 | 2026-11-13T08:27:07Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T08:27:45Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T08:27:46Z | start | automatico | persona | 0.14.0 |
+| 2026-11-13T09:00:41Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-13T09:00:41Z | implementacion | sesion:d33593fd-82a4-4220-bd5f-b38ae82a7697 | 164 | 128911 | 20275481 | 64130 | 9 | 20468686 | - | - |
