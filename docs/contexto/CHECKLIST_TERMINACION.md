@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 129 / 129 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 130 / 130 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 28 | **28** | — |
+| ✅ P — Agilidad sin perder calidad | 29 | **29** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -198,6 +198,14 @@ del código.
       de esta misma tarea ya no la repitieron). La ronda acotada solo reverifica CRÍTICO e IMPORTANTE; quien solo
       tenía MENORES vuelve si la corrección toca sus ficheros y si no consta en `## Revisores no relanzados`.
       Dos rondas: IMP-1 (skills revisoras incoherentes) y MEN-1..3 corregidos; notas N-1 y N-2 pendientes.*
+- [x] TASK-119 — P-11: menos commits de proceso por tarea — cerrada el 2026-11-13
+      *registrar-coste y veredicto ya no commitean: lo pendiente de la carpeta de la tarea lo absorbe el commit
+      del siguiente comando de fase (approve y plan lo dejan pasar; review y finish lo apartan en un stash con
+      nombre mientras corren Git-Flow y la verificación, y un intento que muere lo recupera el siguiente desde la
+      misma rama). Un ciclo con una ronda pasa de 12 a 6 commits de proceso (test que los cuenta). Tres rondas:
+      IMP-1 (tests de los caminos de error) y MEN-1..6 corregidos, incluido MEN-3 (en merge request lo pendiente
+      se commitea antes de subir la rama). La propia tarea se cerró ya con el flujo nuevo. finish --sin-verificacion
+      (modo rápido: verificar-impacto y tests afectados en verde, solo los 2 rojos de Windows).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
