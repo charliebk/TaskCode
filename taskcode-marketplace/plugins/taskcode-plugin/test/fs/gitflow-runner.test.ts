@@ -111,6 +111,9 @@ test('GitflowScriptLaunchError: mensaje incluye el nombre del script y el error 
   assert.match(err.message, /No se pudo ejecutar "bash"/);
   assert.equal(err.originalError, original);
   assert.equal(err.name, 'GitflowScriptLaunchError');
+  // TASK-134 (MENOR-1): con el bash de Git, el error nombra el que se intento lanzar.
+  const conRuta = new GitflowScriptLaunchError('finish.sh', original, 'C:\\Program Files\\Git\\usr\\bin\\bash.exe');
+  assert.match(conRuta.message, /No se pudo ejecutar "C:\\Program Files\\Git\\usr\\bin\\bash\.exe" para lanzar finish\.sh/);
 });
 
 test('sondearBash: el script de la sonda corre de verdad con este bash (TASK-062)', () => {

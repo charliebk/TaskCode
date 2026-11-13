@@ -24,7 +24,7 @@ import assert from 'node:assert/strict';
 import { existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { sondearBash } from '../../src/fs/gitflow-runner.js';
+import { bashDeTaskctl, sondearBash } from '../../src/fs/gitflow-runner.js';
 
 const SCRIPTS_DIR = path.join(import.meta.dirname, '..', '..', '..', 'scripts', 'gitflow');
 const WIN = process.platform === 'win32';
@@ -51,8 +51,11 @@ function montarEntorno(conMktemp: boolean): Entorno | null {
   const limpiar = () => rmSync(dir, { recursive: true, force: true });
   try {
     if (WIN) {
-      // La carpeta de bash de Git es la que tiene bash.exe Y mktemp.exe juntos.
-      const dirs = (process.env['PATH'] ?? '').split(path.delimiter);
+      // La carpeta de bash de Git es la que tiene bash.exe Y mktemp.exe juntos. Se toma de la
+      // instalacion de Git (TASK-134, MENOR-3) y no del PATH heredado: asi el test no se salta
+      // cuando la suite se lanza desde PowerShell, sin usr\bin en el PATH.
+      const b = bashDeTaskctl();
+      const dirs = [...(b.origen === 'git' ? [b.herramientas] : []), ...(process.env['PATH'] ?? '').split(path.delimiter)];
       const bashDir = dirs.find((d) => d !== '' && existsSync(path.join(d, 'bash.exe')) && existsSync(path.join(d, 'mktemp.exe')));
       const git = buscar('git');
       if (bashDir === undefined || git === null) {
