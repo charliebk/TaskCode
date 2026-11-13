@@ -19,7 +19,10 @@ arbol de trabajo a proposito: durante
 mucho tiempo lo escribian dentro del repo, nada mas arrancar y antes de mirar
 si el workspace estaba limpio, asi que **se ensuciaban el workspace ellos
 mismos** y el comando de reanudar quedaba inservible en cualquier repo que no
-ignorara esa ruta. No hace falta anadir nada al `.gitignore`.
+ignorara esa ruta. No hace falta anadir nada al `.gitignore`. Cada ejecucion
+termina su registro con una linea
+`FIN: <operacion> | resultado: <R> | duracion: <N>s`, tambien cuando aborta
+(`ABORTADO`, o `ERROR (codigo N)`): es la que dice como acabo y cuanto tardo.
 
 **La herramienta commitea solo lo que escribe** (mas las rutas de
 sincronizacion, si las hay): nunca un `git add` global. Los ficheros que se le

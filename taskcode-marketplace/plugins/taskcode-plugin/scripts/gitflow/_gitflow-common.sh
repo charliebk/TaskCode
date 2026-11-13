@@ -83,6 +83,33 @@ initialize_gitflow_log() {
         { printf "\n"; printf "%s\n" "$sep"; } >> "$GF_LOG_FILE"
     fi
     _do_log "INFO " "INICIO: $GF_OPERATION"
+    # TASK-118: el registro termina SIEMPRE con una linea FIN, tambien cuando
+    # el script aborta con un exit intermedio. Ningun script que registra
+    # pone su propio trap de EXIT.
+    GF_RESULTADO=""
+    trap '_gf_fin $?' EXIT
+}
+
+# _gf_fin: la linea FIN del registro (solo en el fichero, no en pantalla):
+#   [fecha hora] [FIN  ] FIN: <operacion> | resultado: <R> | duracion: <N>s
+# R es el de log_summary si el script salio 0 tras el resumen, ABORTADO si
+# salio 0 sin resumen y "ERROR (codigo N)" si salio con otro codigo.
+GF_RESULTADO=""
+_gf_fin() {
+    local codigo="$1" resultado fin duracion="?"
+    if [ "$codigo" != "0" ]; then
+        resultado="ERROR (codigo $codigo)"
+    elif [ -n "$GF_RESULTADO" ]; then
+        resultado="$GF_RESULTADO"
+    else
+        resultado="ABORTADO"
+    fi
+    if [ -n "$GF_START" ]; then
+        _gf_epoch fin
+        duracion="$((fin - GF_START))"
+    fi
+    _do_log "FIN  " "FIN: ${GF_OPERATION:-operacion} | resultado: $resultado | duracion: ${duracion}s"
+    return 0
 }
 
 # _do_log: escribe la linea en el fichero de log y la deja en GF_LINE.
@@ -105,6 +132,7 @@ log_error() { _do_log "ERROR" "$1"; printf "${C_RED}%s${C_RESET}\n"    "$GF_LINE
 
 log_summary() {
     local result="${1:-COMPLETADO}" extra="${2:-}" elapsed="?" icon="[OK]"
+    GF_RESULTADO="$result"
     if [ -n "$GF_START" ]; then
         local end
         _gf_epoch end
