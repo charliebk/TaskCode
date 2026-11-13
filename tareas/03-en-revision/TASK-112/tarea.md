@@ -62,6 +62,7 @@ aprobada-con-correcciones.
 | 2026-11-13T05:40:37Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T05:40:39Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T05:42:42Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T05:59:56Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
