@@ -101,7 +101,9 @@ ejecutando:
    siempre, **y otra vez tras cada cambio de rama dentro del mismo clon**.
 2. **Correr la suite entera uno mismo**, y anotar el resultado real (numero de
    tests, fallos, tiempo). "Los tests pasan" sin haberlos corrido no vale.
-   Una sola vez por ronda (ver revision.md).
+   Una sola vez por ronda (ver revision.md). Si la peticion ya trae la
+   verificacion de la ronda en verde con un `Commit verificado` igual al
+   `Commit revisado`, esa ejecucion cuenta: citala y no la repitas.
 3. **Mutar las protecciones**: romper a proposito la linea que el diff dice
    proteger (el `Commit()`, la comprobacion de `IsErased`, el
    `CultureInfo.InvariantCulture`, el factor de unidades) y comprobar que

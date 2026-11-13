@@ -239,6 +239,10 @@ export interface VerificacionConMemo {
   deMemo: boolean;
   /** true si la propia verificacion cambio ficheros del arbol de trabajo. */
   cambioElArbol: boolean;
+  /** TASK-112: HEAD cuando se pidio (el commit que se verifico); null fuera de un repo. */
+  commit: string | null;
+  /** TASK-112: la huella con la que se busco y se guardo el resultado; null sin huella. */
+  huella: string | null;
 }
 
 /**
@@ -285,9 +289,10 @@ export function verificarConMemo(
   }
   const contexto = p.tipo === 'selectiva' ? contextoSelectiva(raiz, p.base as string) : undefined;
   const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
+  const commit = git(['rev-parse', 'HEAD'], raiz)?.trim() || null;
   const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
   if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
-    return { resultado: guardado, deMemo: true, cambioElArbol: false };
+    return { resultado: guardado, deMemo: true, cambioElArbol: false, commit, huella };
   }
 
   const env =
@@ -300,5 +305,11 @@ export function verificarConMemo(
   });
   const despues = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
   if (despues !== null && (p.tipo === 'completa' || arbolLimpio(raiz))) guardarMemo(raiz, despues, resultado, p.tipo);
-  return { resultado, deMemo: false, cambioElArbol: huella !== null && despues !== null && huella !== despues };
+  return {
+    resultado,
+    deMemo: false,
+    cambioElArbol: huella !== null && despues !== null && huella !== despues,
+    commit,
+    huella,
+  };
 }

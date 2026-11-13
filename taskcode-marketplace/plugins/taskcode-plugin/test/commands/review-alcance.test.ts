@@ -145,7 +145,10 @@ test('alcance (TASK-095): con un IMPORTANTE abierto, uno corregido, un CRITICO a
       esAcotada(r2, r1.r.commitRevisado);
       assert.match(r2.r.motivoAlcance, /la ronda anterior pidio cambios \(2 hallazgo\(s\)\)/);
       const p = [...r2.peticiones.values()].join('\n');
-      assert.ok(p.includes('| MEN-1 | MENOR |'), 'lista el MENOR');
+      // TASK-112: la ronda acotada solo reverifica CRITICOS e IMPORTANTES; el MENOR se nombra por su numero.
+      assert.ok(!p.includes('| MEN-1 |'), 'el MENOR no va en la tabla');
+      // Con el CRITICO aceptado no le queda nada mas: vuelve solo porque la correccion toca su dominio.
+      if (fila !== CRIT_ACEPTADO) assert.match(p, /Tus 1 hallazgo\(s\) MENOR de la ronda 1 no estan en la tabla/);
       // Pendiente = todo lo que no esta aceptado: un corregido se verifica.
       if (fila === CRIT_ACEPTADO) assert.ok(!p.includes('| CRIT-1 |'), 'lo aceptado no se vuelve a verificar');
       else assert.ok(p.includes(fila.split('|')[1]!.trim()), `lista ${fila}`);
@@ -174,7 +177,8 @@ for (const [fichero, dominio] of [
       assert.ok(deDominio !== undefined, 'el revisor de dominio recibe su propia peticion');
       assert.ok(generico !== undefined);
       assert.ok(deDominio.includes('| IMP-1 | IMPORTANTE |') && !deDominio.includes('| MEN-3 |'), 'el dominio ve solo lo suyo');
-      assert.ok(generico.includes('| MEN-3 | MENOR |') && !generico.includes('| IMP-1 |'), 'el generico no verifica lo del dominio');
+      // TASK-112: el generico solo tenia un MENOR; vuelve porque la correccion toca SCRIPT, sin tabla de MENORES.
+      assert.ok(!generico.includes('| MEN-3 |') && !generico.includes('| IMP-1 |'), 'el generico no verifica lo del dominio ni su MENOR');
       // Cada uno recibe el delta entero de la correccion, no filtrado.
       for (const p of [deDominio, generico]) assert.ok(p.includes(fichero) && p.includes(SCRIPT));
     });
@@ -293,7 +297,27 @@ test('alcance (TASK-095): abrir una ronda con hallazgos de la anterior sin marca
     assert.ok(!/MEN-1 \(/.test(aviso), 'lo aceptado no se avisa');
     // MEN-3 de la revision: lo corregido tampoco (aunque si se verifica).
     assert.doesNotMatch(aviso, /MEN-7 \(/, 'lo corregido no se avisa');
-    assert.ok([...r2.peticiones.values()].join('\n').includes('| MEN-7 | MENOR | corregido |'), 'lo corregido se verifica');
+    // TASK-112: un MENOR corregido ya no se reverifica en la ronda acotada (lo hace quien coordina).
+    assert.ok(![...r2.peticiones.values()].join('\n').includes('| MEN-7 |'), 'el MENOR corregido no va en la tabla');
+  });
+});
+
+test('alcance (TASK-112, criterios 2 y 4): un revisor con solo MENORES cuyos ficheros no toca la correccion no se relanza y consta en tarea.md', async () => {
+  await conRonda1([JAVA, SCRIPT], async (ctx, r1) => {
+    const impDominio = `| IMP-1 | IMPORTANTE | abierto | ${JAVA}:9 | implementacion |`;
+    const porRevisor = r1.r.informes.map((g) =>
+      g.revisor === 'java-spring-reviewer' ? informe([impDominio]) : informe([MEN_SCRIPT])
+    );
+    await ctx.pedirCambios(r1.r, porRevisor);
+    await ctx.corregir([JAVA]);
+    const r2 = await ctx.review();
+    esAcotada(r2, r1.r.commitRevisado);
+    assert.deepEqual([...r2.peticiones.keys()], ['peticion-revision-2-java-spring-reviewer.md']);
+    const tarea = await readFile(r2.r.filePath, 'utf8');
+    assert.match(
+      tarea,
+      /## Revisores no relanzados\r?\n\r?\n- ronda 2: code-quality-reviewer - solo tenia hallazgos MENOR pendientes y la correccion no toca sus ficheros/
+    );
   });
 });
 

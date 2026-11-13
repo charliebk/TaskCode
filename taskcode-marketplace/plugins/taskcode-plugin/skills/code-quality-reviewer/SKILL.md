@@ -78,7 +78,10 @@ ejecutando:
 2. **Correr la suite entera uno mismo** y anotar el resultado real: cuantos
    tests, cuantos fallan, cuales. "Los tests pasan" sin haberlos corrido no
    vale, y `exit 0` no prueba que ocurriera nada — hay que comprobar el hecho.
-   Una sola vez por ronda (ver revision.md).
+   Una sola vez por ronda (ver revision.md). Si la peticion ya trae la
+   verificacion de la ronda en verde con un `Commit verificado` igual al
+   `Commit revisado`, esa ejecucion cuenta: citala y no la repitas; corre solo
+   los tests de lo que revisas.
 3. **Mutar**: romper a proposito la linea que el diff dice proteger y
    comprobar que algun test se pone rojo. Si sigue verde, no hay red de
    regresion, y eso ya es un hallazgo por si solo.

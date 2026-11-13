@@ -127,10 +127,11 @@ test('review incremental (TASK-040): ronda 1 -> cambios-solicitados -> correccio
     assert.doesNotMatch(peticion, /diff --git a\/src\/a\.ts/, 'lo ya revisado en la ronda 1 no entra');
     assert.doesNotMatch(peticion, /otra-tarea\.txt/, 'develop no se integra en la ronda 2');
     assert.match(peticion, /\| IMP-1 \| IMPORTANTE \| abierto \| src\/a\.ts:3 \| informe-revision-1\.md \|/);
-    // TASK-095 (decision de la persona): un hallazgo corregido SI se lista,
-    // porque la ronda siguiente verifica justo las correcciones (antes,
-    // TASK-040, no se listaba).
-    assert.match(peticion, /\| MEN-1 \| MENOR \| corregido \|/, 'un hallazgo corregido se verifica');
+    // TASK-095: un hallazgo corregido se lista, porque la ronda siguiente
+    // verifica justo las correcciones; TASK-112: solo si es CRITICO o
+    // IMPORTANTE (el MENOR corregido lo comprueba quien coordina).
+    assert.doesNotMatch(peticion, /\| MEN-1 \|/, 'el MENOR corregido no se reverifica');
+    assert.match(peticion, /Tus 1 hallazgo\(s\) MENOR de la ronda 1 no estan en la tabla/);
     assert.equal(commitRevisadoDe(peticion), r2.commitRevisado);
     assert.ok(existsSync(path.join(revisionDir, 'informe-revision-2.md')));
     // Ni merge de develop ni nada pendiente en el arbol.
@@ -151,14 +152,15 @@ test('review incremental (TASK-040, MEN-2; TASK-095): con la ronda anterior frag
     );
     commitAll(repo, 'docs: segundo informe de la ronda 1');
     await runReviewCommand(tareas, ['TASK-950'], '2026-10-04', DEPS(repo));
-    // TASK-095: la ronda 2 es acotada y cada revisor verifica lo suyo: ningun
-    // pendiente se pierde, y cada uno va a quien lo encontro.
-    const generico = await readFile(path.join(revisionDir, 'peticion-revision-2-code-quality-reviewer.md'), 'utf8');
-    const java = await readFile(path.join(revisionDir, 'peticion-revision-2-java-spring-reviewer.md'), 'utf8');
+    // TASK-095: la ronda 2 es acotada y cada revisor verifica lo suyo.
+    // TASK-112: Java solo tenia un MENOR y la correccion (src/b.ts) no toca sus
+    // ficheros: no se relanza y consta en tarea.md; el generico verifica su IMP-1.
+    const generico = await readFile(path.join(revisionDir, 'peticion-revision-2.md'), 'utf8');
     assert.match(generico, /\| IMP-1 \|.*\| informe-revision-1\.md \|/);
     assert.doesNotMatch(generico, /\| MEN-9 \|/);
-    assert.match(java, /\| MEN-9 \|.*\| informe-revision-1-java-spring-reviewer\.md \|/);
-    assert.doesNotMatch(java, /\| IMP-1 \|/);
+    assert.ok(!existsSync(path.join(revisionDir, 'peticion-revision-2-java-spring-reviewer.md')));
+    const tarea = await readFile(path.join(path.dirname(revisionDir), 'tarea.md'), 'utf8');
+    assert.match(tarea, /- ronda 2: java-spring-reviewer - solo tenia hallazgos MENOR pendientes/);
   });
 });
 

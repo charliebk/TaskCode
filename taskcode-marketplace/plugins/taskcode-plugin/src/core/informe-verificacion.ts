@@ -133,6 +133,9 @@ export type VerificacionDeRonda =
       deMemo: boolean;
       /** true si el proyecto declara un informe de cobertura (que esta ronda no muestra). */
       conCobertura: boolean;
+      /** TASK-112: commit y huella de lo verificado, para que el revisor no repita la suite. */
+      commit?: string | null;
+      huella?: string | null;
     }
   | {
       tipo: 'documentacion';
@@ -141,8 +144,18 @@ export type VerificacionDeRonda =
       motivo: string;
       deMemo: boolean;
       conCobertura: boolean;
+      commit?: string | null;
+      huella?: string | null;
     }
   | { tipo: 'documentacion-sin-comando'; motivo: string; conCobertura: boolean };
+
+/**
+ * TASK-112: lo que se le dice al revisor cuando la ronda ya verifico en verde:
+ * no repetir la suite si el commit verificado es el revisado.
+ */
+export const NO_REPITAS =
+  '- Si el commit verificado es el Commit revisado de la cabecera, no repitas esta verificacion: ' +
+  'su resultado vale para tu revision. Ejecuta solo los tests que necesites para reproducir lo que revisas.';
 
 const NO_SUSTITUYE = 'No sustituye a la completa: el cierre la exige sobre el commit que se integra.';
 
@@ -188,6 +201,10 @@ export function seccionVerificacionRevision(v: VerificacionDeRonda): string {
     `- Resultado: ${describirResultado(r)}${v.deMemo ? ' (resultado guardado: el arbol no ha cambiado desde la ultima ejecucion)' : ''}`,
     `- Duracion: ${segundos(r.duracionMs)}`,
   ];
+  // TASK-112: con que commit y huella; si casa con el commit revisado, no se repite.
+  if (v.commit !== undefined && v.commit !== null) lineas.push(`- Commit verificado: ${v.commit}`);
+  if (v.huella !== undefined && v.huella !== null) lineas.push(`- Huella: ${v.huella}`);
+  if (v.commit !== undefined && v.commit !== null && r.estado === 'verde') lineas.push(NO_REPITAS);
   if (v.conCobertura) lineas.push(coberturaOculta);
   lineas.push('');
   if (texto === '') {
