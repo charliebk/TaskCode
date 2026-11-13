@@ -57,7 +57,7 @@ async function valor(tareasRoot: string): Promise<[number | null, number | null,
 
 const head = (repo: string): string => git(['rev-parse', 'HEAD'], repo).trim();
 
-test('--agente: suma lo gastado (ultima aparicion de cada message.id), no el contexto final, y commitea con la cifra y los agentes', async () => {
+test('--agente: suma lo gastado (ultima aparicion de cada message.id), no el contexto final, y lo deja pendiente sin commit', async () => {
   await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
     await conConfig(async (config) => {
       await hastaCodigo(repo, tareasRoot);
@@ -71,13 +71,14 @@ test('--agente: suma lo gastado (ultima aparicion de cada message.id), no el con
       assert.equal(r.status, 0, r.stderr);
       assert.match(r.stdout, /\+350 tokens de diseno \(1 subagente\(s\)\); total de la fase: 350/);
       assert.deepEqual(await valor(tareasRoot), [350, null, null]);
-      assert.equal(git(['log', '-1', '--format=%s'], repo).trim(), `chore(${ID}): coste diseno +350 tokens (1 agente)`);
-      assert.equal(git(['status', '--porcelain'], repo).trim(), '');
+      // TASK-119: sin commit; solo tarea.md queda pendiente.
+      assert.doesNotMatch(git(['log', '-1', '--format=%s'], repo), /coste diseno/);
+      assert.match(git(['status', '--porcelain'], repo).trim(), /^M .*\/tarea\.md$/);
     });
   });
 });
 
-test('--agente repetido (y con --agente=): suma varios agentes de sesiones distintas en UN registro y un commit', async () => {
+test('--agente repetido (y con --agente=): suma varios agentes de sesiones distintas en UN registro, sin commit', async () => {
   await withRepo(CONFIG_AUTO, async (repo, tareasRoot) => {
     await conConfig(async (config) => {
       await hastaCodigo(repo, tareasRoot);
@@ -87,8 +88,8 @@ test('--agente repetido (y con --agente=): suma varios agentes de sesiones disti
       const r = coste(repo, config, [ID, '--fase', 'revision', '--agente', A, `--agente=${B}`, '--agente', A]);
       assert.equal(r.status, 0, r.stderr);
       assert.deepEqual(await valor(tareasRoot), [null, null, 150], 'el id repetido no se cuenta dos veces');
-      assert.equal(Number(git(['rev-list', '--count', 'HEAD'], repo).trim()), Number(antes) + 1, 'un solo commit');
-      assert.equal(git(['log', '-1', '--format=%s'], repo).trim(), `chore(${ID}): coste revision +150 tokens (2 agentes)`);
+      assert.equal(Number(git(['rev-list', '--count', 'HEAD'], repo).trim()), Number(antes), 'ningun commit (TASK-119)');
+      assert.match(r.stdout, /\+150 tokens de revision \(2 subagente\(s\)\)/);
       // Suma sobre lo anterior, como --tokens.
       assert.equal(coste(repo, config, [ID, '--fase', 'revision', '--tokens', '10']).status, 0);
       assert.deepEqual(await valor(tareasRoot), [null, null, 160]);
@@ -187,14 +188,13 @@ test('TASK-063 --agente: deja la fila con el desglose y las lecturas del .jsonl,
           revisor: null,
         }
       );
-      // Un solo commit, con solo tarea.md, que lleva a la vez la fila y el total.
-      assert.equal(Number(git(['rev-list', '--count', 'HEAD'], repo).trim()), commits + 1);
+      // Sin commit (TASK-119): solo tarea.md pendiente, con la fila y el total a la vez.
+      assert.equal(Number(git(['rev-list', '--count', 'HEAD'], repo).trim()), commits);
       const rel = path.relative(repo, despues.ruta).split(path.sep).join('/');
-      assert.deepEqual(git(['show', '--name-only', '--format=', 'HEAD'], repo).trim().split('\n'), [rel]);
-      const diff = git(['show', '--format=', 'HEAD'], repo);
+      assert.equal(git(['status', '--porcelain'], repo).trim(), `M ${rel}`);
+      const diff = git(['diff', '--', rel], repo);
       assert.match(diff, /^\+tokens_implementacion: 602$/m);
       assert.match(diff, /^\+\| \S+ \| implementacion \| agente:a1b2c3d4e5f60718 \| 33 \| 50 \| 500 \| 19 \| 9 \| 602 \| - \| - \|$/m);
-      assert.equal(git(['status', '--porcelain'], repo).trim(), '');
     });
   });
 });

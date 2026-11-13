@@ -80,8 +80,7 @@ no deberian necesitar volver a preguntar.
    unificador), `taskctl registrar-coste TASK-NNN --fase diseno --agente <id>
    [--agente <id2>...]`. La cifra que muestra Claude Code al terminar un agente
    NO es su coste (es su contexto final). Tu parte, si quieres, estimada y
-   aparte con `--tokens N`. Sin agentes, no registres nada. Commitea lo escrito en la carpeta de la tarea
-   (`git add <carpeta de la tarea> && git commit -m "docs(TASK-NNN): plan final"`).
-   Los comandos siguientes exigen el workspace limpio.
+   aparte con `--tokens N`. Sin agentes, no registres nada. No commitees: lo escrito en la carpeta
+   de la tarea (plan final, coste) lo incluye el commit de `taskctl approve`.
 7. Sigue la seccion de avance (`task-workflow/avance.md`):
    `taskctl siguiente TASK-NNN --json` y lo que indique su `accion`.

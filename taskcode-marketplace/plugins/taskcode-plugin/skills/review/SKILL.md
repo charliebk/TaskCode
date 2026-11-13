@@ -63,15 +63,16 @@ punto, no un formalismo.
    rellenada, su linea `- Veredicto:`, y la fila de ejemplo de la tabla
    borrada (tambien sin hallazgos); un informe que conserve la plantilla sin
    rellenar no cuenta como revisado,
-   y commitealo **solo, en un commit que no toque nada mas**: en modo
+   y dejalo sin commitear: lo incluye el commit del siguiente `taskctl review`
+   o `taskctl finish`. Nunca lo mezcles en un commit con codigo: en modo
    automatico, `finish` no sigue solo si un informe va mezclado con codigo.
 4. Registra el coste de la revision (`task-workflow/coste.md`) con el id que
    devolvio la herramienta Agent de cada revisor:
    `taskctl registrar-coste TASK-NNN --fase revision --agente <id>
    [--agente <id2>...]` (una vez por ronda; suma). La cifra que muestra Claude
    Code al terminar un agente NO es su coste (es su contexto final). Tu parte,
-   si quieres, estimada y aparte con `--tokens N`. Es un commit propio: hazlo
-   despues de commitear los informes.
+   si quieres, estimada y aparte con `--tokens N`. No crea commit: queda
+   pendiente con los informes.
    Escribe cada veredicto con el comando, no a mano:
    `taskctl veredicto TASK-NNN aprobada|aprobada-con-correcciones|cambios-solicitados`.
    Si la ronda esta fragmentada, uno por informe, con el nombre de fichero
@@ -83,8 +84,8 @@ punto, no un formalismo.
    corregir se marca `aceptado` con su motivo en su informe o se pasa a una
    tarea nueva. Nunca se deja nada para la ronda siguiente: corregir de uno en
    uno es lo que convierte trece hallazgos en trece rondas. Lo corregido se
-   marca `corregido` en la columna Estado de su informe (commit aparte del
-   codigo). `taskctl review` avisa si queda alguno sin marcar. En modo
+   marca `corregido` en la columna Estado de su informe (sin mezclarlo en un
+   commit de codigo). `taskctl review` avisa si queda alguno sin marcar. En modo
    automatico, si `siguiente` da `fase: review` con `accion: continuar`, haz tu
    todo eso, commitea, deja la suite en verde y vuelve al paso 2. Desde la
    ronda 2 la ronda es una verificacion acotada: cada revisor comprueba sus

@@ -236,6 +236,8 @@ function textoDeLaCompleta(config, motivo) {
 async function anotarYCommitear(o, body, mensaje, que) {
     let c = { commit: null, avisos: [] };
     if (body !== o.initial.body) {
+        // TASK-119: lo pendiente de la tarea vuelve al arbol y entra en este commit.
+        o.antesDeAnotar?.();
         await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
         c = autoCommit({
             fase: 'finish',

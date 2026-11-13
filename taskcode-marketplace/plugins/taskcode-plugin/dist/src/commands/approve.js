@@ -30,6 +30,7 @@ import { ROLES_BRAINSTORM, TODOS_LOS_ROLES, seleccionarRoles, seleccionarRolesDe
 import { nombrePeticionRol } from '../core/plan-brainstorm.js';
 import { planEsEsqueleto } from '../core/validacion-tarea.js';
 import { conProgreso, crearProgreso } from '../fs/progreso.js';
+import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 export class ApproveCommandError extends Error {
@@ -108,7 +109,8 @@ async function runApprove(tareasRoot, argv, today, deps, progreso) {
     // ensureBaseBranchReady lanza BaseBranchGuardError si el workspace
     // tiene cambios sin commitear, o si no puede cambiar de forma
     // automatica a la rama base esperada segun initial.task.tipo.
-    const baseBranchGuard = ensureBaseBranchReady(initial.task.tipo, deps.repoCwd);
+    // TASK-119: lo pendiente de la propia tarea (plan final, coste) no bloquea: entra en este commit.
+    const baseBranchGuard = ensureBaseBranchReady(initial.task.tipo, deps.repoCwd, (c) => !hayCambiosFueraDeTarea(c, tareasRoot, initial.task.id));
     // Lectura FRESCA, ya en la rama base real — la unica que decide si
     // se marca plan_aprobado y con que contenido de partida (etiquetas,
     // asignado_a, etc. se preservan tal cual esten en la rama base, no

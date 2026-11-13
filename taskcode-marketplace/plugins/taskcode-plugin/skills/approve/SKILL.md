@@ -31,7 +31,7 @@ Es el checkpoint humano: el plan no se aprueba porque un agente lo diga.
    - **Trocear**: ejecuta `taskctl trocear TASK-NNN` y sigue con la parte a
      (`/taskcode-plugin:approve TASK-NNNa`).
    - **Si** (entera): escribe en el plan el motivo para no trocear si pasa de
-     la hora, commitealo y ejecuta `taskctl approve TASK-NNN`.
+     la hora y ejecuta `taskctl approve TASK-NNN` (su commit lo incluye).
    - **No**: pregunta que habria que cambiar y escribelo, con sus palabras, al
      final de `plan-final.md` en una seccion con este encabezado exacto (asi
      sobrevive a la sesion y la re-planificacion lo lee):

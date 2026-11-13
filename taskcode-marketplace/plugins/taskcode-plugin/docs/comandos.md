@@ -296,13 +296,13 @@ herramienta Agent) `taskctl` lee la transcripción del subagente en
 `<config>/projects/*/*/subagents/agent-<id>.jsonl` (`<config>` = `CLAUDE_CONFIG_DIR`
 o `~/.claude`) y suma, por `message.id` único (la última aparición), entrada +
 escritura y lectura de caché + salida de cada llamada. Varios `--agente` van en
-un solo registro y un solo commit. Un `--agente` ya anotado en `## Coste` de esa
+un solo registro. Un `--agente` ya anotado en `## Coste` de esa
 fase es un agente reanudado (su transcripción acumula los dos trabajos): se suma
 solo lo que creció su transcripción desde lo ya anotado para ese id, y la fila lo
 marca en su fuente (`agente:dif:<id>`), que `metricas` no avisa como repetida; si
 no ha crecido, o el id está anotado junto a otros en una misma fila, aborta.
-En `--fase revision` cada `--agente` va en **su propia fila** (en el mismo
-commit), con las columnas `ronda` y `revisor` que se deducen de su
+En `--fase revision` cada `--agente` va en **su propia fila** (en la misma
+llamada), con las columnas `ronda` y `revisor` que se deducen de su
 transcripción. Se sacan del nombre `peticion-revision-N[-skill].md` que lleva
 el prompt del revisor. Lo que no se puede deducir queda como `-` («sin
 atribuir»). Con un único `--agente`, `--ronda N [--revisor <skill>]` los
@@ -314,8 +314,14 @@ lecturas, los tokens de entrada y caché, y los CRÍTICO e IMPORTANTE de su info
 orquestador, estimada) y se excluye con `--agente`. Si el id no se encuentra, está
 en más de una sesión o la transcripción no trae `usage`, aborta diciendo qué hacer
 (`--tokens N` como salida). Funciona en cualquier estado, también `terminada`;
-escribe y commitea solo ese `tarea.md` (aborta si tiene cambios sin commitear o si
-la copia al día de la tarea está en su rama) y rechaza cifras de 0. `taskctl finish`
+escribe solo ese `tarea.md` (aborta si la copia al día de la tarea está en su rama)
+y rechaza cifras de 0. **No commitea** (TASK-119): el cambio queda pendiente en la
+carpeta de la tarea y lo incluye el commit del siguiente comando de fase
+(`approve`, `review` o `finish`, que dejan pasar lo pendiente de la propia tarea y
+lo apartan en un stash mientras corren los scripts de Git-Flow y la
+verificación). Lo mismo hace `taskctl veredicto`. En una tarea ya `terminada`,
+sin fase siguiente, sí commitea, y entonces aborta si ese `tarea.md` tiene cambios
+sin commitear. `taskctl finish`
 avisa, sin bloquear, si falta el coste de diseño o de revisión. El de
 implementación ya no hace falta registrarlo a mano: lo suma `review` (ver
 «Coste de implementación automático»); `registrar-coste --fase implementacion`

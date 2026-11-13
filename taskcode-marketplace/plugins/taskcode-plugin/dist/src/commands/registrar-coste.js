@@ -311,9 +311,11 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
         throw new RegistrarCosteCommandError(`[ERROR] ${id}: la copia al dia de la tarea esta en su rama, "${task.rama}". ` +
             `Cambia a ella (git checkout ${task.rama}) y reintenta; no se ha tocado nada.`);
     }
-    // El commit es de este fichero entero: con ediciones a medias en el, se
-    // las llevaria.
-    if (runGit(['status', '--porcelain', '--', filePath], deps.repoCwd) !== '') {
+    // TASK-119: solo una tarea terminada se commitea aqui (no tiene fase
+    // siguiente que lo absorba). Ese commit es de este fichero entero: con
+    // ediciones a medias en el, se las llevaria.
+    const commitea = task.estado === 'terminada';
+    if (commitea && runGit(['status', '--porcelain', '--', filePath], deps.repoCwd) !== '') {
         throw new RegistrarCosteCommandError(`[ERROR] ${id}: tarea.md tiene cambios sin commitear. Commitealos o descartalos antes de ` +
             '"taskctl registrar-coste": su commit se los llevaria. No se ha tocado nada.');
     }
@@ -378,13 +380,19 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
     const cuerpo = filas.reduce((acum, f) => anadirCoste(acum, f), body);
     await writeFile(filePath, serializeTareaFile(nueva, cuerpo), 'utf8');
     const detalle = nAgentes > 0 ? ` (${String(nAgentes)} agente${nAgentes === 1 ? '' : 's'})` : '';
-    const commit = autoCommit({
-        fase: 'registrar-coste',
-        cwd: deps.repoCwd,
-        rutas: [filePath],
-        mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),
-        push,
-    });
+    const avisos = [];
+    const commit = commitea
+        ? autoCommit({
+            fase: 'registrar-coste',
+            cwd: deps.repoCwd,
+            rutas: [filePath],
+            mensaje: mensajeChore(id, `coste ${fase} +${String(tokens)} tokens${detalle}`),
+            push,
+        })
+        : null;
+    if (!commitea && push) {
+        avisos.push(`${id}: --push no tiene efecto: el coste queda sin commitear hasta el siguiente comando de fase.`);
+    }
     return {
         id,
         fase,
@@ -396,5 +404,6 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
         filas,
         filePath,
         autoCommit: commit,
+        avisos,
     };
 }

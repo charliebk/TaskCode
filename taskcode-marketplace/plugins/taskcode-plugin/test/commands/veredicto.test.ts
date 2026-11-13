@@ -84,7 +84,7 @@ async function withRepo(
   }
 }
 
-test('veredicto: deja UNA linea canonica en la posicion de la primera, la commitea y finish la acepta', async () => {
+test('veredicto: deja UNA linea canonica en la posicion de la primera, sin commitearla, y finish la acepta', async () => {
   await withRepo(
     { 'informe-revision-1.md': '# viejo\n- Veredicto: cambios-solicitados\n', 'informe-revision-2.md': INFORME_A_MANO },
     async (repo, tareas, revisionDir) => {
@@ -100,11 +100,10 @@ test('veredicto: deja UNA linea canonica en la posicion de la primera, la commit
         'la linea tiene que quedar donde estaba la primera'
       );
       assert.ok(veredictoAprobado(informe), 'finish tiene que aceptar la linea que escribe el comando');
-      assert.equal(
-        git(['log', '-1', '--format=%s'], repo).trim(),
-        'chore(TASK-940): veredicto ronda 2 (aprobada-con-correcciones)'
-      );
-      assert.equal(git(['status', '--porcelain'], repo).trim(), '');
+      // TASK-119: sin commit; el informe queda pendiente para el siguiente comando de fase.
+      assert.equal(r.autoCommit, null);
+      assert.equal(git(['log', '-1', '--format=%s'], repo).trim(), 'inicial');
+      assert.match(git(['status', '--porcelain'], repo).trim(), /^M .*informe-revision-2\.md$/);
       // La ronda 1 no se toca.
       assert.match(
         await readFile(path.join(revisionDir, 'informe-revision-1.md'), 'utf8'),

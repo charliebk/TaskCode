@@ -166,7 +166,7 @@ export function siguienteFase(task, ctx, modo) {
                             'MENORES, registrarlas con verificar-menores (no se abre otra ronda)', `taskctl verificar-menores ${task.id}`, false, true);
                     }
                     if (!ctx.informeEnCommitPropio) {
-                        return paso('finish', true, 'la revision esta aprobada, pero lo que se cerraria no coincide con lo revisado (codigo posterior al Commit revisado, informe sin rellenar o sin commitear, o peticion sin Commit revisado): el cierre lo decide una persona', `taskctl finish ${task.id}`, true);
+                        return paso('finish', true, 'la revision esta aprobada, pero lo que se cerraria no coincide con lo revisado (codigo posterior al Commit revisado, informe sin rellenar, o peticion sin Commit revisado): el cierre lo decide una persona', `taskctl finish ${task.id}`, true);
                     }
                     if ((ctx.menoresAbiertos ?? 0) > 0 && ctx.verificacionLigeraAlDia !== true) {
                         return paso('verificar-menores', false, `la ronda esta aprobada con ${String(ctx.menoresAbiertos)} MENOR(es) abierto(s): corregir los baratos, ` +

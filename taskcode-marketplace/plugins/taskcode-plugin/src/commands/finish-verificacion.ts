@@ -73,6 +73,12 @@ export interface PuertaVerificacionOpts {
   id: string;
   rama: string;
   tareasRoot: string;
+  /**
+   * TASK-119: se llama justo antes de escribir y commitear una anotacion en
+   * tarea.md (devuelve lo pendiente de la tarea apartado, para que entre en
+   * ese commit). `initial` ya lo incluye: se leyo antes de apartarlo.
+   */
+  antesDeAnotar?: () => void;
   initial: ReadTareaResult;
   sinVerificacion: boolean;
   cwd: string;
@@ -326,6 +332,8 @@ async function anotarYCommitear(
 ): Promise<{ commit: string | null; tarea: ReadTareaResult }> {
   let c: { commit: string | null; avisos: readonly string[] } = { commit: null, avisos: [] };
   if (body !== o.initial.body) {
+    // TASK-119: lo pendiente de la tarea vuelve al arbol y entra en este commit.
+    o.antesDeAnotar?.();
     await writeFile(o.initial.filePath, serializeTareaFile(o.initial.task, body), 'utf8');
     c = autoCommit({
       fase: 'finish',

@@ -43,10 +43,11 @@ import { TOPE_RONDAS } from '../core/flujo.js';
 import { alcanceRondaSiguiente, commitRevisadoDe, hallazgosNoCerrados, hallazgosPendientes, severidadDe, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { isWorkspaceClean, currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
+import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
+import { conPendientesApartados, hayCambiosFueraDeTarea, recuperarApartado } from '../fs/pendientes.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 import { excluirDeRevision } from '../fs/revisores-rango.js';
 import { avisoAutorrevision } from '../core/autorrevision.js';
@@ -462,6 +463,9 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     if (id === undefined || id.trim() === '') {
         throw new ReviewCommandError('[ERROR] Falta el ID de la tarea: taskctl review TASK-NNN.');
     }
+    // TASK-119: un intento anterior que murio con lo pendiente de la tarea
+    // apartado lo recupera ahora, antes de leer nada (el veredicto vive ahi).
+    recuperarApartado(deps.repoCwd, tareasRoot, id);
     // Lectura PRELIMINAR (regla de la doble lectura, TASK-012): sirve
     // para rechazo rapido sin tocar Git y para extraer tipo/rama —
     // metadata estable que ningun comando reescribe. La lectura que
@@ -493,7 +497,10 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     progreso.paso('guardas');
     // Mismo motivo que en start: el prompt interactivo de Git-Flow con
     // stdin no interactivo cancela en silencio (EOF => "No" => exit 0).
-    if (!isWorkspaceClean(deps.repoCwd)) {
+    // TASK-119: lo pendiente de la propia tarea (coste, veredicto, informe) no
+    // cuenta: se aparta mientras corren el script y la verificacion, y entra en
+    // el commit de la ronda.
+    if (hayCambiosFueraDeTarea(deps.repoCwd, tareasRoot, initial.task.id)) {
         throw new ReviewCommandError(`[ERROR] ${id}: el workspace tiene cambios sin commitear. ` +
             'Haz commit o stash antes de "taskctl review" — el update de Git-Flow necesita el ' +
             'workspace limpio y su prompt interactivo cancela en silencio sin terminal.');
@@ -504,10 +511,10 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     // base entraria en el delta); exige estar ya en la rama de la tarea.
     const { code, signal } = incremental
         ? { code: 0, signal: null }
-        : runGitflowScript(scriptName, [rama, ...gitflowBaseArgs(tipo, deps.repoCwd)], {
+        : conPendientesApartados(deps.repoCwd, tareasRoot, initial.task.id, () => runGitflowScript(scriptName, [rama, ...gitflowBaseArgs(tipo, deps.repoCwd)], {
             scriptsDir: deps.scriptsDir,
             cwd: deps.repoCwd,
-        });
+        }));
     if (code !== 0) {
         const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
         throw new ReviewCommandError(`[ERROR] ${id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
@@ -622,9 +629,11 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     // update de Git-Flow ya integro la base (y ese merge queda hecho); en una
     // incremental la rama no se actualiza (TASK-040). Sin la clave, nada.
     progreso.paso('verificacion');
-    const verificacion = verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos, () => 
+    // TASK-119: con lo pendiente apartado, el arbol queda limpio y la huella de
+    // la verificacion casa con la del hook Stop (y se guarda su memo).
+    const verificacion = conPendientesApartados(deps.repoCwd, tareasRoot, task.id, () => verificacionDeRonda(id, configRama, baseBranch, tipo, incremental, deps, avisos, () => 
     // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
-    entornoConContador(deps.env ?? process.env, progreso.contador()));
+    entornoConContador(deps.env ?? process.env, progreso.contador())));
     // TASK-074: cobertura de las lineas cambiadas, desde la merge base SIEMPRE
     // (tambien en la ronda incremental: una linea sin cubrir de la ronda 1 que
     // nadie arreglo sigue ahi). Una vez por ronda y antes de escribir nada;

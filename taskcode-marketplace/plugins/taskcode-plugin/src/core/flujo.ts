@@ -325,7 +325,7 @@ export function siguienteFase(task: Task, ctx: ContextoFlujo, modo: ModoFlujo): 
             return paso(
               'finish',
               true,
-              'la revision esta aprobada, pero lo que se cerraria no coincide con lo revisado (codigo posterior al Commit revisado, informe sin rellenar o sin commitear, o peticion sin Commit revisado): el cierre lo decide una persona',
+              'la revision esta aprobada, pero lo que se cerraria no coincide con lo revisado (codigo posterior al Commit revisado, informe sin rellenar, o peticion sin Commit revisado): el cierre lo decide una persona',
               `taskctl finish ${task.id}`,
               true
             );

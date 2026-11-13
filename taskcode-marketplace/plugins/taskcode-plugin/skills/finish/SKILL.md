@@ -23,8 +23,8 @@ formas de cerrar, todas opcionales salvo la primera, que es la de siempre:
    escriba o cambie de rama (ver la cadena en `task-workflow/avance.md`).
 2. Comprueba que el `tarea.md` tiene los criterios de aceptacion marcados y
    una seccion `## Resultado` con lo implementado, lo que encontro la
-   revision y lo que se decidio no corregir. Si falta, completalo y
-   commitealo antes.
+   revision y lo que se decidio no corregir. Si falta, completalo (no hace
+   falta commitearlo: `finish` lo incluye en su commit).
 3. Si en el `tarea.md` falta el coste de diseno o de revision
    (`tokens_diseno` o `tokens_revision` a `null`) y lo tienes (los ids de los
    subagentes de esa fase), registralo **antes** de `taskctl finish` con
