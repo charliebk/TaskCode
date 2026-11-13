@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 128 / 128 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 129 / 129 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 27 | **27** | — |
+| ✅ P — Agilidad sin perder calidad | 28 | **28** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (27/27)
+## ✅ P — Agilidad sin perder calidad (28/28)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -193,6 +193,11 @@ del código.
       docs/registro-puertas.md para TASK-111 y TASK-128); cada sincronización anota su línea, fases_sincronizacion
       la limita y metricas la suma en la columna sinc. De paso, el test del symlink de approve se omite sin
       privilegio (bloqueaba la selectiva): en Windows fallan ya solo 2. Una ronda aprobada, 2 MENORES aceptados.*
+- [x] TASK-112 — P-4: el revisor reutiliza la verificación de ronda y las rondas 2+ solo relanzan al revisor con pendientes — cerrada el 2026-11-13
+      *La verificación de ronda lleva commit y huella y, en verde, la petición dice que no se repita (los revisores
+      de esta misma tarea ya no la repitieron). La ronda acotada solo reverifica CRÍTICO e IMPORTANTE; quien solo
+      tenía MENORES vuelve si la corrección toca sus ficheros y si no consta en `## Revisores no relanzados`.
+      Dos rondas: IMP-1 (skills revisoras incoherentes) y MEN-1..3 corregidos; notas N-1 y N-2 pendientes.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
