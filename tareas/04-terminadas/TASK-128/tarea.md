@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, verificacion, metricas, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-128-metricas-de-verificacion-por-puerta-tiem
 asignado_a: charlie.bk@gmail.com
@@ -67,6 +67,7 @@ ficheros de `src/` y la correccion fueron solo tests; estan corregidos
 | 2026-11-13T13:09:13Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T13:09:15Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T13:18:16Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T13:53:39Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -81,3 +82,9 @@ ficheros de `src/` y la correccion fueron solo tests; estan corregidos
 ## Verificacion omitida
 
 - 2026-11-13T13:53:30Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 75 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 44 min
+- Cierre (finish): 9 s, de 2026-11-13T13:53:30Z a 2026-11-13T13:53:39Z
