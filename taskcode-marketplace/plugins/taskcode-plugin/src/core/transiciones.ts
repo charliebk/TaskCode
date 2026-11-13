@@ -355,24 +355,35 @@ export const SECCION_VERIFICACION_LOTE = '## Verificacion por lote';
 /** TASK-115: lo que marca una linea pendiente de lote (la ultima de la seccion manda). */
 export const MARCA_PENDIENTE_LOTE = 'pendiente de lote';
 
-/** TASK-115: anota en finish que la completa queda pendiente de lote. */
+/** TASK-115: lo que marca la linea con que verificar-lote resuelve las pendientes. */
+export const MARCA_LOTE_VERDE = 'lote en verde en';
+
+/**
+ * TASK-115: anota en finish que la completa queda pendiente de lote. Un
+ * reintento de finish con lo mismo no duplica la linea (MEN-1 de la revision).
+ */
 export function anotarPendienteLote(body: string, instante: string, comando: string): string {
-  const linea = `- ${instante}: ${MARCA_PENDIENTE_LOTE}; no se ejecuta \`${comando.replace(/`/g, "'")}\` (verificacion_por_lote)`;
-  return anotarLineaEnSeccion(body, SECCION_VERIFICACION_LOTE, linea);
+  const texto = `${MARCA_PENDIENTE_LOTE}; no se ejecuta \`${comando.replace(/`/g, "'")}\` (verificacion_por_lote)`;
+  return anotarLineaUnica(body, SECCION_VERIFICACION_LOTE, instante, texto);
 }
 
-/** TASK-115: true si la ultima linea de `## Verificacion por lote` esta pendiente. */
+/**
+ * TASK-115: true si `## Verificacion por lote` tiene una linea pendiente sin un
+ * «lote en verde» detras. Las demas lineas (notas a mano) no cuentan, y la
+ * seccion se busca como las demas, fuera de bloques de codigo (MEN-2).
+ */
 export function pendienteDeLote(body: string): boolean {
-  const lineas = body.replace(/\r/g, '').split('\n');
-  const i = lineas.findIndex((l) => l.trim() === SECCION_VERIFICACION_LOTE);
-  if (i === -1) return false;
-  let ultima = '';
-  for (let j = i + 1; j < lineas.length; j++) {
-    const l = (lineas[j] as string).trim();
-    if (l.startsWith('## ')) break;
-    if (l.startsWith('- ')) ultima = l;
+  const lineas = body.split(/\r?\n/);
+  const rango = rangoDeSeccion(lineas, SECCION_VERIFICACION_LOTE);
+  if (rango === null) return false;
+  let pendiente = false;
+  for (const l of lineas.slice(rango[0] + 1, rango[1])) {
+    const t = l.trim();
+    if (!t.startsWith('- ')) continue;
+    if (t.includes(MARCA_PENDIENTE_LOTE)) pendiente = true;
+    else if (t.includes(MARCA_LOTE_VERDE)) pendiente = false;
   }
-  return ultima.includes(MARCA_PENDIENTE_LOTE);
+  return pendiente;
 }
 
 /** TASK-100: seccion que deja `finish` cuando la tarea es solo documentacion y no corre la completa. */

@@ -15,8 +15,9 @@ import { readTareaFile } from '../../src/fs/task-store.js';
 import { runFinishCommand } from '../../src/commands/finish.js';
 import { runVerificarLoteCommand, VerificarLoteCommandError } from '../../src/commands/verificar-lote.js';
 import { ConfigError, parsearConfig } from '../../src/core/config.js';
-import { pendienteDeLote } from '../../src/core/transiciones.js';
+import { anotarPendienteLote, pendienteDeLote } from '../../src/core/transiciones.js';
 import { leerRegistroPuertas } from '../../src/fs/registro-puertas.js';
+import { leerProgreso } from '../../src/fs/progreso.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
 
 const SCRIPT = `
@@ -112,6 +113,8 @@ test('verificar-lote (TASK-115): una completa en develop anota en verde todas la
     git(['checkout', '-q', 'develop'], e.repoRoot);
     const r = await lote(e);
     assert.equal(e.ejecuciones(), 1, 'una sola completa para el lote');
+    // MEN-3: el paso se ve en el progreso, como en finish.
+    assert.deepEqual([leerProgreso(e.repoRoot)?.fase, leerProgreso(e.repoRoot)?.resultado], ['finish', 'ok']);
     assert.deepEqual(r.pendientes, ['TASK-811', 'TASK-812']);
     const head = r.commitVerificado as string;
     for (const id of ['TASK-811', 'TASK-812']) {
@@ -187,4 +190,41 @@ test('finish (TASK-115, regresion): sin la clave en develop corre la completa, a
     },
     { porLoteEnDevelop: false }
   );
+});
+
+test('finish (TASK-115, IMP-1): un hotfix va a la completa aunque la principal declare el lote', async () => {
+  await conLote(async (e) => {
+    // La config de develop (con la clave) se lleva tal cual a main.
+    const config = readFileSync(path.join(e.repoRoot, '.taskcode', 'config.yml'), 'utf8');
+    git(['checkout', '-q', 'main'], e.repoRoot);
+    await mkdir(path.join(e.repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(e.repoRoot, '.taskcode', 'config.yml'), config, 'utf8');
+    commitAll(e.repoRoot, 'config en main');
+    git(['checkout', '-q', 'develop'], e.repoRoot);
+    const task = sampleTask({ id: 'TASK-814', tipo: 'hotfix', rama: 'hotfix/task-814-arreglo' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task, { base: 'main' });
+    await runFinishCommand(e.tareasRoot, ['TASK-814'], '2026-11-13', { repoCwd: e.repoRoot, scriptsDir: SCRIPTS_DIR });
+    assert.equal(e.ejecuciones(), 1, 'el hotfix corre la completa');
+    assert.equal(pendienteDeLote((await readTareaFile(e.tareasRoot, 'TASK-814'))?.body ?? ''), false);
+  });
+});
+
+test('finish (TASK-115, IMP-1): un release va a la completa aunque develop declare el lote', async () => {
+  await conLote(async (e) => {
+    const task = sampleTask({ id: 'TASK-815', tipo: 'release', rama: 'release/task-815-q4' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await runFinishCommand(e.tareasRoot, ['TASK-815'], '2026-11-13', { repoCwd: e.repoRoot, scriptsDir: SCRIPTS_DIR });
+    assert.equal(e.ejecuciones(), 1, 'el release corre la completa');
+    assert.equal(pendienteDeLote((await readTareaFile(e.tareasRoot, 'TASK-815'))?.body ?? ''), false);
+  });
+});
+
+test('lote (TASK-115, MEN-1/MEN-2): un reintento no duplica la pendiente; notas a mano y bloques de codigo no la cambian', () => {
+  const una = anotarPendienteLote('## Objetivo\nx\n', '2026-11-13', 'npm test');
+  assert.equal(anotarPendienteLote(una, '2026-11-14', 'npm test'), una, 'el reintento no anade otra linea');
+  assert.equal(pendienteDeLote(una), true);
+  assert.equal(pendienteDeLote(`${una}- 2026-11-13: nota a mano de la persona\n`), true, 'una nota no la resuelve');
+  assert.equal(pendienteDeLote(`${una}- 2026-11-14: lote en verde en abc1234 (taskctl verificar-lote)\n`), false);
+  const citada = '## Objetivo\n\n```\n## Verificacion por lote\n\n- 2026-11-13: pendiente de lote\n```\n';
+  assert.equal(pendienteDeLote(citada), false, 'una seccion citada en un bloque de codigo no cuenta');
 });

@@ -23,7 +23,8 @@ import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { PUERTA_FINISH } from '../core/registro-puertas.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import { isValidTaskId, STATE_FOLDER } from '../core/task.js';
-import { anotarLineaEnSeccion, pendienteDeLote, SECCION_VERIFICACION_LOTE } from '../core/transiciones.js';
+import { anotarLineaEnSeccion, MARCA_LOTE_VERDE, pendienteDeLote, SECCION_VERIFICACION_LOTE } from '../core/transiciones.js';
+import { crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { currentBranch, isWorkspaceClean, resolveIntegrationBranch } from '../fs/git.js';
 import { autoCommit } from '../fs/git-commit.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
@@ -85,7 +86,15 @@ export async function runVerificarLoteCommand(tareasRoot, argv, deps) {
     const commit = headDe(cwd);
     const timeoutS = config.timeout_verificacion;
     const inicio = Date.now();
-    const r = ejecutarVerificacion(cwd, comando, timeoutS, deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs });
+    // MEN-3 (revision TASK-115): como finish, el paso se ve y el comando recibe el contador (TASKCTL_PROGRESO).
+    const progreso = deps.progreso ?? crearProgreso(cwd);
+    progreso.fase(ids[0], 'finish', ['verificacion lote']);
+    progreso.paso('verificacion lote');
+    const r = ejecutarVerificacion(cwd, comando, timeoutS, {
+        env: entornoConContador(process.env, progreso.contador()),
+        ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+    });
+    progreso.terminar(r.estado === 'verde' ? 'ok' : 'en-rojo');
     anotarPuerta(cwd, {
         puerta: PUERTA_FINISH,
         tarea: '-',
@@ -112,7 +121,7 @@ export async function runVerificarLoteCommand(tareasRoot, argv, deps) {
     }
     const instante = deps.ahora ?? new Date().toISOString();
     for (const t of pendientes) {
-        const body = anotarLineaEnSeccion(t.body, SECCION_VERIFICACION_LOTE, `- ${instante}: lote en verde en ${commit.slice(0, 7)} (taskctl verificar-lote)`);
+        const body = anotarLineaEnSeccion(t.body, SECCION_VERIFICACION_LOTE, `- ${instante}: ${MARCA_LOTE_VERDE} ${commit.slice(0, 7)} (taskctl verificar-lote)`);
         await writeFile(t.filePath, serializeTareaFile(t.task, body), 'utf8');
     }
     const commitResult = autoCommit({
