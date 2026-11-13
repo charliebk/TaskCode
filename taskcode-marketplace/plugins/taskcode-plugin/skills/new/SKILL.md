@@ -31,7 +31,9 @@ arrancar sin volver a preguntar.
    ```
 
    Opcionales si la persona los da: `--sprint N`, `--etiquetas a,b`,
-   `--complejidad trivial|simple|media|alta|critica`.
+   `--complejidad trivial|simple|media|alta|critica`. Sin `--complejidad`,
+   `new` propone la de las tareas terminadas con mas etiquetas en comun y dice
+   de cuales sale: transmitela a la persona por si no encaja.
 4. Si falla, muestra el error tal cual: dice que corregir.
 5. Con el ID que imprime, sigue la seccion de avance de la skill de flujo
    (`task-workflow/avance.md`): `taskctl siguiente TASK-NNN --json` y lo que

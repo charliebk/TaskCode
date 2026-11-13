@@ -428,7 +428,14 @@ async function mainComando(argvEntrada) {
                 (result.conContenido
                     ? ''
                     : 'Rellena "## Objetivo" y los criterios de aceptacion antes de "taskctl plan": el ' +
-                        'brainstorm se lanza a partir de ese texto (o pasalos con --objetivo y --criterio).\n'));
+                        'brainstorm se lanza a partir de ese texto (o pasalos con --objetivo y --criterio).\n') +
+                // TASK-117: la complejidad que se escribio sin --complejidad, y de donde sale.
+                (result.complejidadPropuesta === null
+                    ? ''
+                    : // MEN-2 de la revision: con un numero par, la mediana es la inferior de las centrales.
+                        `Complejidad propuesta: ${result.complejidadPropuesta.valor} (mediana, la inferior si son pares, de ` +
+                            `${result.complejidadPropuesta.desde.join(', ')}, con ${result.complejidadPropuesta.enComun} ` +
+                            'etiqueta(s) en comun). Cambiala en tarea.md si no encaja.\n'));
             printAutoCommit(result.autoCommit);
             return 0;
         }

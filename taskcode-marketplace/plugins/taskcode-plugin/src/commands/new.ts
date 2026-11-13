@@ -28,7 +28,8 @@ import {
   type TaskComplexity,
 } from '../core/task.js';
 import { nextTaskId } from '../core/task-id.js';
-import { listExistingTaskIds, writeTareaFile } from '../fs/task-store.js';
+import { listExistingTaskIds, listTareasEnEstados, writeTareaFile } from '../fs/task-store.js';
+import { proponerComplejidad, type ComplejidadPropuesta } from '../core/complejidad-similar.js';
 import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 import { extraerSecciones } from '../core/tarea-body.js';
 
@@ -49,8 +50,13 @@ export interface NewTaskOptions {
 
 const DEFAULT_SPRINT = 0;
 /**
- * Sin --complejidad la tarea nace sin declararla (null): la decide la
- * heuristica al planificar (TASK-042, decision C4). Antes era `media`.
+ * Valor de `parseNewTaskArgs` sin --complejidad: null. Antes era `media`
+ * (TASK-042, decision C4). Desde TASK-117, `runNewCommand` escribe en su
+ * lugar la complejidad propuesta por las terminadas parecidas, si la hay; si
+ * no, la tarea nace con null y la decide la heuristica al planificar. Ojo
+ * (IMP-1 de la revision, aceptado): la propuesta cuenta como declarada, y la
+ * heuristica toma el maximo entre declarada y propia, asi que solo puede
+ * subir el numero de roles.
  */
 const DEFAULT_COMPLEJIDAD: TaskComplexity | null = null;
 const DEFAULT_MODELO = 'sonnet';
@@ -300,6 +306,8 @@ export async function crearTareaEn(
 export interface NewCommandResult {
   /** TASK-041: true si la tarea nacio con objetivo o criterios. */
   conContenido: boolean;
+  /** TASK-117: la complejidad propuesta por tareas parecidas, si se escribio. */
+  complejidadPropuesta: ComplejidadPropuesta | null;
   id: string;
   filePath: string;
   baseBranchGuard: BaseBranchGuardResult;
@@ -367,6 +375,17 @@ export async function runNewCommand(
   const baseBranchGuard = ensureBaseBranchReady(opts.tipo, deps.repoCwd);
   const existingIds = await listExistingTaskIds(tareasRoot);
   const id = nextTaskId(existingIds);
+  // TASK-117: sin --complejidad, la de las terminadas que mas etiquetas
+  // comparten (las ilegibles se ignoran: no abortan `new`).
+  let complejidadPropuesta: ComplejidadPropuesta | null = null;
+  if (opts.complejidad === null) {
+    const { tareas } = await listTareasEnEstados(tareasRoot, ['terminada']);
+    complejidadPropuesta = proponerComplejidad(
+      opts.etiquetas,
+      tareas.map((t) => t.task)
+    );
+    if (complejidadPropuesta !== null) opts.complejidad = complejidadPropuesta.valor;
+  }
   const { filePath } = await crearTareaEn(tareasRoot, id, opts, cuerpo, today);
   // Auto-commit (TASK-030, item C2): se commitea la CARPETA de la tarea
   // recien creada, no el arbol. La decision #14 fijo commitear si y
@@ -381,6 +400,7 @@ export async function runNewCommand(
   });
   return {
     conContenido: cuerpo !== DEFAULT_BODY,
+    complejidadPropuesta,
     id,
     filePath,
     baseBranchGuard,
