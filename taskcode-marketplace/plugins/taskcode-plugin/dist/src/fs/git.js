@@ -272,6 +272,19 @@ export function diffRange(desde, hasta, cwd) {
     return runGit(['diff', `${desde}..${hasta}`], cwd);
 }
 /**
+ * TASK-113: globs de Git que reproducen la heuristica de fichero de test de
+ * `esRutaDeTest` (core/menores.ts): carpetas `test/`, `tests/` y
+ * `__tests__/` a cualquier profundidad, y nombres `*.test.*` y `*.spec.*`.
+ * Los calcula Git, como el resto de patrones de la peticion.
+ */
+export const PATRONES_TEST = [
+    '**/test/**',
+    '**/tests/**',
+    '**/__tests__/**',
+    '**/*.test.*',
+    '**/*.spec.*',
+];
+/**
  * El diff que se embebe en una peticion de revision (TASK-034), sin los
  * ficheros que casan con `excluir` (patrones `git :(glob)`, ya
  * normalizados por config.ts).
@@ -285,14 +298,16 @@ export function diffRange(desde, hasta, cwd) {
  */
 export function diffParaRevision(desde, hasta, excluir, cwd) {
     const rango = `${desde}..${hasta}`;
-    const sinExcluidos = pathspecSinExcluidos(excluir);
     const { incluidos, excluidos } = ficherosParaRevision(desde, hasta, excluir, cwd);
+    // Los tests son los incluidos que desaparecen al excluir tambien PATRONES_TEST.
+    const sinTests = new Set(ficherosParaRevision(desde, hasta, [...excluir, ...PATRONES_TEST], cwd).incluidos);
+    const tests = incluidos.filter((f) => !sinTests.has(f));
     return {
         incluidos,
         excluidos,
-        diff: excluir.length === 0
-            ? runGit([...SIN_COMILLAS, 'diff', rango], cwd)
-            : runGit([...SIN_COMILLAS, 'diff', rango, ...sinExcluidos], cwd),
+        tests,
+        statTests: statDeFicheros(desde, hasta, tests, cwd),
+        diff: runGit([...SIN_COMILLAS, 'diff', rango, ...pathspecSinExcluidos([...excluir, ...PATRONES_TEST])], cwd),
         stat: excluidos.length === 0
             ? ''
             : // --stat=200: a 80 columnas Git abrevia las rutas con ".../" y
@@ -528,6 +543,17 @@ export function diffRangeForPaths(desde, hasta, paths, cwd) {
     // `pages/[id].vue` se leeria como glob y el diff del grupo saldria vacio
     // o con otros ficheros.
     return runGit([...SIN_COMILLAS, 'diff', `${desde}..${hasta}`, '--', ...paths.map((p) => `:(literal)${p}`)], cwd);
+}
+/**
+ * TASK-113: `git diff --stat=200 <desde>..<hasta> -- <paths>` de rutas reales
+ * (`:(literal)`). Vacio si `paths` esta vacio, sin llamar a Git. `--stat=200`:
+ * a 80 columnas Git abrevia las rutas con ".../" y el revisor no sabria cual
+ * leer.
+ */
+export function statDeFicheros(desde, hasta, paths, cwd) {
+    if (paths.length === 0)
+        return '';
+    return runGit([...SIN_COMILLAS, 'diff', '--stat=200', `${desde}..${hasta}`, '--', ...paths.map((p) => `:(literal)${p}`)], cwd);
 }
 /**
  * Rutas (con "/" de Git, no separador del SO) de los ficheros bajo
