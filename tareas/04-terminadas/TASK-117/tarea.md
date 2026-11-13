@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-117-p-9-new-propone-la-complejidad-a-partir
 asignado_a: charlie.bk@gmail.com
@@ -65,6 +65,7 @@ aprobada-con-correcciones.
 | 2026-11-13T03:33:06Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T03:40:32Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T03:47:46Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T04:17:08Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -75,3 +76,9 @@ aprobada-con-correcciones.
 ## Verificacion omitida
 
 - 2026-11-13T04:17:00Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 50 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 44 min
+- Cierre (finish): 8 s, de 2026-11-13T04:17:00Z a 2026-11-13T04:17:08Z
