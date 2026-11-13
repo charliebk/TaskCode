@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-113-p-5-peticion-de-revision-mas-ligera-con
 asignado_a: charlie.bk@gmail.com
@@ -37,3 +37,4 @@ La peticion de la ronda 1 pesa 116 KB de mediana en ToolsaWeb (unos 30 K tokens 
 |---|---|---|---|---|
 | 2026-11-13T00:11:26Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T00:12:08Z | approve | automatico | persona | 0.14.0 |
+| 2026-11-13T00:12:10Z | start | automatico | persona | 0.14.0 |
