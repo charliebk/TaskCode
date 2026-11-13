@@ -151,10 +151,11 @@ test('los cinco abortan fuera de un repositorio Git, sin llegar a lanzar bash', 
   });
 });
 
-// ── Validacion de argumentos ────────────────────────────────────────
+// ── Validacion de argumentos (y guards con terminal, y codigo de salida) ──
 
-test('diagnose y abort-merge no aceptan argumentos', async () => {
+test('validacion de argumentos: diagnose/abort-merge sin argumentos, pause --push/-p, resume/recover con un solo nombre de rama valido; con terminal los guards no se aplican; el codigo de salida se propaga', async () => {
   await withTempRepo(async (repoRoot) => {
+    // diagnose y abort-merge no aceptan argumentos
     for (const nombre of ['diagnose', 'abort-merge'] as const) {
       const error = capturaError(() =>
         run(nombre, ['algo'], repoRoot, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
@@ -162,16 +163,13 @@ test('diagnose y abort-merge no aceptan argumentos', async () => {
       assert.ok(error instanceof WrapperCommandError, nombre);
       assert.match((error as Error).message, /no acepta argumentos/);
     }
-  });
-});
 
-test('pause solo admite --push y -p, y se los pasa al script', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const error = capturaError(() =>
+    // pause solo admite --push y -p, y se los pasa al script
+    const errorPause = capturaError(() =>
       run('pause', ['--forzar'], repoRoot, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
     );
-    assert.ok(error instanceof WrapperCommandError);
-    assert.match((error as Error).message, /solo admite --push y -p/);
+    assert.ok(errorPause instanceof WrapperCommandError);
+    assert.match((errorPause as Error).message, /solo admite --push y -p/);
 
     // Las dos grafias validas llegan al script, tal cual: se comprueba con
     // un doble del script que escribe sus argumentos, no con el
@@ -197,16 +195,8 @@ test('pause solo admite --push y -p, y se los pasa al script', async () => {
         );
         await rm(argsPath);
       }
-    } finally {
-      await rm(scriptsDir, { recursive: true, force: true });
-    }
-  });
-});
 
-test('resume pasa el nombre de rama al script como argumento posicional', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const scriptsDir = await mkdtemp(path.join(tmpdir(), 'taskctl-scripts-'));
-    try {
+      // resume pasa el nombre de rama al script como argumento posicional
       await writeFile(
         path.join(scriptsDir, 'resume-work.sh'),
         '#!/usr/bin/env bash\nprintf "%s\\n" "$@" > args.txt\n',
@@ -214,25 +204,41 @@ test('resume pasa el nombre de rama al script como argumento posicional', async 
       );
       assert.equal(run('resume', ['feature/algo'], repoRoot, { scriptsDir }).code, 0);
       assert.equal(await readFile(path.join(repoRoot, 'args.txt'), 'utf8'), 'feature/algo\n');
+      await rm(path.join(repoRoot, 'args.txt'));
+
+      // El codigo de salida del script se propaga tal cual, sin colapsarlo a 0 o 1
+      await writeFile(
+        path.join(scriptsDir, 'diagnose-repo.sh'),
+        '#!/usr/bin/env bash\nexit 42\n',
+        'utf8'
+      );
+      assert.equal(run('diagnose', [], repoRoot, { scriptsDir }).code, 42);
+
+      // Con terminal los guards no se aplican: pause con el workspace sucio llega al script
+      await writeFile(path.join(repoRoot, 'sin-guardar.txt'), 'a medias', 'utf8');
+      await writeFile(path.join(scriptsDir, 'pause-work.sh'), DOBLE_MUDO_21, 'utf8');
+      const conTerminalPause = run('pause', [], repoRoot, { scriptsDir, interactivo: true });
+      assert.equal(conTerminalPause.code, 21);
+      assert.deepEqual(conTerminalPause.avisos, [], 'con terminal no hay nada de que avisar');
+
+      // Con terminal resume sin rama tampoco corta: es el script quien pregunta
+      await writeFile(path.join(scriptsDir, 'resume-work.sh'), DOBLE_MUDO_21, 'utf8');
+      const conTerminalResume = run('resume', [], repoRoot, { scriptsDir, interactivo: true });
+      assert.equal(conTerminalResume.code, 21);
+      assert.deepEqual(conTerminalResume.avisos, []);
     } finally {
       await rm(scriptsDir, { recursive: true, force: true });
     }
-  });
-});
 
-test('resume --push mi-rama no se lleva "--push" como nombre de rama', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const error = capturaError(() =>
+    // resume --push mi-rama no se lleva "--push" como nombre de rama
+    const errorPush = capturaError(() =>
       run('resume', ['--push', 'mi-rama'], repoRoot, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
     );
-    assert.ok(error instanceof WrapperCommandError);
-    assert.match((error as Error).message, /no admite ninguna opcion/);
-    assert.match((error as Error).message, /--push/);
-  });
-});
+    assert.ok(errorPush instanceof WrapperCommandError);
+    assert.match((errorPush as Error).message, /no admite ninguna opcion/);
+    assert.match((errorPush as Error).message, /--push/);
 
-test('resume y recover aceptan un solo nombre de rama', async () => {
-  await withTempRepo(async (repoRoot) => {
+    // resume y recover aceptan un solo nombre de rama
     for (const nombre of ['resume', 'recover'] as const) {
       const error = capturaError(() =>
         run(nombre, ['una', 'otra'], repoRoot, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
@@ -240,83 +246,53 @@ test('resume y recover aceptan un solo nombre de rama', async () => {
       assert.ok(error instanceof WrapperCommandError, nombre);
       assert.match((error as Error).message, /un solo nombre de rama/);
     }
-  });
-});
 
-test('un nombre de rama con formato invalido se rechaza antes de invocar el script', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const error = capturaError(() =>
+    // Un nombre de rama con formato invalido se rechaza antes de invocar el script
+    const errorFormato = capturaError(() =>
       run('resume', ['rama con espacios'], repoRoot, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
     );
-    assert.ok(error instanceof WrapperCommandError);
-    assert.match((error as Error).message, /no es un nombre de rama valido/);
+    assert.ok(errorFormato instanceof WrapperCommandError);
+    assert.match((errorFormato as Error).message, /no es un nombre de rama valido/);
+
+    // resume y recover sin rama y sin terminal dicen como invocarlos
+    for (const nombre of ['resume', 'recover'] as const) {
+      const error = capturaError(() =>
+        run(nombre, [], repoRoot, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
+      );
+      assert.ok(error instanceof WrapperCommandError, nombre);
+      assert.match((error as Error).message, /no hay terminal interactiva/);
+      assert.match((error as Error).message, new RegExp(`taskctl ${nombre} <rama>`));
+    }
   });
 });
 
 // ── Sin terminal: cuando corta y cuando no ──────────────────────────
 
-test('diagnose funciona sin terminal y sin avisos: no pregunta nada', async () => {
+test('sin terminal: diagnose y pause (workspace limpio, sin .gitignore, sin ensuciar) siguen adelante; abort-merge sin nada informa; resume/recover avisan del default; pause sucio y abort-merge con conflicto abortan sin tocar nada', async () => {
+  // El repo de withTempRepo no tiene .gitignore a proposito (ver su comentario).
   await withTempRepo(async (repoRoot) => {
-    const result = run('diagnose', [], repoRoot);
-    assert.equal(result.code, 0);
-    assert.deepEqual(result.avisos, []);
-  });
-});
+    // diagnose funciona sin terminal y sin avisos: no pregunta nada
+    const diagnose = run('diagnose', [], repoRoot);
+    assert.equal(diagnose.code, 0);
+    assert.deepEqual(diagnose.avisos, []);
 
-test('pause sin terminal y con el workspace limpio sigue adelante', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const result = run('pause', [], repoRoot);
-    assert.equal(result.code, 0);
-    assert.deepEqual(result.avisos, []);
-  });
-});
-
-test('pause sin terminal y con el workspace sucio aborta y no toca nada', async () => {
-  await withTempRepo(async (repoRoot) => {
-    await writeFile(path.join(repoRoot, 'sin-guardar.txt'), 'trabajo a medias\n', 'utf8');
-    const estadoAntes = git(['status', '--porcelain'], repoRoot);
-    const headAntes = git(['rev-parse', 'HEAD'], repoRoot);
-
-    const error = capturaError(() => run('pause', [], repoRoot));
-
-    assert.ok(error instanceof WrapperCommandError);
-    assert.match((error as Error).message, /commit o como stash/);
-    assert.match((error as Error).message, /no hay terminal interactiva/);
-    // Y sobre todo: el trabajo sin guardar sigue exactamente donde
-    // estaba, sin stash nuevo ni commit nuevo.
-    assert.equal(git(['status', '--porcelain'], repoRoot), estadoAntes);
-    assert.equal(git(['rev-parse', 'HEAD'], repoRoot), headAntes);
-    assert.equal(git(['stash', 'list'], repoRoot), '');
-  });
-});
-
-test('pause sin terminal sigue adelante en un repo SIN .gitignore, y no ensucia nada', async () => {
-  // Regresion de TASK-029, y la razon de que aqui ya no haya un guard
-  // de "el repo no ignora logs/". Hasta TASK-029,
-  // `initialize_gitflow_log` creaba <repo>/logs/gitflow/ nada mas
-  // arrancar: en un repo sin ese patron en el .gitignore, pause-work.sh
-  // veia el workspace sucio POR SU PROPIA CULPA, preguntaba, y con EOF
-  // por respuesta moria con "Opcion no reconocida" y exit 1 — el fallo
-  // que este comando venia a quitar de en medio. El wrapper lo tapaba
-  // abortando antes con un mensaje que pedia tocar el .gitignore.
-  //
-  // Ahora el registro vive en `.git/taskcode/gitflow/`, que `git status`
-  // no mira nunca, asi que el caso deja de existir: el repo de este test
-  // no tiene .gitignore en absoluto.
-  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-sinignore-'));
-  try {
-    git(['init', '-q', '-b', 'main'], repoRoot);
-    git(['config', 'user.email', 'test@example.com'], repoRoot);
-    git(['config', 'user.name', 'Test'], repoRoot);
-    await writeFile(path.join(repoRoot, 'README.md'), '# sin gitignore\n', 'utf8');
-    git(['add', '-A'], repoRoot);
-    git(['commit', '-q', '-m', 'inicial'], repoRoot);
+    // pause sin terminal y con el workspace limpio sigue adelante, en un repo SIN .gitignore, y no ensucia nada.
+    // Regresion de TASK-029, y la razon de que aqui ya no haya un guard
+    // de "el repo no ignora logs/". Hasta TASK-029,
+    // `initialize_gitflow_log` creaba <repo>/logs/gitflow/ nada mas
+    // arrancar: en un repo sin ese patron en el .gitignore, pause-work.sh
+    // veia el workspace sucio POR SU PROPIA CULPA, preguntaba, y con EOF
+    // por respuesta moria con "Opcion no reconocida" y exit 1 — el fallo
+    // que este comando venia a quitar de en medio. El wrapper lo tapaba
+    // abortando antes con un mensaje que pedia tocar el .gitignore.
+    //
+    // Ahora el registro vive en `.git/taskcode/gitflow/`, que `git status`
+    // no mira nunca, asi que el caso deja de existir: el repo de este test
+    // no tiene .gitignore en absoluto.
     assert.equal(git(['status', '--porcelain'], repoRoot), '', 'el workspace parte limpio');
-
-    const result = run('pause', [], repoRoot);
-
-    assert.equal(result.code, 0, 'pause-work.sh no pregunta ni muere con exit 1');
-    assert.deepEqual(result.avisos, []);
+    const pause = run('pause', [], repoRoot);
+    assert.equal(pause.code, 0, 'pause-work.sh no pregunta ni muere con exit 1');
+    assert.deepEqual(pause.avisos, []);
     assert.equal(
       git(['status', '--porcelain'], repoRoot),
       '',
@@ -328,20 +304,45 @@ test('pause sin terminal sigue adelante en un repo SIN .gitignore, y no ensucia 
       git(['rev-parse', '--git-path', 'taskcode/gitflow'], repoRoot).trim()
     );
     assert.ok(existsSync(dirRegistro), `el registro deberia estar en ${dirRegistro}`);
-  } finally {
-    await rm(repoRoot, { recursive: true, force: true });
-  }
-});
 
-test('abort-merge sin terminal y sin nada en curso informa y sale 0', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const result = run('abort-merge', [], repoRoot);
-    assert.equal(result.code, 0);
-  });
-});
+    // abort-merge sin terminal y sin nada en curso informa y sale 0
+    assert.equal(run('abort-merge', [], repoRoot).code, 0);
 
-test('abort-merge sin terminal y con un merge en conflicto aborta el comando, no el merge', async () => {
-  await withTempRepo(async (repoRoot) => {
+    // resume y recover con rama y sin terminal avisan del valor por defecto ANTES de lanzar
+    const resume = run('resume', ['main'], repoRoot);
+    assert.equal(resume.avisos.length, 1);
+    assert.deepEqual(resume.emitidos, resume.avisos);
+    assert.match(resume.avisos[0] as string, /aplicara sin preguntar/);
+    // Aqui habia un `assert.notEqual(resume.code, 0)`: sin "origin"
+    // configurado, resume-work.sh moria en su "fetch origin" sin guard,
+    // el bug conocido que TASK-026 NO tapaba a proposito. TASK-029 (S1)
+    // lo corrige, asi que el codigo de salida de resume-work.sh sin
+    // remoto ya no es este el sitio donde se fija: lo cubre
+    // test/gitflow/origin-guard.test.ts. Lo que este test comprueba es
+    // el contrato del WRAPPER — que el aviso del valor por defecto se
+    // emite ANTES de lanzar el script —, y eso no depende del codigo
+    // de salida.
+    const recover = run('recover', ['main'], repoRoot);
+    assert.equal(recover.avisos.length, 1);
+    assert.match(recover.avisos[0] as string, /cancelara/);
+
+    // pause sin terminal y con el workspace sucio aborta y no toca nada
+    await writeFile(path.join(repoRoot, 'sin-guardar.txt'), 'trabajo a medias\n', 'utf8');
+    const estadoAntes = git(['status', '--porcelain'], repoRoot);
+    const headAntes = git(['rev-parse', 'HEAD'], repoRoot);
+
+    const errorSucio = capturaError(() => run('pause', [], repoRoot));
+
+    assert.ok(errorSucio instanceof WrapperCommandError);
+    assert.match((errorSucio as Error).message, /commit o como stash/);
+    assert.match((errorSucio as Error).message, /no hay terminal interactiva/);
+    // Y sobre todo: el trabajo sin guardar sigue exactamente donde
+    // estaba, sin stash nuevo ni commit nuevo.
+    assert.equal(git(['status', '--porcelain'], repoRoot), estadoAntes);
+    assert.equal(git(['rev-parse', 'HEAD'], repoRoot), headAntes);
+    assert.equal(git(['stash', 'list'], repoRoot), '');
+
+    // abort-merge sin terminal y con un merge en conflicto aborta el comando, no el merge
     const fichero = path.join(repoRoot, 'a.txt');
     await writeFile(fichero, 'base\n', 'utf8');
     git(['add', '-A'], repoRoot);
@@ -370,59 +371,6 @@ test('abort-merge sin terminal y con un merge en conflicto aborta el comando, no
     // script habria contestado que no y habria salido con codigo 0,
     // como si hubiera terminado su trabajo.
     assert.equal(operacionEnCurso(repoRoot), 'merge');
-  });
-});
-
-test('resume y recover sin rama y sin terminal dicen como invocarlos', async () => {
-  await withTempRepo(async (repoRoot) => {
-    for (const nombre of ['resume', 'recover'] as const) {
-      const error = capturaError(() =>
-        run(nombre, [], repoRoot, { scriptsDir: SCRIPTS_DIR_INEXISTENTE })
-      );
-      assert.ok(error instanceof WrapperCommandError, nombre);
-      assert.match((error as Error).message, /no hay terminal interactiva/);
-      assert.match((error as Error).message, new RegExp(`taskctl ${nombre} <rama>`));
-    }
-  });
-});
-
-test('resume y recover con rama y sin terminal avisan del valor por defecto ANTES de lanzar', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const resume = run('resume', ['main'], repoRoot);
-    assert.equal(resume.avisos.length, 1);
-    assert.deepEqual(resume.emitidos, resume.avisos);
-    assert.match(resume.avisos[0] as string, /aplicara sin preguntar/);
-    // Aqui habia un `assert.notEqual(resume.code, 0)`: sin "origin"
-    // configurado, resume-work.sh moria en su "fetch origin" sin guard,
-    // el bug conocido que TASK-026 NO tapaba a proposito. TASK-029 (S1)
-    // lo corrige, asi que el codigo de salida de resume-work.sh sin
-    // remoto ya no es este el sitio donde se fija: lo cubre
-    // test/gitflow/origin-guard.test.ts. Lo que este test comprueba es
-    // el contrato del WRAPPER — que el aviso del valor por defecto se
-    // emite ANTES de lanzar el script —, y eso no depende del codigo
-    // de salida.
-
-    const recover = run('recover', ['main'], repoRoot);
-    assert.equal(recover.avisos.length, 1);
-    assert.match(recover.avisos[0] as string, /cancelara/);
-  });
-});
-
-// ── Propagacion del codigo de salida ────────────────────────────────
-
-test('el codigo de salida del script se propaga tal cual, sin colapsarlo a 0 o 1', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const scriptsDir = await mkdtemp(path.join(tmpdir(), 'taskctl-scripts-'));
-    try {
-      await writeFile(
-        path.join(scriptsDir, 'diagnose-repo.sh'),
-        '#!/usr/bin/env bash\nexit 42\n',
-        'utf8'
-      );
-      assert.equal(run('diagnose', [], repoRoot, { scriptsDir }).code, 42);
-    } finally {
-      await rm(scriptsDir, { recursive: true, force: true });
-    }
   });
 });
 
@@ -494,34 +442,5 @@ test('taskctl resume sin terminal: NO usa lo que venga por la tuberia, toma el d
     assert.match(salida, /\[AVISO\].*aplicara sin preguntar/s);
     assert.equal(git(['stash', 'list'], repoRoot), '', 'el default aplica el stash');
     assert.notEqual(git(['status', '--porcelain'], repoRoot), '');
-  });
-});
-
-test('con terminal los guards no se aplican: pause con el workspace sucio llega al script', async () => {
-  await withTempRepo(async (repoRoot) => {
-    await writeFile(path.join(repoRoot, 'sin-guardar.txt'), 'a medias', 'utf8');
-    const scriptsDir = await mkdtemp(path.join(tmpdir(), 'taskctl-scripts-'));
-    try {
-      await writeFile(path.join(scriptsDir, 'pause-work.sh'), DOBLE_MUDO_21, 'utf8');
-      const result = run('pause', [], repoRoot, { scriptsDir, interactivo: true });
-      assert.equal(result.code, 21);
-      assert.deepEqual(result.avisos, [], 'con terminal no hay nada de que avisar');
-    } finally {
-      await rm(scriptsDir, { recursive: true, force: true });
-    }
-  });
-});
-
-test('con terminal resume sin rama tampoco corta: es el script quien pregunta', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const scriptsDir = await mkdtemp(path.join(tmpdir(), 'taskctl-scripts-'));
-    try {
-      await writeFile(path.join(scriptsDir, 'resume-work.sh'), DOBLE_MUDO_21, 'utf8');
-      const result = run('resume', [], repoRoot, { scriptsDir, interactivo: true });
-      assert.equal(result.code, 21);
-      assert.deepEqual(result.avisos, []);
-    } finally {
-      await rm(scriptsDir, { recursive: true, force: true });
-    }
   });
 });

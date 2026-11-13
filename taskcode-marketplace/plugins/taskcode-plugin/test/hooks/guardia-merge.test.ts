@@ -18,6 +18,16 @@ import { guardarMemo, huellaDeCommit, huellaDelArbol } from '../../src/fs/verifi
 import type { ResultadoVerificacion } from '../../src/core/informe-verificacion.js';
 import { git } from '../helpers/finish-fixtures.js';
 
+/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
+async function caso(nombre: string, fn: () => unknown): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
+    throw e;
+  }
+}
+
 const RAIZ_PLUGIN = path.join(import.meta.dirname, '..', '..', '..');
 const ENTRADA_HOOK = path.join(RAIZ_PLUGIN, 'dist', 'src', 'hooks', 'pre-tool-merge.js');
 const COMANDO = 'node --version';
@@ -27,7 +37,8 @@ const RAMA = 'feature/task-900-trabajo';
 // Analizador (puro)
 // ---------------------------------------------------------------------
 
-test('comando-merge: segmenta por operadores y respeta comillas y rutas de Windows', () => {
+test('comando-merge: segmentacion, deteccion de merges, wrappers de shell y casos de TASK-103', async () => {
+await caso('comando-merge: segmenta por operadores y respeta comillas y rutas de Windows', () => {
   assert.deepEqual(segmentar('git checkout develop && git merge "feature/x y"'), [
     ['git', 'checkout', 'develop'],
     ['git', 'merge', 'feature/x y'],
@@ -35,8 +46,7 @@ test('comando-merge: segmenta por operadores y respeta comillas y rutas de Windo
   assert.deepEqual(segmentar("a; b | c || d & e\nf (g)"), [['a'], ['b'], ['c'], ['d'], ['e'], ['f'], ['g']]);
   assert.deepEqual(segmentar('C:\\Git\\bin\\git.exe merge x'), [['C:\\Git\\bin\\git.exe', 'merge', 'x']]);
 });
-
-test('comando-merge: detecta merges, su destino por checkout/switch y los scripts de cierre', () => {
+await caso('comando-merge: detecta merges, su destino por checkout/switch y los scripts de cierre', () => {
   assert.deepEqual(analizarComando('git merge --no-ff -m "cierre" feature/x'), [
     { tipo: 'merge', fuentes: ['feature/x'], destino: null, dir: null },
   ]);
@@ -61,8 +71,7 @@ test('comando-merge: detecta merges, su destino por checkout/switch y los script
   // Restaurar ficheros no cambia de rama.
   assert.equal((analizarComando('git checkout develop -- f.txt && git merge x')[0] as { destino: null }).destino, null);
 });
-
-test('comando-merge (MEN-1): el texto de bash -c, pwsh -Command y cmd /c se analiza igual', () => {
+await caso('comando-merge (MEN-1): el texto de bash -c, pwsh -Command y cmd /c se analiza igual', () => {
   const esperado = [{ tipo: 'merge', fuentes: ['feature/x'], destino: 'develop', dir: null }];
   assert.deepEqual(analizarComando('bash -c "git checkout develop && git merge feature/x"'), esperado);
   assert.deepEqual(analizarComando("bash -lc 'git checkout develop && git merge feature/x'"), esperado);
@@ -83,8 +92,7 @@ test('comando-merge (MEN-1): el texto de bash -c, pwsh -Command y cmd /c se anal
     destinos: ['integracion'],
   });
 });
-
-test('comando-merge (MEN-4, TASK-077): las opciones de bash con valor antes de -c o del script no lo esconden', () => {
+await caso('comando-merge (MEN-4, TASK-077): las opciones de bash con valor antes de -c o del script no lo esconden', () => {
   const merge = [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }];
   for (const c of [
     'bash -o pipefail -c "git merge x"',
@@ -119,13 +127,11 @@ test('comando-merge (MEN-4, TASK-077): las opciones de bash con valor antes de -
   assert.deepEqual(analizarComando('bash -o pipefail otro.sh'), []);
   assert.deepEqual(analizarComando('bash -c'), []);
 });
-
-test('comando-merge (MEN-2): git checkout <rama> <fichero> sin -- restaura ficheros, no cambia de rama', () => {
+await caso('comando-merge (MEN-2): git checkout <rama> <fichero> sin -- restaura ficheros, no cambia de rama', () => {
   assert.equal((analizarComando('git checkout develop src/a.ts && git merge develop')[0] as { destino: null }).destino, null);
   assert.equal((analizarComando('git checkout develop && git merge x')[0] as { destino: string }).destino, 'develop');
 });
-
-test('comando-merge: lo que no es un merge nuevo no aparece', () => {
+await caso('comando-merge: lo que no es un merge nuevo no aparece', () => {
   for (const c of [
     'git status',
     'git merge-base develop feature/x',
@@ -144,6 +150,74 @@ test('comando-merge: lo que no es un merge nuevo no aparece', () => {
   ]) {
     assert.deepEqual(analizarComando(c), [], c);
   }
+});
+await caso('comando-merge (TASK-103, MEN-2): --abort/--quit/--continue/--skip como valor de -m no esconden el merge', () => {
+  for (const control of ['--abort', '--quit', '--continue', '--skip']) {
+    assert.deepEqual(analizarComando(`git merge -m ${control} x`), [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }], control);
+    // IMP-1 de la revision: tambien con la forma larga de -m.
+    assert.deepEqual(analizarComando(`git merge --message ${control} x`)[0], { tipo: 'merge', fuentes: ['x'], destino: null, dir: null }, control);
+    assert.deepEqual(analizarComando(`git merge -F ${control} x`)[0], { tipo: 'merge', fuentes: ['x'], destino: null, dir: null }, control);
+    // Como opcion, sigue sin ser un merge nuevo (tambien tras otra opcion con valor).
+    assert.deepEqual(analizarComando(`git merge ${control}`), [], control);
+    assert.deepEqual(analizarComando(`git merge -m msg ${control}`), [], control);
+  }
+  // Tras `--`, es una ref.
+  assert.deepEqual(analizarComando('git merge -- --abort'), [{ tipo: 'merge', fuentes: ['--abort'], destino: null, dir: null }]);
+});
+await caso('comando-merge (TASK-103): { ...; }, time y eval no esconden el merge', () => {
+  const merge = [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }];
+  for (const c of [
+    '{ git merge x; }',
+    'time git merge x',
+    'time -p git merge x',
+    'eval git merge x',
+    'eval "git merge x"',
+    '{ time git merge x; }',
+    // MEN-2 de la revision.
+    'time -p -- git merge x',
+    'time -- git merge x',
+    'nohup git merge x',
+    '! git merge x',
+    'if true; then git merge x; fi',
+    'while false; do git merge x; done',
+    'if false; then :; else git merge x; fi',
+    // NUE-2 de la ronda 2.
+    'if git merge x; then :; fi',
+    'while git merge x; do :; done',
+    'until git merge x; do :; done',
+    'if false; then :; elif git merge x; then :; fi',
+  ]) {
+    assert.deepEqual(analizarComando(c), merge, c);
+  }
+  for (const c of ['nohup git merge x', 'if true; then git merge x; fi']) {
+    assert.equal(comandoSoloIntegra(c), false, c);
+  }
+  assert.deepEqual(analizarComando('eval "git checkout develop && git merge x"'), [
+    { tipo: 'merge', fuentes: ['x'], destino: 'develop', dir: null },
+  ]);
+  assert.deepEqual(analizarComando('eval'), []);
+  // Nunca reciben la exencion de solo documentacion (decision de Carlos en TASK-103).
+  for (const c of ['{ git merge x; }', 'time git merge x', 'eval git merge x', 'eval "git merge x"']) {
+    assert.equal(comandoSoloIntegra(c), false, c);
+  }
+  assert.equal(comandoSoloIntegra('git merge -m --abort x'), true, 'un solo merge con mensaje raro');
+});
+await caso('comando-merge (TASK-103): git checkout <x> solo cambia el destino si x es rama', () => {
+  const noEsFichero = (n: string) => n !== 'README.md';
+  assert.equal((analizarComando('git checkout README.md && git merge x', noEsFichero)[0] as { destino: null }).destino, null);
+  // El destino anterior se conserva.
+  assert.equal(
+    (analizarComando('git checkout develop && git checkout README.md && git merge x', noEsFichero)[0] as { destino: string }).destino,
+    'develop'
+  );
+  // Se propaga a bash -c y a eval.
+  assert.equal((analizarComando('bash -c "git checkout README.md && git merge x"', noEsFichero)[0] as { destino: null }).destino, null);
+  assert.equal((analizarComando('eval git checkout README.md && git merge x', noEsFichero)[0] as { destino: null }).destino, null);
+  // -b no consulta el predicado.
+  assert.equal((analizarComando('git checkout -b README.md && git merge x', () => false)[0] as { destino: string }).destino, 'README.md');
+  // Sin predicado, como antes.
+  assert.equal((analizarComando('git checkout README.md && git merge x')[0] as { destino: string }).destino, 'README.md');
+});
 });
 
 // ---------------------------------------------------------------------
@@ -195,7 +269,8 @@ function memorizar(raiz: string, ref: string, r: ResultadoVerificacion, timeoutS
   guardarMemo(raiz, h, r);
 }
 
-test('guardia: bloquea un merge hacia develop o main sin verde del commit que entra', async () => {
+test('guardia: decision de bloquear o dejar pasar un merge segun verde guardado, ramas y config', async () => {
+await caso('guardia: bloquea un merge hacia develop o main sin verde del commit que entra', async () => {
   await conRepo(async ({ raiz }) => {
     // Desde la rama de trabajo, cambiando de rama en el mismo comando.
     let d = decide(raiz, `git checkout develop && git merge --no-ff -m "x" ${RAMA}`);
@@ -222,8 +297,7 @@ test('guardia: bloquea un merge hacia develop o main sin verde del commit que en
     assert.equal(spawnSync('git', ['merge-base', '--is-ancestor', RAMA, 'develop'], { cwd: raiz }).status, 1);
   });
 });
-
-test('guardia: con un verde guardado del commit fuente deja pasar; con un rojo guardado bloquea y lo dice', async () => {
+await caso('guardia: con un verde guardado del commit fuente deja pasar; con un rojo guardado bloquea y lo dice', async () => {
   await conRepo(async ({ raiz }) => {
     memorizar(raiz, RAMA, ROJO);
     const d = decide(raiz, `git checkout develop && git merge ${RAMA}`);
@@ -237,8 +311,7 @@ test('guardia: con un verde guardado del commit fuente deja pasar; con un rojo g
     assert.equal(decide(raiz, `git checkout develop && git merge ${RAMA}`).codigo, 2);
   });
 });
-
-test('guardia: el verde que deja una verificacion con el arbol limpio (huellaDelArbol) vale para el commit', async () => {
+await caso('guardia: el verde que deja una verificacion con el arbol limpio (huellaDelArbol) vale para el commit', async () => {
   await conRepo(async ({ raiz }) => {
     const h = huellaDelArbol(raiz, COMANDO, 600);
     assert.equal(h, huellaDeCommit(raiz, RAMA, COMANDO, 600), 'arbol limpio: misma huella que el commit');
@@ -246,8 +319,7 @@ test('guardia: el verde que deja una verificacion con el arbol limpio (huellaDel
     assert.equal(decide(raiz, `git checkout develop && git merge ${RAMA}`).codigo, 0);
   });
 });
-
-test('guardia (criterio 3): no bloquea lecturas, merges hacia ramas de trabajo ni lo que no es un merge nuevo', async () => {
+await caso('guardia (criterio 3): no bloquea lecturas, merges hacia ramas de trabajo ni lo que no es un merge nuevo', async () => {
   await conRepo(async ({ raiz }) => {
     git(['checkout', '-q', 'develop'], raiz);
     for (const c of [
@@ -272,8 +344,7 @@ test('guardia (criterio 3): no bloquea lecturas, merges hacia ramas de trabajo n
     assert.equal(decide(raiz, 'git checkout -b otra develop && git merge main').codigo, 0);
   });
 });
-
-test('guardia: deja pasar lo ya integrado (backmerge de recuperacion de un hotfix ya en main)', async () => {
+await caso('guardia: deja pasar lo ya integrado (backmerge de recuperacion de un hotfix ya en main)', async () => {
   await conRepo(async ({ raiz }) => {
     git(['checkout', '-q', '-b', 'hotfix/task-901-x', 'main'], raiz);
     await writeFile(path.join(raiz, 'arreglo.txt'), 'x\n', 'utf8');
@@ -289,8 +360,7 @@ test('guardia: deja pasar lo ya integrado (backmerge de recuperacion de un hotfi
     assert.equal(decide(raiz, 'git merge main').codigo, 0);
   });
 });
-
-test('guardia: la rama de integracion sale de rama_base, no del literal develop', async () => {
+await caso('guardia: la rama de integracion sale de rama_base, no del literal develop', async () => {
   await conRepo(
     async ({ raiz }) => {
       git(['branch', 'integ', 'develop'], raiz);
@@ -300,8 +370,7 @@ test('guardia: la rama de integracion sale de rama_base, no del literal develop'
     `comando_verificacion: "${COMANDO}"\nrama_base: integ\n`
   );
 });
-
-test('guardia: sin comando_verificacion, fuera de un repo o con entrada rara, deja pasar', async () => {
+await caso('guardia: sin comando_verificacion, fuera de un repo o con entrada rara, deja pasar', async () => {
   await conRepo(async ({ raiz }) => {
     git(['checkout', '-q', 'develop'], raiz);
     assert.equal(decide(raiz, `git merge ${RAMA}`).codigo, 0);
@@ -316,133 +385,14 @@ test('guardia: sin comando_verificacion, fuera de un repo o con entrada rara, de
   assert.equal(decidirPreToolUse({ cwd: 'Z:/no/existe', tool_input: { command: 'git merge x' } }).codigo, 0);
   assert.equal(decidirPreToolUse({ cwd: tmpdir(), tool_input: 'git merge x' }).codigo, 0);
 });
-
-test('guardia: una fuente que no resuelve a un commit hacia develop bloquea (no se puede comprobar)', async () => {
+await caso('guardia: una fuente que no resuelve a un commit hacia develop bloquea (no se puede comprobar)', async () => {
   await conRepo(async ({ raiz }) => {
     const d = decide(raiz, 'git checkout develop && git merge no-existe');
     assert.equal(d.codigo, 2);
     assert.match(d.stderr, /no se puede resolver "no-existe"/);
   });
 });
-
-test('guardia: el punto de entrada real decide por stdin (0 / 2) y nunca sale con 1', async () => {
-  assert.ok(existsSync(ENTRADA_HOOK), 'compilado en dist/src');
-  await conRepo(async ({ raiz }) => {
-    const lanzar = (command: string) =>
-      spawnSync(process.execPath, [ENTRADA_HOOK], {
-        input: JSON.stringify({ cwd: raiz, tool_name: 'Bash', tool_input: { command }, hook_event_name: 'PreToolUse' }),
-        encoding: 'utf8',
-      });
-    const bloqueo = lanzar(`git checkout develop && git merge ${RAMA}`);
-    assert.equal(bloqueo.status, 2);
-    assert.match(bloqueo.stderr, /Merge bloqueado/);
-    const pasa = lanzar('git status');
-    assert.equal(pasa.status, 0);
-    assert.equal(pasa.stderr, '');
-    const basura = spawnSync(process.execPath, [ENTRADA_HOOK], { input: 'basura merge', encoding: 'utf8' });
-    assert.equal(basura.status, 0);
-  });
-});
-
-test('guardia: hooks.json declara el PreToolUse sin filtro if, en forma exec, sin la sonda y sin nombrar el producto', () => {
-  const j = JSON.parse(readFileSync(path.join(RAIZ_PLUGIN, 'hooks', 'hooks.json'), 'utf8')) as {
-    description: string;
-    hooks: { PreToolUse: { matcher: string; hooks: { type: string; command: string; args: string[]; timeout: number; if?: string }[] }[] };
-  };
-  // TASK-078 anade el de herramientas de fichero: el de shell se busca por su entrada.
-  const shell = j.hooks.PreToolUse.filter((p) => p.matcher === 'Bash|PowerShell');
-  assert.equal(shell.length, 1);
-  const pre = shell[0];
-  assert.ok(pre);
-  assert.equal(pre.hooks.length, 1);
-  const h = pre.hooks[0];
-  assert.ok(h);
-  assert.equal(h.if, undefined, 'sin if: el de prefijo no ve los comandos compuestos');
-  assert.equal(h.command, 'node');
-  assert.deepEqual(h.args, ['${CLAUDE_PLUGIN_ROOT}/dist/src/hooks/pre-tool-merge.js']);
-  assert.equal(h.timeout, 30);
-  assert.doesNotMatch(JSON.stringify(j), /sonda/);
-  assert.doesNotMatch(j.description, /taskcode|TASK-\d/i);
-});
-
-// ---------------------------------------------------------------------
-// TASK-103: config ilegible y merges que antes no se detectaban
-// ---------------------------------------------------------------------
-
-test('comando-merge (TASK-103, MEN-2): --abort/--quit/--continue/--skip como valor de -m no esconden el merge', () => {
-  for (const control of ['--abort', '--quit', '--continue', '--skip']) {
-    assert.deepEqual(analizarComando(`git merge -m ${control} x`), [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }], control);
-    // IMP-1 de la revision: tambien con la forma larga de -m.
-    assert.deepEqual(analizarComando(`git merge --message ${control} x`)[0], { tipo: 'merge', fuentes: ['x'], destino: null, dir: null }, control);
-    assert.deepEqual(analizarComando(`git merge -F ${control} x`)[0], { tipo: 'merge', fuentes: ['x'], destino: null, dir: null }, control);
-    // Como opcion, sigue sin ser un merge nuevo (tambien tras otra opcion con valor).
-    assert.deepEqual(analizarComando(`git merge ${control}`), [], control);
-    assert.deepEqual(analizarComando(`git merge -m msg ${control}`), [], control);
-  }
-  // Tras `--`, es una ref.
-  assert.deepEqual(analizarComando('git merge -- --abort'), [{ tipo: 'merge', fuentes: ['--abort'], destino: null, dir: null }]);
-});
-
-test('comando-merge (TASK-103): { ...; }, time y eval no esconden el merge', () => {
-  const merge = [{ tipo: 'merge', fuentes: ['x'], destino: null, dir: null }];
-  for (const c of [
-    '{ git merge x; }',
-    'time git merge x',
-    'time -p git merge x',
-    'eval git merge x',
-    'eval "git merge x"',
-    '{ time git merge x; }',
-    // MEN-2 de la revision.
-    'time -p -- git merge x',
-    'time -- git merge x',
-    'nohup git merge x',
-    '! git merge x',
-    'if true; then git merge x; fi',
-    'while false; do git merge x; done',
-    'if false; then :; else git merge x; fi',
-    // NUE-2 de la ronda 2.
-    'if git merge x; then :; fi',
-    'while git merge x; do :; done',
-    'until git merge x; do :; done',
-    'if false; then :; elif git merge x; then :; fi',
-  ]) {
-    assert.deepEqual(analizarComando(c), merge, c);
-  }
-  for (const c of ['nohup git merge x', 'if true; then git merge x; fi']) {
-    assert.equal(comandoSoloIntegra(c), false, c);
-  }
-  assert.deepEqual(analizarComando('eval "git checkout develop && git merge x"'), [
-    { tipo: 'merge', fuentes: ['x'], destino: 'develop', dir: null },
-  ]);
-  assert.deepEqual(analizarComando('eval'), []);
-  // Nunca reciben la exencion de solo documentacion (decision de Carlos en TASK-103).
-  for (const c of ['{ git merge x; }', 'time git merge x', 'eval git merge x', 'eval "git merge x"']) {
-    assert.equal(comandoSoloIntegra(c), false, c);
-  }
-  assert.equal(comandoSoloIntegra('git merge -m --abort x'), true, 'un solo merge con mensaje raro');
-});
-
-test('comando-merge (TASK-103): git checkout <x> solo cambia el destino si x es rama', () => {
-  const noEsFichero = (n: string) => n !== 'README.md';
-  assert.equal((analizarComando('git checkout README.md && git merge x', noEsFichero)[0] as { destino: null }).destino, null);
-  // El destino anterior se conserva.
-  assert.equal(
-    (analizarComando('git checkout develop && git checkout README.md && git merge x', noEsFichero)[0] as { destino: string }).destino,
-    'develop'
-  );
-  // Se propaga a bash -c y a eval.
-  assert.equal((analizarComando('bash -c "git checkout README.md && git merge x"', noEsFichero)[0] as { destino: null }).destino, null);
-  assert.equal((analizarComando('eval git checkout README.md && git merge x', noEsFichero)[0] as { destino: null }).destino, null);
-  // -b no consulta el predicado.
-  assert.equal((analizarComando('git checkout -b README.md && git merge x', () => false)[0] as { destino: string }).destino, 'README.md');
-  // Sin predicado, como antes.
-  assert.equal((analizarComando('git checkout README.md && git merge x')[0] as { destino: string }).destino, 'README.md');
-});
-
-const CONFIG_CLAVE_ANTIGUA = `comando_verificacion: "${COMANDO}"\nlimite_wip: cero\n`;
-const CONFIG_CLAVE_NUEVA = 'rutas_documentacion: ["**"]\n';
-
-test('guardia (TASK-103): con la config ilegible, un merge hacia develop, main o master bloquea y dice que arreglar', async () => {
+await caso('guardia (TASK-103): con la config ilegible, un merge hacia develop, main o master bloquea y dice que arreglar', async () => {
   for (const [config, clave] of [
     [CONFIG_CLAVE_ANTIGUA, /limite_wip/],
     [CONFIG_CLAVE_NUEVA, /rutas_documentacion/],
@@ -468,8 +418,7 @@ test('guardia (TASK-103): con la config ilegible, un merge hacia develop, main o
     }, config);
   }
 });
-
-test('guardia (TASK-103): con la config ilegible, hacia otra rama deja pasar, como antes', async () => {
+await caso('guardia (TASK-103): con la config ilegible, hacia otra rama deja pasar, como antes', async () => {
   for (const config of [CONFIG_CLAVE_ANTIGUA, CONFIG_CLAVE_NUEVA]) {
     await conRepo(async ({ raiz }) => {
       assert.deepEqual(decide(raiz, 'git merge develop'), { codigo: 0, stderr: '' }, 'en la rama de trabajo');
@@ -480,8 +429,7 @@ test('guardia (TASK-103): con la config ilegible, hacia otra rama deja pasar, co
     }, config);
   }
 });
-
-test('guardia (TASK-103): sin fichero de config deja pasar, como antes', async () => {
+await caso('guardia (TASK-103): sin fichero de config deja pasar, como antes', async () => {
   await conRepo(async ({ raiz }) => {
     await rm(path.join(raiz, '.taskcode', 'config.yml'));
     assert.deepEqual(decide(raiz, `git checkout develop && git merge ${RAMA}`), { codigo: 0, stderr: '' });
@@ -489,8 +437,48 @@ test('guardia (TASK-103): sin fichero de config deja pasar, como antes', async (
     assert.deepEqual(decide(raiz, `git checkout develop && git merge ${RAMA}`), { codigo: 0, stderr: '' });
   });
 });
+});
 
-test('guardia (TASK-103): el hook real evalua los merges que antes no detectaba', async () => {
+test('guardia: punto de entrada real por stdin y hooks.json', async () => {
+await caso('guardia: el punto de entrada real decide por stdin (0 / 2) y nunca sale con 1', async () => {
+  assert.ok(existsSync(ENTRADA_HOOK), 'compilado en dist/src');
+  await conRepo(async ({ raiz }) => {
+    const lanzar = (command: string) =>
+      spawnSync(process.execPath, [ENTRADA_HOOK], {
+        input: JSON.stringify({ cwd: raiz, tool_name: 'Bash', tool_input: { command }, hook_event_name: 'PreToolUse' }),
+        encoding: 'utf8',
+      });
+    const bloqueo = lanzar(`git checkout develop && git merge ${RAMA}`);
+    assert.equal(bloqueo.status, 2);
+    assert.match(bloqueo.stderr, /Merge bloqueado/);
+    const pasa = lanzar('git status');
+    assert.equal(pasa.status, 0);
+    assert.equal(pasa.stderr, '');
+    const basura = spawnSync(process.execPath, [ENTRADA_HOOK], { input: 'basura merge', encoding: 'utf8' });
+    assert.equal(basura.status, 0);
+  });
+});
+await caso('guardia: hooks.json declara el PreToolUse sin filtro if, en forma exec, sin la sonda y sin nombrar el producto', () => {
+  const j = JSON.parse(readFileSync(path.join(RAIZ_PLUGIN, 'hooks', 'hooks.json'), 'utf8')) as {
+    description: string;
+    hooks: { PreToolUse: { matcher: string; hooks: { type: string; command: string; args: string[]; timeout: number; if?: string }[] }[] };
+  };
+  // TASK-078 anade el de herramientas de fichero: el de shell se busca por su entrada.
+  const shell = j.hooks.PreToolUse.filter((p) => p.matcher === 'Bash|PowerShell');
+  assert.equal(shell.length, 1);
+  const pre = shell[0];
+  assert.ok(pre);
+  assert.equal(pre.hooks.length, 1);
+  const h = pre.hooks[0];
+  assert.ok(h);
+  assert.equal(h.if, undefined, 'sin if: el de prefijo no ve los comandos compuestos');
+  assert.equal(h.command, 'node');
+  assert.deepEqual(h.args, ['${CLAUDE_PLUGIN_ROOT}/dist/src/hooks/pre-tool-merge.js']);
+  assert.equal(h.timeout, 30);
+  assert.doesNotMatch(JSON.stringify(j), /sonda/);
+  assert.doesNotMatch(j.description, /taskcode|TASK-\d/i);
+});
+await caso('guardia (TASK-103): el hook real evalua los merges que antes no detectaba', async () => {
   await conRepo(async ({ raiz }) => {
     git(['checkout', '-q', 'develop'], raiz);
     const lanzar = (command: string) =>
@@ -544,8 +532,7 @@ test('guardia (TASK-103): el hook real evalua los merges que antes no detectaba'
     assert.match(r.stderr, /entraria en "main"/);
   });
 });
-
-test('guardia (TASK-103): el hook real con la config ilegible bloquea con su mensaje', async () => {
+await caso('guardia (TASK-103): el hook real con la config ilegible bloquea con su mensaje', async () => {
   await conRepo(async ({ raiz }) => {
     const r = spawnSync(process.execPath, [ENTRADA_HOOK], {
       input: JSON.stringify({ cwd: raiz, tool_name: 'Bash', tool_input: { command: `git checkout develop && git merge ${RAMA}` } }),
@@ -555,3 +542,11 @@ test('guardia (TASK-103): el hook real con la config ilegible bloquea con su men
     assert.match(r.stderr, /la configuracion del repositorio no se puede leer/);
   }, CONFIG_CLAVE_ANTIGUA);
 });
+});
+
+// ---------------------------------------------------------------------
+// TASK-103: config ilegible y merges que antes no se detectaban
+// ---------------------------------------------------------------------
+
+const CONFIG_CLAVE_ANTIGUA = `comando_verificacion: "${COMANDO}"\nlimite_wip: cero\n`;
+const CONFIG_CLAVE_NUEVA = 'rutas_documentacion: ["**"]\n';

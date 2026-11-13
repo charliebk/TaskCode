@@ -32,7 +32,8 @@ Texto del cuerpo.
 - [ ] uno
 `;
 
-test('parseFrontmatter: parsea la plantilla real de tarea.md', () => {
+test('parseFrontmatter: plantilla real de tarea.md y tipado de valores (lista vacia, null, booleanos, enteros, comillas, cuerpo vacio)', () => {
+  // Parsea la plantilla real de tarea.md.
   const { data, body } = parseFrontmatter(FIXTURE);
   assert.equal(data.id, 'TASK-014');
   assert.equal(data.titulo, 'Anadir validacion de espesor de muro en importador IFC');
@@ -44,52 +45,39 @@ test('parseFrontmatter: parsea la plantilla real de tarea.md', () => {
   assert.deepEqual(data.skills_recomendados, []);
   assert.equal(data.revision_codex, false);
   assert.match(body, /^## Objetivo/);
+
+  // Lista vacia [] se parsea como [].
+  assert.deepEqual(parseFrontmatter('---\netiquetas: []\n---\n').data.etiquetas, [], 'lista vacia');
+
+  // null y ~ son equivalentes.
+  const nulos = parseFrontmatter('---\na: null\nb: ~\n---\n').data;
+  assert.equal(nulos.a, null, 'null');
+  assert.equal(nulos.b, null, '~');
+
+  // Booleanos y enteros se tipan, no quedan como texto.
+  const tipados = parseFrontmatter('---\nactivo: true\ninactivo: false\nn: 42\n---\n').data;
+  assert.equal(tipados.activo, true);
+  assert.equal(typeof tipados.activo, 'boolean');
+  assert.equal(tipados.inactivo, false);
+  assert.equal(tipados.n, 42);
+  assert.equal(typeof tipados.n, 'number');
+
+  // Cadena con comillas escapadas se desescapa.
+  assert.equal(parseFrontmatter('---\ntitulo: "dice \\"hola\\""\n---\n').data.titulo, 'dice "hola"', 'comillas');
+
+  // Cuerpo vacio no revienta.
+  const vacio = parseFrontmatter('---\nid: TASK-001\n---\n');
+  assert.equal(vacio.data.id, 'TASK-001');
+  assert.equal(vacio.body, '');
 });
 
-test('parseFrontmatter: lista vacia [] se parsea como []', () => {
-  const { data } = parseFrontmatter('---\netiquetas: []\n---\n');
-  assert.deepEqual(data.etiquetas, []);
+test('parseFrontmatter: error si no empieza con "---", si no se cierra o si una linea no tiene ":"', () => {
+  assert.throws(() => parseFrontmatter('id: TASK-001\n---\n'), FrontmatterParseError, 'sin apertura');
+  assert.throws(() => parseFrontmatter('---\nid: TASK-001\n'), FrontmatterParseError, 'sin cierre');
+  assert.throws(() => parseFrontmatter('---\nid TASK-001\n---\n'), FrontmatterParseError, 'linea sin ":"');
 });
 
-test('parseFrontmatter: null y ~ son equivalentes', () => {
-  const { data } = parseFrontmatter('---\na: null\nb: ~\n---\n');
-  assert.equal(data.a, null);
-  assert.equal(data.b, null);
-});
-
-test('parseFrontmatter: booleanos y enteros se tipan, no quedan como texto', () => {
-  const { data } = parseFrontmatter('---\nactivo: true\ninactivo: false\nn: 42\n---\n');
-  assert.equal(data.activo, true);
-  assert.equal(typeof data.activo, 'boolean');
-  assert.equal(data.inactivo, false);
-  assert.equal(data.n, 42);
-  assert.equal(typeof data.n, 'number');
-});
-
-test('parseFrontmatter: cadena con comillas escapadas se desescapa', () => {
-  const { data } = parseFrontmatter('---\ntitulo: "dice \\"hola\\""\n---\n');
-  assert.equal(data.titulo, 'dice "hola"');
-});
-
-test('parseFrontmatter: cuerpo vacio no revienta', () => {
-  const { data, body } = parseFrontmatter('---\nid: TASK-001\n---\n');
-  assert.equal(data.id, 'TASK-001');
-  assert.equal(body, '');
-});
-
-test('parseFrontmatter: error si no empieza con "---"', () => {
-  assert.throws(() => parseFrontmatter('id: TASK-001\n---\n'), FrontmatterParseError);
-});
-
-test('parseFrontmatter: error si el bloque no se cierra', () => {
-  assert.throws(() => parseFrontmatter('---\nid: TASK-001\n'), FrontmatterParseError);
-});
-
-test('parseFrontmatter: error si una linea no tiene ":"', () => {
-  assert.throws(() => parseFrontmatter('---\nid TASK-001\n---\n'), FrontmatterParseError);
-});
-
-test('serializeFrontmatter + parseFrontmatter: roundtrip para varios tipos de valor', () => {
+test('serializeFrontmatter + parseFrontmatter: roundtrip de tipos, strings ambiguos y listas con coma', () => {
   const data = {
     id: 'TASK-099',
     titulo: 'Con espacios y : dos puntos',
@@ -105,24 +93,18 @@ test('serializeFrontmatter + parseFrontmatter: roundtrip para varios tipos de va
   const parsed = parseFrontmatter(serialized);
   assert.deepEqual(parsed.data, data);
   assert.equal(parsed.body, '## Cuerpo\n');
-});
 
-// --- Regresion: hallazgos de revision por pares (Sprint 0) ---------------
-
-test('roundtrip: un string que "parece" numero/boolean/null se conserva como string', () => {
-  const data = { titulo: '2024', activo: 'true', vacio: 'null', virgulilla: '~' };
-  const order = Object.keys(data);
-  const serialized = serializeFrontmatter(data, '', order);
-  const parsed = parseFrontmatter(serialized);
-  assert.deepEqual(parsed.data, data);
-  for (const v of Object.values(parsed.data)) {
+  // --- Regresion: hallazgos de revision por pares (Sprint 0) ---------------
+  // Un string que "parece" numero/boolean/null se conserva como string.
+  const ambiguo = { titulo: '2024', activo: 'true', vacio: 'null', virgulilla: '~' };
+  const parsedAmbiguo = parseFrontmatter(serializeFrontmatter(ambiguo, '', Object.keys(ambiguo)));
+  assert.deepEqual(parsedAmbiguo.data, ambiguo);
+  for (const v of Object.values(parsedAmbiguo.data)) {
     assert.equal(typeof v, 'string');
   }
-});
 
-test('roundtrip: un elemento de lista con coma dentro no se parte en dos', () => {
-  const data = { etiquetas: ['ui, ux', 'backend'] };
-  const serialized = serializeFrontmatter(data, '', ['etiquetas']);
-  const parsed = parseFrontmatter(serialized);
-  assert.deepEqual(parsed.data.etiquetas, ['ui, ux', 'backend']);
+  // Un elemento de lista con coma dentro no se parte en dos.
+  const conComa = { etiquetas: ['ui, ux', 'backend'] };
+  const parsedComa = parseFrontmatter(serializeFrontmatter(conComa, '', ['etiquetas']));
+  assert.deepEqual(parsedComa.data.etiquetas, ['ui, ux', 'backend']);
 });

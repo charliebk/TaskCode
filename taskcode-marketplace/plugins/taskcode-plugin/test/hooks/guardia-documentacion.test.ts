@@ -16,6 +16,16 @@ import { contextoSelectiva, guardarMemo, huellaDeCommit } from '../../src/fs/ver
 import { runFinishCommand } from '../../src/commands/finish.js';
 import { SCRIPTS_DIR, sampleTask, git, commitAll, withTempRepo, setupTaskEnRevision } from '../helpers/finish-fixtures.js';
 
+/** Ejecuta un caso dentro de un test agrupado y, si falla, rotula el error con su nombre. */
+async function caso(nombre: string, fn: () => unknown): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
+    throw e;
+  }
+}
+
 const SCRIPT = `require('node:fs').appendFileSync(__dirname + '/cuenta-' + process.argv[2], 'x');`;
 
 interface Entorno {
@@ -68,7 +78,8 @@ async function enLaRama(e: Entorno, ruta: string, contenido = 'x\n'): Promise<vo
 const guardian = (e: Entorno, command: string) => decidirPreToolUse({ cwd: e.repoRoot, tool_input: { command } });
 const mergeA = (rama: string) => `git checkout develop && git merge --no-ff ${rama}`;
 
-test('guardian (TASK-101): un merge a mano de solo documentacion pasa sin verde de la completa; finish decide lo mismo', async () => {
+test('guardian TASK-101: exencion de documentacion, release, config del destino y bloqueos de punta a punta', async () => {
+await caso('guardian (TASK-101): un merge a mano de solo documentacion pasa sin verde de la completa; finish decide lo mismo', async () => {
   await conEntorno(() => RUTAS, async (e) => {
     const task = sampleTask({ id: 'TASK-951' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -80,8 +91,7 @@ test('guardian (TASK-101): un merge a mano de solo documentacion pasa sin verde 
     assert.equal(e.ejecutadoAlguno(), false);
   });
 });
-
-test('guardian (TASK-101): con codigo sigue bloqueando y dice por que no es solo documentacion', async () => {
+await caso('guardian (TASK-101): con codigo sigue bloqueando y dice por que no es solo documentacion', async () => {
   await conEntorno(() => RUTAS, async (e) => {
     const task = sampleTask({ id: 'TASK-952' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -91,8 +101,7 @@ test('guardian (TASK-101): con codigo sigue bloqueando y dice por que no es solo
     assert.match(d.stderr ?? '', /No es solo documentacion: la tarea cambia rutas que no son documentacion: src\/calculo\.ts/);
   });
 });
-
-test('guardian (TASK-101): con comprobacion de documentacion exige su verde guardado para ese commit', async () => {
+await caso('guardian (TASK-101): con comprobacion de documentacion exige su verde guardado para ese commit', async () => {
   await conEntorno(({ docs }) => `${RUTAS}comando_verificacion_documentacion: "${docs}"\n`, async (e) => {
     const task = sampleTask({ id: 'TASK-953' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -110,8 +119,7 @@ test('guardian (TASK-101): con comprobacion de documentacion exige su verde guar
     assert.equal(e.ejecutadoAlguno(), false);
   });
 });
-
-test('guardian (TASK-101): sin exencion si el comando crea o mueve commits antes del merge', async () => {
+await caso('guardian (TASK-101): sin exencion si el comando crea o mueve commits antes del merge', async () => {
   await conEntorno(() => RUTAS, async (e) => {
     const task = sampleTask({ id: 'TASK-954' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -123,8 +131,7 @@ test('guardian (TASK-101): sin exencion si el comando crea o mueve commits antes
     }
   });
 });
-
-test('guardian (TASK-101): los held-out de tareas/.../aceptacion/ cuentan como codigo', async () => {
+await caso('guardian (TASK-101): los held-out de tareas/.../aceptacion/ cuentan como codigo', async () => {
   await conEntorno(() => RUTAS, async (e) => {
     const task = sampleTask({ id: 'TASK-955' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -134,8 +141,7 @@ test('guardian (TASK-101): los held-out de tareas/.../aceptacion/ cuentan como c
     assert.match(d.stderr ?? '', /no son documentacion: tareas\/03-en-revision\/TASK-955\/aceptacion\/caso\.test\.js/);
   });
 });
-
-test('guardian (TASK-101): un release siempre exige la completa', async () => {
+await caso('guardian (TASK-101): un release siempre exige la completa', async () => {
   await conEntorno(() => RUTAS, async (e) => {
     git(['checkout', '-q', '-b', 'release/1.0', 'develop'], e.repoRoot);
     await enLaRama(e, 'docs/CHANGELOG.md');
@@ -144,8 +150,7 @@ test('guardian (TASK-101): un release siempre exige la completa', async () => {
     assert.match(d.stderr ?? '', /Un release lleva a la principal todo lo acumulado/);
   });
 });
-
-test('guardian (TASK-101): las rutas salen de la config del destino, no de la rama ni del arbol', async () => {
+await caso('guardian (TASK-101): las rutas salen de la config del destino, no de la rama ni del arbol', async () => {
   await conEntorno(() => 'rutas_documentacion: [docs/**]\n', async (e) => {
     const task = sampleTask({ id: 'TASK-956' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -168,8 +173,7 @@ test('guardian (TASK-101): las rutas salen de la config del destino, no de la ra
     assert.match(desdeDevelop.stderr ?? '', /no son documentacion: src\/x\.ts/);
   });
 });
-
-test('guardian (TASK-101): una config del destino invalida no exime (completa)', async () => {
+await caso('guardian (TASK-101): una config del destino invalida no exime (completa)', async () => {
   await conEntorno(() => RUTAS, async (e) => {
     const task = sampleTask({ id: 'TASK-957' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -184,8 +188,7 @@ test('guardian (TASK-101): una config del destino invalida no exime (completa)',
     assert.match(d.stderr ?? '', /La configuracion de "develop" no es valida/);
   });
 });
-
-test('guardian (TASK-101): sin rutas_documentacion el mensaje es exactamente el de la 0.14.0', async () => {
+await caso('guardian (TASK-101): sin rutas_documentacion el mensaje es exactamente el de la 0.14.0', async () => {
   await conEntorno(() => '', async (e) => {
     const task = sampleTask({ id: 'TASK-958' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -197,6 +200,29 @@ test('guardian (TASK-101): sin rutas_documentacion el mensaje es exactamente el 
     assert.match(lineas[0] as string, /^Merge bloqueado: .* no consta una verificacion en verde de ese commit \(comando de verificacion: /);
     assert.match(lineas[1] as string, /^Cierra la tarea con taskctl finish TASK-NNN/);
   });
+});
+await caso('guardian (TASK-101): CRI-1 y CRI-2 de la revision bloquean de punta a punta', async () => {
+  await conEntorno(() => RUTAS, async (e) => {
+    const task = sampleTask({ id: 'TASK-959' });
+    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
+    await enLaRama(e, 'docs/guia.md');
+    git(['checkout', '-q', '-b', 'codigo', 'develop'], e.repoRoot);
+    await enLaRama(e, 'src/y.ts', 'export const y = 1;\n');
+    git(['checkout', '-q', 'develop'], e.repoRoot);
+    for (const cmd of [
+      `git checkout ${task.rama} && git merge --no-edit codigo && git checkout develop && git merge --no-ff -m m ${task.rama}`,
+      `git rev-parse codigo > .git/refs/heads/${task.rama} && git merge --no-ff ${task.rama}`,
+      `echo "$(git branch -f ${task.rama} codigo)" && git merge --no-ff ${task.rama}`,
+      `git checkout -fB ${task.rama} codigo && git checkout develop && git merge ${task.rama}`,
+      `git checkout ${task.rama} && git merge -m --abort codigo && git checkout develop && git merge --no-ff ${task.rama}`,
+    ]) {
+      const d = guardian(e, cmd);
+      assert.equal(d.codigo, 2, cmd);
+    }
+    // Y el merge limpio de esa misma rama si pasa.
+    assert.equal(guardian(e, `git merge --no-ff ${task.rama}`).codigo, 0);
+  });
+});
 });
 
 test('comandoSoloIntegra: solo un merge, cambiar de carpeta o de rama y consultar', () => {
@@ -258,30 +284,8 @@ test('comandoSoloIntegra: solo un merge, cambiar de carpeta o de rama y consulta
   }
 });
 
-test('guardian (TASK-101): CRI-1 y CRI-2 de la revision bloquean de punta a punta', async () => {
-  await conEntorno(() => RUTAS, async (e) => {
-    const task = sampleTask({ id: 'TASK-959' });
-    await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
-    await enLaRama(e, 'docs/guia.md');
-    git(['checkout', '-q', '-b', 'codigo', 'develop'], e.repoRoot);
-    await enLaRama(e, 'src/y.ts', 'export const y = 1;\n');
-    git(['checkout', '-q', 'develop'], e.repoRoot);
-    for (const cmd of [
-      `git checkout ${task.rama} && git merge --no-edit codigo && git checkout develop && git merge --no-ff -m m ${task.rama}`,
-      `git rev-parse codigo > .git/refs/heads/${task.rama} && git merge --no-ff ${task.rama}`,
-      `echo "$(git branch -f ${task.rama} codigo)" && git merge --no-ff ${task.rama}`,
-      `git checkout -fB ${task.rama} codigo && git checkout develop && git merge ${task.rama}`,
-      `git checkout ${task.rama} && git merge -m --abort codigo && git checkout develop && git merge --no-ff ${task.rama}`,
-    ]) {
-      const d = guardian(e, cmd);
-      assert.equal(d.codigo, 2, cmd);
-    }
-    // Y el merge limpio de esa misma rama si pasa.
-    assert.equal(guardian(e, `git merge --no-ff ${task.rama}`).codigo, 0);
-  });
-});
-
-test('guardian (TASK-105): una decision selectiva bloquea a proposito, aunque su comando coincida con el de documentacion y conste en verde', async () => {
+test('guardian TASK-105 y TASK-108: seleccion parcial, nivel 2 y mensajes de bloqueo', async () => {
+await caso('guardian (TASK-105): una decision selectiva bloquea a proposito, aunque su comando coincida con el de documentacion y conste en verde', async () => {
   // El caso que antes pasaba por accidente: la selectiva y la comprobacion de
   // documentacion son el mismo comando y su memo de documentacion esta en verde.
   await conEntorno(
@@ -305,24 +309,7 @@ test('guardian (TASK-105): una decision selectiva bloquea a proposito, aunque su
     }
   );
 });
-
-// TASK-108 (B5, D1 de Carlos del 2026-11-11): con rutas_verificacion_parcial el
-// guardian nunca acepta el verde de la selectiva para codigo.
-
-const verdeDe = (comando: string) =>
-  ({ comando, estado: 'verde' as const, codigo: 0, duracionMs: 1, timeoutS: 600, bytesTotales: 0, cola: '' });
-
-/** La selectiva es otro script (cuenta en `cuenta-sel`), para que su memo no se confunda con el de documentacion. */
-const comandoSel = (docs: string) => docs.replace(/ docs$/, ' sel');
-
-const PARCIAL = (docs: string) =>
-  `${RUTAS}comando_verificacion_documentacion: "${docs}"\n` +
-  `comando_verificacion_selectiva: "${comandoSel(docs)}"\n` +
-  'rutas_verificacion_parcial: [src/**]\n';
-
-const LINEA_COMPLETA = /un merge a mano exige la verificacion completa en verde de ese commit/;
-
-test('guardian (TASK-108): con nivel 2, una tarea sin codigo pasa con el verde de su verificacion de documentacion', async () => {
+await caso('guardian (TASK-108): con nivel 2, una tarea sin codigo pasa con el verde de su verificacion de documentacion', async () => {
   await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
     const task = sampleTask({ id: 'TASK-971' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -334,8 +321,7 @@ test('guardian (TASK-108): con nivel 2, una tarea sin codigo pasa con el verde d
     assert.equal(e.ejecutadoAlguno(), false);
   });
 });
-
-test('guardian (TASK-108): con nivel 2, una tarea con codigo se bloquea aunque conste en verde el memo de la selectiva', async () => {
+await caso('guardian (TASK-108): con nivel 2, una tarea con codigo se bloquea aunque conste en verde el memo de la selectiva', async () => {
   await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
     const task = sampleTask({ id: 'TASK-972' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -354,8 +340,7 @@ test('guardian (TASK-108): con nivel 2, una tarea con codigo se bloquea aunque c
     assert.equal(e.ejecutadoAlguno(), false);
   });
 });
-
-test('guardian (TASK-108): el bloqueo con codigo dice que hace falta la completa y como integrar, sin mandar a repetir el merge', async () => {
+await caso('guardian (TASK-108): el bloqueo con codigo dice que hace falta la completa y como integrar, sin mandar a repetir el merge', async () => {
   await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
     const task = sampleTask({ id: 'TASK-973' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -372,8 +357,7 @@ test('guardian (TASK-108): el bloqueo con codigo dice que hace falta la completa
     assert.doesNotMatch(texto, /repite el merge|corre la (verificacion )?completa|develop avanzo|huella/i);
   });
 });
-
-test('guardian (TASK-108): decide con la config del destino; la del arbol no cambia el mensaje', async () => {
+await caso('guardian (TASK-108): decide con la config del destino; la del arbol no cambia el mensaje', async () => {
   // La config del arbol se toca sin commitear: commitearla haria que la tarea
   // cambiara .taskcode/config.yml, que por si solo exige la completa.
   // El arbol declara la clave; el destino (develop) no la tiene: mensaje de antes.
@@ -402,8 +386,7 @@ test('guardian (TASK-108): decide con la config del destino; la del arbol no cam
     assert.match(d.stderr ?? '', LINEA_COMPLETA);
   });
 });
-
-test('guardian (TASK-108): sin rutas_verificacion_parcial, con codigo, se comporta como en la 0.14.0', async () => {
+await caso('guardian (TASK-108): sin rutas_verificacion_parcial, con codigo, se comporta como en la 0.14.0', async () => {
   await conEntorno(() => RUTAS, async (e) => {
     const task = sampleTask({ id: 'TASK-976' });
     await setupTaskEnRevision(e.repoRoot, e.tareasRoot, task);
@@ -421,8 +404,7 @@ test('guardian (TASK-108): sin rutas_verificacion_parcial, con codigo, se compor
     assert.equal(guardian(e, mergeA(task.rama)).codigo, 0);
   });
 });
-
-test('guardian (TASK-108, MEN-1/MEN-2): con nivel 2, un release con codigo conserva su detalle y un hotfix no promete la selectiva', async () => {
+await caso('guardian (TASK-108, MEN-1/MEN-2): con nivel 2, un release con codigo conserva su detalle y un hotfix no promete la selectiva', async () => {
   await conEntorno(({ docs }) => PARCIAL(docs), async (e) => {
     // Release con codigo hacia develop: su detalle propio, sin la linea de la tarea.
     git(['checkout', '-q', '-b', 'release/1.0', 'develop'], e.repoRoot);
@@ -442,3 +424,20 @@ test('guardian (TASK-108, MEN-1/MEN-2): con nivel 2, un release con codigo conse
     assert.doesNotMatch(hot.stderr ?? '', LINEA_COMPLETA);
   });
 });
+});
+
+// TASK-108 (B5, D1 de Carlos del 2026-11-11): con rutas_verificacion_parcial el
+// guardian nunca acepta el verde de la selectiva para codigo.
+
+const verdeDe = (comando: string) =>
+  ({ comando, estado: 'verde' as const, codigo: 0, duracionMs: 1, timeoutS: 600, bytesTotales: 0, cola: '' });
+
+/** La selectiva es otro script (cuenta en `cuenta-sel`), para que su memo no se confunda con el de documentacion. */
+const comandoSel = (docs: string) => docs.replace(/ docs$/, ' sel');
+
+const PARCIAL = (docs: string) =>
+  `${RUTAS}comando_verificacion_documentacion: "${docs}"\n` +
+  `comando_verificacion_selectiva: "${comandoSel(docs)}"\n` +
+  'rutas_verificacion_parcial: [src/**]\n';
+
+const LINEA_COMPLETA = /un merge a mano exige la verificacion completa en verde de ese commit/;

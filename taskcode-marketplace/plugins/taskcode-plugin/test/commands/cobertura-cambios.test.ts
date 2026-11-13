@@ -112,8 +112,9 @@ async function finish(c: Ctx, args: string[], avisos: string[] = []) {
 // Lineas cambiadas y lectura del informe
 // ---------------------------------------------------------------------
 
-test('cobertura: las lineas cambiadas se miden desde la merge base, no desde la punta de la base', async () => {
+test('cobertura: lineas cambiadas (merge base, config de diff de la maquina, renombres, "++ ", diff externo) y cruce de la rama con la merge base', async () => {
   await withTempRepo(async (repoRoot) => {
+    // --- las lineas cambiadas se miden desde la merge base, no desde la punta de la base
     git(['checkout', '-q', '-b', 'feature/task-990-x', 'develop'], repoRoot);
     await writeFile(path.join(repoRoot, 'a.mjs'), 'uno\ndos\n', 'utf8');
     commitAll(repoRoot, 'a');
@@ -132,18 +133,16 @@ test('cobertura: las lineas cambiadas se miden desde la merge base, no desde la 
     commitAll(repoRoot, 'a de nuevo');
     const mb2 = mergeBase('HEAD', 'develop', repoRoot);
     assert.deepEqual([...lineasAnadidas(mb2, 'HEAD', [], repoRoot)], [['a.mjs', [1, 2, 3]]]);
-  });
-});
 
-test('cobertura: el cruce de la rama usa la merge base: un cambio posterior de la base no cuenta', async () => {
-  await withTempRepo(async (repoRoot) => {
+    // --- el cruce de la rama usa la merge base: un cambio posterior de la base no cuenta
+    git(['checkout', '-q', 'develop'], repoRoot);
     git(['checkout', '-q', '-b', 'feature/task-989-x', 'develop'], repoRoot);
     await writeFile(path.join(repoRoot, 'a.mjs'), 'uno\n', 'utf8');
     commitAll(repoRoot, 'a');
     git(['checkout', '-q', 'develop'], repoRoot);
     // Cambia una linea que la rama tiene: contra la punta, saldria como «añadida» en la rama.
-    await writeFile(path.join(repoRoot, 'README.md'), '# cambiado en develop\n', 'utf8');
-    commitAll(repoRoot, 'readme en develop');
+    await writeFile(path.join(repoRoot, 'README.md'), '# cambiado otra vez en develop\n', 'utf8');
+    commitAll(repoRoot, 'readme en develop otra vez');
     git(['checkout', '-q', 'feature/task-989-x'], repoRoot);
     await mkdir(path.join(repoRoot, 'coverage'), { recursive: true });
     await writeFile(
@@ -154,11 +153,26 @@ test('cobertura: el cruce de la rama usa la merge base: un cambio posterior de l
     const c = coberturaDeRama(repoRoot, 'develop', 'coverage/lcov.info', []);
     assert.ok(c.cruce);
     assert.deepEqual([c.cruce.cubiertas, c.cruce.ejecutables], [1, 1], 'README.md es de develop, no de la rama');
-  });
-});
+    // El informe de prueba no debe colarse en los commits de los pasos siguientes.
+    await rm(path.join(repoRoot, 'coverage'), { recursive: true, force: true });
 
-test('cobertura: respeta excluir_de_revision, no depende de la config de diff de la maquina y sigue renombres', async () => {
-  await withTempRepo(async (repoRoot) => {
+    // --- lineasAnadidas (MEN-1): una linea añadida que empieza por "++ " es contenido, no una cabecera; las vacias no cuentan
+    git(['checkout', '-q', 'develop'], repoRoot);
+    const baseX = Array.from({ length: 20 }, (_, i) => `l${i + 1}`);
+    await writeFile(path.join(repoRoot, 'x.txt'), baseX.join('\n') + '\n', 'utf8');
+    commitAll(repoRoot, 'x');
+    git(['checkout', '-q', '-b', 'feature/task-979-x', 'develop'], repoRoot);
+    const lx = [...baseX];
+    lx.splice(2, 0, '++ b/otro');
+    lx.splice(10, 0, '   ');
+    lx.splice(16, 0, 'nueva');
+    await writeFile(path.join(repoRoot, 'x.txt'), lx.join('\n') + '\n', 'utf8');
+    commitAll(repoRoot, 'x cambiado');
+    const mbX = mergeBase('HEAD', 'develop', repoRoot);
+    assert.deepEqual([...lineasAnadidas(mbX, 'HEAD', [], repoRoot)], [['x.txt', [3, 17]]]);
+
+    // --- respeta excluir_de_revision, no depende de la config de diff de la maquina y sigue renombres
+    git(['checkout', '-q', 'develop'], repoRoot);
     await writeFile(path.join(repoRoot, 'viejo.mjs'), Array.from({ length: 20 }, (_, i) => `l${i}`).join('\n') + '\n', 'utf8');
     commitAll(repoRoot, 'viejo');
     git(['checkout', '-q', '-b', 'feature/task-991-x', 'develop'], repoRoot);
@@ -170,16 +184,26 @@ test('cobertura: respeta excluir_de_revision, no depende de la config de diff de
     await writeFile(path.join(repoRoot, 'dist', 'x.js'), 'compilado\n', 'utf8');
     await writeFile(path.join(repoRoot, 'con espacio.mjs'), 'a\n', 'utf8');
     commitAll(repoRoot, 'rename y dist');
-    const mb = mergeBase('HEAD', 'develop', repoRoot);
-    const conExclusion = lineasAnadidas(mb, 'HEAD', ['**/dist/**'], repoRoot);
+    const mbR = mergeBase('HEAD', 'develop', repoRoot);
+    const conExclusion = lineasAnadidas(mbR, 'HEAD', ['**/dist/**'], repoRoot);
     assert.deepEqual([...conExclusion], [['con espacio.mjs', [1]]], 'el rename puro no aporta lineas; dist excluido');
-    const sin = lineasAnadidas(mb, 'HEAD', [], repoRoot);
+    const sin = lineasAnadidas(mbR, 'HEAD', [], repoRoot);
     assert.deepEqual(sin.get('dist/x.js'), [1]);
+
+    // --- cobertura (IMP-4): un diff externo configurado en el repo no cambia las lineas
+    git(['checkout', '-q', 'develop'], repoRoot);
+    git(['checkout', '-q', '-b', 'feature/task-978-x', 'develop'], repoRoot);
+    await writeFile(path.join(repoRoot, 'a.mjs'), 'uno\n', 'utf8');
+    commitAll(repoRoot, 'a');
+    git(['config', 'diff.external', 'false'], repoRoot);
+    const mbE = mergeBase('HEAD', 'develop', repoRoot);
+    assert.deepEqual([...lineasAnadidas(mbE, 'HEAD', [], repoRoot)], [['a.mjs', [1]]]);
   });
 });
 
-test('cobertura: el lcov real de node --test (SF relativo, con \\ en Windows) se resuelve a rutas del repo', async () => {
+test('cobertura: el lcov real de node --test (SF relativo, con \\ en Windows) se resuelve a rutas del repo; un proyecto en subcarpeta resuelve sus rutas a pkg/ (IMP-3) y con los tests excluidos un test nuevo no cuenta y un modulo nuevo si (IMP-6 de la ronda 3)', async () => {
   await conCobertura('', async (c) => {
+    // --- el lcov real de node --test se resuelve a rutas del repo
     await codigoDeLaTarea(c.repoRoot);
     c.generar();
     const texto = await readFile(path.join(c.repoRoot, 'coverage', 'lcov.info'), 'utf8');
@@ -202,6 +226,46 @@ test('cobertura: el lcov real de node --test (SF relativo, con \\ en Windows) se
     await writeFile(path.join(c.repoRoot, 'coverage', 'lcov.info'), 'SF:src/a.mjs\nDA:1,1\n', 'utf8');
     assert.equal(leerInformeCobertura(c.repoRoot, 'coverage/lcov.info', []).tipo, 'truncado');
     assert.equal(leerInformeCobertura(c.repoRoot, 'coverage/no-existe.info', []).tipo, 'ausente');
+
+    // --- cobertura (IMP-3): un proyecto en subcarpeta con el informe en pkg/coverage/ resuelve sus rutas a pkg/
+    // (coverage/ esta en el .gitignore del fixture: el informe no se cuela en los commits siguientes)
+    const repoRoot = c.repoRoot;
+    const pkg = path.join(repoRoot, 'pkg');
+    await mkdir(path.join(pkg, 'src'), { recursive: true });
+    await mkdir(path.join(pkg, 'test'), { recursive: true });
+    await mkdir(path.join(pkg, 'coverage'), { recursive: true });
+    await writeFile(path.join(pkg, 'src', 'a.mjs'), FUENTE, 'utf8');
+    await writeFile(path.join(pkg, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
+    commitAll(repoRoot, 'pkg');
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    const r = spawnSync(
+      process.execPath,
+      ['--test', '--experimental-test-coverage', '--test-reporter=lcov', '--test-reporter-destination=coverage/lcov.info', 'test/*.test.mjs'],
+      { cwd: pkg, env, encoding: 'utf8' }
+    );
+    assert.equal(r.status, 0, r.stderr);
+    const lp = leerInformeCobertura(repoRoot, 'pkg/coverage/lcov.info', []);
+    assert.ok(lp.tipo === 'ok');
+    assert.deepEqual([...lp.porRuta.keys()].sort(), ['pkg/src/a.mjs', 'pkg/test/a.test.mjs']);
+    assert.equal(lp.validos, 2);
+    assert.deepEqual(lp.raices, ['pkg'], 'la raiz del proyecto que genero el informe');
+
+    // --- cobertura (IMP-6 de la ronda 3): en un proyecto en subcarpeta con los tests excluidos, un test nuevo no cuenta y un modulo nuevo si
+    git(['checkout', '-q', '-b', 'feature/task-967-x', 'develop'], repoRoot);
+    await writeFile(path.join(pkg, 'test', 'b.test.mjs'), "import { test } from 'node:test';\nimport { f } from '../src/a.mjs';\ntest('neg', () => { f(-1); });\n", 'utf8');
+    await writeFile(path.join(pkg, 'src', 'nuevo.mjs'), 'export const n = 1;\n', 'utf8');
+    commitAll(repoRoot, 'test y modulo nuevos');
+    const r2 = spawnSync(
+      process.execPath,
+      ['--test', '--experimental-test-coverage', '--test-coverage-exclude=test/**', '--test-reporter=lcov', '--test-reporter-destination=coverage/lcov.info', 'test/*.test.mjs'],
+      { cwd: pkg, env, encoding: 'utf8' }
+    );
+    assert.equal(r2.status, 0, r2.stderr);
+    const cr = coberturaDeRama(repoRoot, 'develop', 'pkg/coverage/lcov.info', []);
+    assert.ok(cr.cruce);
+    assert.deepEqual(cr.cruce.ficheros.map((f) => f.ruta), ['pkg/src/nuevo.mjs']);
+    assert.ok(cr.cruce.sinInstrumentar.includes('pkg/test/b.test.mjs'));
   });
 });
 
@@ -226,35 +290,100 @@ async function tareaEnCurso(c: Ctx, id: string, rama: string): Promise<void> {
   await codigoDeLaTarea(c.repoRoot);
 }
 
-test('review: la peticion nombra la linea exacta sin cubrir (y no su vecina cubierta) sin ejecutar ningun test', async () => {
+test('review: la peticion informa de la cobertura sin ejecutar nada (linea exacta sin cubrir; informe viejo o ausente = aviso; merge de la base del update; fragmentada por dominio; ronda 2 fragmentada)', async () => {
   await conCobertura('', async (c) => {
+    // --- la peticion nombra la linea exacta sin cubrir (y no su vecina cubierta) sin ejecutar ningun test
     await tareaEnCurso(c, 'TASK-995', 'feature/task-995-cob');
     c.generar();
     const antes = c.ejecuciones();
-    const p = await peticion(c, 'TASK-995');
+    const p995 = await peticion(c, 'TASK-995');
     assert.equal(c.ejecuciones(), antes, 'review no ejecuta comando_verificacion');
-    assert.match(p, /## Cobertura de las lineas cambiadas/);
-    assert.match(p, /- `src\/a\.mjs`: 6\n/);
-    assert.doesNotMatch(p, /`src\/a\.mjs`: [^\n]*\b5\b/);
-    assert.match(p, /Cubiertas 9 de 10 lineas cambiadas ejecutables \(90 %\)/);
-    assert.match(p, /Cada linea sin cubrir es un hallazgo/);
-  });
-});
+    assert.match(p995, /## Cobertura de las lineas cambiadas/);
+    assert.match(p995, /- `src\/a\.mjs`: 6\n/);
+    assert.doesNotMatch(p995, /`src\/a\.mjs`: [^\n]*\b5\b/);
+    assert.match(p995, /Cubiertas 9 de 10 lineas cambiadas ejecutables \(90 %\)/);
+    assert.match(p995, /Cada linea sin cubrir es un hallazgo/);
 
-test('review: un informe anterior al ultimo commit de la rama, o ausente, es un aviso y no lista lineas', async () => {
-  await conCobertura('', async (c) => {
+    // --- un informe anterior al ultimo commit de la rama es un aviso y no lista lineas
+    git(['checkout', '-q', 'develop'], c.repoRoot);
     await tareaEnCurso(c, 'TASK-996', 'feature/task-996-cob');
     c.generar();
     const viejo = new Date('2020-01-01T00:00:00Z');
     await utimes(path.join(c.repoRoot, 'coverage', 'lcov.info'), viejo, viejo);
-    const p = await peticion(c, 'TASK-996');
-    assert.match(p, /\[AVISO\] El informe es de 2020-01-01T00:00:00\.000Z, anterior al ultimo commit de la rama/);
-    assert.doesNotMatch(p, /`src\/a\.mjs`: 6/);
-  });
-  await conCobertura('', async (c) => {
+    const p996 = await peticion(c, 'TASK-996');
+    assert.match(p996, /\[AVISO\] El informe es de 2020-01-01T00:00:00\.000Z, anterior al ultimo commit de la rama/);
+    assert.doesNotMatch(p996, /`src\/a\.mjs`: 6/);
+
+    // --- un informe ausente es un aviso
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    await rm(path.join(c.repoRoot, 'coverage'), { recursive: true, force: true });
     await tareaEnCurso(c, 'TASK-997', 'feature/task-997-cob');
-    const p = await peticion(c, 'TASK-997');
-    assert.match(p, /\[AVISO\] No existe el informe/);
+    const p997 = await peticion(c, 'TASK-997');
+    assert.match(p997, /\[AVISO\] No existe el informe/);
+
+    // --- review (IMP-4): el merge de la base que hace el update no deja el informe por viejo
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    const { writeTareaFile } = await import('../../src/fs/task-store.js');
+    git(['checkout', '-q', '-b', 'feature/task-972-cob', 'develop'], c.repoRoot);
+    await writeTareaFile(c.tareasRoot, sampleTask({ id: 'TASK-972', rama: 'feature/task-972-cob', estado: 'en-curso' }), '## Objetivo\nProbar.\n');
+    await mkdir(path.join(c.repoRoot, 'src'), { recursive: true });
+    await mkdir(path.join(c.repoRoot, 'test'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'src', 'a.mjs'), FUENTE, 'utf8');
+    await writeFile(path.join(c.repoRoot, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
+    commitConFecha(c.repoRoot, 'feat: codigo', '2020-01-01T00:00:00Z');
+    c.generar();
+    const informe = new Date('2021-01-01T00:00:00Z');
+    await utimes(path.join(c.repoRoot, 'coverage', 'lcov.info'), informe, informe);
+    // La base avanza: el update de review la mergea en la rama con la fecha de hoy.
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    await writeFile(path.join(c.repoRoot, 'otro.txt'), 'de develop\n', 'utf8');
+    commitAll(c.repoRoot, 'develop avanza');
+    git(['checkout', '-q', 'feature/task-972-cob'], c.repoRoot);
+    const p972 = await peticion(c, 'TASK-972');
+    assert.doesNotMatch(p972, /anterior al ultimo commit de la rama/);
+    assert.match(p972, /- `src\/a\.mjs`: 6\n/);
+
+    // --- review (IMP-4, MEN-4): en una peticion fragmentada cada dominio ve solo la cobertura de sus ficheros
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    await tareaEnCurso(c, 'TASK-971', 'feature/task-971-cob');
+    await mkdir(path.join(c.repoRoot, 'java'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'java', 'X.java'), 'class X {}\n', 'utf8');
+    commitAll(c.repoRoot, 'feat: java');
+    c.generar();
+    await runFinishlessReview(c, 'TASK-971');
+    const dir971 = path.join(c.tareasRoot, '03-en-revision', 'TASK-971', 'revision');
+    const java971 = await readFile(path.join(dir971, 'peticion-revision-1-java-spring-reviewer.md'), 'utf8');
+    const generico971 = await readFile(path.join(dir971, 'peticion-revision-1-code-quality-reviewer.md'), 'utf8');
+    assert.match(java971, /## Cobertura de las lineas cambiadas/);
+    assert.doesNotMatch(java971, /src\/a\.mjs/);
+    assert.match(java971, /`java\/X\.java`/, 'el .java no esta instrumentado: va aparte');
+    assert.match(generico971, /- `src\/a\.mjs`: 6\n/);
+    assert.doesNotMatch(generico971, /X\.java/);
+
+    // --- review (MEN-5): en la ronda 2 fragmentada, una linea sin cubrir de un dominio sin peticion va a la primera
+    git(['checkout', '-q', 'develop'], c.repoRoot);
+    await tareaEnCurso(c, 'TASK-968', 'feature/task-968-cob');
+    c.generar();
+    await runFinishlessReview(c, 'TASK-968');
+    await runVeredictoCommand(c.tareasRoot, ['TASK-968', 'cambios-solicitados'], { repoCwd: c.repoRoot });
+    // La ronda 2 solo toca otros dominios: java y vue, sin grupo generico.
+    await mkdir(path.join(c.repoRoot, 'java'), { recursive: true });
+    await mkdir(path.join(c.repoRoot, 'web'), { recursive: true });
+    await writeFile(path.join(c.repoRoot, 'java', 'X.java'), 'class X {}\n', 'utf8');
+    await writeFile(path.join(c.repoRoot, 'web', 'C.vue'), '<template><p/></template>\n', 'utf8');
+    commitAll(c.repoRoot, 'feat: java y vue');
+    c.generar();
+    const r2 = await runReviewCommand(c.tareasRoot, ['TASK-968'], '2026-11-05', { repoCwd: c.repoRoot, scriptsDir: SCRIPTS_DIR });
+    assert.equal(r2.incremental, true);
+    const dir = path.join(c.tareasRoot, '03-en-revision', 'TASK-968', 'revision');
+    const java = await readFile(path.join(dir, 'peticion-revision-2-java-spring-reviewer.md'), 'utf8');
+    const vue = await readFile(path.join(dir, 'peticion-revision-2-angular-vue-reviewer.md'), 'utf8');
+    const conA = [java, vue].filter((p) => /- `src\/a\.mjs`: 6\n/.test(p));
+    assert.equal(conA.length, 1, 'la linea sin cubrir de la ronda 1 sale una vez, aunque su dominio no tenga peticion');
+    assert.doesNotMatch(vue, /X\.java/);
+    // MEN-8 de la ronda 3: la peticion que recibe src/a.mjs conserva tambien sus propios ficheros.
+    if (conA[0] === java) assert.match(java, /`java\/X\.java`/);
+    else assert.match(vue, /`web\/C\.vue`/);
   });
 });
 
@@ -357,87 +486,6 @@ test('finish: --sin-verificacion salta tambien la cobertura y lo avisa; sin umbr
 // Ronda 1 de revision
 // ---------------------------------------------------------------------
 
-test('lineasAnadidas (MEN-1): una linea añadida que empieza por "++ " es contenido, no una cabecera; las vacias no cuentan', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const base = Array.from({ length: 20 }, (_, i) => `l${i + 1}`);
-    await writeFile(path.join(repoRoot, 'x.txt'), base.join('\n') + '\n', 'utf8');
-    commitAll(repoRoot, 'x');
-    git(['checkout', '-q', '-b', 'feature/task-979-x', 'develop'], repoRoot);
-    const l = [...base];
-    l.splice(2, 0, '++ b/otro');
-    l.splice(10, 0, '   ');
-    l.splice(16, 0, 'nueva');
-    await writeFile(path.join(repoRoot, 'x.txt'), l.join('\n') + '\n', 'utf8');
-    commitAll(repoRoot, 'x cambiado');
-    const mb = mergeBase('HEAD', 'develop', repoRoot);
-    assert.deepEqual([...lineasAnadidas(mb, 'HEAD', [], repoRoot)], [['x.txt', [3, 17]]]);
-  });
-});
-
-test('cobertura (IMP-4): un diff externo configurado en el repo no cambia las lineas', async () => {
-  await withTempRepo(async (repoRoot) => {
-    git(['checkout', '-q', '-b', 'feature/task-978-x', 'develop'], repoRoot);
-    await writeFile(path.join(repoRoot, 'a.mjs'), 'uno\n', 'utf8');
-    commitAll(repoRoot, 'a');
-    git(['config', 'diff.external', 'false'], repoRoot);
-    const mb = mergeBase('HEAD', 'develop', repoRoot);
-    assert.deepEqual([...lineasAnadidas(mb, 'HEAD', [], repoRoot)], [['a.mjs', [1]]]);
-  });
-});
-
-test('cobertura (IMP-3): un proyecto en subcarpeta con el informe en pkg/coverage/ resuelve sus rutas a pkg/', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const pkg = path.join(repoRoot, 'pkg');
-    await mkdir(path.join(pkg, 'src'), { recursive: true });
-    await mkdir(path.join(pkg, 'test'), { recursive: true });
-    await mkdir(path.join(pkg, 'coverage'), { recursive: true });
-    await writeFile(path.join(pkg, 'src', 'a.mjs'), FUENTE, 'utf8');
-    await writeFile(path.join(pkg, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
-    commitAll(repoRoot, 'pkg');
-    const env = { ...process.env };
-    delete env.NODE_TEST_CONTEXT;
-    const r = spawnSync(
-      process.execPath,
-      ['--test', '--experimental-test-coverage', '--test-reporter=lcov', '--test-reporter-destination=coverage/lcov.info', 'test/*.test.mjs'],
-      { cwd: pkg, env, encoding: 'utf8' }
-    );
-    assert.equal(r.status, 0, r.stderr);
-    const l = leerInformeCobertura(repoRoot, 'pkg/coverage/lcov.info', []);
-    assert.ok(l.tipo === 'ok');
-    assert.deepEqual([...l.porRuta.keys()].sort(), ['pkg/src/a.mjs', 'pkg/test/a.test.mjs']);
-    assert.equal(l.validos, 2);
-    assert.deepEqual(l.raices, ['pkg'], 'la raiz del proyecto que genero el informe');
-  });
-});
-
-test('cobertura (IMP-6 de la ronda 3): en un proyecto en subcarpeta con los tests excluidos, un test nuevo no cuenta y un modulo nuevo si', async () => {
-  await withTempRepo(async (repoRoot) => {
-    const pkg = path.join(repoRoot, 'pkg');
-    await mkdir(path.join(pkg, 'src'), { recursive: true });
-    await mkdir(path.join(pkg, 'test'), { recursive: true });
-    await writeFile(path.join(pkg, 'src', 'a.mjs'), FUENTE, 'utf8');
-    await writeFile(path.join(pkg, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
-    commitAll(repoRoot, 'pkg');
-    git(['checkout', '-q', '-b', 'feature/task-967-x', 'develop'], repoRoot);
-    await writeFile(path.join(pkg, 'test', 'b.test.mjs'), "import { test } from 'node:test';\nimport { f } from '../src/a.mjs';\ntest('neg', () => { f(-1); });\n", 'utf8');
-    await writeFile(path.join(pkg, 'src', 'nuevo.mjs'), 'export const n = 1;\n', 'utf8');
-    commitAll(repoRoot, 'test y modulo nuevos');
-    await mkdir(path.join(pkg, 'coverage'), { recursive: true });
-    const env = { ...process.env };
-    delete env.NODE_TEST_CONTEXT;
-    const r = spawnSync(
-      process.execPath,
-      ['--test', '--experimental-test-coverage', '--test-coverage-exclude=test/**', '--test-reporter=lcov', '--test-reporter-destination=coverage/lcov.info', 'test/*.test.mjs'],
-      { cwd: pkg, env, encoding: 'utf8' }
-    );
-    assert.equal(r.status, 0, r.stderr);
-    const c = coberturaDeRama(repoRoot, 'develop', 'pkg/coverage/lcov.info', []);
-    assert.ok(c.cruce);
-    assert.deepEqual(c.cruce.ficheros.map((f) => f.ruta), ['pkg/src/nuevo.mjs']);
-    assert.ok(c.cruce.sinInstrumentar.includes('pkg/test/b.test.mjs'));
-  });
-});
-
 test('finish (IMP-1): un modulo nuevo que ningun test carga no pasa el umbral; una tarea de solo docs, si', async () => {
   await conCobertura('umbral_cobertura: 50\n', async (c) => {
     // El codigo medido ya esta en la base; la rama solo añade un modulo sin test.
@@ -501,49 +549,6 @@ function commitConFecha(repoRoot: string, mensaje: string, fecha: string): void 
   assert.equal(r.status, 0, r.stderr);
 }
 
-test('review (IMP-4): el merge de la base que hace el update no deja el informe por viejo', async () => {
-  await conCobertura('', async (c) => {
-    const { writeTareaFile } = await import('../../src/fs/task-store.js');
-    git(['checkout', '-q', '-b', 'feature/task-972-cob', 'develop'], c.repoRoot);
-    await writeTareaFile(c.tareasRoot, sampleTask({ id: 'TASK-972', rama: 'feature/task-972-cob', estado: 'en-curso' }), '## Objetivo\nProbar.\n');
-    await mkdir(path.join(c.repoRoot, 'src'), { recursive: true });
-    await mkdir(path.join(c.repoRoot, 'test'), { recursive: true });
-    await writeFile(path.join(c.repoRoot, 'src', 'a.mjs'), FUENTE, 'utf8');
-    await writeFile(path.join(c.repoRoot, 'test', 'a.test.mjs'), TEST_FUENTE, 'utf8');
-    commitConFecha(c.repoRoot, 'feat: codigo', '2020-01-01T00:00:00Z');
-    c.generar();
-    const informe = new Date('2021-01-01T00:00:00Z');
-    await utimes(path.join(c.repoRoot, 'coverage', 'lcov.info'), informe, informe);
-    // La base avanza: el update de review la mergea en la rama con la fecha de hoy.
-    git(['checkout', '-q', 'develop'], c.repoRoot);
-    await writeFile(path.join(c.repoRoot, 'otro.txt'), 'de develop\n', 'utf8');
-    commitAll(c.repoRoot, 'develop avanza');
-    git(['checkout', '-q', 'feature/task-972-cob'], c.repoRoot);
-    const p = await peticion(c, 'TASK-972');
-    assert.doesNotMatch(p, /anterior al ultimo commit de la rama/);
-    assert.match(p, /- `src\/a\.mjs`: 6\n/);
-  });
-});
-
-test('review (IMP-4, MEN-4): en una peticion fragmentada cada dominio ve solo la cobertura de sus ficheros', async () => {
-  await conCobertura('', async (c) => {
-    await tareaEnCurso(c, 'TASK-971', 'feature/task-971-cob');
-    await mkdir(path.join(c.repoRoot, 'java'), { recursive: true });
-    await writeFile(path.join(c.repoRoot, 'java', 'X.java'), 'class X {}\n', 'utf8');
-    commitAll(c.repoRoot, 'feat: java');
-    c.generar();
-    await runFinishlessReview(c, 'TASK-971');
-    const dir = path.join(c.tareasRoot, '03-en-revision', 'TASK-971', 'revision');
-    const java = await readFile(path.join(dir, 'peticion-revision-1-java-spring-reviewer.md'), 'utf8');
-    const generico = await readFile(path.join(dir, 'peticion-revision-1-code-quality-reviewer.md'), 'utf8');
-    assert.match(java, /## Cobertura de las lineas cambiadas/);
-    assert.doesNotMatch(java, /src\/a\.mjs/);
-    assert.match(java, /`java\/X\.java`/, 'el .java no esta instrumentado: va aparte');
-    assert.match(generico, /- `src\/a\.mjs`: 6\n/);
-    assert.doesNotMatch(generico, /X\.java/);
-  });
-});
-
 // ---------------------------------------------------------------------
 // Ronda 2 de revision
 // ---------------------------------------------------------------------
@@ -566,29 +571,3 @@ test('finish (IMP-5): con los tests excluidos de la cobertura, una tarea que sol
   });
 });
 
-test('review (MEN-5): en la ronda 2 fragmentada, una linea sin cubrir de un dominio sin peticion va a la primera', async () => {
-  await conCobertura('', async (c) => {
-    await tareaEnCurso(c, 'TASK-968', 'feature/task-968-cob');
-    c.generar();
-    await runFinishlessReview(c, 'TASK-968');
-    await runVeredictoCommand(c.tareasRoot, ['TASK-968', 'cambios-solicitados'], { repoCwd: c.repoRoot });
-    // La ronda 2 solo toca otros dominios: java y vue, sin grupo generico.
-    await mkdir(path.join(c.repoRoot, 'java'), { recursive: true });
-    await mkdir(path.join(c.repoRoot, 'web'), { recursive: true });
-    await writeFile(path.join(c.repoRoot, 'java', 'X.java'), 'class X {}\n', 'utf8');
-    await writeFile(path.join(c.repoRoot, 'web', 'C.vue'), '<template><p/></template>\n', 'utf8');
-    commitAll(c.repoRoot, 'feat: java y vue');
-    c.generar();
-    const r2 = await runReviewCommand(c.tareasRoot, ['TASK-968'], '2026-11-05', { repoCwd: c.repoRoot, scriptsDir: SCRIPTS_DIR });
-    assert.equal(r2.incremental, true);
-    const dir = path.join(c.tareasRoot, '03-en-revision', 'TASK-968', 'revision');
-    const java = await readFile(path.join(dir, 'peticion-revision-2-java-spring-reviewer.md'), 'utf8');
-    const vue = await readFile(path.join(dir, 'peticion-revision-2-angular-vue-reviewer.md'), 'utf8');
-    const conA = [java, vue].filter((p) => /- `src\/a\.mjs`: 6\n/.test(p));
-    assert.equal(conA.length, 1, 'la linea sin cubrir de la ronda 1 sale una vez, aunque su dominio no tenga peticion');
-    assert.doesNotMatch(vue, /X\.java/);
-    // MEN-8 de la ronda 3: la peticion que recibe src/a.mjs conserva tambien sus propios ficheros.
-    if (conA[0] === java) assert.match(java, /`java\/X\.java`/);
-    else assert.match(vue, /`web\/C\.vue`/);
-  });
-});
