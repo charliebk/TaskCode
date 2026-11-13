@@ -129,10 +129,14 @@ test('finish solo sigue solo si lo aprobado es exactamente lo revisado (CRIT-1 e
     await rellenarInforme(repoRoot, informe);
     assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'continuar']);
 
-    // Edicion del informe sin commitear: lo leido no esta en ningun commit → pregunta.
+    // TASK-119 (punto 5 de su plan): una edicion del informe sin commitear ya
+    // no obliga a preguntar, la absorbe el commit de finish. Antes: preguntar.
+    // Lo que sigue preguntando (plantilla sin rellenar, informe sin revisor,
+    // codigo posterior al Commit revisado) se comprueba arriba, abajo y en
+    // automatico-guarda-finish.
     const commiteado = await readFile(informe, 'utf8');
     await writeFile(informe, commiteado + '\nnota sin commitear\n', 'utf8');
-    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'preguntar']);
+    assert.deepEqual(resumen(siguiente(repoRoot)), ['finish', 'continuar']);
     await writeFile(informe, commiteado, 'utf8');
     assert.equal(git(['status', '--porcelain'], repoRoot).trim(), '');
 

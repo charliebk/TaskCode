@@ -257,7 +257,10 @@ test('automatico (TASK-059): approve sin preguntar, start implementa, review cor
   const start = lf(await readFile(path.join(SKILLS_DIR, 'start', 'SKILL.md'), 'utf8'));
   assert.match(start, /\*\*Modo automatico\*\*[\s\S]*implementa el plan[\s\S]*suite[\s\S]*en verde/);
   const review = lf(await readFile(path.join(SKILLS_DIR, 'review', 'SKILL.md'), 'utf8'));
-  assert.match(review, /commitealo \*\*solo, en un commit que no toque nada mas\*\*/);
+  // TASK-119: el informe ya no se commitea a mano (lo absorbe el siguiente
+  // review o finish), pero sigue sin poder ir mezclado con codigo.
+  assert.match(review, /y dejalo sin commitear: lo incluye el commit del siguiente `taskctl review`\s+o `taskctl finish`/);
+  assert.match(review, /Nunca lo mezcles en un commit con codigo: en modo\s+automatico, `finish` no sigue solo si un informe va mezclado con codigo/);
   // TASK-095: antes "corrige tu los CRITICO e IMPORTANTE (y los MENOR
   // baratos)"; ahora se corrige TODO lo de la ronda, en cualquier modo, y el
   // MENOR que no compense se acepta o pasa a otra tarea. En automatico lo

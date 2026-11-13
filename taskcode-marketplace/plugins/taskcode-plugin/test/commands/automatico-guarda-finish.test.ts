@@ -78,6 +78,9 @@ test('IMP-3: la guarda leida desde develop (tarea en su rama) tambien pregunta c
     cliOk(repoRoot, ['review', ID]);
     await rellenarInforme(repoRoot, path.join(dirRevision(tareasRoot), 'informe-revision-1.md'));
     cliOk(repoRoot, ['veredicto', ID, 'aprobada']);
+    // TASK-119: veredicto ya no commitea. Para cambiar de rama a mano hay que
+    // commitear lo pendiente (solo el informe, en commit propio).
+    commitAll(repoRoot, `docs(${ID}): veredicto`);
     const rama = git(['branch', '--show-current'], repoRoot).trim();
     git(['checkout', '-q', 'develop'], repoRoot);
     let s = siguiente(repoRoot);
