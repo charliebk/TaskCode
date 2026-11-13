@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 11555746
-tokens_revision: null
+tokens_revision: 174013
 creado: 2026-11-13
 actualizado: 2026-11-13
 dependencias: []
@@ -46,3 +46,8 @@ taskctl lanza los scripts de Git-Flow con spawnSync('bash') (lanzarBash en src/f
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T22:00:45Z | implementacion | sesion:e9a360a9-58ca-45f8-961e-b01de725654a | 108 | 64758 | 11454067 | 36813 | 8 | 11555746 | - | - |
+| 2026-11-13T22:22:11Z | revision | manual | - | - | - | - | - | 174013 | - | - |
+
+## Verificacion ligera
+
+- 2026-11-13T22:22:23Z: ronda 1; commit revisado 01fe307a11bab6dce91df782585b0d71464b9c35; commit verificado 157a299a7ba8ac54f5d600d7312b7cf5bf45412a; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/commands/doctor.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/fs/gitflow-runner.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/fs/sonda-bash.test.ts; corregidos: ninguno; pendientes: ninguno
