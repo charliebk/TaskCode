@@ -51,3 +51,17 @@ taskctl lanza los scripts de Git-Flow con spawnSync('bash') (lanzarBash en src/f
 ## Verificacion ligera
 
 - 2026-11-13T22:22:23Z: ronda 1; commit revisado 01fe307a11bab6dce91df782585b0d71464b9c35; commit verificado 157a299a7ba8ac54f5d600d7312b7cf5bf45412a; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/commands/doctor.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/fs/gitflow-runner.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/fs/sonda-bash.test.ts; corregidos: ninguno; pendientes: ninguno
+
+## Resultado
+
+- `src/core/resolver-bash.ts` (logica pura): en Windows, el bash de la instalacion de Git que contiene el primer `git.exe` del PATH (sube 1 o 2 niveles: `cmd\`, `bin\`, `mingw64\bin`, `ucrt64\bin`; `usr\bin\bash.exe` y luego `bin\bash.exe`); si no hay, `bash` del PATH. Fuera de Windows, sin cambios.
+- `lanzarBash` sigue siendo el unico que lanza bash; usa ese ejecutable y, con el bash de Git, antepone su `usr\bin` al PATH del hijo.
+- Divergencia con el plan: el plan solo cambiaba el ejecutable. La prueba a mano desde PowerShell mostro que el bash de Git lanzado directamente no encuentra `mktemp` ni `dirname` (PowerShell solo tiene `Git\cmd`), asi que se anadio `entornoParaBash` (conserva la clave `Path` tal cual) y el test de integracion reproduce ese PATH (rojo sin el prepend).
+- `doctor` dice que bash usa, o que no encontro el de Git y usa el del PATH; el arreglo propuesto menciona primero tener git.exe en el PATH.
+- Comprobado desde PowerShell con `System32;Git\cmd;nodejs`: `doctor` ok con el bash de Git, `diagnose` exit 0, y este mismo `finish` lanzado asi.
+- Revision ronda 1: aprobada con correcciones. MENOR-1 (error con la ruta del bash), MENOR-2 (mensaje de doctor) y MENOR-3 (sonda sin saltarse desde PowerShell) corregidos en tests sin ronda 2 (modo rapido; `verificar-menores`); MENOR-4 (shims de scoop/chocolatey y `env` del llamante) aceptado al backlog. M8 (lanzar `bash` literal) no es distinguible mientras se anteponga `usr\bin`.
+- Incidente durante la tarea: dos `verificar-impacto` simultaneos (un `review` en segundo plano y el freno Stop) dejaron `dist/src` borrado y un rojo espurio memorizado; se restauro y se propone una tarea aparte (cerrojo en `verificar-impacto`).
+
+## Verificacion omitida
+
+- 2026-11-13T22:22:45Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
