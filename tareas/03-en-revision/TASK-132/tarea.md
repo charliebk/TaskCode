@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [tests, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-132-ayudante-caso-de-los-tests-fusionados-en
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 10896783
 tokens_revision: null
 creado: 2026-11-13
 actualizado: 2026-11-13
@@ -37,3 +37,10 @@ La poda de TASK-130 dejo la misma funcion caso() copiada en diez ficheros de tes
 | 2026-11-13T19:27:38Z | plan | automatico | persona | 0.14.0 |
 | 2026-11-13T19:28:09Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T19:28:11Z | start | automatico | persona | 0.14.0 |
+| 2026-11-13T19:33:28Z | review | automatico | persona | 0.14.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-13T19:33:28Z | implementacion | sesion:bdb2d869-6133-422f-8b3d-f1c76840a4dc | 38 | 15792 | 10872951 | 8002 | 0 | 10896783 | - | - |
