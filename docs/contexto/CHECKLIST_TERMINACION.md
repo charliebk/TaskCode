@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 138 / 138 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 139 / 139 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 37 | **37** | — |
+| ✅ P — Agilidad sin perder calidad | 38 | **38** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (37/37)
+## ✅ P — Agilidad sin perder calidad (38/38)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -189,6 +189,11 @@ del código.
       anexo tests-pesados.md (Node, Rust, Java, .NET). La completa anota su número de tests (línea suite); metricas
       --por-version muestra tests y completa; doctor avisa (crecimiento-suite) por encima de umbral_crecimiento_suite.
       Tres rondas (la 3.ª extra, anotada): IMP-1..3 y MEN-1..3 corregidos. finish --sin-verificacion (953/953).*
+- [x] TASK-130 — Poda periódica de tests redundantes: fusionar o borrar sin perder cobertura — cerrada el 2026-11-13
+      *doctor (poda-tests) propone la tarea de poda con el taskctl new escrito (crecimiento de la suite o más de
+      tareas_entre_podas, 30); anexo poda-tests.md. Primera pasada en TaskCode con seis agentes: rápida 819 → 624 tests
+      (−23,8 %), completa 2331 → 1858 de primer nivel (−20,3 %), cobertura de src idéntica (21 276 líneas). Una ronda
+      aprobada con correcciones: MEN-1 corregido; MEN-2 (ayudante caso() repetido) va en TASK-132.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
