@@ -89,12 +89,22 @@ test('heldout-rama: el numero de tarea sale del nombre de la rama', () => {
 // Decision y puntos de entrada, contra repos reales
 // ---------------------------------------------------------------------
 
-async function conRepo(fn: (raiz: string) => Promise<void>): Promise<void> {
+/** TASK-114: el guardian solo protege si el proyecto declara held-out. */
+const CONFIG_CON_HELDOUT = 'comando_heldout: node aceptacion.cjs\n';
+
+async function conRepo(
+  fn: (raiz: string) => Promise<void>,
+  config: string | null = CONFIG_CON_HELDOUT
+): Promise<void> {
   const raiz = await mkdtemp(path.join(tmpdir(), 'guardia-heldout-'));
   try {
     git(['init', '-q', '-b', 'main'], raiz);
     git(['config', 'user.email', 'test@example.com'], raiz);
     git(['config', 'user.name', 'Test'], raiz);
+    if (config !== null) {
+      await mkdir(path.join(raiz, '.taskcode'), { recursive: true });
+      await writeFile(path.join(raiz, '.taskcode', 'config.yml'), config, 'utf8');
+    }
     await mkdir(path.join(raiz, HELDOUT), { recursive: true });
     await mkdir(path.join(raiz, CARPETA, 'aceptacionX'), { recursive: true });
     await mkdir(path.join(raiz, 'tareas', '02-en-curso', 'TASK-902', 'aceptacion'), { recursive: true });

@@ -42,7 +42,9 @@ Read, Edit, Write, MultiEdit, NotebookEdit, Grep y Glob sobre
 PowerShell cuyo texto nombra esa ruta (`cat`, `Get-Content`,
 `git show rama:ruta`). Normaliza mayusculas, barras invertidas, `..` y rutas
 relativas al cwd. En cualquier otra rama (la base, durante el diseno) no
-bloquea: la persona puede escribirlos con ayuda.
+bloquea: la persona puede escribirlos con ayuda. Solo actua si
+`.taskcode/config.yml` declara `comando_heldout`: sin la clave no hay held-out
+que proteger y el hook sale sin lanzar git.
 
 Es un freno contra despistes, no un cierre. **No ve**, y se acepta asi:
 
