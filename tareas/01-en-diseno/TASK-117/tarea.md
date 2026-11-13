@@ -7,7 +7,7 @@ etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-117-p-9-new-propone-la-complejidad-a-partir
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -36,3 +36,4 @@ La complejidad declarada no predice el coste (en ToolsaWeb alta gasta menos toke
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-13T03:32:33Z | plan | automatico | persona | 0.14.0 |
+| 2026-11-13T03:33:05Z | approve | automatico | persona | 0.14.0 |
