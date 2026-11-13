@@ -121,8 +121,8 @@ siempre; el MENOR que no compense se marca `aceptado` con su motivo o pasa a
 una tarea nueva. `taskctl review` avisa si se abre una ronda con hallazgos
 de la anterior sin marcar `corregido` ni `aceptado`.
 
-**Tope de rondas.** `tope_rondas` en `.taskcode/config.yml` (de 1 a 10, 2
-por defecto; se lee de la rama base). Si la ultima ronda permitida pide
+**Tope de rondas.** La clave `tope_rondas` de la config (de 1 a 10, 2 por
+defecto; se lee de la rama base). Si la ultima ronda permitida pide
 cambios, `siguiente` pregunta en cualquier modo, tambien en automatico, con
 tres salidas: cerrar con lo que hay (lo abierto, aceptado con IDs y motivo en
 el `## Resultado`), una ronda mas o volver a diseno (lo abierto, en una tarea
