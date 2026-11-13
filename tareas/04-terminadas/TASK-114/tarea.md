@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-114-p-6-hooks-pretooluse-que-salen-pronto-cu
 asignado_a: charlie.bk@gmail.com
@@ -61,6 +61,7 @@ aprobada-con-correcciones, sin CRITICOS ni IMPORTANTES.
 | 2026-11-13T01:45:00Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T02:00:34Z | review | automatico | persona | 0.14.0 |
 | 2026-11-13T02:14:52Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T02:49:18Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -71,3 +72,10 @@ aprobada-con-correcciones, sin CRITICOS ni IMPORTANTES.
 ## Verificacion omitida
 
 - 2026-11-13T02:49:10Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 64 min
+- Paso de la hora: 64 min reales frente a 45 estimados
+- Cierre (finish): 8 s, de 2026-11-13T02:49:10Z a 2026-11-13T02:49:18Z
