@@ -27,11 +27,41 @@ dependencias: [TASK-120]
 El freno Stop corre la verificacion al final de cada turno con tarea en curso (selectiva de 4,2 min en ToolsaWeb) y no queda registro de cuantas veces corre ni de su coste. Que cada ejecucion quede registrada, que metricas la sume y que no corra si el arbol no cambio desde el ultimo verde. Toca freno-stop.ts como TASK-110: va despues de ella. Urgente para la version 0.16.0 (decision de Carlos, 2026-11-12): lo mas rapido posible, sin trocear salvo que haga falta; el cierre no exige la suite completa, basta con los tests afectados y npm run test:rapido. Origen: docs/auditoria/PASOS-PLUGIN-2026-11-12.md (P-3)
 
 ## Criterios de aceptacion
-- [ ] Cada ejecucion del freno Stop anade una linea con instante, modo, duracion y resultado a un registro bajo .git/taskcode/ (test con repo temporal)
-- [ ] taskctl metricas muestra por tarea cuantas veces corrio el freno y su tiempo total, con — sin dato (test)
-- [ ] Si la huella del arbol no cambio desde el ultimo verde, el freno no ejecuta la verificacion y no anade salida (test)
-- [ ] La linea del freno usa el formato comun de registro de TASK-120 con puerta freno, y el resultado distingue verde, rojo, omitido (sin cambios desde el ultimo verde) y excedido, este ultimo reservado para el presupuesto de TASK-125 (test)
-- [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+- [x] Cada ejecucion del freno Stop anade una linea con instante, modo, duracion y resultado a un registro bajo .git/taskcode/ (test con repo temporal)
+- [x] taskctl metricas muestra por tarea cuantas veces corrio el freno y su tiempo total, con — sin dato (test)
+- [x] Si la huella del arbol no cambio desde el ultimo verde, el freno no ejecuta la verificacion y no anade salida (test)
+- [x] La linea del freno usa el formato comun de registro de TASK-120 con puerta freno, y el resultado distingue verde, rojo, omitido (sin cambios desde el ultimo verde) y excedido, este ultimo reservado para el presupuesto de TASK-125 (test)
+- [x] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Resultado
+
+**Implementado.** El freno Stop anota cada ejecucion en el registro de puertas
+(`.git/taskcode/puertas.log`, puerta `freno`, modo = tipo de verificacion,
+resultado `verde`/`rojo`/`omitido`; `excedido` declarado para TASK-125). Memo
+propio del freno (`taskcode/freno-ultimo-verde.json`): con la huella de su
+ultimo verde no ejecuta, no escribe progreso ni salida y anota `omitido`;
+vale tambien con cambios sin commitear, donde el memo compartido de la
+selectiva no se guarda (TASK-105). `taskctl metricas` anade las columnas
+`freno_n` (ejecuciones reales, sin omitidos) y `freno` (tiempo total), con `—`
+sin dato. Documentado en docs/registro-puertas.md y CHANGELOG.
+
+**Evidencia.** `verificar-impacto`: 868/868. Tests afectados tras las
+correcciones: 21/21; los mutantes que el revisor vio sobrevivir (M4, M5, M6 e
+IMP-1) mueren.
+
+**Revision por pares.** Ronda 1 (code-quality-reviewer, sonnet): aprobada con
+correcciones, cambiada a cambios-solicitados por dos IMPORTANTES.
+- IMP-1 (corregido): un rojo servido del memo compartido contaba como
+  ejecucion; ahora se anota `omitido` (sigue bloqueando).
+- IMP-2 (corregido): faltaba test del cableado de `metricas` con el registro
+  real; anadido por el CLI en sincronizacion-fases.test.ts.
+- MEN-1 (corregido): tests para no guardar el ultimo verde si la verificacion
+  cambia el arbol y para el verde de memo como `omitido`.
+
+Ronda 2 (code-quality-reviewer, haiku, acotada a las correcciones): aprobada,
+sin hallazgos nuevos; los cuatro mutantes de las correcciones ponen tests en
+rojo. Nota no bloqueante: un `omitido` servido del memo registra el tiempo
+medido de la consulta (en la practica 0.0 s), no un 0 forzado.
 
 ## Transiciones
 
@@ -48,3 +78,7 @@ El freno Stop corre la verificacion al final de cada turno con tarea en curso (s
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T11:45:04Z | implementacion | sesion:bdb2d869-6133-422f-8b3d-f1c76840a4dc | 70 | 55599 | 6658926 | 23914 | 16 | 6738509 | - | - |
+
+## Verificacion omitida
+
+- 2026-11-13T12:36:04Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`

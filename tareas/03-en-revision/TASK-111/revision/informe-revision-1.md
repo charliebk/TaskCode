@@ -8,9 +8,9 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/freno-stop.ts:282 | plan |
-| IMP-2 | IMPORTANTE | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/commands/metricas.ts:504-511 | implementacion |
-| MEN-1 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/test/hooks/freno-registro.test.ts | implementacion |
+| IMP-1 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/hooks/freno-stop.ts:282 | plan |
+| IMP-2 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/commands/metricas.ts:504-511 | implementacion |
+| MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/test/hooks/freno-registro.test.ts | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
