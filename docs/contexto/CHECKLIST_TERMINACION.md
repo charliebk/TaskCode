@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 140 / 140 items terminados (100%)** · última actualización: 2026-11-13
+**Progreso global: 141 / 141 items terminados (100%)** · última actualización: 2026-11-13
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 39 | **39** | — |
+| ✅ P — Agilidad sin perder calidad | 40 | **40** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (39/39)
+## ✅ P — Agilidad sin perder calidad (40/40)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -197,6 +197,9 @@ del código.
 - [x] TASK-132 — Ayudante caso() de los tests fusionados en un único helper compartido — cerrada el 2026-11-13
       *MEN-2 de TASK-130: caso() pasa a test/helpers/caso.ts y los diez ficheros la importan, sin cambiar aserciones
       (106/106). Una ronda aprobada. finish --sin-verificacion.*
+- [x] TASK-133 — Rojos de la suite completa de la 0.16.0 — cerrada el 2026-11-13
+      *revision-lecturas sin commit propio de registrar-coste (TASK-119) y SKILL enlaza poda-tests.md, conservando los
+      nombres de selectiva y freno. Una ronda aprobada (2 MENORES aceptados). finish --sin-verificacion; suite y 0.16.1 tras TASK-134.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
