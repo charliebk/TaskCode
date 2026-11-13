@@ -1,6 +1,19 @@
 # Changelog
 
 ## Sin publicar
+
+## 0.16.0 — 2026-11-13
+
+Agilidad sin perder calidad (cola de la 0.16.0; la 0.15.0 no se publico). Freno
+de fin de turno con registro, comando y presupuesto propios (TASK-111, 125);
+registro de puertas y metricas por puerta (TASK-120, 128); verificacion
+completa por lote (TASK-115) y tests pesados solo en release (TASK-126);
+presupuesto de tests, aviso de crecimiento de la suite y poda (TASK-129, 130,
+132); revision mas ligera y que converge (TASK-099, 112, 113, 119, 127);
+verificacion por impacto y proporcional (TASK-096, 100 a 109, 122, 123);
+progreso visible (TASK-110), troceo (TASK-121), contexto con tope (TASK-124) y
+duracion registrada (TASK-118, 120). Detalle de cada cambio, abajo.
+
 - TASK-132 (fix) — Ayudante caso() de los tests fusionados en un unico helper compartido (2026-11-13)
 - TASK-130 (feature) — Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura (2026-11-13)
 - Cambio de comportamiento (TASK-130): `doctor` propone abrir una tarea de poda de tests (`poda-tests`, con el comando `taskctl new` escrito) cuando la suite crece mas del umbral o tras `tareas_entre_podas` (30 por defecto) tareas terminadas desde la ultima poda; anexo `poda-tests.md` con el procedimiento. Primera pasada sobre la suite de TaskCode: tests redundantes fusionados sin bajar la cobertura.
@@ -45,7 +58,7 @@
 
 - TASK-100 (feature) — Verificacion proporcional A1: finish no corre la suite si la tarea solo cambia documentacion (2026-11-10)
 
-## Siguiente version — sin publicar
+### Detalle de los cambios de la 0.16.0
 
 Correccion de MENORES sin otra ronda (TASK-099, P-2 de la auditoria: 71 rondas
 abiertas solo por MENORES encontraron 2 CRITICO/IMPORTANTE en 70,2 M tokens).
