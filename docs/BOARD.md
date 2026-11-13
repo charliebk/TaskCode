@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-13. No editar a mano.
 
-## Planificadas (00-planificadas) — 22
+## Planificadas (00-planificadas) — 21
 
 ```text
 ID        Titulo                                                                                                          Asignado
@@ -25,13 +25,12 @@ TASK-111  P-3: registrar cada ejecucion del freno Stop y no correrlo si el turno
 TASK-115  P-7: verificacion completa por lote de cierres en modo automatico                                               (sin asignar)
 TASK-125  Freno Stop con presupuesto de tiempo y clave propia: si se pasa, anota y no bloquea                             (sin asignar)
 TASK-126  Verificacion por tipo de rama: los tests pesados solo en la puerta de release                                   (sin asignar)
-TASK-127  Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar                     (sin asignar)
 TASK-128  Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores  (sin asignar)
 TASK-129  Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento    (sin asignar)
 TASK-130  Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura                                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 106
+## Terminadas (04-terminadas) — 107
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -142,4 +141,5 @@ TASK-121  Troceo de tareas de mas de 60 min como pregunta: subtareas TASK-NNNa, 
 TASK-122  Coste por tarea independiente del tamano del proyecto                                                               charlie.bk@gmail.com
 TASK-123  F-16: finish no cierra sin verificar tras un merge a mano o un conflicto                                            charlie.bk@gmail.com
 TASK-124  Contexto con tamano maximo: lo que leen los agentes no crece con el proyecto                                        charlie.bk@gmail.com
+TASK-127  Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar                         charlie.bk@gmail.com
 ```

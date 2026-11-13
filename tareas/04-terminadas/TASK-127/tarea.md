@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad, revision, verificacion, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-127-tope-de-rondas-de-revision-configurable
 asignado_a: charlie.bk@gmail.com
@@ -81,6 +81,7 @@ suite completa de la 0.16.
 | 2026-11-13T10:13:01Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T10:13:04Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T10:39:38Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T10:59:23Z | finish | automatico | persona | 0.14.0 |
 
 ## Coste
 
@@ -95,3 +96,9 @@ suite completa de la 0.16.
 ## Verificacion omitida
 
 - 2026-11-13T10:58:55Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 70 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 46 min
+- Cierre (finish): 28 s, de 2026-11-13T10:58:55Z a 2026-11-13T10:59:23Z
