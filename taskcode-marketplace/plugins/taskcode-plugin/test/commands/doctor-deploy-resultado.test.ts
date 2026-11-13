@@ -12,16 +12,7 @@ import { DoctorDeployCommandError } from '../../src/commands/doctor-deploy.js';
 import type { InformeDeploy } from '../../src/core/doctor-deploy.js';
 import { MAX_MOTIVO } from '../../src/core/doctor-deploy-veredictos.js';
 import { NODE, STRIPE, commit, conRepo, ejecutar, escribir, git, punto, type OpcionesTest } from '../helpers/deploy-fixtures.js';
-
-/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
-async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 const PUNTO = 'auth-en-servidor'; // juicio, critica, aplica a node
 

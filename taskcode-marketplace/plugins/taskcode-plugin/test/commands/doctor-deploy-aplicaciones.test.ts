@@ -11,16 +11,7 @@ import { motivoNoAplicaPorAplicacion } from '../../src/commands/doctor-deploy.js
 import type { PuntoCatalogo } from '../../src/core/doctor-deploy-catalogo.js';
 import type { AplicacionDetectada, InformeDeploy } from '../../src/core/doctor-deploy.js';
 import { analisis, commit, conRepo, ejecutar, escribir, NODE, punto } from '../helpers/deploy-fixtures.js';
-
-/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
-async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 /** Los puntos que nombra el criterio 2. */
 const SEIS = ['https-obligatorio', 'cookies-seguras', 'security-headers', 'rate-limits', 'backups-y-migraciones', 'health-check'];

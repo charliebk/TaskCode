@@ -25,16 +25,7 @@ import {
   punto,
   type OpcionesTest,
 } from '../helpers/deploy-fixtures.js';
-
-/** Ejecuta un caso de un test fusionado; si falla, el mensaje dice cual. */
-async function caso(nombre: string, fn: () => Promise<void>): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    if (e instanceof Error) e.message = `[${nombre}] ${e.message}`;
-    throw e;
-  }
-}
+import { caso } from '../helpers/caso.js';
 
 const informe = (raiz: string, opciones: OpcionesTest): InformeDeploy => JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
 
