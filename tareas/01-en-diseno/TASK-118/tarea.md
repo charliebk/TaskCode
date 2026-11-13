@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [arreglo, urgente, v0.16]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-118-p-10-linea-fin-con-la-duracion-en-todos
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: []
 ---
 ## Objetivo
@@ -29,3 +29,9 @@ Los logs de Git-Flow no cierran siempre con una linea reconocible (los de create
 ## Criterios de aceptacion
 - [ ] Todos los scripts de scripts/gitflow terminan su registro con una linea FIN con la operacion, el resultado y la duracion en segundos, tambien cuando abortan (test por script)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T02:49:42Z | plan | automatico | persona | 0.14.0 |
