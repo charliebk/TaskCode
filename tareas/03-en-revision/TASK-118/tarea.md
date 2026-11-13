@@ -59,3 +59,7 @@ aprobada, sin CRITICOS ni IMPORTANTES.
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-13T02:59:11Z | implementacion | sesion:1fb23e40-df0f-4598-9be1-751ce6506e3c | 18 | 12554 | 3030451 | 6731 | 0 | 3049754 | - | - |
+
+## Verificacion omitida
+
+- 2026-11-13T03:32:15Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
