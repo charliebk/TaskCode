@@ -38,13 +38,15 @@ const BYTES_COLA_LEIDOS = 16 * 1024;
 // TASK-100: la de documentacion, con su propio memo: su verde nunca abre la puerta de la completa.
 // TASK-125: la del comando rapido del freno Stop, con su propio memo: su verde
 // no abre ninguna puerta (guardian, finish) ni pisa los demas memos.
-export type TipoVerificacion = 'completa' | 'selectiva' | 'documentacion' | 'freno';
+// TASK-126: la de los tests pesados de release, con su propio memo (no vale por la completa ni al reves).
+export type TipoVerificacion = 'completa' | 'selectiva' | 'documentacion' | 'freno' | 'pesada';
 
 const FICHEROS_MEMO: Readonly<Record<TipoVerificacion, string>> = Object.freeze({
   completa: 'freno-verificacion.json',
   selectiva: 'freno-verificacion-selectiva.json',
   documentacion: 'freno-verificacion-documentacion.json',
   freno: 'freno-verificacion-rapida.json',
+  pesada: 'freno-verificacion-pesada.json',
 });
 const VERSION_MEMO = 1;
 

@@ -95,7 +95,7 @@ import {
   recuperarApartado,
   type Apartado,
 } from '../fs/pendientes.js';
-import { extraerSinVerificacion, puertaReintento, puertaVerificacion, type ResultadoReintento } from './finish-verificacion.js';
+import { extraerSinVerificacion, puertaPesada, puertaReintento, puertaVerificacion, type ResultadoReintento } from './finish-verificacion.js';
 import { puertaHeldout } from './finish-heldout.js';
 import { puertaCobertura } from './finish-cobertura.js';
 import { runBoardCommand, boardFilePath } from './board.js';
@@ -566,6 +566,18 @@ async function runFinish(
       // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
       entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
     });
+    // TASK-126: los tests pesados, solo tras la completa en verde y solo en los
+    // tipos de verificacion_pesada_en (release por defecto).
+    if (r.resultado.tipo === 'verde') {
+      puertaPesada({
+        id,
+        tipo,
+        cwd: deps.repoCwd,
+        env: entornoConContador(process.env, progreso.contador()),
+        ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+        ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+      });
+    }
     // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
     // de que el comando de held-out pueda reescribirlo.
     progreso.paso('cobertura');
@@ -667,6 +679,19 @@ async function runFinish(
         ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
         entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
       });
+      // TASK-126 (IMP-1 de la revision): tambien en el camino idempotente, tras la
+      // completa en verde, los pesados de los tipos de verificacion_pesada_en.
+      if (reintento.tipo === 'verde' && reintento.que === 'completa') {
+        puertaPesada({
+          id,
+          tipo,
+          yaIntegradaEn: mainBranch !== null && tipo !== 'feature' && tipo !== 'fix' ? [mainBranch, ramaIntegracion] : [ramaIntegracion],
+          cwd: deps.repoCwd,
+          env: entornoConContador(process.env, progreso.contador()),
+          ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+          ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+        });
+      }
     } catch (e: unknown) {
       if (origen !== '' && origen !== ramaIntegracion && isWorkspaceClean(deps.repoCwd)) {
         checkoutBranch(origen, deps.repoCwd);

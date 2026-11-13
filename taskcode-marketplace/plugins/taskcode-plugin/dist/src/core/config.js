@@ -32,6 +32,8 @@
  * | comando_verificacion_freno   | null (el freno usa la de siempre) | hooks/freno-stop.ts, commands/doctor.ts (TASK-125) |
  * | presupuesto_freno_s          | null (180 con comando_verificacion_freno) | hooks/freno-stop.ts (TASK-125) |
  * | verificacion_por_lote        | false             | commands/finish-verificacion.ts (de la base), verificar-lote.ts (TASK-115) |
+ * | comando_verificacion_pesada  | null (sin pesados) | finish-verificacion.ts, hooks/guardia-merge.ts, doctor.ts (TASK-126) |
+ * | verificacion_pesada_en       | [release]         | finish-verificacion.ts, hooks/guardia-merge.ts (TASK-126) |
  * | rutas_verificacion_parcial   | [] (sin nivel 2)  | core/verificacion-proporcional.ts (TASK-096); la decision la aplican fs/decision-documentacion.ts, finish-verificacion.ts, freno-stop.ts, review.ts y guardia-merge.ts (TASK-105..108); doctor.ts avisa (TASK-109) |
  *
  * `rutas_documentacion` y `comando_verificacion_documentacion` las anadio
@@ -132,6 +134,8 @@ export class ConfigError extends Error {
         this.name = 'ConfigError';
     }
 }
+/** TASK-126: los tipos de rama de Git-Flow que pueden exigir la verificacion pesada. */
+export const TIPOS_RAMA_PESADA = ['release', 'hotfix'];
 /**
  * TASK-125: `timeout` del hook Stop en hooks/hooks.json, en segundos. El
  * presupuesto del freno no puede pasarlo (el hook se cancelaria antes).
@@ -193,6 +197,8 @@ export const CONFIG_DEFAULTS = Object.freeze({
     comando_verificacion_freno: null,
     presupuesto_freno_s: null,
     verificacion_por_lote: false,
+    comando_verificacion_pesada: null,
+    verificacion_pesada_en: Object.freeze(['release']),
 });
 /** Las unicas claves admitidas. Cualquier otra avisa y se ignora (regla 2). */
 export const CLAVES_CONFIG = [
@@ -224,6 +230,8 @@ export const CLAVES_CONFIG = [
     'comando_verificacion_freno',
     'presupuesto_freno_s',
     'verificacion_por_lote',
+    'comando_verificacion_pesada',
+    'verificacion_pesada_en',
 ];
 /**
  * Carpetas raiz donde una ruta de sincronizacion no puede vivir: las
@@ -499,6 +507,12 @@ export function parsearConfigConAvisos(contenido, ruta) {
             case 'presupuesto_freno_s':
                 config.presupuesto_freno_s = validarPresupuestoFreno(donde, par.valor);
                 break;
+            case 'comando_verificacion_pesada':
+                config.comando_verificacion_pesada = validarComando(donde, par.clave, par.valor, 'comando_verificacion_pesada: "cargo test -- --ignored"');
+                break;
+            case 'verificacion_pesada_en':
+                config.verificacion_pesada_en = validarVerificacionPesadaEn(donde, par.valor);
+                break;
             case 'verificacion_por_lote':
                 if (typeof par.valor !== 'boolean') {
                     throw new ConfigError(`[ERROR] ${donde}: "verificacion_por_lote" debe ser true o false, y es ${describirValor(par.valor)}.\n` +
@@ -619,6 +633,17 @@ function validarVerificacionCompleta(ruta, vistas) {
 ` +
             '        La selectiva solo acelera las rondas; antes de integrar se exige la completa. Declara la ' +
             'completa (por ejemplo comando_verificacion: "npm test"), o borra la selectiva.');
+    }
+    // TASK-126: los pesados van ademas de la completa, nunca en su lugar.
+    if (vistas.has('comando_verificacion_pesada') && !vistas.has('comando_verificacion')) {
+        throw new ConfigError(`[ERROR] ${ruta}: "comando_verificacion_pesada" necesita tambien "comando_verificacion".\n` +
+            '        Los pesados se corren ademas de la completa en las ramas release (y hotfix si se declara). ' +
+            'Declara la completa (por ejemplo comando_verificacion: "cargo test"), o borra la de los pesados.');
+    }
+    if (vistas.has('verificacion_pesada_en') && !vistas.has('comando_verificacion_pesada')) {
+        throw new ConfigError(`[ERROR] ${ruta}: "verificacion_pesada_en" sin "comando_verificacion_pesada" no hace nada.\n` +
+            '        Borrala, o declara el comando de los tests pesados (por ejemplo ' +
+            'comando_verificacion_pesada: "cargo test -- --ignored").');
     }
     // TASK-115: sin completa no hay nada que dejar pendiente de lote.
     if (vistas.has('verificacion_por_lote') && !vistas.has('comando_verificacion')) {
@@ -815,6 +840,25 @@ export const FASES_SINCRONIZACION = [
     'codex-review',
     'doctor-deploy',
 ];
+/** TASK-126: lista no vacia de tipos de rama (`release`, `hotfix`); otro valor aborta. */
+function validarVerificacionPesadaEn(donde, valor) {
+    if (!Array.isArray(valor) || valor.length === 0) {
+        throw new ConfigError(`[ERROR] ${donde}: "verificacion_pesada_en" debe ser una lista no vacia entre corchetes, ` +
+            `y es ${describirValor(valor)}.\n` +
+            '        Ejemplo: verificacion_pesada_en: [release, hotfix]. Sin la clave, solo release.');
+    }
+    const tipos = [];
+    for (const elemento of valor) {
+        const tipo = typeof elemento === 'string' ? elemento.trim() : '';
+        if (!TIPOS_RAMA_PESADA.includes(tipo)) {
+            throw new ConfigError(`[ERROR] ${donde}: "verificacion_pesada_en" contiene "${String(elemento)}", que no es un tipo de rama ` +
+                `que pueda exigir los pesados. Validos: ${TIPOS_RAMA_PESADA.join(', ')} (feature y fix nunca los corren).`);
+        }
+        if (!tipos.includes(tipo))
+            tipos.push(tipo);
+    }
+    return tipos;
+}
 function validarFasesSincronizacion(donde, valor) {
     if (!Array.isArray(valor) || valor.length === 0) {
         throw new ConfigError(`[ERROR] ${donde}: "fases_sincronizacion" debe ser una lista no vacia entre corchetes, ` +
