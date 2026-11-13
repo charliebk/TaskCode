@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [agilidad, verificacion, tests, v0.16]
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-129-freno-al-crecimiento-de-la-suite-presupu
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-12
-actualizado: 2026-11-12
+actualizado: 2026-11-13
 dependencias: [TASK-126, TASK-128]
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ Medido en ToolsaWeb (taskctl metricas, 2026-11-12): la verificacion completa tar
 - [ ] taskctl metricas muestra, por version, el numero de tests y la duracion de la completa a partir del registro de verificaciones de TASK-128, y doctor avisa si cualquiera crecio mas de un umbral configurable (20 % por defecto) desde la version anterior (test con repo temporal)
 - [ ] Sin datos de duracion o de numero de tests, doctor y metricas no avisan ni fallan (test)
 - [ ] Los tests afectados y npm run test:rapido pasan sin debilitar ningun test
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-13T16:11:15Z | plan | automatico | persona | 0.14.0 |

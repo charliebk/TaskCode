@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-129, TASK-019
+- **En marcha:** TASK-129 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-019
 
 ## H0 — H0
 
@@ -96,7 +96,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-126 | Verificacion por tipo de rama: los tests pesados solo en la puerta de release | media | TASK-115 | ✅ terminada |
 | — | TASK-127 | Tope de rondas de revision configurable, 2 por defecto, y decision de una persona al llegar | simple | TASK-112 | ✅ terminada |
 | — | TASK-128 | Metricas de verificacion por puerta: tiempo y ejecuciones de freno, review y finish, y rondas solo por menores | media | TASK-111, TASK-125 | ✅ terminada |
-| 8 | TASK-129 | Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento | media | TASK-126, TASK-128 | lista para empezar |
+| 8 | TASK-129 | Freno al crecimiento de la suite: presupuesto de tests por criterio, pesados marcados y aviso de crecimiento | media | TASK-126, TASK-128 | ▶ en diseño |
 | 9 | TASK-130 | Poda periodica de tests redundantes: fusionar o borrar sin perder cobertura | simple | TASK-129 | espera a TASK-129 |
 | — | TASK-131 | Tres tests con expectativas anteriores a TASK-119 | simple | — | ✅ terminada |
 
