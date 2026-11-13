@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-112, TASK-115, TASK-119, TASK-111, TASK-019
+- **En marcha:** TASK-112 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-115, TASK-119, TASK-111, TASK-019
 
 ## H0 — H0
 
@@ -78,7 +78,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-108 | Verificacion proporcional B5: el guardian de merges ante el nivel 2 | media | TASK-106 | ✅ terminada |
 | — | TASK-109 | Verificacion proporcional B6: documentacion y limpieza del nivel 2 | simple | TASK-107, TASK-108 | ✅ terminada |
 | — | TASK-110 | Progreso visible sin tokens: estado de cada fase en el terminal | alta | — | ✅ terminada |
-| 8 | TASK-112 | P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes | media | — | lista para empezar |
+| 8 | TASK-112 | P-4: el revisor reutiliza la verificacion de ronda y las rondas 2+ solo relanzan al revisor con pendientes | media | — | ▶ en diseño |
 | — | TASK-113 | P-5: peticion de revision mas ligera con los tests como --stat y ruta | simple | — | ✅ terminada |
 | — | TASK-114 | P-6: hooks PreToolUse que salen pronto cuando no tienen nada que hacer | simple | — | ✅ terminada |
 | 9 | TASK-115 | P-7: verificacion completa por lote de cierres en modo automatico | alta | — | lista para empezar |
