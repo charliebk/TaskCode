@@ -41,6 +41,7 @@ En ToolsaWeb cada finish corre la verificacion completa (28 min de mediana) aunq
 | 2026-11-13T13:54:27Z | approve | automatico | persona | 0.14.0 |
 | 2026-11-13T13:54:29Z | start | automatico | persona | 0.14.0 |
 | 2026-11-13T14:02:29Z | review | automatico | persona | 0.14.0 |
+| 2026-11-13T14:32:21Z | review | automatico | persona | 0.14.0 |
 
 ## Coste
 
