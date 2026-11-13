@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 122 / 122 items terminados (100%)** · última actualización: 2026-11-12
+**Progreso global: 123 / 123 items terminados (100%)** · última actualización: 2026-11-12
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 21 | **21** | — |
+| ✅ P — Agilidad sin perder calidad | 22 | **22** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ⏳ P — Agilidad sin perder calidad (20/21)
+## ✅ P — Agilidad sin perder calidad (22/22)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -161,6 +161,11 @@ del código.
       MENORES, 2 CRIT/IMP, 70,2 M tokens. 1 ronda: 2 IMP y 2 MEN corregidos, 1 MEN aceptado, 7 mutantes
       muertos; la suite completa cazo 2 rojos propios (derivados de comando_sincronizacion), corregidos;
       cerrada sin ronda 2, con --aceptar-sin-revisar y --sin-verificacion por decision de Carlos.*
+- [x] TASK-116 — P-8: TaskCode declara su verificación y doctor avisa cuando falta — cerrada el 2026-11-12
+      *TaskCode ya declaraba comando_verificacion desde TASK-122 (doctor da ok). El aviso de doctor sin la clave
+      y con tests detectables dice ahora cuantas tareas terminadas se cerraron sin verificar (todas las de
+      04-terminadas: finish no deja rastro). Modo rapido: plan sin brainstorm, 1 ronda aprobada sin hallazgos,
+      4 mutantes muertos; finish con la puerta en verde.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
