@@ -39,6 +39,27 @@ aprobación humana en los puntos de más impacto. TaskCode ya tiene casi todas.
 **Lo que ninguno resuelve, y es nuestra oportunidad, es hacerlas cumplir de
 verdad en un equipo.**
 
+## 2 bis. Requisitos funcionales y uso real
+
+Los requisitos de lo que la 0.16 hace hoy, cada uno con su uso medido en
+ToolsaWeb, OpenDockTrading y TaskCode, están en
+[REQUISITOS-FUNCIONALES.md](REQUISITOS-FUNCIONALES.md). Toda tarea de este plan
+cita los RF que cumple, y la 2.0 no sale sin cubrir todos los **I**. Lo que el
+uso real cambia de este plan:
+
+- **0 PR y 0 issues** en los tres repos: el paso a PR e issues es un cambio de
+  forma de trabajar y se hace por piloto.
+- **GitHub no deja aprobar el PR propio**: el agente necesita identidad propia
+  para que Carlos pueda aprobar (RN-01). Tareas F1-11 y F6-0.
+- **Modo automático en el 88–97 % de las transiciones**: el encadenado es
+  núcleo (RF-21). Tarea F3-11.
+- **Planificación a gran escala** (234 tareas planificadas, dependencias,
+  hitos, altas de 37 tareas de golpe): RF-02..04. Tareas F2-6 y F3-7..10.
+- **Repos privados con suites pesadas**: runner propio (RN-02). Tarea F1-12.
+- **Backlog que migrar** con su mapa de IDs (RN-03). Tarea F8-0.
+- **Sin uso**: `codex-review`, `verificar-lote`, `cadena` se retiran;
+  `doctor-deploy`, held-out, troceo y documentos con tope pasan a extensiones.
+
 ## 3. Principios de diseño (y el error de la auditoría que evita cada uno)
 
 | # | Principio | Evita |
@@ -86,7 +107,9 @@ verdad en un equipo.**
    es la aprobación humana, verificable y con nombre.
 3. `tc start 123` → rama `123-exportar-landxml` en un worktree, issue en
    «En curso».
-4. El agente implementa; `tc pr` abre el PR enlazado al issue.
+4. El agente implementa; `tc pr` abre el PR enlazado al issue **con la
+   identidad del agente** (no la de la persona), para que la persona pueda
+   aprobarlo. En modo automático, el orquestador encadena estos pasos solo.
 5. **CI**: verificación por impacto en cada push, cacheada por SHA, y un
    check `spec-al-dia`. El **revisor IA** (GitHub App) lee el diff y los
    resultados de la CI, publica su review y, si hay un bloqueante, deja su
@@ -136,6 +159,10 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | F1-8 | Modelo de seguridad: qué corre en local, qué en CI, confianza, secretos | Amenazas (PR malicioso, prompt injection en issues), mitigaciones | F1-4, F1-7 |
 | F1-9 | Plataformas: interfaz de adaptador (GitHub primero, GitLab después) | Operaciones mínimas, cómo se prueba cada adaptador | F1-1 |
 | F1-10 | Migración desde la 0.16 (tareas, historial, métricas) | Qué se migra, qué se archiva, convivencia temporal | F1-1 |
+| F1-11 | Identidad del agente implementador (GitHub App o cuenta de máquina) distinta de la persona (RN-01, RN-06) | Commits firmados por el bot, PR abiertos por él, la persona aprueba; qué pasa en un repo de una sola persona | F1-3, F1-4 |
+| F1-12 | Runners y coste de CI: GitHub y self-hosted (Windows), por perfil (RN-02) | Coste estimado con las suites reales, seguridad del runner propio con PR externos | F1-7, F1-8 |
+| F1-13 | Modelo de planificación: hitos (milestones), dependencias («blocked by»), sub-issues y vista de roadmap (RF-02..04, RF-07) | Cómo se representa `hitos.md`, qué se genera bajo demanda y qué no se commitea | F1-1 |
+| F1-14 | Puntos de extensión (RN-04): estados, derivados, verificación y revisoras propias | Contrato de cada punto; cómo cubre lo que hoy hacen ToolsaWeb y OpenDockTrading a mano | F1-1, F1-7 |
 
 ### Fase 2 — Núcleo y adaptador de GitHub
 
@@ -146,6 +173,7 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | F2-3 | Adaptador GitHub sobre `gh` o la API REST/GraphQL, con reintentos y errores dirigidos a la persona | Tests E2E contra un repo de pruebas real en una organización sandbox | F2-2 |
 | F2-4 | Configuración mínima (`.taskcode.yml`) con esquema validado y valores por defecto; claves desconocidas = error claro | ≤ 10 claves; esquema JSON publicado; tests | F1-6, F1-7 |
 | F2-5 | i18n de mensajes (en, es) desde el inicio | Todos los mensajes por clave; test que falla si falta una traducción | F2-1 |
+| F2-6 | Planificación en el adaptador: milestones, dependencias entre issues y sub-issues (RF-02..04) | Leer y escribir un grafo de 300 tareas sin pasar los límites de la API; tests E2E | F1-13, F2-3 |
 
 ### Fase 3 — Comandos del flujo (superficie mínima)
 
@@ -157,6 +185,11 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | F3-4 | `tc pr`: PR enlazado, descripción desde la spec y los criterios | El PR cierra el issue al mergear | F3-3 |
 | F3-5 | `tc status`: estado del equipo desde GitHub (en curso, bloqueado, esperando revisión) | Coincide con el tablero; sin ficheros locales | F2-3 |
 | F3-6 | `tc doctor`: entorno, permisos, rulesets y checks configurados de verdad | Detecta una protección de rama ausente o mal configurada | F3-1 |
+| F3-7 | `tc import` desde un documento de planificación: tareas, criterios, dependencias e hito en una operación (RF-02) | Importa un hito de 37 tareas de ToolsaWeb; repetirlo no duplica | F2-6 |
+| F3-8 | `tc next`: lo listo para empezar según dependencias, hito y prioridad (RF-03) | Coincide con el orden del ROADMAP actual de ToolsaWeb | F2-6 |
+| F3-9 | `tc roadmap`: grafo Mermaid y resumen por hito, generado bajo demanda o publicado por CI, nunca commiteado en cada fase (RF-04) | Reproduce `hitos.md` de ToolsaWeb sin conflictos entre ramas | F2-6 |
+| F3-10 | Descartar con motivo (cerrar como «not planned») y pausar (RF-07, RF-08) | El ID no se reutiliza; aparece en métricas como descartada | F3-2 |
+| F3-11 | Orquestador del modo automático: encadena spec → implementación → PR → correcciones de revisión, y se detiene solo en las puertas de la política del carril (RF-21, RF-22) | Una tarea del carril fix va de issue a PR listo para aprobar sin intervención | F3-3, F3-4 |
 
 ### Fase 4 — Especificación y aprobación humana verificable
 
@@ -166,6 +199,8 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | F4-2 | PR de especificación y su aprobación: la aprobación de una persona en GitHub desbloquea `tc start` | `tc start` se niega sin spec aprobada en ese carril; test E2E | F4-1, F3-3 |
 | F4-3 | Check `spec-al-dia`: si el PR de código cambia comportamiento cubierto por una spec, la spec debe tocarse o justificarse | Check rojo con la causa; falsos positivos medidos | F1-5, F5-1 |
 | F4-4 | Importar especificaciones de Spec Kit | Un proyecto con Spec Kit se lee sin reescribir | F4-1 |
+| F4-5 | Brainstorm de roles (arquitectura, riesgos, testing, dominio, rendimiento) y unificador dentro de la skill `spec`, proporcional al carril (RF-10) | Mismos roles que la 0.16; un rol en el carril fix, todos en riesgo alto | F4-1 |
+| F4-6 | Aprobación de especificaciones en lote: una persona aprueba varias specs de un hito en un PR (RF-11, modo automático) | Un hito de 10 tareas se aprueba de una vez, con nombre y fecha | F4-2 |
 
 ### Fase 5 — Verificación en CI sin redundancia
 
@@ -181,11 +216,12 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 
 | ID | Tarea | Criterio de aceptación | Dep. |
 |---|---|---|---|
+| F6-0 | Identidad del agente implementador: la App o cuenta de máquina firma los commits y abre los PR (RN-01) | En un repo de una persona, Carlos aprueba un PR abierto por el agente | F1-11 |
 | F6-1 | GitHub App del revisor con permisos mínimos (leer código, escribir reviews y checks; nunca aprobar ni mergear) | No puede aprobar su propio PR ni el de nadie; probado | F1-4 |
 | F6-2 | Workflow del revisor: Claude Code en CI con las skills de dominio de la 0.16, leyendo el diff y el informe de verificación | Review publicada con hallazgos por severidad | F6-1, F5-4 |
 | F6-3 | Hallazgos estructurados (JSON + comentarios en línea); un CRÍTICO o IMPORTANTE abierto deja el check `revision-ia` en rojo | El check refleja los hallazgos; se reabre al corregir | F6-2 |
 | F6-4 | Rondas: la segunda revisión mira solo lo cambiado desde la anterior y si los hallazgos se cerraron, sin buscar de cero | Convergencia medida: hallazgos nuevos por ronda | F6-3 |
-| F6-5 | Selección del revisor por dominio y presupuesto (modelo y número de revisoras según carril), sin tres revisoras repitiendo tests | Coste por PR medido y acotado | F6-2 |
+| F6-5 | Selección del revisor por dominio y presupuesto (modelo y número de revisoras según carril), sin tres revisoras repitiendo tests; dominios de la 0.16: angular-vue, rust-wasm, C#/AutoCAD/IFC, Java/Spring y genérica (RF-31) | Coste por PR medido y acotado; un diff Rust + Vue lanza las dos revisoras de dominio | F6-2 |
 | F6-6 | Defensa contra prompt injection (contenido del PR o del issue como datos, no instrucciones) | Batería de PRs maliciosos de prueba | F1-8, F6-2 |
 
 ### Fase 7 — Equipo, métricas y adopción
@@ -201,6 +237,7 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 
 | ID | Tarea | Criterio de aceptación | Dep. |
 |---|---|---|---|
+| F8-0 | Migración del backlog a issues: tareas planificadas, dependencias, hitos y mapa TASK-NNN ↔ #n; las terminadas se enlazan como histórico (RN-03) | Las 234 planificadas de ToolsaWeb con sus dependencias, en un repo de pruebas primero | F3-7, F1-10 |
 | F8-1 | Suite E2E del flujo completo contra un repo de GitHub de pruebas: dos «personas» (dos tokens) trabajando a la vez | Sin conflictos; tablero correcto; merge solo con puertas | F3-*, F6-* |
 | F8-2 | Prueba de seguridad: PR malicioso, rama con config hostil, issue con instrucciones inyectadas | Ninguno ejecuta código ni salta una puerta | F6-6, F1-8 |
 | F8-3 | Auditoría externa repetida con el mismo encargo que la de 2026-11-13 | Las tres preguntas responden «sí» o «sí, con condiciones menores» | F8-1, F8-2 |
@@ -210,6 +247,9 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 
 ## 7. Cómo sabremos que es profesional (criterios de salida de la 2.0)
 
+- **Todos los requisitos de prioridad I** de
+  [REQUISITOS-FUNCIONALES.md](REQUISITOS-FUNCIONALES.md) cubiertos, con su
+  prueba, y la decisión escrita sobre cada C, E y R.
 - **Ninguna garantía depende de que el agente obedezca**: el merge en `main`
   es imposible sin checks verdes y la aprobación de una persona (comprobado
   en F8-1 y F8-2).
@@ -225,8 +265,8 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 
 1. **Fase 0 ya** (una o dos sesiones; protege a los proyectos en uso).
 2. **Fase 1 completa antes de escribir código de la 2.0.** Los ADR F1-1, F1-2,
-   F1-5 y F1-9 se pueden escribir en paralelo; F1-3 → F1-4 → F1-8 van en
-   cadena.
+   F1-5, F1-9 y F1-13 se pueden escribir en paralelo; F1-3 → F1-4 → F1-11 y
+   F1-7 → F1-8 → F1-12 van en cadena; F1-14 al final.
 3. Fases 2 y 3 seguidas; en paralelo, F4-1 (skill de spec) y F5-1 (workflow
    de verificación), que no dependen del núcleo.
 4. Fase 6 cuando exista el informe de verificación (F5-4).
