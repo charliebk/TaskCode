@@ -17,7 +17,7 @@ cuanto trabajan dos personas chocan los IDs, el tablero miente y los ficheros
 generados dan conflictos.
 
 **Objetivo:** TaskCode 2, en el repo nuevo **TaskCodeTwo**, que conserva lo que
-funciona y se usa (requisitos con uso medido), cumple los quince requisitos
+funciona y se usa (requisitos con uso medido), cumple los dieciséis requisitos
 rectores y lo hace **construyéndose con TaskCode 0.16**.
 
 ## 2. Requisitos rectores (por encima de todo)
@@ -41,6 +41,7 @@ Detalle en [REQUISITOS-FUNCIONALES.md §0](REQUISITOS-FUNCIONALES.md).
 | RR-13 | Actualizar los proyectos existentes | `taskctl actualizar` con simulación y vuelta atrás (F9) |
 | RR-14 | Hecho con la versión actual de TaskCode | TaskCodeTwo se desarrolla con TaskCode 0.16 (§7) |
 | RR-15 | GitHub y GitLab desde la 2.0 | Adaptador de plataforma con las dos implementaciones y la misma batería E2E (P11) |
+| RR-16 | Instalación fácil en cualquier ordenador | Ejecutable por sistema sin Node ni bash, instalación con una línea por internet y marketplace de Claude Code (P12) |
 
 ## 3. Qué existe y qué aprendemos
 
@@ -164,6 +165,25 @@ aportación de TaskCodeTwo.
   de aprobación obligatorias o trenes de merge): el ADR F1-13 lo verifica, y
   `doctor` dice qué garantía no está disponible y qué la sustituye.
 
+### P12 — Se instala en cualquier ordenador en un minuto (RR-16)
+
+- **Un ejecutable por sistema** (Windows x64/ARM64, macOS Intel/Apple, Linux
+  x64/ARM64), con el runtime dentro: no hace falta instalar Node. Como el CLI
+  hace él mismo las operaciones de Git (P5), **tampoco hace falta bash**: la
+  única dependencia externa es `git`.
+- **Por internet con una línea**: `irm …/install.ps1 | iex` en Windows y
+  `curl -fsSL …/install.sh | sh` en macOS y Linux, que descargan el ejecutable
+  de la release, comprueban su firma o su hash y lo dejan en el PATH. Además,
+  paquetes en winget, Homebrew y npm cuando la 2.0 sea estable.
+- **Las skills y los agentes** se instalan por el marketplace de Claude Code,
+  como hoy; el plugin comprueba que el ejecutable instalado es compatible.
+- **Actualizar** es un comando (`taskctl actualizar --cli`) que avisa si hay
+  versión nueva; actualizar un proyecto sigue siendo `taskctl actualizar`
+  (RR-13).
+- Para descargar sin credenciales, las releases tienen que ser públicas:
+  **[DECIDE CARLOS]** repo público, o repo privado con un repo público solo de
+  releases.
+
 ### P10 — El plugin es un producto
 
 - CI en Linux, macOS y Windows sin «rojos conocidos»; tests E2E contra un repo
@@ -255,6 +275,7 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | F1-10 | ADR: carriles y modo automático (qué para y dónde) (P7) | Política por carril, configurable | F1-5 |
 | F1-11 | ADR: extensiones declaradas (P8) | Contrato que cubre lo que hoy hacen ToolsaWeb y OpenDockTrading a mano | F1-1, F1-7 |
 | F1-12 | ADR: actualización de proyectos entre versiones (RR-13) | Qué migra, simulación, vuelta atrás, convivencia 0.16/2.0 | F1-1, F1-9 |
+| F1-14 | ADR: distribución e instalación (RR-16): ejecutable por sistema (empaquetador, tamaño, arranque), firma de código en Windows y macOS, instaladores de una línea, canales (releases, winget, Homebrew, npm, marketplace), compatibilidad entre ejecutable y plugin | Prueba de concepto de un ejecutable en los tres sistemas; decisión sobre firma y canales | F1-0 |
 | F1-13 | ADR: adaptador de plataforma GitHub y GitLab (RR-15): equivalencias (rulesets y ramas protegidas, checks y pipelines, reviews y approvals, cola y tren de merge, Apps y tokens de proyecto) y qué depende del plan de pago | Tabla de equivalencias verificada en las dos; cómo se prueba cada adaptador | F1-4 |
 
 ### Fase 2 — Núcleo
@@ -270,6 +291,9 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | F2-9 | Adaptador GitLab (MR, pipelines, approvals, identidad) con la misma interfaz y la misma batería E2E (RR-15) | E2E contra un proyecto de pruebas en GitLab | F1-13, F2-2 |
 | F2-7 | Configuración mínima con esquema validado y valores por defecto | ≤ 12 claves; esquema publicado; tests | F1-10 |
 | F2-8 | i18n de mensajes (es, en) | Test que falla si falta una traducción | F2-1 |
+| F2-10 | Build de ejecutables por sistema en la CI, firmados, con su hash, publicados en cada release (RR-16) | El ejecutable arranca en Windows, macOS y Linux limpios sin Node | F1-14, F2-1 |
+| F2-11 | Instaladores de una línea (PowerShell y shell) que descargan, verifican la firma o el hash y ponen `taskctl` en el PATH | Instalación en una máquina limpia de cada sistema en menos de un minuto | F2-10 |
+| F2-12 | `taskctl actualizar --cli` y aviso de versión nueva; el plugin del marketplace comprueba la versión del ejecutable | Actualización sin reinstalar; incompatibilidad avisada con el comando que la arregla | F2-10 |
 
 ### Fase 3 — Comandos del flujo
 
@@ -348,11 +372,12 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | F9-6 | Auditoría externa repetida con el mismo encargo | Las tres preguntas responden «sí» | F9-4, F9-5 |
 | F9-7 | Piloto: OpenDockTrading actualizado y 10 tareas con la 2.0 | Métricas frente a la 0.16 | F9-2, F9-6 |
 | F9-8 | ToolsaWeb actualizado y 10 tareas con la 2.0 | Minutos de verificación repetidos ≈ 0 | F9-7 |
-| F9-9 | Publicar 2.0.0 | Changelog, guía de actualización y release | F9-6..8 |
+| F9-9a | Prueba de instalación en máquinas limpias (Windows, macOS, Linux) por ejecutable, por la línea de internet y por el marketplace | Primera tarea hecha en 15 min desde cero en cada sistema | F2-11, F8-5 |
+| F9-9 | Publicar 2.0.0 (ejecutables, instaladores y plugin en el marketplace) | Changelog, guía de actualización y release | F9-6..8, F9-9a |
 
 ## 9. Criterios de salida de la 2.0
 
-- Los **quince requisitos rectores** se cumplen, cada uno con su prueba o su
+- Los **dieciséis requisitos rectores** se cumplen, cada uno con su prueba o su
   cifra; todos los requisitos **I** del catálogo, cubiertos.
 - Ningún paso del flujo pide al agente escribir `git` o `gh`, y los tokens por
   tarea bajan frente a la 0.16.
@@ -363,6 +388,8 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 - ToolsaWeb y OpenDockTrading actualizados con `taskctl actualizar`, sin perder
   tareas, dependencias ni historial.
 - Cero verificaciones repetidas sobre el mismo SHA.
+- Se instala en una máquina limpia de cada sistema con el ejecutable o con una
+  línea por internet, sin instalar Node ni bash.
 - CI verde en Linux, macOS y Windows; la auditoría externa repetida dice «sí».
 
 ## 10. Orden y paralelismo

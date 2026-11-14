@@ -29,6 +29,7 @@ de ellos, gana el requisito rector.
 | RR-12 | **Equipo sin pisarse el trabajo** | IDs únicos aunque se creen a la vez en dos clones; una tarea la toma una persona o agente y los demás lo ven; ningún fichero compartido se reescribe en cada fase |
 | RR-13 | **Actualizar los proyectos existentes a la versión actual** | Comando de actualización (`taskctl actualizar`) que migra la estructura, la config y las tareas de un proyecto de una versión a otra, con simulación previa, idempotente y reversible; primero ToolsaWeb y OpenDockTrading de la 0.16 a la 2.0 |
 | RR-15 | **GitHub y GitLab desde la 2.0** | Las mismas garantías en las dos plataformas: rama protegida, pipeline obligatoria, aprobación de una persona, identidad propia del agente. Donde una plataforma o su plan de pago no ofrezca algo, la diferencia se documenta y `doctor` la dice |
+| RR-16 | **Instalación fácil en cualquier ordenador** (ejecutable o por internet) | Un ejecutable por sistema (Windows, macOS, Linux) que no necesita Node ni bash, descargable de las releases; instalación con una línea por internet (PowerShell en Windows, shell en macOS/Linux) y por el marketplace de Claude Code para las skills; como única dependencia externa, `git`. Comprobación de versión nueva y actualización con un comando |
 | RR-14 | **Se construye con la versión actual de TaskCode** | El plan entero se ejecuta como tareas de TaskCode 0.16 en este repo (`taskctl import`, plan, revisión, finish). La 2.0 sustituye a la 0.16 en TaskCode solo cuando puede llevar su propio desarrollo |
 
 ## 1. Uso medido
