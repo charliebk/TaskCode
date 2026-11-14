@@ -39,6 +39,16 @@ aprobación humana en los puntos de más impacto. TaskCode ya tiene casi todas.
 **Lo que ninguno resuelve, y es nuestra oportunidad, es hacerlas cumplir de
 verdad en un equipo.**
 
+## 2 ter. Requisitos rectores
+
+Carlos fija nueve requisitos por encima de todos los demás (detalle en
+[REQUISITOS-FUNCIONALES.md §0](REQUISITOS-FUNCIONALES.md)): **determinismo de
+las sentencias de Git para economizar tokens**, **varios puntos de vista**,
+**búsqueda de errores**, **revisión**, **iteración del método**, **merge en
+`develop`**, **agilidad**, **calidad** y **trabajo en grupo**. Los principios
+P8, P11 y P12 y las tareas F1-2, F1-15, F2-7, F3-12, F3-13, F7-5 y F7-6 existen
+por ellos.
+
 ## 2 bis. Requisitos funcionales y uso real
 
 Los requisitos de lo que la 0.16 hace hoy, cada uno con su uso medido en
@@ -71,7 +81,9 @@ uso real cambia de este plan:
 | P5 | **Nada del repo se ejecuta en local sin confianza explícita.** Los comandos del proyecto los corre la CI en su entorno aislado; en local solo con una lista de confianza fuera del repo | H2, H16 |
 | P6 | **Proporcionalidad por carriles**: errata → PR directo; fix → issue + PR; funcionalidad → especificación aprobada + PR; riesgo alto → diseño revisado y dos aprobaciones | «impuesto en una errata», coste por tarea |
 | P7 | **Superficie mínima**: unos seis comandos, una página de inicio y configuración con valores por defecto sensatos. Lo avanzado, en extensiones | H18 |
-| P8 | **Flujo estándar del sector**: ramas cortas desde `main`, PR y cola de merge (GitHub flow). Nada de scripts propios de Git-Flow, ni stash ni merges hechos por el agente | H4, H12, commits ceremoniales |
+| P8 | **`develop` como rama de integración (RR-06)**: una rama corta por tarea desde `develop`, PR contra `develop` y cola de merge; `main` solo para releases y hotfix. Ni stash ni `git merge` hechos por el agente | H4, H12, commits ceremoniales |
+| P11 | **Git determinista desde el CLI (RR-01)**: toda operación de Git y GitHub la ejecuta un comando del CLI, idempotente y con salida corta y estructurada para el agente. El agente nunca compone `git` ni `gh`: ahorra tokens y elimina errores de sintaxis y de orden | tokens por tarea, H10, H22 |
+| P12 | **El método itera con datos (RR-05)**: cada versión mide tokens, tiempo, rondas, hallazgos y verificaciones repetidas por tarea, y los cambios del método se deciden con esas cifras y con auditorías, incluida una externa sin contexto | parches sin medir, sesgo positivo |
 | P9 | **Los artefactos de especificación se revisan en el mismo PR que el código** y el check de «spec al día» comprueba que se tocaron si cambia el comportamiento | artefactos que se desincronizan (crítica a Spec Kit) |
 | P10 | **El plugin es un producto**: CI en Linux, macOS y Windows; tests E2E contra un repo de GitHub de pruebas real; versión semántica; i18n en inglés y español; y la auditoría externa repetida como criterio de cada versión mayor | H20–H25, mantenibilidad |
 
@@ -150,7 +162,8 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | ID | Tarea (ADR) | Contenido mínimo | Dep. |
 |---|---|---|---|
 | F1-1 | Modelo de estado: issues + GitHub Projects como fuente de verdad | Campos del tablero, estados, cómo se lee/escribe, qué pasa sin red | — |
-| F1-2 | Flujo de ramas: GitHub flow + cola de merge | Nombres de rama, worktrees, por qué no Git-Flow, releases y hotfix | — |
+| F1-2 | Flujo de ramas: `develop` de integración, rama por tarea, PR contra `develop` con cola de merge, `main` para releases y hotfix (RR-06) | Nombres de rama, worktrees, qué se conserva de Git-Flow y qué no, cómo se hace una release y un hotfix | — |
+| F1-15 | Capa de operaciones Git/GitHub deterministas (RR-01) | Lista cerrada de operaciones, contrato de salida para el agente (corto, sin colores, códigos de salida con significado), idempotencia y reintento; objetivo de tokens por tarea | F1-2 |
 | F1-3 | Puertas en servidor: rulesets, checks obligatorios y CODEOWNERS | Lista exacta de checks, quién aprueba qué carril, cómo se aplica como código | F1-2 |
 | F1-4 | Identidad del revisor IA: GitHub App frente a token de usuario | Permisos mínimos, que no pueda aprobar ni mergear, coste, alternativas | F1-3 |
 | F1-5 | Formato de especificación por cambio (requisitos EARS, diseño, tareas) y check `spec-al-dia` | Plantillas, compatibilidad con Spec Kit, cuándo se exige | — |
@@ -173,6 +186,7 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | F2-3 | Adaptador GitHub sobre `gh` o la API REST/GraphQL, con reintentos y errores dirigidos a la persona | Tests E2E contra un repo de pruebas real en una organización sandbox | F2-2 |
 | F2-4 | Configuración mínima (`.taskcode.yml`) con esquema validado y valores por defecto; claves desconocidas = error claro | ≤ 10 claves; esquema JSON publicado; tests | F1-6, F1-7 |
 | F2-5 | i18n de mensajes (en, es) desde el inicio | Todos los mensajes por clave; test que falla si falta una traducción | F2-1 |
+| F2-7 | Capa de operaciones Git/GitHub del CLI: rama, commit de lo escrito por la herramienta, push, PR, merge, tag; cada una idempotente, con salida corta para el agente y un test contra un repo real (RR-01, RF-25) | Ningún comando del flujo pide al agente escribir `git` o `gh`; salida de cada operación ≤ 5 líneas en el caso normal | F1-15, F2-3 |
 | F2-6 | Planificación en el adaptador: milestones, dependencias entre issues y sub-issues (RF-02..04) | Leer y escribir un grafo de 300 tareas sin pasar los límites de la API; tests E2E | F1-13, F2-3 |
 
 ### Fase 3 — Comandos del flujo (superficie mínima)
@@ -189,6 +203,8 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | F3-8 | `tc next`: lo listo para empezar según dependencias, hito y prioridad (RF-03) | Coincide con el orden del ROADMAP actual de ToolsaWeb | F2-6 |
 | F3-9 | `tc roadmap`: grafo Mermaid y resumen por hito, generado bajo demanda o publicado por CI, nunca commiteado en cada fase (RF-04) | Reproduce `hitos.md` de ToolsaWeb sin conflictos entre ramas | F2-6 |
 | F3-10 | Descartar con motivo (cerrar como «not planned») y pausar (RF-07, RF-08) | El ID no se reutiliza; aparece en métricas como descartada | F3-2 |
+| F3-12 | `tc merge`: integra el PR en `develop` cuando las puertas pasan (merge automático o cola de merge), cierra el issue y limpia el worktree (RR-06, RF-50) | No mergea nada con un check en rojo o sin aprobación; repetirlo no hace nada | F2-7, F3-4 |
+| F3-13 | `tc release` y `tc hotfix`: `develop` → `main` con tag y notas generadas desde los PR; hotfix desde `main` que vuelve a `develop` (RF-52, RF-53) | Release reproducible en un repo de pruebas | F2-7 |
 | F3-11 | Orquestador del modo automático: encadena spec → implementación → PR → correcciones de revisión, y se detiene solo en las puertas de la política del carril (RF-21, RF-22) | Una tarea del carril fix va de issue a PR listo para aprobar sin intervención | F3-3, F3-4 |
 
 ### Fase 4 — Especificación y aprobación humana verificable
@@ -231,6 +247,8 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 | F7-1 | `tc metrics` desde la API: tiempo por fase, rondas, hallazgos por severidad, minutos de CI y **minutos repetidos** | Reproduce las cifras de la medición de la 0.16 | F5-2, F6-3 |
 | F7-2 | Guía de inicio de una página (instalar, `tc setup`, primera tarea en 15 min) | Una persona nueva la sigue sin ayuda (prueba con alguien externo) | F3-* |
 | F7-3 | Referencia completa generada desde el código (comandos, configuración) | No puede desincronizarse: se genera en CI | F2-4 |
+| F7-5 | Ciclo de iteración del método (RR-05): cada versión publica sus cifras por tarea (tokens, tiempo por carril, rondas, hallazgos por severidad, verificaciones repetidas) frente a la anterior; auditoría interna cada versión y externa sin contexto cada versión mayor; los cambios del método citan la cifra que los motiva | Informe por versión generado por `tc metrics`; ningún cambio del método sin dato | F7-1 |
+| F7-6 | Presupuesto de tokens por tarea y por carril, con aviso cuando una tarea lo supera y desglose de dónde se fue (diseño, implementación, revisión, verificación, operaciones) (RR-01, RR-07) | El desglose cuadra con la transcripción; objetivo fijado con datos de la 0.16 | F7-1 |
 | F7-4 | Plantillas para equipos: CODEOWNERS por módulo, carriles por defecto, revisores por dominio | Ejemplo aplicado a ToolsaWeb | F1-3 |
 
 ### Fase 8 — Calidad del propio plugin y piloto
@@ -250,7 +268,10 @@ codificar. Una tarea = un ADR de 1–2 páginas.
 - **Todos los requisitos de prioridad I** de
   [REQUISITOS-FUNCIONALES.md](REQUISITOS-FUNCIONALES.md) cubiertos, con su
   prueba, y la decisión escrita sobre cada C, E y R.
-- **Ninguna garantía depende de que el agente obedezca**: el merge en `main`
+- **Los nueve requisitos rectores (RR-01..09)** se cumplen y cada uno tiene su
+  prueba o su cifra: en particular, ningún paso del flujo pide al agente
+  escribir comandos de Git y los tokens por tarea bajan frente a la 0.16.
+- **Ninguna garantía depende de que el agente obedezca**: el merge en `develop` (y en `main`)
   es imposible sin checks verdes y la aprobación de una persona (comprobado
   en F8-1 y F8-2).
 - **Dos personas trabajan a la vez** sin conflictos de estado ni de ficheros

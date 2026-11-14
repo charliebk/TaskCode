@@ -8,6 +8,23 @@
 > `revision/` y `planificacion/`, `.taskcode/config.yml`, ramas, tags, PR e
 > issues en GitHub, e historial de commits.
 
+## 0. Requisitos rectores (Carlos, 2026-11-13)
+
+Están por encima de todo el catálogo: si una decisión de la 2.0 choca con uno
+de ellos, gana el requisito rector.
+
+| ID | Requisito rector | Qué significa en la 2.0 |
+|---|---|---|
+| RR-01 | **Determinismo de las sentencias de Git para economizar tokens** | El agente no compone comandos de `git` ni de `gh`. Toda operación de Git y de GitHub (crear rama, commit de lo que escribe la herramienta, push, abrir PR, merge, tag) la hace un comando del CLI: idempotente, con salida corta, estructurada y sin colores para el agente, y un código de salida que dice qué hacer. Se mide en tokens por tarea |
+| RR-02 | **Varios puntos de vista** | Brainstorm de roles con unificador en el diseño (RF-10) y revisoras por dominio en la revisión (RF-31), proporcionales al carril |
+| RR-03 | **Búsqueda de errores** | Revisión que reproduce, prueba mutantes y busca casos borde, no solo lee el diff; hallazgos con evidencia (RF-30, RF-32) |
+| RR-04 | **Revisión** | Independiente, por un agente distinto, y aprobación de una persona antes del merge (RF-30, RF-50) |
+| RR-05 | **Iteración del método** | El método se mide y se corrige: métricas por tarea y por versión, auditorías periódicas (incluida una externa sin contexto) y cambios del método decididos con datos (RF-63, F7-5) |
+| RR-06 | **Merge en `develop`** | `develop` es la rama de integración: cada tarea se integra en `develop` por PR cuando pasa sus puertas; `main` solo recibe releases (y hotfix). El merge lo ejecuta el CLI (o la cola de merge de GitHub), nunca el agente con `git merge` |
+| RR-07 | **Agilidad** | Nada se ejecuta dos veces sin cambios (RF-42), carriles proporcionales y pocas puertas humanas con valor |
+| RR-08 | **Calidad** | Las garantías las imponen la plataforma y la CI, no las instrucciones al agente |
+| RR-09 | **Trabajo en grupo** | Varias personas y agentes a la vez sin conflictos de estado, IDs ni ficheros generados (RN-05, RN-06) |
+
 ## 1. Uso medido
 
 | | ToolsaWeb | OpenDockTrading | TaskCode |
@@ -50,8 +67,10 @@ tareas y una alta de 37 tareas de un hito de una vez.
    planificadas, 363 con dependencias, hitos y un grafo en Mermaid, y da de
    alta tareas en bloques de hasta 37. El plan v1 lo pasaba por alto: hace falta
    importar en bloque, dependencias, hitos y vista de roadmap.
-5. **Git-Flow completo no se usa**: 0 hotfix, 0 release y 0 tags en los dos
-   proyectos. GitHub flow cubre lo que se hace de verdad.
+5. **De Git-Flow se usa la mitad**: `develop` como rama de integración y una
+   rama por tarea, sí (todas las tareas); hotfix, release y tags, no (0 en los
+   dos proyectos). La 2.0 conserva `develop` + rama por tarea (RR-06) y deja
+   release y hotfix como comandos sencillos.
 6. **Revisoras por dominio, varias por ronda, y brainstorm con unificador**
    se usan mucho: hay que conservarlos (y acotar su coste, ver la medición de
    redundancia).
@@ -105,7 +124,9 @@ Prioridad: **I** imprescindible (uso medido alto o sin él no hay producto),
 | RF-21 | Modos manual, semiautomático y automático con encadenado de fases | 88–97 % automático | I | orquestador que encadena; las puertas humanas, por política |
 | RF-22 | Autorrevisión antes de pedir revisión | 33 / 40 / 23 | C | paso del orquestador antes de pedir la revisión |
 | RF-23 | Commitear solo lo que escribe la herramienta; nunca `git add -A` | principio de todos los comandos | I | se mantiene |
-| RF-24 | Recuperación de estados de Git (diagnose, recover, abort-merge, pause/resume) | sin dato de uso | C | con GitHub flow sin merges locales sobra casi todo; queda `tc doctor` |
+| RF-24 | Recuperación de estados de Git (diagnose, recover, abort-merge, pause/resume) | sin dato de uso | C | con el merge por PR sobran los de merge local; quedan `tc doctor` y una recuperación determinista de la rama de la tarea |
+| RF-25 | Operaciones de Git deterministas ejecutadas por el CLI, no por el agente (RR-01) | los 5 scripts de Git-Flow y todos los comandos de fase | I | capa única de operaciones Git/GitHub en el CLI, con salida para el agente sin ruido |
+| RF-26 | Integración en `develop` y `main` solo para releases (RR-06) | todas las tareas se integran en `develop` | I | PR contra `develop`; `tc release` de `develop` a `main` |
 
 ### Revisión
 
