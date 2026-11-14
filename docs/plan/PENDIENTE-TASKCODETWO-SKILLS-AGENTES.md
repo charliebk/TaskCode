@@ -149,6 +149,62 @@ Entradas para el import (F1-16 → sprint 1, F4-7 y F4-8 → 4, F9-4b → 9):
 - Cumple lo que pide la tarea F9-4b del plan y los requisitos que cita
 ```
 
+## 5 ter. Trabajo en equipo garantizado (refuerzo de RR-09 y RR-12)
+
+> Decidido por Carlos el 2026-11-14: el trabajo con varias personas **debe estar
+> garantizado**: todos saben qué tarea tiene cada uno y no se pueden pisar ni
+> los nombres ni las tareas. Lo ya previsto (IDs por push atómico F2-4, toma
+> atómica en `start` F3-6, roadmap con quién lleva cada tarea F3-4, `status`
+> F3-5, E2E con dos personas F9-4) se mantiene; esto cierra los huecos.
+
+Nuevo texto de RR-12 en REQUISITOS-FUNCIONALES.md §0:
+
+| ID | Requisito rector | Qué significa en la 2.0 |
+|---|---|---|
+| RR-12 | **Equipo garantizado: nadie pisa nombres, tareas ni trabajo, y todos saben quién lleva qué** | IDs y nombres de rama únicos aunque se creen a la vez; títulos duplicados detectados; una tarea solo la lleva una persona identificada por su usuario de la plataforma; las tareas abandonadas se liberan o reasignan con aviso; `start` avisa si otra tarea en curso toca los mismos ficheros; el roadmap y `status` muestran siempre el estado más reciente, con quién lleva cada tarea |
+
+| ID | Tarea | Criterio de aceptación | Dep. |
+|---|---|---|---|
+| F2-4b | Nombres únicos: rama derivada del ID comprobada también contra el remoto; título duplicado o casi igual a otro abierto → aviso con la tarea parecida | Dos altas con el mismo título a la vez: IDs y ramas distintos y aviso de duplicado | F2-4 |
+| F2-13 | Identidad de la persona: el «quién» de una tarea es el usuario de GitHub o GitLab autenticado, no un texto libre | Dos personas no pueden figurar con el mismo nombre; el agente figura como agente | F1-6, F2-6, F2-9 |
+| F3-10 | Liberar y reasignar tareas: `taskctl liberar` y `taskctl reasignar`, aviso de tareas tomadas sin actividad en N días, con aviso a quien la tenía | Una tarea abandonada vuelve a «lista para empezar» sin perder su trabajo ni su rama | F3-6 |
+| F3-11 | Aviso de solape: al tomar una tarea, `start` dice qué tareas en curso (y de quién) tocan los mismos ficheros o módulos según sus planes y ramas | Dos tareas que tocan el mismo módulo → aviso con nombres y tareas | F3-6, F4-1 |
+| F3-5b | `status` y `roadmap` siempre frescos: traen la rama de estado antes de mostrar; dicen la hora de la última sincronización | Nadie ve un estado de hace horas sin saberlo | F3-5 |
+| F9-4 (cambia) | E2E con **tres** personas a la vez: altas simultáneas, toma de la misma tarea, tareas que tocan los mismos ficheros, una tarea abandonada y reasignada | Ningún ID, rama ni tarea pisada; todos ven lo mismo | F2-4b, F2-13, F3-10, F3-11 |
+
+Entradas para el import (F2-4b y F2-13 → sprint 2; F3-10, F3-11 y F3-5b → 3; F9-4 ya existe: actualizar su objetivo y criterios a mano):
+
+```markdown
+### F2-4b Nombres unicos de tarea y rama
+> Nombres únicos: rama derivada del ID comprobada también contra el remoto; título duplicado o casi igual a otro abierto da aviso con la tarea parecida.
+- Dos altas con el mismo titulo a la vez dan IDs y ramas distintos y aviso de duplicado
+- Cumple lo que pide la tarea F2-4b del plan y los requisitos que cita
+
+### F2-13 Identidad de la persona desde la plataforma
+> Identidad de la persona: el «quién» de una tarea es el usuario de GitHub o GitLab autenticado, no un texto libre.
+- Dos personas no pueden figurar con el mismo nombre
+- El agente figura como agente
+- Cumple lo que pide la tarea F2-13 del plan y los requisitos que cita
+
+### F3-10 Liberar y reasignar tareas abandonadas
+> Liberar y reasignar tareas: taskctl liberar y taskctl reasignar, aviso de tareas tomadas sin actividad en N días, con aviso a quien la tenía.
+- Una tarea abandonada vuelve a lista para empezar sin perder su trabajo ni su rama
+- Cumple lo que pide la tarea F3-10 del plan y los requisitos que cita
+
+### F3-11 Aviso de solape entre tareas en curso
+> Aviso de solape: al tomar una tarea, start dice qué tareas en curso (y de quién) tocan los mismos ficheros o módulos según sus planes y ramas.
+- Dos tareas que tocan el mismo modulo dan aviso con nombres y tareas
+- Cumple lo que pide la tarea F3-11 del plan y los requisitos que cita
+
+### F3-5b status y roadmap siempre frescos
+> status y roadmap siempre frescos: traen la rama de estado antes de mostrar y dicen la hora de la última sincronización.
+- Nadie ve un estado de hace horas sin saberlo
+- Cumple lo que pide la tarea F3-5b del plan y los requisitos que cita
+```
+
+Dependencias: F2-4b ← F2-4 · F2-13 ← F1-6, F2-6, F2-9 · F3-10 ← F3-6 ·
+F3-11 ← F3-6, F4-1 · F3-5b ← F3-5 · F9-4 ← además F2-4b, F2-13, F3-10, F3-11.
+
 ## 5. H9: el último piloto es el propio TaskCodeTwo
 
 > Decidido por Carlos el 2026-11-14. Se añade junto con lo anterior.
