@@ -73,6 +73,82 @@ Dependencias (F-id del plan): F1-15 ← F1-9, F1-10 · F3-9 ← F2-1, F1-15 ·
 F4-6 ← F4-1, F3-9, F6-3 · F8-6 ← F8-1, F4-6. Además, F4-4 (orquestador) pasa a
 depender de F4-6.
 
+## 5 bis. Lotes desatendidos: «arrancar TASK-a a TASK-b seguidas» (RR-18)
+
+> Decidido por Carlos el 2026-11-14: **imprescindible**. Hoy se hace en
+> ToolsaWeb y OpenDockTrading (y en TaskCode: «noche 108-109-099», «salida
+> 111-…-130», «backlog TASK-034..052 en continuo») como instrucción al agente:
+> «arrancar consecutivamente TASK-xxx a TASK-yyy, sin trocear y aceptando las
+> recomendaciones en todas las preguntas». Sirve cuando una lista de tareas es
+> de documentación o de programación que no necesita revisión humana hasta el
+> final, o para dejar una batería de trabajo en automático por la noche.
+
+| ID | Requisito rector | Qué significa en la 2.0 |
+|---|---|---|
+| RR-18 | **Lotes desatendidos con revisión humana solo al final** | Un comando lanza una secuencia de tareas (rango o lista) que se ejecutan una tras otra sin preguntar: sin trocear, aceptando las recomendaciones, con revisión IA y verificación en cada tarea, y **una sola revisión humana al final del lote**. Respeta dependencias, tiene presupuesto, se puede reanudar y deja un informe |
+
+Requisito del catálogo: **RF-16 (I)** — «Ejecutar un lote de tareas
+desatendido con revisión humana al final» (uso: varias noches y salidas en
+los tres repos, hecho hoy a mano por instrucción).
+
+Diseño propuesto (a confirmar en la ADR F1-16):
+
+- **Rama de lote**: el lote trabaja sobre `lote/<nombre>` creada desde
+  `develop`. Cada tarea va en su rama, pasa sus puertas automáticas
+  (verificación en CI y revisión IA sin bloqueantes) y **se integra en la rama
+  del lote**, no en `develop`, así que la siguiente tarea ya ve el código de la
+  anterior. Al final, **un único PR del lote contra `develop`** que la persona
+  revisa y aprueba (la puerta humana de siempre, una vez).
+- **Política**: solo carriles permitidos para lote (por ejemplo,
+  documentación y programación sin riesgo alto); una tarea de riesgo alto o
+  con un `[DECIDE CARLOS]` abierto no entra, o para el lote.
+- **Ante un fallo**: un CRÍTICO o IMPORTANTE que no se resuelve en el tope de
+  rondas, o una verificación en rojo, aparta esa tarea (y las que dependen de
+  ella) y el lote sigue con las independientes; nunca integra algo en rojo.
+- **Presupuesto** de tiempo y de tokens para todo el lote; al agotarse, para
+  limpio.
+- **Reanudable**: si se corta (apagado, error), `taskctl lote --reanudar`
+  sigue donde iba sin repetir lo hecho.
+- **Informe de la mañana**: qué se terminó, qué se apartó y por qué, hallazgos
+  sin corregir, tokens y tiempo; enlazado desde el PR del lote.
+- **Nada de esto lo decide el agente**: el lote, su política y sus paradas los
+  ejecuta el CLI de forma determinista (RR-01).
+
+| ID | Tarea | Criterio de aceptación | Dep. |
+|---|---|---|---|
+| F1-16 | ADR: lotes desatendidos (RR-18): rama de lote, política de carriles, qué para el lote y qué aparta una tarea, presupuesto, reanudación, informe, y su equivalente en GitLab | Diseño probado a mano con un lote real de ToolsaWeb | F1-5, F1-10 |
+| F4-7 | `taskctl lote TASK-a..TASK-b` (o lista): secuencia sin preguntas, sin trocear, aceptando recomendaciones, integración en la rama del lote y PR final contra `develop` (RF-16) | Un lote de 5 tareas termina sin intervención y deja un único PR para la persona | F4-4, F4-6, F1-16 |
+| F4-8 | Fallos, presupuesto, `--reanudar` e informe del lote | Lote cortado a mitad se reanuda sin repetir; una tarea en rojo se aparta con sus dependientes y el resto sigue; informe completo | F4-7, F8-1 |
+| F9-4b | Prueba nocturna: lote de 10 tareas reales desatendido en un repo de pruebas | Por la mañana: PR del lote, informe y ninguna integración en rojo | F4-8, F9-4 |
+
+Entradas para el import (F1-16 → sprint 1, F4-7 y F4-8 → 4, F9-4b → 9):
+
+```markdown
+### F1-16 ADR lotes desatendidos con revision humana al final
+> ADR: lotes desatendidos (RR-18): rama de lote, política de carriles, qué para el lote y qué aparta una tarea, presupuesto, reanudación, informe, y su equivalente en GitLab.
+- Diseno probado a mano con un lote real de ToolsaWeb
+- Cumple lo que pide la tarea F1-16 del plan y los requisitos que cita
+
+### F4-7 taskctl lote: secuencia de tareas sin preguntas
+> taskctl lote TASK-a..TASK-b (o lista): secuencia sin preguntas, sin trocear, aceptando recomendaciones, integración en la rama del lote y PR final contra develop (RF-16).
+- Un lote de 5 tareas termina sin intervencion
+- Deja un unico PR para la persona
+- Cumple lo que pide la tarea F4-7 del plan y los requisitos que cita
+
+### F4-8 Fallos, presupuesto, reanudacion e informe del lote
+> Fallos, presupuesto, --reanudar e informe del lote.
+- Un lote cortado a mitad se reanuda sin repetir lo hecho
+- Una tarea en rojo se aparta con sus dependientes y el resto sigue
+- El informe del lote esta completo
+- Cumple lo que pide la tarea F4-8 del plan y los requisitos que cita
+
+### F9-4b Prueba nocturna de un lote de 10 tareas
+> Prueba nocturna: lote de 10 tareas reales desatendido en un repo de pruebas.
+- Por la manana hay PR del lote e informe
+- Ninguna integracion en rojo
+- Cumple lo que pide la tarea F9-4b del plan y los requisitos que cita
+```
+
 ## 5. H9: el último piloto es el propio TaskCodeTwo
 
 > Decidido por Carlos el 2026-11-14. Se añade junto con lo anterior.
