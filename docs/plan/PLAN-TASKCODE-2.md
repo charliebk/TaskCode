@@ -41,7 +41,7 @@ Detalle en [REQUISITOS-FUNCIONALES.md §0](REQUISITOS-FUNCIONALES.md).
 | RR-13 | Actualizar los proyectos existentes | `taskctl actualizar` con simulación y vuelta atrás (F9) |
 | RR-14 | Hecho con la versión actual de TaskCode | TaskCodeTwo se desarrolla con TaskCode 0.16 (§7) |
 | RR-15 | GitHub y GitLab desde la 2.0 | Adaptador de plataforma con las dos implementaciones y la misma batería E2E (P11) |
-| RR-16 | Instalación fácil en cualquier ordenador | Ejecutable por sistema sin Node ni bash, instalación con una línea por internet y marketplace de Claude Code (P12) |
+| RR-16 | Instalación fácil en cualquier ordenador | Repo público que es su propio marketplace de Claude Code, como TaskCode; ejecutable e instalador de una línea como complemento (P12) |
 
 ## 3. Qué existe y qué aprendemos
 
@@ -167,6 +167,13 @@ aportación de TaskCodeTwo.
 
 ### P12 — Se instala en cualquier ordenador en un minuto (RR-16)
 
+- **Igual que TaskCode**: TaskCodeTwo es un repo **público** que hace de
+  marketplace de Claude Code. Se instala con `/plugin marketplace add
+  charliebk/TaskCodeTwo` e instalando el plugin; el plugin trae el CLI ya
+  compilado (sin `npm install` ni build) y lo pone en el PATH, como hoy.
+- Lo que sigue son complementos para quien quiera el CLI fuera de Claude
+  Code (CI, otros agentes), no el camino principal:
+
 - **Un ejecutable por sistema** (Windows x64/ARM64, macOS Intel/Apple, Linux
   x64/ARM64), con el runtime dentro: no hace falta instalar Node. Como el CLI
   hace él mismo las operaciones de Git (P5), **tampoco hace falta bash**: la
@@ -180,9 +187,8 @@ aportación de TaskCodeTwo.
 - **Actualizar** es un comando (`taskctl actualizar --cli`) que avisa si hay
   versión nueva; actualizar un proyecto sigue siendo `taskctl actualizar`
   (RR-13).
-- Para descargar sin credenciales, las releases tienen que ser públicas:
-  **[DECIDE CARLOS]** repo público, o repo privado con un repo público solo de
-  releases.
+- Decidido (Carlos, 2026-11-13): **repo público**, así que el marketplace y
+  las releases se descargan sin credenciales.
 
 ### P10 — El plugin es un producto
 
@@ -228,7 +234,7 @@ aportación de TaskCodeTwo.
 
 - **Repo nuevo `TaskCodeTwo`** en GitHub, con `develop` y `main`, y TaskCode
   0.16 instalado y configurado (`tareas/`, `.taskcode/config.yml`, verificación).
-  **[DECIDE CARLOS]** visibilidad (público o privado) y licencia.
+  Repo **público**, decidido por Carlos el 2026-11-13; licencia MIT como TaskCode.
 - Este plan se convierte en tareas de TaskCode 0.16 con `taskctl import`
   (fichero de import fuera del repo), un sprint por fase, con sus dependencias
   y criterios. Se trabajan con el flujo de siempre: plan, aprobación, rama,
@@ -388,8 +394,9 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 - ToolsaWeb y OpenDockTrading actualizados con `taskctl actualizar`, sin perder
   tareas, dependencias ni historial.
 - Cero verificaciones repetidas sobre el mismo SHA.
-- Se instala en una máquina limpia de cada sistema con el ejecutable o con una
-  línea por internet, sin instalar Node ni bash.
+- Se instala en una máquina limpia de cada sistema desde el marketplace de
+  Claude Code, igual que TaskCode, sin `npm install` ni bash; y con el
+  ejecutable o la línea por internet para usos fuera de Claude Code.
 - CI verde en Linux, macOS y Windows; la auditoría externa repetida dice «sí».
 
 ## 10. Orden y paralelismo
