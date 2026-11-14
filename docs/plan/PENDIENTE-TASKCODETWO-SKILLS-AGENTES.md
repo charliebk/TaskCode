@@ -205,6 +205,64 @@ Entradas para el import (F2-4b y F2-13 → sprint 2; F3-10, F3-11 y F3-5b → 3;
 Dependencias: F2-4b ← F2-4 · F2-13 ← F1-6, F2-6, F2-9 · F3-10 ← F3-6 ·
 F3-11 ← F3-6, F4-1 · F3-5b ← F3-5 · F9-4 ← además F2-4b, F2-13, F3-10, F3-11.
 
+## 5 quater. Métricas mientras se trabaja y métricas finales (RR-19)
+
+> Decidido por Carlos el 2026-11-14: **imprescindible**. Lo que importa mientras
+> se trabaja **no es un porcentaje**, sino **qué fases faltan y el tiempo
+> estimado** de cada tarea, como información para el programador, **visible en
+> el terminal de trabajo**. Y las métricas finales al cerrar.
+
+Base en la 0.16: `taskctl estado [--seguir]`, la status line de Claude Code
+(fase, paso, x/N, minutos) y la «Duración estimada» del plan. En el plan de la
+2.0 era RF-61 con prioridad C: pasa a **I**.
+
+| ID | Requisito rector | Qué significa en la 2.0 |
+|---|---|---|
+| RR-19 | **Progreso en vivo en el terminal: fases que faltan y tiempo estimado** | En todo momento, para la tarea en curso: fase actual, fases que faltan y tiempo estimado restante (por fase y total), recalculado con lo real; en un lote, además, tareas que faltan y hora estimada de fin. Se ve en la status line de Claude Code y en `taskctl status --seguir`, lo escribe el CLI (sin gastar tokens del agente). Al cerrar, resumen final: estimado frente a real por fase, tokens y rondas |
+
+| ID | Tarea | Criterio de aceptación | Dep. |
+|---|---|---|---|
+| F1-17 | ADR: progreso en vivo y estimación (RR-19): modelo de estimación por fase (carril, complejidad, tamaño y tareas parecidas ya terminadas), cuándo se recalcula, dónde se muestra (status line, `status --seguir`, salida de cada comando) y cómo se hace sin tokens | Estimación probada contra las tareas terminadas de ToolsaWeb y OpenDockTrading, con su error medio | F1-9, F1-10 |
+| F3-13 | Estimación por tarea al planificar: tiempo por fase, a partir de tareas parecidas; se recalcula al terminar cada fase | Cada tarea planificada tiene su estimación por fase; el error se mide | F1-17, F3-2 |
+| F3-12 | Progreso en vivo en el terminal: fase actual, **fases que faltan** y **tiempo estimado restante** de la tarea, en la status line de Claude Code y en `taskctl status --seguir`, escrito por el CLI | Durante una tarea real se ven las fases que faltan y el tiempo restante, actualizados en cada fase, sin coste de tokens | F3-13, F2-3 |
+| F4-9 | Progreso del lote: tarea actual, tareas que faltan, apartadas y hora estimada de fin del lote, en el mismo sitio | En un lote de 5 tareas se ve cuántas faltan y cuándo acabará | F4-7, F3-12 |
+| F8-7 | Métricas finales al cerrar cada tarea y cada lote: estimado frente a real por fase, tokens, rondas y hallazgos, mostradas en el terminal y guardadas; calibración de las estimaciones en el informe por versión | `finish` termina con su resumen; el informe por versión da el error medio de la estimación | F8-1, F3-13 |
+
+Entradas para el import (F1-17 → sprint 1; F3-13 y F3-12 → 3; F4-9 → 4; F8-7 → 8):
+
+```markdown
+### F1-17 ADR progreso en vivo y estimacion de tiempo
+> ADR: progreso en vivo y estimación (RR-19): modelo de estimación por fase (carril, complejidad, tamaño y tareas parecidas), cuándo se recalcula, dónde se muestra y cómo se hace sin tokens.
+- Estimacion probada contra las tareas terminadas de ToolsaWeb y OpenDockTrading, con su error medio
+- Cumple lo que pide la tarea F1-17 del plan y los requisitos que cita
+
+### F3-13 Estimacion por fase de cada tarea al planificar
+> Estimación por tarea al planificar: tiempo por fase a partir de tareas parecidas; se recalcula al terminar cada fase.
+- Cada tarea planificada tiene su estimacion por fase
+- El error de la estimacion se mide
+- Cumple lo que pide la tarea F3-13 del plan y los requisitos que cita
+
+### F3-12 Progreso en vivo: fases que faltan y tiempo restante
+> Progreso en vivo en el terminal: fase actual, fases que faltan y tiempo estimado restante de la tarea, en la status line de Claude Code y en taskctl status --seguir, escrito por el CLI.
+- Durante una tarea real se ven las fases que faltan y el tiempo restante, actualizados en cada fase
+- Sin coste de tokens del agente
+- Cumple lo que pide la tarea F3-12 del plan y los requisitos que cita
+
+### F4-9 Progreso del lote en el terminal
+> Progreso del lote: tarea actual, tareas que faltan, apartadas y hora estimada de fin del lote.
+- En un lote de 5 tareas se ve cuantas faltan y cuando acabara
+- Cumple lo que pide la tarea F4-9 del plan y los requisitos que cita
+
+### F8-7 Metricas finales de cada tarea y de cada lote
+> Métricas finales al cerrar cada tarea y cada lote: estimado frente a real por fase, tokens, rondas y hallazgos, en el terminal y guardadas; calibración de las estimaciones en el informe por versión.
+- finish termina con su resumen
+- El informe por version da el error medio de la estimacion
+- Cumple lo que pide la tarea F8-7 del plan y los requisitos que cita
+```
+
+Dependencias: F1-17 ← F1-9, F1-10 · F3-13 ← F1-17, F3-2 · F3-12 ← F3-13, F2-3 ·
+F4-9 ← F4-7, F3-12 · F8-7 ← F8-1, F3-13.
+
 ## 5. H9: el último piloto es el propio TaskCodeTwo
 
 > Decidido por Carlos el 2026-11-14. Se añade junto con lo anterior.
