@@ -1,5 +1,11 @@
 # Pendiente de añadir a TaskCodeTwo: selección de skills, agentes y modelo
 
+> **APLICADO el 2026-11-14** en TaskCodeTwo (plan y requisitos en `cb42cab`,
+> tareas TASK-073..093 importadas, dependencias y ROADMAP regenerado), junto
+> con dos tareas más de desinstalación limpia: F2-14 (`taskctl desinstalar`
+> para TaskCodeTwo) y F9-10 (desinstalar TaskCode 0.16 de máquina y proyectos).
+> Este documento queda como registro.
+
 > Decidido por Carlos el 2026-11-14: **imprescindible**. Se añade a TaskCodeTwo
 > (plan, requisitos y tareas) **cuando termine la rama que está en curso allí**,
 > para no provocar conflictos. Este documento tiene lo necesario para hacerlo
