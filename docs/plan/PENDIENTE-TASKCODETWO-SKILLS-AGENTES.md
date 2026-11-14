@@ -4,7 +4,10 @@
 > tareas TASK-073..093 importadas, dependencias y ROADMAP regenerado), junto
 > con dos tareas más de desinstalación limpia: F2-14 (`taskctl desinstalar`
 > para TaskCodeTwo) y F9-10 (desinstalar TaskCode 0.16 de máquina y proyectos).
-> Este documento queda como registro.
+> Este documento queda como registro. Diferencias con lo aplicado: el
+> requisito de lotes que aquí se llama **RF-16** quedó como **RF-27** (va en la
+> sección de flujo), y el diseño propuesto de los lotes está en el principio
+> **P13** del plan.
 
 > Decidido por Carlos el 2026-11-14: **imprescindible**. Se añade a TaskCodeTwo
 > (plan, requisitos y tareas) **cuando termine la rama que está en curso allí**,
