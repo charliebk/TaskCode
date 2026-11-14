@@ -72,3 +72,29 @@ el roadmap.
 Dependencias (F-id del plan): F1-15 ← F1-9, F1-10 · F3-9 ← F2-1, F1-15 ·
 F4-6 ← F4-1, F3-9, F6-3 · F8-6 ← F8-1, F4-6. Además, F4-4 (orquestador) pasa a
 depender de F4-6.
+
+## 5. H9: el último piloto es el propio TaskCodeTwo
+
+> Decidido por Carlos el 2026-11-14. Se añade junto con lo anterior.
+
+Orden de pilotos en H9: OpenDockTrading (F9-7) → ToolsaWeb (F9-8) →
+**TaskCodeTwo (F9-8b)** → publicar 2.0.0 (F9-9). El relevo de F4-5 pasa
+TaskCodeTwo a la 2.0 a mitad de camino, con lo que haya hasta H4; este último
+piloto lo valida con la 2.0 completa (todas las fases) antes de publicar.
+
+| ID | Tarea | Criterio de aceptación | Dep. |
+|---|---|---|---|
+| F9-8b | Piloto final: TaskCodeTwo actualizado a la 2.0 completa con `taskctl actualizar` y 10 tareas suyas trabajadas con ella, incluida al menos una en paralelo por dos personas o agentes | Sin pérdida de tareas ni historial; métricas frente a ToolsaWeb y OpenDockTrading; lo que falle bloquea la 2.0.0 | F9-8, F4-5 |
+
+Cambio en F9-9: sus dependencias pasan a ser F9-6..8, F9-8b y F9-9a.
+
+Entrada para el import (sprint 9):
+
+```markdown
+### F9-8b Piloto final: TaskCodeTwo con la 2.0 completa
+> Piloto final: TaskCodeTwo actualizado a la 2.0 completa con taskctl actualizar y 10 tareas suyas trabajadas con ella, incluida al menos una en paralelo por dos personas o agentes.
+- Sin perdida de tareas ni historial
+- Metricas frente a ToolsaWeb y OpenDockTrading
+- Lo que falle bloquea la 2.0.0
+- Cumple lo que pide la tarea F9-8b del plan y los requisitos que cita
+```
