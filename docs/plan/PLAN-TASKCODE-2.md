@@ -17,7 +17,7 @@ cuanto trabajan dos personas chocan los IDs, el tablero miente y los ficheros
 generados dan conflictos.
 
 **Objetivo:** TaskCode 2, en el repo nuevo **TaskCodeTwo**, que conserva lo que
-funciona y se usa (requisitos con uso medido), cumple los catorce requisitos
+funciona y se usa (requisitos con uso medido), cumple los quince requisitos
 rectores y lo hace **construyéndose con TaskCode 0.16**.
 
 ## 2. Requisitos rectores (por encima de todo)
@@ -35,11 +35,12 @@ Detalle en [REQUISITOS-FUNCIONALES.md §0](REQUISITOS-FUNCIONALES.md).
 | RR-07 | Agilidad | Nada se verifica dos veces sobre el mismo árbol; carriles proporcionales (P6, P7) |
 | RR-08 | Calidad | Puertas impuestas por GitHub y la CI (P3) |
 | RR-09 | Trabajo en grupo | Estado sin conflictos, IDs únicos, toma de tareas visible (P1, P2) |
-| RR-10 | Carpeta de tareas con su estado a la vista | `tareas/` con carpetas por estado, versionada (P1) |
+| RR-10 | Tareas para el programador, roadmap para todos | Una carpeta fija por tarea, estado como campo, sin carpetas por estado (P1) |
 | RR-11 | Roadmap sin interferir en la verificación | El roadmap vive con las tareas, fuera de las ramas de código (P1) |
 | RR-12 | Equipo sin pisarse | IDs reservados atómicamente; tomar una tarea es visible al instante (P2) |
 | RR-13 | Actualizar los proyectos existentes | `taskctl actualizar` con simulación y vuelta atrás (F9) |
 | RR-14 | Hecho con la versión actual de TaskCode | TaskCodeTwo se desarrolla con TaskCode 0.16 (§7) |
+| RR-15 | GitHub y GitLab desde la 2.0 | Adaptador de plataforma con las dos implementaciones y la misma batería E2E (P11) |
 
 ## 3. Qué existe y qué aprendemos
 
@@ -59,18 +60,22 @@ aportación de TaskCodeTwo.
 
 ## 4. Principios de diseño
 
-### P1 — Las tareas viven en su propia rama de estado, en una carpeta por estado (RR-10, RR-11, RR-12)
+### P1 — Una carpeta fija por tarea para el programador, el roadmap para todos, todo en su propia rama de estado (RR-10, RR-11, RR-12)
 
-- Las tareas siguen siendo ficheros en `tareas/00-planificadas`,
-  `01-en-diseno`, `02-en-curso`, `03-en-revision`, `04-terminadas` y
-  `05-descartadas`, con el `ROADMAP.md`, legibles en GitHub y en el editor.
-- **Pero no viajan en las ramas de código.** Viven en una rama propia,
+- Cada tarea es una carpeta fija, `tareas/TASK-NNN/` (`tarea.md`, plan,
+  informes de revisión, resultado), que **no se mueve nunca**: el estado es un
+  campo del frontmatter. Sin carpetas por estado, sin renombrados.
+- **La vista para todos es el `ROADMAP.md`**: tareas en curso (con quién las
+  lleva), en revisión, planificadas por hito con sus dependencias, terminadas
+  y descartadas, con su grafo en Mermaid. Se lee en GitHub, en GitLab o en el
+  editor.
+- **Nada de esto viaja en las ramas de código.** Vive en una rama propia,
   `taskcode/tareas`, que el CLI monta como worktree en la carpeta `tareas/` del
   proyecto (ignorada en las ramas de código).
 - Consecuencias:
   - **Ninguna rama de código lleva cambios de tareas**: cero conflictos de
-    ROADMAP, BOARD o `tarea.md` al mergear (H8), y ningún revert de código
-    puede borrar una tarea (TASK-172).
+    ROADMAP o `tarea.md` al integrar (H8), y ningún revert de código puede
+    borrar una tarea (TASK-172).
   - **El estado real está siempre a la vista** en una sola rama, para todo el
     equipo (H7).
   - **El roadmap no interfiere con la verificación**: no está en el árbol que
@@ -148,6 +153,17 @@ aportación de TaskCodeTwo.
 - Auditoría interna por versión y externa sin contexto por versión mayor.
   Ningún cambio del método sin la cifra que lo motiva.
 
+### P11 — GitHub y GitLab con las mismas garantías (RR-15)
+
+- Un adaptador de plataforma con dos implementaciones desde la 2.0: rama
+  protegida, pipeline obligatoria, aprobación de una persona, identidad propia
+  del agente y del revisor, cola o tren de merge, en GitHub y en GitLab.
+- La verificación se publica como workflow de GitHub Actions y como plantilla
+  de GitLab CI que llaman al mismo comando del proyecto.
+- Algunas funciones de GitLab dependen del plan de pago (por ejemplo, reglas
+  de aprobación obligatorias o trenes de merge): el ADR F1-13 lo verifica, y
+  `doctor` dice qué garantía no está disponible y qué la sustituye.
+
 ### P10 — El plugin es un producto
 
 - CI en Linux, macOS y Windows sin «rojos conocidos»; tests E2E contra un repo
@@ -157,7 +173,7 @@ aportación de TaskCodeTwo.
 
 | Conserva (con uso medido) | Cambia | Retira (sin uso) o pasa a extensión |
 |---|---|---|
-| Carpeta `tareas/` por estado, `tarea.md` con frontmatter, `## Resultado`, informes de revisión | El estado pasa a una rama propia y se escribe de forma atómica | `codex-review`, `verificar-lote`, `cadena` (retiran) |
+| `tarea.md` con frontmatter, `## Resultado`, informes de revisión | Carpeta fija por tarea (sin carpetas por estado), en una rama propia, con escrituras atómicas; el roadmap es la vista | `codex-review`, `verificar-lote`, `cadena` (retiran) |
 | Import en bloque, dependencias, hitos, ROADMAP | El ROADMAP se regenera en la rama de estado, nunca en la de código | `doctor-deploy`, held-out, `trocear`, documentos con tope (extensiones) |
 | Brainstorm de roles + unificador; revisoras por dominio | La revisión se publica en el PR con identidad propia y check obligatorio | Scripts bash de Git-Flow (su función pasa al CLI) |
 | Modos manual/semi/automático | Las puertas humanas, por carril y verificables | `pause`/`resume` con stash (sobran con worktrees) |
@@ -167,8 +183,8 @@ aportación de TaskCodeTwo.
 
 ## 6. Cómo trabajará un equipo con TaskCodeTwo
 
-1. `taskctl import plan-h15.md` → reserva los IDs y crea las tareas del hito en
-   `tareas/00-planificadas` de la rama de estado, con dependencias. Todo el
+1. `taskctl import plan-h15.md` → reserva los IDs y crea las tareas del hito en la
+   rama de estado (una carpeta por tarea, estado «planificada»), con dependencias. Todo el
    equipo las ve en el roadmap.
 2. `taskctl next` → qué está listo para empezar según dependencias y prioridad.
 3. `taskctl plan TASK-312` → brainstorm de roles proporcional al carril; el
@@ -182,10 +198,11 @@ aportación de TaskCodeTwo.
 6. Correcciones → la CI corre solo lo afectado; el revisor mira solo lo que
    cambió y si se cerraron los hallazgos.
 7. `taskctl finish` → con las puertas en verde y la aprobación de una persona,
-   merge en `develop` por la cola; la tarea pasa a `04-terminadas` en la rama de
-   estado con su `## Resultado`.
-8. `taskctl board`, `roadmap` y `metricas` leen la rama de estado y GitHub, y
-   enseñan lo mismo a todo el equipo.
+   merge en `develop` por la cola; la tarea pasa a «terminada» en la rama de
+   estado con su `## Resultado`, y el roadmap lo refleja.
+8. El `ROADMAP.md` de la rama de estado es lo que mira el equipo; `taskctl
+   status` y `metricas` leen la rama de estado y la plataforma (GitHub o
+   GitLab) y enseñan lo mismo a todos.
 
 ## 7. Cómo se construye: TaskCodeTwo con TaskCode 0.16 (RR-14)
 
@@ -225,8 +242,8 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 
 | ID | Tarea | Criterio de aceptación | Dep. |
 |---|---|---|---|
-| F1-0 | Crear TaskCodeTwo: repo en GitHub, `develop` y `main`, TaskCode 0.16 instalado, `tareas/`, config, CI mínima; importar este plan con `taskctl import` (RR-14) | `taskctl doctor` en verde; las tareas F1..F9 en `00-planificadas` con dependencias | — |
-| F1-1 | ADR: estado en rama propia `taskcode/tareas` montada como worktree en `tareas/` (P1) frente a estado en `develop` | Decisión con pruebas de concepto de las dos; cómo se ve en GitHub | F1-0 |
+| F1-0 | Crear TaskCodeTwo: repo en GitHub, `develop` y `main`, TaskCode 0.16 instalado, `tareas/`, config, CI mínima; importar este plan con `taskctl import` (RR-14) | `taskctl doctor` en verde; las tareas F1..F9 planificadas con dependencias | — |
+| F1-1 | ADR: carpeta fija por tarea con estado como campo, en rama propia `taskcode/tareas` montada como worktree en `tareas/` (P1), frente a estado en `develop`; contenido del ROADMAP | Decisión con pruebas de concepto de las dos; cómo se ve en GitHub | F1-0 |
 | F1-2 | ADR: escrituras atómicas, reserva de IDs y toma de tareas (P2) | Protocolo de push con reintento; qué pasa sin red | F1-1 |
 | F1-3 | ADR: flujo de ramas `develop`/`main`, rama por tarea, worktrees, release y hotfix (P4) | Nombres, ciclo completo, qué queda de Git-Flow | F1-0 |
 | F1-4 | ADR: capa de operaciones Git/GitHub deterministas y su contrato de salida para el agente (P5) | Lista cerrada de operaciones; objetivo de tokens por tarea | F1-3 |
@@ -238,7 +255,7 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | F1-10 | ADR: carriles y modo automático (qué para y dónde) (P7) | Política por carril, configurable | F1-5 |
 | F1-11 | ADR: extensiones declaradas (P8) | Contrato que cubre lo que hoy hacen ToolsaWeb y OpenDockTrading a mano | F1-1, F1-7 |
 | F1-12 | ADR: actualización de proyectos entre versiones (RR-13) | Qué migra, simulación, vuelta atrás, convivencia 0.16/2.0 | F1-1, F1-9 |
-| F1-13 | ADR: adaptador de plataforma (GitHub primero, GitLab después) | Operaciones mínimas y cómo se prueba cada adaptador | F1-4 |
+| F1-13 | ADR: adaptador de plataforma GitHub y GitLab (RR-15): equivalencias (rulesets y ramas protegidas, checks y pipelines, reviews y approvals, cola y tren de merge, Apps y tokens de proyecto) y qué depende del plan de pago | Tabla de equivalencias verificada en las dos; cómo se prueba cada adaptador | F1-4 |
 
 ### Fase 2 — Núcleo
 
@@ -249,7 +266,8 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | F2-3 | Rama de estado: crear, montar como worktree en `tareas/`, leer y escribir de forma atómica (P1, P2) | Dos procesos escriben a la vez sin perder nada; test | F1-1, F1-2, F2-2 |
 | F2-4 | Reserva de IDs por push atómico | Dos clones crean tarea a la vez → IDs distintos; test E2E | F2-3 |
 | F2-5 | Modelo de tarea y parser/serializador de frontmatter YAML válido | Ida y vuelta con un parser estándar; compatible con tareas de la 0.16 | F1-9 |
-| F2-6 | Adaptador GitHub (PR, checks, reviews, identidad) sobre la API, con errores dirigidos a la persona | E2E contra un repo de pruebas | F1-13, F2-2 |
+| F2-6 | Adaptador GitHub (PR, checks, reviews, identidad) sobre la API, con errores dirigidos a la persona | E2E contra un repo de pruebas en GitHub | F1-13, F2-2 |
+| F2-9 | Adaptador GitLab (MR, pipelines, approvals, identidad) con la misma interfaz y la misma batería E2E (RR-15) | E2E contra un proyecto de pruebas en GitLab | F1-13, F2-2 |
 | F2-7 | Configuración mínima con esquema validado y valores por defecto | ≤ 12 claves; esquema publicado; tests | F1-10 |
 | F2-8 | i18n de mensajes (es, en) | Test que falla si falta una traducción | F2-1 |
 
@@ -260,10 +278,10 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | F3-1 | `taskctl init` / `setup`: rama de estado, carpetas, config, workflow de CI y propuesta de rulesets | Repo vacío listo; idempotente; `--dry-run` | F2-3, F2-6 |
 | F3-2 | `new` e `import` en bloque con dependencias e hito (RF-01..03) | Importa un hito de 37 tareas; repetirlo no duplica | F2-4, F2-5 |
 | F3-3 | `next`: lo listo para empezar por dependencias y prioridad | Coincide con el orden del ROADMAP actual de ToolsaWeb | F3-2 |
-| F3-4 | `roadmap`: vista por hito, estado y dependencias con Mermaid, regenerada en la rama de estado tras cada cambio (RR-11) | Sin conflictos con dos escrituras a la vez; no toca ramas de código | F2-3 |
+| F3-4 | `roadmap`: la vista para todos (en curso con quién, en revisión, planificadas por hito, terminadas, descartadas) con dependencias y Mermaid, regenerada en la rama de estado tras cada cambio (RR-10, RR-11) | Sin conflictos con dos escrituras a la vez; no toca ramas de código | F2-3 |
 | F3-5 | `board` y `status`: estado del equipo (quién lleva qué, qué espera revisión) desde la rama de estado y GitHub | Lo mismo para todo el equipo; sin ficheros en ramas de código | F2-3, F2-6 |
 | F3-6 | `start`: toma atómica de la tarea, rama y worktree desde `develop` | Dos personas no pueden tomar la misma tarea; test E2E | F2-3, F2-2 |
-| F3-7 | `descartar` y `pausa` (RF-07, RF-08) | Pasa a `05-descartadas` con motivo; el ID no se reutiliza | F2-3 |
+| F3-7 | `descartar` y `pausa` (RF-07, RF-08) | Estado «descartada» con motivo, visible en el roadmap; el ID no se reutiliza | F2-3 |
 | F3-8 | `doctor`: entorno, rama de estado, permisos, rulesets y checks reales | Detecta una protección de rama ausente | F3-1 |
 
 ### Fase 4 — Diseño y aprobación
@@ -280,7 +298,7 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 
 | ID | Tarea | Criterio de aceptación | Dep. |
 |---|---|---|---|
-| F5-1 | Workflow reutilizable con perfiles (rápida, impacto, completa, pesada) que llama al comando del proyecto | ToolsaWeb y OpenDockTrading lo usan sin scripts nuevos | F1-7 |
+| F5-1 | Workflow reutilizable de GitHub Actions y plantilla de GitLab CI con perfiles (rápida, impacto, completa, pesada) que llaman al comando del proyecto (RR-15) | ToolsaWeb y OpenDockTrading lo usan sin scripts nuevos; la plantilla de GitLab pasa en un proyecto de pruebas | F1-7 |
 | F5-2 | Caché por SHA del árbol compartida por PR, cola de merge y release | Cero repeticiones sobre el mismo SHA, medido | F5-1 |
 | F5-3 | Verificación por impacto como paso de CI y completa en la cola de merge | Tiempo de CI por PR antes y después | F5-1 |
 | F5-4 | Informe de verificación en JSON para el revisor IA | El revisor lo cita y no repite tests | F5-1 |
@@ -291,7 +309,7 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 
 | ID | Tarea | Criterio de aceptación | Dep. |
 |---|---|---|---|
-| F6-1 | Identidades: App del agente implementador (commits y PR) y App del revisor (reviews y checks; nunca aprobar ni mergear) | La persona aprueba un PR del agente en un repo de una persona | F1-6 |
+| F6-1 | Identidades: agente implementador (commits y PR/MR) y revisor (reviews y checks; nunca aprobar ni mergear), como GitHub App y como usuario bot o token de proyecto en GitLab | La persona aprueba un PR/MR del agente en GitHub y en GitLab | F1-6 |
 | F6-2 | `review`: abre el PR contra `develop` con la identidad del agente y lanza el revisor | PR enlazado a la tarea; check `revision-ia` | F6-1, F2-6 |
 | F6-3 | Revisor en CI con las skills de dominio de la 0.16 (angular-vue, rust-wasm, C#, Java, genérica), enrutado por lo que toca el diff (RR-02) | Un diff Rust + Vue lanza las dos de dominio | F6-2, F5-4 |
 | F6-4 | Búsqueda de errores: reproducción, mutantes y bordes con evidencia en cada hallazgo (RR-03) | Hallazgo sin evidencia = rechazado por el propio workflow | F6-3 |
@@ -303,7 +321,7 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 
 | ID | Tarea | Criterio de aceptación | Dep. |
 |---|---|---|---|
-| F7-1 | `finish`: merge en `develop` por la cola cuando pasan las puertas; tarea a `04-terminadas` con `## Resultado` (RR-06) | Nada se integra con un check en rojo o sin aprobación | F6-5, F2-3 |
+| F7-1 | `finish`: merge en `develop` por la cola cuando pasan las puertas; tarea en estado «terminada» con su `## Resultado` y el roadmap actualizado (RR-06) | Nada se integra con un check en rojo o sin aprobación | F6-5, F2-3 |
 | F7-2 | `## Resultado` obligatorio (qué se hizo, divergencias, hallazgos no corregidos) | `finish` lo exige; test | F7-1 |
 | F7-3 | `release` y `hotfix` con tag y notas desde los PR | Release reproducible en un repo de pruebas | F2-2 |
 | F7-4 | CHANGELOG generado al publicar, no en cada cierre | Sin conflictos entre ramas | F7-3 |
@@ -315,7 +333,7 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | F8-1 | `metricas`: tiempo por fase, rondas, hallazgos, tokens y minutos de CI repetidos, por tarea, versión y repo | Reproduce las cifras de la medición de la 0.16 | F5-2, F6-5 |
 | F8-2 | Presupuesto de tokens por carril con desglose (diseño, implementación, revisión, verificación, operaciones Git) | Cuadra con la transcripción | F8-1 |
 | F8-3 | Ciclo de iteración: informe por versión frente a la anterior y auditoría externa por versión mayor (RR-05) | Ningún cambio del método sin dato | F8-1 |
-| F8-4 | Espejo opcional en GitHub Issues/Projects de la rama de estado | Quien quiera ve el tablero en GitHub; la fuente sigue siendo la carpeta | F3-5 |
+| F8-4 | Espejo opcional en issues de GitHub o GitLab de la rama de estado | Quien quiera ve el tablero en la plataforma; la fuente siguen siendo las tareas y el roadmap | F3-5 |
 | F8-5 | Guía de una página y referencia generada desde el código | Una persona nueva hace su primera tarea en 15 min | F3-*, F7-* |
 
 ### Fase 9 — Actualización de proyectos y piloto (RR-13)
@@ -323,7 +341,7 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 | ID | Tarea | Criterio de aceptación | Dep. |
 |---|---|---|---|
 | F9-1 | `taskctl actualizar --simular`: informe de lo que cambiaría al pasar un proyecto de la 0.16 a la 2.0 | Sobre copias de ToolsaWeb y OpenDockTrading, sin tocar nada | F1-12, F2-5 |
-| F9-2 | `taskctl actualizar`: mueve `tareas/` a la rama de estado conservando historial, migra la config, conserva IDs, dependencias e hitos; vuelta atrás con un comando | Copia de ToolsaWeb migrada: 403 tareas, mismas dependencias, roadmap igual | F9-1, F2-3 |
+| F9-2 | `taskctl actualizar`: lleva `tareas/` a la rama de estado aplanando las carpetas por estado (una carpeta fija por tarea) y conservando historial, migra la config, conserva IDs, dependencias e hitos; vuelta atrás con un comando | Copia de ToolsaWeb migrada: 403 tareas, mismas dependencias, roadmap igual | F9-1, F2-3 |
 | F9-3 | Actualizaciones entre versiones de la 2.x (migraciones encadenadas) | 2.0 → 2.1 de prueba sin intervención | F9-2 |
 | F9-4 | Suite E2E del flujo con dos «personas» a la vez | Sin conflictos; tablero correcto; merge solo con puertas | F7-*, F3-6 |
 | F9-5 | Prueba de seguridad (PR malicioso, config hostil, inyección en tareas) | Ninguno ejecuta código ni salta una puerta | F6-7 |
@@ -334,12 +352,12 @@ dependencias. Las fases 1 a 9 son tareas de TaskCodeTwo; la 0, del repo TaskCode
 
 ## 9. Criterios de salida de la 2.0
 
-- Los **catorce requisitos rectores** se cumplen, cada uno con su prueba o su
+- Los **quince requisitos rectores** se cumplen, cada uno con su prueba o su
   cifra; todos los requisitos **I** del catálogo, cubiertos.
 - Ningún paso del flujo pide al agente escribir `git` o `gh`, y los tokens por
   tarea bajan frente a la 0.16.
 - El merge en `develop` y en `main` es imposible sin checks verdes y la
-  aprobación de una persona.
+  aprobación de una persona, en GitHub y en GitLab.
 - Dos personas trabajan a la vez sin conflictos de IDs, estado ni ficheros
   generados; el roadmap no toca la verificación.
 - ToolsaWeb y OpenDockTrading actualizados con `taskctl actualizar`, sin perder

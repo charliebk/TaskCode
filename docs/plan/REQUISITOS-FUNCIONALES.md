@@ -24,10 +24,11 @@ de ellos, gana el requisito rector.
 | RR-07 | **Agilidad** | Nada se ejecuta dos veces sin cambios (RF-42), carriles proporcionales y pocas puertas humanas con valor |
 | RR-08 | **Calidad** | Las garantías las imponen la plataforma y la CI, no las instrucciones al agente |
 | RR-09 | **Trabajo en grupo** | Varias personas y agentes a la vez sin conflictos de estado, IDs ni ficheros generados (RN-05, RN-06) |
-| RR-10 | **Carpeta de tareas en el repo, con su estado a la vista** (terminadas, en curso, en revisión, planificadas...) | Las tareas siguen siendo ficheros versionados en `tareas/`, legibles sin herramientas; el estado de cada una se ve desde `develop`. GitHub Issues/Projects, si se usan, son un espejo opcional, no la fuente de verdad |
-| RR-11 | **Un roadmap para ver todo, sin interferir en la verificación** | Vista de todas las tareas por hito, estado y dependencias, regenerada sin invalidar la verificación (ni la huella ni la caché) y sin conflictos entre ramas |
+| RR-10 | **Las tareas son ficheros para el programador; el roadmap es la vista para todos** | Una carpeta fija por tarea (`tareas/TASK-NNN/`: tarea, plan, informes, resultado) que no se mueve nunca; el estado es un campo. Sin carpetas por estado. Issues de GitHub o GitLab, si se usan, son un espejo opcional |
+| RR-11 | **Un roadmap para ver todo, sin interferir en la verificación** | Vista de todas las tareas por estado (en curso, en revisión, planificadas por hito, terminadas, descartadas) y dependencias, regenerada sin invalidar la verificación (ni la huella ni la caché) y sin conflictos entre ramas |
 | RR-12 | **Equipo sin pisarse el trabajo** | IDs únicos aunque se creen a la vez en dos clones; una tarea la toma una persona o agente y los demás lo ven; ningún fichero compartido se reescribe en cada fase |
 | RR-13 | **Actualizar los proyectos existentes a la versión actual** | Comando de actualización (`taskctl actualizar`) que migra la estructura, la config y las tareas de un proyecto de una versión a otra, con simulación previa, idempotente y reversible; primero ToolsaWeb y OpenDockTrading de la 0.16 a la 2.0 |
+| RR-15 | **GitHub y GitLab desde la 2.0** | Las mismas garantías en las dos plataformas: rama protegida, pipeline obligatoria, aprobación de una persona, identidad propia del agente. Donde una plataforma o su plan de pago no ofrezca algo, la diferencia se documenta y `doctor` la dice |
 | RR-14 | **Se construye con la versión actual de TaskCode** | El plan entero se ejecuta como tareas de TaskCode 0.16 en este repo (`taskctl import`, plan, revisión, finish). La 2.0 sustituye a la 0.16 en TaskCode solo cuando puede llevar su propio desarrollo |
 
 ## 1. Uso medido
