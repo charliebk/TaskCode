@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [windows, review]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-135-diffrangeforpaths-por-lotes-enametoolong
 asignado_a: charlie.bk@gmail.com
@@ -39,3 +39,4 @@ En la revision fragmentada por dominio, review pide el diff de cada grupo con di
 |---|---|---|---|---|
 | 2026-11-18T13:29:13Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-18T13:30:18Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-18T13:30:27Z | start | automatico | persona | 0.16.1 |
