@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [windows, verificacion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-136-cerrojo-en-verificar-impacto-dos-ejecuci
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ scripts/verificar-impacto.mjs guarda dist/src (versionado) en una carpeta de cop
 - [ ] devolver no borra dist/src si la copia que debia devolver no existe: avisa y deja dist/src como esta
 - [ ] La espera tiene un tope (variable de entorno, por defecto 30 min); al agotarlo sale con 1 y un mensaje que dice que pid tiene el cerrojo y donde esta
 - [ ] Los tests existentes de test/scripts/verificar-impacto.test.ts siguen en verde, incluido el de la ejecucion cortada a mitad
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-18T15:11:56Z | plan | automatico | persona | 0.16.2 |
