@@ -435,3 +435,58 @@ test('TASK-136: con el cerrojo en manos de un proceso vivo y la espera agotada, 
     }
   });
 });
+
+test('TASK-136 (MEN-2): si la copia desaparece a mitad, devolver avisa y no borra dist/src', async () => {
+  await conRepo(async (raiz) => {
+    await escribir(raiz, `${PLUGIN}/dist/src/x.js`, 'export const x = 1;\n');
+    // Un build que reescribe dist/src y borra la copia que verificar-impacto
+    // tiene guardada (lo que hacia una segunda ejecucion antes del cerrojo).
+    await escribir(
+      raiz,
+      `${PLUGIN}/pierde-copia.cjs`,
+      "const fs = require('fs');\n" +
+        "fs.writeFileSync('dist/src/x.js', 'cambiado');\n" +
+        "fs.rmSync(require('path').join(process.env.COPIA_A_BORRAR, 'src'), { recursive: true, force: true });\n"
+    );
+    await escribir(raiz, `${PLUGIN}/package.json`, JSON.stringify({ type: 'module', scripts: { build: 'node pierde-copia.cjs' } }));
+    git(['add', '-A'], raiz);
+    git(['commit', '-q', '-m', 'dist'], raiz);
+    await cambiarYCommitear(raiz, 'docs/guia.md', '# otra\n');
+    const copia = (await rutaCerrojo(raiz)).replace(/[.]cerrojo$/, '');
+    const r = spawnSync(process.execPath, [SCRIPT], {
+      cwd: raiz,
+      encoding: 'utf8',
+      env: { ...process.env, RAMA_BASE: 'develop', COPIA_A_BORRAR: copia },
+    });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /no encuentro la copia de dist[/]src/);
+    const x = path.join(raiz, ...PLUGIN.split('/'), 'dist', 'src', 'x.js');
+    assert.ok(existsSync(x), 'dist/src no se borra sin copia que devolver');
+    assert.ok(!existsSync(copia), 'la carpeta de copia se limpia');
+  });
+});
+
+test('TASK-136 (MEN-1): un cerrojo muerto solo lo retira quien tiene el .robo; un .robo caducado no bloquea', async () => {
+  await conRepo(async (raiz) => {
+    await conDistYBuildLento(raiz, 0);
+    const muerto = spawnSync(process.execPath, ['-e', 'process.stdout.write(String(process.pid))'], { encoding: 'utf8' });
+    const cerrojo = await rutaCerrojo(raiz);
+    const robo = `${cerrojo}.robo`;
+    writeFileSync(cerrojo, JSON.stringify({ pid: Number(muerto.stdout), desde: new Date().toISOString() }));
+    // Un .robo recien creado: otra ejecucion esta retirando el cerrojo muerto.
+    writeFileSync(robo, '1');
+    try {
+      const inicio = Date.now();
+      const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env: { ...process.env, RAMA_BASE: 'develop' } });
+      const ms = Date.now() - inicio;
+      assert.equal(r.status, 0, r.stdout + r.stderr);
+      assert.ok(ms >= 9000, `respeta el .robo hasta que caduca (tardo ${String(ms)} ms)`);
+      assert.match(r.stdout, /cerrojo de una ejecucion que ya no existe/);
+      assert.equal(git(['status', '--porcelain'], raiz), '');
+      assert.ok(!existsSync(cerrojo) && !existsSync(robo));
+    } finally {
+      rmSync(cerrojo, { force: true });
+      rmSync(robo, { force: true });
+    }
+  });
+});

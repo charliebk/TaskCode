@@ -507,16 +507,21 @@ function tomarCerrojo(cerrojo, esperaS) {
     }
     const pid = pidDelCerrojo(cerrojo);
     if (!procesoVivo(pid)) {
+      // Lo acaba de soltar su dueno entre el `wx` y la lectura: se reintenta.
+      if (pid === null && !existsSync(cerrojo)) continue;
       // Ilegible puede ser un cerrojo a medio escribir: se le da un reintento antes de tomarlo por cortado.
-      if (pid === null && existsSync(cerrojo) && !dudaIlegible) {
+      if (pid === null && !dudaIlegible) {
         dudaIlegible = true;
         dormir(REINTENTO_MS);
-        if (pidDelCerrojo(cerrojo) !== null) continue;
+        continue;
       }
-      console.log(
-        `[verificar-impacto] AVISO: habia un cerrojo de una ejecucion que ya no existe (pid ${String(pid)}, ${cerrojo}). Lo tomo.`
-      );
-      rmSync(cerrojo, { force: true });
+      if (retirarCerrojoMuerto(cerrojo, pid)) {
+        console.log(
+          `[verificar-impacto] AVISO: habia un cerrojo de una ejecucion que ya no existe (pid ${String(pid)}, ${cerrojo}). Lo tomo.`
+        );
+      } else {
+        dormir(REINTENTO_MS);
+      }
       continue;
     }
     if (Date.now() >= limite) {
@@ -534,6 +539,41 @@ function tomarCerrojo(cerrojo, esperaS) {
       );
     }
     dormir(REINTENTO_MS);
+  }
+}
+
+/** Un `.robo` mas viejo que esto es de un proceso que murio mientras retiraba un cerrojo muerto. */
+const ROBO_CADUCADO_MS = 10_000;
+
+/**
+ * TASK-136 (MEN-1 de la revision): retira un cerrojo muerto sin pisar uno
+ * nuevo. Leer, comprobar y borrar por ruta no es atomico: dos ejecuciones que
+ * leen el mismo pid muerto podian acabar con una borrando el cerrojo recien
+ * creado por la otra. Solo quien crea `<cerrojo>.robo` (con `wx`) puede
+ * retirar, y lo hace tras volver a leer el cerrojo: si ya no es el muerto que
+ * vio, lo deja. true si lo retiro; false si otro esta retirando o el cerrojo
+ * cambio (quien llama reintenta).
+ */
+function retirarCerrojoMuerto(cerrojo, pidMuerto) {
+  const robo = `${cerrojo}.robo`;
+  try {
+    writeFileSync(robo, String(process.pid), { flag: 'wx' });
+  } catch (e) {
+    if (e.code !== 'EEXIST') throw e;
+    try {
+      if (Date.now() - statSync(robo).mtimeMs > ROBO_CADUCADO_MS) rmSync(robo, { force: true });
+    } catch {
+      // ya no existe: el siguiente intento lo crea
+    }
+    return false;
+  }
+  try {
+    const actual = pidDelCerrojo(cerrojo);
+    if (actual !== pidMuerto || procesoVivo(actual)) return false;
+    rmSync(cerrojo, { force: true });
+    return true;
+  } finally {
+    rmSync(robo, { force: true });
   }
 }
 
