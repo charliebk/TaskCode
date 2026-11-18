@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 143 / 143 items terminados (100%)** · última actualización: 2026-11-18
+**Progreso global: 144 / 144 items terminados (100%)** · última actualización: 2026-11-18
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 42 | **42** | — |
+| ✅ P — Agilidad sin perder calidad | 43 | **43** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (42/42)
+## ✅ P — Agilidad sin perder calidad (43/43)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -206,6 +206,9 @@ del código.
 - [x] TASK-135 — diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada — cerrada el 2026-11-18
       *lotesDeRutas corta por numero de rutas y por caracteres de pathspec; la usan diffRangeForPaths y statDeFicheros
       (cierra el MENOR de TASK-113). Reproducido y mutante cazado con 1300 rutas. Una ronda aprobada sin hallazgos.*
+- [x] TASK-136 — Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src — cerrada el 2026-11-18
+      *<copia>.cerrojo con wx y pid: la segunda espera (tope VERIFICAR_IMPACTO_ESPERA_S), el muerto se retira con .robo,
+      devolver no borra dist/src sin copia. Una ronda aprobada con correcciones (MEN-1..2 sin ronda 2). finish --sin-verificacion (la completa expiro a 1800 s).*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
