@@ -52,6 +52,13 @@
  * la copia con su marcador, restaura `dist/src` y lo avisa. `dist/test` (no
  * versionado) puede quedar a medias hasta el siguiente build.
  *
+ * Cerrojo (TASK-136): la copia es una por plugin, asi que dos ejecuciones a la
+ * vez (una ronda de `review` y el freno Stop) se pisaban y dejaban `dist/src`
+ * borrado. Un fichero `<copia>.cerrojo` con el pid, creado de forma atomica,
+ * hace que la segunda espere (VERIFICAR_IMPACTO_ESPERA_S, 1800 por defecto;
+ * agotada, sale con 1). Un cerrojo con un pid que ya no existe es de una
+ * ejecucion cortada: se toma y se recupera la copia como arriba.
+ *
  * `--listar` solo imprime la seleccion en JSON (sin compilar ni ejecutar).
  * Cero dependencias: node >= 22.
  */
@@ -396,12 +403,25 @@ function main(argv) {
   // dist/src (versionado). Se guarda antes y se devuelve tal cual al acabar.
   const distSrc = path.join(dirPlugin, 'dist', 'src');
   const copia = dirCopia(dirPlugin);
-  restaurarHuerfana(copia, distSrc);
-  mkdirSync(copia, { recursive: true });
-  const habiaDist = existsSync(distSrc);
-  if (habiaDist) cpSync(distSrc, path.join(copia, 'src'), { recursive: true });
-  // El marcador va el ultimo: sin el, la copia esta a medias y no se restaura.
-  writeFileSync(path.join(copia, MARCADOR), JSON.stringify({ dirPlugin, habiaDist, pid: process.pid }));
+  // TASK-136: la copia es una por plugin. Sin cerrojo, una segunda ejecucion
+  // (review en segundo plano y el freno Stop a la vez) tomaba la copia viva de
+  // la primera por huerfana, la restauraba y la borraba; la primera acababa
+  // borrando dist/src sin nada que devolver. Con el cerrojo, quien llega
+  // segundo espera; y la copia solo se toca con el cerrojo en la mano.
+  const cerrojo = `${copia}.cerrojo`;
+  if (!tomarCerrojo(cerrojo, leerEspera(process.env.VERIFICAR_IMPACTO_ESPERA_S))) return 1;
+  let habiaDist = false;
+  try {
+    restaurarHuerfana(copia, distSrc);
+    mkdirSync(copia, { recursive: true });
+    habiaDist = existsSync(distSrc);
+    if (habiaDist) cpSync(distSrc, path.join(copia, 'src'), { recursive: true });
+    // El marcador va el ultimo: sin el, la copia esta a medias y no se restaura.
+    writeFileSync(path.join(copia, MARCADOR), JSON.stringify({ dirPlugin, habiaDist, pid: process.pid }));
+  } catch (e) {
+    soltarCerrojo(cerrojo);
+    throw e;
+  }
   try {
     if (existsSync(path.join(dirPlugin, 'package.json'))) {
       const scripts = JSON.parse(readFileSync(path.join(dirPlugin, 'package.json'), 'utf8')).scripts ?? {};
@@ -425,11 +445,102 @@ function main(argv) {
     console.log(`[verificar-impacto] node --test termino con ${String(r.status)} en ${((Date.now() - inicio) / 1000).toFixed(1)} s.`);
     return r.status ?? 1;
   } finally {
-    devolver(copia, distSrc, habiaDist);
+    try {
+      devolver(copia, distSrc, habiaDist);
+    } finally {
+      soltarCerrojo(cerrojo);
+    }
   }
 }
 
 const MARCADOR = 'marcador.json';
+
+/** TASK-136: espera maxima por el cerrojo, en segundos (VERIFICAR_IMPACTO_ESPERA_S; 30 min por defecto). */
+const ESPERA_POR_DEFECTO_S = 1800;
+const REINTENTO_MS = 500;
+
+function leerEspera(valor) {
+  const n = Number(valor);
+  return valor !== undefined && valor.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : ESPERA_POR_DEFECTO_S;
+}
+
+function dormir(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/** true si existe un proceso con ese pid (EPERM: existe, pero es de otro usuario). */
+function procesoVivo(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return e.code === 'EPERM';
+  }
+}
+
+function pidDelCerrojo(cerrojo) {
+  try {
+    return JSON.parse(readFileSync(cerrojo, 'utf8')).pid;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * TASK-136: toma el cerrojo (fichero creado con `wx`, la unica operacion
+ * atomica de todo esto) o espera a quien lo tenga. Un cerrojo con el pid de
+ * un proceso que ya no existe, o ilegible, es de una ejecucion cortada: se
+ * borra y se vuelve a intentar (otra puede ganar la carrera; entonces se la
+ * espera). false si la espera se agota, con el motivo ya impreso.
+ */
+function tomarCerrojo(cerrojo, esperaS) {
+  const limite = Date.now() + esperaS * 1000;
+  let avisado = false;
+  let dudaIlegible = false;
+  for (;;) {
+    try {
+      writeFileSync(cerrojo, JSON.stringify({ pid: process.pid, desde: new Date().toISOString() }), { flag: 'wx' });
+      return true;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
+    const pid = pidDelCerrojo(cerrojo);
+    if (!procesoVivo(pid)) {
+      // Ilegible puede ser un cerrojo a medio escribir: se le da un reintento antes de tomarlo por cortado.
+      if (pid === null && existsSync(cerrojo) && !dudaIlegible) {
+        dudaIlegible = true;
+        dormir(REINTENTO_MS);
+        if (pidDelCerrojo(cerrojo) !== null) continue;
+      }
+      console.log(
+        `[verificar-impacto] AVISO: habia un cerrojo de una ejecucion que ya no existe (pid ${String(pid)}, ${cerrojo}). Lo tomo.`
+      );
+      rmSync(cerrojo, { force: true });
+      continue;
+    }
+    if (Date.now() >= limite) {
+      console.error(
+        `[ERROR] verificar-impacto: otra verificacion (pid ${String(pid)}) tiene el cerrojo ${cerrojo} y no ha terminado en ` +
+          `${String(esperaS)} s. Espera a que acabe o, si sabes que ese proceso ya no es una verificacion, borra el cerrojo. ` +
+          'No se ha tocado dist/src.'
+      );
+      return false;
+    }
+    if (!avisado) {
+      avisado = true;
+      console.log(
+        `[verificar-impacto] Otra verificacion esta en marcha sobre este plugin: espero a la ejecucion ${String(pid)} que tiene el cerrojo (${cerrojo}).`
+      );
+    }
+    dormir(REINTENTO_MS);
+  }
+}
+
+/** Suelta el cerrojo solo si sigue siendo de este proceso. */
+function soltarCerrojo(cerrojo) {
+  if (pidDelCerrojo(cerrojo) === process.pid) rmSync(cerrojo, { force: true });
+}
 
 /** Carpeta de la copia de dist/src: fija por plugin, para encontrarla si una ejecucion se corta. */
 export function dirCopia(dirPlugin) {
@@ -438,6 +549,16 @@ export function dirCopia(dirPlugin) {
 }
 
 function devolver(copia, distSrc, habiaDist) {
+  // TASK-136: segunda barrera. Sin copia que devolver, borrar dist/src lo
+  // perderia entero (bin/taskctl dejaria de arrancar): se deja como esta.
+  if (habiaDist && !existsSync(path.join(copia, 'src'))) {
+    console.log(
+      `[verificar-impacto] AVISO: no encuentro la copia de dist/src en ${copia}; dejo dist/src como esta. ` +
+        'Si git status lo marca cambiado, "npm run build" lo regenera.'
+    );
+    rmSync(copia, { recursive: true, force: true });
+    return;
+  }
   rmSync(distSrc, { recursive: true, force: true });
   if (habiaDist) cpSync(path.join(copia, 'src'), distSrc, { recursive: true });
   rmSync(copia, { recursive: true, force: true });

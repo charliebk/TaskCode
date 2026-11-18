@@ -6,10 +6,11 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { plantillaRepo } from '../helpers/repo-plantilla.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -342,5 +343,95 @@ test('la verificacion no cambia el arbol: dist/src vuelve tal cual tras compilar
     assert.equal(r.status, 0, r.stdout + r.stderr);
     assert.equal(git(['status', '--porcelain'], raiz), '');
     assert.match(r.stdout, /Seleccion recortada/);
+  });
+});
+
+// TASK-136: el cerrojo. La ruta del cerrojo sale de la raiz tal como la ve el
+// script (git rev-parse), no de la del test: en Windows tmpdir() puede venir
+// con nombres cortos (NULLCA~1) y el hash seria otro.
+async function rutaCerrojo(raiz: string): Promise<string> {
+  const { dirCopia } = (await import(pathToFileURL(SCRIPT).href)) as { dirCopia: (d: string) => string };
+  const top = git(['rev-parse', '--show-toplevel'], raiz).trim();
+  return `${dirCopia(path.join(top, ...PLUGIN.split('/')))}.cerrojo`;
+}
+
+/** Repo con dist/src versionado y un build que tarda `ms` y reescribe dist/src/x.js. */
+async function conDistYBuildLento(raiz: string, ms: number): Promise<void> {
+  await escribir(raiz, `${PLUGIN}/dist/src/x.js`, 'export const x = 1;\n');
+  await escribir(
+    raiz,
+    `${PLUGIN}/lento.cjs`,
+    `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${String(ms)});\n` +
+      "require('fs').writeFileSync('dist/src/x.js', 'cambiado');\n"
+  );
+  await escribir(raiz, `${PLUGIN}/package.json`, JSON.stringify({ type: 'module', scripts: { build: 'node lento.cjs' } }));
+  git(['add', '-A'], raiz);
+  git(['commit', '-q', '-m', 'dist'], raiz);
+  await cambiarYCommitear(raiz, 'docs/guia.md', '# otra\n');
+}
+
+function lanzar(raiz: string, env: NodeJS.ProcessEnv): Promise<{ status: number | null; salida: string }> {
+  return new Promise((resolve) => {
+    const hijo = spawn(process.execPath, [SCRIPT], { cwd: raiz, env, windowsHide: true });
+    let salida = '';
+    hijo.stdout.on('data', (d: Buffer) => (salida += d.toString()));
+    hijo.stderr.on('data', (d: Buffer) => (salida += d.toString()));
+    hijo.on('close', (status) => resolve({ status, salida }));
+  });
+}
+
+test('TASK-136: dos ejecuciones solapadas terminan las dos y dejan dist/src como estaba; la segunda espera', async () => {
+  await conRepo(async (raiz) => {
+    await conDistYBuildLento(raiz, 2500);
+    const env = { ...process.env, RAMA_BASE: 'develop' };
+    const primera = lanzar(raiz, env);
+    await new Promise((r) => setTimeout(r, 800));
+    const segunda = lanzar(raiz, env);
+    const [a, b] = await Promise.all([primera, segunda]);
+    assert.equal(a.status, 0, a.salida);
+    assert.equal(b.status, 0, b.salida);
+    assert.match(b.salida, /espero a la ejecucion \d+ que tiene el cerrojo/);
+    assert.equal(git(['status', '--porcelain'], raiz), '', 'dist/src debe quedar como estaba');
+    assert.ok(!existsSync(await rutaCerrojo(raiz)), 'el cerrojo se libera al acabar');
+  });
+});
+
+test('TASK-136: un cerrojo con el pid de un proceso muerto no bloquea: se toma, se avisa y el arbol queda limpio', async () => {
+  await conRepo(async (raiz) => {
+    await conDistYBuildLento(raiz, 0);
+    const muerto = spawnSync(process.execPath, ['-e', 'process.stdout.write(String(process.pid))'], { encoding: 'utf8' });
+    const cerrojo = await rutaCerrojo(raiz);
+    writeFileSync(cerrojo, JSON.stringify({ pid: Number(muerto.stdout), desde: new Date().toISOString() }));
+    try {
+      const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env: { ...process.env, RAMA_BASE: 'develop' } });
+      assert.equal(r.status, 0, r.stdout + r.stderr);
+      assert.match(r.stdout, /cerrojo de una ejecucion que ya no existe/);
+      assert.equal(git(['status', '--porcelain'], raiz), '');
+      assert.ok(!existsSync(cerrojo));
+    } finally {
+      rmSync(cerrojo, { force: true });
+    }
+  });
+});
+
+test('TASK-136: con el cerrojo en manos de un proceso vivo y la espera agotada, sale con 1, lo explica y no toca dist/src', async () => {
+  await conRepo(async (raiz) => {
+    await conDistYBuildLento(raiz, 0);
+    const cerrojo = await rutaCerrojo(raiz);
+    writeFileSync(cerrojo, JSON.stringify({ pid: process.pid, desde: new Date().toISOString() }));
+    try {
+      const r = spawnSync(process.execPath, [SCRIPT], {
+        cwd: raiz,
+        encoding: 'utf8',
+        env: { ...process.env, RAMA_BASE: 'develop', VERIFICAR_IMPACTO_ESPERA_S: '1' },
+      });
+      assert.equal(r.status, 1, r.stdout + r.stderr);
+      assert.ok((r.stdout + r.stderr).includes(String(process.pid)), 'nombra el pid que tiene el cerrojo');
+      assert.ok((r.stdout + r.stderr).includes(cerrojo), 'dice donde esta el cerrojo');
+      assert.equal(git(['status', '--porcelain'], raiz), '');
+      assert.ok(existsSync(cerrojo), 'el cerrojo ajeno no se borra');
+    } finally {
+      rmSync(cerrojo, { force: true });
+    }
   });
 });
