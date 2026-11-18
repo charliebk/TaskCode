@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-136 (fix) — Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src (2026-11-18)
+
 ## 0.16.2 — 2026-11-18
 
 Correccion tras la 0.16.1. En Windows, `taskctl review` con revision

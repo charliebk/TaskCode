@@ -23,7 +23,7 @@ TASK-019  Revisión ligera sin agente para tareas triviales                     
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 119
+## Terminadas (04-terminadas) — 120
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -147,4 +147,5 @@ TASK-132  Ayudante caso() de los tests fusionados en un unico helper compartido 
 TASK-133  Rojos de la suite completa de la 0.16.0 y publicacion de la 0.16.1                                                  charlie.bk@gmail.com
 TASK-134  En Windows taskctl lanza el bash de Git, no el primero del PATH                                                     charlie.bk@gmail.com
 TASK-135  diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada                                                charlie.bk@gmail.com
+TASK-136  Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src                                             charlie.bk@gmail.com
 ```

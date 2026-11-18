@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-136 — Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src · etiquetas: windows, verificacion · rama fix/task-136-cerrojo-en-verificar-impacto-dos-ejecuci · terminada 2026-11-18 · tareas/04-terminadas/TASK-136/
 - TASK-135 — diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada · etiquetas: windows, review · rama fix/task-135-diffrangeforpaths-por-lotes-enametoolong · terminada 2026-11-18 · tareas/04-terminadas/TASK-135/
 - TASK-134 — En Windows taskctl lanza el bash de Git, no el primero del PATH · etiquetas: windows, gitflow · rama fix/task-134-en-windows-taskctl-lanza-el-bash-de-git · terminada 2026-11-13 · tareas/04-terminadas/TASK-134/
 - TASK-133 — Rojos de la suite completa de la 0.16.0 y publicacion de la 0.16.1 · etiquetas: tests, publicacion · rama fix/task-133-rojos-de-la-suite-completa-de-la-0-16-0 · terminada 2026-11-13 · tareas/04-terminadas/TASK-133/
