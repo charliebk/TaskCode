@@ -1,6 +1,12 @@
 # Changelog
 
-## Sin publicar
+## 0.16.2 — 2026-11-18
+
+Correccion tras la 0.16.1. En Windows, `taskctl review` con revision
+fragmentada por dominio fallaba con `spawnSync git ENAMETOOLONG` cuando un
+grupo tenia mas de mil ficheros (un volcado): el diff del grupo pasaba todas
+las rutas en una sola llamada a git. Ahora va por lotes, cortados por numero
+de rutas y por caracteres, igual que el `--stat` de los tests (TASK-135).
 
 - TASK-135 (fix) — diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada (2026-11-18)
 
