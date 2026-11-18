@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { writeTareaFile } from '../../src/fs/task-store.js';
 import { runReviewCommand, MAX_RUTAS_ORDEN_TESTS } from '../../src/commands/review.js';
-import { statDeFicheros, LOTE_RUTAS_STAT } from '../../src/fs/git.js';
+import { statDeFicheros, diffRangeForPaths, LOTE_RUTAS_STAT } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -223,4 +223,63 @@ test('statDeFicheros (TASK-113, MEN-1): por lotes de LOTE_RUTAS_STAT rutas, sin 
   } finally {
     await rm(repoRoot, { recursive: true, force: true, maxRetries: 5 }).catch(() => undefined);
   }
+});
+
+/** TASK-135: ruta larga de un volcado (unos 90 caracteres), como las del proyecto donde fallo. */
+function rutaDeVolcado(i: number): string {
+  return `src/volcado/modulo_de_datos_exportados/subcarpeta_profunda/fichero_generado_numero_${i}.ts`;
+}
+
+/** Repo con un commit `inicial` y otro con `rutas` anadidas; `fn` recibe la raiz. */
+async function conRepoDeRutas(rutas: readonly string[], fn: (repoRoot: string) => void): Promise<void> {
+  const repoRoot = await mkdtemp(path.join(tmpdir(), 'taskctl-diff-lote-'));
+  try {
+    git(['init', '-q', '-b', 'main'], repoRoot);
+    git(['config', 'user.email', 'test@example.com'], repoRoot);
+    git(['config', 'user.name', 'Test'], repoRoot);
+    git(['config', 'core.autocrlf', 'false'], repoRoot);
+    await writeFile(path.join(repoRoot, 'README.md'), 'repo\n', 'utf8');
+    commitAll(repoRoot, 'inicial');
+    for (const [i, r] of rutas.entries()) {
+      await mkdir(path.dirname(path.join(repoRoot, r)), { recursive: true });
+      await writeFile(path.join(repoRoot, r), `export const v${i} = ${i};\n`, 'utf8');
+    }
+    commitAll(repoRoot, 'rutas');
+    fn(repoRoot);
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true, maxRetries: 5 }).catch(() => undefined);
+  }
+}
+
+test('diffRangeForPaths (TASK-135): 1300 rutas largas por lotes, sin ENAMETOOLONG y sin perder ninguna', async () => {
+  const rutas = Array.from({ length: 1300 }, (_, i) => rutaDeVolcado(i)).sort();
+  // Sin lotes, este pathspec pasa con mucho del limite de Windows (32 767).
+  assert.ok(rutas.reduce((n, r) => n + r.length + 11, 0) > 100_000);
+  await conRepoDeRutas(rutas, (repoRoot) => {
+    const diff = diffRangeForPaths('HEAD~1', 'HEAD', rutas, repoRoot);
+    assert.equal((diff.match(/^diff --git /gm) ?? []).length, rutas.length);
+    for (const r of [rutas[0], rutas[rutas.length - 1]] as string[]) assert.ok(diff.includes(`diff --git a/${r} b/${r}`));
+  });
+});
+
+test('diffRangeForPaths (TASK-135): el diff por lotes es identico al de una sola llamada; lista vacia, vacio', async () => {
+  const rutas = Array.from({ length: LOTE_RUTAS_STAT * 2 + 3 }, (_, i) => `src/m${String(i).padStart(3, '0')}.ts`);
+  await conRepoDeRutas(rutas, (repoRoot) => {
+    const deUna = git(['-c', 'core.quotePath=false', 'diff', 'HEAD~1..HEAD', '--', ...rutas], repoRoot).trim();
+    assert.equal(diffRangeForPaths('HEAD~1', 'HEAD', rutas, repoRoot), deUna);
+    assert.equal(diffRangeForPaths('HEAD~1', 'HEAD', [], repoRoot), '');
+  });
+});
+
+test('review (TASK-135): peticion fragmentada con un grupo de mas de 1000 ficheros embebe el diff de todos', async () => {
+  const ficheros: Record<string, string> = { 'src/lib.rs': 'pub fn f() {}\n' };
+  const n = 1100;
+  for (let i = 0; i < n; i++) ficheros[rutaDeVolcado(i)] = `export const v${i} = ${i};\n`;
+  const { peticiones } = await revisar(ficheros);
+  assert.ok(peticiones.has('peticion-revision-1-rust-wasm-reviewer.md'), `no se fragmento: ${[...peticiones.keys()].join(', ')}`);
+  const generica = [...peticiones.entries()].find(([k]) => k !== 'peticion-revision-1-rust-wasm-reviewer.md');
+  assert.ok(generica !== undefined);
+  const bloque = bloqueDiff(generica[1]);
+  assert.equal((bloque.match(/^diff --git /gm) ?? []).length, n);
+  for (const i of [0, n - 1]) assert.ok(bloque.includes(`diff --git a/${rutaDeVolcado(i)} `), `falta el diff de ${rutaDeVolcado(i)}`);
 });
