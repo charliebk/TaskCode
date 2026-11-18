@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [windows, review]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-135-diffrangeforpaths-por-lotes-enametoolong
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ En la revision fragmentada por dominio, review pide el diff de cada grupo con di
 - [ ] statDeFicheros y diffRangeForPaths cortan cada lote por numero de rutas y por bytes acumulados del pathspec, lejos de 32.767 caracteres, aunque las rutas midan 300 caracteres
 - [ ] Test de integracion contra un repo Git temporal: peticion fragmentada de review con un grupo de mas de 1000 ficheros que sin el arreglo falla con ENAMETOOLONG en Windows y con el arreglo genera la peticion con el diff del grupo
 - [ ] Las rutas siguen pasando como :(literal), sin regresion del test de TASK-054 con pages/[id].vue y rutas no ASCII
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-18T13:29:13Z | plan | automatico | persona | 0.16.1 |
