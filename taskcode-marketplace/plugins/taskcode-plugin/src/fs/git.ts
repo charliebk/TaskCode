@@ -639,14 +639,20 @@ export function diffRangeForPaths(
   paths: readonly string[],
   cwd: string
 ): string {
-  if (paths.length === 0) return '';
   // `:(literal)` (TASK-054): son rutas reales, no patrones. Sin el,
   // `pages/[id].vue` se leeria como glob y el diff del grupo saldria vacio
   // o con otros ficheros.
-  return runGit(
-    [...SIN_COMILLAS, 'diff', `${desde}..${hasta}`, '--', ...paths.map((p) => `:(literal)${p}`)],
-    cwd
-  );
+  // TASK-135: por lotes. Un grupo de dominio con miles de ficheros (un
+  // volcado) pasaba del limite de la linea de comandos de Windows y Git no
+  // llegaba a lanzarse (ENAMETOOLONG). Cada lote da el diff completo de sus
+  // ficheros; runGit recorta la salida, asi que unirlos con '\n' da lo mismo
+  // que una sola llamada. Lista vacia: '' sin llamar a Git.
+  return lotesDeRutas(paths)
+    .map((lote) =>
+      runGit([...SIN_COMILLAS, 'diff', `${desde}..${hasta}`, '--', ...lote.map((p) => `${LITERAL}${p}`)], cwd)
+    )
+    .filter((salida) => salida !== '')
+    .join('\n');
 }
 
 /**
@@ -658,12 +664,12 @@ export function diffRangeForPaths(
 export function statDeFicheros(desde: string, hasta: string, paths: readonly string[], cwd: string): string {
   // Por lotes (MEN-1 de la revision): con miles de rutas largas, una sola
   // llamada pasa del limite de la linea de comandos de Windows (ENAMETOOLONG).
+  // TASK-135: el lote se corta tambien por caracteres (lotesDeRutas).
   const salidas: string[] = [];
-  for (let i = 0; i < paths.length; i += LOTE_RUTAS_STAT) {
-    const lote = paths.slice(i, i + LOTE_RUTAS_STAT);
+  for (const lote of lotesDeRutas(paths)) {
     salidas.push(
       runGit(
-        [...SIN_COMILLAS, 'diff', '--stat=200', `${desde}..${hasta}`, '--', ...lote.map((p) => `:(literal)${p}`)],
+        [...SIN_COMILLAS, 'diff', '--stat=200', `${desde}..${hasta}`, '--', ...lote.map((p) => `${LITERAL}${p}`)],
         cwd
       ).replace(/\s+$/, '')
     );
@@ -671,8 +677,48 @@ export function statDeFicheros(desde: string, hasta: string, paths: readonly str
   return salidas.length === 0 ? '' : `${salidas.join('\n')}\n`;
 }
 
-/** Rutas por llamada a Git en `statDeFicheros`: lejos del limite de Windows (32 K caracteres). */
+/** Rutas por llamada a Git en `statDeFicheros` y `diffRangeForPaths`: lejos del limite de Windows. */
 export const LOTE_RUTAS_STAT = 100;
+
+/**
+ * TASK-135: caracteres de pathspec por llamada a Git. El limite de Windows es
+ * de 32 767 caracteres para la linea ENTERA (programa, resto de argumentos,
+ * comillas que anade la conversion); 8000 deja margen de sobra. Con 100 rutas
+ * de 300 caracteres, el corte por numero solo no bastaba (MENOR de TASK-113).
+ */
+export const LOTE_CARACTERES_PATHSPEC = 8000;
+
+const LITERAL = ':(literal)';
+
+/**
+ * TASK-135: parte `rutas` en lotes consecutivos, sin reordenar, para pasarlas
+ * como `:(literal)<ruta>` a Git. Un lote se cierra al llegar a `maxRutas`
+ * rutas o cuando la siguiente haria pasar de `maxCaracteres` el pathspec
+ * acumulado (prefijo, ruta y el espacio que las separa). Una ruta que sola ya
+ * pasa del tope va sola en su lote: no se pierde, y si de verdad no cabe, Git
+ * dara su propio error. Lista vacia: ningun lote.
+ */
+export function lotesDeRutas(
+  rutas: readonly string[],
+  maxRutas: number = LOTE_RUTAS_STAT,
+  maxCaracteres: number = LOTE_CARACTERES_PATHSPEC
+): string[][] {
+  const lotes: string[][] = [];
+  let lote: string[] = [];
+  let caracteres = 0;
+  for (const ruta of rutas) {
+    const coste = LITERAL.length + ruta.length + 1;
+    if (lote.length > 0 && (lote.length >= maxRutas || caracteres + coste > maxCaracteres)) {
+      lotes.push(lote);
+      lote = [];
+      caracteres = 0;
+    }
+    lote.push(ruta);
+    caracteres += coste;
+  }
+  if (lote.length > 0) lotes.push(lote);
+  return lotes;
+}
 
 /**
  * Rutas (con "/" de Git, no separador del SO) de los ficheros bajo
