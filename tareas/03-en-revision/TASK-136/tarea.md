@@ -47,3 +47,7 @@ scripts/verificar-impacto.mjs guarda dist/src (versionado) en una carpeta de cop
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-18T15:29:37Z | implementacion | sesion:0ce76c9f-f85b-43d3-a1cf-3503270b7dc0 | 26 | 20960 | 3269045 | 11761 | 2 | 3301792 | - | - |
+
+## Verificacion ligera
+
+- 2026-11-18T16:03:22Z: ronda 1; commit revisado c28556de1354dddae973ac191a1e5148947d7b6a; commit verificado 4c3199e2e8c5fc25d44ee68520eee4604ff4b2c5; ficheros: scripts/verificar-impacto.mjs, taskcode-marketplace/plugins/taskcode-plugin/test/scripts/verificar-impacto.test.ts; corregidos: MEN-1, MEN-2; pendientes: ninguno
