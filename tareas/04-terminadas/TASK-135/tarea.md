@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [windows, review]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-135-diffrangeforpaths-por-lotes-enametoolong
 asignado_a: charlie.bk@gmail.com
@@ -41,6 +41,7 @@ En la revision fragmentada por dominio, review pide el diff de cada grupo con di
 | 2026-11-18T13:30:18Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-18T13:30:27Z | start | automatico | persona | 0.16.1 |
 | 2026-11-18T13:54:50Z | review | automatico | persona | 0.16.1 |
+| 2026-11-18T14:20:53Z | finish | automatico | persona | 0.16.1 |
 
 ## Coste
 
@@ -60,3 +61,9 @@ En la revision fragmentada por dominio, review pide el diff de cada grupo con di
 ## Verificacion omitida
 
 - 2026-11-18T14:20:41Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 40 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 50 min
+- Cierre (finish): 12 s, de 2026-11-18T14:20:41Z a 2026-11-18T14:20:53Z

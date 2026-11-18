@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-135 (fix) — diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada (2026-11-18)
+
 ## 0.16.1 — 2026-11-13
 
 Correcciones tras la 0.16.0. En Windows, taskctl lanza los scripts de Git-Flow
