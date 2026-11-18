@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [windows, verificacion]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-136-cerrojo-en-verificar-impacto-dos-ejecuci
 asignado_a: charlie.bk@gmail.com
@@ -39,3 +39,4 @@ scripts/verificar-impacto.mjs guarda dist/src (versionado) en una carpeta de cop
 |---|---|---|---|---|
 | 2026-11-18T15:11:56Z | plan | automatico | persona | 0.16.2 |
 | 2026-11-18T15:12:28Z | approve | automatico | persona | 0.16.2 |
+| 2026-11-18T15:12:31Z | start | automatico | persona | 0.16.2 |
