@@ -59,3 +59,7 @@ El plugin asegura que implementadores y revisores no producen codigo 4D (pedido 
 ## Verificacion ligera
 
 - 2026-11-22T19:09:50Z: ronda 1; commit revisado a6b1aafb788eabf63bd9bde05c040039710210cd; commit verificado 29c5fb5592b779a29ee967bb2c4f4360df7db489; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/informe-revision.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/regla-4d.test.ts; corregidos: MEN-1; pendientes: ninguno
+
+## Verificacion omitida
+
+- 2026-11-22T19:09:58Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
