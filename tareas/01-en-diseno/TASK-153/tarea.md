@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Que la Regla 4D actue al crear el codigo y los tests, no solo al revisarlos, par
 - [ ] review avisa si la autorrevision no trae la linea 4D (helper buscado, criterios citados, tests mutados) del ultimo commit, y la skill start lista los patrones de disfraz en tests que encontro la auditoria (nombre que promete sin asercion, datos que no distinguen, rejects sin matcher, skip que esconde un fallo)
 - [ ] La peticion de revision trae una seccion de candidatos 4D generada por el CLI desde el diff: por cada funcion o constante nueva, las existentes con nombre parecido en el repo, y los tests nuevos cuyo nombre promete algo comprobable, para que el revisor los mute
 - [ ] taskctl metricas cuenta por tarea los hallazgos 4D de sus informes (por regla, desde la seccion Regla 4D) para ver si bajan con el tiempo
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-22T23:02:18Z | plan | automatico | persona | 0.16.1 |
