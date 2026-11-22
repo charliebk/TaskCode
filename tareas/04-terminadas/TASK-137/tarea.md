@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-137-regla-4d-sin-duplicacion-desviacion-dilu
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ El plugin asegura que implementadores y revisores no producen codigo 4D (pedido 
 | 2026-11-22T18:45:29Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T18:45:33Z | start | automatico | persona | 0.16.1 |
 | 2026-11-22T19:02:23Z | review | automatico | persona | 0.16.1 |
+| 2026-11-22T19:10:08Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -63,3 +64,9 @@ El plugin asegura que implementadores y revisores no producen codigo 4D (pedido 
 ## Verificacion omitida
 
 - 2026-11-22T19:09:58Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: — (no se entiende: 60 min (de la rama abierta al cierre con merge; senales:)
+- Real (de la rama abierta al cierre con merge, sin pausas): 25 min
+- Cierre (finish): 10 s, de 2026-11-22T19:09:58Z a 2026-11-22T19:10:08Z

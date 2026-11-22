@@ -1,8 +1,8 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-11-18. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-11-22. No editar a mano.
 
-## Planificadas (00-planificadas) — 14
+## Planificadas (00-planificadas) — 17
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -21,9 +21,12 @@ TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado               
 TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
 TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-138  Regla 4D: duplicacion en metricas, suite y registro de puertas                              (sin asignar)
+TASK-139  Regla 4D: tests que no protegen lo que dicen                                                (sin asignar)
+TASK-140  Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 120
+## Terminadas (04-terminadas) — 121
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -148,4 +151,5 @@ TASK-133  Rojos de la suite completa de la 0.16.0 y publicacion de la 0.16.1    
 TASK-134  En Windows taskctl lanza el bash de Git, no el primero del PATH                                                     charlie.bk@gmail.com
 TASK-135  diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada                                                charlie.bk@gmail.com
 TASK-136  Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src                                             charlie.bk@gmail.com
+TASK-137  Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo                                                 charlie.bk@gmail.com
 ```

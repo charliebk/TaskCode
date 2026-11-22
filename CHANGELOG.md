@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-137 (feature) — Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo (2026-11-22)
 - TASK-136 (fix) — Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src (2026-11-18)
 
 ## 0.16.2 — 2026-11-18
