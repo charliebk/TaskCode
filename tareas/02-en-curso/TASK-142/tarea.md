@@ -39,3 +39,8 @@ Corregir los scripts de Git-Flow que aparentan hacer algo que no hacen (auditori
 | 2026-11-22T21:43:24Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T21:45:04Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T21:45:06Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 1a8bf25: helper buscado (detect_origin_available, _gf_hora, log_summary reutilizados), criterios citados en cada cambio, 6 tests nuevos en rojo antes del arreglo y 1 mutacion extra (stash pop sin ref) en rojo.
+- code-quality-reviewer — 1a8bf25
