@@ -44,3 +44,8 @@ Objetivo de la tarea entera:
 | 2026-11-22T23:02:18Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T23:03:02Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T23:03:03Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 7b1114d: helper buscado (rangoDeSeccion, patron de aviso de duracion en approve, constante unica de la vineta en lugar de dos copias); criterios citados; 4 tests nuevos, 3 mutaciones en rojo (faltaReutilizacion, vineta de la peticion, tieneLinea4D).
+- code-quality-reviewer — 7b1114d
