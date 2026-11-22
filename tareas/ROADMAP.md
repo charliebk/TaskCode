@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-142, TASK-143, TASK-144, TASK-145, TASK-146, TASK-147, TASK-148, TASK-149, TASK-150, TASK-151, TASK-152, TASK-019
+- **En marcha:** TASK-142 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-144, TASK-145, TASK-146, TASK-147, TASK-148, TASK-149, TASK-150, TASK-151, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -109,7 +109,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 9 | TASK-139 | Regla 4D: tests que no protegen lo que dicen | simple | — | lista para empezar |
 | 10 | TASK-140 | Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion | media | — | lista para empezar |
 | — | TASK-141 | Auditoria 4D inicial: reconocimiento completo del codigo existente | alta | — | ✅ terminada |
-| 11 | TASK-142 | Regla 4D: disfraz en los scripts de Git-Flow | media | — | lista para empezar |
+| 11 | TASK-142 | Regla 4D: disfraz en los scripts de Git-Flow | media | — | ▶ en diseño |
 | 12 | TASK-143 | Regla 4D: duplicacion en Git-Flow (bash y TS) | alta | — | lista para empezar |
 | 13 | TASK-144 | Regla 4D: ciclo de vida, cadena y flags en commands | alta | — | lista para empezar |
 | 14 | TASK-145 | Regla 4D: duplicacion en las puertas de finish | media | — | lista para empezar |

@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-142-regla-4d-disfraz-en-los-scripts-de-git-f
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Corregir los scripts de Git-Flow que aparentan hacer algo que no hacen (auditori
 - [ ] pause-work.sh --push sin origin no aborta: usa detect_origin_available y _gf_hora como el resto de scripts, con test
 - [ ] push-back-to-remote.sh y mirror-to-remote.sh no dan por COMPLETADO un push rechazado (exit distinto de 0 o resumen con lo fallido) y su cabecera y avisos dicen lo que de verdad copian
 - [ ] El README de gitflow y los textos que hablan de 19 scripts reflejan los 24 scripts actuales y los cambios hechos sobre el zip original
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-22T21:43:24Z | plan | automatico | persona | 0.16.1 |
