@@ -39,3 +39,7 @@ Reconocer el repo entero (plugin: src, scripts, skills, agents, hooks y test; sc
 | 2026-11-22T21:11:28Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T21:12:06Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T21:12:41Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 510f989: sin codigo (solo docs y tareas); criterios citados en cada caso; 10 tests mutados (8 verdes = disfraz confirmado, 2 rojos).
