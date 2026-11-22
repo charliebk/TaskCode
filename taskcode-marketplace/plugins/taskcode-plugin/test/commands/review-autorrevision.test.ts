@@ -67,16 +67,34 @@ test('review sin "## Autorrevision" avisa y no bloquea: la ronda se crea y la ta
   });
 });
 
-test('review con "## Autorrevision" con contenido no avisa', async () => {
+const AVISO_4D = /no trae la linea de la Regla 4D/;
+
+test('review con "## Autorrevision" completa (revisoras y linea 4D) no avisa', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await tareaConDosDominios(
       repoRoot,
       tareasRoot,
       'TASK-821',
-      '## Autorrevision\n\n- java-spring-reviewer — abc1234\n- angular-vue-reviewer — abc1234\n'
+      '## Autorrevision\n\n- 4D — abc1234: helper buscado, criterios citados, 1 test mutado\n' +
+        '- java-spring-reviewer — abc1234\n- angular-vue-reviewer — abc1234\n'
     );
     const result = await runReviewCommand(tareasRoot, ['TASK-821'], '2026-11-07', deps(repoRoot));
+    assert.deepEqual(result.avisos.filter((a) => AVISO.test(a) || AVISO_4D.test(a)), []);
+  });
+});
+
+test('TASK-153a: review con las revisoras pero sin la linea 4D avisa de la Regla 4D, sin bloquear', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    await tareaConDosDominios(
+      repoRoot,
+      tareasRoot,
+      'TASK-825',
+      '## Autorrevision\n\n- java-spring-reviewer — abc1234\n- angular-vue-reviewer — abc1234\n'
+    );
+    const result = await runReviewCommand(tareasRoot, ['TASK-825'], '2026-11-07', deps(repoRoot));
+    assert.equal(result.avisos.filter((a) => AVISO_4D.test(a)).length, 1, result.avisos.join('\n'));
     assert.deepEqual(result.avisos.filter((a) => AVISO.test(a)), []);
+    assert.equal((await readTareaFile(tareasRoot, 'TASK-825'))!.task.estado, 'en-revision');
   });
 });
 

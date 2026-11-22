@@ -190,6 +190,24 @@ export function rangoDeSeccion(lineas, titulo) {
     return [inicio, fin];
 }
 /**
+ * TASK-153a: las lineas con contenido real de una seccion (sin la cabecera,
+ * sin comentarios HTML, tambien los de varias lineas, y sin lineas en
+ * blanco); null si la seccion no esta. La comparten la autorrevision y la
+ * reutilizacion del plan, para que «seccion rellena» signifique lo mismo.
+ */
+export function contenidoDeSeccion(texto, titulo) {
+    const lineas = texto.split(/\r?\n/);
+    const rango = rangoDeSeccion(lineas, titulo);
+    if (rango === null)
+        return null;
+    return lineas
+        .slice(rango[0] + 1, rango[1])
+        .join('\n')
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .split('\n')
+        .filter((l) => l.trim() !== '');
+}
+/**
  * Anade una fila al registro. Si la seccion no existe la crea al final del
  * cuerpo; si existe, la fila va detras de su ultima fila de tabla.
  */

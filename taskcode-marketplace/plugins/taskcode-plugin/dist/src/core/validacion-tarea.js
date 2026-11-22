@@ -1,4 +1,4 @@
-import { rangoDeSeccion } from './transiciones.js';
+import { contenidoDeSeccion } from './transiciones.js';
 /**
  * TASK-153 (Regla 4D al crear): el plan dice que reutiliza antes de disenar
  * nada nuevo. La auditoria de TASK-141 encontro 102 duplicaciones: cada tarea
@@ -14,14 +14,11 @@ export const VINETA_PETICION_REUTILIZACION = `- ${SECCION_REUTILIZACION.slice(3)
     'motivo de no reutilizar lo que hay. Duplicar un helper que ya existe es un hallazgo IMPORTANTE.\n';
 /** ¿Le falta al plan la seccion de reutilizacion, o la trae sin mas que la linea de la plantilla? */
 export function faltaReutilizacion(plan) {
-    const lineas = plan.split(/\r?\n/);
-    const rango = rangoDeSeccion(lineas, SECCION_REUTILIZACION);
-    if (rango === null)
-        return true;
-    const contenido = lineas
-        .slice(rango[0] + 1, rango[1])
+    // Mismo «contenido real» que la autorrevision (MEN-2 de la revision); ademas
+    // no cuentan la linea de la plantilla ni una subcabecera vacia.
+    const contenido = (contenidoDeSeccion(plan, SECCION_REUTILIZACION) ?? [])
         .map((l) => l.trim())
-        .filter((l) => l !== '' && l !== LINEA_PLANTILLA_REUTILIZACION && !/^<!--.*-->$/.test(l));
+        .filter((l) => l !== LINEA_PLANTILLA_REUTILIZACION && !/^#{3,6}\s/.test(l));
     return contenido.length === 0;
 }
 export const MAX_CRITERIOS = 12;

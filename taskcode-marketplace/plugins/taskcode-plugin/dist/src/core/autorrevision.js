@@ -14,27 +14,12 @@
  * Pura y total: no toca disco ni Git y nunca lanza. `review` la llama antes
  * de su primera escritura, y un fallo aqui no puede dejar una ronda a medias.
  */
-import { rangoDeSeccion } from './transiciones.js';
+import { contenidoDeSeccion } from './transiciones.js';
 /** Titulo exacto de la seccion, sin tilde, como `## Transiciones` y `## Coste`. */
 export const SECCION_AUTORREVISION = '## Autorrevision';
 /** ¿Tiene `body` la seccion de autorrevision con al menos una linea de contenido? */
 export function tieneAutorrevision(body) {
-    const lineas = body.split(/\r?\n/);
-    const rango = rangoDeSeccion(lineas, SECCION_AUTORREVISION);
-    if (rango === null)
-        return false;
-    const [inicio, fin] = rango;
-    const contenido = lineas
-        .slice(inicio + 1, fin)
-        .join('\n')
-        .replace(/<!--[\s\S]*?-->/g, '');
-    return contenido.trim() !== '';
-}
-/** Contenido de la seccion de autorrevision (sin la cabecera); null si no esta. */
-function contenidoAutorrevision(body) {
-    const lineas = body.split(/\r?\n/);
-    const rango = rangoDeSeccion(lineas, SECCION_AUTORREVISION);
-    return rango === null ? null : lineas.slice(rango[0] + 1, rango[1]);
+    return (contenidoDeSeccion(body, SECCION_AUTORREVISION) ?? []).length > 0;
 }
 /**
  * TASK-153 (Regla 4D al crear): la linea `- 4D — <commit>: ...` de la
@@ -43,8 +28,7 @@ function contenidoAutorrevision(body) {
  * sin que nada avisara. Vale con guion largo, corto o dos puntos tras «4D».
  */
 export function tieneLinea4D(body) {
-    const contenido = contenidoAutorrevision(body);
-    return contenido !== null && contenido.some((l) => /^\s*[-*]\s*4D\s*(?:—|–|-|:)\s*\S/.test(l));
+    return (contenidoDeSeccion(body, SECCION_AUTORREVISION) ?? []).some((l) => /^\s*[-*]\s*4D\s*(?:—|–|-|:)\s*\S/.test(l));
 }
 /** El aviso de `review` si falta la constancia o su linea 4D; null si esta todo. */
 export function avisoAutorrevision(body, id) {

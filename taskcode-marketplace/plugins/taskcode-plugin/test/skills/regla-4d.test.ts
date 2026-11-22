@@ -52,3 +52,12 @@ test('start exige helper buscado, criterio citado y mutacion, anotados en la aut
   assert.match(start, /comprueba por mutacion cada test nuevo/);
   assert.ok(start.includes(`\`${SECCION_AUTORREVISION}\``));
 });
+
+test('TASK-153a: start y revision.md remiten a la guia de patrones de disfraz, que los define', async () => {
+  assert.match(await leer('start/SKILL.md'), /task-workflow\/disfraz-tests\.md/);
+  assert.match(await leer('task-workflow/revision.md'), /\[disfraz-tests\.md\]\(disfraz-tests\.md\)/);
+  const guia = await leer('task-workflow/disfraz-tests.md');
+  for (const patron of [/nombre promete/i, /Datos que no distinguen/, /sin matcher/, /`skip` que esconde/]) {
+    assert.match(guia, patron);
+  }
+});
