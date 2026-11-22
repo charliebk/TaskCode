@@ -5,6 +5,8 @@
 > `taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/revision.md`).
 > Solo lectura: la auditoría no corrige nada (hacerlo aquí sería desviación);
 > cada caso tiene su tarea de seguimiento.
+>
+> La auditoría de todo el código (TASK-141) está en `docs/auditoria-4d-completa.md`.
 
 ## Método
 
