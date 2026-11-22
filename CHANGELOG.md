@@ -1,6 +1,20 @@
 # Changelog
 
-## Sin publicar
+## 0.17.0 — 2026-11-22
+
+Regla 4D: implementadores y revisores evitan cuatro defectos — duplicacion,
+desviacion del objetivo, diluvio de lineas y disfraz (lo que aparenta
+resolver y no se comprueba). La definicion vive en la guia de revision; cada
+revisora da un ejemplo por regla en su dominio; el informe de revision trae
+una seccion `## Regla 4D` (una linea por regla, `cumple` o el ID del
+hallazgo) y `taskctl finish` avisa, sin bloquear, si falta o esta sin
+rellenar. La skill `start` pide, antes de revisar, buscar el helper que ya
+existe, citar el criterio de cada cambio y comprobar por mutacion cada test
+nuevo (TASK-137). Ademas, `verificar-impacto` ya no rompe `dist/src` con dos
+ejecuciones solapadas (TASK-136).
+
+Recomendado al actualizar: una primera tarea de auditoria 4D de todo el
+codigo existente en cada proyecto.
 
 - TASK-137 (feature) — Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo (2026-11-22)
 - TASK-136 (fix) — Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src (2026-11-18)
