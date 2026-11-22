@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-137-regla-4d-sin-duplicacion-desviacion-dilu
 asignado_a: charlie.bk@gmail.com
@@ -38,3 +38,4 @@ El plugin asegura que implementadores y revisores no producen codigo 4D (pedido 
 |---|---|---|---|---|
 | 2026-11-22T18:44:15Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T18:45:29Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-22T18:45:33Z | start | automatico | persona | 0.16.1 |
