@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 1536264
-tokens_revision: null
+tokens_revision: 1281302
 creado: 2026-11-22
 actualizado: 2026-11-22
 dependencias: []
@@ -50,3 +50,8 @@ Los 2 tests de plan.test.ts que fallan siempre en Windows nativo (chmod sin efec
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-22T23:22:29Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 6 | 3123 | 1529766 | 3369 | 0 | 1536264 | - | - |
+| 2026-11-22T23:30:25Z | revision | agente:a8ce3cf373e0a055e | 24 | 114794 | 1160055 | 6429 | 3 | 1281302 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-22T23:30:26Z: ronda 1; commit revisado e837ccec5ec2503b8eba5799b583deda4964296f; commit verificado 6d0430bea831344b78e3d77ee5d810c4e2b91763; ficheros: docs/contexto/ESTADO.md, docs/contexto/PROMPT_INICIAL.md; corregidos: MENOR-1; pendientes: ninguno
