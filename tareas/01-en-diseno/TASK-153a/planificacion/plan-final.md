@@ -6,7 +6,7 @@ extienden).
 
 ## Enfoque propuesto
 
-Duracion estimada: 60 min (la de la parte a; la tarea entera, unas 3 h, se trocea abajo)
+Duracion estimada: 60 min (parte a del troceo; la tarea entera estimaba 60 min)
 
 La Regla 4D pasa de «se comprueba al revisar» a «se aplica al crear», en
 las tres fases que crean:
@@ -96,3 +96,7 @@ Ninguno pesado. Cada test nuevo se comprueba por mutacion.
 ## Lo que necesita decision de una persona
 
 Nada abierto: pedido por Carlos; trocear lo autorizo al pedir no parar.
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-22: TASK-153a, TASK-153b, TASK-153c, todas en la misma rama. Este plan es el de TASK-153a; las demas partes se planifican al empezarlas.

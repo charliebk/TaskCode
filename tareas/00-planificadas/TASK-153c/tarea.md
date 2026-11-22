@@ -1,0 +1,32 @@
+---
+id: TASK-153c
+titulo: "metricas de hallazgos 4D (parte c de TASK-153)"
+tipo: feature
+sprint: 0
+etiquetas: []
+complejidad: alta
+modelo_sugerido: sonnet
+estado: planificada
+plan_aprobado: false
+rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
+asignado_a: null
+agente_revisor: general-purpose
+skills_recomendados: []
+regla_seleccion_skill: null
+ultimo_commit_revisado: null
+revision_codex: false
+tokens_diseno: null
+tokens_implementacion: null
+tokens_revision: null
+creado: 2026-11-22
+actualizado: 2026-11-22
+dependencias: [TASK-153b]
+---
+## Objetivo
+
+Parte c del troceo de TASK-153 (Regla 4D en la creacion de codigo y tests), partes TASK-153a, TASK-153b, TASK-153c en la rama feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test.
+
+taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la tendencia.
+
+## Criterios de aceptacion
+- [ ] taskctl metricas cuenta por tarea los hallazgos 4D de sus informes (por regla, desde la seccion Regla 4D: un ID suma, cumple no), con test; las tareas sin la seccion salen sin dato, no con cero
