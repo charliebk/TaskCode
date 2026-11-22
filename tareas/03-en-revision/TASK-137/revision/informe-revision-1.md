@@ -8,7 +8,7 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | corregido | src/core/informe-revision.ts:417 | implementacion |
+| MEN-1 | MENOR | abierto | src/core/informe-revision.ts:417 | implementacion |
 | MEN-2 | MENOR | aceptado | src/core/autorrevision.ts:34 | plan |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el

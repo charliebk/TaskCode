@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 10864659
-tokens_revision: null
+tokens_revision: 2019509
 creado: 2026-11-22
 actualizado: 2026-11-22
 dependencias: []
@@ -54,3 +54,4 @@ El plugin asegura que implementadores y revisores no producen codigo 4D (pedido 
 | 2026-11-22T19:02:23Z | implementacion | agente:a5bce3963493ee563 | 28 | 120177 | 1331362 | 5754 | 0 | 1457321 | - | - |
 | 2026-11-22T19:02:23Z | implementacion | agente:a65ef23eb4f313372 | 30 | 128880 | 1477396 | 8012 | 0 | 1614318 | - | - |
 | 2026-11-22T19:02:23Z | implementacion | agente:ab41a26511f2f30af | 14 | 98817 | 532791 | 3631 | 0 | 635253 | - | - |
+| 2026-11-22T19:09:27Z | revision | agente:aad6904d9efd59f66 | 34 | 127978 | 1882029 | 9468 | 4 | 2019509 | 1 | - |
