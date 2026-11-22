@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 21596277
-tokens_revision: null
+tokens_revision: 2804513
 creado: 2026-11-22
 actualizado: 2026-11-22
 dependencias: []
@@ -56,3 +56,8 @@ Objetivo de la tarea entera:
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-22T23:31:53Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 90 | 56028 | 21510799 | 29360 | 28 | 21596277 | - | - |
+| 2026-11-22T23:48:47Z | revision | agente:a66303f84849cb3c4 | 50 | 91375 | 2700256 | 12832 | 5 | 2804513 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-22T23:48:51Z: ronda 1; commit revisado 4e6ff7fb803c1140a5dbd26eda008730c4c63bdb; commit verificado b1d4c27ce0b71b0fc716538df81815d01b6f30c4; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/approve.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/autorrevision.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/transiciones.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/validacion-tarea.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/review-autorrevision.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/validacion-tarea.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/skills/regla-4d.test.ts; corregidos: MENOR-1, MENOR-2, MENOR-3, MENOR-5, MENOR-6; pendientes: MENOR-4
