@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-137-regla-4d-sin-duplicacion-desviacion-dilu
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ El plugin asegura que implementadores y revisores no producen codigo 4D (pedido 
 - [ ] La plantilla del informe de revision lleva una seccion '## Regla 4D' con una linea por D (cumple o ID del hallazgo) y taskctl finish avisa si falta o esta vacia, con un test que lo comprueba
 - [ ] La skill de implementacion (start) exige antes de pedir revision: buscar el helper existente antes de crear uno, citar el criterio que motiva cada cambio y comprobar por mutacion cada test nuevo; queda anotado en '## Autorrevision'
 - [ ] Auditoria de las 10 ultimas tareas terminadas de este repo: docs/auditoria-4d.md lista cada caso 4D encontrado con fichero:linea y la tarea de seguimiento que lo corrige
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-22T18:44:15Z | plan | automatico | persona | 0.16.1 |
