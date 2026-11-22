@@ -27,9 +27,9 @@ dependencias: []
 Los 2 tests de plan.test.ts que fallan siempre en Windows nativo (chmod sin efecto en NTFS y finales de linea CRLF) bloquean la verificacion selectiva de review y la completa de finish cada vez que una tarea toca plan.ts. Que pasen, o se omitan con motivo solo cuando de verdad no aplican, sin dejar de probar lo que prueban en Linux y en el CI.
 
 ## Criterios de aceptacion
-- [ ] El test de error de escritura distinto de EEXIST se omite con motivo solo si chmod no impide escribir en ese sistema de ficheros, y sigue ejecutandose donde chmod funciona
-- [ ] El test de la rama base real compara el plan sin depender de los finales de linea (CRLF de core.autocrlf)
-- [ ] npm test en Windows nativo no tiene ningun rojo de plan.test.ts; CLAUDE.md deja de listar esos dos rojos como esperados
+- [x] El test de error de escritura distinto de EEXIST se omite con motivo solo si chmod no impide escribir en ese sistema de ficheros, y sigue ejecutandose donde chmod funciona
+- [x] El test de la rama base real compara el plan sin depender de los finales de linea (CRLF de core.autocrlf)
+- [x] npm test en Windows nativo no tiene ningun rojo de plan.test.ts; CLAUDE.md deja de listar esos dos rojos como esperados
 
 ## Transiciones
 
@@ -55,3 +55,13 @@ Los 2 tests de plan.test.ts que fallan siempre en Windows nativo (chmod sin efec
 ## Verificacion ligera
 
 - 2026-11-22T23:30:26Z: ronda 1; commit revisado e837ccec5ec2503b8eba5799b583deda4964296f; commit verificado 6d0430bea831344b78e3d77ee5d810c4e2b91763; ficheros: docs/contexto/ESTADO.md, docs/contexto/PROMPT_INICIAL.md; corregidos: MENOR-1; pendientes: ninguno
+
+## Resultado
+
+- plan.test.ts: el test de error de escritura distinto de EEXIST prueba a escribir tras el chmod y se omite con motivo solo si chmod no lo impide (NTFS); el de la rama base real compara el plan sin finales de linea. En Windows: 31 tests, 30 pasan, 1 omitido, 0 rojos. Mutacion: sin la normalizacion vuelve el rojo; un plan pisado sigue en rojo (comprobado por el revisor).
+- CLAUDE.md, ESTADO.md y PROMPT_INICIAL.md dejan de listar rojos esperados en Windows.
+- Revision ronda 1: aprobada con correcciones; MENOR-1 (ESTADO y PROMPT_INICIAL desfasados) corregido y verificado. El camino con chmod efectivo (Linux) esta razonado, no ejecutado en esta maquina; lo cubre el CI.
+
+## Verificacion parcial
+
+- 2026-11-22T23:30:33Z: todo el codigo que cambia la tarea (1 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
