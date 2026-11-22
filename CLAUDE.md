@@ -87,15 +87,13 @@ que lo comprueban.
   `finish --merge-request` (ver el README del plugin).
 - El glob de `npm test` va entrecomillado a propósito: lo expande Node, no el
   shell. Sin comillas, la suite entera falla en `cmd.exe`.
-- En Windows nativo **fallan 2 tests y no son regresiones** (los dos de
-  `plan.test.ts`): uno porque `chmod` sobre directorios no hace nada en NTFS,
-  y uno por finales de línea (CRLF). El tercero de antes, el del truco del
-  symlink de `approve.test.ts`, se omite (`skipped`) cuando no hay privilegio
-  de symlink (TASK-120: bloqueaba la verificación por impacto de cualquier
-  tarea que tocara `approve.ts`). En el CI de Linux pasan los tres. Aquí
-  «suite en verde» significa que fallan solo esos dos. Ojo: bajo carga
-  aparecen además rojos intermitentes de `EBUSY ... rmdir` al limpiar los
-  repos temporales; fallan en el *teardown*, no en la aserción, y no son
-  tuyos. Cualquier otro tercer rojo sí lo es.
+- En Windows nativo la suite **ya no tiene rojos esperados** (TASK-154): el
+  test de `plan.test.ts` que necesita `chmod` se omite (`skipped`) porque en
+  NTFS el modo no impide escribir, el de CRLF compara sin finales de línea, y
+  el del symlink de `approve.test.ts` se omite sin privilegio de symlink
+  (TASK-120). En el CI de Linux corren los tres. Ojo: bajo carga aparecen
+  rojos intermitentes de `EBUSY ... rmdir` al limpiar los repos temporales;
+  fallan en el *teardown*, no en la aserción, y no son tuyos. Cualquier otro
+  rojo sí lo es.
 
 El resto, en `docs/contexto/HALLAZGOS.md`.

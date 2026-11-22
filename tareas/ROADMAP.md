@@ -17,7 +17,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 ## H0 — H0
 
-79 de 102 terminadas.
+80 de 103 terminadas.
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
@@ -120,6 +120,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 18 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
 | 19 | TASK-151 | Regla 4D: disfraz en tests | media | — | lista para empezar |
 | 20 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
+| — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |
 | 21 | TASK-153a | plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) | alta | — | ▶ en diseño |
 | 22 | TASK-153b | candidatos 4D en la peticion de revision (parte b de TASK-153) | alta | TASK-153a | espera a TASK-153a |
 | 23 | TASK-153c | metricas de hallazgos 4D (parte c de TASK-153) | alta | TASK-153b | espera a TASK-153b |
