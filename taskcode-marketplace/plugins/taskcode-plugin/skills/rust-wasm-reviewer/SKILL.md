@@ -306,6 +306,17 @@ corran de verdad en el objetivo `wasm32` y no solo en nativo. Y que exista al
 menos un test que falle si se revierte el cambio: es lo que mide el paso de
 mutacion.
 
+### Regla 4D en Rust y WebAssembly
+
+La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+
+- Duplicacion: `area_f32` y `area_f64` copiadas, en vez de una generica sobre
+  un trait numerico.
+- Desviacion: cambiar la firma `#[wasm_bindgen]` publica en una tarea interna.
+- Diluvio: un trait y tres structs para un calculo que es una funcion.
+- Disfraz: un `#[test]` que llama a la funcion y descarta el resultado, o un
+  `Ok(())` provisional que nunca hace el trabajo.
+
 ## Clasificacion de los hallazgos
 
 **CRITICO** — perdida de datos, corrupcion de estado, o el codigo hace lo

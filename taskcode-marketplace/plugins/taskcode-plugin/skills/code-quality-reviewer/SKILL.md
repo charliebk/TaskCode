@@ -221,6 +221,18 @@ salida de otro proceso.
 - **Lo que sale**: mensajes de error que filtran rutas internas, consultas
   completas o datos de otro usuario.
 
+### 8. Regla 4D
+
+La definicion y la severidad, en "Regla 4D" de revision.md. En un pase
+generico:
+
+- Duplicacion: una funcion de parseo de argumentos nueva junto a la que ya
+  usa el resto del CLI.
+- Desviacion: renombrar modulos ajenos en una tarea de un mensaje de error.
+- Diluvio: una clase con estrategia y registro para dos casos de un `switch`.
+- Disfraz: un test cuya asercion es `assert.ok(resultado)`, que pasa igual
+  con la funcion rota.
+
 ## Cuando llegas por exceso de dominios
 
 Si estas aqui porque el diff toca mas de tres dominios, el pase es **uno solo
@@ -262,6 +274,7 @@ contrario de lo que dice:
 - Un test cuya expectativa cambio en el diff para acomodar una regresion.
 - Una proteccion nueva sin ningun test que se ponga rojo al quitarla.
 - Un cambio que solo funciona en la plataforma de quien lo escribio.
+- Duplicacion o disfraz reales de la Regla 4D.
 
 **MENOR** — todo lo demas: nombres, comentarios desactualizados, anidamiento,
 duplicacion sin consecuencia demostrable, numeros magicos, orden de las

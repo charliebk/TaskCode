@@ -280,6 +280,17 @@ cambio. Que espere al ciclo de renderizado antes de aseverar, en vez de
 depender de que llegue a tiempo. Y que exista al menos un test que falle si
 se revierte el cambio.
 
+### Regla 4D en Angular y Vue
+
+La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+
+- Duplicacion: un composable `useFetchUsuarios` copiado de `useFetchPedidos`
+  cambiando la URL, en vez de un `useFetch(url)`.
+- Desviacion: migrar el componente a `signals` en una tarea de estilos.
+- Diluvio: servicio, store e interfaz para un estado que vive en un `ref`.
+- Disfraz: un test que monta el componente con `shallowMount` y solo
+  comprueba que existe; sigue en verde con la plantilla vacia.
+
 ## Clasificacion de los hallazgos
 
 **CRITICO** — perdida de datos, corrupcion de estado, o la interfaz hace lo

@@ -44,7 +44,7 @@ import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, ronda
 import { SECCION_RONDAS_EXTRA, lineaRondaExtra } from '../core/flujo.js';
 import { configDeRef } from '../fs/config-de-ref.js';
 import { rondaExtraDecidida } from '../core/rondas-extra.js';
-import { alcanceRondaSiguiente, commitRevisadoDe, hallazgosNoCerrados, hallazgosPendientes, severidadDe, veredictoDeRonda, } from '../core/informe-revision.js';
+import { alcanceRondaSiguiente, commitRevisadoDe, hallazgosNoCerrados, hallazgosPendientes, plantillaRegla4D, severidadDe, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
@@ -394,6 +394,8 @@ export function informeTemplate(task, commitRevisado, ronda) {
         'plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el\n' +
         'enunciado o en los criterios de aceptacion de la tarea.\n\n' +
         'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n\n' +
+        // TASK-137: una linea por D, con "cumple" o el ID del hallazgo; finish avisa si falta.
+        `${plantillaRegla4D()}\n` +
         // TASK-081: lo leido fuera de la lista de la peticion, con su motivo.
         '## Lecturas fuera del contexto permitido\n\n' +
         'ninguna\n');

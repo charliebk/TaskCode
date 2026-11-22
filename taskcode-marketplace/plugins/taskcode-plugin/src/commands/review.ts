@@ -55,6 +55,7 @@ import {
   commitRevisadoDe,
   hallazgosNoCerrados,
   hallazgosPendientes,
+  plantillaRegla4D,
   severidadDe,
   veredictoDeRonda,
   type AlcanceRonda,
@@ -612,6 +613,8 @@ export function informeTemplate(task: Task, commitRevisado: string, ronda: numbe
     'plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el\n' +
     'enunciado o en los criterios de aceptacion de la tarea.\n\n' +
     'Debajo, la reproduccion de cada hallazgo, o "sin hallazgos" explicito.\n\n' +
+    // TASK-137: una linea por D, con "cumple" o el ID del hallazgo; finish avisa si falta.
+    `${plantillaRegla4D()}\n` +
     // TASK-081: lo leido fuera de la lista de la peticion, con su motivo.
     '## Lecturas fuera del contexto permitido\n\n' +
     'ninguna\n'

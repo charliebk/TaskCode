@@ -56,7 +56,8 @@ import { codigoSinVerificar } from './verificar-menores.js';
 import { SECCION_CODIGO_SIN_REVISAR } from '../core/menores.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { resolverConfig } from '../core/config.js';
-import { INFORME_CODEX_RE, INFORME_REVISION_RE, ultimaRondaAprobada } from '../fs/rondas.js';
+import { INFORME_CODEX_RE, INFORME_REVISION_RE, informesDeUltimaRonda, ultimaRondaAprobada } from '../fs/rondas.js';
+import { avisoRegla4D } from '../core/informe-revision.js';
 import { casillasSinMarcar } from '../core/validacion-tarea.js';
 import { assertTransitionAllowed, type TransitionContext } from '../core/state-machine.js';
 import {
@@ -407,6 +408,14 @@ async function runFinish(
         'la tarea se cierra igualmente (el veredicto del revisor es la puerta).'
     );
   }
+  // TASK-137: avisar, sin bloquear, si el informe de la ultima ronda no tiene la Regla 4D completa.
+  const revisionDir = path.join(path.dirname(initial.filePath), REVISION_DIRNAME);
+  const { nombres } = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
+  const informes4D = await Promise.all(
+    nombres.map(async (fichero) => ({ fichero, texto: await readFile(path.join(revisionDir, fichero), 'utf8') }))
+  );
+  const aviso4D = avisoRegla4D(informes4D, id);
+  if (aviso4D !== null) deps.onAviso?.(aviso4D);
   // TASK-023: avisar, sin bloquear (misma doctrina que el aviso de arriba),
   // de las fases con LLM sin coste registrado. TASK-063: tambien
   // implementacion, vacia o a 0 (sin ella no se puede comparar el coste

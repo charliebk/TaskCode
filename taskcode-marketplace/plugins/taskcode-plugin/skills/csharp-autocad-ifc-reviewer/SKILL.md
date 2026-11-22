@@ -227,6 +227,17 @@ Reproducciones baratas que este dominio agradece:
 - **Recursos no liberados cuando salta la excepcion**: sin `using`, un `return`
   temprano o un fallo deja el bloqueo del documento puesto.
 
+### Regla 4D en C#, AutoCAD e IFC
+
+La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+
+- Duplicacion: dos metodos que abren la `Transaction` y recorren el
+  `BlockTableRecord` igual, cambiando solo el filtro de entidad.
+- Desviacion: tocar el exportador IFC en una tarea del comando de dibujo.
+- Diluvio: una jerarquia de clases por tipo IFC donde basta un diccionario.
+- Disfraz: un test que solo comprueba que el IFC generado "no es nulo", o un
+  `catch` vacio que hace pasar la importacion fallida por buena.
+
 ## Clasificacion de hallazgos
 
 **CRITICO** — perdida de datos, corrupcion de estado, o el codigo hace lo
