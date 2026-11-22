@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -43,3 +43,4 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|
 | 2026-11-22T23:02:18Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T23:03:02Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-22T23:03:03Z | start | automatico | persona | 0.16.1 |
