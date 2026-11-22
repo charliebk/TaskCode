@@ -394,7 +394,7 @@ test('taskctl plan: rechaza si el ID no existe, sin efectos secundarios', async 
   });
 });
 
-test('taskctl plan: propaga cualquier error de escritura que NO sea EEXIST (no lo confunde con una re-planificacion)', async () => {
+test('taskctl plan: propaga cualquier error de escritura que NO sea EEXIST (no lo confunde con una re-planificacion)', async (t) => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await writeTareaFile(tareasRoot, sampleTask({ estado: 'en-diseno' }), BODY_CON_OBJETIVO);
     commitAll(repoRoot, 'tarea TASK-700 en diseno');
@@ -408,6 +408,19 @@ test('taskctl plan: propaga cualquier error de escritura que NO sea EEXIST (no l
     await mkdir(path.join(taskDir, PLANIFICACION_DIRNAME), { recursive: true });
     await chmod(path.join(taskDir, PLANIFICACION_DIRNAME), 0o555);
     try {
+      // TASK-154: en NTFS (Windows nativo) el modo de una carpeta no impide
+      // escribir, asi que el EACCES que se prueba no puede darse: «no aplica»,
+      // no «fallo». Donde chmod funciona (Linux, el CI) el test sigue entero.
+      const sonda = path.join(taskDir, PLANIFICACION_DIRNAME, '.sonda-chmod');
+      const chmodSinEfecto = await writeFile(sonda, 'x', 'utf8').then(
+        () => true,
+        () => false
+      );
+      if (chmodSinEfecto) {
+        await rm(sonda, { force: true });
+        t.skip('chmod no impide escribir en este sistema de ficheros (NTFS): el EACCES no se puede provocar');
+        return;
+      }
       await assert.rejects(
         () => runPlanCommand(tareasRoot, ['TASK-700'], '2026-09-04', { repoCwd: repoRoot }),
         (err: unknown) => {
@@ -552,7 +565,9 @@ test('taskctl plan: la rama base real tiene la tarea en un estado distinto al de
 
     assert.equal(result.planCreated, false);
     const planContent = await readFile(result.planPath, 'utf8');
-    assert.equal(planContent, '# Plan real en develop\n');
+    // TASK-154: con core.autocrlf, el checkout de Windows devuelve CRLF; lo que
+    // se prueba es que no se pisa el plan real, no sus finales de linea.
+    assert.equal(planContent.replace(/\r\n/g, '\n'), '# Plan real en develop\n');
     assert.equal(branchNow(repoRoot), 'develop');
   });
 });
