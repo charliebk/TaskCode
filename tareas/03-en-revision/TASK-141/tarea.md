@@ -66,3 +66,16 @@ Reconocer el repo entero (plugin: src, scripts, skills, agents, hooks y test; sc
 ## Verificacion ligera
 
 - 2026-11-22T21:40:39Z: ronda 1; commit revisado 346ad3935ac92d12e16fb49c794d7a8fbe1066b8; commit verificado cca920055a85f1c6d55841eb8d2284eb9a0eacf7; ficheros: docs/auditoria-4d-completa.md; corregidos: MENOR-1, MENOR-2, MENOR-3; pendientes: ninguno
+
+## Resultado
+
+- `docs/auditoria-4d-completa.md`: mapa del proyecto (areas, responsabilidad, lineas, auditada o excluida con motivo), 147 casos distintos (1 CRITICO, 122 IMPORTANTE, 24 MENOR; 102 duplicacion, 21 disfraz, 12 diluvio, 12 desviacion), resumen por area y conclusion. `docs/auditoria-4d.md` remite a el.
+- Metodo: 10 agentes de solo lectura en paralelo; el coordinador reabrio 32 casos a mano y comprobo 90 citas por script (11 abiertas a mano, todas se sostienen). 10 mutaciones sobre copia compilada: 8 verdes (disfraz confirmado), M7 rojo solo en Windows, M3 descarta TCORE-07 como test inerte.
+- El unico CRITICO (SCR-01, `resume-work.sh` aplica el stash de otra rama) esta reproducido. CMD1-01 y CMD2-01, que los agentes daban como CRITICO, quedan IMPORTANTE: fallan hoy pero no pierden datos.
+- Seguimiento: TASK-142..152 creadas con `taskctl new` (agrupadas por regla y area) y TASK-138 ampliada (mediana de evolucion/metricas, cuarta copia de A4 en verificar-lote).
+- Revision ronda 1 (code-quality-reviewer, independiente): aprobada con correcciones. Reprodujo 15 casos y 4 mutaciones; 3 MENOR de coherencia interna (5 severidades MENOR contra la regla, cifra de SCR-04, descarte de TCORE-07), los tres corregidos y verificados con `verificar-menores`.
+- Nada se decidio no corregir. Desviacion del enunciado: el tipo es `feature` y no `chore` (taskctl no admite chore; el prompt de docs/prompts quedo corregido en d7c70d1).
+
+## Verificacion de documentacion
+
+- 2026-11-22T21:41:02Z: la tarea solo cambia documentacion (23 fichero(s) dentro de rutas_documentacion de "develop"); no se ejecuta `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`, sin comprobacion de documentacion declarada
