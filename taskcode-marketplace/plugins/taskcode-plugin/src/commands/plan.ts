@@ -46,7 +46,7 @@ import {
 } from '../fs/git-commit.js';
 import { resolverAsignado } from '../core/wip.js';
 import { extraerSecciones } from '../core/tarea-body.js';
-import { validarEnunciado } from '../core/validacion-tarea.js';
+import { LINEA_PLANTILLA_REUTILIZACION, SECCION_REUTILIZACION, validarEnunciado } from '../core/validacion-tarea.js';
 import { proponerParticion } from '../core/particion-tarea.js';
 import { escribirPropuestaParticion } from '../fs/particion.js';
 import {
@@ -262,6 +262,9 @@ export function planTemplate(task: Task, roles: readonly RolBrainstorm[]): strin
     // esqueleto viejo sigue contando como esqueleto.
     '\n## Enfoque propuesto\n\n' +
     `${LINEA_PLANTILLA_DURACION}\n\n\n` +
+    // TASK-153: lo que se reutiliza, buscado antes de disenar (Regla 4D). La
+    // cabecera no cuenta y la linea es de plantilla: el esqueleto sigue siendolo.
+    `${SECCION_REUTILIZACION}\n\n${LINEA_PLANTILLA_REUTILIZACION}\n\n\n` +
     seccionRoles +
     '## Riesgos aceptados y que los contiene\n\n\n' +
     // TASK-129: presupuesto de tests por criterio. Solo se ANADE una linea

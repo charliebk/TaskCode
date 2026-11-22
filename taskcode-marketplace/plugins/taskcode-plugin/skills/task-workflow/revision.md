@@ -89,6 +89,7 @@ cada uno en su dominio):
 - **Disfraz**: algo que aparenta resolver y no hace nada o no se comprueba.
   Ej.: un test que sigue en verde con la funcion rota (compruebalo por
   mutacion), un stub que devuelve exito, un criterio marcado sin evidencia.
+  Los patrones tipicos en tests: [disfraz-tests.md](disfraz-tests.md).
 
 Duplicacion y disfraz reales son **IMPORTANTE** como minimo; desviacion y
 diluvio, MENOR salvo que cambien comportamiento o escondan un fallo.

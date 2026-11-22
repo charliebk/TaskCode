@@ -30,10 +30,32 @@ export function tieneAutorrevision(body) {
         .replace(/<!--[\s\S]*?-->/g, '');
     return contenido.trim() !== '';
 }
-/** El aviso de `review` si falta la constancia; null si esta. */
+/** Contenido de la seccion de autorrevision (sin la cabecera); null si no esta. */
+function contenidoAutorrevision(body) {
+    const lineas = body.split(/\r?\n/);
+    const rango = rangoDeSeccion(lineas, SECCION_AUTORREVISION);
+    return rango === null ? null : lineas.slice(rango[0] + 1, rango[1]);
+}
+/**
+ * TASK-153 (Regla 4D al crear): la linea `- 4D — <commit>: ...` de la
+ * autorrevision. Antes cualquier linea daba la constancia por buena (CONT-08
+ * de la auditoria de TASK-141), asi que la autorrevision 4D podia no hacerse
+ * sin que nada avisara. Vale con guion largo, corto o dos puntos tras «4D».
+ */
+export function tieneLinea4D(body) {
+    const contenido = contenidoAutorrevision(body);
+    return contenido !== null && contenido.some((l) => /^\s*[-*]\s*4D\s*(?:—|–|-|:)\s*\S/.test(l));
+}
+/** El aviso de `review` si falta la constancia o su linea 4D; null si esta todo. */
 export function avisoAutorrevision(body, id) {
-    if (tieneAutorrevision(body))
-        return null;
+    if (tieneAutorrevision(body)) {
+        if (tieneLinea4D(body))
+            return null;
+        return (`${id}: la autorrevision de tarea.md no trae la linea de la Regla 4D. La revision sigue, pero antes ` +
+            'de pedirla conviene hacer la autorrevision 4D (buscar el helper que ya existe antes de crear uno, ' +
+            'citar el criterio que motiva cada cambio, mutar cada test nuevo y verlo en rojo) y anotarla en ' +
+            `"${SECCION_AUTORREVISION}": "- 4D — <commit>: helper buscado, criterios citados, N tests mutados".`);
+    }
     return (`${id}: tarea.md no tiene la constancia de la autorrevision (seccion "${SECCION_AUTORREVISION}" con contenido). ` +
         'La revision sigue, pero antes de pedirla conviene pasar la seccion "## Que se revisa" de cada revisora ' +
         'que da "taskctl siguiente --json" (campo "revisores"), corregir lo evidente y anotar en tarea.md ' +

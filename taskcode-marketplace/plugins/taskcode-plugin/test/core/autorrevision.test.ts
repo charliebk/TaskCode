@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { avisoAutorrevision, tieneAutorrevision, SECCION_AUTORREVISION } from '../../src/core/autorrevision.js';
+import { avisoAutorrevision, tieneAutorrevision, tieneLinea4D, SECCION_AUTORREVISION } from '../../src/core/autorrevision.js';
 
 const BASE = '## Objetivo\n\nAlgo.\n\n## Criterios de aceptacion\n- [ ] uno\n';
 
@@ -18,10 +18,30 @@ test('sin la seccion no hay constancia, y el aviso nombra la tarea y dice que ha
   assert.match(aviso, /revisores/);
 });
 
-test('con una linea debajo del encabezado hay constancia y no hay aviso', () => {
+test('con la linea de la revisora y la de la Regla 4D hay constancia y no hay aviso', () => {
+  const body =
+    `${BASE}\n${SECCION_AUTORREVISION}\n\n- 4D — abc1234: helper buscado, criterios citados, 2 tests mutados\n` +
+    '- code-quality-reviewer — abc1234\n';
+  assert.equal(tieneAutorrevision(body), true);
+  assert.equal(tieneLinea4D(body), true);
+  assert.equal(avisoAutorrevision(body, 'TASK-900'), null);
+});
+
+test('TASK-153: constancia sin la linea 4D avisa de la Regla 4D (antes cualquier linea valia)', () => {
   const body = `${BASE}\n${SECCION_AUTORREVISION}\n\n- code-quality-reviewer — abc1234\n`;
   assert.equal(tieneAutorrevision(body), true);
-  assert.equal(avisoAutorrevision(body, 'TASK-900'), null);
+  assert.equal(tieneLinea4D(body), false);
+  const aviso = avisoAutorrevision(body, 'TASK-900');
+  assert.ok(aviso !== null);
+  assert.match(aviso, /^TASK-900: /);
+  assert.match(aviso, /Regla 4D/);
+  assert.match(aviso, /- 4D — <commit>/);
+  // Una linea que solo menciona 4D en medio del texto no cuenta; fuera de la seccion tampoco.
+  assert.equal(tieneLinea4D(`${body}- nota: la 4D se hizo\n`), false);
+  assert.equal(tieneLinea4D(`- 4D — abc: x\n\n${SECCION_AUTORREVISION}\n\n- code-quality-reviewer — abc\n`), false);
+  // Variantes de separador validas.
+  assert.equal(tieneLinea4D(`${SECCION_AUTORREVISION}\n\n- 4D - abc: x\n`), true);
+  assert.equal(tieneLinea4D(`${SECCION_AUTORREVISION}\n\n- 4D: abc\n`), true);
 });
 
 test('CRLF tambien cuenta', () => {
