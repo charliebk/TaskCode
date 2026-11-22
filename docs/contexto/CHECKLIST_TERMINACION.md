@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 144 / 144 items terminados (100%)** · última actualización: 2026-11-18
+**Progreso global: 145 / 145 items terminados (100%)** · última actualización: 2026-11-22
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -40,7 +40,7 @@ tomada y documentada, no aplazada.
 | ✅ M — Revisores y roles de dominio | 2 | **2** | — |
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
-| ✅ P — Agilidad sin perder calidad | 43 | **43** | — |
+| ✅ P — Agilidad sin perder calidad | 44 | **44** | — |
 | **Total pendiente** | **0** | — | — |
 
 
@@ -56,7 +56,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## ✅ P — Agilidad sin perder calidad (43/43)
+## ✅ P — Agilidad sin perder calidad (44/44)
 
 Pedidas por Carlos el 2026-11-10 desde ToolsaWeb (TASK-295), donde la 0.13 ha
 hecho perder agilidad: la verificación completa se repite por causas que no son
@@ -209,6 +209,9 @@ del código.
 - [x] TASK-136 — Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src — cerrada el 2026-11-18
       *<copia>.cerrojo con wx y pid: la segunda espera (tope VERIFICAR_IMPACTO_ESPERA_S), el muerto se retira con .robo,
       devolver no borra dist/src sin copia. Una ronda aprobada con correcciones (MEN-1..2 sin ronda 2). finish --sin-verificacion (la completa expiro a 1800 s).*
+- [x] TASK-137 — Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz — cerrada el 2026-11-22
+      *Definicion unica en revision.md, ejemplo por D en cada revisora, seccion ## Regla 4D en el informe con aviso de finish,
+      autorrevision 4D en start. Auditoria TASK-127..136 en docs/auditoria-4d.md (13 casos, 2 IMPORTANTE) -> TASK-138..140.*
 
 Retiradas el 2026-11-10 tras medir 147 tareas de ToolsaWeb y OpenDockTrading (decisión
 de Carlos: el tiempo se va en rondas que no convergen y en verificar lo que no cambió,
