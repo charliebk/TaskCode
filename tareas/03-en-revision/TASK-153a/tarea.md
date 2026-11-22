@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 21596277
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-22
@@ -44,8 +44,15 @@ Objetivo de la tarea entera:
 | 2026-11-22T23:02:18Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T23:03:02Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T23:03:03Z | start | automatico | persona | 0.16.1 |
+| 2026-11-22T23:31:53Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 7b1114d: helper buscado (rangoDeSeccion, patron de aviso de duracion en approve, constante unica de la vineta en lugar de dos copias); criterios citados; 4 tests nuevos, 3 mutaciones en rojo (faltaReutilizacion, vineta de la peticion, tieneLinea4D).
 - code-quality-reviewer — 7b1114d
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-22T23:31:53Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 90 | 56028 | 21510799 | 29360 | 28 | 21596277 | - | - |
