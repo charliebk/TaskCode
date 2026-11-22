@@ -38,3 +38,8 @@ Los 2 tests de plan.test.ts que fallan siempre en Windows nativo (chmod sin efec
 | 2026-11-22T23:19:36Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T23:19:38Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T23:20:30Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 2a8ab84: helper buscado (patron de skip con motivo de TASK-120 en approve.test.ts); criterios citados; 0 tests nuevos, mutacion de la normalizacion CRLF en rojo.
+- code-quality-reviewer — 2a8ab84
