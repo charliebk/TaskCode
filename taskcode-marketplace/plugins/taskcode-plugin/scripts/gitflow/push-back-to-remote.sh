@@ -236,7 +236,7 @@ if [ "$MODE" = "additive" ]; then
 
     if [ -n "$FALLOS" ]; then
         log_info "Lo rechazado sigue solo en local. Trae los commits del destino ('git pull $TARGET_REMOTE <rama>'), resuelve y vuelve a ejecutar este script."
-        log_summary "FALLIDO" "push aditivo a $TARGET_REMOTE con $FALLOS rechazados"
+        log_summary "FALLIDO" "push aditivo a $TARGET_REMOTE: el destino rechazo parte de $FALLOS"
         exit 1
     fi
 else

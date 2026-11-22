@@ -18,6 +18,7 @@ log_info "Pausando trabajo en rama: $current"
 # TASK-142 (SCR-09): el push opcional pasa por la misma deteccion de origin
 # que el resto de scripts (TASK-029). Sin origin, o con origin caido, el
 # trabajo queda guardado en local y se avisa: pausar no debe fallar por la red.
+PUSH_NOTA=""
 subir_rama() {
     detect_origin_available
     if [ "$REMOTE_AVAILABLE" = true ]; then
@@ -25,8 +26,10 @@ subir_rama() {
         log_ok "Push completado: $current → origin/$current"
     elif [ "$REMOTE_CONFIGURED" = true ]; then
         log_warn "Push omitido: origin esta configurado pero no responde. El trabajo queda guardado en local."
+        PUSH_NOTA=" (push omitido: origin no responde)"
     else
         log_warn "Push omitido: este repo no tiene remoto 'origin'. El trabajo queda guardado en local."
+        PUSH_NOTA=" (push omitido: sin origin)"
     fi
 }
 
@@ -38,7 +41,7 @@ status_raw=$(git status --porcelain 2>/dev/null)
 if [ -z "$status_raw" ]; then
     log_info "Workspace limpio. No hay cambios locales que guardar."
     [ "$PUSH" = true ] && subir_rama
-    log_summary "COMPLETADO" "Rama $current ya estaba limpia"
+    log_summary "COMPLETADO" "Rama $current ya estaba limpia$PUSH_NOTA"
     exit 0
 fi
 
@@ -59,7 +62,7 @@ case "${answer,,}" in
         log_ok "Commit creado: $msg"
         [ "$PUSH" = true ] && subir_rama
         log_info "Para retomar: ejecuta 'taskctl resume $current' (o, sin el CLI a mano, 'bash resume-work.sh $current' desde esta misma carpeta)."
-        log_summary "COMPLETADO" "Trabajo guardado como commit en $current"
+        log_summary "COMPLETADO" "Trabajo guardado como commit en $current$PUSH_NOTA"
         ;;
     stash|s)
         stash_msg="pause: $current $hoy"

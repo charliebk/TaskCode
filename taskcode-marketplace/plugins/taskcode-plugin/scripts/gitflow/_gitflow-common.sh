@@ -646,7 +646,7 @@ warn_lfs_and_submodules() {
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
 
     if grep -rq "filter=lfs" "$repo_root/.gitattributes" 2>/dev/null; then
-        log_warn "Detectado Git LFS en .gitattributes. push --mirror NO migra blobs LFS."
+        log_warn "Detectado Git LFS en .gitattributes. Un push de Git (con --all o con --mirror) NO migra blobs LFS."
         log_warn "Tras migrar, ejecuta manualmente: git lfs fetch --all && git lfs push <destino> --all"
     fi
 
