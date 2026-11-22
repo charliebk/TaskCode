@@ -542,7 +542,9 @@ ensure_remote_exists() {
 
 # ── ensure_remote_empty ───────────────────────────────────────────────────────
 # Verifica que el remoto no tiene ramas (repo vacío en destino).
-# Si tiene ramas, pide confirmación explícita para sobreescribir.
+# Si tiene ramas, pide confirmación explícita para seguir. TASK-142 (SCR-11):
+# el aviso ya no promete sobreescribir; el envío es sin --force, así que una
+# rama que diverja se rechaza y el envío se detiene.
 # Devuelve 1 si el usuario cancela.
 ensure_remote_empty() {
     local name="$1"
@@ -555,14 +557,14 @@ ensure_remote_empty() {
         log_ok "Remoto '$name' esta vacio. Seguro para mirror inicial."
         return 0
     fi
-    log_warn "Remoto '$name' YA TIENE ramas. Un push --mirror las sobreescribira."
+    log_warn "Remoto '$name' YA TIENE ramas. El envio no las sobreescribe (no se sobreescribe nada sin --force): las que diverjan se rechazaran y el envio se detendra."
     printf "\n${C_YELLOW}  Ramas actuales en '$name':${C_RESET}\n"
     printf "%s\n" "$heads" | sed 's|.*refs/heads/||' | while IFS= read -r line; do
         printf "${C_DGRAY}    %s${C_RESET}\n" "$line"
     done
     printf "\n"
     local answer
-    read -rp "  Sobreescribir TODAS las ramas de '$name' con las de origin? [s/N]: " answer
+    read -rp "  Continuar igualmente con el envio a '$name'? [s/N]: " answer
     if ! [[ "${answer,,}" =~ ^(s|si|y|yes)$ ]]; then
         printf "${C_YELLOW}[END] Operacion cancelada por usuario.${C_RESET}\n"
         return 1
@@ -644,7 +646,7 @@ warn_lfs_and_submodules() {
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
 
     if grep -rq "filter=lfs" "$repo_root/.gitattributes" 2>/dev/null; then
-        log_warn "Detectado Git LFS en .gitattributes. push --mirror NO migra blobs LFS."
+        log_warn "Detectado Git LFS en .gitattributes. Un push de Git (con --all o con --mirror) NO migra blobs LFS."
         log_warn "Tras migrar, ejecuta manualmente: git lfs fetch --all && git lfs push <destino> --all"
     fi
 

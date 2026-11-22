@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # GitFlow 21 — Switch Working Remote
 # Renombra el origin actual a un alias (backup) y promueve otro remoto a 'origin'.
-# Asi los 19 scripts existentes (que hablan con 'origin') trabajan contra el nuevo GitLab
+# Asi los scripts de Git-Flow (que hablan con 'origin') trabajan contra el nuevo GitLab
 # sin tocar ningun script. Reversible volviendo a ejecutar el comando con los nombres cambiados.
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_gitflow-common.sh"
@@ -99,7 +99,7 @@ printf "    $BACKUP_NAME -> $CURRENT_ORIGIN_URL\n"
 printf "    ($NEW_ORIGIN se elimina como alias duplicado)\n"
 printf "${C_CYAN}  %s${C_RESET}\n\n" "$sep"
 
-printf "${C_WHITE}  Tras este cambio los 19 scripts GitFlow trabajaran contra:${C_RESET}\n"
+printf "${C_WHITE}  Tras este cambio los scripts de Git-Flow trabajaran contra:${C_RESET}\n"
 printf "${C_WHITE}    $NEW_ORIGIN_URL${C_RESET}\n\n"
 
 read -rp "  Confirmar la conmutacion? [s/N]: " confirm

@@ -203,23 +203,42 @@ fi
 
 # ── 7-8. Push segun modo ──────────────────────────────────────────────────────
 if [ "$MODE" = "additive" ]; then
+    # TASK-142 (SCR-10): antes un push rechazado solo dejaba un aviso y el
+    # script seguia con "Push ... completado", el resumen y exit 0. Ahora se
+    # apunta cada fallo; si hay alguno, el script termina FALLIDO, con exit 1
+    # y sin promover el destino a origin.
+    FALLOS=""
     log_info "Enviando ramas a '$TARGET_REMOTE' (modo aditivo)..."
-    PUSH_OUTPUT=$(git push "$TARGET_REMOTE" --all 2>&1) || {
-        log_warn "Algunos pushes de ramas fallaron. Detalle:"
-    }
+    if PUSH_OUTPUT=$(git push "$TARGET_REMOTE" --all 2>&1); then
+        RAMAS_OK=true
+    else
+        RAMAS_OK=false
+        FALLOS="ramas"
+        log_error "El destino rechazo parte de las ramas. Detalle:"
+    fi
     printf "%s\n" "$PUSH_OUTPUT" | while IFS= read -r line; do
         [ -n "$line" ] && printf "${C_DGRAY}    %s${C_RESET}\n" "$line"
     done
-    log_ok "Push de ramas completado."
+    [ "$RAMAS_OK" = true ] && log_ok "Push de ramas completado."
 
     log_info "Enviando tags a '$TARGET_REMOTE'..."
-    TAG_OUTPUT=$(git push "$TARGET_REMOTE" --tags 2>&1) || {
-        log_warn "Algunos pushes de tags fallaron. Detalle:"
-    }
+    if TAG_OUTPUT=$(git push "$TARGET_REMOTE" --tags 2>&1); then
+        TAGS_OK=true
+    else
+        TAGS_OK=false
+        FALLOS="${FALLOS:+$FALLOS y }tags"
+        log_error "El destino rechazo parte de los tags. Detalle:"
+    fi
     printf "%s\n" "$TAG_OUTPUT" | while IFS= read -r line; do
         [ -n "$line" ] && printf "${C_DGRAY}    %s${C_RESET}\n" "$line"
     done
-    log_ok "Push de tags completado."
+    [ "$TAGS_OK" = true ] && log_ok "Push de tags completado."
+
+    if [ -n "$FALLOS" ]; then
+        log_info "Lo rechazado sigue solo en local. Trae los commits del destino ('git pull $TARGET_REMOTE <rama>'), resuelve y vuelve a ejecutar este script."
+        log_summary "FALLIDO" "push aditivo a $TARGET_REMOTE: el destino rechazo parte de $FALLOS"
+        exit 1
+    fi
 else
     log_warn "Ejecutando push --mirror a '$TARGET_REMOTE'..."
     log_warn "Esto sobreescribe el destino con espejo exacto de local."
@@ -256,7 +275,7 @@ if [ "$RESTORE_AS_ORIGIN" = true ]; then
             log_ok "origin actual conservado como '$BACKUP_NAME'."
         fi
         invoke_git "No se pudo promover $TARGET_REMOTE a origin." remote rename "$TARGET_REMOTE" origin
-        log_ok "'$TARGET_REMOTE' promovido a 'origin'. Los 19 scripts vuelven a trabajar contra el GitLab corporativo."
+        log_ok "'$TARGET_REMOTE' promovido a 'origin'. Los scripts de Git-Flow vuelven a trabajar contra el GitLab corporativo."
     fi
 fi
 

@@ -85,15 +85,28 @@ else
     log_warn "Rama $NAME retomada sin sincronizar con origin."
 fi
 
-# Buscar stash relacionado con esta rama
-stash_line=$(git stash list 2>/dev/null | grep "pause: $NAME" | head -1)
-if [ -n "$stash_line" ]; then
-    stash_ref=$(printf "%s" "$stash_line" | cut -d: -f1)
+# Buscar el stash que dejo pause-work.sh para ESTA rama.
+# TASK-142 (SCR-01): antes se hacia `grep "pause: $NAME"`, que tambien casaba
+# con ramas que empiezan igual (feature/a con feature/ab) y con metacaracteres
+# del nombre, y despues `stash pop` a secas, que aplica stash@{0} y no el
+# encontrado. Ahora el asunto tiene que terminar EXACTAMENTE en
+# "pause: <rama> AAAA-MM-DD" (el nombre entre comillas es literal en el
+# patron) y se aplica ese stash por su referencia.
+stash_ref=""
+stash_line=""
+while IFS=$'\t' read -r ref asunto; do
+    if [[ "$asunto" == *"pause: $NAME "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] ]]; then
+        stash_ref="$ref"
+        stash_line="$ref: $asunto"
+        break
+    fi
+done < <(git stash list --format='%gd%x09%gs' 2>/dev/null)
+if [ -n "$stash_ref" ]; then
     printf "\n${C_YELLOW}  Stash encontrado para esta rama:${C_RESET}\n"
     printf "${C_DGRAY}    %s${C_RESET}\n\n" "$stash_line"
     read -rp "  ¿Aplicar el stash guardado? [S/n]: " apply_stash
     if ! [[ "${apply_stash,,}" =~ ^n ]]; then
-        invoke_git "No se pudo aplicar el stash." stash pop
+        invoke_git "No se pudo aplicar el stash." stash pop "$stash_ref"
         log_ok "Stash aplicado correctamente."
     fi
 fi
