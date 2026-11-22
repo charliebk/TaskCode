@@ -43,3 +43,4 @@ Reconocer el repo entero (plugin: src, scripts, skills, agents, hooks y test; sc
 ## Autorrevision
 
 - 4D — 510f989: sin codigo (solo docs y tareas); criterios citados en cada caso; 10 tests mutados (8 verdes = disfraz confirmado, 2 rojos).
+- code-quality-reviewer — 9600388
