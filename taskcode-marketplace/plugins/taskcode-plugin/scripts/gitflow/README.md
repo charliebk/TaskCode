@@ -17,11 +17,16 @@ comprobar que el `bash` del entorno puede correr estos scripts de verdad
 
 ## Qué cambió respecto al original
 
-Los 22 scripts de acción y `_gitflow-common.sh` son una copia literal del
-`.zip` **salvo dos ajustes en `_gitflow-common.sh`**, ambos identificados
-en `docs/spikes/TASK-007-resultado.md` y necesarios porque los scripts ya
-no viven en `.idea/runConfigurations/local_git-flow-actions/` del proyecto,
-sino dentro del plugin instalado:
+Los 22 scripts de acción y `_gitflow-common.sh` partieron del `.zip`
+original. Desde entonces han recibido ajustes, cada uno documentado en el
+propio script con un comentario `Ajuste TASK-NNN` o `TASK-NNN`: detección de
+origin caído (TASK-029, TASK-038), registro dentro de `.git/` (TASK-029),
+hora sin procesos externos (TASK-037), línea FIN del registro (TASK-118),
+stash exacto en `resume-work.sh` y push sin origin en `pause-work.sh`
+(TASK-142), entre otros. Los dos primeros ajustes, en `_gitflow-common.sh`,
+fueron necesarios porque los scripts ya no viven en
+`.idea/runConfigurations/local_git-flow-actions/` del proyecto, sino dentro
+del plugin instalado:
 
 1. **`log_dir`** (usado por `initialize_gitflow_log`): antes calculaba la
    raíz del proyecto contando 3 niveles de carpeta hacia arriba desde el
@@ -52,8 +57,8 @@ fallback a `$(pwd)` dejaba un `logs/gitflow/` huérfano antes de que el
 script abortara un instante después. Ahora, si no hay repo Git, simplemente
 no se escribe log a fichero (se sigue mostrando por stdout).
 
-No se ha "arreglado" nada más allá de estos tres puntos a propósito — ver la
-sección de hallazgos abiertos más abajo.
+Los ajustes posteriores a estos tres puntos están en los propios scripts,
+con su tarea; la sección de hallazgos abiertos más abajo dice lo que queda.
 
 ## `_gitflow-common.sh` en Windows: qué NO se ha confirmado todavía
 

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # GitFlow 20 — Mirror to Remote
-# Copia TODO el historico (ramas, tags) del origin actual a un remoto destino vacio.
+# Copia las ramas LOCALES y todos los tags a un remoto destino, pensado vacio.
 # Util para migrar el repo a otro GitLab/GitHub manteniendo la historia intacta.
+# Una rama que solo exista como origin/<rama> no se copia: crea antes su rama
+# local. Sin --force no sobreescribe nada: si el destino ya tiene una rama
+# que diverge, el destino la rechaza y el envio se detiene.
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_gitflow-common.sh"
 initialize_gitflow_log "mirror-to-remote"
@@ -75,8 +78,8 @@ ensure_remote_empty "$REMOTE_NAME" || { log_summary "CANCELADO" "destino no vaci
 # ── 8. Resumen y confirmacion ─────────────────────────────────────────────────
 show_remote_summary "$REMOTE_NAME" || { log_summary "CANCELADO" "usuario cancelo el envio"; exit 0; }
 
-# ── 9. Push --mirror al destino ───────────────────────────────────────────────
-log_info "Enviando todas las ramas a '$REMOTE_NAME'..."
+# ── 9. Push de ramas locales y tags al destino (sin --force) ──────────────────
+log_info "Enviando las ramas locales a '$REMOTE_NAME'..."
 invoke_git "Fallo el push de ramas a $REMOTE_NAME." push "$REMOTE_NAME" --all
 log_ok "Ramas enviadas."
 
