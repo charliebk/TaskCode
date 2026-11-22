@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-142-regla-4d-disfraz-en-los-scripts-de-git-f
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ Corregir los scripts de Git-Flow que aparentan hacer algo que no hacen (auditori
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-22T21:43:24Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-22T21:45:04Z | approve | automatico | persona | 0.16.1 |
