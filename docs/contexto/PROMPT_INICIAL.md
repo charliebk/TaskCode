@@ -41,8 +41,7 @@ Tres cosas del entorno que te ahorran tiempo (estan en HALLAZGOS.md, pero
 mejor que las tengas ya):
 - Antes de nada, prepende "C:\Program Files\Git\usr\bin" al PATH; si no, bash
   resuelve al de WSL y revienta todo lo que spawnea scripts.
-- "Suite verde" en local = fallan solo 3 tests conocidos (2 de symlinks EPERM
-  y 1 de CRLF); ademas plan.test.ts y main.test.ts tienen fallos
+- "Suite verde" en local = ningun rojo (TASK-154; ver CLAUDE.md); ademas plan.test.ts y main.test.ts tienen fallos
   intermitentes bajo carga: antes de acusar a un cambio, corre el fichero
   aislado.
 - Los ficheros que le pases a taskctl import tienen que vivir fuera del repo.

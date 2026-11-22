@@ -96,8 +96,8 @@ y el paso que toca.
 ## Trampas vivas
 
 - **`finish` corre la suite completa si el diff toca skills o README**
-  (quedan fuera de `rutas_verificacion_parcial`). Si solo fallan los 3 rojos
-  conocidos de Windows, se cierra con `--sin-verificacion`.
+  (quedan fuera de `rutas_verificacion_parcial`). Desde TASK-154 no hay rojos esperados en Windows:
+  cualquier rojo se arregla, no se salta.
 - **El freno `Stop` del plugin instalado lee la config de la rama activa**,
   no la de `develop`.
 - **Los subagentes en worktree aislado no pueden usar git.**
@@ -109,7 +109,7 @@ y el paso que toca.
 - **Subir a `origin`**: según la referencia local, `origin/develop` se quedó
   en el 2026-11-10 y `develop` va cientos de commits por delante (`taskctl`
   no sube sin `--push`). Comprobar con `git fetch` antes de fiarse.
-- Los 3 rojos conocidos de Windows y los `EBUSY ... rmdir` del teardown:
+- Los tests omitidos en Windows y los `EBUSY ... rmdir` del teardown:
   ver `CLAUDE.md`.
 
 ## Dónde mirar
