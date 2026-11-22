@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-154-plan-test-ts-en-verde-en-windows-nativo
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -37,3 +37,4 @@ Los 2 tests de plan.test.ts que fallan siempre en Windows nativo (chmod sin efec
 |---|---|---|---|---|
 | 2026-11-22T23:19:36Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T23:19:38Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-22T23:20:30Z | start | automatico | persona | 0.16.1 |
