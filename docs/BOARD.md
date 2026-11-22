@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-22. No editar a mano.
 
-## Planificadas (00-planificadas) — 17
+## Planificadas (00-planificadas) — 28
 
 ```text
 ID        Titulo                                                                                      Asignado
@@ -24,9 +24,20 @@ TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin               
 TASK-138  Regla 4D: duplicacion en metricas, suite y registro de puertas                              (sin asignar)
 TASK-139  Regla 4D: tests que no protegen lo que dicen                                                (sin asignar)
 TASK-140  Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
+TASK-142  Regla 4D: disfraz en los scripts de Git-Flow                                                (sin asignar)
+TASK-143  Regla 4D: duplicacion en Git-Flow (bash y TS)                                               (sin asignar)
+TASK-144  Regla 4D: ciclo de vida, cadena y flags en commands                                         (sin asignar)
+TASK-145  Regla 4D: duplicacion en las puertas de finish                                              (sin asignar)
+TASK-146  Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste             (sin asignar)
+TASK-147  Regla 4D: lectores de secciones e IDs en core                                               (sin asignar)
+TASK-148  Regla 4D: catalogos, config y utilidades en core                                            (sin asignar)
+TASK-149  Regla 4D: duplicacion en fs, hooks y cli                                                    (sin asignar)
+TASK-150  Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
+TASK-151  Regla 4D: disfraz en tests                                                                  (sin asignar)
+TASK-152  Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 121
+## Terminadas (04-terminadas) — 122
 
 ```text
 ID        Titulo                                                                                                              Asignado
@@ -152,4 +163,5 @@ TASK-134  En Windows taskctl lanza el bash de Git, no el primero del PATH       
 TASK-135  diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada                                                charlie.bk@gmail.com
 TASK-136  Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src                                             charlie.bk@gmail.com
 TASK-137  Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo                                                 charlie.bk@gmail.com
+TASK-141  Auditoria 4D inicial: reconocimiento completo del codigo existente                                                  charlie.bk@gmail.com
 ```

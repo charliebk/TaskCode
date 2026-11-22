@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-141 (feature) — Auditoria 4D inicial: reconocimiento completo del codigo existente (2026-11-22)
+
 ## 0.17.0 — 2026-11-22
 
 Regla 4D: implementadores y revisores evitan cuatro defectos — duplicacion,

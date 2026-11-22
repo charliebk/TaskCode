@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-141-auditoria-4d-inicial-reconocimiento-comp
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ Reconocer el repo entero (plugin: src, scripts, skills, agents, hooks y test; sc
 | 2026-11-22T21:12:06Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T21:12:41Z | start | automatico | persona | 0.16.1 |
 | 2026-11-22T21:36:15Z | review | automatico | persona | 0.16.1 |
+| 2026-11-22T21:41:11Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -79,3 +80,9 @@ Reconocer el repo entero (plugin: src, scripts, skills, agents, hooks y test; sc
 ## Verificacion de documentacion
 
 - 2026-11-22T21:41:02Z: la tarea solo cambia documentacion (23 fichero(s) dentro de rutas_documentacion de "develop"); no se ejecuta `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`, sin comprobacion de documentacion declarada
+
+## Duracion
+
+- Estimada: — (no se entiende: 180 min (de la rama abierta al cierre con merge; senales:)
+- Real (de la rama abierta al cierre con merge, sin pausas): 29 min
+- Cierre (finish): 9 s, de 2026-11-22T21:41:02Z a 2026-11-22T21:41:11Z
