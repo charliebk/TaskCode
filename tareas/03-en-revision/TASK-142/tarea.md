@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-142-regla-4d-disfraz-en-los-scripts-de-git-f
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 4193779
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-22
@@ -39,8 +39,15 @@ Corregir los scripts de Git-Flow que aparentan hacer algo que no hacen (auditori
 | 2026-11-22T21:43:24Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T21:45:04Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T21:45:06Z | start | automatico | persona | 0.16.1 |
+| 2026-11-22T21:53:56Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 1a8bf25: helper buscado (detect_origin_available, _gf_hora, log_summary reutilizados), criterios citados en cada cambio, 6 tests nuevos en rojo antes del arreglo y 1 mutacion extra (stash pop sin ref) en rojo.
 - code-quality-reviewer — 1a8bf25
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-22T21:53:56Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 22 | 21568 | 4157209 | 14980 | 0 | 4193779 | - | - |
