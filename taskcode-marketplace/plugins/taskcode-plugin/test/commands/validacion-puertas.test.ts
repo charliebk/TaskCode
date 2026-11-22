@@ -184,7 +184,9 @@ async function setupEnRevision(
   await mkdir(revisionDir, { recursive: true });
   await writeFile(
     path.join(revisionDir, 'informe-revision-1.md'),
-    `# Informe de revision — ${task.id} (ronda 1)\n\n- Veredicto: aprobada\n`,
+    // TASK-137: un informe bien formado trae la Regla 4D rellena; sin ella finish anade su aviso.
+    `# Informe de revision — ${task.id} (ronda 1)\n\n- Veredicto: aprobada\n\n## Regla 4D\n\n` +
+      '- Duplicacion: cumple\n- Desviacion: cumple\n- Diluvio: cumple\n- Disfraz: cumple\n',
     'utf8'
   );
   commitAll(repoRoot, 'feat(TASK-430): trabajo revisado');
