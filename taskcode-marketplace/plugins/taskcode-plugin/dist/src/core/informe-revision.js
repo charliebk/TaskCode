@@ -7,6 +7,7 @@
  * la ronda incremental de `taskctl review`: que dijo la ronda anterior,
  * desde que commit se reviso y que hallazgos siguen abiertos.
  */
+import { rangoDeSeccion } from './transiciones.js';
 const PREFIJO_VEREDICTO = '- veredicto:';
 /** Valor de una linea `- Veredicto:` sin enfasis de markdown, en minusculas. */
 function valorDeLinea(linea) {
@@ -382,4 +383,55 @@ export function resumirHallazgos(informes) {
         porOrigen[h.origen]++;
     }
     return { informes: informes.length, informesSinTabla, porSeveridad, porOrigen, severidadesDesconocidas };
+}
+// --- Regla 4D (TASK-137) -----------------------------------------------------
+/** Titulo de la seccion del informe, sin tilde, como `## Hallazgos`. */
+export const SECCION_REGLA_4D = '## Regla 4D';
+/** Las cuatro D, en el orden de la plantilla; la etiqueta de cada linea `- <D>:`. */
+export const DIMENSIONES_4D = ['Duplicacion', 'Desviacion', 'Diluvio', 'Disfraz'];
+/** Valor de la plantilla: una linea que lo conserva no se ha rellenado. */
+export const VALOR_PLANTILLA_4D = '(cumple / ID del hallazgo)';
+/** Las cuatro lineas de la seccion, tal como las deja la plantilla del informe. */
+export function plantillaRegla4D() {
+    return `${SECCION_REGLA_4D}\n\n${DIMENSIONES_4D.map((d) => `- ${d}: ${VALOR_PLANTILLA_4D}`).join('\n')}\n`;
+}
+/**
+ * Que le falta a la seccion `## Regla 4D` de un informe: `['seccion']` si no
+ * esta, o las D cuya linea falta o no empieza por `cumple` ni por un ID de
+ * hallazgo (`IMP-2`, `MEN-1`): vacia, la plantilla, `TODO`, `n/a` (MEN-1 de
+ * la revision). Vacio = completa. La etiqueta se reconoce sin mayusculas,
+ * tildes ni enfasis (`- **Duplicación**: cumple`).
+ */
+export function faltasRegla4D(informe) {
+    const lineas = informe.split(/\r?\n/);
+    const rango = rangoDeSeccion(lineas, SECCION_REGLA_4D);
+    if (rango === null)
+        return ['seccion'];
+    const valores = new Map();
+    for (const l of lineas.slice(rango[0] + 1, rango[1])) {
+        const m = /^\s*-\s*([^:]+):(.*)$/.exec(l);
+        if (m !== null)
+            valores.set(normalizarCelda(m[1]).toLowerCase(), normalizarCelda(m[2]));
+    }
+    return DIMENSIONES_4D.filter((d) => {
+        const v = valores.get(d.toLowerCase());
+        return v === undefined || !/^(cumple\b|[a-z]+-\d+\b)/i.test(v);
+    });
+}
+/**
+ * El aviso de `finish` si algun informe de la ultima ronda no tiene la
+ * seccion `## Regla 4D` completa; null si todos la tienen. No bloquea: el
+ * veredicto sigue siendo la puerta.
+ */
+export function avisoRegla4D(informes, id) {
+    const problemas = informes.flatMap(({ fichero, texto }) => {
+        const faltas = faltasRegla4D(texto);
+        if (faltas.length === 0)
+            return [];
+        return [faltas[0] === 'seccion' ? `${fichero} no la tiene` : `${fichero} sin rellenar: ${faltas.join(', ')}`];
+    });
+    if (problemas.length === 0)
+        return null;
+    return (`${id}: la seccion "${SECCION_REGLA_4D}" del informe de revision falta o esta incompleta (${problemas.join('; ')}). ` +
+        'Cada D lleva "cumple" o el ID de su hallazgo. La tarea se cierra igualmente (el veredicto es la puerta).');
 }

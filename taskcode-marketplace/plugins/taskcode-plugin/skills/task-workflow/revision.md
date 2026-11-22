@@ -74,6 +74,25 @@ con el motivo. Sin esa nota, el siguiente lector concluye que hay un bug donde
 hay una decision. Un "sin hallazgos" explicito es una respuesta valida;
 inventar hallazgos para tener algo que reportar, no.
 
+## Regla 4D
+
+Cuatro defectos que se buscan en todo diff (cada revisora da un ejemplo de
+cada uno en su dominio):
+
+- **Duplicacion**: dos funciones o clases que hacen lo mismo con pequenas
+  diferencias. Ej.: `formatearFecha` nueva junto a la `fechaCorta` que ya
+  habia. Se reutiliza y se generaliza (parametro, composicion, herencia).
+- **Desviacion**: el diff se sale del objetivo de la tarea. Ej.: un
+  refactor del parser en una tarea de mensajes. Lo ajeno va a otra tarea.
+- **Diluvio**: muchas lineas o clases donde bastan pocas. Ej.: interfaz,
+  fabrica y tres clases para un `if`.
+- **Disfraz**: algo que aparenta resolver y no hace nada o no se comprueba.
+  Ej.: un test que sigue en verde con la funcion rota (compruebalo por
+  mutacion), un stub que devuelve exito, un criterio marcado sin evidencia.
+
+Duplicacion y disfraz reales son **IMPORTANTE** como minimo; desviacion y
+diluvio, MENOR salvo que cambien comportamiento o escondan un fallo.
+
 ## Rondas
 
 Se numeran: `peticion-revision-N.md` e `informe-revision-N.md` en
@@ -176,6 +195,9 @@ palabras, para poder medir de donde vienen los fallos:
 
 Si dudas entre dos, la que habria evitado el fallo antes. Una celda vacia o
 con otra palabra cuenta como sin clasificar.
+
+Bajo `## Regla 4D` del esqueleto, una linea por D con `cumple` o el ID de su
+hallazgo (`- Disfraz: IMP-2`). `taskctl finish` avisa si falta o sigue vacia.
 
 ## La linea del veredicto
 

@@ -26,6 +26,11 @@ Abre la rama de la tarea con Git-Flow y la pasa a `en-curso`.
    este en verde. Despues encadena `/taskcode-plugin:review` (seccion de
    avance). Si no consigues dejar la suite en verde, para y dilo: no se revisa
    codigo roto.
+   Antes de pedir revision, la Regla 4D (`task-workflow/revision.md`):
+   busca el helper existente antes de crear uno, cita el criterio que motiva
+   cada cambio y comprueba por mutacion cada test nuevo (rompe el codigo, ve
+   el rojo). Anotalo en `## Autorrevision` de `tarea.md`:
+   `- 4D — <commit>: helper buscado, criterios citados, N tests mutados`.
 5. El coste de la implementacion se registra solo (`task-workflow/coste.md`):
    un hook anota que sesion y que subagentes trabajan con la tarea en curso, y
    `taskctl review` suma su uso a `tokens_implementacion` en su commit. **No

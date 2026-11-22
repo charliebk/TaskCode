@@ -152,6 +152,18 @@ el `@Transactional` del propio test no este ocultando que el codigo de
 produccion nunca commitea. Y que exista al menos un test que falle si se
 revierte el cambio.
 
+### Regla 4D en Java y Spring
+
+La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+
+- Duplicacion: dos `@Service` con el mismo mapeo DTO a entidad escrito a
+  mano, en vez de un mapper comun.
+- Desviacion: cambiar el esquema JPA en una tarea de validacion.
+- Diluvio: interfaz `XService`, `XServiceImpl` y fabrica para un unico
+  metodo sin segunda implementacion.
+- Disfraz: un test con `@MockBean` del repositorio que verifica que se llamo
+  a `save` y no que se guardo lo correcto.
+
 ## Clasificacion de los hallazgos
 
 **CRITICO** — perdida de datos, corrupcion de estado, o el codigo hace lo

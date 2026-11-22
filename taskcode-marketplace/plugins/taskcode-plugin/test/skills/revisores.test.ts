@@ -850,7 +850,10 @@ const [TITULO_ANTES = '', TITULO_RESTO = ''] = (ESQUELETO[0] ?? '').split(ID_MUE
 const [TITULO_ENTRE = '', TITULO_DESPUES = ''] = TITULO_RESTO.split(String(RONDA_MUESTRA));
 
 /** '- Commit revisado:', '- Revisor:', '- Veredicto:' — idem. */
-const CAMPOS_CABECERA = ESQUELETO.filter((l) => l.startsWith('- ') && l.includes(':')).map((l) =>
+// Solo la cabecera, antes de la primera seccion: desde TASK-137 la seccion
+// `## Regla 4D` trae tambien lineas `- <D>:` que no son de cabecera.
+const FIN_CABECERA = ESQUELETO.findIndex((l) => l.startsWith('## '));
+const CAMPOS_CABECERA = ESQUELETO.slice(0, FIN_CABECERA).filter((l) => l.startsWith('- ') && l.includes(':')).map((l) =>
   l.slice(0, l.indexOf(':') + 1)
 );
 
