@@ -505,9 +505,10 @@ export function plantillaRegla4D(): string {
 
 /**
  * Que le falta a la seccion `## Regla 4D` de un informe: `['seccion']` si no
- * esta, o las D cuya linea falta, esta vacia o conserva el valor de la
- * plantilla. Vacio = completa. La etiqueta se reconoce sin mayusculas, tildes
- * ni enfasis (`- **Duplicación**: cumple`).
+ * esta, o las D cuya linea falta o no empieza por `cumple` ni por un ID de
+ * hallazgo (`IMP-2`, `MEN-1`): vacia, la plantilla, `TODO`, `n/a` (MEN-1 de
+ * la revision). Vacio = completa. La etiqueta se reconoce sin mayusculas,
+ * tildes ni enfasis (`- **Duplicación**: cumple`).
  */
 export function faltasRegla4D(informe: string): string[] {
   const lineas = informe.split(/\r?\n/);
@@ -520,7 +521,7 @@ export function faltasRegla4D(informe: string): string[] {
   }
   return DIMENSIONES_4D.filter((d) => {
     const v = valores.get(d.toLowerCase());
-    return v === undefined || v === '' || v === VALOR_PLANTILLA_4D;
+    return v === undefined || !/^(cumple\b|[a-z]+-\d+\b)/i.test(v);
   });
 }
 

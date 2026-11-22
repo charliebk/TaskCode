@@ -2,14 +2,14 @@
 
 - Commit revisado: a6b1aafb788eabf63bd9bde05c040039710210cd
 - Revisor: code-quality-reviewer
-- Veredicto: PENDIENTE (escribelo con: taskctl veredicto TASK-137 aprobada | aprobada-con-correcciones | cambios-solicitados)
+- Veredicto: aprobada
 
 ## Hallazgos
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| MEN-1 | MENOR | abierto | src/core/informe-revision.ts:417 | implementacion |
-| MEN-2 | MENOR | abierto | src/core/autorrevision.ts:34 | plan |
+| MEN-1 | MENOR | corregido | src/core/informe-revision.ts:417 | implementacion |
+| MEN-2 | MENOR | aceptado | src/core/autorrevision.ts:34 | plan |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el
@@ -45,3 +45,8 @@ El criterio 3 pide que la exigencia de `start` "quede anotada en `## Autorrevisi
 - `taskcode-marketplace/plugins/taskcode-plugin/src/core/crecimiento-suite.ts`, `src/core/versiones-metricas.ts`, `src/commands/metricas.ts`, `src/core/registro-puertas.ts`, `test/core/metricas-puertas.test.ts`: para comprobar la muestra de fichero:linea citada en `docs/auditoria-4d.md` (lo pedia el encargo).
 - `taskcode-marketplace/plugins/taskcode-plugin/dist/src/core/informe-revision.js` y `dist/src/commands/finish.js`: solo para mutar y restaurar (`git checkout`); el arbol quedo limpio.
 - `tareas/00-planificadas/TASK-138..140`: solo comprobar que existen.
+
+## Resolucion de los MENORES (coordinador, sin ronda 2)
+
+- MEN-1 corregido: `faltasRegla4D` solo da por rellena una D que empieza por `cumple` o por un ID de hallazgo (`[a-z]+-\d+`); test con `xyz`, `n/a`, `-` y `TODO`, comprobado por mutacion (aceptar cualquier valor pone 3 tests en rojo).
+- MEN-2 aceptado: comprobar la linea `- 4D — ...` seria un aviso mas sobre texto libre; `review` ya avisa si falta la autorrevision y su mensaje pide la linea 4D. Si la auditoria futura muestra que se omite, se convierte en comprobacion.

@@ -28,6 +28,9 @@ test('una D ausente, vacia o fuera de la seccion cuenta como falta', () => {
   assert.deepEqual(faltasRegla4D(RELLENA.replace('- Disfraz: cumple', '- Disfraz:')), ['Disfraz']);
   const fuera = RELLENA.replace('- Desviacion: IMP-2\n', '') + '- Desviacion: cumple\n';
   assert.deepEqual(faltasRegla4D(fuera), ['Desviacion']);
+  // MEN-1 de la revision: solo vale `cumple` o un ID de hallazgo.
+  const basura = '## Regla 4D\n\n- Duplicacion: xyz\n- Desviacion: n/a\n- Diluvio: -\n- Disfraz: TODO\n';
+  assert.deepEqual(faltasRegla4D(basura), ['Duplicacion', 'Desviacion', 'Diluvio', 'Disfraz']);
 });
 
 test('sin seccion: el aviso nombra la tarea y el fichero; uno incompleto, sus D', () => {
