@@ -19,7 +19,7 @@ sección «Regla 4D». Léela antes de redactar la tarea.
 Datos de la tarea:
 
 - Título: `Auditoria 4D inicial: reconocimiento completo del codigo existente`
-- Tipo: `chore`. Complejidad: `alta`.
+- Tipo: `feature`. Complejidad: `alta`.
 - Objetivo: reconocer el proyecto entero y auditar todo el código ya
   escrito contra las cuatro reglas: sin **duplicación** (dos funciones o
   clases que hacen lo mismo con pequeñas diferencias, o un helper existente
