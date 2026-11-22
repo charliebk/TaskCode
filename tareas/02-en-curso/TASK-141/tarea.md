@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-141-auditoria-4d-inicial-reconocimiento-comp
 asignado_a: charlie.bk@gmail.com
@@ -38,3 +38,4 @@ Reconocer el repo entero (plugin: src, scripts, skills, agents, hooks y test; sc
 |---|---|---|---|---|
 | 2026-11-22T21:11:28Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-22T21:12:06Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-22T21:12:41Z | start | automatico | persona | 0.16.1 |
