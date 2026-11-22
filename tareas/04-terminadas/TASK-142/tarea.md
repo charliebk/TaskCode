@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-142-regla-4d-disfraz-en-los-scripts-de-git-f
 asignado_a: charlie.bk@gmail.com
@@ -40,6 +40,7 @@ Corregir los scripts de Git-Flow que aparentan hacer algo que no hacen (auditori
 | 2026-11-22T21:45:04Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T21:45:06Z | start | automatico | persona | 0.16.1 |
 | 2026-11-22T21:53:56Z | review | automatico | persona | 0.16.1 |
+| 2026-11-22T23:01:08Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -68,3 +69,9 @@ Corregir los scripts de Git-Flow que aparentan hacer algo que no hacen (auditori
 ## Verificacion omitida
 
 - 2026-11-22T23:00:59Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: — (no se entiende: 75 min (de la rama abierta al cierre con merge; senales:)
+- Real (de la rama abierta al cierre con merge, sin pausas): 76 min
+- Cierre (finish): 9 s, de 2026-11-22T23:00:59Z a 2026-11-22T23:01:08Z

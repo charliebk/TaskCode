@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-142 — Regla 4D: disfraz en los scripts de Git-Flow · etiquetas: (sin etiquetas) · rama fix/task-142-regla-4d-disfraz-en-los-scripts-de-git-f · terminada 2026-11-22 · tareas/04-terminadas/TASK-142/
 - TASK-141 — Auditoria 4D inicial: reconocimiento completo del codigo existente · etiquetas: (sin etiquetas) · rama feature/task-141-auditoria-4d-inicial-reconocimiento-comp · terminada 2026-11-22 · tareas/04-terminadas/TASK-141/
 - TASK-137 — Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo · etiquetas: (sin etiquetas) · rama feature/task-137-regla-4d-sin-duplicacion-desviacion-dilu · terminada 2026-11-22 · tareas/04-terminadas/TASK-137/
 - TASK-136 — Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src · etiquetas: windows, verificacion · rama fix/task-136-cerrojo-en-verificar-impacto-dos-ejecuci · terminada 2026-11-18 · tareas/04-terminadas/TASK-136/
