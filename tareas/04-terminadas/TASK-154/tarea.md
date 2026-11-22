@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-154-plan-test-ts-en-verde-en-windows-nativo
 asignado_a: claude
@@ -39,6 +39,7 @@ Los 2 tests de plan.test.ts que fallan siempre en Windows nativo (chmod sin efec
 | 2026-11-22T23:19:38Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T23:20:30Z | start | automatico | persona | 0.16.1 |
 | 2026-11-22T23:22:29Z | review | automatico | persona | 0.16.1 |
+| 2026-11-22T23:31:36Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -65,3 +66,9 @@ Los 2 tests de plan.test.ts que fallan siempre en Windows nativo (chmod sin efec
 ## Verificacion parcial
 
 - 2026-11-22T23:30:33Z: todo el codigo que cambia la tarea (1 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 30 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 11 min
+- Cierre (finish): 63 s, de 2026-11-22T23:30:33Z a 2026-11-22T23:31:36Z

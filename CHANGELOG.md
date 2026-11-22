@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- TASK-154 (fix) — plan.test.ts en verde en Windows nativo (2026-11-22)
 - TASK-142 (fix) — Regla 4D: disfraz en los scripts de Git-Flow (2026-11-22)
 - TASK-141 (feature) — Auditoria 4D inicial: reconocimiento completo del codigo existente (2026-11-22)
 
