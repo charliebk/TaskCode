@@ -55,3 +55,7 @@ El plugin asegura que implementadores y revisores no producen codigo 4D (pedido 
 | 2026-11-22T19:02:23Z | implementacion | agente:a65ef23eb4f313372 | 30 | 128880 | 1477396 | 8012 | 0 | 1614318 | - | - |
 | 2026-11-22T19:02:23Z | implementacion | agente:ab41a26511f2f30af | 14 | 98817 | 532791 | 3631 | 0 | 635253 | - | - |
 | 2026-11-22T19:09:27Z | revision | agente:aad6904d9efd59f66 | 34 | 127978 | 1882029 | 9468 | 4 | 2019509 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-22T19:09:50Z: ronda 1; commit revisado a6b1aafb788eabf63bd9bde05c040039710210cd; commit verificado 29c5fb5592b779a29ee967bb2c4f4360df7db489; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/informe-revision.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/regla-4d.test.ts; corregidos: MEN-1; pendientes: ninguno
