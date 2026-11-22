@@ -28,6 +28,6 @@ Corregir las duplicaciones que encontro la auditoria 4D de TASK-137 (docs/audito
 
 ## Criterios de aceptacion
 - [ ] metricas --por-version y el aviso de crecimiento de doctor usan el mismo agregador de suite por version; un test con una tarea que corre la completa dos veces da la misma cifra en las dos vistas
-- [ ] Una sola funcion mediana (versiones-metricas y crecimiento-suite la comparten) y la regex de pytest se evalua una vez en contarTests
-- [ ] anotarFinish, el bloque de review y anotarSuite comparten la decision verde/rojo/omitido; PUERTAS_VERIFICACION se usa en metricas o se elimina con su test
+- [ ] Una sola funcion mediana (versiones-metricas, crecimiento-suite, la exportada en metricas.ts y la de tramoDe en evolucion.ts la comparten; TASK-141, CORE2-11) y la regex de pytest se evalua una vez en contarTests
+- [ ] anotarFinish, el bloque de review, anotarSuite y verificar-lote (TASK-141) comparten la decision verde/rojo/omitido; PUERTAS_VERIFICACION se usa en metricas o se elimina con su test
 - [ ] Los textos de las salidas del tope de rondas (siguiente, salidasTopeRondas, error de review) salen de una sola fuente y doctor lee las terminadas una vez
