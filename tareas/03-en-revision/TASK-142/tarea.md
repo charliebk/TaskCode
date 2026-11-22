@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 4193779
-tokens_revision: null
+tokens_revision: 1657861
 creado: 2026-11-22
 actualizado: 2026-11-22
 dependencias: []
@@ -51,3 +51,8 @@ Corregir los scripts de Git-Flow que aparentan hacer algo que no hacen (auditori
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-22T21:53:56Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 22 | 21568 | 4157209 | 14980 | 0 | 4193779 | - | - |
+| 2026-11-22T22:04:28Z | revision | agente:a1069811c0a5cc298 | 30 | 128429 | 1517468 | 11934 | 2 | 1657861 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-22T22:04:31Z: ronda 1; commit revisado 4ef84e1f9f88285a1a9517efdcd949171784463f; commit verificado 6d95405923459cde3114fa82031a2d65cc241631; ficheros: taskcode-marketplace/plugins/taskcode-plugin/scripts/gitflow/_gitflow-common.sh, taskcode-marketplace/plugins/taskcode-plugin/scripts/gitflow/pause-work.sh, taskcode-marketplace/plugins/taskcode-plugin/scripts/gitflow/push-back-to-remote.sh; corregidos: MENOR-1, MENOR-2; pendientes: ninguno
