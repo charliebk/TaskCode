@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-153a (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-144, TASK-145, TASK-146, TASK-147, TASK-148, TASK-149, TASK-150, TASK-151, TASK-152, TASK-154, TASK-019
+- **En marcha:** TASK-154 (en diseño), TASK-153a (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-144, TASK-145, TASK-146, TASK-147, TASK-148, TASK-149, TASK-150, TASK-151, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -120,7 +120,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 18 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
 | 19 | TASK-151 | Regla 4D: disfraz en tests | media | — | lista para empezar |
 | 20 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
-| 21 | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | lista para empezar |
+| 21 | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ▶ en diseño |
 | 22 | TASK-153a | plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) | alta | — | ▶ en diseño |
 | 23 | TASK-153b | candidatos 4D en la peticion de revision (parte b de TASK-153) | alta | TASK-153a | espera a TASK-153a |
 | 24 | TASK-153c | metricas de hallazgos 4D (parte c de TASK-153) | alta | TASK-153b | espera a TASK-153b |
