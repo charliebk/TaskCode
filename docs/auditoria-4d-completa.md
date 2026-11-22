@@ -61,8 +61,8 @@ Total auditado: unas 44.000 líneas de código y contenido, y 58.000 de tests.
      90 citas (fichero, línea ±6 y el texto que nombra el caso). 79 casaron a
      la primera. Las 11 restantes se abrieron a mano: todas se sostienen, solo
      con la línea desplazada (por ejemplo, `CLAVES_NUMERICAS` en
-     `heuristica.ts:149` y no en la 105). SCR-04 se comprobó con `diff` (18
-     líneas distintas en total).
+     `heuristica.ts:149` y no en la 105). SCR-04 se comprobó con `diff` (8
+     líneas cambiadas en cada fichero).
    - **Límite:** el script comprueba que la cita existe, no toda la
      incoherencia que describe el caso. La incoherencia completa se ha leído
      en los 32 casos de arriba y en los de la mutación. Cada tarea de
@@ -121,7 +121,7 @@ confianza.
 | CORE1-11 | core | Duplicación | `doctor-deploy-catalogo.ts:532,624` frente a `documento-estado.ts:46-57` | Dos validaciones de fecha: `FECHA_RE` acepta `2026-02-30` y `diaDe` la rechaza | IMPORTANTE | alta | TASK-148 |
 | CORE1-12 | core | Duplicación | `catalogo-skills.ts:487-492` frente a `complejidad-similar.ts:39-45` | Dos «solapes de etiquetas»: uno pasa a minúsculas y el otro no (`Rust` frente a `rust`) | IMPORTANTE | media | TASK-148 |
 | CORE1-13 | core | Duplicación | `coste-transcripcion.ts:119`, `doctor-deploy-auditoria.ts:55`, `hooks-subagente.ts:53`, `fs/json-claude.ts:20`; `recortar` ×3 | `esObjeto` ×4 (incluye CORE2-17) y tres «recortar» que cortan con longitudes distintas | IMPORTANTE | media | TASK-148 |
-| CORE1-14 | core | Disfraz | `config.ts:2-4`; `doctor-deploy-tareas.ts:66` | Comentarios que afirman lo que el código no hace: «TRES claves» cuando hay 32, y `dondeFalla` dice que recorta y no recorta | MENOR | alta | TASK-148 |
+| CORE1-14 | core | Disfraz | `config.ts:2-4`; `doctor-deploy-tareas.ts:66` | Comentarios que afirman lo que el código no hace: «TRES claves» cuando hay 32, y `dondeFalla` dice que recorta y no recorta | IMPORTANTE | alta | TASK-148 |
 | CORE2-01 | core | Duplicación | `roadmap.ts:131-134`, `evolucion.ts:81-84` frente a `roadmap-comparar.ts:134-139`, `board-format.ts:30` | Cuatro lectores del número de ID. `/(\d+)$/` no casa con `TASK-121a`, así que las partes de un troceo se ordenan al final en el ROADMAP y en la evolución | IMPORTANTE | alta | TASK-147 |
 | CORE2-02 | core | Duplicación | `menores.ts:128-142`, `rondas-extra.ts:29-36`, `plataforma-remota.ts:462-476` | Lectores de sección con `findIndex` y sin saltar bloques, mientras la escritura usa `rangoDeSeccion`. Un ejemplo `## Verificacion ligera` en el enunciado hace que la verificación real no se vea | IMPORTANTE | alta | TASK-147 |
 | CORE2-03 | core | Duplicación | `plan-brainstorm.ts:220-226,380-386` frente a `commands/plan.ts:257-272` | Las secciones del plan están escritas 3 veces. Las peticiones no piden `Duracion estimada` ni el presupuesto de tests; solo lo tapa la skill (va con CONT-07) | IMPORTANTE | alta | TASK-150 |
@@ -161,8 +161,8 @@ Ya cubiertos: A1, A2, A3, A4, A5 y A6. Se añaden a TASK-138 la mediana de
 | CMD1-08 | commands | Duplicación | `doctor-deploy.ts:211` frente a `documento-estado.ts:60`; `:516` frente a `cli.ts:205` | `fechaLocal` es igual a `diaLocal`. `creado` sale en hora local aquí y en UTC en `new` | IMPORTANTE | alta | TASK-146 |
 | CMD1-09 | commands | Duplicación | `approve.ts:270`, `cadena.ts:237`, `finish-opciones.ts:56`, `doctor-deploy.ts:282`, `veredicto.ts:92`, `verificar-menores.ts:140`, `new.ts:88` | Siete extractores de flag con valor frente a `extraerRepetible`. `--flag=valor` vale en unos comandos y en otros no (va con CMD2-05) | IMPORTANTE | media | TASK-144 |
 | CMD1-10 | commands | Duplicación | `approve.ts:197,351,357`; `trocear.ts:86` | «Qué plan cuenta» se decide en 4 sitios. Con dos planes, `siguiente` manda a approve y approve aborta | IMPORTANTE | media | TASK-144 |
-| CMD1-11 | commands | Duplicación | `doctor-deploy.ts:344` frente a `:518` | Detecta el caso buscando un trozo del texto de un aviso | MENOR | alta | TASK-144 |
-| CMD1-12 | commands | Duplicación | `finish-verificacion.ts:182,190,197,375,412,418,526,532,654,660`; `finish-heldout.ts:228` | Textos de error repetidos 5 y 6 veces | MENOR | alta | TASK-145 |
+| CMD1-11 | commands | Duplicación | `doctor-deploy.ts:344` frente a `:518` | Detecta el caso buscando un trozo del texto de un aviso | IMPORTANTE | alta | TASK-144 |
+| CMD1-12 | commands | Duplicación | `finish-verificacion.ts:182,190,197,375,412,418,526,532,654,660`; `finish-heldout.ts:228` | Textos de error repetidos 5 y 6 veces | IMPORTANTE | alta | TASK-145 |
 | CMD1-13 | commands | Diluvio | `approve.ts:346`; `finish-verificacion.ts:113`; `finish.ts:1151-1158` | Comentarios huérfanos encima de la función equivocada | MENOR | alta | TASK-145 |
 | CMD1-14 | commands | Diluvio | `finish.ts:567-612,649-650,687-701,697` | Spreads repetidos 5 veces y una condición redundante | MENOR | alta | TASK-145 |
 | CMD1-15 | commands | Desviación | `finish.ts:864-865`; `codex-review.ts:138` | Comentario obsoleto (B5) y un parámetro `_today` que no se usa | MENOR | alta | TASK-145 |
@@ -206,7 +206,7 @@ de A4 y se añade al criterio de TASK-138. La lectura de terminadas de
 | FS-13 | fs | Duplicación | `herramientas-deploy.ts:18,36` frente a `status-line.ts:96,116` | Dos búsquedas en el PATH que divergen en `PATHEXT` | IMPORTANTE | media | TASK-149 |
 | FS-14 | fs | Duplicación | `json-claude.ts:14`, `status-line.ts:167-172`, `deteccion-tests.ts:46` | Tres lecturas de JSON con BOM | IMPORTANTE | media | TASK-149 |
 | FS-15 | fs | Duplicación | `fs/sincronizacion.ts:98-100` y `:220-221` | El texto `aMano` está copiado literal | IMPORTANTE | alta | TASK-149 |
-| FS-16 | fs | Duplicación | `sondas-deploy.ts:174,252`, `sondas-deploy-config.ts:52,65` frente a `deteccion-app.ts:17` | `nombreBase` está ×2 y los mensajes escriben `DIRS_EXCLUIDOS` a mano | MENOR | alta | TASK-149 |
+| FS-16 | fs | Duplicación | `sondas-deploy.ts:174,252`, `sondas-deploy-config.ts:52,65` frente a `deteccion-app.ts:17` | `nombreBase` está ×2 y los mensajes escriben `DIRS_EXCLUIDOS` a mano | IMPORTANTE | alta | TASK-149 |
 | FS-17 | hooks | Desviación | `registro-coste.ts:30`, `guardia-merge.ts:48` | Importan helpers del freno y cargan su grafo entero | MENOR | media | TASK-149 |
 | FS-18 | fs/cli | Desviación | `fs/git-commit.ts:473` | Un parser de argv vive en la capa fs | MENOR | alta | TASK-149 |
 
@@ -276,7 +276,7 @@ Ya cubiertos: C1 y B3 (TASK-139 y TASK-140).
 | TCORE-04 | test/core | Duplicación | `metricas.test.ts:37`, `metricas-fila.test.ts:28`, `metricas-finish.test.ts:11` y 12 fábricas más | Fábricas de `Task` con `as Task` en vez de `helpers/tarea-ejemplo.ts` | IMPORTANTE | alta | TASK-152 |
 | TCORE-05 | test/fs | Duplicación | `fs/git.test.ts:26-41`, `git-commit.test.ts:25-55`, `git-identidad.test.ts:15-28`, `wip-scan.test.ts:23,56` | `git()` local; hay 47 en toda la suite | IMPORTANTE | alta | TASK-152 |
 | TCORE-06 | test/core | Duplicación | `rechaza` ×4, `errorDe` ×2, `errorAccionable` ×2, `conDir` ×2 | El mismo helper con distinta exigencia | IMPORTANTE | alta | TASK-152 |
-| TCORE-07 | test/fs | Disfraz | `test/fs/task-store.test.ts:94,103` | **Descartado:** la mutación M3 lo pone en rojo | — | — | — |
+| TCORE-07 | test/fs | Disfraz | `test/fs/task-store.test.ts:94,103` | **Descartado como test inerte:** M3 lo pone en rojo, pero solo porque cambia la clase del error (`TaskValidationError` en vez de `InvalidTaskIdError`). La promesa del nombre («antes de tocar el filesystem») sigue sin aserción sobre el disco; queda como nota para TASK-151, igual que TCMD-03 | — | — | — |
 | TCORE-08 | test/fs | Disfraz | `test/fs/task-store-wip.test.ts:135` | Los datos ya salen ordenados por cómo se crean. **M4: verde** | IMPORTANTE | alta | TASK-151 |
 | TCORE-09 | test/fs | Disfraz | `test/fs/rondas-aprobada.test.ts:44` | Ninguna ronda llega a 10 (el tope es 10): el orden alfabético y el numérico coinciden | IMPORTANTE | media | TASK-151 |
 | TRES-01 | test/helpers | Duplicación | ~50 `git()`, 22 `commitAll` con dos semánticas, ~31 fábricas de `Task`, montaje del freno ×4, `cli-main.test.ts:36,61` igual a `cli-flags-desconocidos.test.ts:83,103` | Helpers repetidos que ya divergen | IMPORTANTE | alta | TASK-152 |
@@ -290,7 +290,7 @@ Ya cubiertos: C1 y B3 (TASK-139 y TASK-140).
 | TRES-09 | test/skills | Disfraz | `skills/fases.test.ts:193,217,290` | `indexOf` sin comprobar el -1 | IMPORTANTE | alta | TASK-151 |
 | TRES-10 | test/gitflow | Duplicación | `runScript` ×4 (`merge-to-main.test.ts:37`, etc.); `scripts/perfil-tests.test.ts:24` | Usan el bash del PATH, no `resolverBash` | IMPORTANTE | media | TASK-152 |
 | TRES-11 | test/helpers | Diluvio | `helpers/*-fixtures.ts:4-19`, `metricas-repos.ts:16` | Imports muertos: `verificar-impacto` selecciona tests de más | MENOR | alta | TASK-152 |
-| TRES-12 | test/cli | Disfraz | `cli/estado.test.ts:125-143` | Promete que un flag desconocido sale con 1 y no lo prueba. **M10: verde** | MENOR | alta | TASK-151 |
+| TRES-12 | test/cli | Disfraz | `cli/estado.test.ts:125-143` | Promete que un flag desconocido sale con 1 y no lo prueba. **M10: verde** | IMPORTANTE | alta | TASK-151 |
 | TRES-13 | test/gitflow | Desviación | `scripts/gitflow/test/smoke-test.sh:3-5`; `empaquetado/sin-literales-secretos.test.ts:205-210` | Cita documentos internos; hay claves falsas fuera de `claves-falsas.ts` | MENOR | alta | TASK-152 |
 
 Ya cubiertos: B4, B5, C2 y el skip de symlink de TASK-120.
@@ -321,7 +321,7 @@ la regla de duración. Por orden, primero TASK-142 (el CRÍTICO) y TASK-144
 ## Resumen por área
 
 147 casos distintos (150 reportados: dos unificados y uno descartado). 1
-CRÍTICO, 117 IMPORTANTE y 29 MENOR.
+CRÍTICO, 122 IMPORTANTE y 24 MENOR.
 
 | Área | Casos | Duplicación | Disfraz | Diluvio | Desviación |
 |---|---:|---:|---:|---:|---:|
