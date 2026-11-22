@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-141, TASK-019
+- **En marcha:** TASK-141 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-019
 
 ## H0 — H0
 
@@ -108,7 +108,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 8 | TASK-138 | Regla 4D: duplicacion en metricas, suite y registro de puertas | media | — | lista para empezar |
 | 9 | TASK-139 | Regla 4D: tests que no protegen lo que dicen | simple | — | lista para empezar |
 | 10 | TASK-140 | Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion | media | — | lista para empezar |
-| 11 | TASK-141 | Auditoria 4D inicial: reconocimiento completo del codigo existente | alta | — | lista para empezar |
+| 11 | TASK-141 | Auditoria 4D inicial: reconocimiento completo del codigo existente | alta | — | ▶ en diseño |
 
 ## H1 — H1
 

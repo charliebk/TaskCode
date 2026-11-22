@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-141-auditoria-4d-inicial-reconocimiento-comp
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ Reconocer el repo entero (plugin: src, scripts, skills, agents, hooks y test; sc
 - [ ] Cada caso 4D esta en una tabla ID | Area | D | fichero:linea | evidencia | severidad | confianza | seguimiento; duplicacion y disfraz reales son IMPORTANTE como minimo, desviacion y diluvio MENOR salvo que cambien comportamiento o escondan un fallo; los dudosos van con confianza media; los casos ya cubiertos por TASK-138..140 se referencian, no se duplican
 - [ ] Cada caso de confianza alta lo vuelve a comprobar en el codigo el coordinador, distinto del agente que lo encontro; los casos de disfraz en tests se comprueban por mutacion sobre una muestra de al menos 5 tests y el resultado queda anotado
 - [ ] Cada caso tiene tarea de seguimiento creada con taskctl new, agrupando por regla y area, nunca una por caso; el informe cierra con un resumen por area y una conclusion: que D predomina y en que zonas
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-22T21:11:28Z | plan | automatico | persona | 0.16.1 |
