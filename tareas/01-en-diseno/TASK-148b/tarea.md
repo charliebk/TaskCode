@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -36,3 +36,4 @@ masParecida, validadores de entero y de enumerado, CLAVES_CONFIG atada al switch
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-23T13:40:55Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T13:40:57Z | approve | automatico | persona | 0.16.1 |
