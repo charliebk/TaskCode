@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-148c (fix) — utilidades de core (parte c de TASK-148) (2026-11-23)
 - TASK-148b (fix) — validacion de config (parte b de TASK-148) (2026-11-23)
 - TASK-148a (fix) — raiz del plugin y lector de catalogos (parte a de TASK-148) (2026-11-23)
 - TASK-149c (fix) — utilidades de fs (parte c de TASK-149) (2026-11-23)
