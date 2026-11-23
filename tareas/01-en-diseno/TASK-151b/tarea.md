@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: fix/task-151-regla-4d-disfraz-en-tests
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,10 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 ## Criterios de aceptacion
 - [ ] Las mutaciones M6, M7, M8, M9 y M10 ponen su test en rojo (doctor-deploy DIRS_EXCLUIDOS, review-incremental, salida-temprana, cli/estado); review-incremental corre en Linux; doctor-correcciones no convierte un timeout ausente en skip
 - [ ] Los tests que prometen sin efectos secundarios o workspace limpio lo comprueban con git status, los que prometen error claro miran el mensaje, y guardia-documentacion comprueba cuenta-sel
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T23:49:31Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T23:50:19Z | approve | automatico | persona | 0.16.1 |
