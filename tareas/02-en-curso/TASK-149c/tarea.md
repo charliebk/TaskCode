@@ -38,3 +38,8 @@ Lockfiles, binarios, cola, PATH, JSON con BOM y nombreBase con una implementacio
 | 2026-11-23T12:31:38Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T12:31:40Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T12:31:41Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 30bfd1d: buscadas las copias de lockfiles, binario, cola, PATH, BOM y nombreBase; de cada una se queda la mas completa; nuevos candidatosEnPath (la busqueda que devuelve todos, para la status line), textoDirsExcluidos, quitarBom, esArchivoDeBloqueo y el modulo leer-cola.ts (sin dependencias para la via rapida de estado); 1 fichero de test nuevo (4 tests) y la lista de la via rapida actualizada; 5 mutaciones en rojo
+- code-quality-reviewer — 30bfd1d
