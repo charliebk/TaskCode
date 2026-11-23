@@ -1,6 +1,6 @@
 ---
-id: TASK-148
-titulo: "Regla 4D: catalogos, config y utilidades en core"
+id: TASK-148a
+titulo: "raiz del plugin y lector de catalogos (parte a de TASK-148)"
 tipo: fix
 sprint: 0
 etiquetas: []
@@ -24,13 +24,17 @@ dependencias: []
 ---
 ## Objetivo
 
-Unificar los lectores de catalogos planos, la validacion de config y las utilidades repetidas de core (auditoria 4D completa, docs/auditoria-4d-completa.md, casos CORE1-03 a CORE1-14, CORE2-08 a CORE2-10, CORE2-15 a CORE2-21).
+Parte a del troceo de TASK-148 (Regla 4D: catalogos, config y utilidades en core), partes TASK-148a, TASK-148b, TASK-148c, TASK-148d en la rama fix/task-148-regla-4d-catalogos-config-y-utilidades-e.
+
+packageRoot en un modulo, un lector de bloques prefijo_N_campo con describirValor, SKILL_KEY_RE derivada (CORE1-03, CORE1-04, CORE1-05, CORE2-08).
+
+Objetivo de la tarea entera:
+
+> Unificar los lectores de catalogos planos, la validacion de config y las utilidades repetidas de core (auditoria 4D completa, docs/auditoria-4d-completa.md, casos CORE1-03 a CORE1-14, CORE2-08 a CORE2-10, CORE2-15 a CORE2-21).
 
 ## Criterios de aceptacion
+
 - [ ] packageRoot y CLAUDE_PLUGIN_ROOT se resuelven en un solo modulo; catalogo-skills, heuristica y doctor-deploy-catalogo comparten el lector de bloques prefijo_N_campo y describirValor
-- [ ] config usa masParecida para sugerir, un validador de entero en rango y otro de lista de enumerado; un test falla si CLAVES_CONFIG y el switch de claves no coinciden; SKILL_KEY_RE se deriva de los campos
-- [ ] Rutas relativas, fechas, solape de etiquetas, ANSI, redaccion de credenciales, URL de origin, esObjeto y recortar tienen una sola implementacion cada uno
-- [ ] Comentarios de config y dondeFalla ciertos; la E/S de plugin-instalado, heuristica y revisores se documenta o se mueve a fs; TRIVIAL_SIN_APROBACION se elimina o se justifica en una linea
 
 ## Transiciones
 

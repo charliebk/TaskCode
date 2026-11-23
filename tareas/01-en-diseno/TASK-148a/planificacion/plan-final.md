@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: cada caso tiene fichero y linea en do
 
 ## Enfoque propuesto
 
-Duracion estimada: 210 min (se trocea en cuatro partes de una hora o menos)
+Duracion estimada: 60 min (parte a del troceo; la tarea entera estimaba 210 min)
 
 1. Catalogos (parte a): `packageRoot` y `CLAUDE_PLUGIN_ROOT` en un modulo (CORE1-03, CORE2-08); un lector de bloques `prefijo_N_campo` y un `describirValor` para catalogo-skills, heuristica y doctor-deploy-catalogo (CORE1-04); `SKILL_KEY_RE` derivada de los campos (CORE1-05).
 2. Config (parte b): `masParecida` para sugerir (CORE1-06), un validador de entero en rango y uno de lista de enumerado sin repetidos (CORE1-07), un test que ata `CLAVES_CONFIG` al switch de claves (CORE1-08), una validacion de ruta relativa (CORE1-10).
@@ -55,3 +55,7 @@ Por parte, 1 o 2 tests del caso en que las copias divergian; en config, el test 
 ## Lo que necesita decision de una persona
 
 Nada abierto. Troceo autorizado de antemano por Carlos para el plan de correcciones 4D («trocear las de mas de 1 h sin preguntar»).
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-23: TASK-148a, TASK-148b, TASK-148c, TASK-148d, todas en la misma rama. Este plan es el de TASK-148a; las demas partes se planifican al empezarlas.
