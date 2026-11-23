@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-151-regla-4d-disfraz-en-tests
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-22
-actualizado: 2026-11-22
+actualizado: 2026-11-23
 dependencias: []
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Que los tests sospechosos de disfraz de la auditoria 4D completa (docs/auditoria
 - [ ] Los tests que prometen sin efectos secundarios o workspace limpio lo comprueban con git status; los que prometen error claro miran el mensaje
 - [ ] doctor-correcciones no convierte un timeout ausente en skip; review-incremental corre en Linux; ultimaRonda se prueba con 10 rondas o mas
 - [ ] plugin-instalado, guardia-documentacion y fases comprueban un resultado esperado (cuenta-sel, indexOf distinto de -1)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T23:22:47Z | plan | automatico | persona | 0.16.1 |
