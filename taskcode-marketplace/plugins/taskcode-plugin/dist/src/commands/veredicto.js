@@ -21,7 +21,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
@@ -60,24 +60,10 @@ export function sustituirVeredicto(informe, linea) {
     });
     return resultado.join('\n');
 }
-/** Saca `--informe <nombre>` de argv. */
+/** Saca `--informe <nombre>` (o `--informe=<nombre>`) de argv (TASK-144b: `extraerUnico`). */
 function extraerInforme(argv) {
-    const resto = [];
-    let informe = null;
-    for (let i = 0; i < argv.length; i++) {
-        const arg = argv[i];
-        if (arg === '--informe') {
-            const valor = argv[i + 1];
-            if (valor === undefined || valor.startsWith('--')) {
-                throw new VeredictoCommandError('[ERROR] --informe necesita el nombre del fichero: --informe informe-revision-N-<revisor>.md');
-            }
-            informe = valor;
-            i++;
-            continue;
-        }
-        resto.push(arg);
-    }
-    return { informe, resto };
+    const { valor, resto } = extraerUnico(argv, '--informe', () => new VeredictoCommandError('[ERROR] --informe necesita el nombre del fichero: --informe informe-revision-N-<revisor>.md'));
+    return { informe: valor, resto };
 }
 export async function runVeredictoCommand(tareasRoot, argv, deps) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.

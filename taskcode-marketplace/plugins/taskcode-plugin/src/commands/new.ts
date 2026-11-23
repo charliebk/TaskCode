@@ -12,7 +12,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerRepetible, extraerUnico, parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
   autoCommit,
   extraerPushFlag,
@@ -83,42 +83,26 @@ export function extraerContenidoInicial(argv: readonly string[]): {
   contenido: ContenidoInicial;
   resto: string[];
 } {
-  const resto: string[] = [];
-  const contenido: ContenidoInicial = { objetivo: null, criterios: [], desde: null };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i] as string;
-    const m = /^--(objetivo|criterio|desde)(?:=(.*))?$/s.exec(arg);
-    if (m === null) {
-      resto.push(arg);
-      continue;
-    }
-    const nombre = m[1] as 'objetivo' | 'criterio' | 'desde';
-    let valor = m[2];
-    if (valor === undefined) {
-      valor = argv[i + 1];
-      if (valor === undefined || valor.startsWith('--')) {
-        throw new NewTaskArgError(`--${nombre} necesita un valor: --${nombre} "<texto>".`);
-      }
-      i++;
-    }
-    if (valor.trim() === '') {
-      throw new NewTaskArgError(`--${nombre} no puede estar vacio.`);
-    }
-    // MEN-1 de la revision: un criterio es UNA linea de checklist (con
-    // saltos, `plan` perdia lo que venia detras), y un objetivo con una
-    // cabecera `##` partiria las secciones de tarea.md.
-    if (nombre === 'criterio') contenido.criterios.push(valor.trim().replace(/\s*\r?\n\s*/g, ' '));
-    else if (nombre === 'objetivo') {
-      if (/^#{1,6}\s/m.test(valor)) {
-        throw new NewTaskArgError(
-          '--objetivo no puede contener cabeceras markdown (lineas que empiezan por "#"): ' +
-            'partirian las secciones de tarea.md. Usa --desde <fichero> para un objetivo con estructura.'
-        );
-      }
-      contenido.objetivo = valor.trim();
-    }
-    else contenido.desde = valor;
+  // TASK-144b: los lectores comunes de flag con valor (repetible el criterio).
+  const sinValor = (nombre: string) => () =>
+    new NewTaskArgError(`--${nombre} necesita un valor no vacio: --${nombre} "<texto>".`);
+  const { valores: criterios, resto: r1 } = extraerRepetible(argv, '--criterio', sinValor('criterio'));
+  const { valor: objetivo, resto: r2 } = extraerUnico(r1, '--objetivo', sinValor('objetivo'));
+  const { valor: desde, resto } = extraerUnico(r2, '--desde', sinValor('desde'));
+  // MEN-1 de la revision: un criterio es UNA linea de checklist (con
+  // saltos, `plan` perdia lo que venia detras), y un objetivo con una
+  // cabecera `##` partiria las secciones de tarea.md.
+  if (objetivo !== null && /^#{1,6}\s/m.test(objetivo)) {
+    throw new NewTaskArgError(
+      '--objetivo no puede contener cabeceras markdown (lineas que empiezan por "#"): ' +
+        'partirian las secciones de tarea.md. Usa --desde <fichero> para un objetivo con estructura.'
+    );
   }
+  const contenido: ContenidoInicial = {
+    objetivo: objetivo === null ? null : objetivo.trim(),
+    criterios: criterios.map((c) => c.trim().replace(/\s*\r?\n\s*/g, ' ')),
+    desde,
+  };
   if (contenido.desde !== null && (contenido.objetivo !== null || contenido.criterios.length > 0)) {
     throw new NewTaskArgError(
       '--desde no se combina con --objetivo ni --criterio: o el fichero trae las dos ' +

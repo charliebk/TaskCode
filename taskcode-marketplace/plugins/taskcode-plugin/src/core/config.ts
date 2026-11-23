@@ -1189,6 +1189,9 @@ export const FASES_SINCRONIZACION = [
   'registrar-coste',
   'codex-review',
   'doctor-deploy',
+  // TASK-144b (CMD2-14): el commit del lote tambien es una fase, y con
+  // fases_sincronizacion declarado solo sincroniza si esta en la lista.
+  'verificar-lote',
 ] as const;
 export type FaseSincronizacion = (typeof FASES_SINCRONIZACION)[number];
 

@@ -84,6 +84,25 @@ export function extraerRepetible(
 }
 
 /**
+ * TASK-144b (CMD1-09 y CMD2-05 de la auditoria 4D): un flag con valor que no
+ * se repite (`--tag`, `--informe`, `--motivo`...). Una sola regla para todos
+ * los comandos, la de `extraerRepetible`: `--flag valor` y `--flag=valor` dan
+ * lo mismo; un valor que empieza por `--` solo con `=`; sin valor o repetido,
+ * el error que da `error` (con `repetido` a true en el segundo caso). Antes
+ * siete lectores a mano divergian: `--motivo=x` abortaba en verificar-menores
+ * aunque `rechazarFlagsDesconocidos` lo aceptaba.
+ */
+export function extraerUnico(
+  argv: readonly string[],
+  flag: string,
+  error: (repetido: boolean) => Error
+): { valor: string | null; resto: string[] } {
+  const { valores, resto } = extraerRepetible(argv, flag, () => error(false));
+  if (valores.length > 1) throw error(true);
+  return { valor: valores[0] ?? null, resto };
+}
+
+/**
  * Aborta si argv trae un flag que el comando no conoce (TASK-047, auditoria
  * D4). Antes `--complejida trivial` se ignoraba en silencio y la tarea salia
  * con otra complejidad. Mira argv en bruto y no la salida de `parseArgs`,
@@ -106,8 +125,13 @@ export function extraerRepetible(
  */
 export const FLAGS_REPETIBLES: readonly string[] = ['--agente', '--repo', '--criterio'];
 
-/** Flags booleanos del CLI: los comandos solo reconocen el token suelto. */
-const FLAGS_SIN_VALOR: readonly string[] = [
+/**
+ * Flags booleanos del CLI: los comandos solo reconocen el token suelto, asi
+ * que `--flag=valor` aborta. TASK-144b (FS-01): faltaban los de review,
+ * finish y estado (`--completa=1` se ignoraba en silencio); un test recorre
+ * src/commands y falla si un comando lee por token un booleano que no esta.
+ */
+export const FLAGS_SIN_VALOR: readonly string[] = [
   '--push',
   '--json',
   '--forzar',
@@ -118,6 +142,17 @@ const FLAGS_SIN_VALOR: readonly string[] = [
   '--merge-request',
   '--evolucion',
   '--grupos',
+  '--tokens',
+  '--por-version',
+  '--completa',
+  '--ronda-extra',
+  '--sin-verificacion',
+  '--aceptar-sin-revisar',
+  '--seguir',
+  '--stdin',
+  '--instalar-status-line',
+  '--reemplazar-status-line',
+  '--desinstalar-status-line',
 ];
 
 export function rechazarFlagsDesconocidos(

@@ -22,7 +22,7 @@
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { commitRevisadoDeRonda, informeRellenado, veredictoDeRonda } from '../core/informe-revision.js';
 import { MENORES_PENDIENTES, SECCION_VERIFICACION_LIGERA, backlogMenores, bloqueantesAbiertos, fueraDeAlcance, lineaVerificacionLigera, menoresAbiertos, repartirMenores, verificacionDeRonda, } from '../core/menores.js';
@@ -87,24 +87,10 @@ export function estadoCorreccionPosterior(body, ronda, revisado, ref, cwd) {
     }
     return { cambiados, verificacion, alDia };
 }
-/** Saca `--motivo <texto>` de argv. */
+/** Saca `--motivo <texto>` (o `--motivo=<texto>`) de argv (TASK-144b: `extraerUnico`). */
 function extraerMotivo(argv) {
-    const resto = [];
-    let motivo = null;
-    for (let i = 0; i < argv.length; i++) {
-        const arg = argv[i];
-        if (arg === '--motivo') {
-            const valor = argv[i + 1];
-            if (valor === undefined || valor.startsWith('--') || valor.trim() === '') {
-                throw new VerificarMenoresCommandError('[ERROR] --motivo necesita un texto: --motivo "<por que no se corrigen>"');
-            }
-            motivo = valor.trim();
-            i++;
-            continue;
-        }
-        resto.push(arg);
-    }
-    return { motivo, resto };
+    const { valor, resto } = extraerUnico(argv, '--motivo', () => new VerificarMenoresCommandError('[ERROR] --motivo necesita un texto: --motivo "<por que no se corrigen>"'));
+    return { motivo: valor === null ? null : valor.trim(), resto };
 }
 export async function runVerificarMenoresCommand(tareasRoot, argv, deps) {
     rechazarFlagsDesconocidos(argv, FLAGS_VERIFICAR_MENORES, 'verificar-menores', (m) => new VerificarMenoresCommandError(m));

@@ -16,6 +16,7 @@
  */
 import { hasOrigin, isValidTagName, tagCommit, tagRemoto, crearTagAnotado, pushTag, ramaRemotaContiene, urlsDeOrigin, } from '../fs/git.js';
 import { GitCommandError } from '../fs/git.js';
+import { extraerUnico } from '../cli/args.js';
 import { comprobarCli } from '../fs/merge-request.js';
 import { detectarPlataforma, ocultarCredenciales, resolverRemotoDeclarado, } from '../core/plataforma-remota.js';
 import { resolverConfig } from '../core/config.js';
@@ -30,36 +31,12 @@ export const FLAGS_FINISH = ['--push', '-p', '--tag', '--merge-request', '--sin-
  * nombre, o repetido, aborta: ignorarlo dejaria cerrar sin el tag pedido.
  */
 export function extraerFlagsCierre(argv) {
-    const resto = [];
-    let tag = null;
-    let mergeRequest = false;
-    for (let i = 0; i < argv.length; i++) {
-        const arg = argv[i];
-        if (arg === '--merge-request') {
-            mergeRequest = true;
-            continue;
-        }
-        if (arg === '--tag' || arg.startsWith('--tag=')) {
-            if (tag !== null) {
-                throw new FinishCommandError('[ERROR] taskctl finish: "--tag" esta repetido; un cierre lleva un solo tag.');
-            }
-            let valor;
-            if (arg === '--tag') {
-                valor = argv[i + 1];
-                i++;
-            }
-            else {
-                valor = arg.slice('--tag='.length);
-            }
-            if (valor === undefined || valor.trim() === '' || (arg === '--tag' && valor.startsWith('--'))) {
-                throw new FinishCommandError('[ERROR] taskctl finish: "--tag" necesita un nombre: taskctl finish TASK-NNN --tag v1.2.0.');
-            }
-            tag = valor;
-            continue;
-        }
-        resto.push(arg);
-    }
-    return { tag, mergeRequest, resto };
+    // TASK-144b: el mismo lector de flag con valor que el resto de comandos.
+    const { valor: tag, resto: sinTag } = extraerUnico(argv, '--tag', (repetido) => new FinishCommandError(repetido
+        ? '[ERROR] taskctl finish: "--tag" esta repetido; un cierre lleva un solo tag.'
+        : '[ERROR] taskctl finish: "--tag" necesita un nombre: taskctl finish TASK-NNN --tag v1.2.0.'));
+    const resto = sinTag.filter((a) => a !== '--merge-request');
+    return { tag, mergeRequest: resto.length !== sinTag.length, resto };
 }
 /** El nombre vale para Git. Aborta sin tocar nada si no. */
 export function validarNombreTag(nombre, id, cwd) {

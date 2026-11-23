@@ -26,7 +26,7 @@ import { isValidTaskId, STATE_FOLDER } from '../core/task.js';
 import { anotarLineaEnSeccion, MARCA_LOTE_VERDE, pendienteDeLote, SECCION_VERIFICACION_LOTE } from '../core/transiciones.js';
 import { crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { currentBranch, isWorkspaceClean, resolveIntegrationBranch } from '../fs/git.js';
-import { autoCommit } from '../fs/git-commit.js';
+import { autoCommit, extraerPushFlag } from '../fs/git-commit.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
 import { anotarSuite } from './finish-verificacion.js';
 import { readTareaFile } from '../fs/task-store.js';
@@ -60,8 +60,10 @@ async function pendientesDeLote(tareasRoot) {
     return pendientes;
 }
 export async function runVerificarLoteCommand(tareasRoot, argv, deps) {
-    rechazarFlagsDesconocidos(argv, ['--push'], 'taskctl verificar-lote', (m) => new VerificarLoteCommandError(m));
-    const push = argv.includes('--push');
+    // TASK-144b (CMD2-14): el nombre del comando sin «taskctl» delante (lo pone
+    // el mensaje) y --push / -p con el mismo lector que el resto de comandos.
+    rechazarFlagsDesconocidos(argv, ['--push', '-p'], 'verificar-lote', (m) => new VerificarLoteCommandError(m));
+    const { push } = extraerPushFlag(argv);
     const cwd = deps.repoCwd;
     const config = resolverConfig(cwd);
     const comando = config.comando_verificacion;
@@ -136,6 +138,7 @@ export async function runVerificarLoteCommand(tareasRoot, argv, deps) {
         await writeFile(t.filePath, serializeTareaFile(t.task, body), 'utf8');
     }
     const commitResult = autoCommit({
+        fase: 'verificar-lote',
         cwd,
         rutas: pendientes.map((t) => t.filePath),
         mensaje: `chore(lote): verificacion completa en verde para ${ids.join(', ')}`,

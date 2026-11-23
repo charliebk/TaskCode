@@ -18,7 +18,7 @@
  * seccion 8.3 (ensureBaseBranchReady) antes de escribir nada.
  */
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { registrarTransicion, modoCongelado, DECIDIDO_POR, } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
@@ -195,23 +195,10 @@ async function runApprove(tareasRoot, argv, today, deps, progreso) {
  * valor desconocido aborta: no se adivina quien aprobo.
  */
 function extraerDecididoPor(argv) {
-    const resto = [];
-    let valor;
-    for (let i = 0; i < argv.length; i++) {
-        const a = argv[i];
-        if (a === '--decidido-por') {
-            // Sin valor detras no se cae a "persona" en silencio.
-            valor = argv[i + 1] ?? '';
-            i++;
-        }
-        else if (a.startsWith('--decidido-por=')) {
-            valor = a.slice('--decidido-por='.length);
-        }
-        else {
-            resto.push(a);
-        }
-    }
-    if (valor === undefined)
+    // TASK-144b: el lector comun de flag con valor. Sin valor detras no se cae
+    // a "persona" en silencio: aborta.
+    const { valor, resto } = extraerUnico(argv, '--decidido-por', () => new ApproveCommandError(`[ERROR] --decidido-por necesita un valor. Valores: ${DECIDIDO_POR.join(', ')}.`));
+    if (valor === null)
         return { decididoPor: 'persona', resto };
     if (!DECIDIDO_POR.includes(valor)) {
         throw new ApproveCommandError(`[ERROR] --decidido-por "${valor}" no es valido. Valores: ${DECIDIDO_POR.join(', ')}.`);
