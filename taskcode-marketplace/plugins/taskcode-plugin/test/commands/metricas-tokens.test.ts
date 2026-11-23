@@ -111,7 +111,8 @@ test('metricas --tokens --heuristica: ambas familias de columnas, y el resumen d
     const cab = r.stdout.split('\n').find((l) => l.startsWith('| id ')) as string;
     assert.match(cab, /\| tok_sin_desglose +\| puntos +\| nivel_heuristico +\|$/);
     // TASK-097, P-1, TASK-120 y TASK-111: once columnas mas (estimada, finish, punta_a_punta, sinc, freno_n, freno, review_n, review_v, finish_n, finish_v, rondas_men) antes de las de tokens.
-    assert.deepEqual(celdas(r.stdout, ID).slice(23, 23 + 4), ['1000', '3000', '1000', '5000']);
+    // TASK-153c: la columna 4d cierra las de la fila; los tokens van detras.
+    assert.deepEqual(celdas(r.stdout, ID).slice(24, 24 + 4), ['1000', '3000', '1000', '5000']);
     assert.ok(!r.stdout.includes(`| ${ID2} `), 'la muestra heuristica solo trae terminadas con informes');
     assert.match(r.stdout, /Muestra: 1 tareas terminadas/);
     assert.match(r.stdout, /\| 0 +\| 1\/1 /);

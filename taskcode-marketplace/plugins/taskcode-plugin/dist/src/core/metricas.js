@@ -373,11 +373,6 @@ export const COLUMNAS_METRICAS = [
             return [o.implementacion, o.plan, o.especificacion, o['sin clasificar']].map(String).join('/');
         },
     },
-    // TASK-153c: hallazgos 4D de la tarea, duplicacion/desviacion/diluvio/disfraz.
-    {
-        cabecera: '4d',
-        valor: (f) => (f.hallazgos4D === null ? '—' : DIMENSIONES_4D.map((d) => String(f.hallazgos4D?.[d] ?? 0)).join('/')),
-    },
     { cabecera: 'cierre', valor: (f) => f.cierre ?? '—' },
     { cabecera: 'origen', valor: (f) => f.origen },
     // TASK-097: regla de una hora. Estimada (la que finish anoto del plan) y
@@ -397,6 +392,11 @@ export const COLUMNAS_METRICAS = [
     { cabecera: 'finish_n', valor: (f) => (f.finishVerificacion === null ? '—' : String(f.finishVerificacion.ejecuciones)) },
     { cabecera: 'finish_v', valor: (f) => (f.finishVerificacion === null ? '—' : formatearDuracion(f.finishVerificacion.duracion)) },
     { cabecera: 'rondas_men', valor: (f) => (f.rondasSoloMenores === null ? '—' : String(f.rondasSoloMenores)) },
+    // TASK-153c: hallazgos 4D de la tarea, duplicacion/desviacion/diluvio/disfraz.
+    {
+        cabecera: '4d',
+        valor: (f) => (f.hallazgos4D === null ? '—' : DIMENSIONES_4D.map((d) => String(f.hallazgos4D?.[d] ?? 0)).join('/')),
+    },
 ];
 /**
  * TASK-128: la fila de totales de las puertas de verificacion, debajo de la
