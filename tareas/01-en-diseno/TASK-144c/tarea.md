@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ Los patrones de fichero de ronda y de peticion de rol, y la decision de que plan
 - [ ] review usa el patron de rondas.ts y plan/approve el de plan-brainstorm.ts (sin prefijos brainstorm- escritos a mano); un rol con otro id no rompe la numeracion, con test
 - [ ] planRedactado, duracionDelPlan, trocear y approve eligen el plan con una sola funcion; con dos planes, siguiente y approve dan la misma respuesta, con test
 - [ ] doctor-deploy decide el caso de --resultado dentro del repo con el dato calculado, no con el texto del aviso
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T05:12:05Z | plan | automatico | persona | 0.16.1 |
