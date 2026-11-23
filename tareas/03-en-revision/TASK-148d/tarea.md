@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 10801195
 tokens_revision: null
 creado: 2026-11-23
 actualizado: 2026-11-23
@@ -38,8 +38,15 @@ Comentarios ciertos, heuristica sin repeticion, TRIVIAL_SIN_APROBACION, formatea
 | 2026-11-23T23:00:11Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:00:13Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T23:00:14Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T23:06:19Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 311df9b: buscados CLAVES_NUMERICAS, CLAVES_CONFIG y los formateadores de guion; nuevo celdaNumero (cuatro copias); se borra TRIVIAL_SIN_APROBACION (lista vacia, mecanismo que no hacia nada); 1 test nuevo; 1 mutacion en rojo; el resto lo fijan los tests de state-machine, approve, start, metricas y heuristica
 - code-quality-reviewer — 311df9b
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T23:06:19Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 30 | 21493 | 10769519 | 10153 | 7 | 10801195 | - | - |
