@@ -45,14 +45,15 @@
  * bloquea, asi que nunca se sale con 1 por accidente: decidirStop no lanza.
  * Nada de lo que escribe nombra el producto: lo leen proyectos ajenos.
  */
-import { existsSync, statSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { ConfigError, presupuestoFreno, raizDelRepo, resolverConfigConAvisos, TECHO_HOOK_STOP_S, } from '../core/config.js';
+import { ConfigError, presupuestoFreno, raizDelRepo, resolverConfigConAvisos, TECHO_HOOK_STOP_S, timeoutEfectivoS, } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { baseDeTipoSinRed, resolveBaseBranchForTipo } from '../fs/git.js';
-import { listTareasEnEstados } from '../fs/task-store.js';
+import { carpetaEnCurso, listTareasEnEstados } from '../fs/task-store.js';
+import { ramaActual } from '../fs/git-crudo.js';
+import { parsearEntradaHook } from './entrada-pretooluse.js';
 import { contextoDePeticion, huellaDelArbol, verificarConMemo } from '../fs/verificacion.js';
 import { crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { PUERTA_FRENO } from '../core/registro-puertas.js';
@@ -65,38 +66,12 @@ import { esUltimoVerde, guardarUltimoVerde } from '../fs/freno-ultimo-verde.js';
  * comprueba que coincide con hooks.json.
  */
 export const TECHO_HOOK_S = TECHO_HOOK_STOP_S;
-export const MARGEN_HOOK_S = 60;
+// TASK-149a (FS-17): el margen y timeoutEfectivoS viven en core/config.ts.
+export { MARGEN_HOOK_S, timeoutEfectivoS } from '../core/config.js';
 /** Variable de entorno que apaga el freno: `FRENO_VERIFICACION=0`. */
 export const INTERRUPTOR = 'FRENO_VERIFICACION';
 const DEJAR_PARAR = Object.freeze({ codigo: 0, stderr: '' });
-/**
- * Segundos que se le dan a la verificacion: `timeout_verificacion`, pero nunca
- * mas que el `timeout` del hook menos el margen. Si el hook agotara el suyo,
- * Claude Code descartaria el informe y el freno fallaria abierto.
- */
-export function timeoutEfectivoS(timeoutVerificacion) {
-    const techo = TECHO_HOOK_S - MARGEN_HOOK_S;
-    return timeoutVerificacion > techo
-        ? { timeoutS: techo, recortado: true }
-        : { timeoutS: timeoutVerificacion, recortado: false };
-}
-/** El directorio de tareas en curso, si existe. Sin procesos. */
-export function carpetaEnCurso(raiz) {
-    const dir = path.join(raiz, 'tareas', '02-en-curso');
-    try {
-        return statSync(dir).isDirectory() ? dir : null;
-    }
-    catch {
-        return null;
-    }
-}
-export function ramaActual(raiz) {
-    const r = spawnSync('git', ['branch', '--show-current'], { cwd: raiz, encoding: 'utf8', windowsHide: true });
-    if (r.error !== undefined || r.status !== 0)
-        return null;
-    const rama = (r.stdout ?? '').trim();
-    return rama === '' ? null : rama;
-}
+// TASK-149a (FS-06): la rama actual es la de fs/git-crudo.ts (durante un rebase, la que se rebasa).
 export async function decidirStop(entrada, deps = {}) {
     const env = deps.env ?? process.env;
     // 1 y 2: sin I/O.
@@ -319,11 +294,5 @@ function bloquear(tarea, r, avisos) {
 }
 /** Lee stdin entero (el JSON del hook). Un JSON roto o vacio es una entrada sin campos. */
 export function parsearEntrada(texto) {
-    try {
-        const v = JSON.parse(texto);
-        return typeof v === 'object' && v !== null && !Array.isArray(v) ? v : {};
-    }
-    catch {
-        return {};
-    }
+    return parsearEntradaHook(texto);
 }

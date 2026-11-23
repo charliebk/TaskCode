@@ -24,10 +24,11 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { raizDelRepo } from '../core/config.js';
 import { esAgentIdValido } from '../core/coste-transcripcion.js';
-import { listTareasEnEstados } from '../fs/task-store.js';
+import { carpetaEnCurso, listTareasEnEstados } from '../fs/task-store.js';
 import { anotarPendientes, rutaLibro, type EntradaPendiente } from '../fs/coste-pendiente.js';
 import { esSesionIdValido, INTERRUPTOR_COSTE } from '../fs/coste-automatico.js';
-import { carpetaEnCurso, ramaActual } from './freno-stop.js';
+import { ramaActual } from '../fs/git-crudo.js';
+import { parsearEntradaHook } from './entrada-pretooluse.js';
 
 export interface EntradaCoste {
   cwd?: unknown;
@@ -101,10 +102,5 @@ export async function registrarTurno(entrada: EntradaCoste, deps: DepsRegistroCo
 
 /** El JSON del hook. Uno roto o vacio es una entrada sin campos. */
 export function parsearEntradaCoste(textoEntrada: string): EntradaCoste {
-  try {
-    const v: unknown = JSON.parse(textoEntrada);
-    return typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as EntradaCoste) : {};
-  } catch {
-    return {};
-  }
+  return parsearEntradaHook<EntradaCoste>(textoEntrada);
 }

@@ -39,13 +39,12 @@
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { analizarComando, cierresDeMerge, type OperacionMerge } from '../core/comando-merge.js';
-import { ConfigError, raizDelRepo, resolverConfigConAvisos, type TaskcodeConfig } from '../core/config.js';
+import { ConfigError, raizDelRepo, resolverConfigConAvisos, timeoutEfectivoS, type TaskcodeConfig } from '../core/config.js';
 import { huellaDeCommit, huellaDelArbol, leerMemo } from '../fs/verificacion.js';
 import { comandoSoloIntegra } from '../core/comando-merge.js';
 import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
-import { timeoutEfectivoS } from './freno-stop.js';
+import { gitResultado as git, ramaActual } from '../fs/git-crudo.js';
 
 import { PASAR, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
 
@@ -73,11 +72,6 @@ export function comandoCandidato(entrada: EntradaPreToolUse): string | null {
  * puerta de `finish` sigue verificando.
  */
 export const INVOCA_GIT_O_CIERRE = /\bgit\b|merge-[a-z]+-to-[a-z]+\.sh/i;
-
-function git(args: readonly string[], cwd: string): { ok: boolean; out: string } {
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
-  return { ok: r.error === undefined && r.status === 0, out: (r.stdout ?? '').trim() };
-}
 
 function existeRef(ref: string, cwd: string): boolean {
   return git(['rev-parse', '--verify', '--quiet', ref], cwd).ok;
@@ -222,7 +216,7 @@ function integraciones(op: OperacionMerge, raiz: string, integracion: string, pr
     const release = op.script.includes('release') || /^release\//.test(op.fuente);
     return destinos.map((destino) => ({ fuente: op.fuente as string, destino, raiz, release }));
   }
-  const destino = op.destino ?? git(['branch', '--show-current'], raiz).out;
+  const destino = op.destino ?? ramaActual(raiz) ?? '';
   if (destino === '') return [];
   const fuentes = op.fuentes.length > 0 ? op.fuentes : [`${destino}@{upstream}`];
   return fuentes.map((fuente) => ({ fuente, destino, raiz, release: /^(?:refs\/heads\/)?release\//.test(fuente) }));
@@ -412,7 +406,7 @@ function decidirCierreDeMerge(comando: string, cwd: string): DecisionPreToolUse 
       const mh = git(['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'], raiz);
       if (!mh.ok || mh.out === '') continue;
       sha = mh.out;
-      rama = git(['branch', '--show-current'], raiz).out;
+      rama = ramaActual(raiz) ?? '';
       if (rama === '') continue;
       try {
         config = resolverConfigConAvisos(raiz).config;

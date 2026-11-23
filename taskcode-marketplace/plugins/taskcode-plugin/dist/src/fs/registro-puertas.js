@@ -6,19 +6,11 @@
  */
 import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { rutaGit } from './git-crudo.js';
 import { formatearLineaPuerta, parsearRegistroPuertas } from '../core/registro-puertas.js';
 /** Ruta absoluta del registro, o null si `cwd` no esta en un repo. */
 export function rutaRegistroPuertas(cwd) {
-    const r = spawnSync('git', ['rev-parse', '--git-path', 'taskcode/puertas.log'], {
-        cwd,
-        encoding: 'utf8',
-        windowsHide: true,
-    });
-    const salida = (r.stdout ?? '').trim();
-    if (r.error !== undefined || r.status !== 0 || salida === '')
-        return null;
-    return path.resolve(cwd, salida);
+    return rutaGit(cwd, 'taskcode/puertas.log');
 }
 /** Anade una linea. Nunca lanza: un registro que no se puede escribir no tumba una transicion. */
 export function anotarPuerta(cwd, linea) {

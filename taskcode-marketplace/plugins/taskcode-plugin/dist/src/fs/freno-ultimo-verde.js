@@ -11,18 +11,10 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { rutaGit } from './git-crudo.js';
 const VERSION = 1;
 function rutaUltimoVerde(raiz) {
-    const r = spawnSync('git', ['rev-parse', '--git-path', 'taskcode/freno-ultimo-verde.json'], {
-        cwd: raiz,
-        encoding: 'utf8',
-        windowsHide: true,
-    });
-    const salida = (r.stdout ?? '').trim();
-    if (r.error !== undefined || r.status !== 0 || salida === '')
-        return null;
-    return path.resolve(raiz, salida);
+    return rutaGit(raiz, 'taskcode/freno-ultimo-verde.json');
 }
 /** true si `huella` es la del ultimo verde del freno para ese tipo de verificacion. */
 export function esUltimoVerde(raiz, tipo, huella) {

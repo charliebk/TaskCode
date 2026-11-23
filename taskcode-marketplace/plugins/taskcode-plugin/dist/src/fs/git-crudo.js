@@ -4,6 +4,8 @@
  * pueden no ser UTF-8, y un fallo de Git tiene que poder convertirse en
  * «NO VERIFICADO» en vez de en una excepcion.
  */
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 const MAX_BUFFER_POR_DEFECTO = 64 * 1024 * 1024;
 const TIMEOUT_POR_DEFECTO_MS = 60_000;
@@ -14,6 +16,7 @@ export function gitCrudo(args, cwd, opciones = {}) {
         maxBuffer: opciones.maxBuffer ?? MAX_BUFFER_POR_DEFECTO,
         timeout: opciones.timeoutMs ?? TIMEOUT_POR_DEFECTO_MS,
         stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
         env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' },
     });
     return {
@@ -29,4 +32,49 @@ export function gitTexto(args, cwd, opciones = {}) {
     if (r.error !== undefined || r.status !== 0)
         return null;
     return r.stdout.toString('utf8');
+}
+// TASK-149a (FS-07): los envoltorios de git sin lanzar de fs y hooks son estos,
+// todos sobre gitCrudo (un maxBuffer, un timeout y un entorno).
+/** La salida recortada de un `git` que acabo bien, o null si fallo. */
+export function gitLinea(args, cwd) {
+    const t = gitTexto(args, cwd);
+    return t === null ? null : t.trim();
+}
+/** Si el `git` acabo bien y su salida recortada ('' si fallo): la forma de los guardianes. */
+export function gitResultado(args, cwd) {
+    const t = gitLinea(args, cwd);
+    return { ok: t !== null, out: t ?? '' };
+}
+/** true si el `git` acabo bien. */
+export function gitOk(args, cwd) {
+    return gitLinea(args, cwd) !== null;
+}
+/**
+ * TASK-149a (FS-08): ruta absoluta de `ruta` dentro del directorio de Git
+ * (`git rev-parse --git-path`, por worktree), o null fuera de un repo.
+ * `--git-path` responde relativa al cwd de Git, por eso se resuelve contra `cwd`.
+ */
+export function rutaGit(cwd, ruta) {
+    const p = gitLinea(['rev-parse', '--git-path', ruta], cwd);
+    return p === null || p === '' ? null : path.resolve(cwd, p);
+}
+/**
+ * TASK-149a (FS-06): la rama actual. Con HEAD desacoplado durante un rebase,
+ * la que se esta rebasando (la tarea sigue protegida). null fuera de un repo
+ * o con HEAD desacoplado sin rebase.
+ */
+export function ramaActual(cwd) {
+    const actual = gitLinea(['branch', '--show-current'], cwd);
+    if (actual === null)
+        return null;
+    if (actual !== '')
+        return actual;
+    for (const f of ['rebase-merge/head-name', 'rebase-apply/head-name']) {
+        const fichero = rutaGit(cwd, f);
+        if (fichero !== null && existsSync(fichero)) {
+            const rama = readFileSync(fichero, 'utf8').trim().replace(/^refs\/heads\//, '');
+            return rama === '' ? null : rama;
+        }
+    }
+    return null;
 }

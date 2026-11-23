@@ -23,7 +23,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { ramaActual } from '../fs/git-crudo.js';
 import { numerosHeldoutEnRuta, numerosHeldoutEnTexto, CARPETA_HELDOUT } from '../core/heldout.js';
 import { numeroDeRama } from '../core/task-id.js';
 import { CONFIG_DIR, CONFIG_FILE, parsearConfig, raizDelRepo } from '../core/config.js';
@@ -51,27 +51,6 @@ export function numerosEnEntrada(entrada) {
             nums.add(n);
     }
     return [...nums];
-}
-function git(args, cwd) {
-    const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
-    return { ok: r.error === undefined && r.status === 0, out: (r.stdout ?? '').trim() };
-}
-/** La rama actual; con HEAD desacoplado en un rebase, la que se esta rebasando. null si no hay repo. */
-export function ramaActual(cwd) {
-    const actual = git(['branch', '--show-current'], cwd);
-    if (!actual.ok)
-        return null;
-    if (actual.out !== '')
-        return actual.out;
-    for (const f of ['rebase-merge/head-name', 'rebase-apply/head-name']) {
-        const r = git(['rev-parse', '--git-path', f], cwd);
-        if (!r.ok || r.out === '')
-            continue;
-        const fichero = path.resolve(cwd, r.out);
-        if (existsSync(fichero))
-            return readFileSync(fichero, 'utf8').trim().replace(/^refs\/heads\//, '');
-    }
-    return '';
 }
 /**
  * TASK-114: false solo si la config del arbol de trabajo se lee y no declara
@@ -104,7 +83,7 @@ export function decidirHeldout(entrada) {
         if (!declaraHeldout(entrada.cwd))
             return PASAR;
         const rama = ramaActual(entrada.cwd);
-        if (rama === null || rama === '')
+        if (rama === null)
             return PASAR;
         const n = numeroDeRama(rama);
         if (n === null || !nums.includes(n))

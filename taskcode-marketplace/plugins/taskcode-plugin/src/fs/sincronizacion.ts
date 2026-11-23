@@ -35,7 +35,7 @@
  */
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { gitOk as runGitOk } from './git-crudo.js';
 import { raizDelRepo, type TaskcodeConfig } from '../core/config.js';
 import { runGit } from './git.js';
 import { ejecutarAcotado, fotoDelArbol, fueCortado, type SalidaEjecucion } from './ejecucion-acotada.js';
@@ -326,6 +326,4 @@ function restaurarAHead(
   }
 }
 
-function runGitOk(args: readonly string[], cwd: string): boolean {
-  return spawnSync('git', args, { cwd, encoding: 'utf8' }).status === 0;
-}
+

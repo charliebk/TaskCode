@@ -28,7 +28,7 @@
 import { createHash, type Hash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { gitLinea as git, rutaGit } from './git-crudo.js';
 import { ejecutarAcotado, fotoDelArbol, fueCortado, MARCA_TIMEOUT } from './ejecucion-acotada.js';
 import type { ResultadoVerificacion } from '../core/informe-verificacion.js';
 
@@ -104,12 +104,6 @@ export function ejecutarVerificacion(
 // Huella y memo
 // ---------------------------------------------------------------------
 
-function git(args: readonly string[], cwd: string): string | null {
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
-  if (r.error !== undefined || r.status !== 0) return null;
-  return (r.stdout ?? '').trim();
-}
-
 /**
  * Huella del estado que la verificacion ve: HEAD, el comando, su timeout y
  * el contenido de cada fichero que no esta limpio (incluidos los no
@@ -179,9 +173,7 @@ export interface MemoVerificacion {
 }
 
 function rutaMemo(raiz: string, tipo: TipoVerificacion): string | null {
-  const p = git(['rev-parse', '--git-path', FICHEROS_MEMO[tipo]], raiz);
-  if (p === null || p === '') return null;
-  return path.resolve(raiz, p);
+  return rutaGit(raiz, FICHEROS_MEMO[tipo]);
 }
 
 /** El resultado guardado para esa huella, o null. Un memo ilegible es como no tenerlo. */

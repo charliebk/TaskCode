@@ -39,13 +39,12 @@
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { analizarComando, cierresDeMerge } from '../core/comando-merge.js';
-import { ConfigError, raizDelRepo, resolverConfigConAvisos } from '../core/config.js';
+import { ConfigError, raizDelRepo, resolverConfigConAvisos, timeoutEfectivoS } from '../core/config.js';
 import { huellaDeCommit, huellaDelArbol, leerMemo } from '../fs/verificacion.js';
 import { comandoSoloIntegra } from '../core/comando-merge.js';
 import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
-import { timeoutEfectivoS } from './freno-stop.js';
+import { gitResultado as git, ramaActual } from '../fs/git-crudo.js';
 import { PASAR } from './entrada-pretooluse.js';
 export { parsearEntradaPreToolUse } from './entrada-pretooluse.js';
 /** Guarda 1, sin I/O: el comando de la entrada, si puede contener un merge. */
@@ -72,10 +71,6 @@ export function comandoCandidato(entrada) {
  * puerta de `finish` sigue verificando.
  */
 export const INVOCA_GIT_O_CIERRE = /\bgit\b|merge-[a-z]+-to-[a-z]+\.sh/i;
-function git(args, cwd) {
-    const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
-    return { ok: r.error === undefined && r.status === 0, out: (r.stdout ?? '').trim() };
-}
 function existeRef(ref, cwd) {
     return git(['rev-parse', '--verify', '--quiet', ref], cwd).ok;
 }
@@ -206,7 +201,7 @@ function integraciones(op, raiz, integracion, principal) {
         const release = op.script.includes('release') || /^release\//.test(op.fuente);
         return destinos.map((destino) => ({ fuente: op.fuente, destino, raiz, release }));
     }
-    const destino = op.destino ?? git(['branch', '--show-current'], raiz).out;
+    const destino = op.destino ?? ramaActual(raiz) ?? '';
     if (destino === '')
         return [];
     const fuentes = op.fuentes.length > 0 ? op.fuentes : [`${destino}@{upstream}`];
@@ -376,7 +371,7 @@ function decidirCierreDeMerge(comando, cwd) {
             if (!mh.ok || mh.out === '')
                 continue;
             sha = mh.out;
-            rama = git(['branch', '--show-current'], raiz).out;
+            rama = ramaActual(raiz) ?? '';
             if (rama === '')
                 continue;
             try {
