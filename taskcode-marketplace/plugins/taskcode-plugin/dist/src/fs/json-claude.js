@@ -17,7 +17,9 @@ export function leerJson(ruta) {
         return { estado: 'ilegible', motivo: (e instanceof Error ? e.message : String(e)).replace(/\s+/g, ' ').trim() };
     }
 }
-export const esObjeto = (x) => typeof x === 'object' && x !== null && !Array.isArray(x);
+// TASK-148c (CORE2-17): esObjeto vive en core/utilidades-texto.ts; se reexporta para quien la importa de aqui.
+import { esObjeto } from '../core/utilidades-texto.js';
+export { esObjeto };
 /** Misma ruta tras resolverla, sin barra final; en Windows sin distinguir mayusculas. */
 export function mismaRuta(a, b) {
     const n = (p) => {

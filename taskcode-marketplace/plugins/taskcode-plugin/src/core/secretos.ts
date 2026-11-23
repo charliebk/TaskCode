@@ -16,6 +16,7 @@
  * salir (stdout, JSON, informe en disco, stderr) por si algo se coló.
  */
 import { createHash } from 'node:crypto';
+import { ocultarCredenciales } from './plataforma-remota.js';
 
 export type ClaseSecreto = 'secreto' | 'publica' | 'ejemplo';
 
@@ -182,8 +183,9 @@ export function ocultarSecretos(texto: string): string {
     const re = new RegExp(p.re.source, p.re.flags);
     t = t.replace(re, (m: string) => {
       if (p.id === 'url-con-credenciales') {
-        // Solo la contrasena: `esquema://usuario:****@host`.
-        return m.replace(/:\/\/([^\s:/@'"`]+):[^\s@/'"`]+@/, '://$1:****@');
+        // TASK-148c (CORE2-16): el redactor comun de URLs, que oculta todo el
+        // usuario:contrasena (un token usado como usuario quedaba a la vista).
+        return ocultarCredenciales(m);
       }
       return enmascarar(m);
     });

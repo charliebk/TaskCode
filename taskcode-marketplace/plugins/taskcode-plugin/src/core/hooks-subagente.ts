@@ -12,6 +12,7 @@
  * - Cualquier otra cosa: regex anclada (`^(?:...)$`); si no compila, se parte
  *   por `|` y se compara literal.
  */
+import { esObjeto } from './utilidades-texto.js';
 
 /** Herramientas con las que Claude Code lanza subagentes. */
 export const HERRAMIENTAS_SUBAGENTE: readonly string[] = ['Agent', 'Task'];
@@ -50,7 +51,6 @@ export function matcherAlcanzaSubagente(matcher: unknown): boolean {
   return HERRAMIENTAS_SUBAGENTE.some((h) => re.test(h));
 }
 
-const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 
 /**
  * Hallazgos de un JSON con la forma de `hooks.json` o `settings.json`

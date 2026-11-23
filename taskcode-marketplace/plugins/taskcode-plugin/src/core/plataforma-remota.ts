@@ -51,14 +51,18 @@ export function hostDeRemoto(url: string): string | null {
   if (conEsquema !== null) {
     // Autoridad = usuario[:contrasena]@host[:puerto]. El usuario puede
     // llevar un "@" sin codificar: manda el ULTIMO.
-    const autoridad = conEsquema[1] as string;
-    host = autoridad.slice(autoridad.lastIndexOf('@') + 1).replace(/:\d*$/, '');
+    // TASK-148c (CORE2-09): la misma lectura de la autoridad que partesDeOrigin (puerto 1-65535).
+    const aut = partirAutoridad(conEsquema[1] as string);
+    if (aut === null) return null;
+    host = aut.host;
   } else {
     // scp: [usuario@]host:ruta. Una letra de unidad (`C:\x`) o una ruta
     // local no son hosts.
     const scp = /^(?:[^@/\\:\s]+@)?([^@/\\:\s]+):(?!\/\/)/.exec(texto);
     if (scp === null || (scp[1] as string).length === 1) return null;
-    host = scp[1] as string;
+    const aut = partirAutoridad(scp[1] as string);
+    if (aut === null) return null;
+    host = aut.host;
   }
   host = host.toLowerCase();
   return /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(host) ? host : null;

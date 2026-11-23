@@ -32,6 +32,7 @@
  */
 
 import { PETICION_REVISION_EN_TEXTO_RE } from '../fs/rondas.js';
+import { esObjeto } from './utilidades-texto.js';
 
 /** agentId que devuelve la herramienta Agent: hexadecimal. Se valida antes de componer rutas. */
 const AGENT_ID_RE = /^[0-9a-f]{6,64}$/i;
@@ -114,10 +115,6 @@ function desgloseDeUsage(u: Record<string, unknown>): Desglose {
     cacheLectura: numero(u['cache_read_input_tokens']),
     salida: numero(u['output_tokens']),
   };
-}
-
-function esObjeto(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
 /** true si un bloque `tool_use` es una lectura (ver la cabecera). */

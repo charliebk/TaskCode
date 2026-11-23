@@ -1,4 +1,5 @@
 import { compararVersiones } from './version.js';
+import { quitarAnsi } from './utilidades-texto.js';
 /** TASK-129: la puerta con el tamano de la completa: modo = numero de tests (o `-`). */
 export const PUERTA_SUITE = 'suite';
 function sumar(texto, re) {
@@ -27,7 +28,7 @@ function ultimo(texto, re) {
  * multimodulo se reconoce por su `Reactor Summary`, que va al final.
  */
 export function contarTests(salida, opciones = {}) {
-    const t = salida.replace(/\x1b\[[0-9;]*m/g, '');
+    const t = quitarAnsi(salida);
     const node = ultimo(t, /^\s*(?:ℹ|#)\s+tests\s+(\d+)\s*$/gm);
     if (node !== null)
         return node;

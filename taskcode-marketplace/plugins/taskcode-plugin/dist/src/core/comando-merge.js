@@ -85,6 +85,27 @@ function programa(token) {
 }
 /** Opciones globales de git que llevan su valor en el token siguiente. */
 const GLOBALES_CON_VALOR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env', '--super-prefix']);
+/**
+ * TASK-148c (CORE1-09): `git [opciones globales] <subcomando> <args>` partido.
+ * Salta las opciones globales (las de GLOBALES_CON_VALOR con su valor) y
+ * devuelve el `-C` si lo hay. Antes este bucle estaba copiado en los dos
+ * recorridos (cambio de rama y cierre de merge).
+ */
+function subcomandoGit(seg) {
+    let i = 1;
+    let dir = null;
+    while (i < seg.length && seg[i].startsWith('-')) {
+        const op = seg[i];
+        if (GLOBALES_CON_VALOR.has(op)) {
+            if (op === '-C')
+                dir = seg[i + 1] ?? null;
+            i += 2;
+        }
+        else
+            i++;
+    }
+    return { dir, sub: (seg[i] ?? '').toLowerCase(), args: seg.slice(i + 1) };
+}
 /** Opciones de `git merge` que llevan su valor en el token siguiente. */
 const MERGE_CON_VALOR = new Set(['-m', '--message', '-F', '-s', '-X', '--file', '--strategy', '--strategy-option', '--into-name']);
 const MERGE_SIN_MERGE = new Set(['--abort', '--continue', '--quit', '--skip']);
@@ -152,20 +173,7 @@ export function analizarComando(texto, esRevision = () => true) {
             continue;
         const prog = programa(seg[0]);
         if (prog === 'git') {
-            let i = 1;
-            let dir = null;
-            while (i < seg.length && seg[i].startsWith('-')) {
-                const op = seg[i];
-                if (GLOBALES_CON_VALOR.has(op)) {
-                    if (op === '-C')
-                        dir = seg[i + 1] ?? null;
-                    i += 2;
-                }
-                else
-                    i++;
-            }
-            const sub = (seg[i] ?? '').toLowerCase();
-            const args = seg.slice(i + 1);
+            const { dir, sub, args } = subcomandoGit(seg);
             if (sub === 'checkout' || sub === 'switch') {
                 const nuevo = ramaDeCambio(args, esRevision);
                 if (nuevo !== null)
@@ -424,20 +432,7 @@ export function cierresDeMerge(texto) {
             continue;
         const prog = programa(seg[0]);
         if (prog === 'git') {
-            let i = 1;
-            let dir = null;
-            while (i < seg.length && seg[i].startsWith('-')) {
-                const op = seg[i];
-                if (GLOBALES_CON_VALOR.has(op)) {
-                    if (op === '-C')
-                        dir = seg[i + 1] ?? null;
-                    i += 2;
-                }
-                else
-                    i++;
-            }
-            const sub = (seg[i] ?? '').toLowerCase();
-            const args = seg.slice(i + 1);
+            const { dir, sub, args } = subcomandoGit(seg);
             if (sub === 'commit' || (sub === 'merge' && args.includes('--continue')))
                 dirs.push(dir);
             continue;

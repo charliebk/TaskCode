@@ -13,6 +13,7 @@ import type { Task } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
 import { EXTENSIONES_CODIGO, PATRON_GREP_DEFINICION } from '../core/candidatos-4d.js';
+import { CARPETAS_TEST, MARCAS_TEST } from '../core/menores.js';
 import { rutaGit } from './git-crudo.js';
 
 export class GitCommandError extends Error {
@@ -324,11 +325,8 @@ export interface DiffParaRevision {
  * `Test/`. Lo peor es embeber de mas o listar de menos: nada se pierde.
  */
 export const PATRONES_TEST: readonly string[] = [
-  '**/test/**',
-  '**/tests/**',
-  '**/__tests__/**',
-  '**/*.test.*',
-  '**/*.spec.*',
+  ...CARPETAS_TEST.map((c) => `**/${c}/**`),
+  ...MARCAS_TEST.map((m) => `**/*.${m}.*`),
 ];
 
 /**
