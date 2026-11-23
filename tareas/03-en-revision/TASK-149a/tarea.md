@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 7620004
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-23
@@ -43,8 +43,15 @@ Objetivo de la tarea entera:
 | 2026-11-23T10:38:51Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T10:39:05Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T10:39:06Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T10:48:23Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 1140c91: buscados gitTexto/gitCrudo, la ramaActual de guardia-heldout (con rebase), operacionEnCurso y parsearEntradaPreToolUse antes de escribir; nuevos gitLinea, gitResultado, gitOk, rutaGit y parsearEntradaHook en los modulos sin dependencias (cinco envoltorios, seis --git-path y tres parsers sustituidos); 1 fichero de test nuevo (4 tests); 5 mutaciones en rojo
 - code-quality-reviewer — 1140c91
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T10:48:23Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 44 | 42057 | 7554248 | 23655 | 14 | 7620004 | - | - |
