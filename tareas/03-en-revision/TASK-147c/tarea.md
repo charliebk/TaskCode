@@ -29,7 +29,7 @@ Parte c del troceo de TASK-147 (Regla 4D: lectores de secciones e IDs en core), 
 Un solo tipo de fase y una sola conversion de fila a Marca (CORE2-12, CORE2-13).
 
 ## Criterios de aceptacion
-- [ ] FaseMedida y FaseRegistrada son un solo tipo y fila a Marca se convierte una vez en metricas
+- [x] FaseMedida y FaseRegistrada son un solo tipo y fila a Marca se convierte una vez en metricas
 
 ## Transiciones
 
@@ -55,3 +55,13 @@ Un solo tipo de fase y una sola conversion de fila a Marca (CORE2-12, CORE2-13).
 ## Verificacion ligera
 
 - 2026-11-23T10:34:58Z: ronda 1; commit revisado 81b43088d92a9a194f40bde124f7bae8fa565aee; commit verificado d4cae562a268750cc3b28e71b15782ef7214b68e; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/metricas.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/transiciones.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/metricas-registro.test.ts; corregidos: MEN-1, MEN-2, MEN-3; pendientes: ninguno
+
+## Resultado
+
+- Implementado: `FASES_REGISTRADAS` (core/transiciones.ts) es la unica lista de fases y `FaseRegistrada` se deriva de ella; `FaseMedida` y sus casts desaparecen de metricas; `FASES_CICLO` (progreso.ts) va atada con `satisfies` (una fase que no existe no compila). En metricas, `registroDe` convierte las filas del registro en marcas una vez (la duracion que anota finish y la fila de metricas cuadran) y `duracionDeSegundos` convierte los segundos de las puertas. Test nuevo `test/core/metricas-registro.test.ts` (3 tests).
+- Revision: 1 ronda, aprobada, con tres MENORES corregidos en la verificacion ligera: MEN-1 (test del redondeo de duracionDeSegundos), MEN-2 (comentario con la tarea equivocada) y MEN-3 (linea en blanco sobrante). Cifras identicas a develop byte a byte segun el revisor.
+- No corregido: nada. Las otras listas que solapan con las fases (FASES_SIGUIENTE, GUARDADOS_POR_CADENA, FASES_SINCRONIZACION, TaskCommand) son conjuntos de comandos, no fases del registro.
+
+## Verificacion parcial
+
+- 2026-11-23T10:35:09Z: todo el codigo que cambia la tarea (7 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
