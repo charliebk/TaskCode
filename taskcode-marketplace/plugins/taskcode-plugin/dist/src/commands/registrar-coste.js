@@ -53,7 +53,7 @@ import { isEnoent, isEnotdir } from '../fs/task-store.js';
 import { anadirCoste, FASES_COSTE, PREFIJO_DIFERENCIA, idsDeFuente, leerCostes, } from '../core/coste-registro.js';
 import { formatearInstante } from '../core/transiciones.js';
 import { buscarTranscripciones, directorioConfigClaude, leerTranscripcion } from '../fs/transcripciones.js';
-import { currentBranch, isAncestor, localBranchExists, runGit } from '../fs/git.js';
+import { mensajeTareaEnOtraRama, runGit, tareaEnOtraRama } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 export class RegistrarCosteCommandError extends Error {
 }
@@ -305,11 +305,8 @@ export async function runRegistrarCosteCommand(tareasRoot, argv, deps) {
             'donde esta la tarea y reintenta.');
     }
     const { task, body, filePath } = leida;
-    if (currentBranch(deps.repoCwd) !== task.rama &&
-        localBranchExists(task.rama, deps.repoCwd) &&
-        !isAncestor(task.rama, 'HEAD', deps.repoCwd)) {
-        throw new RegistrarCosteCommandError(`[ERROR] ${id}: la copia al dia de la tarea esta en su rama, "${task.rama}". ` +
-            `Cambia a ella (git checkout ${task.rama}) y reintenta; no se ha tocado nada.`);
+    if (tareaEnOtraRama(task.rama, deps.repoCwd)) {
+        throw new RegistrarCosteCommandError(mensajeTareaEnOtraRama(id, task.rama));
     }
     // TASK-119: solo una tarea terminada se commitea aqui (no tiene fase
     // siguiente que lo absorba). Ese commit es de este fichero entero: con

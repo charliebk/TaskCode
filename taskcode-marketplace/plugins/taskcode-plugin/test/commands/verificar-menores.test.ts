@@ -295,3 +295,28 @@ test('finish con un Commit revisado que ya no es antepasado de la rama no cierra
     assert.ok((await readFile(cerrada.filePath, 'utf8')).includes(SECCION_CODIGO_SIN_REVISAR));
   });
 });
+
+test('TASK-144a: una peticion de otra ronda no da Commit revisado: verificar-menores aborta y siguiente pregunta', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const id = 'TASK-990';
+    const { revisionDir } = await montar(repoRoot, tareasRoot, id, 'aprobada con correcciones', [FILA_MEN1]);
+    // La peticion pasa a ser de la ronda 2 y los informes siguen en la 1.
+    git(['mv', path.join(revisionDir, 'peticion-revision-1.md'), path.join(revisionDir, 'peticion-revision-2.md')], repoRoot);
+    commitAll(repoRoot, `chore(${id}): peticion de otra ronda`);
+    await assert.rejects(
+      () => runVerificarMenoresCommand(tareasRoot, [id], { repoCwd: repoRoot, ahora: '2026-11-12T10:00:00Z' }),
+      (e: unknown) => e instanceof VerificarMenoresCommandError && /no dice que commit se reviso/.test(e.message)
+    );
+  });
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const id = 'TASK-991';
+    const { revisionDir } = await montar(repoRoot, tareasRoot, id, 'aprobada', []);
+    git(['mv', path.join(revisionDir, 'peticion-revision-1.md'), path.join(revisionDir, 'peticion-revision-2.md')], repoRoot);
+    commitAll(repoRoot, `chore(${id}): peticion de otra ronda`);
+    const paso = await runSiguienteCommand(tareasRoot, [id, '--json'], { repoCwd: repoRoot });
+    assert.equal(paso.fase, 'finish');
+    // No continua solo: sin Commit revisado de esa ronda, el cierre lo decide una persona.
+    assert.notEqual(paso.accion, 'continuar', JSON.stringify(paso));
+    assert.match(String(paso.motivo), /no coincide con lo revisado/);
+  });
+});

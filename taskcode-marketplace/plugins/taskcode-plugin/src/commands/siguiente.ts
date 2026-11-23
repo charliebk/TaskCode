@@ -22,7 +22,7 @@ import { resolverConfig, type CierrePorDefecto, type ModoFlujo } from '../core/c
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase, type ContextoFlujo, type SiguientePaso } from '../core/flujo.js';
 import {
-  commitRevisadoDe,
+  commitRevisadoDeRonda,
   informeRellenado,
   veredictoDeRonda,
   type VeredictoInforme,
@@ -37,17 +37,17 @@ import {
 import {
   currentBranch,
   isAncestor,
-  localBranchExists,
   lsTreeNames,
   mergeBase,
   resolveBaseBranchForTipo,
   runGit,
   showFileAtRef,
+  tareaEnOtraRama,
 } from '../fs/git.js';
 import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import type { Task } from '../core/task.js';
 import { REVISION_DIRNAME } from './review.js';
-import { estadoCorreccionPosterior, type EstadoCorreccion } from './verificar-menores.js';
+import { codigoCambiado, estadoCorreccionPosterior, type EstadoCorreccion } from './verificar-menores.js';
 import { bloqueantesAbiertos, fueraDeAlcance, menoresAbiertos } from '../core/menores.js';
 import { duracionDelPlan, planRedactado } from './approve.js';
 import type { LecturaDuracion } from '../core/duracion-estimada.js';
@@ -97,24 +97,15 @@ export interface SiguienteCommandResult extends SiguientePaso {
  * que `veredicto` no commitea es lo normal, y lo absorbe el commit de
  * `finish`. Lo que se integra sigue siendo el codigo que vio el revisor.
  * Que el informe no sea la plantilla lo comprueba `informeRellenado`.
+ * TASK-144a (CMD2-01): «codigo cambiado» es el de `codigoCambiado`, el mismo
+ * que usan verificar-menores y finish: sin `tareas/`, sin lo que regenera
+ * `comando_sincronizacion` y sin lo excluido de la revision. Antes aqui solo
+ * se excluia `tareas/`, y con sincronizacion `siguiente` preguntaba aunque no
+ * hubiera cambiado nada revisado.
  */
-function informeEnCommitPropio(
-  ref: string,
-  nombres: readonly string[],
-  revisados: readonly (string | null)[],
-  cwd: string
-): boolean {
-  if (nombres.length === 0 || revisados.length === 0) return false;
-  const tareasDesdeLaRaiz = `${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`;
-  for (const revisado of revisados) {
-    if (revisado === null || !isAncestor(revisado, ref, cwd)) return false;
-    const cambios = runGit(
-      ['diff', '--name-only', revisado, ref, '--', ':(top)', `:(top,exclude)${tareasDesdeLaRaiz}`],
-      cwd
-    );
-    if (cambios !== '') return false;
-  }
-  return true;
+function informeEnCommitPropio(ref: string, nombres: readonly string[], revisado: string | null, cwd: string): boolean {
+  if (nombres.length === 0 || revisado === null || !isAncestor(revisado, ref, cwd)) return false;
+  return codigoCambiado(revisado, ref, cwd).length === 0;
 }
 
 /** Veredicto de una ronda a partir de sus informes; null si no hay ninguno. */
@@ -147,10 +138,7 @@ export async function runSiguienteCommand(
   }
 
   const rama = local.task.rama;
-  const enOtraRama =
-    currentBranch(deps.repoCwd) !== rama &&
-    localBranchExists(rama, deps.repoCwd) &&
-    !isAncestor(rama, 'HEAD', deps.repoCwd);
+  const enOtraRama = tareaEnOtraRama(rama, deps.repoCwd);
 
   let task: Task;
   let body: string;
@@ -166,7 +154,7 @@ export async function runSiguienteCommand(
   let rondaRevision: number;
   let nombresPrimarios: string[];
   let refInformes: string;
-  let revisados: (string | null)[];
+  let revisado: string | null;
   if (enOtraRama) {
     const enRama = lsTreeNames(rama, 'tareas', deps.repoCwd);
     const rutaTarea = enRama.find((n) => n.endsWith(`/${id}/tarea.md`));
@@ -187,7 +175,8 @@ export async function runSiguienteCommand(
     nombresPrimarios = ultima.nombres;
     refInformes = rama;
     primarios = ultima.nombres.map(leer);
-    revisados = nombresDeUltimaRonda(nombres, PETICION_REVISION_RE).nombres.map((n) => commitRevisadoDe(leer(n)));
+    const peticiones = nombresDeUltimaRonda(nombres, PETICION_REVISION_RE);
+    revisado = commitRevisadoDeRonda({ ronda: peticiones.ronda, textos: peticiones.nombres.map(leer) }, rondaRevision);
     codex = nombresDeUltimaRonda(nombres, INFORME_CODEX_RE).nombres.map(leer);
   } else {
     ({ task, body } = local);
@@ -199,9 +188,11 @@ export async function runSiguienteCommand(
     nombresPrimarios = ultima.nombres;
     refInformes = 'HEAD';
     primarios = await Promise.all(ultima.nombres.map(leer));
-    revisados = (
-      await Promise.all((await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE)).nombres.map(leer))
-    ).map((t) => commitRevisadoDe(t));
+    const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
+    revisado = commitRevisadoDeRonda(
+      { ronda: peticiones.ronda, textos: await Promise.all(peticiones.nombres.map(leer)) },
+      rondaRevision
+    );
     codex = await Promise.all(
       (await informesDeUltimaRonda(revisionDir, INFORME_CODEX_RE)).nombres.map(leer)
     );
@@ -217,7 +208,6 @@ export async function runSiguienteCommand(
   // TASK-099: con la ronda aprobada, que paso despues del Commit revisado.
   let correccion: EstadoCorreccion | null = null;
   if (task.estado === 'en-revision' && veredicto === 'aprobada') {
-    const revisado = revisados.find((c) => c !== null) ?? null;
     try {
       correccion = estadoCorreccionPosterior(body, rondaRevision, revisado, refInformes, deps.repoCwd);
     } catch {
@@ -227,12 +217,11 @@ export async function runSiguienteCommand(
   const alDia = correccion?.alDia === true;
   // Con una verificacion ligera al dia, lo que se cierra se compara con lo
   // verificado (que ya cubre lo revisado), no con el Commit revisado.
-  const referencias =
-    alDia && correccion?.verificacion != null ? [correccion.verificacion.commitVerificado] : revisados;
+  const referencia = alDia && correccion?.verificacion != null ? correccion.verificacion.commitVerificado : revisado;
   const enCommitPropio =
     task.estado === 'en-revision' &&
     rellenados &&
-    informeEnCommitPropio(refInformes, nombresPrimarios, referencias, deps.repoCwd);
+    informeEnCommitPropio(refInformes, nombresPrimarios, referencia, deps.repoCwd);
 
   const menores = menoresAbiertos(primarios);
   const ctx: ContextoFlujo = {

@@ -190,6 +190,12 @@ export const GUARDADOS_POR_CADENA: ReadonlySet<string> = new Set([
   'finish',
   'pausa',
   'registrar-coste',
+  // TASK-144a (CMD1-01): tambien escriben (autoCommit) o cambian de rama;
+  // el test de cadena deriva la lista del codigo y falla si falta alguno.
+  'trocear',
+  'verificar-menores',
+  'verificar-lote',
+  'doctor-deploy',
   'pause',
   'resume',
   'recover',

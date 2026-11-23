@@ -783,6 +783,24 @@ export function localBranchExists(name: string, cwd: string): boolean {
   return result.status === 0;
 }
 
+/**
+ * TASK-144a (CMD2-03 de la auditoria 4D): «la copia al dia de la tarea vive
+ * en su rama». Una sola regla para siguiente (que la lee de ahi) y para pausa
+ * y registrar-coste (que no escriben en la copia vieja): no estamos en esa
+ * rama, existe en local y no esta integrada en HEAD.
+ */
+export function tareaEnOtraRama(rama: string, cwd: string): boolean {
+  return currentBranch(cwd) !== rama && localBranchExists(rama, cwd) && !isAncestor(rama, 'HEAD', cwd);
+}
+
+/** El error de pausa y registrar-coste cuando la tarea vive en otra rama (una sola redaccion). */
+export function mensajeTareaEnOtraRama(id: string, rama: string): string {
+  return (
+    `[ERROR] ${id}: la copia al dia de la tarea esta en su rama, "${rama}". ` +
+    `Cambia a ella (git checkout ${rama}) y reintenta; no se ha tocado nada.`
+  );
+}
+
 /** true si esa rama existe en "origin". Asume que ya se llamo isRemoteAvailable. */
 function remoteBranchExists(name: string, cwd: string): boolean {
   const output = runGit(['ls-remote', '--heads', 'origin', name], cwd);

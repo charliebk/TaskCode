@@ -15,7 +15,7 @@ import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { resolverConfig } from '../core/config.js';
 import { registrarTransicion } from '../core/transiciones.js';
-import { currentBranch, isAncestor, localBranchExists, runGit } from '../fs/git.js';
+import { mensajeTareaEnOtraRama, runGit, tareaEnOtraRama } from '../fs/git.js';
 import {
   autoCommit,
   extraerPushFlag,
@@ -66,15 +66,8 @@ export async function runPausaCommand(
   if (task.estado === 'terminada') {
     throw new PausaCommandError(`[ERROR] ${id}: ya esta terminada; no hay fase que pausar.`);
   }
-  if (
-    currentBranch(deps.repoCwd) !== task.rama &&
-    localBranchExists(task.rama, deps.repoCwd) &&
-    !isAncestor(task.rama, 'HEAD', deps.repoCwd)
-  ) {
-    throw new PausaCommandError(
-      `[ERROR] ${id}: la copia al dia de la tarea esta en su rama, "${task.rama}". ` +
-        `Cambia a ella (git checkout ${task.rama}) y reintenta; no se ha tocado nada.`
-    );
+  if (tareaEnOtraRama(task.rama, deps.repoCwd)) {
+    throw new PausaCommandError(mensajeTareaEnOtraRama(id, task.rama));
   }
 
   // MEN-5 de la revision: el commit de la pausa es de la carpeta de la

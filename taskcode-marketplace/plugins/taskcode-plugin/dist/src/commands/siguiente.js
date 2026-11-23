@@ -21,12 +21,12 @@ import { configDeRef } from '../fs/config-de-ref.js';
 import { resolverConfig } from '../core/config.js';
 import { modoDeTarea, modoCongelado } from '../core/transiciones.js';
 import { siguienteFase } from '../core/flujo.js';
-import { commitRevisadoDe, informeRellenado, veredictoDeRonda, } from '../core/informe-revision.js';
+import { commitRevisadoDeRonda, informeRellenado, veredictoDeRonda, } from '../core/informe-revision.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, nombresDeUltimaRonda, } from '../fs/rondas.js';
-import { currentBranch, isAncestor, localBranchExists, lsTreeNames, mergeBase, resolveBaseBranchForTipo, runGit, showFileAtRef, } from '../fs/git.js';
+import { currentBranch, isAncestor, lsTreeNames, mergeBase, resolveBaseBranchForTipo, showFileAtRef, tareaEnOtraRama, } from '../fs/git.js';
 import { excluirDeRevision, revisoresDelRango } from '../fs/revisores-rango.js';
 import { REVISION_DIRNAME } from './review.js';
-import { estadoCorreccionPosterior } from './verificar-menores.js';
+import { codigoCambiado, estadoCorreccionPosterior } from './verificar-menores.js';
 import { bloqueantesAbiertos, fueraDeAlcance, menoresAbiertos } from '../core/menores.js';
 import { duracionDelPlan, planRedactado } from './approve.js';
 export class SiguienteCommandError extends Error {
@@ -46,19 +46,16 @@ export const FLAGS_SIGUIENTE = ['--json'];
  * que `veredicto` no commitea es lo normal, y lo absorbe el commit de
  * `finish`. Lo que se integra sigue siendo el codigo que vio el revisor.
  * Que el informe no sea la plantilla lo comprueba `informeRellenado`.
+ * TASK-144a (CMD2-01): «codigo cambiado» es el de `codigoCambiado`, el mismo
+ * que usan verificar-menores y finish: sin `tareas/`, sin lo que regenera
+ * `comando_sincronizacion` y sin lo excluido de la revision. Antes aqui solo
+ * se excluia `tareas/`, y con sincronizacion `siguiente` preguntaba aunque no
+ * hubiera cambiado nada revisado.
  */
-function informeEnCommitPropio(ref, nombres, revisados, cwd) {
-    if (nombres.length === 0 || revisados.length === 0)
+function informeEnCommitPropio(ref, nombres, revisado, cwd) {
+    if (nombres.length === 0 || revisado === null || !isAncestor(revisado, ref, cwd))
         return false;
-    const tareasDesdeLaRaiz = `${runGit(['rev-parse', '--show-prefix'], cwd)}tareas/`;
-    for (const revisado of revisados) {
-        if (revisado === null || !isAncestor(revisado, ref, cwd))
-            return false;
-        const cambios = runGit(['diff', '--name-only', revisado, ref, '--', ':(top)', `:(top,exclude)${tareasDesdeLaRaiz}`], cwd);
-        if (cambios !== '')
-            return false;
-    }
-    return true;
+    return codigoCambiado(revisado, ref, cwd).length === 0;
 }
 /** Veredicto de una ronda a partir de sus informes; null si no hay ninguno. */
 function veredictoDe(informes) {
@@ -81,9 +78,7 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
             'Si existe en otra rama, cambiate a esa rama o a la rama base y reintenta.');
     }
     const rama = local.task.rama;
-    const enOtraRama = currentBranch(deps.repoCwd) !== rama &&
-        localBranchExists(rama, deps.repoCwd) &&
-        !isAncestor(rama, 'HEAD', deps.repoCwd);
+    const enOtraRama = tareaEnOtraRama(rama, deps.repoCwd);
     let task;
     let body;
     let planEstaRedactado = true;
@@ -98,7 +93,7 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
     let rondaRevision;
     let nombresPrimarios;
     let refInformes;
-    let revisados;
+    let revisado;
     if (enOtraRama) {
         const enRama = lsTreeNames(rama, 'tareas', deps.repoCwd);
         const rutaTarea = enRama.find((n) => n.endsWith(`/${id}/tarea.md`));
@@ -117,7 +112,8 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         nombresPrimarios = ultima.nombres;
         refInformes = rama;
         primarios = ultima.nombres.map(leer);
-        revisados = nombresDeUltimaRonda(nombres, PETICION_REVISION_RE).nombres.map((n) => commitRevisadoDe(leer(n)));
+        const peticiones = nombresDeUltimaRonda(nombres, PETICION_REVISION_RE);
+        revisado = commitRevisadoDeRonda({ ronda: peticiones.ronda, textos: peticiones.nombres.map(leer) }, rondaRevision);
         codex = nombresDeUltimaRonda(nombres, INFORME_CODEX_RE).nombres.map(leer);
     }
     else {
@@ -130,7 +126,8 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
         nombresPrimarios = ultima.nombres;
         refInformes = 'HEAD';
         primarios = await Promise.all(ultima.nombres.map(leer));
-        revisados = (await Promise.all((await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE)).nombres.map(leer))).map((t) => commitRevisadoDe(t));
+        const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
+        revisado = commitRevisadoDeRonda({ ronda: peticiones.ronda, textos: await Promise.all(peticiones.nombres.map(leer)) }, rondaRevision);
         codex = await Promise.all((await informesDeUltimaRonda(revisionDir, INFORME_CODEX_RE)).nombres.map(leer));
         if (task.estado === 'en-diseno') {
             planEstaRedactado = await planRedactado(task, taskDir);
@@ -144,7 +141,6 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
     // TASK-099: con la ronda aprobada, que paso despues del Commit revisado.
     let correccion = null;
     if (task.estado === 'en-revision' && veredicto === 'aprobada') {
-        const revisado = revisados.find((c) => c !== null) ?? null;
         try {
             correccion = estadoCorreccionPosterior(body, rondaRevision, revisado, refInformes, deps.repoCwd);
         }
@@ -155,10 +151,10 @@ export async function runSiguienteCommand(tareasRoot, argv, deps) {
     const alDia = correccion?.alDia === true;
     // Con una verificacion ligera al dia, lo que se cierra se compara con lo
     // verificado (que ya cubre lo revisado), no con el Commit revisado.
-    const referencias = alDia && correccion?.verificacion != null ? [correccion.verificacion.commitVerificado] : revisados;
+    const referencia = alDia && correccion?.verificacion != null ? correccion.verificacion.commitVerificado : revisado;
     const enCommitPropio = task.estado === 'en-revision' &&
         rellenados &&
-        informeEnCommitPropio(refInformes, nombresPrimarios, referencias, deps.repoCwd);
+        informeEnCommitPropio(refInformes, nombresPrimarios, referencia, deps.repoCwd);
     const menores = menoresAbiertos(primarios);
     const ctx = {
         planRedactado: planEstaRedactado,
