@@ -14,7 +14,7 @@
  *   criterio hecho solo de palabras vagas sin nada comprobable.
  * - AVISA de lo que conviene mirar: 9 a 12 criterios y criterios sin ancla.
  */
-import type { GrupoCriterios, SeccionesTarea } from './tarea-body.js';
+import { extraerSecciones, normalizarTexto, type GrupoCriterios, type SeccionesTarea } from './tarea-body.js';
 import { contenidoDeSeccion } from './transiciones.js';
 
 /**
@@ -62,7 +62,7 @@ function esTransversal(g: GrupoCriterios): boolean {
   if (g.titulo === null) return true;
   // Basta la primera palabra: «Comunes a ambos» o «Transversal (suite)»
   // tambien son transversales (MEN-3 de la revision de TASK-044).
-  const primera = normalizar(g.titulo).split(/[^a-z]+/).find((p) => p !== '') ?? '';
+  const primera = normalizarTexto(g.titulo).split(/[^a-z]+/).find((p) => p !== '') ?? '';
   return GRUPOS_TRANSVERSALES.includes(primera);
 }
 
@@ -100,10 +100,6 @@ const PALABRAS_VACIAS = new Set([
 /** Comandos que cuentan como ancla aunque vayan sin comillas invertidas. */
 const COMANDOS = ['taskctl', 'git', 'npm', 'pnpm', 'node', 'bash', 'npx'];
 
-function normalizar(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
 /**
  * true si el criterio cita algo comprobable: codigo entre comillas
  * invertidas, una ruta (`/` o una extension), un flag `--x`, un comando,
@@ -117,7 +113,7 @@ export function tieneAncla(criterio: string): boolean {
   if (/[\w.-]+\/[\w.-]+\/[\w./-]+/.test(criterio) || /\b[\w-]+\.(ts|js|mjs|md|sh|json|yml|yaml|java|cs|vue|py)\b/i.test(criterio)) {
     return true;
   }
-  const n = normalizar(criterio);
+  const n = normalizarTexto(criterio);
   if (/\b(test|tests|prueba|pruebas|suite|mutante|mutantes)\b/.test(n)) return true;
   if (COMANDOS.some((c) => new RegExp(`\\b${c}\\b`).test(n))) return true;
   // Numeros, pero no los de un ID, una seccion o una sigla con digito
@@ -133,7 +129,7 @@ export function tieneAncla(criterio: string): boolean {
 
 /** true si, quitando palabras vacias, todo lo que queda son palabras vagas. */
 export function esSoloVago(criterio: string): boolean {
-  const palabras = normalizar(criterio)
+  const palabras = normalizarTexto(criterio)
     .split(/[^a-z0-9]+/)
     .filter((p) => p !== '' && !PALABRAS_VACIAS.has(p));
   if (palabras.length === 0) return false;
@@ -207,28 +203,11 @@ export function planEsEsqueleto(contenido: string, plantillas: readonly string[]
   return propias.length === 0;
 }
 
-/** Criterios normales sin marcar (las casillas de `### Tras el cierre` no cuentan). */
+/**
+ * Criterios normales sin marcar (las casillas de `Tras el cierre` no cuentan).
+ * TASK-147b (CORE2-04): con `extraerSecciones`, el mismo lector de criterios
+ * que el resto del flujo (`### Criterios`, `**Tras el cierre**` en negrita).
+ */
 export function casillasSinMarcar(body: string): string[] {
-  const lineas = body.replace(/\r/g, '').split('\n');
-  const pendientes: string[] = [];
-  let enCriterios = false;
-  let enTrasCierre = false;
-  for (const l of lineas) {
-    const cab = /^ {0,3}(#{2,6})\s+(.*?)\s*#*\s*$/.exec(l);
-    if (cab !== null) {
-      const nivel = (cab[1] as string).length;
-      const titulo = normalizar(cab[2] as string);
-      if (nivel === 2) {
-        enCriterios = titulo === 'criterios de aceptacion';
-        enTrasCierre = false;
-      } else if (enCriterios) {
-        enTrasCierre = titulo === 'tras el cierre';
-      }
-      continue;
-    }
-    if (!enCriterios || enTrasCierre) continue;
-    const m = /^\s*[-*]\s+\[ \]\s*(.*)$/.exec(l);
-    if (m !== null) pendientes.push((m[1] ?? '').trim());
-  }
-  return pendientes;
+  return extraerSecciones(body).criteriosSinMarcar;
 }

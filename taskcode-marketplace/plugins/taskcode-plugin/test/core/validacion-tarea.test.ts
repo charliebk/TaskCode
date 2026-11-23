@@ -15,7 +15,7 @@ import {
 import type { SeccionesTarea } from '../../src/core/tarea-body.js';
 
 function secciones(objetivo: string, criterios: string[]): SeccionesTarea {
-  return { objetivo, criterios, criteriosTrasCierre: [], grupos: [] };
+  return { objetivo, criterios, criteriosTrasCierre: [], criteriosSinMarcar: [], grupos: [] };
 }
 
 const n = (k: number): string[] => Array.from({ length: k }, (_, i) => `\`taskctl\` caso ${String(i + 1)}`);

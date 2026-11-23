@@ -35,14 +35,10 @@
  * `UMBRAL_TENDENCIA`; si no, se mantiene.
  */
 import { media, mediana, tablaDeTexto } from './metricas.js';
+import { compararIds } from './task.js';
 export const TRAMO_POR_DEFECTO = 20;
 /** TASK-122: cambio relativo (0.15 = 15 %) por debajo del cual el coste fijo «se mantiene». */
 export const UMBRAL_TENDENCIA = 0.15;
-/** Numero del ID (`TASK-0099` -> 99) para ordenar por numero y no por cadena. */
-export function numeroDeId(id) {
-    const m = /(\d+)$/.exec(id);
-    return m === null ? Number.MAX_SAFE_INTEGER : Number(m[1]);
-}
 /** Comparador de cadenas determinista (sin locale). */
 function cmp(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
@@ -51,8 +47,7 @@ function cmp(a, b) {
 export function ordenarPorCierre(filas) {
     return [...filas].sort((a, b) => cmp(a.cierre ?? '￿', b.cierre ?? '￿') ||
         cmp(a.proyecto, b.proyecto) ||
-        numeroDeId(a.id) - numeroDeId(b.id) ||
-        cmp(a.id, b.id));
+        compararIds(a.id, b.id));
 }
 /** KB medio por ronda de una tarea; null si no tiene ninguna peticion de revision. */
 export function kbPorTarea(f) {

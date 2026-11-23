@@ -16,6 +16,7 @@
  * con `--escribir`).
  */
 import { CABECERA_TABLA_HITO, extraerZonaManual, normalizarFinales } from './roadmap.js';
+import { compararIds } from './task.js';
 
 export interface FilaRoadmap {
   hito: number;
@@ -101,6 +102,8 @@ export function extraerEstructura(texto: string): EstructuraRoadmap {
       textoPropio.push(recortada);
       continue;
     }
+    // `\d+` y no TASK_ID_RE a proposito: el ROADMAP se edita a mano y una fila
+    // con un ID mal escrito (TASK-12) se informa como no comparable, no se pierde.
     if (!recortada.startsWith('|') || !/TASK-\d+/.test(linea)) {
       // Solo la cabecera de la tabla del generador y los separadores; una
       // fila propia dentro de un hito si se lista (MEN-2 de la ronda 2).
@@ -129,13 +132,6 @@ export function extraerEstructura(texto: string): EstructuraRoadmap {
     });
   }
   return { tareas, hitos, zonaManual, noComparables, duplicadas, textoPropio };
-}
-
-function numero(id: string): number {
-  // TASK-121: la letra de una parte ordena dentro de su numero (TASK-121a < TASK-121b < TASK-122).
-  const m = /(\d+)([a-z]?)$/.exec(id);
-  if (m === null) return Number.MAX_SAFE_INTEGER;
-  return Number(m[1]) * 100 + (m[2] === '' ? 0 : (m[2] as string).charCodeAt(0) - 96);
 }
 
 function mismaLista(a: readonly string[], b: readonly string[]): boolean {
@@ -171,7 +167,7 @@ export function compararRoadmaps(actual: string, generado: string): string[] {
     else if (ta !== tg) difs.push(`hito H${h}: titulo "${ta}" en el actual y "${tg}" en el generado.`);
   }
 
-  const ids = [...new Set([...a.tareas.keys(), ...g.tareas.keys()])].sort((x, y) => numero(x) - numero(y));
+  const ids = [...new Set([...a.tareas.keys(), ...g.tareas.keys()])].sort(compararIds);
   for (const id of ids) {
     const fa = a.tareas.get(id);
     const fg = g.tareas.get(id);

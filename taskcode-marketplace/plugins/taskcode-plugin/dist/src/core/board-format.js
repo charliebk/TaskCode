@@ -4,7 +4,7 @@
  * tareas ya leida (src/commands/board.ts se encarga de leerlas) y
  * decide que se filtra y como se ve la tabla.
  */
-import { TASK_STATES, STATE_FOLDER } from './task.js';
+import { TASK_STATES, STATE_FOLDER, compararIds } from './task.js';
 export function filterTasks(tasks, filters) {
     return tasks.filter((t) => {
         if (filters.sprint !== undefined && t.sprint !== filters.sprint)
@@ -21,23 +21,6 @@ const STATE_LABEL = {
     'en-revision': 'En revision',
     terminada: 'Terminadas',
 };
-const TASK_ID_NUM_RE = /^TASK-(\d+)([a-z]?)$/;
-/**
- * Orden numerico por ID, no alfabetico (un ID de 4+ digitos, p. ej.
- * "TASK-1000", ordenaria mal por delante de "TASK-999" con un
- * `localeCompare`/`<` puramente lexicografico: '1' < '9' como primer
- * caracter que difiere). Con los IDs de 3 digitos de hoy no se nota,
- * pero es gratis evitarlo ahora.
- */
-function taskIdSortKey(id) {
-    const m = TASK_ID_NUM_RE.exec(id);
-    // TASK-121: la letra de una parte ordena dentro de su numero (TASK-121a,
-    // TASK-121b, luego TASK-122); sin letra va delante de sus partes.
-    if (!m)
-        return Number.POSITIVE_INFINITY;
-    const letra = m[2];
-    return parseInt(m[1], 10) * 100 + (letra === '' ? 0 : letra.charCodeAt(0) - 96);
-}
 /**
  * Rangos aproximados de caracteres de ancho visual doble (East Asian
  * Wide/Fullwidth + emoji comunes). Hallazgo IMPORTANTE de revision
@@ -111,7 +94,7 @@ export function formatBoard(tasks) {
     for (const estado of TASK_STATES) {
         const grupo = tasks
             .filter((t) => t.estado === estado)
-            .sort((a, b) => taskIdSortKey(a.id) - taskIdSortKey(b.id));
+            .sort((a, b) => compararIds(a.id, b.id));
         if (grupo.length === 0)
             continue;
         const header = `## ${STATE_LABEL[estado]} (${STATE_FOLDER[estado]}) — ${grupo.length}`;

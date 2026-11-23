@@ -23,7 +23,7 @@
  * sitio.
  */
 import path from 'node:path';
-import { STATE_FOLDER, type TareaUbicada, type TaskState } from '../core/task.js';
+import { STATE_FOLDER, isValidTaskId, type TareaUbicada, type TaskState } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { listTareasEnEstados, type TareasEnEstadosResult } from './task-store.js';
 import {
@@ -34,7 +34,6 @@ import {
   showFileAtRef,
 } from './git.js';
 
-const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
 
 /**
  * Ramas locales que cuentan como trabajo abierto: ni la base ni la
@@ -97,7 +96,7 @@ export function ramasDeTrabajoAbiertas(repoCwd: string, baseBranch: string): str
 function idDesdeRuta(ruta: string): string | null {
   const partes = ruta.split('/');
   const id = partes[partes.length - 2];
-  return id !== undefined && TASK_ID_RE.test(id) ? id : null;
+  return id !== undefined && isValidTaskId(id) ? id : null;
 }
 
 /**

@@ -53,7 +53,7 @@ import { comandoPropuesto, type ComandoTests } from '../core/comando-tests.js';
 import { comandoParcial, documentacionDeclarada } from '../core/verificacion-proporcional.js';
 import { detectarComandosTests } from '../fs/deteccion-tests.js';
 import { hostDeRemoto, ocultarCredenciales, CLI_PLATAFORMA } from '../core/plataforma-remota.js';
-import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
+import { STATE_FOLDER, TASK_ID_RE, TASK_STATES, isValidTaskId } from '../core/task.js';
 import { diaLocal, evaluarDocumentoEstado, type TareaTerminadaFecha } from '../core/documento-estado.js';
 import { resolveGitflowScriptsDir, sondearBash } from '../fs/gitflow-runner.js';
 import { urlsDeOrigin } from '../fs/git.js';
@@ -648,7 +648,7 @@ export function comprobarPodaTests(
     return [];
   }
   if (ids.length === 0) return [];
-  const numero = (id: string): number => Number(/^TASK-(\d+)/.exec(id)?.[1] ?? 0);
+  const numero = (id: string): number => Number(TASK_ID_RE.exec(id)?.[1] ?? 0);
   let ultimaPoda = -1;
   for (const id of ids) {
     try {

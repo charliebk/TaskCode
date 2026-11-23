@@ -9,7 +9,8 @@
  * las tareas que crea `taskctl doctor-deploy --crear-tareas` sin chocar con
  * las que se crean a mano.
  */
-const TASK_ID_RE = /^TASK-(\d{3,})[a-z]?$/;
+import { TASK_ID_RE } from './task.js';
+
 /** `feature/task-9999-slug`, `fix/task-9998`: el numero de tarea dentro del nombre de una rama. */
 const RAMA_TASK_RE = /(?:^|\/)task-(\d{3,})(?:-|$)/i;
 

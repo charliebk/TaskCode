@@ -129,7 +129,12 @@ export const TASK_FIELD_ORDER: readonly (keyof Task)[] = [
   'dependencias',
 ];
 
-const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
+/**
+ * TASK-147b (CORE2-01, FS-04, CMD2-08): la unica regex del ID de tarea.
+ * Grupo 1, el numero (3 cifras o mas); grupo 2, la letra de una parte de un
+ * troceo (`TASK-121a`) o ''.
+ */
+export const TASK_ID_RE = /^TASK-(\d{3,})([a-z]?)$/;
 
 /** Valida el formato de un ID de tarea sin construir un Task completo.
  *  Se usa como guarda de seguridad ANTES de construir rutas de archivo
@@ -137,6 +142,40 @@ const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
  *  traversal (hallazgo de revision por pares, Sprint 0). */
 export function isValidTaskId(id: string): boolean {
   return TASK_ID_RE.test(id);
+}
+
+/** `TASK-121` -> true; `TASK-121a` -> false (una parte no se vuelve a trocear). CORE2-14. */
+export function esIdTroceable(id: string): boolean {
+  const m = TASK_ID_RE.exec(id);
+  return m !== null && m[2] === '';
+}
+
+// Para ORDENAR se acepta cualquier numero de cifras (`TASK-0099`, `TASK-12`): es
+// TASK_ID_RE sin el minimo de tres. Ordenar no abre rutas, y metricas de otros
+// proyectos o un ROADMAP editado a mano pueden traer IDs que no se validarian.
+const ID_PARA_ORDENAR_RE = new RegExp(TASK_ID_RE.source.replace('{3,}', '+'));
+
+/**
+ * TASK-147b (CORE2-01): el orden de los IDs de tarea, el mismo en board,
+ * wip, roadmap y evolucion. Por numero (TASK-999 antes que TASK-1000), y
+ * dentro del numero la tarea entera antes que sus partes (TASK-121,
+ * TASK-121a, TASK-121b, TASK-122). Lo que no es un ID va al final, por cadena.
+ */
+export function compararIds(a: string, b: string): number {
+  const ma = ID_PARA_ORDENAR_RE.exec(a);
+  const mb = ID_PARA_ORDENAR_RE.exec(b);
+  if (ma === null || mb === null) {
+    if (ma !== mb) return ma === null ? 1 : -1;
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
+  const d = Number(ma[1]) - Number(mb[1]);
+  if (d !== 0) return d;
+  const la = ma[2] as string;
+  const lb = mb[2] as string;
+  if (la !== lb) return la < lb ? -1 : 1;
+  // MEN-2 de la revision: mismo numero con distinto relleno (TASK-099 y
+  // TASK-0099): por cadena, para no depender del orden de readdir.
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 export class InvalidTaskIdError extends Error {

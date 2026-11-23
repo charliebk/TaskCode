@@ -24,7 +24,7 @@
  * fallo que este limite existe para evitar ("evitar que se programe
  * codigo de una tarea en la rama Git de otra tarea", Carlos, #13).
  */
-import { STATE_FOLDER } from './task.js';
+import { STATE_FOLDER, compararIds } from './task.js';
 import { CONFIG_DEFAULTS } from './config.js';
 /**
  * Estados cuya carpeta ocupa el hueco de ejecucion.
@@ -129,7 +129,7 @@ export function tareasQueBloquean(tareas, persona, idQueArranca, limite = LIMITE
         return [];
     const ocupadas = tareas
         .filter((t) => t.task.id !== idQueArranca && personaDeTarea(t.task.asignado_a) === buscada)
-        .sort((a, b) => a.task.id.localeCompare(b.task.id));
+        .sort((a, b) => compararIds(a.task.id, b.task.id));
     // Se devuelven TODAS las ocupadas, no solo las que sobran: el
     // mensaje de error tiene que poder nombrar cual hay que cerrar, y
     // con un limite de 3 y 3 abiertas no hay ninguna "sobrante" — hay

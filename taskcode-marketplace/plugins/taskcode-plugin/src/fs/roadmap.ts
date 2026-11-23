@@ -31,12 +31,11 @@ import {
   ROADMAP_RUTA,
   type TareaRoadmap,
 } from '../core/roadmap.js';
-import { STATE_FOLDER, TASK_STATES } from '../core/task.js';
+import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { runGit } from './git.js';
 
 const NOMBRE = 'ROADMAP.md';
-const TASK_DIR_RE = /^TASK-\d{3,}[a-z]?$/;
 
 /** Para que se prepara: una transicion (reglas estrictas) o `taskctl roadmap --escribir` (explicito). */
 export type ModoRoadmap = 'transicion' | 'escribir';
@@ -79,7 +78,7 @@ export function leerTareasRoadmap(raiz: string): TareasLeidas {
       continue;
     }
     for (const entrada of entradas) {
-      if (!TASK_DIR_RE.test(entrada) || vistos.has(entrada)) continue;
+      if (!isValidTaskId(entrada) || vistos.has(entrada)) continue;
       const fichero = path.join(dir, entrada, 'tarea.md');
       if (!existsSync(fichero)) continue;
       try {
