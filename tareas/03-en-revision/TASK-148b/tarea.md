@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 15048864
 tokens_revision: null
 creado: 2026-11-23
 actualizado: 2026-11-23
@@ -38,8 +38,15 @@ masParecida, validadores de entero y de enumerado, CLAVES_CONFIG atada al switch
 | 2026-11-23T13:40:55Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T13:40:57Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T13:40:58Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T13:58:07Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — d542a84: buscados masParecida, describirValor y las tres reglas de ruta; nuevos sugerenciaDeValor, validarEnteroEnRango, elementosDeEnumerado y ruta-relativa.ts (la regla comun no existia; se queda la de config, que cuatro tests fijan); 1 fichero de test nuevo (4 tests); 6 mutaciones en rojo
 - code-quality-reviewer — d542a84
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T13:58:07Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 50 | 38632 | 14987425 | 22757 | 15 | 15048864 | - | - |
