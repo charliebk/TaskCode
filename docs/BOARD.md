@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-23. No editar a mano.
 
-## Planificadas (00-planificadas) — 26
+## Planificadas (00-planificadas) — 25
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -28,14 +28,13 @@ TASK-143   Regla 4D: duplicacion en Git-Flow (bash y TS)                        
 TASK-145   Regla 4D: duplicacion en las puertas de finish                                              (sin asignar)
 TASK-146   Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste             (sin asignar)
 TASK-148   Regla 4D: catalogos, config y utilidades en core                                            (sin asignar)
-TASK-149b  errores y flags del CLI (parte b de TASK-149)                                               (sin asignar)
 TASK-149c  utilidades de fs (parte c de TASK-149)                                                      (sin asignar)
 TASK-150   Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
 TASK-151   Regla 4D: disfraz en tests                                                                  (sin asignar)
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 134
+## Terminadas (04-terminadas) — 135
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -170,6 +169,7 @@ TASK-147a  secciones con un solo lector y un solo «crear al final» (parte a de
 TASK-147b  criterios, normalizacion, citar e IDs (parte b de TASK-147)                                                         claude
 TASK-147c  fases y Marca en metricas (parte c de TASK-147)                                                                     claude
 TASK-149a  git y hooks (parte a de TASK-149)                                                                                   claude
+TASK-149b  errores y flags del CLI (parte b de TASK-149)                                                                       claude
 TASK-153a  plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153)                                             charlie.bk@gmail.com
 TASK-153b  candidatos 4D en la peticion de revision (parte b de TASK-153)                                                      charlie.bk@gmail.com
 TASK-153c  metricas de hallazgos 4D (parte c de TASK-153)                                                                      charlie.bk@gmail.com

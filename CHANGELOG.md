@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-149b (fix) — errores y flags del CLI (parte b de TASK-149) (2026-11-23)
 - TASK-149a (fix) — git y hooks (parte a de TASK-149) (2026-11-23)
 - TASK-147c (fix) — fases y Marca en metricas (parte c de TASK-147) (2026-11-23)
 - TASK-147b (fix) — criterios, normalizacion, citar e IDs (parte b de TASK-147) (2026-11-23)
