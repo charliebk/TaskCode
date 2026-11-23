@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-23. No editar a mano.
 
-## Planificadas (00-planificadas) — 28
+## Planificadas (00-planificadas) — 27
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -25,7 +25,6 @@ TASK-138   Regla 4D: duplicacion en metricas, suite y registro de puertas       
 TASK-139   Regla 4D: tests que no protegen lo que dicen                                                (sin asignar)
 TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
 TASK-143   Regla 4D: duplicacion en Git-Flow (bash y TS)                                               (sin asignar)
-TASK-144b  flags con y sin valor (parte b de TASK-144)                                                 (sin asignar)
 TASK-144c  patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144)                    (sin asignar)
 TASK-145   Regla 4D: duplicacion en las puertas de finish                                              (sin asignar)
 TASK-146   Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste             (sin asignar)
@@ -37,7 +36,7 @@ TASK-151   Regla 4D: disfraz en tests                                           
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 128
+## Terminadas (04-terminadas) — 129
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -166,6 +165,7 @@ TASK-137   Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo  
 TASK-141   Auditoria 4D inicial: reconocimiento completo del codigo existente                                                  charlie.bk@gmail.com
 TASK-142   Regla 4D: disfraz en los scripts de Git-Flow                                                                        charlie.bk@gmail.com
 TASK-144a  cadena, Commit revisado y tarea en su rama (parte a de TASK-144)                                                    charlie.bk@gmail.com
+TASK-144b  flags con y sin valor (parte b de TASK-144)                                                                         charlie.bk@gmail.com
 TASK-153a  plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153)                                             charlie.bk@gmail.com
 TASK-153b  candidatos 4D en la peticion de revision (parte b de TASK-153)                                                      charlie.bk@gmail.com
 TASK-153c  metricas de hallazgos 4D (parte c de TASK-153)                                                                      charlie.bk@gmail.com
