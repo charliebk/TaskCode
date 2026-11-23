@@ -39,3 +39,8 @@ El CLI genera desde el diff una seccion con los posibles duplicados y los tests 
 | 2026-11-23T00:15:36Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T00:15:56Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T00:15:58Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — ddcdf62: helper buscado (distanciaEdicion, diffRangeForPaths, runGit, patron extras.seccionCobertura; ningun lector de definiciones previo); criterios citados; 5 tests nuevos, 5 mutaciones en rojo (seccion no anadida, nombres parecidos, promesas, fallo de git tragado, revision.md).
+- code-quality-reviewer — ddcdf62
