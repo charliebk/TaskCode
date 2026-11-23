@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en
 asignado_a: charlie.bk@gmail.com
@@ -42,6 +42,7 @@ Los patrones de fichero de ronda y de peticion de rol, y la decision de que plan
 | 2026-11-23T05:12:08Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T05:26:05Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T05:45:35Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T06:02:59Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -69,3 +70,9 @@ Los patrones de fichero de ronda y de peticion de rol, y la decision de que plan
 ## Verificacion parcial
 
 - 2026-11-23T06:00:20Z: todo el codigo que cambia la tarea (15 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 50 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 51 min
+- Cierre (finish): 159 s, de 2026-11-23T06:00:20Z a 2026-11-23T06:02:59Z

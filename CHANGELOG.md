@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-144c (fix) — patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) (2026-11-23)
 - TASK-144b (fix) — flags con y sin valor (parte b de TASK-144) (2026-11-23)
 - TASK-144a (fix) — cadena, Commit revisado y tarea en su rama (parte a de TASK-144) (2026-11-23)
 - TASK-153c (feature) — metricas de hallazgos 4D (parte c de TASK-153) (2026-11-23)
