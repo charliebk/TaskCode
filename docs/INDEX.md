@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-149c — utilidades de fs (parte c de TASK-149) · etiquetas: (sin etiquetas) · rama fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli · terminada 2026-11-23 · tareas/04-terminadas/TASK-149c/
 - TASK-149b — errores y flags del CLI (parte b de TASK-149) · etiquetas: (sin etiquetas) · rama fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli · terminada 2026-11-23 · tareas/04-terminadas/TASK-149b/
 - TASK-149a — git y hooks (parte a de TASK-149) · etiquetas: (sin etiquetas) · rama fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli · terminada 2026-11-23 · tareas/04-terminadas/TASK-149a/
 - TASK-147c — fases y Marca en metricas (parte c de TASK-147) · etiquetas: (sin etiquetas) · rama fix/task-147-regla-4d-lectores-de-secciones-e-ids-en · terminada 2026-11-23 · tareas/04-terminadas/TASK-147c/
