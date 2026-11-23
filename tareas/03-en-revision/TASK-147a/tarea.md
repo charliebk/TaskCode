@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 21581176
-tokens_revision: 4687857
+tokens_revision: 6249036
 creado: 2026-11-22
 actualizado: 2026-11-23
 dependencias: []
@@ -34,7 +34,7 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] duracion, verificacion ligera, rondas extra, URL de merge request y troceo leen y escriben secciones con rangoDeSeccion y un helper comun para crear la seccion al final; un test con el encabezado dentro de un bloque de codigo lo distingue
+- [x] duracion, verificacion ligera, rondas extra, URL de merge request y troceo leen y escriben secciones con rangoDeSeccion y un helper comun para crear la seccion al final; un test con el encabezado dentro de un bloque de codigo lo distingue
 
 ## Transiciones
 
@@ -67,8 +67,20 @@ Objetivo de la tarea entera:
 | 2026-11-23T07:02:14Z | revision | agente:a759d6c42cb6051a9 | 20 | 116738 | 967049 | 7990 | 1 | 1091797 | 1 | - |
 | 2026-11-23T07:18:49Z | revision | agente:a01782db0e0f198b3 | 36 | 117512 | 1801182 | 17391 | 1 | 1936121 | 2 | - |
 | 2026-11-23T09:04:49Z | revision | agente:a534c3bc319352d3b | 30 | 125440 | 1513307 | 21162 | 1 | 1659939 | 3 | - |
+| 2026-11-23T09:20:55Z | revision | agente:a72d8256528efa9e9 | 28 | 128945 | 1406331 | 25875 | 1 | 1561179 | 4 | - |
 
 ## Rondas extra
 
 - Ronda 3: Carlos, verificar la correccion de IMP-2 (criterios tras la ultima parte del troceo)
 - Ronda 4: Carlos, verificar la correccion de IMP-3 e IMP-4 (cabecera propia de la ultima parte del troceo)
+
+## Resultado
+
+- Implementado: `anadirSeccionAlFinal` (core/transiciones.ts) sustituye las copias de «crear la seccion al final» en cierre, coste-registro, duracion-estimada, transiciones, plataforma-remota y troceo. Duracion, verificacion ligera, rondas extra y URL de merge request leen con `contenidoDeSeccion` (ultima seccion fuera de bloques de codigo, la misma regla con la que se escriben). Troceo acota objetivo y criterios con `rangoPorCabecera` (acepta `### Criterios de aceptacion`) y `abreSeccionDeTarea` une la regla de cabeceras. Test nuevo `test/core/secciones-comunes.test.ts` (9 tests).
+- Revision: 4 rondas (3 y 4 extra, decididas por Carlos). Ronda 1: IMP-1 (`## Troceo` se cortaba en un `### Criterios` dentro de una parte), MEN-1 y MEN-2 (tests de bloques de codigo y bordes de duracion), corregidos. Ronda 2: IMP-2 (un `### Criterios` tras la ultima parte se colaba en ella; ya pasaba en develop), corregido. Ronda 3: IMP-3 (la cabecera propia de la ultima parte cerraba la seccion) e IMP-4 (sin test del corte por Objetivo), corregidos. Ronda 4: aprobada.
+- No corregido (nota de la ronda 4, sin hallazgo): con un `### Objetivo` despues de los criterios de la ultima parte, fuera de la plantilla de duracion.md y ambiguo por naturaleza, un criterio posterior se descarta o la parte da «no tiene objetivo». Se acepta: la plantilla no usa subcabeceras dentro de las partes y el caso falla de forma visible o queda fuera del troceo.
+- Proceso: tres rondas sobre la misma regla de `## Troceo` porque cada correccion cubria un caso y abria el contiguo; la leccion es probar a la vez todas las posiciones de una cabecera (parte intermedia, propia de la ultima, tras la ultima) antes de corregir.
+
+## Verificacion parcial
+
+- 2026-11-23T09:21:03Z: todo el codigo que cambia la tarea (17 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
