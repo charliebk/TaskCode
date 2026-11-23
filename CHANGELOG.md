@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-153b (feature) — candidatos 4D en la peticion de revision (parte b de TASK-153) (2026-11-23)
 - TASK-153a (feature) — plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) (2026-11-22)
 
 - TASK-154 (fix) — plan.test.ts en verde en Windows nativo (2026-11-22)
