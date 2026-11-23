@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: cada caso tiene fichero y linea en do
 
 ## Enfoque propuesto
 
-Duracion estimada: 60 min (la de la parte a; la tarea entera, unas 2,5 h, se trocea abajo)
+Duracion estimada: 60 min (parte a del troceo; la tarea entera estimaba 60 min)
 
 Cada seccion de tarea.md y cada ID de tarea se leen con un solo lector:
 
@@ -52,3 +52,7 @@ Tests nuevos por criterio (presupuesto de 1 a 3 por criterio): 1 o 2 por criteri
 ## Lo que necesita decision de una persona
 
 Nada abierto.
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-23: TASK-147a, TASK-147b, TASK-147c, todas en la misma rama. Este plan es el de TASK-147a; las demas partes se planifican al empezarlas.
