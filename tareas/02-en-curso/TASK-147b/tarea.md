@@ -39,3 +39,8 @@ casillasSinMarcar, normalizar, citar y el ID de tarea con un solo lector (CORE2-
 | 2026-11-23T09:23:14Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T09:23:24Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T09:23:26Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 21e802d: buscados extraerSecciones, normalizarTexto, isValidTaskId, taskIdSortKey y citar antes de escribir; nuevos quitarDiacriticos (normalizarTexto sin minusculas, para celdas) y compararIds (sustituye cinco lectores del numero); 1 fichero de test nuevo (3 tests); 9 mutaciones en rojo
+- code-quality-reviewer — 21e802d
