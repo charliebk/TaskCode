@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -34,8 +34,8 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] plan-final.md lleva una seccion de reutilizacion (Regla 4D) con los helpers, funciones y fixtures existentes que se usaran; la plantilla de plan, las peticiones de redaccion y del unificador y los agentes que escriben el plan la piden, y approve avisa si falta o esta vacia, con test
-- [ ] review avisa si la autorrevision no trae la linea 4D (helper buscado, criterios citados, tests mutados), con test; la skill start lista los patrones de disfraz en tests (nombre que promete sin asercion, datos que no distinguen, rejects sin matcher, skip que esconde un fallo)
+- [x] plan-final.md lleva una seccion de reutilizacion (Regla 4D) con los helpers, funciones y fixtures existentes que se usaran; la plantilla de plan, las peticiones de redaccion y del unificador y los agentes que escriben el plan la piden, y approve avisa si falta o esta vacia, con test
+- [x] review avisa si la autorrevision no trae la linea 4D (helper buscado, criterios citados, tests mutados), con test; la skill start lista los patrones de disfraz en tests (nombre que promete sin asercion, datos que no distinguen, rejects sin matcher, skip que esconde un fallo)
 
 ## Transiciones
 
@@ -45,6 +45,7 @@ Objetivo de la tarea entera:
 | 2026-11-22T23:03:02Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-22T23:03:03Z | start | automatico | persona | 0.16.1 |
 | 2026-11-22T23:31:53Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T00:15:07Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -61,3 +62,17 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-22T23:48:51Z: ronda 1; commit revisado 4e6ff7fb803c1140a5dbd26eda008730c4c63bdb; commit verificado b1d4c27ce0b71b0fc716538df81815d01b6f30c4; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/approve.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/autorrevision.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/transiciones.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/validacion-tarea.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/review-autorrevision.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/validacion-tarea.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/skills/regla-4d.test.ts; corregidos: MENOR-1, MENOR-2, MENOR-3, MENOR-5, MENOR-6; pendientes: MENOR-4
+
+## Resultado
+
+- La plantilla de plan-final.md trae `## Reutilizacion (Regla 4D)` y la piden las peticiones de redaccion y del unificador (una sola constante, VINETA_PETICION_REUTILIZACION); el unificador y arquitectura la recogen en su formato de salida. approve avisa sin bloquear si falta o solo trae la linea de la plantilla (faltaReutilizacion).
+- review avisa si la autorrevision no trae la linea `- 4D — <commit>: ...` (tieneLinea4D); antes cualquier linea valia (CONT-08). Guia nueva task-workflow/disfraz-tests.md con los patrones de disfraz en tests, enlazada desde revision.md, start y task-workflow. start remite a la guia en vez de copiar la lista: el tope de 3 KB no la admite y copiarla seria duplicacion.
+- contenidoDeSeccion (core/transiciones.ts) da el «contenido real» de una seccion a la autorrevision y a la reutilizacion.
+- Revision ronda 1: aprobada con correcciones, 8 mutaciones en rojo. Corregidos MENOR-2 (helper comun), MENOR-3 (una lectura del plan), MENOR-5 (test de enlaces), MENOR-6 (aviso 4D de punta a punta). Aceptados: MENOR-1 (una sola forma exacta de cabecera y linea 4D: la dictan la plantilla y las peticiones, el aviso no bloquea) y MENOR-4 (la remision quitada de task-workflow/SKILL.md fue el recorte necesario para caber en su tope de 15 KB al enlazar la guia nueva).
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 72 min
+- Paso de la hora: 72 min reales frente a 60 estimados
+- Cierre (finish): 1564 s, de 2026-11-22T23:49:03Z a 2026-11-23T00:15:07Z
