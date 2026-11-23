@@ -38,3 +38,8 @@ Comentarios ciertos, heuristica sin repeticion, TRIVIAL_SIN_APROBACION, formatea
 | 2026-11-23T23:00:11Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:00:13Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T23:00:14Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 311df9b: buscados CLAVES_NUMERICAS, CLAVES_CONFIG y los formateadores de guion; nuevo celdaNumero (cuatro copias); se borra TRIVIAL_SIN_APROBACION (lista vacia, mecanismo que no hacia nada); 1 test nuevo; 1 mutacion en rojo; el resto lo fijan los tests de state-machine, approve, start, metricas y heuristica
+- code-quality-reviewer — 311df9b
