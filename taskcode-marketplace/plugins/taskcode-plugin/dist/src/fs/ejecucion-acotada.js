@@ -182,7 +182,8 @@ export function fotoDelArbol(raiz) {
     // espacio inicial de la primera entrada (" M ruta"), desplazando la
     // ruta un caracter.
     // TASK-149a (MEN-2): sobre gitCrudo, que no recorta la salida.
-    const r = gitCrudo(['status', '--porcelain', '-z', '--untracked-files=all'], raiz);
+    // MEN-5 de su revision: sin timeout, como antes (un git status lento en un repo grande no es un fallo).
+    const r = gitCrudo(['status', '--porcelain', '-z', '--untracked-files=all'], raiz, { timeoutMs: 0 });
     if (r.error !== undefined || r.status !== 0) {
         throw new Error(`git status fallo: ${(r.error?.message ?? r.stderr).trim()}`);
     }
