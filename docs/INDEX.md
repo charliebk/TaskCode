@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-147b — criterios, normalizacion, citar e IDs (parte b de TASK-147) · etiquetas: (sin etiquetas) · rama fix/task-147-regla-4d-lectores-de-secciones-e-ids-en · terminada 2026-11-23 · tareas/04-terminadas/TASK-147b/
 - TASK-147a — secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) · etiquetas: (sin etiquetas) · rama fix/task-147-regla-4d-lectores-de-secciones-e-ids-en · terminada 2026-11-23 · tareas/04-terminadas/TASK-147a/
 - TASK-144c — patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) · etiquetas: (sin etiquetas) · rama fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en · terminada 2026-11-23 · tareas/04-terminadas/TASK-144c/
 - TASK-144b — flags con y sin valor (parte b de TASK-144) · etiquetas: (sin etiquetas) · rama fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en · terminada 2026-11-23 · tareas/04-terminadas/TASK-144b/
