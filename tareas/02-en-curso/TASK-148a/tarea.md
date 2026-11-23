@@ -43,3 +43,8 @@ Objetivo de la tarea entera:
 | 2026-11-23T12:58:44Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T12:58:56Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T12:58:57Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — b42169a: buscadas las cinco copias de packageRoot y los tres juegos de validadores; nuevos raiz-plugin.ts y campos-catalogo.ts (la regla comun no existia); deploy conserva adaptadores finos de Valor; 1 fichero de test nuevo (3 tests) y 1 test anadido en deploy; 3 mutaciones en rojo
+- code-quality-reviewer — b42169a
