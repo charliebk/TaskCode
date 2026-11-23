@@ -159,7 +159,7 @@ function indicePorLongitud(defs) {
     }
     return indice;
 }
-function parecidasEn(nueva, indice) {
+function parecidasEn(nueva, indice, cuenta = { n: 0 }) {
     const n = normal(nueva.nombre).length;
     const margen = tolerancia(n);
     const salida = [];
@@ -167,6 +167,7 @@ function parecidasEn(nueva, indice) {
         for (const e of indice.get(len) ?? []) {
             if (e.fichero === nueva.fichero && e.nombre === nueva.nombre)
                 continue;
+            cuenta.n++;
             if (nombresParecidos(nueva.nombre, e.nombre))
                 salida.push(e);
         }
@@ -211,8 +212,9 @@ export function candidatos4D(diffCodigo, diffTests, existentes) {
     const nuevas = definicionesNuevas(diffCodigo);
     const indice = indicePorLongitud(existentes);
     const todos = [];
+    const cuenta = { n: 0 };
     for (const nueva of nuevas) {
-        const parecidas = parecidasEn(nueva, indice);
+        const parecidas = parecidasEn(nueva, indice, cuenta);
         if (parecidas.length > 0)
             todos.push({ nueva, existentes: parecidas });
     }
@@ -234,6 +236,7 @@ export function candidatos4D(diffCodigo, diffTests, existentes) {
         totalEntreNuevas: pares.length,
         testsAMutar: tests.slice(0, MAX_TESTS),
         totalTests: tests.length,
+        comparaciones: cuenta.n,
     };
 }
 const loc = (d) => `\`${d.nombre}\` (${d.fichero}:${String(d.linea)})`;

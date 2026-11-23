@@ -86,21 +86,24 @@ test('testsQuePrometen y seccion: lista los tests con promesa comprobable y dice
   assert.match(vacia, /Sin candidatos/);
 });
 
-test('IMP-1: 5000 existentes x 100 nuevas sin parecido se resuelve en menos de 1,5 s (indice por longitud)', () => {
+test('IMP-1: con 5000 existentes de longitudes variadas, el indice por longitud evita comparar contra casi todas', () => {
+  // Nombres normalizados de 10 a 60 letras (51 longitudes) y nuevas de 12:
+  // solo se comparan las de longitud compatible (10 a 14). Sin el indice
+  // serian 100 x 5000 = 500.000 comparaciones. Se cuenta, no se cronometra
+  // (MENOR-1 de la ronda 2: el reloj daba rojos con la maquina cargada).
   const existentes = Array.from({ length: 5000 }, (_, i) => ({
-    nombre: `existente${String(i)}Calcula${'x'.repeat(i % 17)}`,
+    nombre: `w${String(i).padStart(4, '0')}${'z'.repeat(10 + (i % 51) - 5)}`,
     fichero: `src/e${String(i % 50)}.ts`,
     linea: i,
   }));
   const diff = diffCon(
     'src/nuevo.ts',
-    Array.from({ length: 100 }, (_, i) => `export function nuevaPieza${String(i)}${'q'.repeat(i % 11)}() {`)
+    Array.from({ length: 100 }, (_, i) => `export function n${String(i).padStart(3, '0')}kkkkkkkk() {`)
   );
-  const t0 = performance.now();
   const c = candidatos4D(diff, '', existentes);
-  const ms = performance.now() - t0;
-  assert.ok(ms < 1500, `tardo ${ms.toFixed(0)} ms`);
   assert.equal(c.totalDuplicados, 0);
+  assert.ok(c.comparaciones > 0, 'tiene que comparar contra las de longitud compatible');
+  assert.ok(c.comparaciones <= (100 * 5000) / 5, `${String(c.comparaciones)} comparaciones: el indice no filtra`);
 });
 
 test('MENOR-3 y topes: mas de 15 candidatos o de 3 parecidos se cuentan con «y N mas»', () => {

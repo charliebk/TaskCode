@@ -40,6 +40,12 @@ export interface Candidatos4D {
   /** Tests nuevos cuyo nombre promete algo comprobable (como mucho MAX_TESTS). */
   testsAMutar: Definicion[];
   totalTests: number;
+  /**
+   * Comparaciones de nombres hechas contra las existentes: lo que cuesta la
+   * ronda. Con el indice por longitud queda muy por debajo de nuevas x
+   * existentes (lo fija un test sin depender del reloj).
+   */
+  comparaciones: number;
 }
 
 /** Extensiones de codigo donde se buscan definiciones (TS/JS, Rust, Python, Java/Kotlin/C#, bash). */
@@ -187,13 +193,14 @@ function indicePorLongitud(defs: readonly Definicion[]): Map<number, Definicion[
   return indice;
 }
 
-function parecidasEn(nueva: Definicion, indice: Map<number, Definicion[]>): Definicion[] {
+function parecidasEn(nueva: Definicion, indice: Map<number, Definicion[]>, cuenta = { n: 0 }): Definicion[] {
   const n = normal(nueva.nombre).length;
   const margen = tolerancia(n);
   const salida: Definicion[] = [];
   for (let len = n - margen; len <= n + margen; len++) {
     for (const e of indice.get(len) ?? []) {
       if (e.fichero === nueva.fichero && e.nombre === nueva.nombre) continue;
+      cuenta.n++;
       if (nombresParecidos(nueva.nombre, e.nombre)) salida.push(e);
     }
   }
@@ -240,8 +247,9 @@ export function candidatos4D(diffCodigo: string, diffTests: string, existentes: 
   const nuevas = definicionesNuevas(diffCodigo);
   const indice = indicePorLongitud(existentes);
   const todos: CandidatoDuplicado[] = [];
+  const cuenta = { n: 0 };
   for (const nueva of nuevas) {
-    const parecidas = parecidasEn(nueva, indice);
+    const parecidas = parecidasEn(nueva, indice, cuenta);
     if (parecidas.length > 0) todos.push({ nueva, existentes: parecidas });
   }
   // MENOR-2: nuevas parecidas entre si (distinto nombre o distinto fichero).
@@ -261,6 +269,7 @@ export function candidatos4D(diffCodigo: string, diffTests: string, existentes: 
     totalEntreNuevas: pares.length,
     testsAMutar: tests.slice(0, MAX_TESTS),
     totalTests: tests.length,
+    comparaciones: cuenta.n,
   };
 }
 
