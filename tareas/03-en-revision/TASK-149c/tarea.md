@@ -29,7 +29,7 @@ Parte c del troceo de TASK-149 (Regla 4D: duplicacion en fs, hooks y cli), parte
 Lockfiles, binarios, cola, PATH, JSON con BOM y nombreBase con una implementacion (FS-10 a FS-14, FS-16).
 
 ## Criterios de aceptacion
-- [ ] Lockfiles, deteccion de binarios, lectura de cola, busqueda en PATH, JSON con BOM y nombreBase tienen una sola implementacion; los mensajes de evidencia nombran DIRS_EXCLUIDOS
+- [x] Lockfiles, deteccion de binarios, lectura de cola, busqueda en PATH, JSON con BOM y nombreBase tienen una sola implementacion; los mensajes de evidencia nombran DIRS_EXCLUIDOS
 
 ## Transiciones
 
@@ -55,3 +55,13 @@ Lockfiles, binarios, cola, PATH, JSON con BOM y nombreBase con una implementacio
 ## Verificacion ligera
 
 - 2026-11-23T12:54:38Z: ronda 1; commit revisado 2b6f4ad98a6df0c24132a74ecd1ccee51dfc5cef; commit verificado 3e29e4948185626813fac1bc222c930e0edef8d5; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/fs/herramientas-deploy.ts, taskcode-marketplace/plugins/taskcode-plugin/src/fs/status-line.ts; corregidos: MEN-1; pendientes: ninguno
+
+## Resultado
+
+- Implementado: una lista de lockfiles (`esArchivoDeBloqueo` sale de LOCKFILES; ahora tampoco se escanean bun.lock, bun.lockb, pdm.lock ni pylock.toml, y requirements.txt si se escanea); evidencia-veredicto detecta binarios con `decodificar` (un UTF-16 con BOM es texto); `leerCola` en fs/leer-cola.ts, sin dependencias, para progreso (via rapida de estado) y ejecucion-acotada; `candidatosEnPath` (PATHEXT en minusculas; sin extension en Windows solo si se pide) para localizarHerramienta y buscarTaskctl; `quitarBom` en json-claude para leerJson, deteccion-tests y status-line; `nombreBase` y `textoDirsExcluidos` en deteccion-app para los mensajes de las sondas. Test nuevo `test/fs/utilidades-comunes.test.ts` (4) y la lista de la via rapida de estado acepta fs/leer-cola.js.
+- Revision: 1 ronda, aprobada. MEN-1 (buscarTaskctl tomaba el PATHEXT del proceso si su env no lo traia) corregido en la verificacion ligera con PATHEXT_POR_DEFECTO. MEN-2 aceptado: en Unix buscarTaskctl usa el criterio de localizarHerramienta (cualquier bit de ejecucion en vez de X_OK); unifica y el caso es muy raro.
+- No corregido: nada mas.
+
+## Verificacion parcial
+
+- 2026-11-23T12:54:49Z: todo el codigo que cambia la tarea (24 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
