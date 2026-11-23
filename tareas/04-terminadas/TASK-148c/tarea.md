@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
 asignado_a: claude
@@ -40,6 +40,7 @@ Opciones globales de git, fechas, solape de etiquetas, ANSI, credenciales, URL d
 | 2026-11-23T22:03:00Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T22:24:20Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T22:43:49Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T22:59:37Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -66,3 +67,9 @@ Opciones globales de git, fechas, solape de etiquetas, ANSI, credenciales, URL d
 ## Verificacion parcial
 
 - 2026-11-23T22:56:48Z: todo el codigo que cambia la tarea (39 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 57 min
+- Cierre (finish): 169 s, de 2026-11-23T22:56:48Z a 2026-11-23T22:59:37Z

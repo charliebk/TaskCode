@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -30,3 +30,10 @@ Comentarios ciertos, heuristica sin repeticion, TRIVIAL_SIN_APROBACION, formatea
 
 ## Criterios de aceptacion
 - [ ] Comentarios de config y dondeFalla ciertos; la E/S de plugin-instalado, heuristica y revisores se documenta o se mueve a fs; TRIVIAL_SIN_APROBACION se elimina o se justifica en una linea
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T23:00:11Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T23:00:13Z | approve | automatico | persona | 0.16.1 |
