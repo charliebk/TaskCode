@@ -85,3 +85,64 @@ test('testsQuePrometen y seccion: lista los tests con promesa comprobable y dice
   const vacia = seccionCandidatos4D(candidatos4D('', '', []));
   assert.match(vacia, /Sin candidatos/);
 });
+
+test('IMP-1: 5000 existentes x 100 nuevas sin parecido se resuelve en menos de 1,5 s (indice por longitud)', () => {
+  const existentes = Array.from({ length: 5000 }, (_, i) => ({
+    nombre: `existente${String(i)}Calcula${'x'.repeat(i % 17)}`,
+    fichero: `src/e${String(i % 50)}.ts`,
+    linea: i,
+  }));
+  const diff = diffCon(
+    'src/nuevo.ts',
+    Array.from({ length: 100 }, (_, i) => `export function nuevaPieza${String(i)}${'q'.repeat(i % 11)}() {`)
+  );
+  const t0 = performance.now();
+  const c = candidatos4D(diff, '', existentes);
+  const ms = performance.now() - t0;
+  assert.ok(ms < 1500, `tardo ${ms.toFixed(0)} ms`);
+  assert.equal(c.totalDuplicados, 0);
+});
+
+test('MENOR-3 y topes: mas de 15 candidatos o de 3 parecidos se cuentan con «y N mas»', () => {
+  const existentes = Array.from({ length: 5 }, (_, i) => ({ nombre: 'leerSeccionTarea', fichero: `src/x${String(i)}.ts`, linea: 1 }));
+  const diff = diffCon(
+    'src/n.ts',
+    Array.from({ length: 20 }, (_, i) => `export function leerSeccionTarea${String.fromCharCode(97 + i)}() {`)
+  );
+  const c = candidatos4D(diff, '', existentes);
+  assert.equal(c.duplicados.length, 15);
+  assert.equal(c.totalDuplicados, 20);
+  const s = seccionCandidatos4D(c);
+  assert.match(s, /- \.\.\. y 5 mas \(tope 15\)/);
+  assert.match(s, / y 2 mas\n/, 'cada candidato muestra 3 parecidos y cuenta el resto');
+
+  const muchosTests = diffCon(
+    'test/a.test.ts',
+    Array.from({ length: 18 }, (_, i) => `test('caso ${String(i)}: nunca borra nada', () => {});`)
+  );
+  const t = candidatos4D('', muchosTests, []);
+  assert.equal(t.testsAMutar.length, 15);
+  assert.equal(t.totalTests, 18);
+  assert.match(seccionCandidatos4D(t), /- \.\.\. y 3 mas \(tope 15\)/);
+});
+
+test('MENOR-2: las nuevas parecidas entre si salen en su propio grupo', () => {
+  const diff = diffCon('src/a.ts', ['export function leerSeccionTareas() {', 'export function leerSeccionTareaB() {', 'export function otraCosaDistinta() {']);
+  const c = candidatos4D(diff, '', []);
+  assert.deepEqual(c.entreNuevas.map(([a, b]) => `${a.nombre}~${b.nombre}`), ['leerSeccionTareaB~leerSeccionTareas']);
+  assert.match(seccionCandidatos4D(c), /### Posible duplicacion dentro de la tarea/);
+});
+
+test('MENOR-5: lineas de contexto, normalizacion, umbral, longitud minima, extension y promesas en ingles', () => {
+  const conContexto =
+    'diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1,3 +1,5 @@\n' +
+    ' const a = 1;\n const b = 2;\n+export function nuevaFuncion() {\n const c = 3;\n+function ab() {\n';
+  assert.deepEqual(definicionesNuevas(conContexto).map((d) => `${String(d.linea)}:${d.nombre}`), ['3:nuevaFuncion']);
+  assert.equal(nombresParecidos('$dollarValue', 'dollarValue'), true);
+  assert.equal(nombresParecidos('normalizar-rama', 'normalizar_rama'), true);
+  assert.equal(nombresParecidos('leerSeccionTarea', 'leerSeccionTareasXY'), true, 'distancia 3 con 16 letras entra');
+  assert.equal(nombresParecidos('leerSeccionTarea', 'leerOtraCosaTarea'), false);
+  assert.deepEqual(definicionesDeGrep('docs/a.md:3:function noEsCodigo() {\nsrc/b.ts:4:function siEsCodigo() {\n').map((d) => d.nombre), ['siEsCodigo']);
+  const ingles = testsQuePrometen(diffCon('test/a.test.ts', ["it('never writes outside the repo', () => {", "it('adds numbers', () => {"]));
+  assert.deepEqual(ingles.map((t) => t.nombre), ['never writes outside the repo']);
+});

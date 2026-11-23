@@ -74,6 +74,8 @@ import {
   diffParaRevision,
   diffRangeForPaths,
   definicionesEnRef,
+  GitLaunchError,
+  GitCommandError,
   statDeFicheros,
   PATRONES_TEST,
   hayMergesEntre,
@@ -948,7 +950,7 @@ async function runReview(
 
   // TASK-153b: candidatos 4D (pistas de duplicacion y tests a mutar), una vez
   // por ronda y antes de escribir nada. Nunca lanza.
-  const candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd);
+  const candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd, excluir);
 
   // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
   // el diff real de la rama, no `task.agente_revisor` del frontmatter,
@@ -1362,21 +1364,32 @@ function verificacionDeRonda(
  * TASK-153b: la seccion de candidatos 4D de la ronda. Las definiciones nuevas
  * salen del diff de codigo de la ronda; las existentes, de la rama base (lo
  * que habia antes de la tarea); los tests, del diff de los ficheros de test.
- * Nunca lanza: si Git falla, la seccion lo dice y la ronda sigue.
+ * Nunca lanza: si Git falla, la seccion lo dice y la ronda sigue. En una
+ * ronda incremental `desde` es el commit de la anterior: solo salen los tests
+ * del delta; las existentes siguen siendo las de la base.
  */
-function seccionCandidatosDeRonda(
+export function seccionCandidatosDeRonda(
   baseBranch: string,
   desde: string,
   diffCodigo: string,
   tests: readonly string[],
-  cwd: string
+  cwd: string,
+  excluir: readonly string[] = []
 ): string {
   try {
-    const existentes = definicionesDeGrep(definicionesEnRef(baseBranch, cwd), baseBranch);
+    const existentes = definicionesDeGrep(definicionesEnRef(baseBranch, cwd, excluir), baseBranch);
     const diffTests = diffRangeForPaths(desde, 'HEAD', tests, cwd);
     return seccionCandidatos4D(candidatos4D(diffCodigo, diffTests, existentes));
   } catch (e) {
-    const motivo = e instanceof Error ? (e.message.split('\n')[0] ?? '') : String(e);
+    // MENOR-7: un `git grep` que desborda el buffer no es «no se pudo ejecutar git».
+    const desborda = e instanceof GitLaunchError && /ENOBUFS/.test(e.message);
+    const motivo = desborda
+      ? 'la salida de git grep supera el limite de memoria: repositorio demasiado grande'
+      : e instanceof GitCommandError
+        ? (e.stderr.trim().split('\n')[0] ?? 'git fallo')
+        : e instanceof Error
+        ? (e.message.split('\n')[0] ?? '')
+        : String(e);
     return (
       `${SECCION_CANDIDATOS_4D}\n\nNo se pudieron calcular (${motivo}): ` +
       'busca a mano duplicados de las definiciones nuevas y muta los tests que prometen algo.\n\n'

@@ -11,6 +11,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { resolverConfig } from '../core/config.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
+import { EXTENSIONES_CODIGO, PATRON_GREP_DEFINICION } from '../core/candidatos-4d.js';
 export class GitCommandError extends Error {
     args;
     stderr;
@@ -531,6 +532,29 @@ export function runCodexReview(invocation) {
     return { lanzado: true, code: result.status, stdout: result.stdout ?? '', errorLanzamiento: null };
 }
 /**
+ * TASK-153b: lineas con pinta de definicion (funcion, clase, constante,
+ * `nombre() {` de bash) en `ref`, como `ref:fichero:linea:texto`. Es la
+ * materia prima de los candidatos 4D: lo que YA existia antes de la tarea.
+ * El patron y las extensiones son los de `core/candidatos-4d.ts`, que hace el
+ * filtro fino. Solo ficheros de codigo (MENOR-7) y sin lo que `excluir` saca
+ * de la revision, p. ej. `dist/` (MENOR-1). Sin coincidencias, git grep sale
+ * con 1 y sin stderr: eso es '' (no hay definiciones), no un error.
+ */
+export function definicionesEnRef(ref, cwd, excluir = []) {
+    const pathspecs = [
+        ...EXTENSIONES_CODIGO.map((e) => `:(glob)**/*.${e}`),
+        ...excluir.map((p) => `:(exclude,glob)${p}`),
+    ];
+    try {
+        return runGit([...SIN_COMILLAS, 'grep', '-n', '-I', '-E', PATRON_GREP_DEFINICION, ref, '--', ...pathspecs], cwd);
+    }
+    catch (e) {
+        if (e instanceof GitCommandError && e.stderr.trim() === '')
+            return '';
+        throw e;
+    }
+}
+/**
  * `git diff <desde>..<hasta> -- <paths>`, acotado a un subconjunto de
  * ficheros (TASK-018): el sub-diff que recibe cada revisor de dominio,
  * para que "cada revisor recibe solo el subconjunto del diff de su
@@ -539,26 +563,6 @@ export function runCodexReview(invocation) {
  * si `paths` esta vacio, sin llamar a Git (una peticion sin ficheros no
  * tiene nada que pedirle).
  */
-/**
- * TASK-153b: lineas con pinta de definicion (funcion, clase, constante,
- * `nombre() {` de bash) en `ref`, como `ref:fichero:linea:texto`. Es la
- * materia prima de los candidatos 4D: lo que YA existia antes de la tarea.
- * El filtro fino (que linea es de verdad una definicion y de que lenguaje)
- * lo hace `definicionesDeGrep`, en core. Sin coincidencias, git grep sale con
- * 1 y sin stderr: eso es '' (no hay definiciones), no un error.
- */
-export function definicionesEnRef(ref, cwd) {
-    const patron = '(function|class|fn|def|const|let|var|struct|interface|record|enum)[[:space:]]+[A-Za-z_$]' +
-        '|^[[:space:]]*[A-Za-z_][A-Za-z0-9_-]*[[:space:]]*\\(\\)[[:space:]]*\\{';
-    try {
-        return runGit([...SIN_COMILLAS, 'grep', '-n', '-I', '-E', patron, ref, '--'], cwd);
-    }
-    catch (e) {
-        if (e instanceof GitCommandError && e.stderr.trim() === '')
-            return '';
-        throw e;
-    }
-}
 export function diffRangeForPaths(desde, hasta, paths, cwd) {
     // `:(literal)` (TASK-054): son rutas reales, no patrones. Sin el,
     // `pages/[id].vue` se leeria como glob y el diff del grupo saldria vacio
