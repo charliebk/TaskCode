@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-148d — comentarios, diluvio y E/S en core (parte d de TASK-148) · etiquetas: (sin etiquetas) · rama fix/task-148-regla-4d-catalogos-config-y-utilidades-e · terminada 2026-11-23 · tareas/04-terminadas/TASK-148d/
 - TASK-148c — utilidades de core (parte c de TASK-148) · etiquetas: (sin etiquetas) · rama fix/task-148-regla-4d-catalogos-config-y-utilidades-e · terminada 2026-11-23 · tareas/04-terminadas/TASK-148c/
 - TASK-148b — validacion de config (parte b de TASK-148) · etiquetas: (sin etiquetas) · rama fix/task-148-regla-4d-catalogos-config-y-utilidades-e · terminada 2026-11-23 · tareas/04-terminadas/TASK-148b/
 - TASK-148a — raiz del plugin y lector de catalogos (parte a de TASK-148) · etiquetas: (sin etiquetas) · rama fix/task-148-regla-4d-catalogos-config-y-utilidades-e · terminada 2026-11-23 · tareas/04-terminadas/TASK-148a/
