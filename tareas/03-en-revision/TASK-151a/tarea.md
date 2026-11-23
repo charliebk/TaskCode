@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-151-regla-4d-disfraz-en-tests
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 18789145
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-23
@@ -44,8 +44,15 @@ Objetivo de la tarea entera:
 | 2026-11-23T23:22:47Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:22:57Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T23:22:59Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T23:31:24Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — ef3e941: solo tests; reutilizados los helpers de cada fichero (sampleTask, makeTask, withTareasRoot, conDir); nuevo antesQue en fases (el indexOf sin -1 estaba tres veces); mutaciones en rojo: M1 board-format, M2 state-machine, M4 task-store-wip, M5 cmdQuoteWindows, ultima ronda por cadena, plugin-instalado sin binario; el mutante de plugin-instalado con lista lo caza test/core/plugin-instalado
 - code-quality-reviewer — ef3e941
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T23:31:24Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 46 | 27064 | 18747006 | 15029 | 12 | 18789145 | - | - |
