@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 8665810
 tokens_revision: null
 creado: 2026-11-23
 actualizado: 2026-11-23
@@ -39,8 +39,15 @@ printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, e
 | 2026-11-23T11:25:54Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T11:25:55Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T11:25:56Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T11:37:36Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 424a988: buscados printCliError, printAutoCommit, extraerUnico y el texto aMano antes de escribir; nuevo ERRORES_COMUNES_CLI (la lista comun no existia: 23 catch con listas distintas) y textoAMano; 1 fichero de test nuevo y 2 tests ampliados (doctor-deploy, args); 3 mutaciones en rojo
 - code-quality-reviewer — 424a988
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T11:37:36Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 42 | 25571 | 8624292 | 15905 | 7 | 8665810 | - | - |
