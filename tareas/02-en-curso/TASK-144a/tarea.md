@@ -45,3 +45,8 @@ Objetivo de la tarea entera:
 | 2026-11-23T03:04:55Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T03:05:09Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T03:05:10Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — beef301: helper buscado (codigoCambiado, commitRevisadoDe, currentBranch/localBranchExists/isAncestor reutilizados; tres helpers nuevos sustituyen copias); criterios citados; 3 tests nuevos, 4 mutaciones en rojo (regla antigua de siguiente, comando fuera de la cadena, ronda distinta, y el de cadena derivado).
+- code-quality-reviewer — beef301
