@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 9829062
-tokens_revision: null
+tokens_revision: 6390105
 creado: 2026-11-22
 actualizado: 2026-11-23
 dependencias: [TASK-153a]
@@ -51,3 +51,6 @@ El CLI genera desde el diff una seccion con los posibles duplicados y los tests 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T00:27:39Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 34 | 21917 | 9793847 | 13264 | 8 | 9829062 | - | - |
+| 2026-11-23T01:31:10Z | revision | agente:aac2dd647e9f0f174 | 90 | 175979 | 6168104 | 45932 | 7 | 6390105 | 1 | - |
+- 4D — 320c084 (ronda 2): helper buscado (pathspecSinExcluidos/excluirDeRevision para las exclusiones, distanciaEdicion); criterios citados; 10 tests nuevos, 9 mutaciones de la ronda 1 ahora en rojo.
+- code-quality-reviewer — 320c084
