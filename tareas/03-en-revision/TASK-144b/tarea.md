@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 1610487
-tokens_revision: null
+tokens_revision: 4186809
 creado: 2026-11-23
 actualizado: 2026-11-23
 dependencias: [TASK-144a]
@@ -52,3 +52,6 @@ Todos los flags con valor se leen con el mismo lector y todos los booleanos esta
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T03:57:21Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 4 | 2058 | 1607163 | 1262 | 0 | 1610487 | - | - |
+| 2026-11-23T04:14:06Z | revision | agente:a78aca5658b9ea867 | 68 | 146674 | 4022415 | 17652 | 4 | 4186809 | 1 | - |
+- 4D — 70243c6 (ronda 2): helper buscado (flagSuelto de metricas ya valida --tokens; contenidoDeSeccion/valoresRegla4D); criterios citados; 5 tests nuevos, 5 mutaciones de IMP-1/IMP-2 en rojo; suite completa corrida (destapo 3 rojos heredados de TASK-153c, corregidos).
+- code-quality-reviewer — 70243c6
