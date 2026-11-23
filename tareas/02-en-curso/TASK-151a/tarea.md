@@ -44,3 +44,8 @@ Objetivo de la tarea entera:
 | 2026-11-23T23:22:47Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:22:57Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T23:22:59Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — ef3e941: solo tests; reutilizados los helpers de cada fichero (sampleTask, makeTask, withTareasRoot, conDir); nuevo antesQue en fases (el indexOf sin -1 estaba tres veces); mutaciones en rojo: M1 board-format, M2 state-machine, M4 task-store-wip, M5 cmdQuoteWindows, ultima ronda por cadena, plugin-instalado sin binario; el mutante de plugin-instalado con lista lo caza test/core/plugin-instalado
+- code-quality-reviewer — ef3e941
