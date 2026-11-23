@@ -58,7 +58,7 @@ import { leerCierre } from './cierre.js';
 import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, lecturasDeRevision, resumirCostes, } from './coste-registro.js';
-import { leerHallazgos, resumirHallazgos, rondasSoloMenores, veredictoDeRonda, } from './informe-revision.js';
+import { DIMENSIONES_4D, idsRegla4D, leerHallazgos, resumirHallazgos, rondasSoloMenores, veredictoDeRonda, } from './informe-revision.js';
 import { extraerSecciones } from './tarea-body.js';
 /**
  * Clave de una tarea en cualquier Map de metricas: (proyecto, id). Hoy hay
@@ -273,6 +273,7 @@ export function calcularFila(e) {
             revision: e.task.tokens_revision,
         }),
         hallazgos: resumirHallazgos(e.informes ?? []),
+        hallazgos4D: hallazgos4DDe(e.informes ?? []),
         lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
         total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
@@ -309,6 +310,23 @@ function lecturasRevisionDe(body, informes) {
         const cuenta = (sev) => lecturas.reduce((a, l) => a + l.hallazgos.filter((h) => h.severidadReconocida === sev).length, 0);
         return { ...g, critico: cuenta('CRITICO'), importante: cuenta('IMPORTANTE') };
     });
+}
+/** TASK-153c: ID distintos por D (por revisor) en la seccion Regla 4D de los informes; null sin ninguna seccion. */
+function hallazgos4DDe(informes) {
+    const vistos = new Map(DIMENSIONES_4D.map((d) => [d, new Set()]));
+    let conSeccion = false;
+    for (const i of informes) {
+        const ids = idsRegla4D(i.texto);
+        if (ids === null)
+            continue;
+        conSeccion = true;
+        for (const d of DIMENSIONES_4D)
+            for (const id of ids[d])
+                vistos.get(d)?.add(`${i.revisor}|${id}`);
+    }
+    if (!conSeccion)
+        return null;
+    return Object.fromEntries(DIMENSIONES_4D.map((d) => [d, vistos.get(d)?.size ?? 0]));
 }
 function veredictoRonda1(informes) {
     const primera = informes.filter((i) => i.ronda === 1);
@@ -374,6 +392,11 @@ export const COLUMNAS_METRICAS = [
     { cabecera: 'finish_n', valor: (f) => (f.finishVerificacion === null ? '—' : String(f.finishVerificacion.ejecuciones)) },
     { cabecera: 'finish_v', valor: (f) => (f.finishVerificacion === null ? '—' : formatearDuracion(f.finishVerificacion.duracion)) },
     { cabecera: 'rondas_men', valor: (f) => (f.rondasSoloMenores === null ? '—' : String(f.rondasSoloMenores)) },
+    // TASK-153c: hallazgos 4D de la tarea, duplicacion/desviacion/diluvio/disfraz.
+    {
+        cabecera: '4d',
+        valor: (f) => (f.hallazgos4D === null ? '—' : DIMENSIONES_4D.map((d) => String(f.hallazgos4D?.[d] ?? 0)).join('/')),
+    },
 ];
 /**
  * TASK-128: la fila de totales de las puertas de verificacion, debajo de la

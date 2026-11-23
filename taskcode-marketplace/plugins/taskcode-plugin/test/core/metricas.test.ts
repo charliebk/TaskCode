@@ -94,7 +94,7 @@ test('registro de transiciones: con hora, precision de dia, plan repetido y dos 
     assert.equal(f.cierre, '2026-10-06');
     const fila = COLUMNAS_METRICAS.map((c) => c.valor(f));
     // TASK-097: estimada (sin seccion ## Duracion, «—») y punta a punta (start -> finish).
-    assert.deepEqual(fila, ['TASK-007', 'simple', '45m', '2h 05m', '1d 00h', '2', '—', '—', '—', '—', '2026-10-06', 'registro', '—', '—', '1d 02h', '—', '—', '—', '—', '—', '—', '—', '—']);
+    assert.deepEqual(fila, ['TASK-007', 'simple', '45m', '2h 05m', '1d 00h', '2', '—', '—', '—', '—', '2026-10-06', 'registro', '—', '—', '1d 02h', '—', '—', '—', '—', '—', '—', '—', '—', '—']);
   }
 
   // precision de dia: filas viejas dan dias enteros, y una sola marca de dia basta para pasar a dias
@@ -393,7 +393,7 @@ test('calcularFila: columnas sin dato, fin anterior al inicio, origen git vs reg
     assert.equal(f.origen, '—');
     assert.deepEqual(
       COLUMNAS_METRICAS.map((c) => c.valor(f)),
-      ['TASK-007', 'simple', '—', '—', '—', '3', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—']
+      ['TASK-007', 'simple', '—', '—', '—', '3', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—', '—']
     );
     assert.equal(COLUMNAS_METRICAS.find((c) => c.cabecera === 'complejidad')?.valor(calcularFila(entrada({ task: tarea({ complejidad: null }) }))), '—');
   }
@@ -434,7 +434,7 @@ test('formatearTabla: cabecera, separador y columnas alineadas', () => {
   const f = calcularFila(entrada({ body: cuerpoCon(CICLO_CON_HORA), ronda: 1 }));
   const lineas = formatearTabla([f], COLUMNAS_METRICAS).split('\n');
   assert.equal(lineas.length, 3);
-  assert.match(lineas[0] as string, /^\| id +\| complejidad \| diseno \| curso +\| revision \| rondas \| crit \| imp \| men \| hall_origen \| cierre +\| origen +\| estimada \| finish \| punta_a_punta \| sinc \| freno_n \| freno \| review_n \| review_v \| finish_n \| finish_v \| rondas_men \|$/);
+  assert.match(lineas[0] as string, /^\| id +\| complejidad \| diseno \| curso +\| revision \| rondas \| crit \| imp \| men \| hall_origen \| cierre +\| origen +\| estimada \| finish \| punta_a_punta \| sinc \| freno_n \| freno \| review_n \| review_v \| finish_n \| finish_v \| rondas_men \| 4d \|$/);
   assert.match(lineas[1] as string, /^\|-+\|-+\|/);
   assert.equal(new Set(lineas.map((l) => l.length)).size, 1, 'todas las lineas miden lo mismo');
 });

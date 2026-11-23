@@ -396,6 +396,46 @@ export function plantillaRegla4D() {
     return `${SECCION_REGLA_4D}\n\n${DIMENSIONES_4D.map((d) => `- ${d}: ${VALOR_PLANTILLA_4D}`).join('\n')}\n`;
 }
 /**
+ * Valores de las lineas `- <D>: <valor>` de la seccion `## Regla 4D`, por
+ * etiqueta en minusculas y sin tildes ni enfasis; null si no hay seccion. La
+ * comparten `faltasRegla4D` y `idsRegla4D` (TASK-153c): una sola regla.
+ */
+function valoresRegla4D(informe) {
+    const lineas = informe.split(/\r?\n/);
+    const rango = rangoDeSeccion(lineas, SECCION_REGLA_4D);
+    if (rango === null)
+        return null;
+    const valores = new Map();
+    for (const l of lineas.slice(rango[0] + 1, rango[1])) {
+        const m = /^\s*-\s*([^:]+):(.*)$/.exec(l);
+        if (m !== null)
+            valores.set(normalizarCelda(m[1]).toLowerCase(), normalizarCelda(m[2]));
+    }
+    return valores;
+}
+/**
+ * TASK-153c: los ID de hallazgo de cada D en la seccion `## Regla 4D`
+ * (`- Duplicacion: IMP-1, MEN-2` da `['IMP-1', 'MEN-2']`; `cumple`, ninguno);
+ * null si el informe no tiene la seccion (sin dato, no cero).
+ */
+export function idsRegla4D(informe) {
+    const valores = valoresRegla4D(informe);
+    if (valores === null)
+        return null;
+    const salida = {};
+    for (const d of DIMENSIONES_4D) {
+        const v = valores.get(d.toLowerCase()) ?? '';
+        // MENOR-1 de su revision: `cumple (igual que TASK-137)` no es un hallazgo;
+        // como en faltasRegla4D, `cumple` abriendo la linea manda.
+        if (/^cumple\b/i.test(v)) {
+            salida[d] = [];
+            continue;
+        }
+        salida[d] = [...new Set((v.match(/\b[A-Za-z]+-\d+\b/g) ?? []).map((id) => id.toUpperCase()))];
+    }
+    return salida;
+}
+/**
  * Que le falta a la seccion `## Regla 4D` de un informe: `['seccion']` si no
  * esta, o las D cuya linea falta o no empieza por `cumple` ni por un ID de
  * hallazgo (`IMP-2`, `MEN-1`): vacia, la plantilla, `TODO`, `n/a` (MEN-1 de
@@ -403,16 +443,9 @@ export function plantillaRegla4D() {
  * tildes ni enfasis (`- **Duplicación**: cumple`).
  */
 export function faltasRegla4D(informe) {
-    const lineas = informe.split(/\r?\n/);
-    const rango = rangoDeSeccion(lineas, SECCION_REGLA_4D);
-    if (rango === null)
+    const valores = valoresRegla4D(informe);
+    if (valores === null)
         return ['seccion'];
-    const valores = new Map();
-    for (const l of lineas.slice(rango[0] + 1, rango[1])) {
-        const m = /^\s*-\s*([^:]+):(.*)$/.exec(l);
-        if (m !== null)
-            valores.set(normalizarCelda(m[1]).toLowerCase(), normalizarCelda(m[2]));
-    }
     return DIMENSIONES_4D.filter((d) => {
         const v = valores.get(d.toLowerCase());
         return v === undefined || !/^(cumple\b|[a-z]+-\d+\b)/i.test(v);

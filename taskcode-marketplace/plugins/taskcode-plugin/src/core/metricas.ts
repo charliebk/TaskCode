@@ -67,10 +67,13 @@ import {
   type ResumenCostes,
 } from './coste-registro.js';
 import {
+  DIMENSIONES_4D,
+  idsRegla4D,
   leerHallazgos,
   resumirHallazgos,
   rondasSoloMenores,
   veredictoDeRonda,
+  type Dimension4D,
   type InformeLeido,
   type ResumenHallazgos,
   type VeredictoInforme,
@@ -179,6 +182,12 @@ export interface FilaMetricas {
   coste: ResumenCostes;
   /** Hallazgos de todas las rondas, una vez por revisor + ID; ver los null en `ResumenHallazgos`. */
   hallazgos: ResumenHallazgos;
+  /**
+   * TASK-153c: hallazgos 4D por D en todos los informes (ID distintos por
+   * revisor, como los hallazgos); null si ningun informe trae la seccion
+   * `## Regla 4D` (sin dato, nunca 0). Para ver si bajan con el tiempo.
+   */
+  hallazgos4D: Record<Dimension4D, number> | null;
   /**
    * TASK-081: lecturas, entrada y cache_lectura de cada (ronda, revisor) de
    * `## Coste`, con los CRITICO/IMPORTANTE de su informe. Vacio = ninguna fila
@@ -471,6 +480,7 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
       revision: e.task.tokens_revision,
     }),
     hallazgos: resumirHallazgos(e.informes ?? []),
+    hallazgos4D: hallazgos4DDe(e.informes ?? []),
     lecturasRevision: lecturasRevisionDe(e.body, e.informes ?? []),
     kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
     total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
@@ -511,6 +521,20 @@ function lecturasRevisionDe(body: string, informes: readonly InformeLeido[]): Le
       lecturas.reduce((a, l) => a + l.hallazgos.filter((h) => h.severidadReconocida === sev).length, 0);
     return { ...g, critico: cuenta('CRITICO'), importante: cuenta('IMPORTANTE') };
   });
+}
+
+/** TASK-153c: ID distintos por D (por revisor) en la seccion Regla 4D de los informes; null sin ninguna seccion. */
+function hallazgos4DDe(informes: readonly InformeLeido[]): Record<Dimension4D, number> | null {
+  const vistos = new Map<Dimension4D, Set<string>>(DIMENSIONES_4D.map((d) => [d, new Set<string>()]));
+  let conSeccion = false;
+  for (const i of informes) {
+    const ids = idsRegla4D(i.texto);
+    if (ids === null) continue;
+    conSeccion = true;
+    for (const d of DIMENSIONES_4D) for (const id of ids[d]) vistos.get(d)?.add(`${i.revisor}|${id}`);
+  }
+  if (!conSeccion) return null;
+  return Object.fromEntries(DIMENSIONES_4D.map((d) => [d, vistos.get(d)?.size ?? 0])) as Record<Dimension4D, number>;
 }
 
 function veredictoRonda1(informes: readonly InformeLeido[]): VeredictoInforme | null {
@@ -583,6 +607,11 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   { cabecera: 'finish_n', valor: (f) => (f.finishVerificacion === null ? '—' : String(f.finishVerificacion.ejecuciones)) },
   { cabecera: 'finish_v', valor: (f) => (f.finishVerificacion === null ? '—' : formatearDuracion(f.finishVerificacion.duracion)) },
   { cabecera: 'rondas_men', valor: (f) => (f.rondasSoloMenores === null ? '—' : String(f.rondasSoloMenores)) },
+  // TASK-153c: hallazgos 4D de la tarea, duplicacion/desviacion/diluvio/disfraz.
+  {
+    cabecera: '4d',
+    valor: (f) => (f.hallazgos4D === null ? '—' : DIMENSIONES_4D.map((d) => String(f.hallazgos4D?.[d] ?? 0)).join('/')),
+  },
 ];
 
 /**

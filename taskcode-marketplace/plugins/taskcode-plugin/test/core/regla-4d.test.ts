@@ -3,7 +3,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { avisoRegla4D, faltasRegla4D, plantillaRegla4D } from '../../src/core/informe-revision.js';
+import { avisoRegla4D, faltasRegla4D, idsRegla4D, plantillaRegla4D } from '../../src/core/informe-revision.js';
 import { informeTemplate } from '../../src/commands/review.js';
 import { sampleTask } from '../helpers/review-fixtures.js';
 
@@ -45,4 +45,18 @@ test('sin seccion: el aviso nombra la tarea y el fichero; uno incompleto, sus D'
   assert.match(sin, /^TASK-900: /);
   assert.match(sin, /informe-revision-2-a\.md no la tiene/);
   assert.match(sin, /informe-revision-2-b\.md sin rellenar: Diluvio/);
+});
+
+test('TASK-153c: idsRegla4D da los ID de cada D (cumple, ninguno) y null sin seccion', () => {
+  const ids = idsRegla4D(
+    '## Regla 4D\n\n- Duplicacion: IMP-1, men-2 (mismo helper)\n- Desviacion: cumple\n- Diluvio: cumple\n- Disfraz: IMP-1; IMP-1\n'
+  );
+  assert.deepEqual(ids, { Duplicacion: ['IMP-1', 'MEN-2'], Desviacion: [], Diluvio: [], Disfraz: ['IMP-1'] });
+  assert.equal(idsRegla4D('# Informe sin la seccion\n'), null);
+  // MENOR-1/2: un `cumple` que cita un ID no suma; formatos raros.
+  const raros = idsRegla4D(
+    '## Regla 4D\n\n- Duplicacion: cumple (igual que TASK-137 y SHA-256)\n- Desviacion: MEN-1.2\n' +
+      '- Diluvio: MEN-3b\n- Disfraz: n/a\n'
+  );
+  assert.deepEqual(raros, { Duplicacion: [], Desviacion: ['MEN-1'], Diluvio: [], Disfraz: [] });
 });
