@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -37,3 +37,4 @@ Comentarios ciertos, heuristica sin repeticion, TRIVIAL_SIN_APROBACION, formatea
 |---|---|---|---|---|
 | 2026-11-23T23:00:11Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:00:13Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T23:00:14Z | start | automatico | persona | 0.16.1 |
