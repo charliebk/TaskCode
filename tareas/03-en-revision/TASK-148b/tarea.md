@@ -39,6 +39,7 @@ masParecida, validadores de entero y de enumerado, CLAVES_CONFIG atada al switch
 | 2026-11-23T13:40:57Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T13:40:58Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T13:58:07Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T14:44:16Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
