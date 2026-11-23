@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: cada caso tiene fichero y linea en do
 
 ## Enfoque propuesto
 
-Duracion estimada: 110 min (se trocea en dos partes de una hora o menos)
+Duracion estimada: 55 min (parte a del troceo; la tarea entera estimaba 110 min)
 
 Cada test sospechoso de disfraz pasa a fallar cuando se rompe lo que dice probar. Por cada uno: se aplica el mutante de la auditoria (o el obvio si no lo hay), se comprueba que el test sigue en verde, se endurece el test y se comprueba que el mutante lo pone en rojo. Solo se tocan tests, salvo que el endurecimiento destape un fallo real del codigo.
 
@@ -48,3 +48,7 @@ La prueba es el propio mutante: cada test endurecido se ejecuta con su mutante (
 ## Lo que necesita decision de una persona
 
 Nada abierto. Troceo autorizado de antemano por Carlos para el plan de correcciones 4D.
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-23: TASK-151a, TASK-151b, todas en la misma rama. Este plan es el de TASK-151a; las demas partes se planifican al empezarlas.
