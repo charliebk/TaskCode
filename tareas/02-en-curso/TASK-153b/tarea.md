@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -38,3 +38,4 @@ El CLI genera desde el diff una seccion con los posibles duplicados y los tests 
 |---|---|---|---|---|
 | 2026-11-23T00:15:36Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T00:15:56Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T00:15:58Z | start | automatico | persona | 0.16.1 |
