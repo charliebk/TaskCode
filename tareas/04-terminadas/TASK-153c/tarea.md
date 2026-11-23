@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 | 2026-11-23T02:37:07Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T02:37:08Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T02:52:39Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T03:04:37Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -66,3 +67,9 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 ## Verificacion parcial
 
 - 2026-11-23T03:02:41Z: todo el codigo que cambia la tarea (9 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 27 min
+- Cierre (finish): 116 s, de 2026-11-23T03:02:41Z a 2026-11-23T03:04:37Z

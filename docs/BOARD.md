@@ -2,42 +2,41 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-23. No editar a mano.
 
-## Planificadas (00-planificadas) — 28
+## Planificadas (00-planificadas) — 27
 
 ```text
-ID         Titulo                                                                                      Asignado
----------  ------------------------------------------------------------------------------------------  --------------------
-TASK-001   Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
-TASK-002   Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
-TASK-003   Comando taskctl new (alta individual de tarea)                                              (sin asignar)
-TASK-004   Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
-TASK-005   Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
-TASK-006   Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
-TASK-007   Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
-TASK-008   Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
-TASK-009   taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
-TASK-010   taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
-TASK-011   taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
-TASK-012   Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
-TASK-019   Revisión ligera sin agente para tareas triviales                                            (sin asignar)
-TASK-021   Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-138   Regla 4D: duplicacion en metricas, suite y registro de puertas                              (sin asignar)
-TASK-139   Regla 4D: tests que no protegen lo que dicen                                                (sin asignar)
-TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
-TASK-143   Regla 4D: duplicacion en Git-Flow (bash y TS)                                               (sin asignar)
-TASK-144   Regla 4D: ciclo de vida, cadena y flags en commands                                         (sin asignar)
-TASK-145   Regla 4D: duplicacion en las puertas de finish                                              (sin asignar)
-TASK-146   Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste             (sin asignar)
-TASK-147   Regla 4D: lectores de secciones e IDs en core                                               (sin asignar)
-TASK-148   Regla 4D: catalogos, config y utilidades en core                                            (sin asignar)
-TASK-149   Regla 4D: duplicacion en fs, hooks y cli                                                    (sin asignar)
-TASK-150   Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
-TASK-151   Regla 4D: disfraz en tests                                                                  (sin asignar)
-TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
-TASK-153c  metricas de hallazgos 4D (parte c de TASK-153)                                              (sin asignar)
+ID        Titulo                                                                                      Asignado
+--------  ------------------------------------------------------------------------------------------  --------------------
+TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
+TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
+TASK-003  Comando taskctl new (alta individual de tarea)                                              (sin asignar)
+TASK-004  Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
+TASK-005  Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
+TASK-006  Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
+TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
+TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
+TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
+TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
+TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
+TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
+TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
+TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-138  Regla 4D: duplicacion en metricas, suite y registro de puertas                              (sin asignar)
+TASK-139  Regla 4D: tests que no protegen lo que dicen                                                (sin asignar)
+TASK-140  Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
+TASK-143  Regla 4D: duplicacion en Git-Flow (bash y TS)                                               (sin asignar)
+TASK-144  Regla 4D: ciclo de vida, cadena y flags en commands                                         (sin asignar)
+TASK-145  Regla 4D: duplicacion en las puertas de finish                                              (sin asignar)
+TASK-146  Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste             (sin asignar)
+TASK-147  Regla 4D: lectores de secciones e IDs en core                                               (sin asignar)
+TASK-148  Regla 4D: catalogos, config y utilidades en core                                            (sin asignar)
+TASK-149  Regla 4D: duplicacion en fs, hooks y cli                                                    (sin asignar)
+TASK-150  Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
+TASK-151  Regla 4D: disfraz en tests                                                                  (sin asignar)
+TASK-152  Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 126
+## Terminadas (04-terminadas) — 127
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -167,5 +166,6 @@ TASK-141   Auditoria 4D inicial: reconocimiento completo del codigo existente   
 TASK-142   Regla 4D: disfraz en los scripts de Git-Flow                                                                        charlie.bk@gmail.com
 TASK-153a  plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153)                                             charlie.bk@gmail.com
 TASK-153b  candidatos 4D en la peticion de revision (parte b de TASK-153)                                                      charlie.bk@gmail.com
+TASK-153c  metricas de hallazgos 4D (parte c de TASK-153)                                                                      charlie.bk@gmail.com
 TASK-154   plan.test.ts en verde en Windows nativo                                                                             claude
 ```
