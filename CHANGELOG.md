@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-148a (fix) — raiz del plugin y lector de catalogos (parte a de TASK-148) (2026-11-23)
 - TASK-149c (fix) — utilidades de fs (parte c de TASK-149) (2026-11-23)
 - TASK-149b (fix) — errores y flags del CLI (parte b de TASK-149) (2026-11-23)
 - TASK-149a (fix) — git y hooks (parte a de TASK-149) (2026-11-23)
