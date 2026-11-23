@@ -425,6 +425,12 @@ export function idsRegla4D(informe) {
     const salida = {};
     for (const d of DIMENSIONES_4D) {
         const v = valores.get(d.toLowerCase()) ?? '';
+        // MENOR-1 de su revision: `cumple (igual que TASK-137)` no es un hallazgo;
+        // como en faltasRegla4D, `cumple` abriendo la linea manda.
+        if (/^cumple\b/i.test(v)) {
+            salida[d] = [];
+            continue;
+        }
         salida[d] = [...new Set((v.match(/\b[A-Za-z]+-\d+\b/g) ?? []).map((id) => id.toUpperCase()))];
     }
     return salida;
