@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 9829062
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-23
@@ -39,8 +39,15 @@ El CLI genera desde el diff una seccion con los posibles duplicados y los tests 
 | 2026-11-23T00:15:36Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T00:15:56Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T00:15:58Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T00:27:39Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — ddcdf62: helper buscado (distanciaEdicion, diffRangeForPaths, runGit, patron extras.seccionCobertura; ningun lector de definiciones previo); criterios citados; 5 tests nuevos, 5 mutaciones en rojo (seccion no anadida, nombres parecidos, promesas, fallo de git tragado, revision.md).
 - code-quality-reviewer — ddcdf62
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T00:27:39Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 34 | 21917 | 9793847 | 13264 | 8 | 9829062 | - | - |
