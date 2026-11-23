@@ -40,3 +40,8 @@ Los patrones de fichero de ronda y de peticion de rol, y la decision de que plan
 | 2026-11-23T05:12:05Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T05:12:07Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T05:12:08Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — ffbd38a: helper buscado (rondas.ts, nombrePeticionRol/nombreSalidaRol, resolverPlanFinal reutilizados; patrones derivados en vez de copiados); criterios citados; 3 tests nuevos, 3 mutaciones en rojo (sin ambiguo, lista de roles sin condicionales, roles base).
+- code-quality-reviewer — ffbd38a
