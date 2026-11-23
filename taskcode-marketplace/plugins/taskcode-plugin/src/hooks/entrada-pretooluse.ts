@@ -5,6 +5,7 @@
  * de un hook. Sin dependencias: los hooks corren en cada herramienta y no deben
  * cargar el grafo del freno (FS-17).
  */
+import { esObjeto } from '../core/utilidades-texto.js';
 
 export interface EntradaPreToolUse {
   cwd?: unknown;
@@ -23,7 +24,7 @@ export const PASAR: DecisionPreToolUse = Object.freeze({ codigo: 0, stderr: '' }
 export function parsearEntradaHook<T extends object>(texto: string): T {
   try {
     const v: unknown = JSON.parse(texto);
-    return typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as T) : ({} as T);
+    return esObjeto(v) ? (v as T) : ({} as T);
   } catch {
     return {} as T;
   }

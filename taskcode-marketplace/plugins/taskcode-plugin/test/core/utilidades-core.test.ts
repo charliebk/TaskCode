@@ -14,6 +14,8 @@ import { ocultarSecretos } from '../../src/core/secretos.js';
 import { esRutaDeTest } from '../../src/core/menores.js';
 import { PATRONES_TEST } from '../../src/fs/git.js';
 import { contarTests } from '../../src/core/crecimiento-suite.js';
+import { cargarCatalogoSkills, seleccionarSkill } from '../../src/core/catalogo-skills.js';
+import { tarea } from '../helpers/tarea-ejemplo.js';
 
 test('opciones globales de git: el mismo salto en el cierre de merge (-C y -c con valor)', () => {
   assert.deepEqual(cierresDeMerge('git -C repo -c user.name=x commit -m y'), ['repo']);
@@ -27,6 +29,11 @@ test('fecha: el catalogo de deploy rechaza una fecha imposible (2026-02-30), com
     `silenciar_1_patron: npm-token\nsilenciar_1_fichero: .npmrc\nsilenciar_1_huella: "abcdef12"\nsilenciar_1_motivo: m\nsilenciar_1_quien: Ana\nsilenciar_1_fecha: ${fecha}\n`;
   assert.throws(() => parsearCapaProyecto(capa('2026-02-30'), 'p.yml', base), /usa AAAA-MM-DD/);
   assert.doesNotThrow(() => parsearCapaProyecto(capa('2026-02-28'), 'p.yml', base));
+});
+
+test('seleccion de skill (IMP-1 de la revision): una etiqueta con mayusculas casa con el catalogo real', () => {
+  const seleccion = seleccionarSkill(tarea({ etiquetas: ['Rust'] }), cargarCatalogoSkills());
+  assert.equal(seleccion.ganador?.id, 'rust-wasm-reviewer');
 });
 
 test('solape de etiquetas sin mayusculas; esObjeto, recortar y quitarAnsi', () => {
@@ -44,6 +51,7 @@ test('solape de etiquetas sin mayusculas; esObjeto, recortar y quitarAnsi', () =
 test('URL de origin: host y partes leen la autoridad igual (un puerto 99999 no es una URL valida en ninguno)', () => {
   assert.equal(hostDeRemoto('https://gitlab.example.com:8443/g/r.git'), 'gitlab.example.com');
   assert.equal(hostDeRemoto('https://github.com:99999/o/r.git'), null);
+  assert.equal(hostDeRemoto('https://github.com:0/o/r.git'), null, 'MEN-3: el puerto 0 tampoco es valido');
   assert.equal(partesDeOrigin('https://github.com:99999/o/r.git'), null);
   assert.equal(hostDeRemoto('git@github.com:o/r.git'), 'github.com');
 });
