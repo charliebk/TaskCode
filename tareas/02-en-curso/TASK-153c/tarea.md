@@ -38,3 +38,8 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 | 2026-11-23T02:37:05Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T02:37:07Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T02:37:08Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — e4af694: helper buscado (lector de faltasRegla4D extraido a valoresRegla4D, celdas y COLUMNAS_METRICAS); criterios citados; 2 tests nuevos, 3 mutaciones en rojo.
+- code-quality-reviewer — e4af694
