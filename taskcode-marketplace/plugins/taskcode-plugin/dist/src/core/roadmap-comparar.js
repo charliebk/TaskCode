@@ -73,6 +73,8 @@ export function extraerEstructura(texto) {
             textoPropio.push(recortada);
             continue;
         }
+        // `\d+` y no TASK_ID_RE a proposito: el ROADMAP se edita a mano y una fila
+        // con un ID mal escrito (TASK-12) se informa como no comparable, no se pierde.
         if (!recortada.startsWith('|') || !/TASK-\d+/.test(linea)) {
             // Solo la cabecera de la tabla del generador y los separadores; una
             // fila propia dentro de un hito si se lista (MEN-2 de la ronda 2).

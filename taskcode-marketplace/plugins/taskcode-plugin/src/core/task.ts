@@ -150,8 +150,10 @@ export function esIdTroceable(id: string): boolean {
   return m !== null && m[2] === '';
 }
 
-// Para ordenar se acepta cualquier numero de cifras (`TASK-0099`, `TASK-12`).
-const ID_PARA_ORDENAR_RE = /^TASK-(\d+)([a-z]?)$/;
+// Para ORDENAR se acepta cualquier numero de cifras (`TASK-0099`, `TASK-12`): es
+// TASK_ID_RE sin el minimo de tres. Ordenar no abre rutas, y metricas de otros
+// proyectos o un ROADMAP editado a mano pueden traer IDs que no se validarian.
+const ID_PARA_ORDENAR_RE = new RegExp(TASK_ID_RE.source.replace('{3,}', '+'));
 
 /**
  * TASK-147b (CORE2-01): el orden de los IDs de tarea, el mismo en board,
@@ -170,7 +172,10 @@ export function compararIds(a: string, b: string): number {
   if (d !== 0) return d;
   const la = ma[2] as string;
   const lb = mb[2] as string;
-  return la < lb ? -1 : la > lb ? 1 : 0;
+  if (la !== lb) return la < lb ? -1 : 1;
+  // MEN-2 de la revision: mismo numero con distinto relleno (TASK-099 y
+  // TASK-0099): por cadena, para no depender del orden de readdir.
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 export class InvalidTaskIdError extends Error {

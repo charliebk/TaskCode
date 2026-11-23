@@ -8,7 +8,9 @@ import assert from 'node:assert/strict';
 import { compararIds, esIdTroceable, isValidTaskId, type TareaUbicada } from '../../src/core/task.js';
 import { formatBoard } from '../../src/core/board-format.js';
 import { tareasQueBloquean } from '../../src/core/wip.js';
-import { generarRoadmap } from '../../src/core/roadmap.js';
+import { generarRoadmap, type TareaRoadmap } from '../../src/core/roadmap.js';
+import { compararRoadmaps } from '../../src/core/roadmap-comparar.js';
+import { citar } from '../../src/core/tarea-body.js';
 import { ordenarPorCierre } from '../../src/core/evolucion.js';
 import { calcularFila } from '../../src/core/metricas.js';
 import { casillasSinMarcar } from '../../src/core/validacion-tarea.js';
@@ -66,4 +68,30 @@ test('casillasSinMarcar: «### Criterios de aceptacion» cuenta y «**Tras el ci
     ['a'],
     'el subtitulo de Tras el cierre sigue sin contar'
   );
+});
+
+test('orden (MEN-2 y MEN-4 de la revision): mismo numero por cadena, ciclo del roadmap y diferencias de compararRoadmaps', () => {
+  assert.deepEqual(['TASK-099', 'TASK-0099'].sort(compararIds), ['TASK-0099', 'TASK-099']);
+  assert.deepEqual(['TASK-0099', 'TASK-099'].sort(compararIds), ['TASK-0099', 'TASK-099']);
+
+  const t = (id: string, dependencias: string[] = []): TareaRoadmap => ({
+    id,
+    titulo: `T ${id}`,
+    sprint: 0,
+    complejidad: 'media',
+    estado: 'planificada',
+    dependencias,
+  });
+  // Ciclo: ninguna sale por Kahn; van aparte, en el orden de compararIds.
+  const ciclo = generarRoadmap([t('TASK-1000', ['TASK-999']), t('TASK-999', ['TASK-121a']), t('TASK-121a', ['TASK-1000'])], null);
+  assert.deepEqual([...ciclo.texto.matchAll(/^\| \S+ \| (TASK-\d+[a-z]?) \|/gm)].map((m) => m[1]), ['TASK-121a', 'TASK-999', 'TASK-1000'], ciclo.texto);
+
+  const actual = generarRoadmap([], null).texto;
+  const generado = generarRoadmap(DESORDENADOS.map((id) => t(id)), null).texto;
+  const difs = compararRoadmaps(actual, generado).filter((d) => d.startsWith('TASK-'));
+  assert.deepEqual(difs.map((d) => d.split(':')[0]), ORDEN, difs.join('\n'));
+});
+
+test('citar (MEN-4 de la revision): cada linea con «> » y las vacias con «>» solo', () => {
+  assert.equal(citar('uno\n\n  dos  \r\ntres'), '> uno\n>\n>   dos\n> tres');
 });
