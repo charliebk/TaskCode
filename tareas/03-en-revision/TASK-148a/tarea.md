@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 15908296
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-23
@@ -43,8 +43,15 @@ Objetivo de la tarea entera:
 | 2026-11-23T12:58:44Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T12:58:56Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T12:58:57Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T13:17:10Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — b42169a: buscadas las cinco copias de packageRoot y los tres juegos de validadores; nuevos raiz-plugin.ts y campos-catalogo.ts (la regla comun no existia); deploy conserva adaptadores finos de Valor; 1 fichero de test nuevo (3 tests) y 1 test anadido en deploy; 3 mutaciones en rojo
 - code-quality-reviewer — b42169a
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T13:17:10Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 58 | 44276 | 15840843 | 23119 | 18 | 15908296 | - | - |
