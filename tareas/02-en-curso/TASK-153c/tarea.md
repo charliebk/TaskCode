@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -37,3 +37,4 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 |---|---|---|---|---|
 | 2026-11-23T02:37:05Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T02:37:07Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T02:37:08Z | start | automatico | persona | 0.16.1 |
