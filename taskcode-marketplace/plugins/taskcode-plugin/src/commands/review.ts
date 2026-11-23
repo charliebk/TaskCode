@@ -62,6 +62,7 @@ import {
   type VeredictoInforme,
 } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
+import { candidatos4D, definicionesDeGrep, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
 import { assertTransitionAllowed, type TransitionContext } from '../core/state-machine.js';
 import {
   currentBranch,
@@ -72,6 +73,9 @@ import {
   logOneline,
   diffParaRevision,
   diffRangeForPaths,
+  definicionesEnRef,
+  GitLaunchError,
+  GitCommandError,
   statDeFicheros,
   PATRONES_TEST,
   hayMergesEntre,
@@ -289,6 +293,7 @@ export function peticionTemplate(
     `${fence}\n` +
     seccionExcluidos(desde, extras) +
     seccionTests(desde, extras) +
+    (extras.seccionCandidatos4D ?? '') +
     (extras.seccionCobertura ?? '') +
     (extras.seccionVerificacion ?? '')
   );
@@ -376,6 +381,8 @@ export interface ExtrasPeticion {
   seccionPrevia?: string;
   /** TASK-074: lineas cambiadas sin cubrir (solo si el proyecto declara `informe_cobertura`). */
   seccionCobertura?: string;
+  /** TASK-153b: posibles duplicados y tests a mutar, desde el diff (Regla 4D). */
+  seccionCandidatos4D?: string;
   /** TASK-091: la verificacion selectiva de la ronda (solo si el proyecto declara `comando_verificacion_selectiva`). */
   seccionVerificacion?: string;
   /** TASK-081: lo que el revisor puede leer sin justificarlo (ver core/contexto-revision.ts). */
@@ -941,6 +948,10 @@ async function runReview(
           configRama.comando_verificacion
         );
 
+  // TASK-153b: candidatos 4D (pistas de duplicacion y tests a mutar), una vez
+  // por ronda y antes de escribir nada. Nunca lanza.
+  const candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd, excluir);
+
   // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
   // el diff real de la rama, no `task.agente_revisor` del frontmatter,
   // decide quien revisa. El catalogo se relee de skills/*/SKILL.md en
@@ -1111,6 +1122,7 @@ async function runReview(
                     : previa.seccion,
                 }
               : {}),
+            seccionCandidatos4D: candidatos,
             ...(datosCobertura === null
               ? {}
               : {
@@ -1346,4 +1358,41 @@ function verificacionDeRonda(
     );
   }
   return motivo !== null ? { tipo: 'documentacion', v, motivo } : { tipo: 'selectiva', v };
+}
+
+/**
+ * TASK-153b: la seccion de candidatos 4D de la ronda. Las definiciones nuevas
+ * salen del diff de codigo de la ronda; las existentes, de la rama base (lo
+ * que habia antes de la tarea); los tests, del diff de los ficheros de test.
+ * Nunca lanza: si Git falla, la seccion lo dice y la ronda sigue. En una
+ * ronda incremental `desde` es el commit de la anterior: solo salen los tests
+ * del delta; las existentes siguen siendo las de la base.
+ */
+export function seccionCandidatosDeRonda(
+  baseBranch: string,
+  desde: string,
+  diffCodigo: string,
+  tests: readonly string[],
+  cwd: string,
+  excluir: readonly string[] = []
+): string {
+  try {
+    const existentes = definicionesDeGrep(definicionesEnRef(baseBranch, cwd, excluir), baseBranch);
+    const diffTests = diffRangeForPaths(desde, 'HEAD', tests, cwd);
+    return seccionCandidatos4D(candidatos4D(diffCodigo, diffTests, existentes));
+  } catch (e) {
+    // MENOR-7: un `git grep` que desborda el buffer no es «no se pudo ejecutar git».
+    const desborda = e instanceof GitLaunchError && /ENOBUFS/.test(e.message);
+    const motivo = desborda
+      ? 'la salida de git grep supera el limite de memoria: repositorio demasiado grande'
+      : e instanceof GitCommandError
+        ? (e.stderr.trim().split('\n')[0] ?? 'git fallo')
+        : e instanceof Error
+        ? (e.message.split('\n')[0] ?? '')
+        : String(e);
+    return (
+      `${SECCION_CANDIDATOS_4D}\n\nNo se pudieron calcular (${motivo}): ` +
+      'busca a mano duplicados de las definiciones nuevas y muta los tests que prometen algo.\n\n'
+    );
+  }
 }

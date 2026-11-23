@@ -61,3 +61,9 @@ test('TASK-153a: start y revision.md remiten a la guia de patrones de disfraz, q
     assert.match(guia, patron);
   }
 });
+
+test('TASK-153b: revision.md pide comprobar los candidatos 4D de la peticion y mutar sus tests', async () => {
+  const revision = await leer('task-workflow/revision.md');
+  assert.match(revision, /`## Candidatos 4D`/);
+  assert.match(revision, /muta cada test que liste/);
+});

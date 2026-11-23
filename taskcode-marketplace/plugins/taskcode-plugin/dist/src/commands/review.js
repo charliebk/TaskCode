@@ -46,8 +46,9 @@ import { configDeRef } from '../fs/config-de-ref.js';
 import { rondaExtraDecidida } from '../core/rondas-extra.js';
 import { alcanceRondaSiguiente, commitRevisadoDe, hallazgosNoCerrados, hallazgosPendientes, plantillaRegla4D, severidadDe, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
+import { candidatos4D, definicionesDeGrep, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
+import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, definicionesEnRef, GitLaunchError, GitCommandError, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
@@ -154,6 +155,7 @@ export function peticionTemplate(task, baseBranch, commitRevisado, ronda, fecha,
         `${fence}\n` +
         seccionExcluidos(desde, extras) +
         seccionTests(desde, extras) +
+        (extras.seccionCandidatos4D ?? '') +
         (extras.seccionCobertura ?? '') +
         (extras.seccionVerificacion ?? ''));
 }
@@ -669,6 +671,9 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     const datosCobertura = configRama.informe_cobertura === null || verificacion !== null
         ? null
         : datosCoberturaRevision(raizDelRepo(deps.repoCwd), baseBranch, configRama.informe_cobertura, excluir, configRama.umbral_cobertura, configRama.comando_verificacion);
+    // TASK-153b: candidatos 4D (pistas de duplicacion y tests a mutar), una vez
+    // por ronda y antes de escribir nada. Nunca lanza.
+    const candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd, excluir);
     // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
     // el diff real de la rama, no `task.agente_revisor` del frontmatter,
     // decide quien revisa. El catalogo se relee de skills/*/SKILL.md en
@@ -813,6 +818,7 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
                             : previa.seccion,
                     }
                     : {}),
+                seccionCandidatos4D: candidatos,
                 ...(datosCobertura === null
                     ? {}
                     : {
@@ -1005,4 +1011,32 @@ function verificacionDeRonda(id, config, base, tipoTarea, incremental, deps, avi
             `o descartalos, y reintenta. No se ha abierto ronda (${estadoBase}).`);
     }
     return motivo !== null ? { tipo: 'documentacion', v, motivo } : { tipo: 'selectiva', v };
+}
+/**
+ * TASK-153b: la seccion de candidatos 4D de la ronda. Las definiciones nuevas
+ * salen del diff de codigo de la ronda; las existentes, de la rama base (lo
+ * que habia antes de la tarea); los tests, del diff de los ficheros de test.
+ * Nunca lanza: si Git falla, la seccion lo dice y la ronda sigue. En una
+ * ronda incremental `desde` es el commit de la anterior: solo salen los tests
+ * del delta; las existentes siguen siendo las de la base.
+ */
+export function seccionCandidatosDeRonda(baseBranch, desde, diffCodigo, tests, cwd, excluir = []) {
+    try {
+        const existentes = definicionesDeGrep(definicionesEnRef(baseBranch, cwd, excluir), baseBranch);
+        const diffTests = diffRangeForPaths(desde, 'HEAD', tests, cwd);
+        return seccionCandidatos4D(candidatos4D(diffCodigo, diffTests, existentes));
+    }
+    catch (e) {
+        // MENOR-7: un `git grep` que desborda el buffer no es «no se pudo ejecutar git».
+        const desborda = e instanceof GitLaunchError && /ENOBUFS/.test(e.message);
+        const motivo = desborda
+            ? 'la salida de git grep supera el limite de memoria: repositorio demasiado grande'
+            : e instanceof GitCommandError
+                ? (e.stderr.trim().split('\n')[0] ?? 'git fallo')
+                : e instanceof Error
+                    ? (e.message.split('\n')[0] ?? '')
+                    : String(e);
+        return (`${SECCION_CANDIDATOS_4D}\n\nNo se pudieron calcular (${motivo}): ` +
+            'busca a mano duplicados de las definiciones nuevas y muta los tests que prometen algo.\n\n');
+    }
 }
