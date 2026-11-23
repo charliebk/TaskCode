@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-23. No editar a mano.
 
-## Planificadas (00-planificadas) — 26
+## Planificadas (00-planificadas) — 25
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -27,7 +27,6 @@ TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion 
 TASK-143   Regla 4D: duplicacion en Git-Flow (bash y TS)                                               (sin asignar)
 TASK-145   Regla 4D: duplicacion en las puertas de finish                                              (sin asignar)
 TASK-146   Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste             (sin asignar)
-TASK-148b  validacion de config (parte b de TASK-148)                                                  (sin asignar)
 TASK-148c  utilidades de core (parte c de TASK-148)                                                    (sin asignar)
 TASK-148d  comentarios, diluvio y E/S en core (parte d de TASK-148)                                    (sin asignar)
 TASK-150   Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
@@ -35,7 +34,7 @@ TASK-151   Regla 4D: disfraz en tests                                           
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 137
+## Terminadas (04-terminadas) — 138
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -170,6 +169,7 @@ TASK-147a  secciones con un solo lector y un solo «crear al final» (parte a de
 TASK-147b  criterios, normalizacion, citar e IDs (parte b de TASK-147)                                                         claude
 TASK-147c  fases y Marca en metricas (parte c de TASK-147)                                                                     claude
 TASK-148a  raiz del plugin y lector de catalogos (parte a de TASK-148)                                                         claude
+TASK-148b  validacion de config (parte b de TASK-148)                                                                          claude
 TASK-149a  git y hooks (parte a de TASK-149)                                                                                   claude
 TASK-149b  errores y flags del CLI (parte b de TASK-149)                                                                       claude
 TASK-149c  utilidades de fs (parte c de TASK-149)                                                                              claude
