@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-151-regla-4d-disfraz-en-tests
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -43,3 +43,4 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|
 | 2026-11-23T23:22:47Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:22:57Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T23:22:59Z | start | automatico | persona | 0.16.1 |
