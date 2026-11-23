@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en
 asignado_a: charlie.bk@gmail.com
@@ -39,3 +39,4 @@ Los patrones de fichero de ronda y de peticion de rol, y la decision de que plan
 |---|---|---|---|---|
 | 2026-11-23T05:12:05Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T05:12:07Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T05:12:08Z | start | automatico | persona | 0.16.1 |
