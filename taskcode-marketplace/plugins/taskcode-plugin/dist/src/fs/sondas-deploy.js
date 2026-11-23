@@ -19,7 +19,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { buscarSecretos, IDS_PATRON } from '../core/secretos.js';
 import { interpretarCargoAudit, interpretarDotnetVulnerable, interpretarGovulncheck, interpretarNpmAudit, interpretarPipAudit, interpretarYarnAudit, } from '../core/doctor-deploy-auditoria.js';
-import { estaExcluido } from './deteccion-app.js';
+import { estaExcluido, nombreBase, textoDirsExcluidos } from './deteccion-app.js';
 // Ciclo de modulos a proposito: sondas-deploy-config usa las utilidades de aqui y este
 // fichero registra sus sondas. Funciona en cualquier orden de carga porque esas sondas
 // son declaraciones de funcion (estan inicializadas antes de evaluar ningun modulo).
@@ -115,20 +115,21 @@ export function evidenciaSilenciada(s, patron, fichero, linea, commit) {
         e.commit = commit;
     return e;
 }
-const nombreBase = (ruta) => ruta.slice(ruta.lastIndexOf('/') + 1);
-const ARCHIVOS_DE_BLOQUEO = new Set([
-    'package-lock.json',
-    'npm-shrinkwrap.json',
-    'pnpm-lock.yaml',
-    'yarn.lock',
-    'Cargo.lock',
-    'poetry.lock',
-    'Pipfile.lock',
-    'composer.lock',
-    'Gemfile.lock',
-    'go.sum',
-    'uv.lock',
-]);
+const LOCKFILES = {
+    node: ['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock'],
+    rust: ['Cargo.lock'],
+    python: ['poetry.lock', 'Pipfile.lock', 'uv.lock', 'pdm.lock', 'pylock.toml', 'requirements.txt'],
+    php: ['composer.lock'],
+    ruby: ['Gemfile.lock'],
+    go: ['go.sum'],
+};
+// TASK-149c (FS-10): los ficheros de bloqueo que no se escanean en busca de
+// secretos salen de la misma lista que la sonda de lockfile (antes eran dos
+// listas y esta no tenia bun.lock, pdm.lock ni pylock.toml). requirements.txt
+// no es un fichero de bloqueo generado: puede llevar una URL con token y se escanea.
+const ARCHIVOS_DE_BLOQUEO = new Set(Object.values(LOCKFILES).flat().filter((f) => f !== 'requirements.txt'));
+/** true si `ruta` (con `/`) es un fichero de bloqueo, que no se escanea en busca de secretos. */
+export const esArchivoDeBloqueo = (ruta) => ARCHIVOS_DE_BLOQUEO.has(nombreBase(ruta));
 // ---------------------------------------------------------------------
 // secretos-arbol
 // ---------------------------------------------------------------------
@@ -142,7 +143,7 @@ export const sondaSecretosArbol = (ctx) => {
     let ejemplos = 0;
     let cortado = false;
     for (const rel of ctx.paraEscanear) {
-        if (ARCHIVOS_DE_BLOQUEO.has(nombreBase(rel)))
+        if (esArchivoDeBloqueo(rel))
             continue;
         const abs = path.join(ctx.cwd, rel);
         let datos;
@@ -196,7 +197,7 @@ export const sondaSecretosArbol = (ctx) => {
     const versionadosEnCarpetasExcluidas = ctx.paraEscanear.filter((r) => estaExcluido(r)).length;
     const alcance = `${revisados} ficheros de texto revisados con ${IDS_PATRON.length} patrones de claves; ` +
         `${binarios} binarios saltados; ${omitidosGrandes} de texto mayores de ${Math.round(ctx.opciones.maxBytesFichero / 1024)} KiB sin leer; ` +
-        `${versionadosEnCarpetasExcluidas} versionados dentro de node_modules, vendor, target, dist o build incluidos ` +
+        `${versionadosEnCarpetasExcluidas} versionados dentro de ${textoDirsExcluidos('o')} incluidos ` +
         '(los que no estan versionados se excluyen); ' +
         `${silenciadas.length} hallazgos silenciados`;
     const notas = [];
@@ -394,14 +395,6 @@ export const sondaGitignoreEnv = (ctx) => {
 // ---------------------------------------------------------------------
 // lockfile
 // ---------------------------------------------------------------------
-const LOCKFILES = {
-    node: ['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock'],
-    rust: ['Cargo.lock'],
-    python: ['poetry.lock', 'Pipfile.lock', 'uv.lock', 'pdm.lock', 'pylock.toml', 'requirements.txt'],
-    php: ['composer.lock'],
-    ruby: ['Gemfile.lock'],
-    go: ['go.sum'],
-};
 /** `.`, y cada carpeta padre hasta la raiz, de la mas cercana a la mas lejana. */
 function carpetaYAncestros(dir) {
     if (dir === '.')

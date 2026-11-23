@@ -130,7 +130,8 @@ test('estado: la via rapida no carga el grafo de comandos ni nada que lance git'
     }
   }
   const relativos = [...visto].map((f) => path.relative(dist, f).split(path.sep).join('/')).sort();
-  assert.deepEqual(relativos, ['cli/args.js', 'commands/estado.js', 'core/progreso.js', 'core/sugerencia.js', 'fs/progreso.js']);
+  // TASK-149c: fs/leer-cola.js (la lectura de cola comun, solo node:fs) entra con fs/progreso.js.
+  assert.deepEqual(relativos, ['cli/args.js', 'commands/estado.js', 'core/progreso.js', 'core/sugerencia.js', 'fs/leer-cola.js', 'fs/progreso.js']);
   const bin = readFileSync(TASKCTL, 'utf8');
   assert.match(bin, /argv\[0\] === 'estado'[\s\S]*commands\/estado\.js/);
 });

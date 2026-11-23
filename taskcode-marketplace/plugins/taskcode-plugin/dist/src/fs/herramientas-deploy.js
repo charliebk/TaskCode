@@ -32,20 +32,36 @@ function esEjecutable(ruta, plataforma) {
         return false;
     }
 }
-/** Ruta absoluta del ejecutable `nombre` en `pathEnv`, o null si no esta. */
-export function localizarHerramienta(nombre, pathEnv, plataforma = process.platform) {
-    const dirs = pathEnv.split(path.delimiter).filter((d) => d !== '');
+/**
+ * TASK-149c (FS-13): todos los ejecutables `nombre` del PATH, en orden. En
+ * Windows prueba las extensiones de PATHEXT (en minusculas) y, si se pide,
+ * el nombre sin extension; fuera de Windows exige el bit de ejecucion.
+ */
+export function candidatosEnPath(nombre, pathEnv, o = {}) {
+    const plataforma = o.plataforma ?? process.platform;
+    const dirs = pathEnv.split(path.delimiter).filter((d) => d.trim() !== '');
     const exts = plataforma === 'win32'
-        ? (process.env['PATHEXT'] ?? '.COM;.EXE;.BAT;.CMD').split(';').filter((e) => e !== '')
+        ? [
+            ...(o.sinExtensionEnWindows === true ? [''] : []),
+            ...(o.pathext ?? process.env['PATHEXT'] ?? '.COM;.EXE;.BAT;.CMD')
+                .split(';')
+                .filter((e) => e !== '')
+                .map((e) => e.toLowerCase()),
+        ]
         : [''];
+    const r = [];
     for (const dir of dirs) {
         for (const ext of exts) {
             const candidata = path.join(dir, nombre + ext);
             if (esEjecutable(candidata, plataforma))
-                return candidata;
+                r.push(candidata);
         }
     }
-    return null;
+    return r;
+}
+/** Ruta absoluta del ejecutable `nombre` en `pathEnv`, o null si no esta. */
+export function localizarHerramienta(nombre, pathEnv, plataforma = process.platform) {
+    return candidatosEnPath(nombre, pathEnv, { plataforma })[0] ?? null;
 }
 const MAX_BUFFER_HERRAMIENTA = 64 * 1024 * 1024;
 function entornoDeHerramienta(pathEnv) {

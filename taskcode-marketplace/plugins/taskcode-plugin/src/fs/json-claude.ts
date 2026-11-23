@@ -8,10 +8,13 @@ import path from 'node:path';
 
 export type Lectura = { estado: 'ausente' } | { estado: 'ok'; json: unknown } | { estado: 'ilegible'; motivo: string };
 
+/** TASK-149c (FS-14): el texto sin el BOM de UTF-8 (`JSON.parse` lo rechaza; Out-File de PowerShell 5.1 lo pone). */
+export const quitarBom = (texto: string): string => texto.replace(/^\uFEFF/, '');
+
 export function leerJson(ruta: string): Lectura {
   if (!existsSync(ruta)) return { estado: 'ausente' };
   try {
-    return { estado: 'ok', json: JSON.parse(readFileSync(ruta, 'utf8').replace(/^﻿/, '')) as unknown };
+    return { estado: 'ok', json: JSON.parse(quitarBom(readFileSync(ruta, 'utf8'))) as unknown };
   } catch (e: unknown) {
     return { estado: 'ilegible', motivo: (e instanceof Error ? e.message : String(e)).replace(/\s+/g, ' ').trim() };
   }

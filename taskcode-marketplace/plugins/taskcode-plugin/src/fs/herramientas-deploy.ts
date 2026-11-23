@@ -32,24 +32,49 @@ function esEjecutable(ruta: string, plataforma: NodeJS.Platform): boolean {
   }
 }
 
+export interface OpcionesPath {
+  plataforma?: NodeJS.Platform;
+  /** PATHEXT de Windows; por defecto, el del proceso. */
+  pathext?: string | undefined;
+  /** En Windows, probar tambien el nombre sin extension (un script de node como `taskctl`). */
+  sinExtensionEnWindows?: boolean;
+}
+
+/**
+ * TASK-149c (FS-13): todos los ejecutables `nombre` del PATH, en orden. En
+ * Windows prueba las extensiones de PATHEXT (en minusculas) y, si se pide,
+ * el nombre sin extension; fuera de Windows exige el bit de ejecucion.
+ */
+export function candidatosEnPath(nombre: string, pathEnv: string, o: OpcionesPath = {}): string[] {
+  const plataforma = o.plataforma ?? process.platform;
+  const dirs = pathEnv.split(path.delimiter).filter((d) => d.trim() !== '');
+  const exts =
+    plataforma === 'win32'
+      ? [
+          ...(o.sinExtensionEnWindows === true ? [''] : []),
+          ...(o.pathext ?? process.env['PATHEXT'] ?? '.COM;.EXE;.BAT;.CMD')
+            .split(';')
+            .filter((e) => e !== '')
+            .map((e) => e.toLowerCase()),
+        ]
+      : [''];
+  const r: string[] = [];
+  for (const dir of dirs) {
+    for (const ext of exts) {
+      const candidata = path.join(dir, nombre + ext);
+      if (esEjecutable(candidata, plataforma)) r.push(candidata);
+    }
+  }
+  return r;
+}
+
 /** Ruta absoluta del ejecutable `nombre` en `pathEnv`, o null si no esta. */
 export function localizarHerramienta(
   nombre: string,
   pathEnv: string,
   plataforma: NodeJS.Platform = process.platform
 ): string | null {
-  const dirs = pathEnv.split(path.delimiter).filter((d) => d !== '');
-  const exts =
-    plataforma === 'win32'
-      ? (process.env['PATHEXT'] ?? '.COM;.EXE;.BAT;.CMD').split(';').filter((e) => e !== '')
-      : [''];
-  for (const dir of dirs) {
-    for (const ext of exts) {
-      const candidata = path.join(dir, nombre + ext);
-      if (esEjecutable(candidata, plataforma)) return candidata;
-    }
-  }
-  return null;
+  return candidatosEnPath(nombre, pathEnv, { plataforma })[0] ?? null;
 }
 
 export interface EjecucionHerramienta {
