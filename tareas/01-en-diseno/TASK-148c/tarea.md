@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: fix/task-148-regla-4d-catalogos-config-y-utilidades-e
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -30,3 +30,10 @@ Opciones globales de git, fechas, solape de etiquetas, ANSI, credenciales, URL d
 
 ## Criterios de aceptacion
 - [ ] Rutas relativas, fechas, solape de etiquetas, ANSI, redaccion de credenciales, URL de origin, esObjeto y recortar tienen una sola implementacion cada uno
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T22:02:47Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T22:02:56Z | approve | automatico | persona | 0.16.1 |
