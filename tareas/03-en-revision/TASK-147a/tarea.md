@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 21581176
-tokens_revision: null
+tokens_revision: 1091797
 creado: 2026-11-22
 actualizado: 2026-11-23
 dependencias: []
@@ -49,9 +49,12 @@ Objetivo de la tarea entera:
 
 - 4D — 3aeb6c2: buscados anadirSeccionAlFinal, contenidoDeSeccion, rangoDeSeccion y dentroDeBloque antes de escribir; un helper nuevo (anadirSeccionAlFinal) que sustituye cinco copias; 1 fichero de test nuevo (5 tests); 4 mutaciones en rojo (menores, troceo, duracion, rondas-extra)
 - code-quality-reviewer — 3aeb6c2
+- 4D — 85c111f: correccion de la ronda 1 sin helper nuevo (parametro en rangoPorCabecera); 3 tests nuevos en secciones-comunes; 3 mutaciones en rojo
+- code-quality-reviewer — 85c111f
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T06:53:34Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 54 | 119932 | 21436173 | 25017 | 6 | 21581176 | - | - |
+| 2026-11-23T07:02:14Z | revision | agente:a759d6c42cb6051a9 | 20 | 116738 | 967049 | 7990 | 1 | 1091797 | 1 | - |
