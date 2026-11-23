@@ -239,7 +239,7 @@ export async function verificarCadena(repoCwd: string, testigo: string | undefin
   );
 }
 
-/** Saca `--cadena <testigo>` (o `--cadena=<testigo>`) de argv. Sin valor, testigo vacio (y falla al validar). */
+/** Saca `--cadena <testigo>` (o `--cadena=<testigo>`) de argv. Sin testigo o vacio, aborta (CadenaCommandError). */
 export function extraerCadena(argv: readonly string[]): { testigo: string | undefined; resto: string[] } {
   // TASK-144b: el lector comun de flag con valor. TASK-065: un --cadena
   // repetido no se pisa en silencio; sin testigo aborta (MEN-2: un testigo
@@ -253,4 +253,3 @@ export function extraerCadena(argv: readonly string[]): { testigo: string | unde
   );
   return { testigo: valor ?? undefined, resto };
 }
-

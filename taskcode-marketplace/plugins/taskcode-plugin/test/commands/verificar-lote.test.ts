@@ -38,7 +38,7 @@ interface Entorno {
 
 async function conLote(
   fn: (e: Entorno) => Promise<void>,
-  opts: { porLoteEnDevelop?: boolean } = {}
+  opts: { porLoteEnDevelop?: boolean; extra?: string } = {}
 ): Promise<void> {
   const dir = await mkdtemp(path.join(tmpdir(), 'verificar-lote-'));
   await writeFile(path.join(dir, 'verif.cjs'), SCRIPT, 'utf8');
@@ -49,7 +49,9 @@ async function conLote(
       const comando = `node ${path.join(dir, 'verif.cjs').replace(/\\/g, '/')}`;
       await writeFile(
         path.join(repoRoot, '.taskcode', 'config.yml'),
-        `comando_verificacion: "${comando}"\n` + (opts.porLoteEnDevelop === false ? '' : 'verificacion_por_lote: true\n'),
+        `comando_verificacion: "${comando}"\n` +
+          (opts.porLoteEnDevelop === false ? '' : 'verificacion_por_lote: true\n') +
+          (opts.extra ?? ''),
         'utf8'
       );
       commitAll(repoRoot, 'config');
@@ -242,4 +244,46 @@ test('lote (TASK-115, MEN-2 ronda 2): una nota a mano con la frase de taskctl no
   const verde = `${pendiente}- 2026-11-14T10:00:00Z: lote en verde en abc1234 (taskctl verificar-lote)\n`;
   assert.equal(pendienteDeLote(verde), false);
   assert.equal(pendienteDeLote(`${verde}- revisar lo pendiente de lote antes del release\n`), false, 'ni la reabre');
+});
+
+test('verificar-lote (TASK-144b, IMP-2): el error nombra el comando una vez y admite -p', async () => {
+  await conLote(async (e) => {
+    git(['checkout', '-q', 'develop'], e.repoRoot);
+    await assert.rejects(
+      () => runVerificarLoteCommand(e.tareasRoot, ['--foo'], { repoCwd: e.repoRoot }),
+      (err: unknown) =>
+        err instanceof VerificarLoteCommandError &&
+        /^\[ERROR\] taskctl verificar-lote: flag desconocido "--foo"/.test(err.message) &&
+        !/taskctl taskctl/.test(err.message) &&
+        /-p/.test(err.message)
+    );
+    // -p vale igual que --push (sin pendientes no hay nada que subir).
+    const r = await runVerificarLoteCommand(e.tareasRoot, ['-p'], { repoCwd: e.repoRoot });
+    assert.equal(r.commitVerificado, null);
+  });
+});
+
+test('verificar-lote (TASK-144b, IMP-2): el commit del lote sincroniza solo si fases_sincronizacion incluye verificar-lote', async () => {
+  const SYNC = "require('node:fs').writeFileSync('estado.txt', String(Date.now()) + String(Math.random()) + '\\n');\n";
+  for (const [fases, sincroniza] of [
+    ['[finish]', false],
+    ['[finish, verificar-lote]', true],
+  ] as const) {
+    await conLote(
+      async (e) => {
+        await mkdir(path.join(e.repoRoot, 'scripts'), { recursive: true });
+        await writeFile(path.join(e.repoRoot, 'scripts', 'sync.cjs'), SYNC, 'utf8');
+        await writeFile(path.join(e.repoRoot, 'estado.txt'), 'inicial\n', 'utf8');
+        commitAll(e.repoRoot, 'sincronizacion');
+        await cerrar(e, 'TASK-815');
+        git(['checkout', '-q', 'develop'], e.repoRoot);
+        await lote(e);
+        const tocados = git(['show', '--name-only', '--format=', 'HEAD'], e.repoRoot);
+        assert.equal(/estado\.txt/.test(tocados), sincroniza, `fases ${fases}: ${tocados}`);
+      },
+      {
+        extra: `comando_sincronizacion: "node scripts/sync.cjs"\nrutas_sincronizacion: [estado.txt]\nfases_sincronizacion: ${fases}\n`,
+      }
+    );
+  }
 });

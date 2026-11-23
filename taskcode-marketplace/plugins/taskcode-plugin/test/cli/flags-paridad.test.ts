@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extraerUnico, FLAGS_SIN_VALOR, rechazarFlagsDesconocidos } from '../../src/cli/args.js';
 import { FLAGS_REVIEW } from '../../src/commands/review.js';
+import { FLAGS_REGISTRAR_COSTE } from '../../src/commands/registrar-coste.js';
 import { extraerFlagsCierre } from '../../src/commands/finish-opciones.js';
 import { extraerCadena } from '../../src/commands/cadena.js';
 import { extraerContenidoInicial } from '../../src/commands/new.js';
@@ -28,6 +29,22 @@ test('paridad: todo booleano que un comando lee por token esta en FLAGS_SIN_VALO
   assert.ok(leidos.has('--completa') && leidos.has('--sin-verificacion'), [...leidos].join(', '));
   const faltan = [...leidos].filter((f) => !FLAGS_SIN_VALOR.includes(f));
   assert.deepEqual(faltan, [], `booleanos fuera de FLAGS_SIN_VALOR: ${faltan.join(', ')}`);
+});
+
+test('IMP-1/MENOR-3 de su revision: ningun flag que un comando lee CON valor esta en la lista global de booleanos', () => {
+  const conValor = new Set<string>();
+  for (const f of readdirSync(SRC_COMMANDS).filter((n) => n.endsWith('.ts'))) {
+    const texto = readFileSync(path.join(SRC_COMMANDS, f), 'utf8');
+    for (const m of texto.matchAll(/extraer(?:Unico|Repetible)\([^,]+,\s*'(--[a-z][a-z-]*)'/g)) conValor.add(m[1] as string);
+  }
+  // registrar-coste lee --tokens con valor (parseArgs); metricas lo trata como booleano por su cuenta.
+  conValor.add('--tokens');
+  assert.ok(conValor.has('--tag') && conValor.has('--motivo'), [...conValor].join(', '));
+  const choques = [...conValor].filter((f) => FLAGS_SIN_VALOR.includes(f));
+  assert.deepEqual(choques, [], `flags con valor en la lista de booleanos: ${choques.join(', ')}`);
+  assert.doesNotThrow(() =>
+    rechazarFlagsDesconocidos(['TASK-001', '--fase', 'implementacion', '--tokens=5'], FLAGS_REGISTRAR_COSTE, 'registrar-coste', (m) => new Error(m))
+  );
 });
 
 test('FS-01: review --completa=1 aborta en vez de ignorarse', () => {
@@ -58,4 +75,10 @@ test('flags con valor: --flag valor y --flag=valor dan lo mismo; sin valor o rep
     extraerContenidoInicial(['--objetivo', 'O', '--criterio', 'a', '--criterio=b']).contenido,
     extraerContenidoInicial(['--objetivo=O', '--criterio=a', '--criterio', 'b']).contenido
   );
+  // MENOR-2 de su revision: el objetivo y los criterios se recortan.
+  assert.deepEqual(extraerContenidoInicial(['--objetivo', '  O  ', '--criterio', ' a\n b ']).contenido, {
+    objetivo: 'O',
+    criterios: ['a b'],
+    desde: null,
+  });
 });

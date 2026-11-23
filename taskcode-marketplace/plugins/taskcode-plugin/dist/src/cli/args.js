@@ -118,6 +118,9 @@ export const FLAGS_REPETIBLES = ['--agente', '--repo', '--criterio'];
  * que `--flag=valor` aborta. TASK-144b (FS-01): faltaban los de review,
  * finish y estado (`--completa=1` se ignoraba en silencio); un test recorre
  * src/commands y falla si un comando lee por token un booleano que no esta.
+ * La lista es GLOBAL: un flag que es booleano en un comando y lleva valor en
+ * otro no puede estar aqui (IMP-1 de su revision: `--tokens` es booleano en
+ * metricas, que lo valida por su cuenta, y lleva valor en registrar-coste).
  */
 export const FLAGS_SIN_VALOR = [
     '--push',
@@ -130,7 +133,6 @@ export const FLAGS_SIN_VALOR = [
     '--merge-request',
     '--evolucion',
     '--grupos',
-    '--tokens',
     '--por-version',
     '--completa',
     '--ronda-extra',

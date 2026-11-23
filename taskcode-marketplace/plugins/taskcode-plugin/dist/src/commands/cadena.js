@@ -205,7 +205,7 @@ export async function verificarCadena(repoCwd, testigo, ahora = new Date()) {
             ? '\n        Si esa cadena es de esta misma sesion, pasa su testigo con --cadena <testigo>.'
             : ''));
 }
-/** Saca `--cadena <testigo>` (o `--cadena=<testigo>`) de argv. Sin valor, testigo vacio (y falla al validar). */
+/** Saca `--cadena <testigo>` (o `--cadena=<testigo>`) de argv. Sin testigo o vacio, aborta (CadenaCommandError). */
 export function extraerCadena(argv) {
     // TASK-144b: el lector comun de flag con valor. TASK-065: un --cadena
     // repetido no se pisa en silencio; sin testigo aborta (MEN-2: un testigo

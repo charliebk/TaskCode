@@ -67,3 +67,13 @@ test('TASK-144a: commitRevisadoDeRonda solo vale con peticiones de la misma rond
   assert.equal(commitRevisadoDeRonda({ ronda: 1, textos: [p('abc1234')] }, 2), null, 'peticion de otra ronda');
   assert.equal(commitRevisadoDeRonda({ ronda: 2, textos: ['# sin commit\n'] }, 2), null);
 });
+
+test('TASK-144b: una seccion Regla 4D sin rellenar (la plantilla) es sin dato, no cero hallazgos', () => {
+  assert.equal(idsRegla4D(plantillaRegla4D()), null);
+  assert.deepEqual(idsRegla4D('## Regla 4D\n\n- Duplicacion: cumple\n- Desviacion: (cumple / ID del hallazgo)\n'), {
+    Duplicacion: [],
+    Desviacion: [],
+    Diluvio: [],
+    Disfraz: [],
+  });
+});

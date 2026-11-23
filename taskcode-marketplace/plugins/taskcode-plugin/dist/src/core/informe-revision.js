@@ -434,6 +434,11 @@ export function idsRegla4D(informe) {
     const valores = valoresRegla4D(informe);
     if (valores === null)
         return null;
+    // Una seccion sin rellenar (la plantilla, o ninguna linea con `cumple` ni
+    // con un ID) no es «cero hallazgos»: es sin dato, como sin seccion.
+    const rellena = DIMENSIONES_4D.some((d) => /^(cumple\b|[a-z]+-\d+\b)/i.test(valores.get(d.toLowerCase()) ?? ''));
+    if (!rellena)
+        return null;
     const salida = {};
     for (const d of DIMENSIONES_4D) {
         const v = valores.get(d.toLowerCase()) ?? '';
