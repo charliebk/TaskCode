@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { raizDelPlugin, rutaEnPlugin } from '../../src/core/raiz-plugin.js';
-import { claveDeBloque, describirValor, validarListaDeTexto } from '../../src/core/campos-catalogo.js';
+import { claveDeBloque, describirValor, validarEnum, validarListaDeTexto, validarTextoNoVacio } from '../../src/core/campos-catalogo.js';
 import { resolverRutaCatalogoSkills } from '../../src/core/catalogo-skills.js';
 import { resolverRutaHeuristica } from '../../src/core/heuristica.js';
 import { resolverRutaCatalogoDeploy } from '../../src/core/doctor-deploy-catalogo.js';
@@ -45,4 +45,12 @@ test('validarListaDeTexto: vacia segun minimo, sin vacios ni repetidos, con el e
   assert.throws(() => validarListaDeTexto('f:1', 'k', ['a', 'a'], err), /repetida/);
   assert.throws(() => validarListaDeTexto('f:1', 'k', ['a', ' '], err), /entrada vacia/);
   assert.throws(() => validarListaDeTexto('f:1', 'k', 'a, b', err), /lista de textos entre corchetes/);
+});
+
+test('validarEnum y validarTextoNoVacio recortan (IMP-1 y MEN-2 de la revision): el valor con espacios se acepta y se devuelve sin ellos', () => {
+  const err = (m: string): Error => new RangeError(m);
+  assert.equal(validarEnum('f:1', 'k', ' externo ', ['propio', 'externo'] as const, err), 'externo');
+  assert.throws(() => validarEnum('f:1', 'k', 'otro', ['propio', 'externo'] as const, err), /debe ser uno de: propio, externo/);
+  assert.equal(validarTextoNoVacio('f:1', 'k', '  hola  ', err), 'hola');
+  assert.throws(() => validarTextoNoVacio('f:1', 'k', '   ', err), /texto no vacio/);
 });
