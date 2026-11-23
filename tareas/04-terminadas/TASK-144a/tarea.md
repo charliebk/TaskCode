@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en
 asignado_a: charlie.bk@gmail.com
@@ -46,6 +46,7 @@ Objetivo de la tarea entera:
 | 2026-11-23T03:05:09Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T03:05:10Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T03:17:48Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T03:44:58Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -72,3 +73,9 @@ Objetivo de la tarea entera:
 ## Verificacion parcial
 
 - 2026-11-23T03:42:31Z: todo el codigo que cambia la tarea (20 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 40 min
+- Cierre (finish): 147 s, de 2026-11-23T03:42:31Z a 2026-11-23T03:44:58Z
