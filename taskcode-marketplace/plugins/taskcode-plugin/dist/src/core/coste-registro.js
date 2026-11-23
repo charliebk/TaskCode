@@ -47,7 +47,7 @@
  * Puro: recibe y devuelve el cuerpo como texto. Nunca reescribe filas ni
  * toca nada fuera de su seccion; leer nunca falla.
  */
-import { dentroDeBloque, precisionDeFecha, rangoDeSeccion } from './transiciones.js';
+import { anadirSeccionAlFinal, dentroDeBloque, precisionDeFecha, rangoDeSeccion } from './transiciones.js';
 export const SECCION_COSTE = '## Coste';
 /** Fases con coste propio, cada una con su `tokens_<fase>` en el frontmatter. */
 export const FASES_COSTE = ['diseno', 'implementacion', 'revision'];
@@ -74,9 +74,7 @@ export function anadirCoste(body, fila) {
     const lineas = body.split(/\r?\n/);
     const rango = rangoDeSeccion(lineas, SECCION_COSTE);
     if (rango === null) {
-        const base = body.replace(/(\r?\n)*$/, '');
-        const separacion = base === '' ? '' : eol + eol;
-        return base + separacion + [SECCION_COSTE, '', CABECERA_COSTE, SEPARADOR, filaATexto(fila)].join(eol) + eol;
+        return anadirSeccionAlFinal(body, [SECCION_COSTE, '', CABECERA_COSTE, SEPARADOR, filaATexto(fila)]);
     }
     const [inicio, fin] = rango;
     const enBloque = dentroDeBloque(lineas);

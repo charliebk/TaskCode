@@ -13,6 +13,8 @@
  *   Nada de este modulo la devuelve entera: solo el host, ya sin usuario, y
  *   `ocultarCredenciales` limpia cualquier texto ajeno antes de mostrarlo.
  */
+// TASK-147a: el lector y el «crear al final» de secciones son los comunes.
+import { anadirSeccionAlFinal, contenidoDeSeccion } from './transiciones.js';
 /** Ejecutable que gestiona cada plataforma. */
 export const CLI_PLATAFORMA = {
     github: 'gh',
@@ -379,33 +381,23 @@ export function interpretarListado(plataforma, stdout, rama) {
  */
 export const SECCION_MERGE_REQUEST = '## Merge request';
 export function anotarMergeRequest(body, url, plataforma) {
-    const eol = body.includes('\r\n') ? '\r\n' : '\n';
-    const base = body.replace(/(\r?\n)*$/, '');
-    const bloque = [
+    return anadirSeccionAlFinal(body, [
         SECCION_MERGE_REQUEST,
         '',
         `- URL del merge request: ${url}`,
         `- Plataforma: ${plataforma}`,
-    ].join(eol);
-    return `${base}${base === '' ? '' : eol + eol}${bloque}${eol}`;
+    ]);
 }
-/** La URL anotada por `anotarMergeRequest`, o null si la tarea no tiene la seccion. */
+/**
+ * La URL anotada por `anotarMergeRequest`, o null si la tarea no tiene la
+ * seccion. TASK-147a (CORE2-02): con el lector comun de secciones, no con un
+ * recorrido propio de vallas.
+ */
 export function urlMergeRequestAnotada(body) {
-    const lineas = body.split(/\r?\n/);
-    let dentro = false;
-    let enBloque = false;
-    for (const l of lineas) {
-        if (/^\s*(```|~~~)/.test(l))
-            enBloque = !enBloque;
-        if (enBloque)
-            continue;
-        if (/^##?\s/.test(l))
-            dentro = l.trimEnd() === SECCION_MERGE_REQUEST;
-        else if (dentro) {
-            const m = /^- URL del merge request: (\S+)\s*$/.exec(l);
-            if (m !== null && esUrlPublicable(m[1]))
-                return m[1];
-        }
+    for (const l of contenidoDeSeccion(body, SECCION_MERGE_REQUEST) ?? []) {
+        const m = /^- URL del merge request: (\S+)\s*$/.exec(l);
+        if (m !== null && esUrlPublicable(m[1]))
+            return m[1];
     }
     return null;
 }

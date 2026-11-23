@@ -6,7 +6,7 @@
  *
  * Puro: lee y escribe texto, no toca disco.
  */
-import { instanteDe, precisionDeFecha, rangoDeSeccion } from './transiciones.js';
+import { anadirSeccionAlFinal, instanteDe, precisionDeFecha, rangoDeSeccion } from './transiciones.js';
 import { SECCION_DURACION } from './duracion-estimada.js';
 const CIERRE_RE = /^- Cierre \(finish\): (\d+) s, de (\S+) a (\S+)$/;
 function segundosEntre(inicio, fin) {
@@ -30,10 +30,8 @@ export function anotarCierre(body, inicio, fin) {
     const linea = lineaCierre(inicio, fin);
     const lineas = body.split(/\r?\n/);
     const rango = rangoDeSeccion(lineas, SECCION_DURACION);
-    if (rango === null) {
-        const base = body.replace(/(\r?\n)*$/, '');
-        return `${base}${base === '' ? '' : eol + eol}${[SECCION_DURACION, '', linea].join(eol)}${eol}`;
-    }
+    if (rango === null)
+        return anadirSeccionAlFinal(body, [SECCION_DURACION, '', linea]);
     const [ini, limite] = rango;
     for (let i = ini + 1; i < limite; i++) {
         if (CIERRE_RE.test(lineas[i].trimEnd())) {

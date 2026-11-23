@@ -14,6 +14,7 @@
  * solo por MENORES encontraron 2 CRITICO/IMPORTANTE nuevos en 70,2 M tokens.
  */
 import { hallazgosNoCerrados, severidadDe } from './informe-revision.js';
+import { contenidoDeSeccion } from './transiciones.js';
 /** Seccion de `tarea.md` donde `verificar-menores` deja cada verificacion. */
 export const SECCION_VERIFICACION_LIGERA = '## Verificacion ligera';
 /** Seccion de `tarea.md` que deja `finish --aceptar-sin-revisar`. */
@@ -89,15 +90,11 @@ export function lineaVerificacionLigera(e) {
 }
 /** Las entradas de la seccion `## Verificacion ligera` de un `tarea.md`, en orden. */
 export function leerVerificacionesLigeras(body) {
-    const lineas = body.replace(/\r/g, '').split('\n');
-    const inicio = lineas.findIndex((l) => l.trim() === SECCION_VERIFICACION_LIGERA);
-    if (inicio === -1)
-        return [];
+    // TASK-147a (CORE2-02): el mismo lector con el que verificar-menores escribe
+    // (anotarLineaEnSeccion): ultima seccion fuera de bloques de codigo. Antes un
+    // ejemplo `## Verificacion ligera` en el enunciado tapaba la seccion real.
     const leidas = [];
-    for (let i = inicio + 1; i < lineas.length; i++) {
-        const l = lineas[i];
-        if (/^##\s/.test(l))
-            break;
+    for (const l of contenidoDeSeccion(body, SECCION_VERIFICACION_LIGERA) ?? []) {
         const m = /ronda (\d+); commit revisado ([0-9a-f]{7,40}); commit verificado ([0-9a-f]{7,40})\b/.exec(l);
         if (m !== null) {
             leidas.push({ ronda: Number(m[1]), commitRevisado: m[2], commitVerificado: m[3] });

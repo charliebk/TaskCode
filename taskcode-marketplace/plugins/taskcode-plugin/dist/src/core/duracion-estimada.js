@@ -6,6 +6,7 @@
  *
  * Puro: lee texto, no toca disco.
  */
+import { anadirSeccionAlFinal, contenidoDeSeccion, rangoDeSeccion } from './transiciones.js';
 /** Por encima de esto, la tarea deberia partirse (decision de la persona). */
 export const UMBRAL_MINUTOS = 60;
 /** Linea que lleva la plantilla del plan; sin cifra cuenta como ausente. */
@@ -63,8 +64,13 @@ export function describirExceso(l) {
 export const SECCION_DURACION = '## Duracion';
 /** Minutos estimados que finish dejo anotados en `## Duracion`, o null. */
 export function estimadaAnotada(body) {
-    const m = /^- Estimada: (\d+) min$/m.exec(body.replace(/\r/g, ''));
-    return m === null ? null : Number(m[1]);
+    // TASK-147a (CORE1-01): solo dentro de la seccion, con el lector comun.
+    for (const l of contenidoDeSeccion(body, SECCION_DURACION) ?? []) {
+        const m = /^- Estimada: (\d+) min\s*$/.exec(l);
+        if (m !== null)
+            return Number(m[1]);
+    }
+    return null;
 }
 /**
  * Escribe (o reemplaza) la seccion `## Duracion` con la estimacion del plan y
@@ -84,15 +90,13 @@ export function anotarDuracion(body, estimada, realMin) {
             ? [`- Paso de la hora: ${String(realMin)} min reales frente a ${String(estimada.minutos)} estimados`]
             : []),
     ];
+    // TASK-147a (CORE1-01): la misma regla que anotarCierre, que finish llama
+    // justo despues sobre el mismo cuerpo (ultima seccion fuera de bloques).
     const lineas = body.split(/\r?\n/);
-    const ini = lineas.findIndex((l) => l.trim() === SECCION_DURACION);
-    if (ini === -1) {
-        const base = body.replace(/(\r?\n)*$/, '');
-        return `${base}${base === '' ? '' : eol + eol}${lineasSeccion.join(eol)}${eol}`;
-    }
-    let fin = ini + 1;
-    while (fin < lineas.length && !/^##\s/.test(lineas[fin]))
-        fin++;
+    const rango = rangoDeSeccion(lineas, SECCION_DURACION);
+    if (rango === null)
+        return anadirSeccionAlFinal(body, lineasSeccion);
+    const [ini, fin] = rango;
     const despues = lineas.slice(fin);
     return [...lineas.slice(0, ini), ...lineasSeccion, ...(despues.length > 0 ? ['', ...despues] : [''])].join(eol);
 }

@@ -11,6 +11,7 @@
  * la pregunta del tope se repite en cada ronda extra.
  */
 import { SECCION_RONDAS_EXTRA } from './flujo.js';
+import { contenidoDeSeccion } from './transiciones.js';
 /** Lo que `lineaRondaExtra` deja de ejemplo: copiado tal cual no es una decision. */
 const MARCADOR = /^<[^>]*>$/;
 /** ¿Consta en `body` la decision de abrir la ronda `ronda` (linea con texto)? */
@@ -23,13 +24,7 @@ export function rondaExtraDecidida(body, ronda) {
         return texto !== '' && !MARCADOR.test(texto);
     });
 }
-/** Lineas de la seccion `## Rondas extra` (hasta el siguiente encabezado de nivel 2 o menor). */
+/** Lineas de la seccion `## Rondas extra` (TASK-147a: con el lector comun de secciones). */
 function seccionRondasExtra(body) {
-    const lineas = body.split(/\r?\n/);
-    const inicio = lineas.findIndex((l) => l.trim() === SECCION_RONDAS_EXTRA);
-    if (inicio === -1)
-        return [];
-    const resto = lineas.slice(inicio + 1);
-    const fin = resto.findIndex((l) => /^#{1,2}\s/.test(l));
-    return fin === -1 ? resto : resto.slice(0, fin);
+    return contenidoDeSeccion(body, SECCION_RONDAS_EXTRA) ?? [];
 }

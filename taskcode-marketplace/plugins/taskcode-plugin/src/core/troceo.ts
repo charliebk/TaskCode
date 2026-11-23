@@ -17,6 +17,7 @@
  */
 import type { Task } from './task.js';
 import { leerDuracionEstimada, type LecturaDuracion } from './duracion-estimada.js';
+import { anadirSeccionAlFinal, dentroDeBloque } from './transiciones.js';
 
 export class TroceoError extends Error {}
 
@@ -41,28 +42,10 @@ const DURACION_RE = /duraci[oó]n estimada\s*[*_`]*\s*:/i;
 
 /** Las lineas de la seccion `## Troceo`, fuera de bloques de codigo; null si no hay seccion. */
 function lineasDeTroceo(plan: string): string[] | null {
+  // TASK-147a: con rangoPorCabecera (dentroDeBloque), no con un interruptor propio de vallas.
   const lineas = plan.replace(/\r/g, '').split('\n');
-  let enBloque = false;
-  let dentro = false;
-  let encontrada = false;
-  const out: string[] = [];
-  for (const l of lineas) {
-    if (/^\s*(```|~~~)/.test(l)) {
-      enBloque = !enBloque;
-      if (dentro) out.push(l);
-      continue;
-    }
-    if (!enBloque && /^##\s/.test(l)) {
-      if (dentro) break;
-      if (CABECERA_TROCEO_RE.test(l)) {
-        dentro = true;
-        encontrada = true;
-      }
-      continue;
-    }
-    if (dentro) out.push(l);
-  }
-  return encontrada ? out : null;
+  const rango = rangoPorCabecera(lineas, CABECERA_TROCEO_RE);
+  return rango === null ? null : lineas.slice(rango[0] + 1, rango[1]);
 }
 
 /**
@@ -155,23 +138,46 @@ function criteriosMd(criterios: readonly string[]): string {
   return criterios.map((c) => `- [ ] ${c}`).join('\n');
 }
 
-const OBJETIVO_RE = /^##\s+objetivo\s*$/i;
-const CRITERIOS_RE = /^##\s+criterios de aceptaci[oó]n\s*$/i;
+// TASK-147a (CORE2-06): `### Criterios de aceptacion` tambien abre la seccion,
+// como en extraerSecciones; antes troceo no la encontraba y anteponia otra.
+const OBJETIVO_RE = /^#{2,3}\s+objetivo\s*$/i;
+const CRITERIOS_RE = /^#{2,3}\s+criterios de aceptaci[oó]n\s*$/i;
 
 /**
- * Reemplaza el contenido de la seccion cuya cabecera casa con `cabecera`
- * (hasta la siguiente `## `). Si no existe, la anade al principio en el orden
- * de la plantilla. Conserva las demas secciones (`## Transiciones`, etc.).
+ * Rango [cabecera, fin) de la primera seccion cuya cabecera casa con `cabecera`,
+ * fuera de bloques de codigo (`dentroDeBloque`, el detector comun); acaba en
+ * la siguiente cabecera de su nivel o superior. null si no esta.
+ */
+function rangoPorCabecera(lineas: readonly string[], cabecera: RegExp): [number, number] | null {
+  const enBloque = dentroDeBloque(lineas);
+  const ini = lineas.findIndex((l, i) => !enBloque[i] && cabecera.test(l.trim()));
+  if (ini === -1) return null;
+  const nivel = /^(#+)/.exec((lineas[ini] as string).trim())?.[1]?.length ?? 2;
+  let fin = ini + 1;
+  while (fin < lineas.length) {
+    const l = lineas[fin] as string;
+    const m = /^(#{1,6})\s/.exec(l);
+    // Como en extraerSecciones: una cabecera de Objetivo o de Criterios abre
+    // su propia seccion aunque sea de nivel 3 (`### Criterios de aceptacion`).
+    const otraSeccion = OBJETIVO_RE.test(l.trim()) || CRITERIOS_RE.test(l.trim());
+    if (!enBloque[fin] && m !== null && ((m[1] as string).length <= nivel || otraSeccion)) break;
+    fin++;
+  }
+  return [ini, fin];
+}
+
+/**
+ * Reemplaza el contenido de la seccion cuya cabecera casa con `cabecera`. Si
+ * no existe, la anade al principio en el orden de la plantilla. Conserva las
+ * demas secciones (`## Transiciones`, etc.).
  */
 function reemplazarSeccion(body: string, cabecera: RegExp, titulo: string, contenido: string): string {
   const eol = body.includes('\r\n') ? '\r\n' : '\n';
   const lineas = body.split(/\r?\n/);
-  const ini = lineas.findIndex((l) => cabecera.test(l.trim()));
+  const rango = rangoPorCabecera(lineas, cabecera);
   const bloque = [titulo, '', ...contenido.split('\n'), ''];
-  if (ini === -1) return [...bloque, ...lineas].join(eol);
-  let fin = ini + 1;
-  while (fin < lineas.length && !/^##\s/.test(lineas[fin] as string)) fin++;
-  return [...lineas.slice(0, ini), ...bloque, ...lineas.slice(fin)].join(eol);
+  if (rango === null) return [...bloque, ...lineas].join(eol);
+  return [...lineas.slice(0, rango[0]), ...bloque, ...lineas.slice(rango[1])].join(eol);
 }
 
 export interface PlanTroceo {
@@ -225,11 +231,8 @@ export function planificarTroceo(task: Task, body: string, partes: readonly Part
 
 function extraerObjetivo(body: string): string {
   const lineas = body.replace(/\r/g, '').split('\n');
-  const ini = lineas.findIndex((l) => OBJETIVO_RE.test(l.trim()));
-  if (ini === -1) return '';
-  let fin = ini + 1;
-  while (fin < lineas.length && !/^##\s/.test(lineas[fin] as string)) fin++;
-  return lineas.slice(ini + 1, fin).join('\n').trim();
+  const rango = rangoPorCabecera(lineas, OBJETIVO_RE);
+  return rango === null ? '' : lineas.slice(rango[0] + 1, rango[1]).join('\n').trim();
 }
 
 /**
@@ -244,21 +247,20 @@ export function planTrasTroceo(plan: string, partes: readonly ParteTroceo[], ids
     const entera = leerDuracionEstimada(plan);
     const antes = entera.tipo === 'ok' ? `${String(entera.minutos)} min` : 'sin cifra legible';
     let hecho = false;
-    let enBloque = false;
-    texto = plan
-      .split(/\r?\n/)
-      .map((l) => {
-        if (/^\s*(```|~~~)/.test(l)) enBloque = !enBloque;
-        if (hecho || enBloque || !DURACION_RE.test(l) || !/^\s*(?:[-*+>#]\s*)*[*_`]*\s*duraci[oó]n estimada/i.test(l)) return l;
+    const lineasPlan = plan.split(/\r?\n/);
+    const enBloque = dentroDeBloque(lineasPlan);
+    texto = lineasPlan
+      .map((l, i) => {
+        if (hecho || enBloque[i] || !DURACION_RE.test(l) || !/^\s*(?:[-*+>#]\s*)*[*_`]*\s*duraci[oó]n estimada/i.test(l)) return l;
         hecho = true;
         return `Duracion estimada: ${String((primera.duracion as { minutos: number }).minutos)} min (parte a del troceo; la tarea entera estimaba ${antes})`;
       })
       .join(eol);
   }
-  const base = texto.replace(/(\r?\n)*$/, '');
-  return (
-    `${base}${eol}${eol}## Troceo aceptado${eol}${eol}` +
+  return anadirSeccionAlFinal(texto, [
+    '## Troceo aceptado',
+    '',
     `Troceo aceptado por una persona el ${hoy}: ${ids.join(', ')}, todas en la misma rama. ` +
-    `Este plan es el de ${ids[0] as string}; las demas partes se planifican al empezarlas.${eol}`
-  );
+      `Este plan es el de ${ids[0] as string}; las demas partes se planifican al empezarlas.`,
+  ]);
 }
