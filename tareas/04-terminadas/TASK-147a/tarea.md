@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-147-regla-4d-lectores-de-secciones-e-ids-en
 asignado_a: charlie.bk@gmail.com
@@ -47,6 +47,7 @@ Objetivo de la tarea entera:
 | 2026-11-23T07:09:18Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T08:58:34Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T09:11:39Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T09:23:07Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -84,3 +85,10 @@ Objetivo de la tarea entera:
 ## Verificacion parcial
 
 - 2026-11-23T09:21:03Z: todo el codigo que cambia la tarea (17 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 174 min
+- Paso de la hora: 174 min reales frente a 60 estimados
+- Cierre (finish): 124 s, de 2026-11-23T09:21:03Z a 2026-11-23T09:23:07Z
