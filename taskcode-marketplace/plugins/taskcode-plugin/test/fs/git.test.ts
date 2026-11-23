@@ -625,9 +625,11 @@ test('runCodexReview: encuentra y lanza un "codex" real del PATH (no inyectado),
   try {
     const esWindows = process.platform === 'win32';
     const scriptPath = path.join(dir, esWindows ? 'codex.cmd' : 'codex');
+    // TASK-151a (TCORE-01, M5): un argumento por linea, entre corchetes. Con `echo %*`
+    // los argumentos salian unidos y uno partido en tres palabras pasaba igual.
     const contenido = esWindows
-      ? '@echo off\r\necho ARGS:%*\r\nexit /b 0\r\n'
-      : '#!/bin/sh\necho "ARGS:$@"\n';
+      ? '@echo off\r\necho ARGS:\r\n:bucle\r\nif "%~1"=="" goto fin\r\necho ARG:[%~1]\r\nshift\r\ngoto bucle\r\n:fin\r\nexit /b 0\r\n'
+      : '#!/bin/sh\necho "ARGS:"\nfor a in "$@"; do echo "ARG:[$a]"; done\n';
     await writeFile(scriptPath, contenido, 'utf8');
     if (!esWindows) await chmod(scriptPath, 0o755);
 
@@ -641,7 +643,7 @@ test('runCodexReview: encuentra y lanza un "codex" real del PATH (no inyectado),
     assert.equal(outcome.lanzado, true, JSON.stringify(outcome));
     assert.equal(outcome.code, 0, outcome.stdout);
     assert.match(outcome.stdout, /ARGS:/);
-    assert.match(outcome.stdout, /titulo con espacios/);
+    assert.match(outcome.stdout, /ARG:\[titulo con espacios\]/, outcome.stdout);
   } finally {
     process.env['PATH'] = pathAnterior;
     await rm(dir, { recursive: true, force: true });

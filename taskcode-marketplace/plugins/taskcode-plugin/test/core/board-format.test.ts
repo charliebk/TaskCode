@@ -104,6 +104,13 @@ test('formatBoard: dentro de un mismo estado, ordena por ID numericamente (no al
   const posDos = out.indexOf('TASK-002');
   const posDiez = out.indexOf('TASK-010');
   assert.ok(posUno < posDos && posDos < posDiez, `orden incorrecto:\n${out}`);
+  // TASK-151a (TCORE-02, M1): con 001, 002 y 010 el orden alfabetico y el numerico
+  // coinciden; con 999 y 1000 no ('1' < '9'), asi que aqui un localeCompare falla.
+  const grandes = formatBoard([
+    sampleTask({ id: 'TASK-1000', estado: 'planificada', titulo: 'Mil' }),
+    sampleTask({ id: 'TASK-999', estado: 'planificada', titulo: 'Novecientos' }),
+  ]);
+  assert.ok(grandes.indexOf('TASK-999') < grandes.indexOf('TASK-1000'), `orden incorrecto:\n${grandes}`);
 });
 
 test('formatBoard: una tarea sin asignar se muestra como "(sin asignar)", no vacio ni "null"', () => {

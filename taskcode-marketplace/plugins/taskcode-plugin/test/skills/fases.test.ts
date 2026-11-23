@@ -25,6 +25,18 @@ import { FASES_SIGUIENTE } from '../../src/core/flujo.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..');
 const SKILLS_DIR = path.join(PLUGIN_ROOT, 'skills');
+
+/**
+ * TASK-151a (TRES-09): `a` aparece antes que `b` en `texto`, y los dos aparecen.
+ * Con `indexOf(a) < indexOf(b)` a secas, un `a` que falta (-1) pasaba siempre.
+ */
+function antesQue(texto: string, a: string, b: string, mensaje: string): void {
+  const ia = texto.indexOf(a);
+  const ib = texto.indexOf(b);
+  assert.ok(ia !== -1, `${mensaje}: falta "${a}"`);
+  assert.ok(ib !== -1, `${mensaje}: falta "${b}"`);
+  assert.ok(ia < ib, mensaje);
+}
 const AVANCE = path.join(SKILLS_DIR, 'task-workflow', 'avance.md');
 
 /** Cada skill de fase y el subcomando de taskctl que tiene que ejecutar. */
@@ -190,7 +202,7 @@ test('las skills de fase y la seccion de avance no mencionan rutas ni documentos
 test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en veredicto-codex (IMP-2)', async () => {
   const plan = await readFile(path.join(SKILLS_DIR, 'plan', 'SKILL.md'), 'utf8').then(lf);
   // Mira siguiente ANTES de ejecutar taskctl plan, y con la ronda abierta no lo ejecuta.
-  assert.ok(plan.indexOf('taskctl siguiente') < plan.indexOf('taskctl plan TASK-NNN'), 'plan consulta siguiente primero');
+  antesQue(plan, 'taskctl siguiente', 'taskctl plan TASK-NNN', 'plan consulta siguiente primero');
   assert.match(plan, /\*\*No ejecutes `taskctl plan`\*\*/);
   assert.match(plan, /## Cambios pedidos por la persona/, 'la re-planificacion lee el feedback escrito');
   const review = await readFile(path.join(SKILLS_DIR, 'review', 'SKILL.md'), 'utf8').then(lf);
@@ -199,10 +211,7 @@ test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en 
   const approve = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8').then(lf);
   assert.match(approve, /`## Cambios pedidos por la persona`/, 'approve deja escrito el feedback del no');
   // pausa aborta con la carpeta sucia: primero se commitea el feedback (MEN-7, M3).
-  assert.ok(
-    approve.indexOf('Commitealo') !== -1 && approve.indexOf('Commitealo') < approve.indexOf('taskctl pausa'),
-    'approve commitea el feedback antes de taskctl pausa'
-  );
+  antesQue(approve, 'Commitealo', 'taskctl pausa', 'approve commitea el feedback antes de taskctl pausa');
 
   // Re-planificacion (IMP-3, MEN-6): lanza lo que exista para la ronda (unificador o el rol unico),
   // y la seccion de cambios lleva su estado para que reanudar a medias no abra otra ronda.
@@ -213,10 +222,7 @@ test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en 
   // MEN-8: la marca se commitea ANTES de abrir la ronda con taskctl plan.
   const sinMarca = /- `## Cambios pedidos por la persona`, sin marca:[\s\S]*?(?=\n {5}- `\(pendientes)/.exec(plan);
   assert.ok(sinMarca, 'plan tiene la vineta de la seccion sin marca');
-  assert.ok(
-    sinMarca[0].indexOf('(pendientes, ronda K)') < sinMarca[0].indexOf('taskctl plan TASK-NNN'),
-    'la marca va antes de taskctl plan'
-  );
+  antesQue(sinMarca[0], '(pendientes, ronda K)', 'taskctl plan TASK-NNN', 'la marca va antes de taskctl plan');
   // MEN-10: reanudar con la marca pendiente no reabre la ronda si ya existe su peticion,
   // y el caso de un rol lanza el agente del rol, no el unificador.
   const pendiente = /- `\(pendientes, ronda K\)`:[\s\S]*?(?=\n {5}- Sin seccion)/.exec(plan);
@@ -286,10 +292,7 @@ test('la cadena se cierra en cada camino de salida: detener, no, error (MEN-1 de
   // MEN-2 (r2): el no se registra con la cadena aun abierta; cerrar antes lo haria fallar.
   const ordenNo = /- un «no»:[\s\S]*?(?=\n- un error)/.exec(avance);
   assert.ok(ordenNo, 'avance.md da el orden del no');
-  assert.ok(
-    ordenNo[0].indexOf('taskctl pausa') < ordenNo[0].indexOf('taskctl cadena cerrar'),
-    'primero pausa, despues cerrar'
-  );
+  antesQue(ordenNo[0], 'taskctl pausa', 'taskctl cadena cerrar', 'primero pausa, despues cerrar');
   assert.match(avance, /- un error de un `taskctl`: `taskctl cadena cerrar <testigo>` y despues\s+muestra el error/);
   assert.match(avance, /el CLI rechaza esos comandos mientras haya una cadena\s+abierta sin su testigo/);
   // El no de approve detiene la cadena sin volver a avance (IMP-4).
