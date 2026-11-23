@@ -12,6 +12,16 @@ import path from 'node:path';
 import { gitTexto } from './git-crudo.js';
 /** Carpetas que ni se detectan ni se escanean: dependencias y build. */
 export const DIRS_EXCLUIDOS = ['node_modules', 'vendor', 'target', 'dist', 'build', '.git'];
+/**
+ * TASK-149c (FS-16): las carpetas excluidas para un mensaje, sin `.git` (no
+ * hay versionados dentro): «node_modules, vendor, target, dist o build».
+ */
+export function textoDirsExcluidos(conjuncion) {
+    const dirs = DIRS_EXCLUIDOS.filter((d) => d !== '.git');
+    return `${dirs.slice(0, -1).join(', ')} ${conjuncion} ${dirs.at(-1)}`;
+}
+/** TASK-149c (FS-16): el ultimo segmento de una ruta con `/` (las de git ls-files). */
+export const nombreBase = (ruta) => ruta.slice(ruta.lastIndexOf('/') + 1);
 /** Profundidad maxima (carpetas) a la que se buscan marcadores: `a/b/c/package.json` si; un nivel mas, no. */
 export const PROFUNDIDAD_MARCADORES = 3;
 export function estaExcluido(ruta) {

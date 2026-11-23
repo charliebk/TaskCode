@@ -23,9 +23,9 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { detectarAccionesSinSha, detectarContrasenasCompose, detectarDockerfile, detectarFirebaseAbierto, detectarPullRequestTarget, detectarTablasSinRls, detectarTokensGestor, } from '../core/doctor-deploy-reglas.js';
 import { buscarSilencio, decodificar, evidenciaSilenciada } from './sondas-deploy.js';
+import { nombreBase, textoDirsExcluidos } from './deteccion-app.js';
 const MAX_HALLAZGOS = 200;
 const MAX_RUTAS_ALCANCE = 10;
-const nombreBase = (ruta) => ruta.slice(ruta.lastIndexOf('/') + 1);
 /**
  * Construye una sonda: `filtro` elige los ficheros versionados que se miran, `detector`
  * los analiza todos juntos y `textos` pone las frases del resultado.
@@ -37,7 +37,7 @@ export function sondaPorFicheros(filtro, detector, textos) {
             return {
                 estado: 'no-aplica',
                 motivo: `${textos.ninguno}: no hay nada que revisar`,
-                evidencias: [{ descripcion: `git ls-files: ninguno de ${textos.queBusca} (sin contar node_modules, vendor, target, dist ni build)` }],
+                evidencias: [{ descripcion: `git ls-files: ninguno de ${textos.queBusca} (sin contar ${textoDirsExcluidos('ni')})` }],
             };
         }
         const max = ctx.opciones.maxBytesFichero;

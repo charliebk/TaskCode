@@ -17,8 +17,9 @@
  * mas: sin reintentos, sin excepcion, sin salida (lo que se imprime lo lee el
  * agente y cuesta tokens).
  */
-import { closeSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { leerCola } from './leer-cola.js';
 import { VERSION_PROGRESO, parsearContador, validarProgreso, } from '../core/progreso.js';
 /** Variable de entorno con la ruta del contador que recibe el comando de verificacion. Nombre neutro: la leen proyectos ajenos. */
 export const VARIABLE_PROGRESO = 'TASKCTL_PROGRESO';
@@ -88,27 +89,12 @@ export function leerContador(desde) {
     const ruta = rutaContador(desde);
     if (ruta === null)
         return null;
-    let fd = null;
     try {
-        fd = openSync(ruta, 'r');
-        const tam = fstatSync(fd).size;
-        const n = Math.min(tam, BYTES_CONTADOR);
-        const buf = Buffer.alloc(n);
-        readSync(fd, buf, 0, n, tam - n);
-        return parsearContador(buf.toString('utf8'));
+        // TASK-149c (FS-12): la lectura de cola comun (repite las lecturas cortas y no parte un caracter).
+        return parsearContador(leerCola(ruta, BYTES_CONTADOR).texto);
     }
     catch {
         return null;
-    }
-    finally {
-        if (fd !== null) {
-            try {
-                closeSync(fd);
-            }
-            catch {
-                /* nada */
-            }
-        }
     }
 }
 /** Escribe con tmp+rename. Nunca lanza: devuelve false si no pudo. */

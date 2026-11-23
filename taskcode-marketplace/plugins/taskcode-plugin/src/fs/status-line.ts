@@ -22,10 +22,11 @@
  *   pedir la instalacion tras actualizar la reescribe con la ruta nueva.
  */
 import { spawnSync } from 'node:child_process';
-import { accessSync, constants, copyFileSync, existsSync, readFileSync, statSync, unlinkSync } from 'node:fs';
+import { copyFileSync, existsSync, statSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { esObjeto, leerJson } from './json-claude.js';
 import { escribirAtomico } from './progreso.js';
+import { candidatosEnPath, PATHEXT_POR_DEFECTO } from './herramientas-deploy.js';
 
 /** Lo que ejecuta la status line. `--stdin`: toma el directorio del JSON que le pasa Claude Code. */
 export const COMANDO_STATUS_LINE = 'taskctl estado --stdin';
@@ -112,37 +113,30 @@ export interface BusquedaTaskctl {
   scriptPlugin: string | null;
 }
 
-/** Busca `taskctl` en el PATH de `env`, sin lanzar nada. */
+/** Busca `taskctl` en el PATH de `env`, sin lanzar nada. TASK-149c (FS-13): con candidatosEnPath. */
 export function buscarTaskctl(env: NodeJS.ProcessEnv, configDir: string): BusquedaTaskctl {
-  const win = process.platform === 'win32';
-  const exts = win ? ['', ...(variable(env, 'PATHEXT') ?? '.COM;.EXE;.BAT;.CMD').split(';').filter((e) => e !== '')] : [''];
   const plugins = path.join(configDir, 'plugins');
   let soloEnPlugin = false;
   let scriptPlugin: string | null = null;
-  for (const dir of (variable(env, 'PATH') ?? '').split(path.delimiter)) {
-    if (dir.trim() === '') continue;
-    for (const ext of exts) {
-      const candidato = path.join(dir, `taskctl${ext.toLowerCase()}`);
-      try {
-        if (!statSync(candidato).isFile()) continue;
-        if (!win) accessSync(candidato, constants.X_OK);
-      } catch {
-        continue;
-      }
-      if (dentroDe(candidato, plugins)) {
-        soloEnPlugin = true;
-        if (scriptPlugin === null) {
-          const script = path.join(dir, 'taskctl');
-          try {
-            if (statSync(script).isFile()) scriptPlugin = script;
-          } catch {
-            /* esa carpeta no trae el script de node: se sigue buscando */
-          }
+  const candidatos = candidatosEnPath('taskctl', variable(env, 'PATH') ?? '', {
+    // MEN-1 de la revision: el PATHEXT del env que se pasa, o el de por defecto (no el del proceso).
+    pathext: variable(env, 'PATHEXT') ?? PATHEXT_POR_DEFECTO,
+    sinExtensionEnWindows: true,
+  });
+  for (const candidato of candidatos) {
+    if (dentroDe(candidato, plugins)) {
+      soloEnPlugin = true;
+      if (scriptPlugin === null) {
+        const script = path.join(path.dirname(candidato), 'taskctl');
+        try {
+          if (statSync(script).isFile()) scriptPlugin = script;
+        } catch {
+          /* esa carpeta no trae el script de node: se sigue buscando */
         }
-        continue;
       }
-      return { ruta: candidato, soloEnPlugin: false, scriptPlugin: null };
+      continue;
     }
+    return { ruta: candidato, soloEnPlugin: false, scriptPlugin: null };
   }
   return { ruta: null, soloEnPlugin, scriptPlugin };
 }
@@ -165,10 +159,12 @@ function copiaDeSeguridad(ruta: string, ahora: Date): string | null {
 }
 
 function leerObjeto(ruta: string): Record<string, unknown> {
-  if (!existsSync(ruta)) return {};
-  const json = JSON.parse(readFileSync(ruta, 'utf8').replace(/^\uFEFF/, '')) as unknown;
-  if (!esObjeto(json)) throw new Error('no es un objeto JSON');
-  return json;
+  // TASK-149c (FS-14): con leerJson (sin BOM); aqui un fichero roto aborta, no se sobrescribe.
+  const l = leerJson(ruta);
+  if (l.estado === 'ausente') return {};
+  if (l.estado === 'ilegible') throw new Error(l.motivo);
+  if (!esObjeto(l.json)) throw new Error('no es un objeto JSON');
+  return l.json;
 }
 
 function escribir(ruta: string, obj: Record<string, unknown>): boolean {

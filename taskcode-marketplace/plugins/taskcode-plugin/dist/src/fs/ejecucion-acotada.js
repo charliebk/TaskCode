@@ -10,11 +10,12 @@
  * comentarios de abajo y la historia de TASK-033.
  */
 import { createHash } from 'node:crypto';
-import { closeSync, fstatSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, statSync } from 'node:fs';
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { gitCrudo } from './git-crudo.js';
+import { leerCola } from './leer-cola.js';
 /** Codigo con el que ENVOLTORIO dice "lo he cortado por timeout". */
 export const CODIGO_TIMEOUT_ENVOLTORIO = 124;
 /**
@@ -131,36 +132,6 @@ export function ejecutarAcotado(raiz, comando, timeoutMs, opciones = {}) {
         catch {
             /* ver arriba */
         }
-    }
-}
-/**
- * Los ultimos `bytes` bytes de un fichero, sin leerlo entero: un `npm test`
- * puede soltar megas y el coste no debe depender de eso. Si el corte cae en
- * medio de un caracter UTF-8, se descartan los bytes de continuacion sueltos
- * del principio.
- */
-export function leerCola(ruta, bytes) {
-    const fd = openSync(ruta, 'r');
-    try {
-        const total = fstatSync(fd).size;
-        const n = Math.min(total, bytes);
-        const buf = Buffer.alloc(n);
-        let leidos = 0;
-        while (leidos < n) {
-            const k = readSync(fd, buf, leidos, n - leidos, total - n + leidos);
-            if (k === 0)
-                break;
-            leidos += k;
-        }
-        let desde = 0;
-        if (total > n) {
-            while (desde < leidos && desde < 4 && (buf[desde] & 0xc0) === 0x80)
-                desde++;
-        }
-        return { texto: buf.subarray(desde, leidos).toString('utf8'), total };
-    }
-    finally {
-        closeSync(fd);
     }
 }
 /** true si la salida dice que ENVOLTORIO corto el comando por timeout. */

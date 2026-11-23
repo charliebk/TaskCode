@@ -1,4 +1,5 @@
 import { gitCrudo } from './git-crudo.js';
+import { decodificar } from './sondas-deploy.js';
 const MAX_BYTES_FICHERO = 8 * 1024 * 1024;
 /** Numero de lineas de un texto: un `\n` final no abre una linea mas. */
 export function contarLineas(texto) {
@@ -32,9 +33,11 @@ export function comprobadorEnCommit(raiz, commit) {
         }
         if (r.status !== 0)
             return `${ruta} no es un fichero versionado en el commit analizado`;
-        if (r.stdout.subarray(0, 8000).includes(0))
+        // TASK-149c (FS-11): la misma deteccion que las sondas (un UTF-16 con BOM lleva NUL y es texto).
+        const texto = decodificar(r.stdout);
+        if (texto === null)
             return `${ruta} es un fichero binario: no se puede citar una linea`;
-        const total = contarLineas(r.stdout.toString('utf8'));
+        const total = contarLineas(texto);
         if (linea > total)
             return `${ruta} tiene ${total} linea(s) y el veredicto cita la ${linea}`;
         return null;

@@ -5,11 +5,13 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+/** TASK-149c (FS-14): el texto sin el BOM de UTF-8 (`JSON.parse` lo rechaza; Out-File de PowerShell 5.1 lo pone). */
+export const quitarBom = (texto) => texto.replace(/^\uFEFF/, '');
 export function leerJson(ruta) {
     if (!existsSync(ruta))
         return { estado: 'ausente' };
     try {
-        return { estado: 'ok', json: JSON.parse(readFileSync(ruta, 'utf8').replace(/^﻿/, '')) };
+        return { estado: 'ok', json: JSON.parse(quitarBom(readFileSync(ruta, 'utf8'))) };
     }
     catch (e) {
         return { estado: 'ilegible', motivo: (e instanceof Error ? e.message : String(e)).replace(/\s+/g, ' ').trim() };

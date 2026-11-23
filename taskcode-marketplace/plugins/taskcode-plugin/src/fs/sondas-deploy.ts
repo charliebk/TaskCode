@@ -29,7 +29,7 @@ import {
   interpretarYarnAudit,
   type VeredictoAuditoria,
 } from '../core/doctor-deploy-auditoria.js';
-import { estaExcluido } from './deteccion-app.js';
+import { estaExcluido, nombreBase, textoDirsExcluidos } from './deteccion-app.js';
 // Ciclo de modulos a proposito: sondas-deploy-config usa las utilidades de aqui y este
 // fichero registra sus sondas. Funciona en cualquier orden de carga porque esas sondas
 // son declaraciones de funcion (estan inicializadas antes de evaluar ningun modulo).
@@ -171,21 +171,23 @@ export function evidenciaSilenciada(s: Silencio, patron: string, fichero: string
   return e;
 }
 
-const nombreBase = (ruta: string): string => ruta.slice(ruta.lastIndexOf('/') + 1);
+const LOCKFILES: Readonly<Record<string, readonly string[]>> = {
+  node: ['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock'],
+  rust: ['Cargo.lock'],
+  python: ['poetry.lock', 'Pipfile.lock', 'uv.lock', 'pdm.lock', 'pylock.toml', 'requirements.txt'],
+  php: ['composer.lock'],
+  ruby: ['Gemfile.lock'],
+  go: ['go.sum'],
+};
 
-const ARCHIVOS_DE_BLOQUEO = new Set([
-  'package-lock.json',
-  'npm-shrinkwrap.json',
-  'pnpm-lock.yaml',
-  'yarn.lock',
-  'Cargo.lock',
-  'poetry.lock',
-  'Pipfile.lock',
-  'composer.lock',
-  'Gemfile.lock',
-  'go.sum',
-  'uv.lock',
-]);
+// TASK-149c (FS-10): los ficheros de bloqueo que no se escanean en busca de
+// secretos salen de la misma lista que la sonda de lockfile (antes eran dos
+// listas y esta no tenia bun.lock, pdm.lock ni pylock.toml). requirements.txt
+// no es un fichero de bloqueo generado: puede llevar una URL con token y se escanea.
+const ARCHIVOS_DE_BLOQUEO = new Set(Object.values(LOCKFILES).flat().filter((f) => f !== 'requirements.txt'));
+
+/** true si `ruta` (con `/`) es un fichero de bloqueo, que no se escanea en busca de secretos. */
+export const esArchivoDeBloqueo = (ruta: string): boolean => ARCHIVOS_DE_BLOQUEO.has(nombreBase(ruta));
 
 // ---------------------------------------------------------------------
 // secretos-arbol
@@ -202,7 +204,7 @@ export const sondaSecretosArbol: Sonda = (ctx) => {
   let cortado = false;
 
   for (const rel of ctx.paraEscanear) {
-    if (ARCHIVOS_DE_BLOQUEO.has(nombreBase(rel))) continue;
+    if (esArchivoDeBloqueo(rel)) continue;
     const abs = path.join(ctx.cwd, rel);
     let datos: Buffer;
     try {
@@ -249,7 +251,7 @@ export const sondaSecretosArbol: Sonda = (ctx) => {
   const alcance =
     `${revisados} ficheros de texto revisados con ${IDS_PATRON.length} patrones de claves; ` +
     `${binarios} binarios saltados; ${omitidosGrandes} de texto mayores de ${Math.round(ctx.opciones.maxBytesFichero / 1024)} KiB sin leer; ` +
-    `${versionadosEnCarpetasExcluidas} versionados dentro de node_modules, vendor, target, dist o build incluidos ` +
+    `${versionadosEnCarpetasExcluidas} versionados dentro de ${textoDirsExcluidos('o')} incluidos ` +
     '(los que no estan versionados se excluyen); ' +
     `${silenciadas.length} hallazgos silenciados`;
   const notas: Evidencia[] = [];
@@ -454,14 +456,6 @@ export const sondaGitignoreEnv: Sonda = (ctx) => {
 // lockfile
 // ---------------------------------------------------------------------
 
-const LOCKFILES: Readonly<Record<string, readonly string[]>> = {
-  node: ['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock'],
-  rust: ['Cargo.lock'],
-  python: ['poetry.lock', 'Pipfile.lock', 'uv.lock', 'pdm.lock', 'pylock.toml', 'requirements.txt'],
-  php: ['composer.lock'],
-  ruby: ['Gemfile.lock'],
-  go: ['go.sum'],
-};
 
 /** `.`, y cada carpeta padre hasta la raiz, de la mas cercana a la mas lejana. */
 function carpetaYAncestros(dir: string): string[] {

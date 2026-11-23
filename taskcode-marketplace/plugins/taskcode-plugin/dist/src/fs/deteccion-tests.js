@@ -11,6 +11,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { proponerComandosTests } from '../core/comando-tests.js';
 import { MAX_BYTES_MARCADOR_APLICACION } from './deteccion-app.js';
+import { quitarBom } from './json-claude.js';
 function ficherosDeRaiz(cwd) {
     const r = [];
     for (const d of readdirSync(cwd, { withFileTypes: true })) {
@@ -36,8 +37,7 @@ function leerAcotado(cwd, ficheros, nombre) {
         const ruta = path.join(cwd, real);
         if (statSync(ruta).size > MAX_BYTES_MARCADOR_APLICACION)
             return null;
-        // Sin el BOM: `JSON.parse` lo rechaza y en Windows es habitual (Out-File de PowerShell 5.1).
-        return readFileSync(ruta, 'utf8').replace(/^﻿/, '');
+        return quitarBom(readFileSync(ruta, 'utf8'));
     }
     catch {
         return null;

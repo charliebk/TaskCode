@@ -17,8 +17,9 @@
  * mas: sin reintentos, sin excepcion, sin salida (lo que se imprime lo lee el
  * agente y cuesta tokens).
  */
-import { closeSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { leerCola } from './leer-cola.js';
 import {
   VERSION_PROGRESO,
   parsearContador,
@@ -104,24 +105,11 @@ export function leerProgreso(desde: string): EstadoProgreso | null {
 export function leerContador(desde: string): Contador | null {
   const ruta = rutaContador(desde);
   if (ruta === null) return null;
-  let fd: number | null = null;
   try {
-    fd = openSync(ruta, 'r');
-    const tam = fstatSync(fd).size;
-    const n = Math.min(tam, BYTES_CONTADOR);
-    const buf = Buffer.alloc(n);
-    readSync(fd, buf, 0, n, tam - n);
-    return parsearContador(buf.toString('utf8'));
+    // TASK-149c (FS-12): la lectura de cola comun (repite las lecturas cortas y no parte un caracter).
+    return parsearContador(leerCola(ruta, BYTES_CONTADOR).texto);
   } catch {
     return null;
-  } finally {
-    if (fd !== null) {
-      try {
-        closeSync(fd);
-      } catch {
-        /* nada */
-      }
-    }
   }
 }
 

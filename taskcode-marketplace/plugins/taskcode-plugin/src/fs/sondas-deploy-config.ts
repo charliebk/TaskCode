@@ -34,6 +34,7 @@ import {
   type FicheroLeido,
 } from '../core/doctor-deploy-reglas.js';
 import { buscarSilencio, decodificar, evidenciaSilenciada, type ContextoDeploy, type Sonda } from './sondas-deploy.js';
+import { nombreBase, textoDirsExcluidos } from './deteccion-app.js';
 
 const MAX_HALLAZGOS = 200;
 const MAX_RUTAS_ALCANCE = 10;
@@ -49,7 +50,6 @@ export interface TextosSonda {
   motivoOk: string;
 }
 
-const nombreBase = (ruta: string): string => ruta.slice(ruta.lastIndexOf('/') + 1);
 
 /**
  * Construye una sonda: `filtro` elige los ficheros versionados que se miran, `detector`
@@ -62,7 +62,7 @@ export function sondaPorFicheros(filtro: (ruta: string) => boolean, detector: De
       return {
         estado: 'no-aplica',
         motivo: `${textos.ninguno}: no hay nada que revisar`,
-        evidencias: [{ descripcion: `git ls-files: ninguno de ${textos.queBusca} (sin contar node_modules, vendor, target, dist ni build)` }],
+        evidencias: [{ descripcion: `git ls-files: ninguno de ${textos.queBusca} (sin contar ${textoDirsExcluidos('ni')})` }],
       };
     }
     const max = ctx.opciones.maxBytesFichero;
