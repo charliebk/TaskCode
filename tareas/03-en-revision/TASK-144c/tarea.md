@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 23592732
-tokens_revision: null
+tokens_revision: 3771733
 creado: 2026-11-23
 actualizado: 2026-11-23
 dependencias: [TASK-144b]
@@ -52,3 +52,6 @@ Los patrones de fichero de ronda y de peticion de rol, y la decision de que plan
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T05:26:05Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 54 | 33150 | 23539245 | 20283 | 12 | 23592732 | - | - |
+| 2026-11-23T05:39:02Z | revision | agente:a92df58299901acfd | 62 | 138307 | 3616986 | 16378 | 1 | 3771733 | 1 | - |
+- 4D — 51e4155 (ronda 2): helper buscado (planQueCuenta reutilizado en trocear); criterios citados; 2 tests nuevos, 2 mutaciones en rojo (planRedactado con ambiguo como plan, patron de salidas solo con roles conocidos).
+- code-quality-reviewer — 51e4155
