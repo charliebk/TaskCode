@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-145, TASK-146, TASK-148, TASK-149, TASK-150, TASK-151, TASK-152, TASK-019
+- **En marcha:** TASK-149 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-145, TASK-146, TASK-148, TASK-150, TASK-151, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -114,7 +114,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 12 | TASK-145 | Regla 4D: duplicacion en las puertas de finish | media | — | lista para empezar |
 | 13 | TASK-146 | Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste | media | — | lista para empezar |
 | 14 | TASK-148 | Regla 4D: catalogos, config y utilidades en core | alta | — | lista para empezar |
-| 15 | TASK-149 | Regla 4D: duplicacion en fs, hooks y cli | alta | — | lista para empezar |
+| 15 | TASK-149 | Regla 4D: duplicacion en fs, hooks y cli | alta | — | ▶ en diseño |
 | 16 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
 | 17 | TASK-151 | Regla 4D: disfraz en tests | media | — | lista para empezar |
 | 18 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
