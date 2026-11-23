@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli
 asignado_a: claude
@@ -45,6 +45,7 @@ Objetivo de la tarea entera:
 | 2026-11-23T10:39:06Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T10:48:23Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T11:11:41Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T11:24:48Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -75,3 +76,9 @@ Objetivo de la tarea entera:
 ## Verificacion parcial
 
 - 2026-11-23T11:21:44Z: todo el codigo que cambia la tarea (39 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 46 min
+- Cierre (finish): 184 s, de 2026-11-23T11:21:44Z a 2026-11-23T11:24:48Z
