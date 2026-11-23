@@ -40,3 +40,8 @@ Todos los flags con valor se leen con el mismo lector y todos los booleanos esta
 | 2026-11-23T03:55:21Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T03:55:23Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T03:55:25Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 565e603: helper buscado (extraerRepetible y extraerPushFlag reutilizados; extraerUnico sustituye 7 copias y se borro el lector viejo de cadena); criterios citados; 3 tests nuevos, 3 mutaciones en rojo (booleano quitado de la lista, repeticion admitida; el test de paridad encontro 3 booleanos de doctor que faltaban).
+- code-quality-reviewer — 565e603
