@@ -34,9 +34,9 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] Un test recorre src/commands y falla si un comando con autoCommit o ensureBaseBranchReady no esta en GUARDADOS_POR_CADENA; trocear, verificar-menores, verificar-lote y doctor-deploy aceptan --cadena dentro de una cadena
-- [ ] siguiente, verificar-menores, codigoSinVerificar y leerRondaPrevia usan una sola funcion para el Commit revisado de la ultima ronda y una sola para el codigo cambiado; un test con comando_sincronizacion que regenera un fichero fuera de tareas/ en el commit de review da fase finish sin pregunta en modo automatico
-- [ ] pausa, registrar-coste y siguiente deciden con un mismo helper si la tarea vive en otra rama, con un solo texto de error
+- [x] Un test recorre src/commands y falla si un comando con autoCommit o ensureBaseBranchReady no esta en GUARDADOS_POR_CADENA; trocear, verificar-menores, verificar-lote y doctor-deploy aceptan --cadena dentro de una cadena
+- [x] siguiente, verificar-menores, codigoSinVerificar y leerRondaPrevia usan una sola funcion para el Commit revisado de la ultima ronda y una sola para el codigo cambiado; un test con comando_sincronizacion que regenera un fichero fuera de tareas/ en el commit de review da fase finish sin pregunta en modo automatico
+- [x] pausa, registrar-coste y siguiente deciden con un mismo helper si la tarea vive en otra rama, con un solo texto de error
 
 ## Transiciones
 
@@ -62,3 +62,13 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-23T03:42:23Z: ronda 1; commit revisado b3ea93abc38ebb35db629549945080aa82896213; commit verificado 7741d0977af9d1a705f0cac4088c02a4ada8bc92; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/commands/verificar-menores.test.ts; corregidos: MENOR-1; pendientes: MENOR-2
+
+## Resultado
+
+- GUARDADOS_POR_CADENA incluye trocear, verificar-menores, verificar-lote y doctor-deploy; el test deriva la lista de los comandos con autoCommit o ensureBaseBranchReady, asi que un comando nuevo que escriba sin guarda pone la suite en rojo (CMD1-01). Con --cadena, trocear y verificar-menores ya no abortan por flag desconocido.
+- siguiente usa codigoCambiado (sin lo que regenera comando_sincronizacion ni lo excluido): con sincronizacion ya no pregunta tras una ronda aprobada (CMD2-01, test con un repo real). commitRevisadoDeRonda es la unica regla del Commit revisado de la ultima ronda en siguiente, verificar-menores, finish y review (CMD2-04). tareaEnOtraRama y mensajeTareaEnOtraRama, en siguiente, pausa y registrar-coste (CMD2-03).
+- Revision ronda 1: aprobada con correcciones. MENOR-1 corregido (test de punta a punta con una peticion de otra ronda); MENOR-2 aceptado y al backlog: con ronda fragmentada basta el primer Commit revisado, la misma regla que verificar-menores.
+
+## Verificacion parcial
+
+- 2026-11-23T03:42:31Z: todo el codigo que cambia la tarea (20 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
