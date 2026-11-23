@@ -218,6 +218,18 @@ export function rangoDeSeccion(lineas: readonly string[], titulo: string): [numb
 }
 
 /**
+ * TASK-147a (CORE1-02 de la auditoria 4D): crea una seccion al final del
+ * cuerpo, separada por una linea en blanco, con el fin de linea del cuerpo.
+ * Antes la misma receta estaba copiada en siete sitios (cierre, coste,
+ * duracion, transiciones, lineas de seccion, merge request, troceo).
+ */
+export function anadirSeccionAlFinal(body: string, lineasSeccion: readonly string[]): string {
+  const eol = body.includes('\r\n') ? '\r\n' : '\n';
+  const base = body.replace(/(\r?\n)*$/, '');
+  return `${base}${base === '' ? '' : eol + eol}${lineasSeccion.join(eol)}${eol}`;
+}
+
+/**
  * TASK-153a: las lineas con contenido real de una seccion (sin la cabecera,
  * sin comentarios HTML, tambien los de varias lineas, y sin lineas en
  * blanco); null si la seccion no esta. La comparten la autorrevision y la
@@ -245,9 +257,7 @@ export function anadirTransicion(body: string, fila: FilaTransicion): string {
   const rango = rangoSeccion(lineas);
 
   if (rango === null) {
-    const base = body.replace(/(\r?\n)*$/, '');
-    const separacion = base === '' ? '' : eol + eol;
-    return base + separacion + [SECCION_TRANSICIONES, '', CABECERA, SEPARADOR, filaATexto(fila)].join(eol) + eol;
+    return anadirSeccionAlFinal(body, [SECCION_TRANSICIONES, '', CABECERA, SEPARADOR, filaATexto(fila)]);
   }
 
   const [inicio, fin] = rango;
@@ -492,10 +502,7 @@ export function anotarLineaEnSeccion(body: string, titulo: string, linea: string
   const eol = body.includes('\r\n') ? '\r\n' : '\n';
   const lineas = body.split(/\r?\n/);
   const rango = rangoDeSeccion(lineas, titulo);
-  if (rango === null) {
-    const base = body.replace(/(\r?\n)*$/, '');
-    return `${base}${base === '' ? '' : eol + eol}${titulo}${eol}${eol}${linea}${eol}`;
-  }
+  if (rango === null) return anadirSeccionAlFinal(body, [titulo, '', linea]);
   const [inicio, fin] = rango;
   let ultima = inicio;
   for (let i = inicio + 1; i < fin; i++) if ((lineas[i] as string).trim() !== '') ultima = i;
