@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 21581176
-tokens_revision: 1091797
+tokens_revision: 3027918
 creado: 2026-11-22
 actualizado: 2026-11-23
 dependencias: []
@@ -52,6 +52,8 @@ Objetivo de la tarea entera:
 - code-quality-reviewer — 3aeb6c2
 - 4D — 85c111f: correccion de la ronda 1 sin helper nuevo (parametro en rangoPorCabecera); 3 tests nuevos en secciones-comunes; 3 mutaciones en rojo
 - code-quality-reviewer — 85c111f
+- 4D — 0504c15: correccion de IMP-2 sin helper nuevo (reutiliza dentroDeBloque y CABECERA_PARTE_RE); 1 test nuevo; 2 mutaciones en rojo
+- code-quality-reviewer — 0504c15
 
 ## Coste
 
@@ -59,3 +61,8 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T06:53:34Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 54 | 119932 | 21436173 | 25017 | 6 | 21581176 | - | - |
 | 2026-11-23T07:02:14Z | revision | agente:a759d6c42cb6051a9 | 20 | 116738 | 967049 | 7990 | 1 | 1091797 | 1 | - |
+| 2026-11-23T07:18:49Z | revision | agente:a01782db0e0f198b3 | 36 | 117512 | 1801182 | 17391 | 1 | 1936121 | 2 | - |
+
+## Rondas extra
+
+- Ronda 3: Carlos, verificar la correccion de IMP-2 (criterios tras la ultima parte del troceo)
