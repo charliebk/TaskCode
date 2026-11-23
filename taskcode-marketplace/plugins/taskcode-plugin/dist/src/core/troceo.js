@@ -18,18 +18,23 @@ function lineasDeTroceo(plan) {
     if (rango === null)
         return null;
     const [ini, fin] = rango;
-    // IMP-2 de la revision: `### Criterios` u `### Objetivo` entre dos partes es
-    // de la parte de arriba; despues de la ultima parte ya no es de ninguna y
-    // cierra la seccion (sus criterios no se cuelan en la ultima parte).
+    // IMP-2 e IMP-3 de la revision: `### Criterios` u `### Objetivo` dentro de una
+    // parte es de esa parte (tambien en la ultima); tras los criterios de la
+    // ultima parte ya no es de ninguna y cierra la seccion.
     const enBloque = dentroDeBloque(lineas);
     let ultimaParte = -1;
     for (let i = ini + 1; i < fin; i++)
         if (!enBloque[i] && CABECERA_PARTE_RE.test(lineas[i].trim()))
             ultimaParte = i;
     let corte = fin;
+    let conCriterios = false;
     for (let i = Math.max(ultimaParte, ini) + 1; i < fin; i++) {
-        const l = lineas[i].trim();
-        if (!enBloque[i] && (OBJETIVO_RE.test(l) || CRITERIOS_RE.test(l))) {
+        if (enBloque[i])
+            continue;
+        const l = lineas[i];
+        if (CRITERIO_RE.test(l))
+            conCriterios = true;
+        else if (conCriterios && abreSeccionDeTarea(l)) {
             corte = i;
             break;
         }
@@ -118,6 +123,10 @@ function criteriosMd(criterios) {
 // como en extraerSecciones; antes troceo no la encontraba y anteponia otra.
 const OBJETIVO_RE = /^#{2,3}\s+objetivo\s*$/i;
 const CRITERIOS_RE = /^#{2,3}\s+criterios de aceptaci[oó]n\s*$/i;
+/** Cabecera `## / ### Objetivo` o `## / ### Criterios de aceptacion`: abre su propia seccion. */
+function abreSeccionDeTarea(linea) {
+    return OBJETIVO_RE.test(linea.trim()) || CRITERIOS_RE.test(linea.trim());
+}
 /**
  * Rango [cabecera, fin) de la primera seccion cuya cabecera casa con `cabecera`,
  * fuera de bloques de codigo (`dentroDeBloque`, el detector comun); acaba en
@@ -137,7 +146,7 @@ function rangoPorCabecera(lineas, cabecera, { cortaEnObjetivoOCriterios }) {
         // su propia seccion aunque sea de nivel 3 (`### Criterios de aceptacion`).
         // Solo en tarea.md: en el plan, `### Criterios` dentro de una parte es de
         // esa parte y no corta `## Troceo` (IMP-1 de la revision de TASK-147a).
-        const otraSeccion = cortaEnObjetivoOCriterios && (OBJETIVO_RE.test(l.trim()) || CRITERIOS_RE.test(l.trim()));
+        const otraSeccion = cortaEnObjetivoOCriterios && abreSeccionDeTarea(l);
         if (!enBloque[fin] && m !== null && (m[1].length <= nivel || otraSeccion))
             break;
         fin++;

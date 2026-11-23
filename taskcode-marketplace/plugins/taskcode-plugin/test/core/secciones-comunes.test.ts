@@ -107,3 +107,20 @@ test('troceo: «### Criterios de aceptacion» despues de la ultima parte cierra 
     ]
   );
 });
+
+test('troceo: la cabecera propia de la ultima parte es de esa parte; un «### Objetivo» tras sus criterios cierra «## Troceo» (IMP-3 e IMP-4 de la revision)', () => {
+  const cabeza = '# Plan\n\n## Troceo\n\n### Parte a: uno\nObjetivo a.\nDuracion estimada: 30 min\n- [ ] a1\n\n### Parte b: dos\n';
+  const criteriosPropios = cabeza + 'Objetivo b.\nDuracion estimada: 30 min\n### Criterios de aceptacion\n- [ ] b1\n';
+  const objetivoPropio = cabeza + '### Objetivo\nObjetivo b.\nDuracion estimada: 30 min\n- [ ] b1\n';
+  const objetivoGlobal = cabeza + 'Objetivo b.\nDuracion estimada: 30 min\n- [ ] b1\n\n### Objetivo\nTexto global.\n- [ ] global1\n';
+  for (const plan of [criteriosPropios, objetivoPropio, objetivoGlobal]) {
+    assert.deepEqual(
+      leerPartes(plan, 'TASK-007').map((p) => [p.letra, p.criterios]),
+      [
+        ['a', ['a1']],
+        ['b', ['b1']],
+      ],
+      plan
+    );
+  }
+});
