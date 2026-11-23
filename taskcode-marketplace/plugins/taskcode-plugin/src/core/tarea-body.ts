@@ -51,6 +51,12 @@ export interface SeccionesTarea {
    */
   criteriosTrasCierre: string[];
   /**
+   * TASK-147b (CORE2-04): los `criterios` cuya casilla sigue sin marcar
+   * (`- [ ]`). Es lo que finish exige marcado; las de `Tras el cierre` no
+   * cuentan, tampoco en negrita (`**Tras el cierre**`).
+   */
+  criteriosSinMarcar: string[];
+  /**
    * TASK-044: los mismos `criterios`, agrupados como los escribio la
    * persona. Abre grupo un subtitulo `###` (salvo `Tras el cierre`) o una
    * linea sin sangrar que sea solo negrita (`**C4 — config**`, el caso de
@@ -77,7 +83,7 @@ const RE_SUBTITULO = /^ {0,3}#{3,6}(?:\s|$)/;
 const TITULO_TRAS_CIERRE = 'tras el cierre';
 
 /** Linea de checklist: "- [ ] texto", "- [x] texto", "* [X] texto". */
-const RE_CRITERIO = /^\s*[-*]\s+\[[ xX]\]\s*(.*)$/;
+const RE_CRITERIO = /^\s*[-*]\s+\[([ xX])\]\s*(.*)$/;
 
 /** Continuacion indentada de la linea de checklist anterior. */
 const RE_CONTINUACION = /^\s+\S/;
@@ -96,10 +102,24 @@ const TITULO_CRITERIOS = 'criterios de aceptacion';
  * su manera, "migracion" casaria en un sitio y no en el otro.
  */
 export function normalizarTexto(texto: string): string {
+  return quitarDiacriticos(texto).toLowerCase();
+}
+
+/**
+ * TASK-147b (CORE2-05): el texto sin diacriticos, conservando mayusculas
+ * (las celdas de un informe llevan IDs y rutas). `normalizarTexto` es esto
+ * mas minusculas.
+ */
+export function quitarDiacriticos(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/** TASK-147b (CORE2-07): `texto` como cita de Markdown (`> `; `>` en las lineas en blanco). */
+export function citar(texto: string): string {
   return texto
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+    .split(/\r?\n/)
+    .map((l) => (l.trim() === '' ? '>' : `> ${l.trimEnd()}`))
+    .join('\n');
 }
 
 /** El titulo de una cabecera tal como se escribio (para mostrarlo). */
@@ -133,6 +153,8 @@ export function extraerSecciones(body: string): SeccionesTarea {
   const lineas = body.split(/\r?\n/);
   const objetivo: string[] = [];
   const normales: string[] = [];
+  // Indice paralelo a `normales`: true si su casilla esta sin marcar.
+  const sinMarcar: boolean[] = [];
   const trasCierre: string[] = [];
   // A que lista van ahora los criterios: los de `### Tras el cierre` van
   // aparte (TASK-046).
@@ -196,8 +218,11 @@ export function extraerSecciones(body: string): SeccionesTarea {
     if (seccion === 'criterios') {
       const criterio = RE_CRITERIO.exec(linea);
       if (criterio !== null) {
-        destino.push((criterio[1] ?? '').trim());
-        if (destino === normales) grupoDe.push(titulosGrupo.length - 1);
+        destino.push((criterio[2] ?? '').trim());
+        if (destino === normales) {
+          grupoDe.push(titulosGrupo.length - 1);
+          sinMarcar.push(criterio[1] === ' ');
+        }
         continuable = true;
         continue;
       }
@@ -230,6 +255,7 @@ export function extraerSecciones(body: string): SeccionesTarea {
     objetivo: objetivo.join('\n').trim(),
     criterios: normales,
     criteriosTrasCierre: trasCierre,
+    criteriosSinMarcar: normales.filter((_, k) => sinMarcar[k] === true),
     grupos,
   };
 }

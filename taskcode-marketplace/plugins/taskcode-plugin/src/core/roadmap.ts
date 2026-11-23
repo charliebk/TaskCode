@@ -21,7 +21,7 @@
  *    ambas incluidas. De ahi salen tambien los titulos y el orden de los
  *    hitos (`### Hn — titulo`).
  */
-import type { TaskComplexity, TaskState } from './task.js';
+import { compararIds, type TaskComplexity, type TaskState } from './task.js';
 
 /** Ruta del ROADMAP relativa a la raiz del repo, con separadores POSIX. */
 export const ROADMAP_RUTA = 'tareas/ROADMAP.md';
@@ -128,11 +128,6 @@ export function titulosDeHitos(zonaManual: string | null): Map<number, string> {
   return titulos;
 }
 
-function numeroDe(id: string): number {
-  const m = /(\d+)$/.exec(id);
-  return m === null ? Number.MAX_SAFE_INTEGER : Number(m[1]);
-}
-
 function comparar(a: readonly number[], b: readonly number[]): number {
   for (let i = 0; i < a.length; i++) {
     const d = (a[i] ?? 0) - (b[i] ?? 0);
@@ -144,7 +139,7 @@ function comparar(a: readonly number[], b: readonly number[]): number {
 /**
  * Orden topologico estable (Kahn con prioridad): de las tareas sin
  * predecesoras pendientes sale primero la de clave menor (rango del hito,
- * hito, numero). Las que quedan dentro de un ciclo no salen nunca por
+ * hito y despues el ID con compararIds). Las que quedan dentro de un ciclo no salen nunca por
  * Kahn: se devuelven aparte, en orden de clave.
  */
 function ordenar(
@@ -153,7 +148,7 @@ function ordenar(
 ): { orden: string[]; atascadas: string[] } {
   const clave = (id: string): number[] => {
     const t = tareas.get(id)!;
-    return [rango.get(t.sprint) ?? Number.MAX_SAFE_INTEGER, t.sprint, numeroDe(id)];
+    return [rango.get(t.sprint) ?? Number.MAX_SAFE_INTEGER, t.sprint];
   };
   const pendientes = new Map<string, Set<string>>();
   const dependientes = new Map<string, string[]>();
@@ -168,7 +163,7 @@ function ordenar(
   const listas = [...tareas.keys()].filter((id) => pendientes.get(id)!.size === 0);
   const orden: string[] = [];
   while (listas.length > 0) {
-    listas.sort((a, b) => comparar(clave(a), clave(b)));
+    listas.sort((a, b) => comparar(clave(a), clave(b)) || compararIds(a, b));
     const id = listas.shift()!;
     orden.push(id);
     for (const s of dependientes.get(id)!) {
@@ -180,7 +175,7 @@ function ordenar(
   const vistos = new Set(orden);
   const atascadas = [...tareas.keys()]
     .filter((id) => !vistos.has(id))
-    .sort((a, b) => comparar(clave(a), clave(b)));
+    .sort((a, b) => comparar(clave(a), clave(b)) || compararIds(a, b));
   return { orden, atascadas };
 }
 
@@ -234,7 +229,7 @@ export function generarRoadmap(
   const rango = new Map<number, number>([...titulos.keys()].map((h, i) => [h, i]));
 
   const tareas = new Map<string, TareaRoadmap>();
-  for (const t of [...lista].sort((a, b) => numeroDe(a.id) - numeroDe(b.id) || a.id.localeCompare(b.id))) {
+  for (const t of [...lista].sort((a, b) => compararIds(a.id, b.id))) {
     if (!tareas.has(t.id)) tareas.set(t.id, t);
   }
 

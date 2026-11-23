@@ -17,6 +17,7 @@ import path from 'node:path';
 import {
   STATE_FOLDER,
   assertValidTaskId,
+  isValidTaskId,
   type Task,
   type TareaUbicada,
   type TaskState,
@@ -24,7 +25,6 @@ import {
 import { parseTareaFile, serializeTareaFile } from '../core/tarea-file.js';
 
 const ALL_STATE_FOLDERS: readonly string[] = Object.values(STATE_FOLDER);
-const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
 
 export async function listExistingTaskIds(tareasRoot: string): Promise<string[]> {
   const ids: string[] = [];
@@ -38,7 +38,7 @@ export async function listExistingTaskIds(tareasRoot: string): Promise<string[]>
       throw e;
     }
     for (const entry of entries) {
-      if (TASK_ID_RE.test(entry)) ids.push(entry);
+      if (isValidTaskId(entry)) ids.push(entry);
     }
   }
   return ids;
@@ -69,7 +69,7 @@ export interface TareasEnEstadosResult {
  * de `estados`.
  *
  * Las rutas se construyen solo con nombres de directorio que ya
- * pasaron TASK_ID_RE, asi que no hay ID de fuera que llegue a
+ * pasaron isValidTaskId, asi que no hay ID de fuera que llegue a
  * componer una ruta (misma precaucion que assertValidTaskId en el
  * resto del modulo).
  */
@@ -90,7 +90,7 @@ export async function listTareasEnEstados(
       throw e;
     }
     for (const entry of entries) {
-      if (!TASK_ID_RE.test(entry)) continue;
+      if (!isValidTaskId(entry)) continue;
       if (porId.has(entry)) continue;
       const filePath = path.join(dir, entry, 'tarea.md');
       let content: string;

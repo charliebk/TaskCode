@@ -1,10 +1,5 @@
+import { citar } from './tarea-body.js';
 import { frentesDe, gruposComunes, MAX_CRITERIOS } from './validacion-tarea.js';
-function citar(texto) {
-    return texto
-        .split(/\r?\n/)
-        .map((l) => (l.trim() === '' ? '>' : `> ${l.trimEnd()}`))
-        .join('\n');
-}
 export function proponerParticion(task, s) {
     const frentes = frentesDe(s.grupos);
     if (frentes.length < 2)

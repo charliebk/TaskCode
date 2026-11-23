@@ -25,11 +25,10 @@ import path from 'node:path';
 import { resolverConfigConAvisos } from '../core/config.js';
 import { compararRoadmaps } from '../core/roadmap-comparar.js';
 import { extraerZonaManual, generarRoadmap, llevaMarcaTaskctl, ROADMAP_RUTA, } from '../core/roadmap.js';
-import { STATE_FOLDER, TASK_STATES } from '../core/task.js';
+import { STATE_FOLDER, TASK_STATES, isValidTaskId } from '../core/task.js';
 import { parseTareaFile } from '../core/tarea-file.js';
 import { runGit } from './git.js';
 const NOMBRE = 'ROADMAP.md';
-const TASK_DIR_RE = /^TASK-\d{3,}[a-z]?$/;
 /** Lee el frontmatter de todas las tareas de las carpetas de estado. */
 export function leerTareasRoadmap(raiz) {
     const tareasRoot = path.join(raiz, 'tareas');
@@ -46,7 +45,7 @@ export function leerTareasRoadmap(raiz) {
             continue;
         }
         for (const entrada of entradas) {
-            if (!TASK_DIR_RE.test(entrada) || vistos.has(entrada))
+            if (!isValidTaskId(entrada) || vistos.has(entrada))
                 continue;
             const fichero = path.join(dir, entrada, 'tarea.md');
             if (!existsSync(fichero))

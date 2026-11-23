@@ -12,7 +12,7 @@
  * state-machine.ts; el test cruza cada fase propuesta con
  * assertTransitionAllowed para que nunca se proponga una ilegal.
  */
-import type { Task } from './task.js';
+import { esIdTroceable, type Task } from './task.js';
 import type { ModoFlujo } from './config.js';
 import type { VeredictoInforme } from './informe-revision.js';
 import { describirExceso, superaUmbral, type LecturaDuracion } from './duracion-estimada.js';
@@ -133,7 +133,7 @@ export function salidasReglaUnaHora(id: string): SalidaPregunta[] {
     comando: `taskctl approve ${id}`,
     descripcion: 'la tarea sigue entera; antes, escribe en el plan el motivo para no trocearla',
   };
-  if (!/^TASK-\d{3,}$/.test(id)) return [aprobar];
+  if (!esIdTroceable(id)) return [aprobar];
   return [
     {
       opcion: 'trocear',

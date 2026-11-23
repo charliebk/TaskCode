@@ -18,7 +18,7 @@
  *   TASK-044): sin el, nacerian bloqueadas por la puerta de plan.
  */
 import type { Task } from './task.js';
-import type { SeccionesTarea } from './tarea-body.js';
+import { citar, type SeccionesTarea } from './tarea-body.js';
 import { frentesDe, gruposComunes, MAX_CRITERIOS } from './validacion-tarea.js';
 
 export interface PropuestaParticion {
@@ -28,13 +28,6 @@ export interface PropuestaParticion {
   hijasGrandes: string[];
   /** Contenido del fichero para `taskctl import`. */
   markdown: string;
-}
-
-function citar(texto: string): string {
-  return texto
-    .split(/\r?\n/)
-    .map((l) => (l.trim() === '' ? '>' : `> ${l.trimEnd()}`))
-    .join('\n');
 }
 
 export function proponerParticion(task: Task, s: SeccionesTarea): PropuestaParticion | null {

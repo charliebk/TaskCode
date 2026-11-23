@@ -19,6 +19,7 @@ import { resolverPlanFinal } from './plan.js';
 import { planQueCuenta, planRedactado } from './approve.js';
 import { ensureBaseBranchReady, runGit, type BaseBranchGuardResult } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, type AutoCommitResult } from '../fs/git-commit.js';
+import { isValidTaskId } from '../core/task.js';
 import { esIdTroceable, leerPartes, planificarTroceo, planTrasTroceo, TroceoError } from '../core/troceo.js';
 
 export class TrocearCommandError extends Error {}
@@ -52,7 +53,7 @@ export async function runTrocearCommand(
   if (id === undefined || id.trim() === '') {
     throw new TrocearCommandError('[ERROR] Falta el ID de la tarea: taskctl trocear TASK-NNN.');
   }
-  if (!/^TASK-\d{3,}[a-z]?$/.test(id)) {
+  if (!isValidTaskId(id)) {
     throw new TrocearCommandError(`[ERROR] "${id}" no es un ID de tarea valido (se espera TASK-NNN).`);
   }
   if (!esIdTroceable(id)) {

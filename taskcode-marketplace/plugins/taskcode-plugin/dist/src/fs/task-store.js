@@ -14,10 +14,9 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_FOLDER, assertValidTaskId, } from '../core/task.js';
+import { STATE_FOLDER, assertValidTaskId, isValidTaskId, } from '../core/task.js';
 import { parseTareaFile, serializeTareaFile } from '../core/tarea-file.js';
 const ALL_STATE_FOLDERS = Object.values(STATE_FOLDER);
-const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
 export async function listExistingTaskIds(tareasRoot) {
     const ids = [];
     for (const folder of ALL_STATE_FOLDERS) {
@@ -32,7 +31,7 @@ export async function listExistingTaskIds(tareasRoot) {
             throw e;
         }
         for (const entry of entries) {
-            if (TASK_ID_RE.test(entry))
+            if (isValidTaskId(entry))
                 ids.push(entry);
         }
     }
@@ -51,7 +50,7 @@ export async function listExistingTaskIds(tareasRoot) {
  * de `estados`.
  *
  * Las rutas se construyen solo con nombres de directorio que ya
- * pasaron TASK_ID_RE, asi que no hay ID de fuera que llegue a
+ * pasaron isValidTaskId, asi que no hay ID de fuera que llegue a
  * componer una ruta (misma precaucion que assertValidTaskId en el
  * resto del modulo).
  */
@@ -70,7 +69,7 @@ export async function listTareasEnEstados(tareasRoot, estados) {
             throw e;
         }
         for (const entry of entries) {
-            if (!TASK_ID_RE.test(entry))
+            if (!isValidTaskId(entry))
                 continue;
             if (porId.has(entry))
                 continue;

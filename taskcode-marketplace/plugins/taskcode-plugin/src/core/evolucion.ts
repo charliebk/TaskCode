@@ -35,6 +35,7 @@
  * `UMBRAL_TENDENCIA`; si no, se mantiene.
  */
 import { media, mediana, tablaDeTexto, type Duracion, type FilaMetricas } from './metricas.js';
+import { compararIds } from './task.js';
 
 export const TRAMO_POR_DEFECTO = 20;
 
@@ -77,12 +78,6 @@ export interface Evolucion {
   tramos: TramoEvolucion[];
 }
 
-/** Numero del ID (`TASK-0099` -> 99) para ordenar por numero y no por cadena. */
-export function numeroDeId(id: string): number {
-  const m = /(\d+)$/.exec(id);
-  return m === null ? Number.MAX_SAFE_INTEGER : Number(m[1]);
-}
-
 /** Comparador de cadenas determinista (sin locale). */
 function cmp(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
@@ -94,8 +89,7 @@ export function ordenarPorCierre(filas: readonly FilaMetricas[]): FilaMetricas[]
     (a, b) =>
       cmp(a.cierre ?? '￿', b.cierre ?? '￿') ||
       cmp(a.proyecto, b.proyecto) ||
-      numeroDeId(a.id) - numeroDeId(b.id) ||
-      cmp(a.id, b.id)
+      compararIds(a.id, b.id)
   );
 }
 

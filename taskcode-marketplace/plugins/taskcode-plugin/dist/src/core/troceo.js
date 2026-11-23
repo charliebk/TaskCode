@@ -1,11 +1,28 @@
+/**
+ * TASK-121: troceo de una tarea en partes TASK-NNNa, TASK-NNNb... que
+ * comparten la rama de la tarea. Puro: lee el plan y el cuerpo de la tarea
+ * y devuelve lo que hay que escribir; `commands/trocear.ts` lo escribe.
+ *
+ * El plan declara las partes en una seccion `## Troceo`:
+ *
+ *     ## Troceo
+ *
+ *     ### Parte a: IDs con letra en todo el CLI
+ *     Objetivo de la parte (una o varias lineas).
+ *     Duracion estimada: 40 min
+ *     - [ ] criterio comprobable
+ *
+ * Trocear lo decide una persona (regla de una hora): este modulo no decide
+ * nada, solo valida que las partes esten completas.
+ */
+import { esIdTroceable } from './task.js';
 import { leerDuracionEstimada } from './duracion-estimada.js';
+import { citar } from './tarea-body.js';
 import { anadirSeccionAlFinal, dentroDeBloque } from './transiciones.js';
 export class TroceoError extends Error {
 }
-/** `TASK-121` -> true; `TASK-121a` -> false (una parte no se vuelve a trocear). */
-export function esIdTroceable(id) {
-    return /^TASK-\d{3,}$/.test(id);
-}
+// TASK-147b (CORE2-14): la regla vive en core/task.ts; se reexporta para trocear y start.
+export { esIdTroceable } from './task.js';
 const CABECERA_TROCEO_RE = /^##\s+troceo\s*$/i;
 const CABECERA_PARTE_RE = /^###\s+parte\s+([a-z])\s*[:.\-–—]\s*(.+?)\s*$/i;
 const CRITERIO_RE = /^\s*[-*]\s+\[[ xX]\]\s+(.*\S)\s*$/;
@@ -105,12 +122,6 @@ export function leerPartes(plan, id) {
         }
         return { letra: p.letra, titulo: p.titulo, objetivo: textoObjetivo, criterios, duracion };
     });
-}
-function citar(texto) {
-    return texto
-        .split(/\r?\n/)
-        .map((l) => (l.trim() === '' ? '>' : `> ${l.trimEnd()}`))
-        .join('\n');
 }
 function objetivoDeParte(task, parte, ids) {
     return (`Parte ${parte.letra} del troceo de ${task.id} (${task.titulo}), partes ${ids.join(', ')} ` +

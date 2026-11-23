@@ -1,3 +1,27 @@
+/**
+ * ROADMAP de tareas (TASK-098): generacion pura, sin I/O.
+ *
+ * `tareas/ROADMAP.md` ordena las tareas por hito (campo `sprint`) y por
+ * dependencias: ninguna tarea va antes que aquellas de las que depende y,
+ * a igualdad, va primero la del hito anterior y luego la de numero menor.
+ * Lo que decide si el fichero se escribe vive en `fs/roadmap.ts`; aqui
+ * solo se calcula el texto.
+ *
+ * Tres invariantes que fijan los tests:
+ *
+ * 1. **La salida no lleva fecha ni hora.** Regenerar con las mismas
+ *    tareas da exactamente los mismos bytes, asi que una transicion que
+ *    no cambia nada del ROADMAP no lo mete en su commit.
+ * 2. **La marca de taskctl es una linea exacta en una posicion fija**
+ *    (la tercera). Se compara la linea entera, nunca por subcadena: un
+ *    ROADMAP de otro generador que mencione "taskctl" o "generado por"
+ *    en el cuerpo no se confunde con uno nuestro.
+ * 3. **La zona manual se conserva byte a byte**: lo que hay entre la
+ *    linea que empieza por `<!-- manual:inicio` y `<!-- manual:fin -->`,
+ *    ambas incluidas. De ahi salen tambien los titulos y el orden de los
+ *    hitos (`### Hn — titulo`).
+ */
+import { compararIds } from './task.js';
 /** Ruta del ROADMAP relativa a la raiz del repo, con separadores POSIX. */
 export const ROADMAP_RUTA = 'tareas/ROADMAP.md';
 /** Linea exacta que marca un ROADMAP como generado por taskctl. La version del formato va dentro. */
@@ -70,10 +94,6 @@ export function titulosDeHitos(zonaManual) {
     }
     return titulos;
 }
-function numeroDe(id) {
-    const m = /(\d+)$/.exec(id);
-    return m === null ? Number.MAX_SAFE_INTEGER : Number(m[1]);
-}
 function comparar(a, b) {
     for (let i = 0; i < a.length; i++) {
         const d = (a[i] ?? 0) - (b[i] ?? 0);
@@ -85,13 +105,13 @@ function comparar(a, b) {
 /**
  * Orden topologico estable (Kahn con prioridad): de las tareas sin
  * predecesoras pendientes sale primero la de clave menor (rango del hito,
- * hito, numero). Las que quedan dentro de un ciclo no salen nunca por
+ * hito y despues el ID con compararIds). Las que quedan dentro de un ciclo no salen nunca por
  * Kahn: se devuelven aparte, en orden de clave.
  */
 function ordenar(tareas, rango) {
     const clave = (id) => {
         const t = tareas.get(id);
-        return [rango.get(t.sprint) ?? Number.MAX_SAFE_INTEGER, t.sprint, numeroDe(id)];
+        return [rango.get(t.sprint) ?? Number.MAX_SAFE_INTEGER, t.sprint];
     };
     const pendientes = new Map();
     const dependientes = new Map();
@@ -108,7 +128,7 @@ function ordenar(tareas, rango) {
     const listas = [...tareas.keys()].filter((id) => pendientes.get(id).size === 0);
     const orden = [];
     while (listas.length > 0) {
-        listas.sort((a, b) => comparar(clave(a), clave(b)));
+        listas.sort((a, b) => comparar(clave(a), clave(b)) || compararIds(a, b));
         const id = listas.shift();
         orden.push(id);
         for (const s of dependientes.get(id)) {
@@ -121,7 +141,7 @@ function ordenar(tareas, rango) {
     const vistos = new Set(orden);
     const atascadas = [...tareas.keys()]
         .filter((id) => !vistos.has(id))
-        .sort((a, b) => comparar(clave(a), clave(b)));
+        .sort((a, b) => comparar(clave(a), clave(b)) || compararIds(a, b));
     return { orden, atascadas };
 }
 /** Ciclos entre las tareas atascadas, cada uno como camino cerrado. Deduplicados por sus miembros. */
@@ -171,7 +191,7 @@ export function generarRoadmap(lista, zonaManual) {
     const titulos = titulosDeHitos(manual);
     const rango = new Map([...titulos.keys()].map((h, i) => [h, i]));
     const tareas = new Map();
-    for (const t of [...lista].sort((a, b) => numeroDe(a.id) - numeroDe(b.id) || a.id.localeCompare(b.id))) {
+    for (const t of [...lista].sort((a, b) => compararIds(a.id, b.id))) {
         if (!tareas.has(t.id))
             tareas.set(t.id, t);
     }

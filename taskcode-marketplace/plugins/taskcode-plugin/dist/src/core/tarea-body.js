@@ -43,7 +43,7 @@ const RE_CABECERA = /^ {0,3}#{2,6}(?:\s|$)/;
 const RE_SUBTITULO = /^ {0,3}#{3,6}(?:\s|$)/;
 const TITULO_TRAS_CIERRE = 'tras el cierre';
 /** Linea de checklist: "- [ ] texto", "- [x] texto", "* [X] texto". */
-const RE_CRITERIO = /^\s*[-*]\s+\[[ xX]\]\s*(.*)$/;
+const RE_CRITERIO = /^\s*[-*]\s+\[([ xX])\]\s*(.*)$/;
 /** Continuacion indentada de la linea de checklist anterior. */
 const RE_CONTINUACION = /^\s+\S/;
 const TITULO_OBJETIVO = 'objetivo';
@@ -59,10 +59,22 @@ const TITULO_CRITERIOS = 'criterios de aceptacion';
  * su manera, "migracion" casaria en un sitio y no en el otro.
  */
 export function normalizarTexto(texto) {
+    return quitarDiacriticos(texto).toLowerCase();
+}
+/**
+ * TASK-147b (CORE2-05): el texto sin diacriticos, conservando mayusculas
+ * (las celdas de un informe llevan IDs y rutas). `normalizarTexto` es esto
+ * mas minusculas.
+ */
+export function quitarDiacriticos(texto) {
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+/** TASK-147b (CORE2-07): `texto` como cita de Markdown (`> `; `>` en las lineas en blanco). */
+export function citar(texto) {
     return texto
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase();
+        .split(/\r?\n/)
+        .map((l) => (l.trim() === '' ? '>' : `> ${l.trimEnd()}`))
+        .join('\n');
 }
 /** El titulo de una cabecera tal como se escribio (para mostrarlo). */
 function textoDeCabecera(linea) {
@@ -91,6 +103,8 @@ export function extraerSecciones(body) {
     const lineas = body.split(/\r?\n/);
     const objetivo = [];
     const normales = [];
+    // Indice paralelo a `normales`: true si su casilla esta sin marcar.
+    const sinMarcar = [];
     const trasCierre = [];
     // A que lista van ahora los criterios: los de `### Tras el cierre` van
     // aparte (TASK-046).
@@ -153,9 +167,11 @@ export function extraerSecciones(body) {
         if (seccion === 'criterios') {
             const criterio = RE_CRITERIO.exec(linea);
             if (criterio !== null) {
-                destino.push((criterio[1] ?? '').trim());
-                if (destino === normales)
+                destino.push((criterio[2] ?? '').trim());
+                if (destino === normales) {
                     grupoDe.push(titulosGrupo.length - 1);
+                    sinMarcar.push(criterio[1] === ' ');
+                }
                 continuable = true;
                 continue;
             }
@@ -189,6 +205,7 @@ export function extraerSecciones(body) {
         objetivo: objetivo.join('\n').trim(),
         criterios: normales,
         criteriosTrasCierre: trasCierre,
+        criteriosSinMarcar: normales.filter((_, k) => sinMarcar[k] === true),
         grupos,
     };
 }

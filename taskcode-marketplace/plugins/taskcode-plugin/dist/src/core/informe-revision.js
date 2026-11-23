@@ -7,6 +7,7 @@
  * la ronda incremental de `taskctl review`: que dijo la ronda anterior,
  * desde que commit se reviso y que hallazgos siguen abiertos.
  */
+import { quitarDiacriticos } from './tarea-body.js';
 import { rangoDeSeccion } from './transiciones.js';
 const PREFIJO_VEREDICTO = '- veredicto:';
 /** Valor de una linea `- Veredicto:` sin enfasis de markdown, en minusculas. */
@@ -127,13 +128,12 @@ export const ORIGENES_HALLAZGO = ['implementacion', 'plan', 'especificacion'];
  */
 export const SEVERIDADES_HALLAZGO = ['CRITICO', 'IMPORTANTE', 'MENOR'];
 function normalizarCelda(c) {
-    return c
+    // TASK-147b (CORE2-05): sin diacriticos con el helper comun; conserva mayusculas.
+    return quitarDiacriticos(c
         .trim()
         .replace(/^[*_`]+/, '')
         .replace(/[*_`]+$/, '')
-        .trim()
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '');
+        .trim());
 }
 /** Origen normalizado: minusculas, sin tildes ni enfasis; fuera del vocabulario, `sin clasificar`. */
 function origenDe(celda) {

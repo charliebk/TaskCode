@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { calcularFila, type FilaMetricas } from '../../src/core/metricas.js';
-import { calcularEvolucion, formatearEvolucion, ordenarPorCierre, numeroDeId, tendencia, tendenciaCosteFijo } from '../../src/core/evolucion.js';
+import { calcularEvolucion, formatearEvolucion, ordenarPorCierre, tendencia, tendenciaCosteFijo } from '../../src/core/evolucion.js';
 import { tarea } from '../helpers/tarea-ejemplo.js';
 
 function fila(o: Partial<FilaMetricas> & { id: string }): FilaMetricas {
@@ -25,7 +25,6 @@ test('orden de cierre: solo el dia, luego proyecto, luego NUMERO de ID (TASK-99 
     ordenarPorCierre(filas).map((f) => `${f.proyecto}/${f.id}`),
     ['a/TASK-500', 'a/TASK-099', 'a/TASK-100', 'b/TASK-001']
   );
-  assert.equal(numeroDeId('TASK-0099'), 99);
 });
 
 test('tramos de N: el ultimo parcial dice su n; sin cierre fuera y contadas por proyecto; no terminadas no entran', () => {

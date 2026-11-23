@@ -1,3 +1,18 @@
+/**
+ * El siguiente paso de una tarea (TASK-056). Puro: recibe la tarea, lo que
+ * hay en su carpeta (plan redactado, veredicto de la ultima ronda) y el modo
+ * de flujo, y dice que fase toca y que hacer con ella:
+ *
+ * - `detener`: no se encadena nada; se nombra el comando siguiente.
+ * - `preguntar`: se pregunta a la persona si seguir.
+ * - `continuar`: se sigue sin preguntar.
+ *
+ * Es lo que leen las fases guiadas para decidir: ellas solo ejecutan lo que
+ * esto devuelve. Las condiciones de LEGALIDAD no se copian aqui, viven en
+ * state-machine.ts; el test cruza cada fase propuesta con
+ * assertTransitionAllowed para que nunca se proponga una ilegal.
+ */
+import { esIdTroceable } from './task.js';
 import { describirExceso, superaUmbral } from './duracion-estimada.js';
 /**
  * Todas las fases que puede devolver siguienteFase. Lista en tiempo de
@@ -28,7 +43,7 @@ export function salidasReglaUnaHora(id) {
         comando: `taskctl approve ${id}`,
         descripcion: 'la tarea sigue entera; antes, escribe en el plan el motivo para no trocearla',
     };
-    if (!/^TASK-\d{3,}$/.test(id))
+    if (!esIdTroceable(id))
         return [aprobar];
     return [
         {

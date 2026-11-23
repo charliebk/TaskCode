@@ -56,13 +56,46 @@ export const TASK_FIELD_ORDER = [
     'actualizado',
     'dependencias',
 ];
-const TASK_ID_RE = /^TASK-\d{3,}[a-z]?$/;
+/**
+ * TASK-147b (CORE2-01, FS-04, CMD2-08): la unica regex del ID de tarea.
+ * Grupo 1, el numero (3 cifras o mas); grupo 2, la letra de una parte de un
+ * troceo (`TASK-121a`) o ''.
+ */
+export const TASK_ID_RE = /^TASK-(\d{3,})([a-z]?)$/;
 /** Valida el formato de un ID de tarea sin construir un Task completo.
  *  Se usa como guarda de seguridad ANTES de construir rutas de archivo
  *  a partir de un ID que puede venir de fuera (CLI), para evitar path
  *  traversal (hallazgo de revision por pares, Sprint 0). */
 export function isValidTaskId(id) {
     return TASK_ID_RE.test(id);
+}
+/** `TASK-121` -> true; `TASK-121a` -> false (una parte no se vuelve a trocear). CORE2-14. */
+export function esIdTroceable(id) {
+    const m = TASK_ID_RE.exec(id);
+    return m !== null && m[2] === '';
+}
+// Para ordenar se acepta cualquier numero de cifras (`TASK-0099`, `TASK-12`).
+const ID_PARA_ORDENAR_RE = /^TASK-(\d+)([a-z]?)$/;
+/**
+ * TASK-147b (CORE2-01): el orden de los IDs de tarea, el mismo en board,
+ * wip, roadmap y evolucion. Por numero (TASK-999 antes que TASK-1000), y
+ * dentro del numero la tarea entera antes que sus partes (TASK-121,
+ * TASK-121a, TASK-121b, TASK-122). Lo que no es un ID va al final, por cadena.
+ */
+export function compararIds(a, b) {
+    const ma = ID_PARA_ORDENAR_RE.exec(a);
+    const mb = ID_PARA_ORDENAR_RE.exec(b);
+    if (ma === null || mb === null) {
+        if (ma !== mb)
+            return ma === null ? 1 : -1;
+        return a < b ? -1 : a > b ? 1 : 0;
+    }
+    const d = Number(ma[1]) - Number(mb[1]);
+    if (d !== 0)
+        return d;
+    const la = ma[2];
+    const lb = mb[2];
+    return la < lb ? -1 : la > lb ? 1 : 0;
 }
 export class InvalidTaskIdError extends Error {
     id;

@@ -15,8 +15,9 @@
  * Trocear lo decide una persona (regla de una hora): este modulo no decide
  * nada, solo valida que las partes esten completas.
  */
-import type { Task } from './task.js';
+import { esIdTroceable, type Task } from './task.js';
 import { leerDuracionEstimada, type LecturaDuracion } from './duracion-estimada.js';
+import { citar } from './tarea-body.js';
 import { anadirSeccionAlFinal, dentroDeBloque } from './transiciones.js';
 
 export class TroceoError extends Error {}
@@ -30,10 +31,8 @@ export interface ParteTroceo {
   duracion: LecturaDuracion;
 }
 
-/** `TASK-121` -> true; `TASK-121a` -> false (una parte no se vuelve a trocear). */
-export function esIdTroceable(id: string): boolean {
-  return /^TASK-\d{3,}$/.test(id);
-}
+// TASK-147b (CORE2-14): la regla vive en core/task.ts; se reexporta para trocear y start.
+export { esIdTroceable } from './task.js';
 
 const CABECERA_TROCEO_RE = /^##\s+troceo\s*$/i;
 const CABECERA_PARTE_RE = /^###\s+parte\s+([a-z])\s*[:.\-–—]\s*(.+?)\s*$/i;
@@ -137,13 +136,6 @@ export function leerPartes(plan: string, id: string): ParteTroceo[] {
     }
     return { letra: p.letra, titulo: p.titulo, objetivo: textoObjetivo, criterios, duracion };
   });
-}
-
-function citar(texto: string): string {
-  return texto
-    .split(/\r?\n/)
-    .map((l) => (l.trim() === '' ? '>' : `> ${l.trimEnd()}`))
-    .join('\n');
 }
 
 function objetivoDeParte(task: Task, parte: ParteTroceo, ids: readonly string[]): string {
