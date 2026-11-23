@@ -211,10 +211,7 @@ test('plan no reabre una ronda al reanudar (IMP-1) y review no relanza Codex en 
   const approve = await readFile(path.join(SKILLS_DIR, 'approve', 'SKILL.md'), 'utf8').then(lf);
   assert.match(approve, /`## Cambios pedidos por la persona`/, 'approve deja escrito el feedback del no');
   // pausa aborta con la carpeta sucia: primero se commitea el feedback (MEN-7, M3).
-  assert.ok(
-    approve.indexOf('Commitealo') !== -1 && approve.indexOf('Commitealo') < approve.indexOf('taskctl pausa'),
-    'approve commitea el feedback antes de taskctl pausa'
-  );
+  antesQue(approve, 'Commitealo', 'taskctl pausa', 'approve commitea el feedback antes de taskctl pausa');
 
   // Re-planificacion (IMP-3, MEN-6): lanza lo que exista para la ronda (unificador o el rol unico),
   // y la seccion de cambios lleva su estado para que reanudar a medias no abra otra ronda.
