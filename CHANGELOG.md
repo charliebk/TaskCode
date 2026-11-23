@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-144a (fix) — cadena, Commit revisado y tarea en su rama (parte a de TASK-144) (2026-11-23)
 - TASK-153c (feature) — metricas de hallazgos 4D (parte c de TASK-153) (2026-11-23)
 - TASK-153b (feature) — candidatos 4D en la peticion de revision (parte b de TASK-153) (2026-11-23)
 - TASK-153a (feature) — plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) (2026-11-22)
