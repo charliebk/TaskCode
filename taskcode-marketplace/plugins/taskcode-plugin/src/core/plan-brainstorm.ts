@@ -22,7 +22,7 @@
  */
 import type { Task } from './task.js';
 import type { ResolucionAgentes } from './heuristica.js';
-import { TODOS_LOS_ROLES, UNIFICADOR_ID, type RolBrainstorm } from './roles-brainstorm.js';
+import { UNIFICADOR_ID, type RolBrainstorm } from './roles-brainstorm.js';
 import { fenceFor } from './markdown.js';
 import { VINETA_PETICION_REUTILIZACION } from './validacion-tarea.js';
 
@@ -49,14 +49,16 @@ export function nombreSalidaRol(rol: RolBrainstorm, ronda: number): string {
 
 /**
  * TASK-144c (CMD2-09 de la auditoria 4D): los patrones de los ficheros de rol
- * salen de los ids de los roles, el mismo dato con el que `nombrePeticionRol`
- * y `nombreSalidaRol` los generan. Antes plan y approve fijaban a mano el
- * prefijo `brainstorm-`: un rol con otro id dejaba de casar en silencio y se
- * rompia la numeracion de rondas.
+ * viven aqui, junto a `nombrePeticionRol` y `nombreSalidaRol`, que los
+ * generan. Antes plan y approve fijaban a mano el prefijo `brainstorm-`.
+ * Casan con CUALQUIER rol, tambien uno retirado o renombrado a mano (IMP-1 de
+ * su revision: su salida es trabajo real que el unificador tiene que ver);
+ * solo quedan fuera las peticiones del unificador y de redaccion, que no son
+ * de un rol. Grupo 1 = ronda.
  */
-const IDS_ROLES = TODOS_LOS_ROLES.map((r) => r.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-export const PETICION_ROL_RE = new RegExp(`^peticion-(?:${IDS_ROLES})-(\\d+)\\.md$`);
-export const SALIDA_ROL_RE = new RegExp(`^salida-(?:${IDS_ROLES})-(\\d+)\\.md$`);
+const NO_ES_ROL = String.raw`(?!(?:unificador|plan)-\d+\.md$)`;
+export const PETICION_ROL_RE = new RegExp(String.raw`^peticion-${NO_ES_ROL}[a-z0-9-]+-(\d+)\.md$`);
+export const SALIDA_ROL_RE = /^salida-[a-z0-9-]+-(\d+)\.md$/;
 
 export function nombrePeticionUnificador(ronda: number): string {
   return `peticion-unificador-${ronda}.md`;

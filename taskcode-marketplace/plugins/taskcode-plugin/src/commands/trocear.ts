@@ -77,13 +77,21 @@ export async function runTrocearCommand(
     );
   }
   const taskDir = path.dirname(filePath);
-  if (!(await planRedactado(task, taskDir))) {
+  // TASK-144c (CMD1-10): la misma regla que approve. Con dos planes se dice
+  // eso (MENOR-1 de su revision), no «no hay plan redactado».
+  const ruta = planQueCuenta(await resolverPlanFinal(taskDir));
+  if (ruta === 'ambiguo') {
+    throw new TrocearCommandError(
+      `[ERROR] ${id}: hay un plan-final.md en la raiz de la carpeta y otro en planificacion/: no se sabe cual ` +
+        'trocear. Deja solo el de planificacion/ y reintenta. No se ha tocado nada.'
+    );
+  }
+  if (ruta === null || !(await planRedactado(task, taskDir))) {
     throw new TrocearCommandError(
       `[ERROR] ${id}: no hay plan redactado. Las partes se declaran en su seccion "## Troceo".`
     );
   }
-  // TASK-144c (CMD1-10): planRedactado ya descarto null y 'ambiguo'.
-  const rutaPlan = planQueCuenta(await resolverPlanFinal(taskDir)) as string;
+  const rutaPlan = ruta;
   const plan = await readFile(rutaPlan, 'utf8');
 
   let troceo: ReturnType<typeof planificarTroceo>;
