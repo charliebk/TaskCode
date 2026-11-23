@@ -34,7 +34,7 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] Un solo envoltorio de git sin lanzar (gitTexto), una sola rama actual, un solo --git-path y un solo parser de la entrada de los hooks; registro-coste y guardia-merge no cargan el modulo del freno
+- [x] Un solo envoltorio de git sin lanzar (gitTexto), una sola rama actual, un solo --git-path y un solo parser de la entrada de los hooks; registro-coste y guardia-merge no cargan el modulo del freno
 
 ## Transiciones
 
@@ -64,3 +64,14 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-23T11:21:32Z: ronda 2; commit revisado 7e2d3ad9a07e93978e33a2f53c40368000748ec4; commit verificado 51ecb79fb68bd94d20609d47fde1e85d71670674; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/fs/ejecucion-acotada.ts; corregidos: MEN-5; pendientes: ninguno
+
+## Resultado
+
+- Implementado: `fs/git-crudo.ts` es el unico envoltorio de git sin lanzar de fs y hooks (gitTexto, gitLinea, gitResultado, gitOk, rutaGit para `--git-path` y ramaActual, que durante un rebase devuelve la rama que se rebasa). Sustituye los envoltorios de verificacion, guardia-merge, guardia-heldout, sincronizacion, config-de-ref y ejecucion-acotada, y los `--git-path` de coste-pendiente, freno-ultimo-verde, registro-puertas y verificacion; `rutaGitObligatoria` (fs/git.ts) es la variante que lanza, para operacionEnCurso y cadena. Los hooks parsean su entrada con `parsearEntradaHook`. `timeoutEfectivoS` pasa a core/config.ts y `carpetaEnCurso` a fs/task-store.ts: registro-coste, coste-turno, guardia-merge y pre-tool-merge ya no cargan el freno (test del grafo de imports). pendientes usa operacionEnCurso.
+- Cambio de comportamiento: el freno Stop, con un rebase a medias de la rama de la tarea, ahora verifica (antes dejaba parar con HEAD desacoplado), como el guardian de held-out. Con conflictos bloquea una vez; la segunda parada pasa por stop_hook_active. El revisor lo juzgo correcto.
+- Revision: 2 rondas. Ronda 1: IMP-1 (sin test de rebase-apply) e IMP-2 (el cambio del freno sin test), y MEN-1..4 (restos de `--git-path` y de git sin lanzar, alias enganosos, comentarios), corregidos. Ronda 2: aprobada; MEN-5 (fotoDelArbol heredaba un timeout de 60 s) corregido en la verificacion ligera.
+- No corregido: nada.
+
+## Verificacion parcial
+
+- 2026-11-23T11:21:44Z: todo el codigo que cambia la tarea (39 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
