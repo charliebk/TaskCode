@@ -34,7 +34,7 @@
  * primer tramo con el ultimo: crece o baja si la mediana cambia mas de un
  * `UMBRAL_TENDENCIA`; si no, se mantiene.
  */
-import { media, mediana, tablaDeTexto } from './metricas.js';
+import { celdaNumero, media, mediana, tablaDeTexto } from './metricas.js';
 import { compararIds } from './task.js';
 export const TRAMO_POR_DEFECTO = 20;
 /** TASK-122: cambio relativo (0.15 = 15 %) por debajo del cual el coste fijo «se mantiene». */
@@ -140,7 +140,7 @@ export function tendenciaCosteFijo(e) {
     const base = completos.length >= 2 ? completos : e.tramos;
     const a = base[0];
     const b = base[base.length - 1];
-    const parte = (nombre, x, y) => `${nombre} ${x.valor === null ? '—' : String(x.valor)} -> ${y.valor === null ? '—' : String(y.valor)} min (${tendencia(x, y)})`;
+    const parte = (nombre, x, y) => `${nombre} ${celdaNumero(x.valor)} -> ${celdaNumero(y.valor)} min (${tendencia(x, y)})`;
     return (`Coste fijo por tarea, del tramo 1 (${String(a.cerradasAcumuladas)} cerradas) al ${String(b.tramo)} ` +
         `(${String(b.cerradasAcumuladas)} cerradas): ` +
         [

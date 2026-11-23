@@ -217,7 +217,6 @@ export function parsearHeuristica(contenido: string, ruta: string): Heuristica {
     palabras_alto_riesgo: exigirLista(palabras, CLAVE_PALABRAS, ruta),
   };
 
-
   validarEscalaDeNiveles(h, ruta);
   return h;
 }
@@ -302,7 +301,6 @@ function exigirLista(valor: string[] | undefined, clave: string, ruta: string): 
   if (valor === undefined) throw new HeuristicaError(mensajeClaveAusente(ruta, clave));
   return valor;
 }
-
 
 /**
  * Puntua una tarea sumando las senales de la seccion 1 del YML. No hay
