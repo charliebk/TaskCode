@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularFila, type EntradaMetricas } from '../../src/core/metricas.js';
+import { calcularFila, COLUMNAS_METRICAS, type EntradaMetricas } from '../../src/core/metricas.js';
 import { tarea } from '../helpers/tarea-ejemplo.js';
 
 function transiciones(...filas: [string, string][]): string {
@@ -53,4 +53,36 @@ test('veredictoRonda1: aprobada-con-correcciones cuenta como aprobada; un fragme
   );
   assert.equal(calcularFila(entrada()).veredictoRonda1, null);
   assert.equal(calcularFila(entrada({ informes: [informe(2, 'aprobada')] })).veredictoRonda1, null);
+});
+
+test('TASK-153c: hallazgos 4D por D en todos los informes (ID distintos por revisor); sin seccion, sin dato', () => {
+  const con4D = (ronda: number, revisor: string, seccion: string) => ({
+    fichero: `informe-revision-${String(ronda)}-${revisor}.md`,
+    ronda,
+    revisor,
+    texto: `# Informe\n\n- Veredicto: aprobada\n\n## Regla 4D\n\n${seccion}\n`,
+  });
+  const f = calcularFila(
+    entrada({
+      informes: [
+        con4D(1, 'a', '- Duplicacion: IMP-1, MEN-2\n- Desviacion: cumple\n- Diluvio: cumple\n- Disfraz: IMP-3'),
+        // La ronda 2 del mismo revisor repite IMP-1: cuenta una vez.
+        con4D(2, 'a', '- **Duplicación**: IMP-1\n- Desviacion: cumple\n- Diluvio: MEN-4\n- Disfraz: cumple'),
+        // Otro revisor con el mismo ID es otro hallazgo.
+        con4D(1, 'b', '- Duplicacion: IMP-1\n- Desviacion: cumple\n- Diluvio: cumple\n- Disfraz: cumple'),
+      ],
+    })
+  );
+  assert.deepEqual(f.hallazgos4D, { Duplicacion: 3, Desviacion: 0, Diluvio: 1, Disfraz: 1 });
+  const columna = COLUMNAS_METRICAS.find((c) => c.cabecera === '4d');
+  assert.ok(columna !== undefined);
+  assert.equal(columna.valor(f), '3/0/1/1');
+
+  const sinSeccion = calcularFila(entrada({ informes: [informe(1, 'aprobada')] }));
+  assert.equal(sinSeccion.hallazgos4D, null);
+  assert.equal(columna.valor(sinSeccion), '—');
+  const todoCumple = calcularFila(
+    entrada({ informes: [con4D(1, 'a', '- Duplicacion: cumple\n- Desviacion: cumple\n- Diluvio: cumple\n- Disfraz: cumple')] })
+  );
+  assert.equal(columna.valor(todoCumple), '0/0/0/0');
 });
