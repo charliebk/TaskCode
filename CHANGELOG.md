@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-147a (fix) — secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) (2026-11-23)
+
 ## 0.17.1 — 2026-11-23
 
 Ola 1 de las correcciones de la auditoria 4D (TASK-141) y la Regla 4D en la
