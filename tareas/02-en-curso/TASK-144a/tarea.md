@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en
 asignado_a: charlie.bk@gmail.com
@@ -44,3 +44,4 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|
 | 2026-11-23T03:04:55Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T03:05:09Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T03:05:10Z | start | automatico | persona | 0.16.1 |
