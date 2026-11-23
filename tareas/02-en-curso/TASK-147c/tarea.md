@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-147-regla-4d-lectores-de-secciones-e-ids-en
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -37,3 +37,4 @@ Un solo tipo de fase y una sola conversion de fila a Marca (CORE2-12, CORE2-13).
 |---|---|---|---|---|
 | 2026-11-23T10:21:42Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T10:21:43Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T10:21:44Z | start | automatico | persona | 0.16.1 |
