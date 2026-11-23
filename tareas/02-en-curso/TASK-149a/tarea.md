@@ -43,3 +43,8 @@ Objetivo de la tarea entera:
 | 2026-11-23T10:38:51Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T10:39:05Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T10:39:06Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 1140c91: buscados gitTexto/gitCrudo, la ramaActual de guardia-heldout (con rebase), operacionEnCurso y parsearEntradaPreToolUse antes de escribir; nuevos gitLinea, gitResultado, gitOk, rutaGit y parsearEntradaHook en los modulos sin dependencias (cinco envoltorios, seis --git-path y tres parsers sustituidos); 1 fichero de test nuevo (4 tests); 5 mutaciones en rojo
+- code-quality-reviewer — 1140c91
