@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 19545467
-tokens_revision: null
+tokens_revision: 7113106
 creado: 2026-11-22
 actualizado: 2026-11-23
 dependencias: []
@@ -57,3 +57,8 @@ Objetivo de la tarea entera:
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T03:17:48Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 54 | 34362 | 19490426 | 20625 | 15 | 19545467 | - | - |
+| 2026-11-23T03:42:12Z | revision | agente:a8aae47cd9761d323 | 120 | 148025 | 6940663 | 24298 | 11 | 7113106 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-23T03:42:23Z: ronda 1; commit revisado b3ea93abc38ebb35db629549945080aa82896213; commit verificado 7741d0977af9d1a705f0cac4088c02a4ada8bc92; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/commands/verificar-menores.test.ts; corregidos: MENOR-1; pendientes: MENOR-2
