@@ -11,14 +11,13 @@
  * en la copia vieja de la rama base la perderia en el merge).
  */
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { resolverConfig } from '../core/config.js';
 import { registrarTransicion } from '../core/transiciones.js';
 import { mensajeTareaEnOtraRama, runGit, tareaEnOtraRama } from '../fs/git.js';
 import {
   autoCommit,
-  extraerPushFlag,
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';

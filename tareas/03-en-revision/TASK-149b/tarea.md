@@ -1,0 +1,76 @@
+---
+id: TASK-149b
+titulo: "errores y flags del CLI (parte b de TASK-149)"
+tipo: fix
+sprint: 0
+etiquetas: []
+complejidad: alta
+modelo_sugerido: sonnet
+estado: en-revision
+plan_aprobado: true
+rama: fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli
+asignado_a: claude
+agente_revisor: general-purpose
+skills_recomendados: []
+regla_seleccion_skill: null
+ultimo_commit_revisado: null
+revision_codex: false
+tokens_diseno: null
+tokens_implementacion: 8665810
+tokens_revision: 7125335
+creado: 2026-11-23
+actualizado: 2026-11-23
+dependencias: [TASK-149a]
+---
+## Objetivo
+
+Parte b del troceo de TASK-149 (Regla 4D: duplicacion en fs, hooks y cli), partes TASK-149a, TASK-149b, TASK-149c en la rama fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli.
+
+printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, extraerPushFlag en cli/args.ts y aMano una vez (FS-02, FS-03, FS-15, FS-18).
+
+## Criterios de aceptacion
+- [x] doctor-deploy imprime con printAutoCommit y todos los comandos traducen GitCommandError igual, con test de un comando que antes caia en taskctl no pudo arrancar
+- [x] extraerPushFlag vive en cli/args.ts y el texto aMano de sincronizacion existe una vez
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T11:25:54Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T11:25:55Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T11:25:56Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T11:37:36Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T12:02:30Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T12:23:28Z | review | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 424a988: buscados printCliError, printAutoCommit, extraerUnico y el texto aMano antes de escribir; nuevo ERRORES_COMUNES_CLI (la lista comun no existia: 23 catch con listas distintas) y textoAMano; 1 fichero de test nuevo y 2 tests ampliados (doctor-deploy, args); 3 mutaciones en rojo
+- code-quality-reviewer — 424a988
+- 4D — 2735c6e: correccion de la ronda 1; nuevo esErrorComunCli (la decision de main, exportada para probarla); 1 test nuevo con las 9 clases; 4 mutaciones en rojo (quitar una clase de la lista)
+- code-quality-reviewer — 2735c6e
+- 4D — e6292de: correccion de IMP-2 sin helper nuevo (el test usa la lista exportada); 2 mutaciones en rojo (alta y baja de una clase)
+- code-quality-reviewer — e6292de
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T11:37:36Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 42 | 25571 | 8624292 | 15905 | 7 | 8665810 | - | - |
+| 2026-11-23T12:00:40Z | revision | agente:a348b5fe1767a7433 | 64 | 146867 | 4019249 | 14805 | 2 | 4180985 | 1 | - |
+| 2026-11-23T12:08:44Z | revision | agente:ab23f399c176b645d | 28 | 131165 | 1465637 | 19435 | 4 | 1616265 | 2 | - |
+| 2026-11-23T12:29:09Z | revision | agente:a23259cc94b8fd7ed | 26 | 108895 | 1208773 | 10391 | 3 | 1328085 | 3 | - |
+
+## Rondas extra
+
+- Ronda 3: Carlos, verificar la correccion de IMP-2 (el test compara con la lista exportada de errores comunes)
+
+## Resultado
+
+- Implementado: los errores comunes del CLI (`ERRORES_COMUNES_CLI`: AutoCommitError, ConfigError, GitLaunchError, GitCommandError, GitflowScriptLaunchError, BaseBranchGuardError, TaskIdError, StateMachineError, TaskFolderConflictError) se traducen en `main` con `esErrorComunCli` para todos los comandos; cada catch de comando conserva solo sus errores propios. `taskctl new` fuera de un repo salia como «taskctl no pudo arrancar» y ahora da «[ERROR] git ... fallo» con codigo 1 (test con el binario real). doctor-deploy imprime con `printAutoCommit` (con --json, por stderr). `extraerPushFlag` vive en cli/args.ts (15 comandos y su test movidos). El texto aMano de sincronizacion existe una vez (`textoAMano`).
+- Revision: 3 rondas (la 3, extra, decidida por Carlos). Ronda 1: IMP-1 (solo GitCommandError tenia un test que discriminara su entrada en la lista) y MEN-1 (fines de fichero), corregidos con `esErrorComunCli` y un test de las 9 clases. Ronda 2: IMP-2 (el test tenia su propia copia de la lista; una clase nueva pasaba sin comprobar), corregido comparando con la lista exportada. Ronda 3: aprobada.
+- No corregido: solo GitCommandError se prueba de punta a punta con el binario; las otras ocho se comprueban por prototipo en `esErrorComunCli`, que es lo que usa main.
+
+## Verificacion parcial
+
+- 2026-11-23T12:29:10Z: todo el codigo que cambia la tarea (40 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`

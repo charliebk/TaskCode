@@ -27,7 +27,7 @@
  * `finish` al cerrar.
  */
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { STATE_FOLDER } from '../core/task.js';
 import { raizDelRepo, resolverConfig } from '../core/config.js';
@@ -49,7 +49,7 @@ import { fenceFor } from '../core/markdown.js';
 import { candidatos4D, definicionesDeGrep, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, definicionesEnRef, GitLaunchError, GitCommandError, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { conPendientesApartados, hayCambiosFueraDeTarea, recuperarApartado } from '../fs/pendientes.js';

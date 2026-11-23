@@ -23,7 +23,7 @@
  */
 import path from 'node:path';
 import { avisosDeployDeRelease } from '../fs/informes-deploy.js';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import {
   FinishCommandError,
   FLAGS_FINISH,
@@ -83,7 +83,6 @@ import {
 import {
   autoCommit,
   AutoCommitError,
-  extraerPushFlag,
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';

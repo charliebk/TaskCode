@@ -18,7 +18,7 @@
  * seccion 8.3 (ensureBaseBranchReady) antes de escribir nada.
  */
 import path from 'node:path';
-import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import type { Task } from '../core/task.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import {
@@ -52,7 +52,6 @@ import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
 import { ensureBaseBranchReady, type BaseBranchGuardResult } from '../fs/git.js';
 import {
   autoCommit,
-  extraerPushFlag,
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';

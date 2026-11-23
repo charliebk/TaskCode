@@ -23,7 +23,7 @@
  */
 import path from 'node:path';
 import { avisosDeployDeRelease } from '../fs/informes-deploy.js';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { FinishCommandError, FLAGS_FINISH, extraerFlagsCierre, validarNombreTag, comprobarTagLibre, planificarTag, ponerTag, subirTag, preflightMergeRequest, } from './finish-opciones.js';
 import { anotarMergeRequest, ocultarCredenciales, urlMergeRequestAnotada, } from '../core/plataforma-remota.js';
 import { abrirMergeRequest, estadoMergeRequest, MergeRequestError } from '../fs/merge-request.js';
@@ -42,7 +42,7 @@ import { avisoRegla4D } from '../core/informe-revision.js';
 import { casillasSinMarcar } from '../core/validacion-tarea.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isAncestor, resolveMainBranch, lsTreeNames, showFileAtRef, mergeBase, checkoutBranch, resolveIntegrationBranch, localBranchExists, commitDeIntegracion, numeroDePadres, pushRama, fetchOrigin, resolverCommit, fastForwardDesde, runGit, GitCommandError, } from '../fs/git.js';
-import { autoCommit, AutoCommitError, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { autoCommit, AutoCommitError, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { apartarPendientes, hayCambiosFueraDeTarea, hayPendientesDeTarea, recuperarApartado, } from '../fs/pendientes.js';

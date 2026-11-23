@@ -27,7 +27,7 @@
  * finish.ts YA lo hacen, y no se tocan en esta tarea).
  */
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { writeFile, mkdir } from 'node:fs/promises';
 import type { Task } from '../core/task.js';
 import { readTareaFile, isEexist } from '../fs/task-store.js';
@@ -48,7 +48,6 @@ import {
 } from '../fs/git.js';
 import {
   autoCommit,
-  extraerPushFlag,
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';

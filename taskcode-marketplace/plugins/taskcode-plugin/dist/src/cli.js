@@ -38,7 +38,7 @@ import { TaskFolderConflictError } from './fs/task-store.js';
 import { BaseBranchGuardError, GitCommandError, GitLaunchError, } from './fs/git.js';
 import { AutoCommitError } from './fs/git-commit.js';
 import { CODIGO_SINCRONIZACION_NO_APLICADA, sincronizacionNoAplicada, } from './fs/sincronizacion.js';
-// ConfigError se captura en los mismos catch que AutoCommitError
+// ConfigError es un error comun del CLI (ERRORES_COMUNES_CLI, TASK-149b)
 // (integracion TASK-030): sin esto cae al catch-all de bin/taskctl y
 // sale como "[ERROR] taskctl no pudo arrancar: ...", que miente —
 // taskctl arranco bien, lo que esta mal es el .taskcode/config.yml
@@ -227,19 +227,19 @@ function printBaseBranchSwitchNotice(guard) {
  * tiene que hacer algo. Los avisos (sin origin, HEAD desacoplado) van
  * por stderr, como el resto de avisos del CLI.
  */
-function printAutoCommit(r) {
+function printAutoCommit(r, escribir = (t) => void process.stdout.write(t)) {
     printAvisos(...r.avisos);
     if (sincronizacionNoAplicada(r.sincronizacion))
         sincronizacionPendiente = true;
     if (r.commiteado) {
         const n = r.ficheros.length;
-        process.stdout.write(`Commiteado ${r.commit} en "${r.rama}" (${n} fichero${n === 1 ? '' : 's'}).\n`);
+        escribir(`Commiteado ${r.commit} en "${r.rama}" (${n} fichero${n === 1 ? '' : 's'}).\n`);
     }
     else {
-        process.stdout.write('Sin cambios que commitear (nada nuevo en disco).\n');
+        escribir('Sin cambios que commitear (nada nuevo en disco).\n');
     }
     if (r.push === 'empujado') {
-        process.stdout.write(`Push completado: ${r.rama} -> origin/${r.rama}.\n`);
+        escribir(`Push completado: ${r.rama} -> origin/${r.rama}.\n`);
     }
 }
 /**
@@ -395,8 +395,37 @@ export async function main(argv) {
     // el suyo al comando de verificacion y a nadie mas (scripts de Git-Flow,
     // held-out, tests que lanzan otros taskctl...).
     delete process.env[VARIABLE_PROGRESO];
-    const codigo = await mainComando(argv);
+    let codigo;
+    try {
+        codigo = await mainComando(argv);
+    }
+    catch (e) {
+        // TASK-149b (FS-03): los errores comunes se traducen igual en todos los
+        // comandos; cada catch de comando conserva solo los suyos. Sin esto, un
+        // GitCommandError en new, plan, approve... salia como «taskctl no pudo arrancar».
+        if (esErrorComunCli(e)) {
+            printCliError(e);
+            return 1;
+        }
+        throw e;
+    }
     return codigo === 0 && sincronizacionPendiente ? CODIGO_SINCRONIZACION_NO_APLICADA : codigo;
+}
+/** TASK-149b (FS-03): errores que cualquier comando puede lanzar y que el CLI traduce a «[ERROR] ...» con codigo 1. */
+export const ERRORES_COMUNES_CLI = [
+    AutoCommitError,
+    ConfigError,
+    GitLaunchError,
+    GitCommandError,
+    GitflowScriptLaunchError,
+    BaseBranchGuardError,
+    TaskIdError,
+    StateMachineError,
+    TaskFolderConflictError,
+];
+/** TASK-149b (IMP-1 de su revision): true si `main` traduce `e` a «[ERROR] ...» con codigo 1. */
+export function esErrorComunCli(e) {
+    return ERRORES_COMUNES_CLI.some((C) => e instanceof C);
 }
 async function mainComando(argvEntrada) {
     let argv = argvEntrada;
@@ -420,7 +449,7 @@ async function mainComando(argvEntrada) {
             await verificarCadena(process.cwd(), extraida.testigo);
         }
         catch (e) {
-            if (e instanceof CadenaCommandError || e instanceof GitLaunchError || e instanceof GitCommandError) {
+            if (e instanceof CadenaCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -456,11 +485,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof NewTaskArgError ||
-                e instanceof TaskIdError ||
-                e instanceof BaseBranchGuardError) {
+            if (e instanceof NewTaskArgError) {
                 printCliError(e);
                 return 1;
             }
@@ -495,11 +520,7 @@ async function mainComando(argvEntrada) {
             return result.errores.length > 0 ? 1 : 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof ImportCommandError ||
-                e instanceof TaskIdError ||
-                e instanceof BaseBranchGuardError) {
+            if (e instanceof ImportCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -514,7 +535,7 @@ async function mainComando(argvEntrada) {
             return result.codigo;
         }
         catch (e) {
-            if (e instanceof RoadmapCommandError || e instanceof ConfigError) {
+            if (e instanceof RoadmapCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -602,15 +623,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            // GitflowScriptLaunchError incluido (hallazgo menor de revision
-            // por pares, TASK-014, preexistente desde TASK-009): sin esto un
-            // bash ilanzable caia al catch-all con "taskctl no pudo arrancar".
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof StartCommandError ||
-                e instanceof StateMachineError ||
-                e instanceof TaskFolderConflictError ||
-                e instanceof GitflowScriptLaunchError) {
+            if (e instanceof StartCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -647,15 +660,10 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof HeuristicaError ||
+            if (e instanceof HeuristicaError ||
                 e instanceof RolesBrainstormError ||
                 e instanceof CatalogoSkillsError ||
-                e instanceof PlanCommandError ||
-                e instanceof StateMachineError ||
-                e instanceof TaskFolderConflictError ||
-                e instanceof BaseBranchGuardError) {
+                e instanceof PlanCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -680,12 +688,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof ApproveCommandError ||
-                e instanceof StateMachineError ||
-                e instanceof TaskFolderConflictError ||
-                e instanceof BaseBranchGuardError) {
+            if (e instanceof ApproveCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -705,11 +708,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof TrocearCommandError ||
-                e instanceof TaskFolderConflictError ||
-                e instanceof BaseBranchGuardError) {
+            if (e instanceof TrocearCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -758,19 +757,8 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            // GitLaunchError/GitCommandError tambien se capturan aqui
-            // (hallazgo MENOR de revision por pares, TASK-013): sin esto
-            // caian al catch-all de bin/taskctl con el prefijo enganoso
-            // "taskctl no pudo arrancar".
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof ReviewCommandError ||
-                e instanceof PendientesError ||
-                e instanceof StateMachineError ||
-                e instanceof TaskFolderConflictError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError ||
-                e instanceof GitflowScriptLaunchError) {
+            if (e instanceof ReviewCommandError ||
+                e instanceof PendientesError) {
                 printCliError(e);
                 return 1;
             }
@@ -801,15 +789,9 @@ async function mainComando(argvEntrada) {
                 if (r.tareas.baseBranchGuard?.switched === true) {
                     aviso(`Workspace limpio -> cambiado automaticamente de "${r.tareas.baseBranchGuard.branchAntes}" a "${r.tareas.baseBranchGuard.baseBranch}" para crear las tareas.\n`);
                 }
-                const ac = r.tareas.autoCommit;
-                if (ac !== null) {
-                    printAvisos(...ac.avisos);
-                    if (sincronizacionNoAplicada(ac.sincronizacion))
-                        sincronizacionPendiente = true;
-                    aviso(ac.commiteado
-                        ? `Commiteado ${ac.commit} en "${ac.rama}" (${ac.ficheros.length} fichero(s)).\n`
-                        : 'Sin cambios que commitear (nada nuevo en disco).\n');
-                }
+                // TASK-149b (FS-02): el mismo printAutoCommit; con --json, por stderr.
+                if (r.tareas.autoCommit !== null)
+                    printAutoCommit(r.tareas.autoCommit, aviso);
             }
             if (r.mensajeEscritura !== '')
                 aviso(r.mensajeEscritura);
@@ -818,11 +800,7 @@ async function mainComando(argvEntrada) {
         catch (e) {
             if (e instanceof DoctorDeployCommandError ||
                 e instanceof DoctorDeployCatalogoError ||
-                e instanceof DoctorDeployTareasError ||
-                e instanceof TaskIdError ||
-                e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof BaseBranchGuardError) {
+                e instanceof DoctorDeployTareasError) {
                 printCliError(e);
                 return 1;
             }
@@ -847,10 +825,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof ConfigError ||
-                e instanceof SiguienteCommandError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof SiguienteCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -871,7 +846,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof CadenaCommandError || e instanceof GitLaunchError || e instanceof GitCommandError) {
+            if (e instanceof CadenaCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -888,11 +863,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof PausaCommandError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof PausaCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -915,11 +886,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof RegistrarCosteCommandError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof RegistrarCosteCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -946,12 +913,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof VerificarMenoresCommandError ||
-                e instanceof StateMachineError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof VerificarMenoresCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -974,11 +936,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof VerificarLoteCommandError ||
-                e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof VerificarLoteCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -997,12 +955,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof VeredictoCommandError ||
-                e instanceof StateMachineError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof VeredictoCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -1035,12 +988,7 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof CodexReviewCommandError ||
-                e instanceof StateMachineError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof CodexReviewCommandError) {
                 printCliError(e);
                 return 1;
             }
@@ -1115,15 +1063,8 @@ async function mainComando(argvEntrada) {
             return 0;
         }
         catch (e) {
-            if (e instanceof AutoCommitError ||
-                e instanceof ConfigError ||
-                e instanceof FinishCommandError ||
-                e instanceof PendientesError ||
-                e instanceof StateMachineError ||
-                e instanceof TaskFolderConflictError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError ||
-                e instanceof GitflowScriptLaunchError) {
+            if (e instanceof FinishCommandError ||
+                e instanceof PendientesError) {
                 printCliError(e);
                 return 1;
             }
@@ -1164,10 +1105,7 @@ async function mainComando(argvEntrada) {
             return result.code;
         }
         catch (e) {
-            if (e instanceof WrapperCommandError ||
-                e instanceof GitflowScriptLaunchError ||
-                e instanceof GitLaunchError ||
-                e instanceof GitCommandError) {
+            if (e instanceof WrapperCommandError) {
                 printCliError(e);
                 return 1;
             }

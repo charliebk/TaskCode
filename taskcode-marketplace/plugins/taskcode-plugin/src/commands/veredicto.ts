@@ -21,11 +21,11 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
-import { extraerPushFlag, type AutoCommitResult } from '../fs/git-commit.js';
+import { type AutoCommitResult } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
 
 export class VeredictoCommandError extends Error {}

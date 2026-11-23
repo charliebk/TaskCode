@@ -24,7 +24,7 @@
  */
 import path from 'node:path';
 import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { parseAsignadoAFlag, identidadUsable, PISTA_VACIO_ESCRITURA, } from '../cli/asignado.js';
 import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { registrarTransicion } from '../core/transiciones.js';
@@ -33,7 +33,7 @@ import { assertTransitionAllowed } from '../core/state-machine.js';
 import { conProgreso, crearProgreso } from '../fs/progreso.js';
 import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
 import { ensureBaseBranchReady, gitUserEmail } from '../fs/git.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { resolverAsignado } from '../core/wip.js';
 import { extraerSecciones } from '../core/tarea-body.js';
 import { LINEA_PLANTILLA_REUTILIZACION, SECCION_REUTILIZACION, validarEnunciado } from '../core/validacion-tarea.js';

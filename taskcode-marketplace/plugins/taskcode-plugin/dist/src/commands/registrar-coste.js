@@ -44,7 +44,7 @@
  */
 import { readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible, extraerPushFlag } from '../cli/args.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import { esAgentIdValido, rondaYRevisorDeTranscripcion, sumarUsoTranscripcion, } from '../core/coste-transcripcion.js';
@@ -54,7 +54,7 @@ import { anadirCoste, FASES_COSTE, PREFIJO_DIFERENCIA, idsDeFuente, leerCostes, 
 import { formatearInstante } from '../core/transiciones.js';
 import { buscarTranscripciones, directorioConfigClaude, leerTranscripcion } from '../fs/transcripciones.js';
 import { mensajeTareaEnOtraRama, runGit, tareaEnOtraRama } from '../fs/git.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 export class RegistrarCosteCommandError extends Error {
 }
 /** Flags de `taskctl registrar-coste`: --fase, --tokens y --agente, mas extraerPushFlag. */

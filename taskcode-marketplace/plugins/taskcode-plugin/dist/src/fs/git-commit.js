@@ -352,28 +352,3 @@ function detalleDeError(e) {
     }
     return e instanceof Error ? e.message : String(e);
 }
-/**
- * Saca `--push` / `-p` de argv y devuelve el resto.
- *
- * No se delega en `parseArgs` a proposito: ese parser trata
- * `--flag valor` como par, asi que `taskctl plan --push TASK-030` se
- * habria leido como `push="TASK-030"` y la tarea habria desaparecido
- * de los posicionales. Como `--push` es booleano puro, quitarlo antes
- * de parsear es mas simple que ensenarle al parser que hay flags sin
- * valor.
- *
- * `-p` se acepta ademas de `--push` porque `pause-work.sh` ya acepta
- * las dos formas: mismo flag, mismo significado, mismo vocabulario.
- */
-export function extraerPushFlag(argv) {
-    const resto = [];
-    let push = false;
-    for (const arg of argv) {
-        if (arg === '--push' || arg === '-p') {
-            push = true;
-            continue;
-        }
-        resto.push(arg);
-    }
-    return { push, resto };
-}
