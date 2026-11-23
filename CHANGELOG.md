@@ -1,13 +1,24 @@
 # Changelog
 
-## Sin publicar
+## 0.17.1 — 2026-11-23
+
+Ola 1 de las correcciones de la auditoria 4D (TASK-141) y la Regla 4D en la
+creacion de codigo y tests. El plan trae su seccion de reutilizacion y approve
+avisa si falta; review exige la linea 4D de la autorrevision; la peticion de
+revision trae candidatos 4D (posibles duplicados y tests a mutar) y metricas
+cuenta los hallazgos 4D por tarea (TASK-153). Git-Flow: resume aplica el
+stash exacto de la rama, pause --push sin origin avisa y push-back aditivo
+falla si el destino rechaza algo (TASK-142). La cadena guarda todos los
+comandos que escriben, siguiente con sincronizacion ya no pregunta tras una
+ronda aprobada y los flags con valor se leen igual en todos los comandos
+(TASK-144). En Windows nativo la suite ya no tiene rojos esperados (TASK-154).
+
 - TASK-144c (fix) — patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) (2026-11-23)
 - TASK-144b (fix) — flags con y sin valor (parte b de TASK-144) (2026-11-23)
 - TASK-144a (fix) — cadena, Commit revisado y tarea en su rama (parte a de TASK-144) (2026-11-23)
 - TASK-153c (feature) — metricas de hallazgos 4D (parte c de TASK-153) (2026-11-23)
 - TASK-153b (feature) — candidatos 4D en la peticion de revision (parte b de TASK-153) (2026-11-23)
 - TASK-153a (feature) — plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) (2026-11-22)
-
 - TASK-154 (fix) — plan.test.ts en verde en Windows nativo (2026-11-22)
 - TASK-142 (fix) — Regla 4D: disfraz en los scripts de Git-Flow (2026-11-22)
 - TASK-141 (feature) — Auditoria 4D inicial: reconocimiento completo del codigo existente (2026-11-22)

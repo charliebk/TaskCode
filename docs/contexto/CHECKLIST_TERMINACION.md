@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 149 / 162 items terminados (92%)** · última actualización: 2026-11-22
+**Progreso global: 150 / 162 items terminados (93%)** · última actualización: 2026-11-22
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,8 +41,8 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 16 | **3** | ~32h |
-| **Total pendiente** | **13** | — | — |
+| Q — Correcciones de la auditoría 4D | 16 | **4** | ~32h |
+| **Total pendiente** | **12** | — | — |
 
 
 Las fases cerradas (Sprint 0 y 1, A a P), las decisiones ya resueltas (#1 a
@@ -57,7 +57,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## Q — Correcciones de la auditoría 4D (3/16)
+## Q — Correcciones de la auditoría 4D (4/16)
 
 Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`docs/auditoria-4d-completa.md`](../auditoria-4d-completa.md).
 
@@ -67,3 +67,5 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
       *El test de EACCES se omite con motivo solo si chmod no impide escribir (NTFS); el de CRLF compara sin finales de linea. Sin rojos esperados en Windows: finish vuelve a verificar de verdad (completa en verde). Una ronda aprobada con correcciones (MEN-1).*
 - [x] TASK-153 (a, b, c) — Regla 4D en la creacion de codigo y tests — cerrada el 2026-11-23
       *Plan con ## Reutilizacion (aviso de approve), linea 4D exigida en la autorrevision, guia disfraz-tests.md, ## Candidatos 4D en la peticion (duplicados y tests a mutar, coste acotado) y columna 4d en metricas. 153b necesito 2 rondas (IMP coste e IMP tests); 153a y 153c, una con correcciones.*
+- [x] TASK-144 (a, b, c) — Regla 4D: ciclo de vida, cadena y flags en commands — cerrada el 2026-11-23
+      *Cadena derivada de los comandos que escriben, Commit revisado y codigo cambiado en un solo sitio (siguiente con sincronizacion ya no pregunta), extraerUnico para los flags con valor y FLAGS_SIN_VALOR con test de paridad, patrones de ronda/rol y plan que cuenta unificados. 144b y 144c necesitaron 2 rondas.*
