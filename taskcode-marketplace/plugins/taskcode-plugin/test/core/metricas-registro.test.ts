@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularFila, minutosPuntaAPunta } from '../../src/core/metricas.js';
+import { calcularFila, celdaNumero, minutosPuntaAPunta } from '../../src/core/metricas.js';
 import { FASES_REGISTRADAS } from '../../src/core/transiciones.js';
 import { FASES_CICLO } from '../../src/core/progreso.js';
 import { tarea } from '../helpers/tarea-ejemplo.js';
@@ -53,4 +53,10 @@ test('puertas (MEN-1 de la revision): los segundos fraccionarios se redondean al
   });
   assert.deepEqual(fila.sincronizacion, { valor: 1235, precision: 'segundo' });
   assert.deepEqual(fila.freno, { ejecuciones: 2, duracion: { valor: 1, precision: 'segundo' } });
+});
+
+test('celdaNumero (TASK-148d, CORE2-20): la cifra con su sufijo, o «—» sin dato (nunca 0)', () => {
+  assert.equal(celdaNumero(null), '—');
+  assert.equal(celdaNumero(0), '0');
+  assert.equal(celdaNumero(12, 'm'), '12m');
 });

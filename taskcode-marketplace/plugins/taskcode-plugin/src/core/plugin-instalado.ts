@@ -48,6 +48,10 @@
  * un cuarto estado para "instalado pero deshabilitado" exigiria ademas
  * un aviso distinto en plan.ts ("/plugin enable" en vez de
  * "/plugin install") que nadie ha pedido todavia.
+ *
+ * E/S en core (TASK-148d, CORE2-21): es la excepcion declarada a core puro; el
+ * subproceso esta aislado aqui para que el resto de la seleccion de skill siga
+ * siendo pura.
  */
 import { spawnSync } from 'node:child_process';
 

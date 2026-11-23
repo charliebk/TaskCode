@@ -477,15 +477,16 @@ export function totalTokens(t) {
     const datos = FASES_TOKENS.map((k) => t[k]).filter((v) => v !== null);
     return datos.length === 0 ? null : datos.reduce((a, b) => a + b, 0);
 }
-function celdaTokens(v) {
-    return v === null ? '—' : String(v);
+/** TASK-148d (CORE2-20): una cifra de tabla, o «—» sin dato (nunca 0); con `sufijo` tras la cifra. */
+export function celdaNumero(v, sufijo = '') {
+    return v === null ? '—' : `${String(v)}${sufijo}`;
 }
 /** Las que anade `--tokens` a la tabla: «curso» es la implementacion, como en las duraciones. */
 export const COLUMNAS_TOKENS = [
-    { cabecera: 'tok_diseno', valor: (f) => celdaTokens(f.tokens.diseno) },
-    { cabecera: 'tok_curso', valor: (f) => celdaTokens(f.tokens.implementacion) },
-    { cabecera: 'tok_revision', valor: (f) => celdaTokens(f.tokens.revision) },
-    { cabecera: 'tok_total', valor: (f) => celdaTokens(totalTokens(f.tokens)) },
+    { cabecera: 'tok_diseno', valor: (f) => celdaNumero(f.tokens.diseno) },
+    { cabecera: 'tok_curso', valor: (f) => celdaNumero(f.tokens.implementacion) },
+    { cabecera: 'tok_revision', valor: (f) => celdaNumero(f.tokens.revision) },
+    { cabecera: 'tok_total', valor: (f) => celdaNumero(totalTokens(f.tokens)) },
 ];
 /** Columnas del bloque de docs/METRICAS.md: solo lo que no depende de git log ni del reloj. */
 export const COLUMNAS_BLOQUE_TOKENS = [
@@ -659,8 +660,8 @@ function celdaSinDesglose(f) {
 }
 /** Las que anade `--tokens` a la tabla por pantalla (no al bloque de docs/METRICAS.md). */
 export const COLUMNAS_DESGLOSE_TOKENS = [
-    { cabecera: 'tok_nuevos', valor: (f) => celdaTokens(sumaDesglose(f, 'nuevos')) },
-    { cabecera: 'tok_cache_lect', valor: (f) => celdaTokens(sumaDesglose(f, 'cacheLectura')) },
+    { cabecera: 'tok_nuevos', valor: (f) => celdaNumero(sumaDesglose(f, 'nuevos')) },
+    { cabecera: 'tok_cache_lect', valor: (f) => celdaNumero(sumaDesglose(f, 'cacheLectura')) },
     { cabecera: 'tok_sin_desglose', valor: celdaSinDesglose },
 ];
 export const NOTA_DESGLOSE_TOKENS = 'Desglose de "## Coste" (solo tareas con esa tabla; «—» = sin tabla, y en tok_nuevos y ' +
@@ -794,9 +795,6 @@ export function lineaSinCoste(r, varios = false) {
         (resto > 0 ? ` y ${String(resto)} mas (lista completa con --json).` : '.'));
 }
 // --- Lecturas por revisor y ronda (TASK-081) ---------------------------------
-function celdaOAusente(n) {
-    return n === null ? '—' : String(n);
-}
 export const NOTA_LECTURAS_REVISION = 'Lecturas de revision por tarea, ronda y revisor (de "## Coste", fase revision, una fila por agente): ' +
     'lecturas = LLAMADAS de lectura del revisor, no bytes ni causa de los tokens (no ve "cd x && cat y"); ' +
     'entrada y cache_lect, sus tokens de esas filas; crit e imp, los CRITICO e IMPORTANTE de su informe. ' +
@@ -809,11 +807,11 @@ export function formatearLecturasRevision(filas, varios = false) {
         etiquetaTarea(f, varios),
         g.ronda === null ? '—' : String(g.ronda),
         g.revisor === null ? '—' : g.revisor === '' ? '(sin fragmentar)' : g.revisor,
-        celdaOAusente(g.lecturas),
-        celdaOAusente(g.entrada),
-        celdaOAusente(g.cacheLectura),
-        celdaOAusente(g.critico),
-        celdaOAusente(g.importante),
+        celdaNumero(g.lecturas),
+        celdaNumero(g.entrada),
+        celdaNumero(g.cacheLectura),
+        celdaNumero(g.critico),
+        celdaNumero(g.importante),
     ]));
     if (celdas.length === 0)
         return [];

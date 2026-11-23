@@ -26,6 +26,10 @@
  * Mismo criterio fail-closed que catalogo-skills.ts: un bloque yaml mal
  * formado en una skill que SI declara `rol: revisor` aborta taskctl
  * entero, no degrada en silencio al generico.
+ *
+ * E/S en core (TASK-148d, CORE2-21): cargarCatalogoRevisores es la excepcion
+ * declarada a core puro (lee skills/ sin cache, por el motivo de arriba);
+ * clasificarPorDominio sigue siendo pura.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';

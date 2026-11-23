@@ -22,7 +22,7 @@
  *  - Tokens por fase: suma y media de las tareas con dato en esa fase
  *    (`conDato`); null = sin registrar, no cero.
  */
-import { media, tablaDeTexto, type FilaMetricas } from './metricas.js';
+import { celdaNumero, media, tablaDeTexto, type FilaMetricas } from './metricas.js';
 import { resumirGrupo } from './grupos-metricas.js';
 import type { ConteoOrigen, ConteoSeveridad } from './informe-revision.js';
 import { compararVersiones } from './version.js';
@@ -132,10 +132,6 @@ export function calcularPorVersion(filas: readonly FilaMetricas[]): PorVersion {
   };
 }
 
-function celda(v: number | null): string {
-  return v === null ? '—' : String(v);
-}
-
 function celdaTokens(c: CifraTokens): string {
   return c.media === null ? '—' : `${String(c.media)} (n=${String(c.conDato)})`;
 }
@@ -172,11 +168,11 @@ export function formatearPorVersion(p: PorVersion): string {
       String(g.n),
       String(g.conRevision),
       g.pctAprobadaPrimera === null ? '—' : `${String(g.pctAprobadaPrimera)}% (${String(g.aprobadasPrimera)})`,
-      celda(g.rondasMedia),
+      celdaNumero(g.rondasMedia),
       celdaTokens(g.tokens.diseno),
       celdaTokens(g.tokens.implementacion),
       celdaTokens(g.tokens.revision),
-      celda(g.tests),
+      celdaNumero(g.tests),
       g.completaS === null ? '—' : `${String(Math.round(g.completaS))} s`,
     ])
   );

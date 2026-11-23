@@ -22,7 +22,7 @@
  *  - Tokens por fase: suma y media de las tareas con dato en esa fase
  *    (`conDato`); null = sin registrar, no cero.
  */
-import { media, tablaDeTexto } from './metricas.js';
+import { celdaNumero, media, tablaDeTexto } from './metricas.js';
 import { resumirGrupo } from './grupos-metricas.js';
 import { compararVersiones } from './version.js';
 // El orden semver vive en `version.ts` desde TASK-087 (doctor lo usa tambien);
@@ -88,9 +88,6 @@ export function calcularPorVersion(filas) {
         sinVersion: resumirVersion(null, t.filter((f) => f.versionCierre === null)),
     };
 }
-function celda(v) {
-    return v === null ? '—' : String(v);
-}
 function celdaTokens(c) {
     return c.media === null ? '—' : `${String(c.media)} (n=${String(c.conDato)})`;
 }
@@ -122,11 +119,11 @@ export function formatearPorVersion(p) {
         String(g.n),
         String(g.conRevision),
         g.pctAprobadaPrimera === null ? '—' : `${String(g.pctAprobadaPrimera)}% (${String(g.aprobadasPrimera)})`,
-        celda(g.rondasMedia),
+        celdaNumero(g.rondasMedia),
         celdaTokens(g.tokens.diseno),
         celdaTokens(g.tokens.implementacion),
         celdaTokens(g.tokens.revision),
-        celda(g.tests),
+        celdaNumero(g.tests),
         g.completaS === null ? '—' : `${String(Math.round(g.completaS))} s`,
     ]));
     const hallazgos = tablaDeTexto(['version', 'con tabla', 'sin tabla', 'CRITICO', 'IMPORTANTE', 'MENOR', 'desconocida', 'impl.', 'plan', 'especif.', 'sin clasificar'], grupos.map((g) => {

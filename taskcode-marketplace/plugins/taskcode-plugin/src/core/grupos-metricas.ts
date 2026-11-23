@@ -26,7 +26,7 @@
  *    caen siempre en el mismo tercil (y los grupos pueden no ser iguales).
  */
 import { TASK_COMPLEXITIES, TASK_TYPES } from './task.js';
-import { media, tablaDeTexto, type FilaMetricas } from './metricas.js';
+import { celdaNumero, media, tablaDeTexto, type FilaMetricas } from './metricas.js';
 import { kbPorTarea } from './evolucion.js';
 
 export interface GrupoMetricas {
@@ -146,10 +146,6 @@ export function calcularGrupos(filas: readonly FilaMetricas[], proyectos: readon
   };
 }
 
-function celda(v: number | null, sufijo = ''): string {
-  return v === null ? '—' : `${String(v)}${sufijo}`;
-}
-
 function tablaGrupos(etiqueta: string, grupos: readonly GrupoMetricas[]): string {
   return tablaDeTexto(
     [etiqueta, 'tareas', 'con revision', 'a la primera', 'rondas medias', 'CRIT+IMP/tarea', 'sin revision', 'sin tabla'],
@@ -158,7 +154,7 @@ function tablaGrupos(etiqueta: string, grupos: readonly GrupoMetricas[]): string
       String(g.n),
       String(g.conRevision),
       g.pctAprobadaPrimera === null ? '—' : `${String(g.pctAprobadaPrimera)}% (${String(g.aprobadasPrimera)})`,
-      celda(g.rondasMedia),
+      celdaNumero(g.rondasMedia),
       g.critImpPorTarea === null ? '—' : `${String(g.critImpPorTarea)} (n=${String(g.conHallazgos)})`,
       String(g.sinRevision),
       String(g.sinTablaHallazgos),
