@@ -20,7 +20,7 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { runGit } from '../fs/git.js';
 import { isEexist, isEnoent } from '../fs/task-store.js';
 import { isValidTaskId } from '../core/task.js';
@@ -239,26 +239,17 @@ export async function verificarCadena(repoCwd: string, testigo: string | undefin
   );
 }
 
-/** Saca `--cadena <testigo>` (o `--cadena=<testigo>`) de argv. Sin valor, testigo vacio (y falla al validar). */
+/** Saca `--cadena <testigo>` (o `--cadena=<testigo>`) de argv. Sin testigo o vacio, aborta (CadenaCommandError). */
 export function extraerCadena(argv: readonly string[]): { testigo: string | undefined; resto: string[] } {
-  const resto: string[] = [];
-  let testigo: string | undefined;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i] as string;
-    // TASK-065: un --cadena repetido no se pisa en silencio.
-    if (testigo !== undefined && (a === '--cadena' || a.startsWith('--cadena='))) {
-      throw new CadenaCommandError(
-        '[ERROR] --cadena esta repetido y no admite repeticion: pasa el testigo una sola vez.'
-      );
-    }
-    if (a === '--cadena') {
-      testigo = argv[i + 1] ?? '';
-      i++;
-    } else if (a.startsWith('--cadena=')) {
-      testigo = a.slice('--cadena='.length);
-    } else {
-      resto.push(a);
-    }
-  }
-  return { testigo, resto };
+  // TASK-144b: el lector comun de flag con valor. TASK-065: un --cadena
+  // repetido no se pisa en silencio; sin testigo aborta (MEN-2: un testigo
+  // vacio nunca casa con el de un bloqueo roto).
+  const { valor, resto } = extraerUnico(argv, '--cadena', (repetido) =>
+    new CadenaCommandError(
+      repetido
+        ? '[ERROR] --cadena esta repetido y no admite repeticion: pasa el testigo una sola vez.'
+        : '[ERROR] --cadena necesita el testigo de la cadena: --cadena <testigo>.'
+    )
+  );
+  return { testigo: valor ?? undefined, resto };
 }

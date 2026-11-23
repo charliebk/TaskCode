@@ -861,6 +861,9 @@ export const FASES_SINCRONIZACION = [
     'registrar-coste',
     'codex-review',
     'doctor-deploy',
+    // TASK-144b (CMD2-14): el commit del lote tambien es una fase, y con
+    // fases_sincronizacion declarado solo sincroniza si esta en la lista.
+    'verificar-lote',
 ];
 /** TASK-126: lista no vacia de tipos de rama (`release`, `hotfix`); otro valor aborta. */
 function validarVerificacionPesadaEn(donde, valor) {

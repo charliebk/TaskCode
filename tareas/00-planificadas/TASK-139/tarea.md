@@ -31,3 +31,4 @@ Cerrar los disfraces que encontro la auditoria 4D de TASK-137 (docs/auditoria-4d
 - [ ] La rama de cerrojo ilegible de scripts/verificar-impacto.mjs tiene un test que falla al romperla
 - [ ] Las aserciones del mensaje bash de Git de doctor tienen equivalente que corre en Linux, o se documenta por que no
 - [ ] El test de 1100 ficheros de review-tests-stat se elimina o se justifica frente al de 1300 rutas, y los criterios de TASK-133 quedan marcados segun su Resultado
+- [ ] La verificacion selectiva no deja tests afectados sin correr en silencio: hoy recorta a 10 de N («Seleccion recortada») y finish se conforma con ella cuando la tarea solo toca src/test; en TASK-153c eso dejo en develop dos rojos de test/commands/metricas.test.ts que nadie ejecuto hasta TASK-144b. O finish corre todos los afectados, o el recorte obliga a la completa, con test

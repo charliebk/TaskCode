@@ -24,7 +24,7 @@
  */
 import { existsSync, linkSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
   cargarCapaProyecto,
   cargarCatalogoDeploy,
@@ -281,21 +281,11 @@ const USO = 'Uso: taskctl doctor-deploy [--json] [--escribir] [--resultado <fich
 
 function leerOpciones(argv: readonly string[]): OpcionesComando {
   rechazarFlagsDesconocidos(argv, FLAGS_DOCTOR_DEPLOY, 'doctor-deploy', (m) => new DoctorDeployCommandError(m));
-  // `--resultado` lleva valor: se saca antes de buscar argumentos sueltos.
-  const resto: string[] = [];
-  let resultado: string | null = null;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i] as string;
-    if (a === '--resultado' || a.startsWith('--resultado=')) {
-      const valor = a === '--resultado' ? argv[++i] : a.slice('--resultado='.length);
-      if (valor === undefined || valor.trim() === '' || valor.startsWith('--')) {
-        throw new DoctorDeployCommandError(`[ERROR] taskctl doctor-deploy: --resultado necesita la ruta del JSON del agente. ${USO}`);
-      }
-      resultado = valor;
-    } else {
-      resto.push(a);
-    }
-  }
+  // `--resultado` lleva valor: se saca antes de buscar argumentos sueltos
+  // (TASK-144b: con el lector comun de flag con valor).
+  const { valor: resultado, resto } = extraerUnico(argv, '--resultado', () =>
+    new DoctorDeployCommandError(`[ERROR] taskctl doctor-deploy: --resultado necesita la ruta del JSON del agente. ${USO}`)
+  );
   const sobra = resto.find((a) => !a.startsWith('-'));
   if (sobra !== undefined) {
     throw new DoctorDeployCommandError(`[ERROR] taskctl doctor-deploy: no admite argumentos ("${sobra}"). ${USO}`);
