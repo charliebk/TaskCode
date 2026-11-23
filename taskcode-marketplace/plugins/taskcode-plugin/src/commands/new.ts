@@ -12,10 +12,9 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { extraerRepetible, extraerUnico, parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerRepetible, extraerUnico, parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import {
   autoCommit,
-  extraerPushFlag,
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';

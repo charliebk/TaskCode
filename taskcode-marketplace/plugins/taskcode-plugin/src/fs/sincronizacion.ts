@@ -95,9 +95,7 @@ export function ejecutarSincronizacion(
   const raiz = raizDelRepo(cwd);
   const declaradas = config.rutas_sincronizacion;
   const absolutas = declaradas.map((r) => path.join(raiz, r));
-  const aMano =
-    `Cuando lo resuelvas, ejecuta a mano "${comando}" y commitea ${declaradas.join(', ')}. ` +
-    'La transicion de la tarea YA esta hecha: no repitas el comando de taskctl.';
+  const aMano = textoAMano(comando, declaradas);
 
   // (a) Antes de nada: si una ruta declarada ya trae cambios, el
   // commit automatico se los llevaria. `start`, `review` y `finish` no
@@ -217,8 +215,15 @@ export function sincronizacionFallidaAlPreparar(
     comando,
     declaradas,
     `escribio sus ficheros, pero Git no pudo prepararlos (${detalle})`,
+    textoAMano(comando, declaradas)
+  );
+}
+
+/** TASK-149b (FS-15): lo que tiene que hacer la persona cuando la sincronizacion no se aplico. */
+function textoAMano(comando: string, declaradas: readonly string[]): string {
+  return (
     `Cuando lo resuelvas, ejecuta a mano "${comando}" y commitea ${declaradas.join(', ')}. ` +
-      'La transicion de la tarea YA esta hecha: no repitas el comando de taskctl.'
+    'La transicion de la tarea YA esta hecha: no repitas el comando de taskctl.'
   );
 }
 

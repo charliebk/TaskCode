@@ -44,7 +44,7 @@
  */
 import { readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible, extraerPushFlag } from '../cli/args.js';
 import { readTareaFile } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import type { Task } from '../core/task.js';
@@ -69,7 +69,6 @@ import { buscarTranscripciones, directorioConfigClaude, leerTranscripcion } from
 import { mensajeTareaEnOtraRama, runGit, tareaEnOtraRama } from '../fs/git.js';
 import {
   autoCommit,
-  extraerPushFlag,
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';

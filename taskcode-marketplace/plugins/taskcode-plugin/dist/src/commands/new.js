@@ -12,8 +12,8 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { extraerRepetible, extraerUnico, parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { extraerRepetible, extraerUnico, parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
+import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
 import { TASK_TYPES, TASK_COMPLEXITIES, } from '../core/task.js';
 import { nextTaskId } from '../core/task-id.js';

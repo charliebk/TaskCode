@@ -62,8 +62,7 @@ export function ejecutarSincronizacion(cwd, config, opciones = {}) {
     const raiz = raizDelRepo(cwd);
     const declaradas = config.rutas_sincronizacion;
     const absolutas = declaradas.map((r) => path.join(raiz, r));
-    const aMano = `Cuando lo resuelvas, ejecuta a mano "${comando}" y commitea ${declaradas.join(', ')}. ` +
-        'La transicion de la tarea YA esta hecha: no repitas el comando de taskctl.';
+    const aMano = textoAMano(comando, declaradas);
     // (a) Antes de nada: si una ruta declarada ya trae cambios, el
     // commit automatico se los llevaria. `start`, `review` y `finish` no
     // exigen workspace limpio, asi que esto es un caso real. Se pregunta
@@ -160,7 +159,11 @@ export function sincronizacionFallidaAlPreparar(cwd, config, detalle) {
     }
     restaurarAHead(raiz, declaradas);
     const comando = config.comando_sincronizacion ?? '';
-    return fallida(comando, declaradas, `escribio sus ficheros, pero Git no pudo prepararlos (${detalle})`, `Cuando lo resuelvas, ejecuta a mano "${comando}" y commitea ${declaradas.join(', ')}. ` +
+    return fallida(comando, declaradas, `escribio sus ficheros, pero Git no pudo prepararlos (${detalle})`, textoAMano(comando, declaradas));
+}
+/** TASK-149b (FS-15): lo que tiene que hacer la persona cuando la sincronizacion no se aplico. */
+function textoAMano(comando, declaradas) {
+    return (`Cuando lo resuelvas, ejecuta a mano "${comando}" y commitea ${declaradas.join(', ')}. ` +
         'La transicion de la tarea YA esta hecha: no repitas el comando de taskctl.');
 }
 /**

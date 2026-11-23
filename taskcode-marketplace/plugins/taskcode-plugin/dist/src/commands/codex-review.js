@@ -27,14 +27,14 @@
  * finish.ts YA lo hacen, y no se tocan en esta tarea).
  */
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { readTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_CODEX_RE, INFORME_REVISION_RE, siguienteRonda, ultimaRondaAprobada, } from '../fs/rondas.js';
 import { fenceFor } from '../core/markdown.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { headCommit, resolveBaseBranchForTipo, runCodexReview, } from '../fs/git.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
 export class CodexReviewCommandError extends Error {
 }

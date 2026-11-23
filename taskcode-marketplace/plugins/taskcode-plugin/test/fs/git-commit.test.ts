@@ -18,7 +18,6 @@ import { spawnSync } from 'node:child_process';
 import {
   autoCommit,
   AutoCommitError,
-  extraerPushFlag,
   mensajeChore,
 } from '../../src/fs/git-commit.js';
 
@@ -337,14 +336,3 @@ test('mensajeChore: formato del repo y rechazo de tildes (los scripts de Git-Flo
   assert.throws(() => mensajeChore('TASK-030', ''), AutoCommitError);
 });
 
-test('extraerPushFlag: saca --push y -p sin comerse el ID (parseArgs lo tomaria por valor del flag)', () => {
-  assert.deepEqual(extraerPushFlag(['--push', 'TASK-030']), {
-    push: true,
-    resto: ['TASK-030'],
-  });
-  assert.deepEqual(extraerPushFlag(['TASK-030', '-p']), { push: true, resto: ['TASK-030'] });
-  assert.deepEqual(extraerPushFlag(['TASK-030', '--asignado-a', 'ana']), {
-    push: false,
-    resto: ['TASK-030', '--asignado-a', 'ana'],
-  });
-});

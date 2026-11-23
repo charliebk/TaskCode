@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseArgs, extraerRepetible, rechazarFlagsDesconocidos, FLAGS_REPETIBLES } from '../../src/cli/args.js';
+import { parseArgs, extraerPushFlag, extraerRepetible, rechazarFlagsDesconocidos, FLAGS_REPETIBLES } from '../../src/cli/args.js';
 
 test('parseArgs: posicionales, flags con valor, booleanos, vacio y --flag=valor', () => {
   // Separa posicionales de flags con valor.
@@ -64,4 +64,16 @@ test('rechazarFlagsDesconocidos: un flag repetido aborta, y los repetibles si se
       rechazarFlagsDesconocidos([flag, 'a', `${flag}=b`, flag, 'c'], [flag], 'x', (m) => new Error(m))
     );
   }
+});
+
+test('extraerPushFlag: saca --push y -p sin comerse el ID (parseArgs lo tomaria por valor del flag)', () => {
+  assert.deepEqual(extraerPushFlag(['--push', 'TASK-030']), {
+    push: true,
+    resto: ['TASK-030'],
+  });
+  assert.deepEqual(extraerPushFlag(['TASK-030', '-p']), { push: true, resto: ['TASK-030'] });
+  assert.deepEqual(extraerPushFlag(['TASK-030', '--asignado-a', 'ana']), {
+    push: false,
+    resto: ['TASK-030', '--asignado-a', 'ana'],
+  });
 });

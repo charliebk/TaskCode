@@ -17,7 +17,7 @@
  */
 import { readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { PUERTA_FINISH } from '../core/registro-puertas.js';
@@ -26,7 +26,7 @@ import { isValidTaskId, STATE_FOLDER } from '../core/task.js';
 import { anotarLineaEnSeccion, MARCA_LOTE_VERDE, pendienteDeLote, SECCION_VERIFICACION_LOTE } from '../core/transiciones.js';
 import { crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { currentBranch, isWorkspaceClean, resolveIntegrationBranch } from '../fs/git.js';
-import { autoCommit, extraerPushFlag } from '../fs/git-commit.js';
+import { autoCommit } from '../fs/git-commit.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
 import { anotarSuite } from './finish-verificacion.js';
 import { readTareaFile } from '../fs/task-store.js';

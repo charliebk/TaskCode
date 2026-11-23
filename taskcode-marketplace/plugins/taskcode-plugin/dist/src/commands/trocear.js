@@ -13,12 +13,12 @@
  */
 import path from 'node:path';
 import { readFile, rm, writeFile } from 'node:fs/promises';
-import { rechazarFlagsDesconocidos } from '../cli/args.js';
+import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { readTareaFile, moveTareaFile, writeTareaFile, listExistingTaskIds } from '../fs/task-store.js';
 import { resolverPlanFinal } from './plan.js';
 import { planQueCuenta, planRedactado } from './approve.js';
 import { ensureBaseBranchReady, runGit } from '../fs/git.js';
-import { autoCommit, extraerPushFlag, mensajeChore } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore } from '../fs/git-commit.js';
 import { isValidTaskId } from '../core/task.js';
 import { esIdTroceable, leerPartes, planificarTroceo, planTrasTroceo, TroceoError } from '../core/troceo.js';
 export class TrocearCommandError extends Error {

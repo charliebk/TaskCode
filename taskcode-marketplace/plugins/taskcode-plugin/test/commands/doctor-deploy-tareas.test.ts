@@ -271,7 +271,8 @@ test('main(): --crear-tareas --json crea las tareas, stdout es solo el JSON y lo
     assert.equal(codigo, 1);
     const informe = JSON.parse(salida.join('')) as InformeDeploy;
     assert.equal(informe.tareas?.creadas.length, 1);
-    assert.match(errores.join(''), /Commiteado [0-9a-f]+ en "develop"/);
+    // TASK-149b (FS-02): el mismo texto que printAutoCommit (no la copia vieja con «fichero(s)»), y por stderr con --json.
+    assert.match(errores.join(''), /Commiteado [0-9a-f]+ en "develop" \(\d+ ficheros?\)\.\n/);
     assert.deepEqual(await carpetas(raiz, '00-planificadas'), ['TASK-9999']);
   });
 });

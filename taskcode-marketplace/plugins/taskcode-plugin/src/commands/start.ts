@@ -12,7 +12,7 @@
  * llamar al script, en vez de delegar en su prompt interactivo.
  */
 import path from 'node:path';
-import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import {
   parseAsignadoAFlag,
   identidadUsable,
@@ -46,7 +46,6 @@ import { spawnSync } from 'node:child_process';
 import { esIdTroceable } from '../core/troceo.js';
 import {
   autoCommit,
-  extraerPushFlag,
   mensajeChore,
   type AutoCommitResult,
 } from '../fs/git-commit.js';

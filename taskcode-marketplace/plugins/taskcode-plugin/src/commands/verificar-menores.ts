@@ -22,7 +22,7 @@
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
 import { commitRevisadoDeRonda, informeRellenado, veredictoDeRonda } from '../core/informe-revision.js';
 import {
@@ -43,7 +43,7 @@ import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda } from
 import { isAncestor, runGit } from '../fs/git.js';
 import { resolverConfig } from '../core/config.js';
 import { excluirDeRevision } from '../fs/revisores-rango.js';
-import { autoCommit, extraerPushFlag, mensajeChore, type AutoCommitResult } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore, type AutoCommitResult } from '../fs/git-commit.js';
 import { REVISION_DIRNAME } from './review.js';
 
 export class VerificarMenoresCommandError extends Error {}

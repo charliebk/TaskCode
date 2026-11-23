@@ -18,7 +18,7 @@
  * seccion 8.3 (ensureBaseBranchReady) antes de escribir nada.
  */
 import path from 'node:path';
-import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { extraerUnico, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { registrarTransicion, modoCongelado, DECIDIDO_POR, } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
@@ -32,7 +32,7 @@ import { faltaReutilizacion, planEsEsqueleto, SECCION_REUTILIZACION } from '../c
 import { conProgreso, crearProgreso } from '../fs/progreso.js';
 import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 export class ApproveCommandError extends Error {
 }
 /** Flags de `taskctl approve`: extraerDecididoPor y extraerPushFlag. */

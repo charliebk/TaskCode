@@ -12,7 +12,7 @@
  * llamar al script, en vez de delegar en su prompt interactivo.
  */
 import path from 'node:path';
-import { parseArgs, rechazarFlagsDesconocidos } from '../cli/args.js';
+import { parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { parseAsignadoAFlag, identidadUsable, PISTA_VACIO_ESCRITURA, } from '../cli/asignado.js';
 import { readTareaFile, moveTareaFile } from '../fs/task-store.js';
 import { escanearWip } from '../fs/wip-scan.js';
@@ -23,7 +23,7 @@ import { assertTransitionAllowed } from '../core/state-machine.js';
 import { isWorkspaceClean, currentBranch, isValidBranchName, gitUserEmail, resolveBaseBranchForTipo, gitflowBaseArgs, localBranchExists, isAncestor, } from '../fs/git.js';
 import { spawnSync } from 'node:child_process';
 import { esIdTroceable } from '../core/troceo.js';
-import { autoCommit, extraerPushFlag, mensajeChore, } from '../fs/git-commit.js';
+import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { conProgreso, crearProgreso } from '../fs/progreso.js';
 export class StartCommandError extends Error {
