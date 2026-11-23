@@ -43,7 +43,9 @@ import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import {
   INFORME_REVISION_RE,
   PETICION_REVISION_RE,
+  RONDA_REVISION_RE,
   informesDeUltimaRonda,
+  nombresDeRonda,
   rondaYRevisorDeInforme,
   siguienteRonda,
 } from '../fs/rondas.js';
@@ -129,7 +131,7 @@ export const REVISION_DIRNAME = 'revision';
  * de review.test.ts y lo que finish.ts ya sabia leer antes de esta
  * tarea.
  */
-const RONDA_FILE_RE = /^(?:peticion|informe)-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
+// TASK-144c: el patron vive en fs/rondas.ts (RONDA_REVISION_RE).
 
 export interface ReviewCommandDeps {
   /** Directorio de trabajo del repo Git del usuario (normalmente process.cwd()). */
@@ -1012,7 +1014,7 @@ async function runReview(
   // pisar una revision anterior — mismo principio que plan-final.md.
   const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
   await mkdir(revisionDir, { recursive: true });
-  const ronda = await siguienteRonda(revisionDir, RONDA_FILE_RE);
+  const ronda = await siguienteRonda(revisionDir, RONDA_REVISION_RE);
   progreso.paso('peticiones', { ronda });
 
   // Un par de nombres (con o sin sufijo de dominio) por grupo del plan.
@@ -1026,12 +1028,12 @@ async function runReview(
       ? modeloDeVerificacion(updated.modelo_sugerido)
       : null;
   const escrituras = plan.grupos.map((grupo) => {
-    const sufijo = conSufijo ? `-${grupo.revisor}` : '';
+    const nombres = nombresDeRonda(ronda, conSufijo ? `-${grupo.revisor}` : '');
     return {
       revisor: grupo.revisor,
       ficheros: grupo.ficheros,
-      nombrePeticion: `peticion-revision-${ronda}${sufijo}.md`,
-      nombreInforme: `informe-revision-${ronda}${sufijo}.md`,
+      nombrePeticion: nombres.peticion,
+      nombreInforme: nombres.informe,
       contexto: contextoPermitido({
         carpetaTarea,
         ficherosDelGrupo: grupo.ficheros,

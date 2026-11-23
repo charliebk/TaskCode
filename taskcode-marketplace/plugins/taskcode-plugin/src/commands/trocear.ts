@@ -16,7 +16,7 @@ import { readFile, rm, writeFile } from 'node:fs/promises';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { readTareaFile, moveTareaFile, writeTareaFile, listExistingTaskIds } from '../fs/task-store.js';
 import { resolverPlanFinal } from './plan.js';
-import { planRedactado } from './approve.js';
+import { planQueCuenta, planRedactado } from './approve.js';
 import { ensureBaseBranchReady, runGit, type BaseBranchGuardResult } from '../fs/git.js';
 import { autoCommit, extraerPushFlag, mensajeChore, type AutoCommitResult } from '../fs/git-commit.js';
 import { esIdTroceable, leerPartes, planificarTroceo, planTrasTroceo, TroceoError } from '../core/troceo.js';
@@ -82,8 +82,8 @@ export async function runTrocearCommand(
       `[ERROR] ${id}: no hay plan redactado. Las partes se declaran en su seccion "## Troceo".`
     );
   }
-  const u = await resolverPlanFinal(taskDir);
-  const rutaPlan = u.canonicaExiste ? u.canonica : u.legada;
+  // TASK-144c (CMD1-10): planRedactado ya descarto null y 'ambiguo'.
+  const rutaPlan = planQueCuenta(await resolverPlanFinal(taskDir)) as string;
   const plan = await readFile(rutaPlan, 'utf8');
 
   let troceo: ReturnType<typeof planificarTroceo>;

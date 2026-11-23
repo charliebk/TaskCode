@@ -1,4 +1,4 @@
-import { UNIFICADOR_ID } from './roles-brainstorm.js';
+import { TODOS_LOS_ROLES, UNIFICADOR_ID } from './roles-brainstorm.js';
 import { fenceFor } from './markdown.js';
 import { VINETA_PETICION_REUTILIZACION } from './validacion-tarea.js';
 /**
@@ -20,6 +20,16 @@ export function nombrePeticionRol(rol, ronda) {
 export function nombreSalidaRol(rol, ronda) {
     return `salida-${rol.id}-${ronda}.md`;
 }
+/**
+ * TASK-144c (CMD2-09 de la auditoria 4D): los patrones de los ficheros de rol
+ * salen de los ids de los roles, el mismo dato con el que `nombrePeticionRol`
+ * y `nombreSalidaRol` los generan. Antes plan y approve fijaban a mano el
+ * prefijo `brainstorm-`: un rol con otro id dejaba de casar en silencio y se
+ * rompia la numeracion de rondas.
+ */
+const IDS_ROLES = TODOS_LOS_ROLES.map((r) => r.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+export const PETICION_ROL_RE = new RegExp(`^peticion-(?:${IDS_ROLES})-(\\d+)\\.md$`);
+export const SALIDA_ROL_RE = new RegExp(`^salida-(?:${IDS_ROLES})-(\\d+)\\.md$`);
 export function nombrePeticionUnificador(ronda) {
     return `peticion-unificador-${ronda}.md`;
 }

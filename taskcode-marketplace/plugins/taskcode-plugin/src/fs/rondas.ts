@@ -78,13 +78,28 @@ export async function ultimaRonda(dir: string, patron: RegExp): Promise<number> 
  * Vive aqui desde TASK-036: antes estaba copiada en finish.ts y en
  * codex-review.ts.
  */
-export const INFORME_REVISION_RE = /^informe-revision-(\d+)(?:-([a-z0-9-]+))?\.md$/;
+/** Sufijo comun de los ficheros de ronda: numero (grupo 1) y revisor opcional (grupo 2). */
+const SUFIJO_RONDA = String.raw`(\d+)(?:-([a-z0-9-]+))?\.md`;
+
+export const INFORME_REVISION_RE = new RegExp(`^informe-revision-${SUFIJO_RONDA}$`);
 
 /**
  * Peticiones de revision, con el mismo sufijo opcional por revisor. Vive
  * aqui desde TASK-064 (antes en commands/review.ts, que la reexporta).
  */
-const PETICION_REVISION_PATRON = String.raw`peticion-revision-(\d+)(?:-([a-z0-9-]+))?\.md`;
+const PETICION_REVISION_PATRON = `peticion-revision-${SUFIJO_RONDA}`;
+
+/**
+ * TASK-144c (CMD2-02 de la auditoria 4D): peticiones e informes de revision a
+ * la vez, para numerar la ronda siguiente. Sale del MISMO sufijo que
+ * INFORME_REVISION_RE y PETICION_REVISION_RE: antes review tenia su copia.
+ */
+export const RONDA_REVISION_RE = new RegExp(`^(?:peticion|informe)-revision-${SUFIJO_RONDA}$`);
+
+/** Nombres de la peticion y el informe de una ronda (`sufijo` es `-<revisor>` o ''). */
+export function nombresDeRonda(ronda: number, sufijo: string): { peticion: string; informe: string } {
+  return { peticion: `peticion-revision-${String(ronda)}${sufijo}.md`, informe: `informe-revision-${String(ronda)}${sufijo}.md` };
+}
 export const PETICION_REVISION_RE = new RegExp(`^${PETICION_REVISION_PATRON}$`);
 
 /**

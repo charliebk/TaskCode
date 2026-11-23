@@ -293,6 +293,18 @@ function leerOpciones(argv: readonly string[]): OpcionesComando {
   return { json: argv.includes('--json'), escribir: argv.includes('--escribir'), resultado, crearTareas: argv.includes('--crear-tareas') };
 }
 
+/**
+ * TASK-144c (CMD1-11 de la auditoria 4D): ruta del fichero de --resultado
+ * relativa al repo si esta DENTRO de el, o null. La usan el aviso y la pista
+ * del guard de rama; antes la pista se decidia buscando el texto del aviso.
+ * Con las rutas reales: en Windows la carpeta temporal puede venir en formato
+ * corto (8.3).
+ */
+function resultadoDentroDelRepo(raiz: string, ruta: string): string | null {
+  const rel = path.relative(realpathSync.native(raiz), realpathSync.native(ruta));
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel) ? rel.replace(/\\/g, '/') : null;
+}
+
 /** Lee el JSON del agente y lo mezcla con los puntos (ver core/doctor-deploy-veredictos.ts). */
 function incorporarVeredictos(
   fichero: string,
@@ -327,11 +339,10 @@ function incorporarVeredictos(
     throw e;
   }
   // Dentro del repo ensucia el arbol (y con --crear-tareas aborta el guard de rama): se avisa.
-  // Con las rutas reales: en Windows la carpeta temporal puede venir en formato corto (8.3).
-  const rel = path.relative(realpathSync.native(raiz), realpathSync.native(ruta));
-  if (rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)) {
+  const rel = resultadoDentroDelRepo(raiz, ruta);
+  if (rel !== null) {
     avisos.push(
-      `el fichero de --resultado esta dentro del repositorio (${rel.replace(/\\/g, '/')}): ensucia el arbol de trabajo. ` +
+      `el fichero de --resultado esta dentro del repositorio (${rel}): ensucia el arbol de trabajo. ` +
         'Guardalo fuera (la carpeta temporal del sistema).'
     );
   }
@@ -505,7 +516,12 @@ export async function runDoctorDeployCompleto(argv: readonly string[], deps: Doc
   try {
     tareas = await crearTareasDeFallas(a.informe, a.raiz, fechaLocal(a.ahora));
   } catch (e: unknown) {
-    if (e instanceof BaseBranchGuardError && a.informe.avisos.some((x) => x.includes('--resultado esta dentro del repositorio'))) {
+    const resultado = a.opciones.resultado;
+    if (
+      e instanceof BaseBranchGuardError &&
+      resultado !== null &&
+      resultadoDentroDelRepo(a.raiz, path.resolve(deps.repoCwd, resultado)) !== null
+    ) {
       throw new BaseBranchGuardError(
         `${e.message}\n        Si el cambio es el fichero de --resultado, guardalo fuera del repositorio (la carpeta temporal del sistema).`
       );
