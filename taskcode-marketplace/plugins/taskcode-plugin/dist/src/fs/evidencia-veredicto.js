@@ -1,5 +1,6 @@
 import { gitCrudo } from './git-crudo.js';
 import { decodificar } from './sondas-deploy.js';
+import { normalizarRutaRelativa } from '../core/ruta-relativa.js';
 const MAX_BYTES_FICHERO = 8 * 1024 * 1024;
 /** Numero de lineas de un texto: un `\n` final no abre una linea mas. */
 export function contarLineas(texto) {
@@ -15,7 +16,8 @@ export function contarLineas(texto) {
 export function comprobadorEnCommit(raiz, commit) {
     return (fichero, linea) => {
         // Normalizada con `/`; `./a` y `a` son el mismo fichero. Los `..` ya los rechazo quien llama.
-        const ruta = fichero.replace(/\\/g, '/').replace(/^(?:\.\/)+/, '');
+        // TASK-148b (CORE1-10): la misma forma normalizada que valida motivoRutaInvalida (`./a/../b` es `b`).
+        const ruta = normalizarRutaRelativa(fichero);
         // El modo del arbol distingue un fichero normal de un enlace simbolico (120000) o un
         // submodulo (160000): `cat-file blob` devuelve el texto del enlace como si fuera el fichero
         // (MEN-2 de la ronda 1).

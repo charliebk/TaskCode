@@ -128,7 +128,8 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
 import { describirValor } from './campos-catalogo.js';
-import { distanciaEdicion, masParecida } from './sugerencia.js';
+import { problemaDeRutaRelativa } from './ruta-relativa.js';
+import { masParecida } from './sugerencia.js';
 import { normalizarBase, type Plataforma } from './plataforma-remota.js';
 import { STATE_FOLDER } from './task.js';
 
@@ -753,24 +754,25 @@ export function parsearConfigConAvisos(
         );
         break;
       case 'tareas_entre_podas':
-        if (typeof par.valor !== 'number' || !Number.isInteger(par.valor) || par.valor < 1) {
-          throw new ConfigError(
-            `[ERROR] ${donde}: "tareas_entre_podas" debe ser un numero entero mayor o igual que 1, y es ` +
-              `${describirValor(par.valor)}.\n        Por defecto es 30: tareas terminadas desde la ultima poda de ` +
-              'tests a partir de las que doctor propone otra.'
-          );
-        }
-        config.tareas_entre_podas = par.valor;
+        config.tareas_entre_podas = validarEnteroEnRango(
+          donde,
+          'tareas_entre_podas',
+          par.valor,
+          1,
+          null,
+          'Por defecto es 30: tareas terminadas desde la ultima poda de tests a partir de las que doctor propone otra.'
+        );
         break;
       case 'umbral_crecimiento_suite':
-        if (typeof par.valor !== 'number' || !Number.isInteger(par.valor) || par.valor < 1 || par.valor > 1000) {
-          throw new ConfigError(
-            `[ERROR] ${donde}: "umbral_crecimiento_suite" debe ser un porcentaje entero de 1 a 1000, y es ` +
-              `${describirValor(par.valor)}.\n        Por defecto es 20: doctor avisa si los tests o la duracion de ` +
-              'la verificacion completa crecen mas de ese porcentaje entre dos versiones.'
-          );
-        }
-        config.umbral_crecimiento_suite = par.valor;
+        config.umbral_crecimiento_suite = validarEnteroEnRango(
+          donde,
+          'umbral_crecimiento_suite',
+          par.valor,
+          1,
+          1000,
+          'Es un porcentaje. Por defecto es 20: doctor avisa si los tests o la duracion de la verificacion completa ' +
+            'crecen mas de ese porcentaje entre dos versiones.'
+        );
         break;
       case 'verificacion_pesada_en':
         config.verificacion_pesada_en = validarVerificacionPesadaEn(donde, par.valor);
@@ -841,10 +843,7 @@ function validarRemotoCompleto(dondeUrlBase: string, config: TaskcodeConfig): vo
 function validarPlataformaRemota(donde: string, valor: unknown): Plataforma {
   const plataforma = validarTextoNoVacio(donde, 'plataforma_remota', valor);
   if ((PLATAFORMAS_REMOTAS as readonly string[]).includes(plataforma)) return plataforma as Plataforma;
-  const parecido = PLATAFORMAS_REMOTAS.map((p) => ({ p, d: distanciaEdicion(plataforma.toLowerCase(), p) }))
-    .sort((a, b) => a.d - b.d)[0];
-  const sugerencia =
-    parecido !== undefined && parecido.d <= 3 ? ` ¿Querias decir "${parecido.p}"?` : '';
+  const sugerencia = sugerenciaDeValor(plataforma, PLATAFORMAS_REMOTAS);
   throw new ConfigError(
     `[ERROR] ${donde}: plataforma_remota "${plataforma}" no es valida.${sugerencia}\n` +
       `        Valores validos: ${PLATAFORMAS_REMOTAS.join(', ')} (sin la clave, se decide por el host de origin).`
@@ -1136,11 +1135,11 @@ function validarPatronesExclusion(
       );
     }
     const conBarras = elemento.trim().replace(/\\/g, '/');
-    const absoluto = conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras);
-    if (absoluto || conBarras.split('/').includes('..')) {
+    const problema = problemaDeRutaRelativa(conBarras);
+    if (problema === 'absoluta' || problema === 'sale') {
       throw new ConfigError(
         `[ERROR] ${donde}: el patron "${elemento.trim()}" de "${clave}" no vale: ` +
-          `${absoluto ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
+          `${problema === 'absoluta' ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
           '        Los patrones son relativos a la raiz del repo y siguen la semantica de ' +
           'git :(glob) (por ejemplo **/dist/**).'
       );
@@ -1220,18 +1219,13 @@ function validarVerificacionPesadaEn(donde: string, valor: unknown): readonly Ti
         '        Ejemplo: verificacion_pesada_en: [release, hotfix]. Sin la clave, solo release.'
     );
   }
-  const tipos: TipoRamaPesada[] = [];
-  for (const elemento of valor) {
-    const tipo = typeof elemento === 'string' ? elemento.trim() : '';
-    if (!(TIPOS_RAMA_PESADA as readonly string[]).includes(tipo)) {
-      throw new ConfigError(
-        `[ERROR] ${donde}: "verificacion_pesada_en" contiene "${String(elemento)}", que no es un tipo de rama ` +
-          `que pueda exigir los pesados. Validos: ${TIPOS_RAMA_PESADA.join(', ')} (feature y fix nunca los corren).`
-      );
-    }
-    if (!tipos.includes(tipo as TipoRamaPesada)) tipos.push(tipo as TipoRamaPesada);
-  }
-  return tipos;
+  return elementosDeEnumerado(
+    donde,
+    'verificacion_pesada_en',
+    valor,
+    TIPOS_RAMA_PESADA,
+    `que no es un tipo de rama que pueda exigir los pesados. Validos: ${TIPOS_RAMA_PESADA.join(', ')} (feature y fix nunca los corren).`
+  );
 }
 
 function validarFasesSincronizacion(donde: string, valor: unknown): readonly FaseSincronizacion[] {
@@ -1244,18 +1238,13 @@ function validarFasesSincronizacion(donde: string, valor: unknown): readonly Fas
         'corre en todas las fases.'
     );
   }
-  const fases: FaseSincronizacion[] = [];
-  for (const elemento of valor) {
-    const fase = typeof elemento === 'string' ? elemento.trim() : '';
-    if (!(FASES_SINCRONIZACION as readonly string[]).includes(fase)) {
-      throw new ConfigError(
-        `[ERROR] ${donde}: "fases_sincronizacion" contiene "${String(elemento)}", que no es una fase. ` +
-          `Validas: ${FASES_SINCRONIZACION.join(', ')}.`
-      );
-    }
-    if (!fases.includes(fase as FaseSincronizacion)) fases.push(fase as FaseSincronizacion);
-  }
-  return fases;
+  return elementosDeEnumerado(
+    donde,
+    'fases_sincronizacion',
+    valor,
+    FASES_SINCRONIZACION,
+    `que no es una fase. Validas: ${FASES_SINCRONIZACION.join(', ')}.`
+  );
 }
 
 function validarRutasSincronizacion(donde: string, valor: unknown): readonly string[] {
@@ -1311,11 +1300,14 @@ function motivoRutaInvalida(
   opciones: { ficheroEnRaizDeTareas?: boolean } = {}
 ): string | null {
   const conBarras = original.replace(/\\/g, '/');
-  if (conBarras.startsWith('/') || /^[A-Za-z]:/.test(conBarras)) return 'es absoluta';
+  // TASK-148b (CORE1-10): la regla comun (core/ruta-relativa.ts); se protege la forma normalizada.
+  const problema = problemaDeRutaRelativa(conBarras);
+  if (problema === 'absoluta') return 'es absoluta';
+  if (problema === 'sale') return 'se sale del repo';
+  if (problema === 'control') return 'lleva caracteres de control';
   if (conBarras.endsWith('/')) return 'es una carpeta';
   const normalizada = path.posix.normalize(conBarras);
   if (normalizada === '.' || normalizada === '') return 'es la raiz del repo';
-  if (normalizada === '..' || normalizada.startsWith('../')) return 'se sale del repo';
   const segmentos = normalizada.split('/');
   const primera = segmentos[0] as string;
   const primeraMin = nombreComparable(primera);
@@ -1400,50 +1392,89 @@ function validarEnteroPositivo(
   clave: 'limite_wip' | 'timeout_sincronizacion' | 'timeout_verificacion' | 'timeout_verificacion_selectiva',
   valor: unknown
 ): number {
-  if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 1) {
-    const consecuencia =
-      clave === 'limite_wip'
-        ? 'Un 0 o un negativo no significan "sin limite": impedirian arrancar cualquier tarea.'
-        : clave === 'timeout_sincronizacion'
-          ? 'Son segundos: un 0 o un negativo matarian el comando antes de empezar.'
-          : 'Son segundos: un 0 o un negativo cortarian la verificacion antes de empezar.';
+  const consecuencia =
+    clave === 'limite_wip'
+      ? 'Un 0 o un negativo no significan "sin limite": impedirian arrancar cualquier tarea.'
+      : clave === 'timeout_sincronizacion'
+        ? 'Son segundos: un 0 o un negativo matarian el comando antes de empezar.'
+        : 'Son segundos: un 0 o un negativo cortarian la verificacion antes de empezar.';
+  return validarEnteroEnRango(donde, clave, valor, 1, null, `Por defecto es ${CONFIG_DEFAULTS[clave]}. ${consecuencia}`);
+}
+
+/** TASK-148b (CORE1-06): la sugerencia ante una errata en un enumerado, con masParecida (la de las claves). */
+function sugerenciaDeValor(valor: string, validos: readonly string[]): string {
+  const s = masParecida(valor, validos);
+  return s === null ? '' : ` ¿Querias decir "${s}"?`;
+}
+
+/** TASK-148b (CORE1-07): entero de `min` a `max` (null: sin tope), o ConfigError con el porque en la segunda linea. */
+function validarEnteroEnRango(
+  donde: string,
+  clave: string,
+  valor: unknown,
+  min: number,
+  max: number | null,
+  porque: string
+): number {
+  if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < min || (max !== null && valor > max)) {
+    const rango = max === null ? `mayor o igual que ${String(min)}` : `de ${String(min)} a ${String(max)}`;
     throw new ConfigError(
-      `[ERROR] ${donde}: "${clave}" debe ser un numero entero mayor o igual que 1, ` +
-        `y es ${describirValor(valor)}.\n` +
-        `        Por defecto es ${CONFIG_DEFAULTS[clave]}. ${consecuencia}`
+      `[ERROR] ${donde}: "${clave}" debe ser un numero entero ${rango}, y es ${describirValor(valor)}.\n        ${porque}`
     );
   }
   return valor;
+}
+
+/**
+ * TASK-148b (CORE1-07): los elementos de una lista ya comprobada como no vacia,
+ * todos de `validos` (recortados); un repetido se queda una vez. `queNoEs`
+ * completa «contiene "x", ...».
+ */
+function elementosDeEnumerado<T extends string>(
+  donde: string,
+  clave: string,
+  valor: readonly unknown[],
+  validos: readonly T[],
+  queNoEs: string
+): readonly T[] {
+  const r: T[] = [];
+  for (const elemento of valor) {
+    const t = typeof elemento === 'string' ? elemento.trim() : '';
+    if (!(validos as readonly string[]).includes(t)) {
+      throw new ConfigError(`[ERROR] ${donde}: "${clave}" contiene "${String(elemento)}", ${queNoEs}`);
+    }
+    if (!r.includes(t as T)) r.push(t as T);
+  }
+  return r;
 }
 
 /** TASK-127: entero de 1 a 10. Mas de 10 rondas es no tener tope. */
 export const TOPE_RONDAS_MAXIMO = 10;
 
 function validarTopeRondas(donde: string, valor: unknown): number {
-  if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 1 || valor > TOPE_RONDAS_MAXIMO) {
-    throw new ConfigError(
-      `[ERROR] ${donde}: "tope_rondas" debe ser un numero entero de 1 a ${String(TOPE_RONDAS_MAXIMO)}, ` +
-        `y es ${describirValor(valor)}.
-` +
-        `        Por defecto es ${String(CONFIG_DEFAULTS.tope_rondas)}: las rondas de revision que se abren sin ` +
-        'preguntar; en la ultima, si pide cambios, decide una persona.'
-    );
-  }
-  return valor;
+  return validarEnteroEnRango(
+    donde,
+    'tope_rondas',
+    valor,
+    1,
+    TOPE_RONDAS_MAXIMO,
+    `Por defecto es ${String(CONFIG_DEFAULTS.tope_rondas)}: las rondas de revision que se abren sin preguntar; ` +
+      'en la ultima, si pide cambios, decide una persona.'
+  );
 }
 
 /** TASK-125: entero de 1 al `timeout` del hook Stop. */
 function validarPresupuestoFreno(donde: string, valor: unknown): number {
-  if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 1 || valor > TECHO_HOOK_STOP_S) {
-    throw new ConfigError(
-      `[ERROR] ${donde}: "presupuesto_freno_s" debe ser un numero entero de 1 a ${String(TECHO_HOOK_STOP_S)}, ` +
-        `y es ${describirValor(valor)}.\n` +
-        `        Son los segundos que puede tardar la verificacion del freno de fin de turno; no puede pasar del ` +
-        `timeout del hook Stop (${String(TECHO_HOOK_STOP_S)} s). Con comando_verificacion_freno y sin esta clave, ` +
-        `${String(PRESUPUESTO_FRENO_POR_DEFECTO_S)}.`
-    );
-  }
-  return valor;
+  return validarEnteroEnRango(
+    donde,
+    'presupuesto_freno_s',
+    valor,
+    1,
+    TECHO_HOOK_STOP_S,
+    'Son los segundos que puede tardar la verificacion del freno de fin de turno; no puede pasar del ' +
+      `timeout del hook Stop (${String(TECHO_HOOK_STOP_S)} s). Con comando_verificacion_freno y sin esta clave, ` +
+      `${String(PRESUPUESTO_FRENO_POR_DEFECTO_S)}.`
+  );
 }
 
 /**
@@ -1454,10 +1485,7 @@ function validarPresupuestoFreno(donde: string, valor: unknown): number {
 function validarModoFlujo(donde: string, valor: unknown): ModoFlujo {
   const modo = validarTextoNoVacio(donde, 'modo_flujo', valor);
   if ((MODOS_FLUJO as readonly string[]).includes(modo)) return modo as ModoFlujo;
-  const parecido = MODOS_FLUJO.map((m) => ({ m, d: distanciaEdicion(modo.toLowerCase(), m) }))
-    .sort((a, b) => a.d - b.d)[0];
-  const sugerencia =
-    parecido !== undefined && parecido.d <= 3 ? ` ¿Querias decir "${parecido.m}"?` : '';
+  const sugerencia = sugerenciaDeValor(modo, MODOS_FLUJO);
   throw new ConfigError(
     `[ERROR] ${donde}: modo_flujo "${modo}" no es valido.${sugerencia}\n` +
       `        Valores validos: ${MODOS_FLUJO.join(', ')} (sin la clave, manual).`
@@ -1473,10 +1501,7 @@ function validarModoFlujo(donde: string, valor: unknown): ModoFlujo {
 function validarCierrePorDefecto(donde: string, valor: unknown): CierrePorDefecto {
   const cierre = validarTextoNoVacio(donde, 'cierre_por_defecto', valor);
   if ((CIERRES_POR_DEFECTO as readonly string[]).includes(cierre)) return cierre as CierrePorDefecto;
-  const parecido = CIERRES_POR_DEFECTO.map((c) => ({ c, d: distanciaEdicion(cierre.toLowerCase(), c) }))
-    .sort((a, b) => a.d - b.d)[0];
-  const sugerencia =
-    parecido !== undefined && parecido.d <= 3 ? ` ¿Querias decir "${parecido.c}"?` : '';
+  const sugerencia = sugerenciaDeValor(cierre, CIERRES_POR_DEFECTO);
   throw new ConfigError(
     `[ERROR] ${donde}: cierre_por_defecto "${cierre}" no es valido.${sugerencia}
 ` +
