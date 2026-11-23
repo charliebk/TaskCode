@@ -1,7 +1,8 @@
 /**
  * `.taskcode/config.yml` — TASK-030, item C4 del checklist de
- * terminacion. Decision #9, resuelta el 2026-09-07: TRES claves, todas
- * opcionales, y ninguna mas.
+ * terminacion. Todas las claves son opcionales; las admitidas son las de
+ * CLAVES_CONFIG, y un test ata esa lista al switch de parsearConfigConAvisos
+ * (la decision #9, del 2026-09-07, empezo con tres).
  *
  * | clave                        | defecto           | quien la lee            |
  * |------------------------------|-------------------|-------------------------|

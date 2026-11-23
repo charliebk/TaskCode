@@ -587,7 +587,7 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   { cabecera: 'diseno', valor: (f) => formatearDuracion(f.diseno) },
   { cabecera: 'curso', valor: (f) => formatearDuracion(f.curso) },
   { cabecera: 'revision', valor: (f) => formatearDuracion(f.revision) },
-  { cabecera: 'rondas', valor: (f) => (f.rondas === null ? '—' : String(f.rondas)) },
+  { cabecera: 'rondas', valor: (f) => celdaNumero(f.rondas) },
   { cabecera: 'crit', valor: (f) => celdaConteo(f.hallazgos.porSeveridad?.CRITICO) },
   { cabecera: 'imp', valor: (f) => celdaConteo(f.hallazgos.porSeveridad?.IMPORTANTE) },
   { cabecera: 'men', valor: (f) => celdaConteo(f.hallazgos.porSeveridad?.MENOR) },
@@ -610,14 +610,14 @@ export const COLUMNAS_METRICAS: readonly ColumnaMetricas[] = [
   // TASK-120: lo que suma comando_sincronizacion en la tarea (registro de puertas).
   { cabecera: 'sinc', valor: (f) => formatearDuracion(f.sincronizacion) },
   // TASK-111: el freno Stop de la tarea: cuantas veces corrio de verdad y cuanto sumo.
-  { cabecera: 'freno_n', valor: (f) => (f.freno === null ? '—' : String(f.freno.ejecuciones)) },
+  { cabecera: 'freno_n', valor: (f) => celdaNumero(f.freno?.ejecuciones ?? null) },
   { cabecera: 'freno', valor: (f) => (f.freno === null ? '—' : formatearDuracion(f.freno.duracion)) },
   // TASK-128: las verificaciones de review y de finish, y las rondas abiertas solo por MENORES.
-  { cabecera: 'review_n', valor: (f) => (f.review === null ? '—' : String(f.review.ejecuciones)) },
+  { cabecera: 'review_n', valor: (f) => celdaNumero(f.review?.ejecuciones ?? null) },
   { cabecera: 'review_v', valor: (f) => (f.review === null ? '—' : formatearDuracion(f.review.duracion)) },
-  { cabecera: 'finish_n', valor: (f) => (f.finishVerificacion === null ? '—' : String(f.finishVerificacion.ejecuciones)) },
+  { cabecera: 'finish_n', valor: (f) => celdaNumero(f.finishVerificacion?.ejecuciones ?? null) },
   { cabecera: 'finish_v', valor: (f) => (f.finishVerificacion === null ? '—' : formatearDuracion(f.finishVerificacion.duracion)) },
-  { cabecera: 'rondas_men', valor: (f) => (f.rondasSoloMenores === null ? '—' : String(f.rondasSoloMenores)) },
+  { cabecera: 'rondas_men', valor: (f) => celdaNumero(f.rondasSoloMenores) },
   // TASK-153c: hallazgos 4D de la tarea, duplicacion/desviacion/diluvio/disfraz.
   {
     cabecera: '4d',
@@ -728,16 +728,17 @@ export function totalTokens(t: TokensFila): number | null {
   return datos.length === 0 ? null : datos.reduce((a, b) => a + b, 0);
 }
 
-function celdaTokens(v: number | null): string {
-  return v === null ? '—' : String(v);
+/** TASK-148d (CORE2-20): una cifra de tabla, o «—» sin dato (nunca 0); con `sufijo` tras la cifra. */
+export function celdaNumero(v: number | null, sufijo = ''): string {
+  return v === null ? '—' : `${String(v)}${sufijo}`;
 }
 
 /** Las que anade `--tokens` a la tabla: «curso» es la implementacion, como en las duraciones. */
 export const COLUMNAS_TOKENS: readonly ColumnaMetricas[] = [
-  { cabecera: 'tok_diseno', valor: (f) => celdaTokens(f.tokens.diseno) },
-  { cabecera: 'tok_curso', valor: (f) => celdaTokens(f.tokens.implementacion) },
-  { cabecera: 'tok_revision', valor: (f) => celdaTokens(f.tokens.revision) },
-  { cabecera: 'tok_total', valor: (f) => celdaTokens(totalTokens(f.tokens)) },
+  { cabecera: 'tok_diseno', valor: (f) => celdaNumero(f.tokens.diseno) },
+  { cabecera: 'tok_curso', valor: (f) => celdaNumero(f.tokens.implementacion) },
+  { cabecera: 'tok_revision', valor: (f) => celdaNumero(f.tokens.revision) },
+  { cabecera: 'tok_total', valor: (f) => celdaNumero(totalTokens(f.tokens)) },
 ];
 
 /** Columnas del bloque de docs/METRICAS.md: solo lo que no depende de git log ni del reloj. */
@@ -958,8 +959,8 @@ function celdaSinDesglose(f: FilaMetricas): string {
 
 /** Las que anade `--tokens` a la tabla por pantalla (no al bloque de docs/METRICAS.md). */
 export const COLUMNAS_DESGLOSE_TOKENS: readonly ColumnaMetricas[] = [
-  { cabecera: 'tok_nuevos', valor: (f) => celdaTokens(sumaDesglose(f, 'nuevos')) },
-  { cabecera: 'tok_cache_lect', valor: (f) => celdaTokens(sumaDesglose(f, 'cacheLectura')) },
+  { cabecera: 'tok_nuevos', valor: (f) => celdaNumero(sumaDesglose(f, 'nuevos')) },
+  { cabecera: 'tok_cache_lect', valor: (f) => celdaNumero(sumaDesglose(f, 'cacheLectura')) },
   { cabecera: 'tok_sin_desglose', valor: celdaSinDesglose },
 ];
 
@@ -1076,7 +1077,7 @@ export function notasFilaEnriquecida(filas: readonly FilaMetricas[], varios = fa
     NOTA_HALLAZGOS +
       ` Informes sin tabla de hallazgos: ${String(nInformes)} (en ${String(sinTabla.length)} tareas).`,
     'Lecturas por fase (mediana de las tareas cuya tabla "## Coste" las mide): ' +
-      FASES_COSTE.map((k) => `${k} ${lect[k].mediana === null ? '—' : String(lect[k].mediana)} (n=${String(lect[k].n)})`).join(
+      FASES_COSTE.map((k) => `${k} ${celdaNumero(lect[k].mediana)} (n=${String(lect[k].n)})`).join(
         ', '
       ) +
       '.',
@@ -1132,10 +1133,6 @@ export function lineaSinCoste(r: ResumenSinCoste, varios = false): string {
 
 // --- Lecturas por revisor y ronda (TASK-081) ---------------------------------
 
-function celdaOAusente(n: number | null): string {
-  return n === null ? '—' : String(n);
-}
-
 export const NOTA_LECTURAS_REVISION =
   'Lecturas de revision por tarea, ronda y revisor (de "## Coste", fase revision, una fila por agente): ' +
   'lecturas = LLAMADAS de lectura del revisor, no bytes ni causa de los tokens (no ve "cd x && cat y"); ' +
@@ -1149,13 +1146,13 @@ export function formatearLecturasRevision(filas: readonly FilaMetricas[], varios
   const celdas = filas.flatMap((f) =>
     f.lecturasRevision.map((g) => [
       etiquetaTarea(f, varios),
-      g.ronda === null ? '—' : String(g.ronda),
+      celdaNumero(g.ronda),
       g.revisor === null ? '—' : g.revisor === '' ? '(sin fragmentar)' : g.revisor,
-      celdaOAusente(g.lecturas),
-      celdaOAusente(g.entrada),
-      celdaOAusente(g.cacheLectura),
-      celdaOAusente(g.critico),
-      celdaOAusente(g.importante),
+      celdaNumero(g.lecturas),
+      celdaNumero(g.entrada),
+      celdaNumero(g.cacheLectura),
+      celdaNumero(g.critico),
+      celdaNumero(g.importante),
     ])
   );
   if (celdas.length === 0) return [];

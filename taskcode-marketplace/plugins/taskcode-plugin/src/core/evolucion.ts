@@ -34,7 +34,7 @@
  * primer tramo con el ultimo: crece o baja si la mediana cambia mas de un
  * `UMBRAL_TENDENCIA`; si no, se mantiene.
  */
-import { media, mediana, tablaDeTexto, type Duracion, type FilaMetricas } from './metricas.js';
+import { celdaNumero, media, mediana, tablaDeTexto, type Duracion, type FilaMetricas } from './metricas.js';
 import { compararIds } from './task.js';
 
 export const TRAMO_POR_DEFECTO = 20;
@@ -191,7 +191,7 @@ export function tendenciaCosteFijo(e: Evolucion): string | null {
   const a = base[0] as TramoEvolucion;
   const b = base[base.length - 1] as TramoEvolucion;
   const parte = (nombre: string, x: Cifra, y: Cifra): string =>
-    `${nombre} ${x.valor === null ? '—' : String(x.valor)} -> ${y.valor === null ? '—' : String(y.valor)} min (${tendencia(x, y)})`;
+    `${nombre} ${celdaNumero(x.valor)} -> ${celdaNumero(y.valor)} min (${tendencia(x, y)})`;
   return (
     `Coste fijo por tarea, del tramo 1 (${String(a.cerradasAcumuladas)} cerradas) al ${String(b.tramo)} ` +
     `(${String(b.cerradasAcumuladas)} cerradas): ` +

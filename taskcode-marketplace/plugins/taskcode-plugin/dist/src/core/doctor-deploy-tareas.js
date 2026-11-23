@@ -21,7 +21,7 @@ function plano(texto) {
     // TASK-148c (MEN-1 de su revision): el recorte comun (por puntos de codigo, con `…`).
     return recortar(limpio, MAX_LARGO_TEXTO);
 }
-/** `fichero:linea` de las evidencias que lo traen, sin repetir y como mucho `MAX_DONDE`. */
+/** `fichero:linea` de las evidencias que lo traen, sin repetir. El tope `MAX_DONDE` lo aplica quien la usa (componerTarea). */
 function dondeFalla(p) {
     const vistos = new Set();
     for (const e of p.evidencias) {

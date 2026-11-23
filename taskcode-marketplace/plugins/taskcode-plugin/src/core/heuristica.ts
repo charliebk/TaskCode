@@ -5,83 +5,31 @@
  * de brainstorm pide ese nivel, y resolver el numero final para una
  * tarea concreta.
  *
- * Hasta hoy el YML no lo leia nadie desde `src/`: existia con sus
- * tests pero sin consumidor. Este modulo es ese consumidor.
+ * Doctrina (la misma que config.ts):
  *
- * MISMA DOCTRINA QUE src/core/config.ts, y por los mismos motivos:
+ * 1. FALLO CERRADO. Una clave desconocida, ausente, de tipo equivocado o un
+ *    numero negativo ABORTAN; no hay defaults en codigo. El fichero lo
+ *    distribuye el plugin: una clave que falta es un fichero roto o de otra
+ *    version, no «usa lo de siempre».
+ * 2. UN SOLO PARSER: parseBloqueClaveValor() de frontmatter.ts, con
+ *    comentarios de linea (el fichero empieza por uno).
+ * 3. UN SOLO PUNTO DE RESOLUCION: cargarHeuristica() devuelve la heuristica
+ *    ya validada; ningun comando lee el fichero por su cuenta.
  *
- * 1. FALLO CERRADO. Una clave desconocida, una clave obligatoria
- *    ausente, un valor del tipo equivocado o un numero negativo
- *    ABORTAN. Nunca hay caida al default en silencio. Aqui la regla
- *    aprieta MAS que en config.yml: alli las tres claves son
- *    opcionales porque un repo sin configuracion es normal; aqui NO
- *    hay defaults en codigo y las 19 claves son obligatorias, porque
- *    este fichero lo distribuye el propio plugin y una clave que falta
- *    no significa "usa lo de siempre", significa que el fichero esta
- *    roto o que alguien lo edito a medias.
- * 2. UN SOLO PARSER. El bucle `clave: valor` es el de frontmatter.ts,
- *    via parseBloqueClaveValor(). Aqui no hay ni una linea de parseo
- *    de YAML. Se le pasa `permitirComentariosDeLinea: true` porque el
- *    fichero empieza por un comentario: sin eso la lectura falla en su
- *    primera linea, y el propio YML lo avisa.
- * 3. UN SOLO PUNTO DE RESOLUCION. cargarHeuristica() devuelve la
- *    heuristica ya validada; ningun comando lee el fichero por su
- *    cuenta.
+ * La discrepancia entre el nivel heuristico y el declarado se resuelve sin
+ * consultar a nadie (aprobado por Carlos el 2026-09-08): resolverNumeroAgentes()
+ * se queda con el MAYOR de los dos numeros de agentes, la eleccion
+ * conservadora, y la discrepancia sale en `ResolucionAgentes.hayDiscrepancia`
+ * para quien orqueste. Consecuencia aceptada y fijada en un test: con
+ * `nivel_trivial_hasta: 0` basta una senal para salir de `trivial`, asi que el
+ * 0 roles de trivial es casi inalcanzable. La historia (las claves que quito
+ * TASK-052, las mediciones sobre las tareas del repo) esta en git y en las
+ * tareas, no aqui.
  *
- * ------------------------------------------------------------------
- * LA DISCREPANCIA SE RESUELVE SIN CONSULTAR A NADIE (aprobado por
- * Carlos, 2026-09-08).
- *
- * El YML llego a decir que, cuando el nivel heuristico y el declarado
- * por la persona distaran mas de una tolerancia, se consultara a un
- * modelo barato para desempatar. Este modulo nunca lo hizo, porque el
- * CLI no invoca modelos: `taskctl` hace lo determinista y deja escrito
- * lo que otro tiene que disparar (mismo reparto que `taskctl review`
- * establecio en TASK-013). Las tres claves de esa consulta
- * (`tolerancia_niveles`, `tolerancia_extra_si_heuristica_menor` y
- * `modelo_consulta_discrepancia`) se validaban sin que nada las leyera,
- * y TASK-052 las quito del fichero y de aqui.
- *
- * resolverNumeroAgentes() resuelve la discrepancia SIN
- * consultar a nadie: se queda con el MAYOR de los dos numeros de
- * agentes. Es la eleccion conservadora en la direccion que el propio
- * YML senala como la cara ("infraestimar deja la tarea con menos
- * revision de la que necesita"), y ademas nunca ignora lo que la
- * persona declaro: si declara mas de lo que la heuristica ve, manda lo
- * declarado. La discrepancia no se traga: sale en
- * `ResolucionAgentes.hayDiscrepancia` junto con los dos niveles y las
- * senales, para que quien orqueste pueda mostrarla o consultarla el.
- *
- * EFECTO MEDIDO DEL MAX, sobre las 32 tareas reales del repo el
- * 2026-09-08 (no es una estimacion: se ejecuto sobre ellas):
- *
- *   - Declarado y heuristico coinciden en 7 de 32.
- *   - CERO tareas disparan una sola palabra de alto riesgo. La senal
- *     mas cara del YML — la unica que mira el CONTENIDO del trabajo y
- *     no su forma — no se activa nunca, porque los objetivos estan
- *     escritos en vocabulario de metodologia y no de dominio tecnico.
- *     La puntuacion acaba gobernada por etiquetas, dependencias y
- *     numero de criterios, y por eso infraestima de forma sistematica.
- *   - NINGUNA tarea acaba con 0 roles. El reparto real es 14 tareas
- *     con 1 rol, 14 con 2 y 4 con 3.
- *
- * Ese ultimo punto merece leerse dos veces, porque es una consecuencia
- * que la decision no perseguia: el YML dice "0 en trivial (no se paga
- * un brainstorm para algo trivial)", y con el max ese 0 es
- * practicamente inalcanzable — basta que la tarea declare dos
- * dependencias, o cinco criterios de aceptacion, para que la
- * heuristica la suba a `simple` y el max le ponga un rol. La unica
- * tarea declarada `trivial` del repo (TASK-005) sale con 1.
- *
- * TASK-052 lo acentua a sabiendas: con `nivel_trivial_hasta: 0`
- * (calibrado con las rondas de revision de 43 tareas cerradas, ver el
- * YML) basta UNA senal para salir de `trivial`.
- *
- * No se corrige por cuenta propia porque el max lo aprobo Carlos con
- * el caso delante, y respetar el suelo del declarado seria reabrir esa
- * decision. Queda escrito aqui y fijado en un test para que sea una
- * eleccion consciente y no un descubrimiento dentro de seis meses.
- * ------------------------------------------------------------------
+ * E/S (TASK-148d, CORE2-21): core es puro salvo cargarHeuristica(), que lee el
+ * YML del plugin. Esta aqui porque es el unico punto de resolucion (regla 3) y
+ * todo lo demas del modulo (parsear, puntuar, resolver) es puro y se prueba sin
+ * disco con parsearHeuristica().
  */
 import { readFileSync } from 'node:fs';
 import { parseBloqueClaveValor } from './frontmatter.js';
@@ -98,27 +46,11 @@ export class HeuristicaError extends Error {
   }
 }
 
-export interface Heuristica {
-  peso_etiqueta_adicional: number;
-  peso_palabra_alto_riesgo: number;
-  peso_dependencia: number;
-  peso_tipo_release: number;
-  peso_tipo_hotfix_con_palabra_riesgo: number;
-  peso_criterios_aceptacion: number;
-  umbral_criterios_aceptacion: number;
-  nivel_trivial_hasta: number;
-  nivel_simple_hasta: number;
-  nivel_media_hasta: number;
-  nivel_alta_hasta: number;
-  nivel_critica_desde: number;
-  palabras_alto_riesgo: string[];
-  agentes_brainstorm_trivial: number;
-  agentes_brainstorm_simple: number;
-  agentes_brainstorm_media: number;
-  agentes_brainstorm_alta: number;
-  agentes_brainstorm_critica: number;
-  agentes_brainstorm_hotfix: number;
-}
+/**
+ * TASK-148d (CORE2-18): el tipo sale de CLAVES_NUMERICAS (antes cada clave se
+ * escribia tres veces: aqui, en la lista y al construir el objeto).
+ */
+export type Heuristica = Record<ClaveNumerica, number> & { palabras_alto_riesgo: string[] };
 
 /** Una senal encontrada al puntuar, para poder explicar el resultado. */
 export interface Senal {
@@ -166,6 +98,7 @@ const CLAVES_NUMERICAS = [
   'agentes_brainstorm_critica',
   'agentes_brainstorm_hotfix',
 ] as const;
+type ClaveNumerica = (typeof CLAVES_NUMERICAS)[number];
 
 const CLAVE_PALABRAS = 'palabras_alto_riesgo';
 
@@ -280,29 +213,8 @@ export function parsearHeuristica(contenido: string, ruta: string): Heuristica {
   }
 
   const h: Heuristica = {
-    peso_etiqueta_adicional: exigirNumero(numeros, 'peso_etiqueta_adicional', ruta),
-    peso_palabra_alto_riesgo: exigirNumero(numeros, 'peso_palabra_alto_riesgo', ruta),
-    peso_dependencia: exigirNumero(numeros, 'peso_dependencia', ruta),
-    peso_tipo_release: exigirNumero(numeros, 'peso_tipo_release', ruta),
-    peso_tipo_hotfix_con_palabra_riesgo: exigirNumero(
-      numeros,
-      'peso_tipo_hotfix_con_palabra_riesgo',
-      ruta
-    ),
-    peso_criterios_aceptacion: exigirNumero(numeros, 'peso_criterios_aceptacion', ruta),
-    umbral_criterios_aceptacion: exigirNumero(numeros, 'umbral_criterios_aceptacion', ruta),
-    nivel_trivial_hasta: exigirNumero(numeros, 'nivel_trivial_hasta', ruta),
-    nivel_simple_hasta: exigirNumero(numeros, 'nivel_simple_hasta', ruta),
-    nivel_media_hasta: exigirNumero(numeros, 'nivel_media_hasta', ruta),
-    nivel_alta_hasta: exigirNumero(numeros, 'nivel_alta_hasta', ruta),
-    nivel_critica_desde: exigirNumero(numeros, 'nivel_critica_desde', ruta),
+    ...(Object.fromEntries(CLAVES_NUMERICAS.map((c) => [c, exigirNumero(numeros, c, ruta)])) as Record<ClaveNumerica, number>),
     palabras_alto_riesgo: exigirLista(palabras, CLAVE_PALABRAS, ruta),
-    agentes_brainstorm_trivial: exigirNumero(numeros, 'agentes_brainstorm_trivial', ruta),
-    agentes_brainstorm_simple: exigirNumero(numeros, 'agentes_brainstorm_simple', ruta),
-    agentes_brainstorm_media: exigirNumero(numeros, 'agentes_brainstorm_media', ruta),
-    agentes_brainstorm_alta: exigirNumero(numeros, 'agentes_brainstorm_alta', ruta),
-    agentes_brainstorm_critica: exigirNumero(numeros, 'agentes_brainstorm_critica', ruta),
-    agentes_brainstorm_hotfix: exigirNumero(numeros, 'agentes_brainstorm_hotfix', ruta),
   };
 
   validarEscalaDeNiveles(h, ruta);
@@ -389,7 +301,6 @@ function exigirLista(valor: string[] | undefined, clave: string, ruta: string): 
   if (valor === undefined) throw new HeuristicaError(mensajeClaveAusente(ruta, clave));
   return valor;
 }
-
 
 /**
  * Puntua una tarea sumando las senales de la seccion 1 del YML. No hay

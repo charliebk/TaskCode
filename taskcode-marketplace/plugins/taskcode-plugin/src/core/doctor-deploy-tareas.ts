@@ -65,7 +65,7 @@ function plano(texto: string): string {
   return recortar(limpio, MAX_LARGO_TEXTO);
 }
 
-/** `fichero:linea` de las evidencias que lo traen, sin repetir y como mucho `MAX_DONDE`. */
+/** `fichero:linea` de las evidencias que lo traen, sin repetir. El tope `MAX_DONDE` lo aplica quien la usa (componerTarea). */
 function dondeFalla(p: ResultadoPunto): string[] {
   const vistos = new Set<string>();
   for (const e of p.evidencias) {
