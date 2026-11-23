@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-22
-actualizado: 2026-11-22
+actualizado: 2026-11-23
 dependencias: []
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Cerrar las decisiones del ciclo de vida y de los flags escritas en varios comand
 - [ ] siguiente, verificar-menores y finish comparten una sola definicion de codigo cambiado tras el Commit revisado y del Commit revisado de la ultima ronda; un test con comando_sincronizacion da finish sin pregunta en modo automatico
 - [ ] Los flags con valor se leen con extraerRepetible (veredicto, verificar-menores, approve, cadena, finish, doctor-deploy, new) y los booleanos estan todos en FLAGS_SIN_VALOR: --flag=valor se comporta igual en todos los comandos
 - [ ] El patron de ficheros de ronda y el de peticiones de rol vienen de rondas.ts y plan-brainstorm.ts; la regla de la tarea vive en su rama y la de que plan cuenta estan en un solo sitio
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T03:04:55Z | plan | automatico | persona | 0.16.1 |

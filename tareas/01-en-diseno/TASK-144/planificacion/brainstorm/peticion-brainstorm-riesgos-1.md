@@ -1,0 +1,61 @@
+# Peticion de brainstorm — TASK-144, rol riesgos (ronda 1)
+
+- Tarea: TASK-144 — Regla 4D: ciclo de vida, cadena y flags en commands
+- Tipo: fix · Complejidad declarada: alta
+- Ronda: 1
+- Fecha: 2026-11-23
+- Rol: `brainstorm-riesgos` — lanzalo con el agente de ese mismo nombre
+- Vuelca tu respuesta en: `salida-brainstorm-riesgos-1.md`
+
+## Tu pregunta
+
+> ¿Por donde se rompe esto?
+
+## Que miras
+
+- Bordes y estados intermedios: que queda a medias si el proceso muere a mitad.
+- Fallos parciales y concurrencia: dos ejecuciones, un recurso ocupado, un permiso denegado.
+- Compatibilidad hacia atras con los datos y ficheros que YA existen.
+- La vuelta atras: si esto sale mal, como se deshace y que queda inservible.
+
+## Que NO miras
+
+No es una lista de cortesia. Si la ignoras y lo cubres todo "por si acaso", el acotado de contexto se deshace sin que se note y esta tarea deja de tener varios puntos de vista:
+
+- Donde encaja el cambio (es del rol de arquitectura).
+- Que aserciones escribir (es del rol de testing).
+- Las reglas de negocio (son del rol de dominio).
+
+## Enunciado de la tarea
+
+### Objetivo
+
+````
+Cerrar las decisiones del ciclo de vida y de los flags escritas en varios comandos con reglas distintas (auditoria 4D completa, docs/auditoria-4d-completa.md, casos CMD1-01, CMD1-09, CMD1-10, CMD1-11, CMD2-01 a CMD2-05, CMD2-09, CMD2-14 y FS-01).
+````
+
+### Criterios de aceptacion
+
+````
+GUARDADOS_POR_CADENA se deriva de los comandos que escriben o cambian de rama (trocear, verificar-menores, verificar-lote y doctor-deploy incluidos) y un test falla si un comando con autoCommit queda fuera
+siguiente, verificar-menores y finish comparten una sola definicion de codigo cambiado tras el Commit revisado y del Commit revisado de la ultima ronda; un test con comando_sincronizacion da finish sin pregunta en modo automatico
+Los flags con valor se leen con extraerRepetible (veredicto, verificar-menores, approve, cadena, finish, doctor-deploy, new) y los booleanos estan todos en FLAGS_SIN_VALOR: --flag=valor se comporta igual en todos los comandos
+El patron de ficheros de ronda y el de peticiones de rol vienen de rondas.ts y plan-brainstorm.ts; la regla de la tarea vive en su rama y la de que plan cuenta estan en un solo sitio
+````
+
+## Como entregas
+
+Escribe en `salida-brainstorm-riesgos-1.md`, con estas secciones y en este orden:
+
+- Modos de fallo, ordenados por gravedad, con el escenario concreto de cada uno
+- Estados intermedios y fallos parciales
+- Compatibilidad hacia atras
+- Vuelta atras
+- El riesgo que mas te preocupa (UNO solo)
+
+## Reglas
+
+- **Propones enfoque; no implementas.** No escribas codigo de produccion ni modifiques ficheros del repo: tu salida es un documento.
+- Evidencia, no suposicion: si afirmas que algo se comporta de cierta manera, es porque lo has mirado. Di de donde lo sacas.
+- Prefiere lo concreto: rutas, nombres y casos reales por encima de recomendaciones genericas.
+- Trabajan en paralelo contigo, sin verte: **arquitectura**, **testing**. No cubras lo suyo — si lo haces, el unificador recibira el mismo punto de vista repetido y lo leera como confirmacion.

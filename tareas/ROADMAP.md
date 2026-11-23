@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-144, TASK-145, TASK-146, TASK-147, TASK-148, TASK-149, TASK-150, TASK-151, TASK-152, TASK-019
+- **En marcha:** TASK-144 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-145, TASK-146, TASK-147, TASK-148, TASK-149, TASK-150, TASK-151, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -111,7 +111,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-141 | Auditoria 4D inicial: reconocimiento completo del codigo existente | alta | — | ✅ terminada |
 | — | TASK-142 | Regla 4D: disfraz en los scripts de Git-Flow | media | — | ✅ terminada |
 | 11 | TASK-143 | Regla 4D: duplicacion en Git-Flow (bash y TS) | alta | — | lista para empezar |
-| 12 | TASK-144 | Regla 4D: ciclo de vida, cadena y flags en commands | alta | — | lista para empezar |
+| 12 | TASK-144 | Regla 4D: ciclo de vida, cadena y flags en commands | alta | — | ▶ en diseño |
 | 13 | TASK-145 | Regla 4D: duplicacion en las puertas de finish | media | — | lista para empezar |
 | 14 | TASK-146 | Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste | media | — | lista para empezar |
 | 15 | TASK-147 | Regla 4D: lectores de secciones e IDs en core | alta | — | lista para empezar |
