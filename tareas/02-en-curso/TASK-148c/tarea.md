@@ -38,3 +38,8 @@ Opciones globales de git, fechas, solape de etiquetas, ANSI, credenciales, URL d
 | 2026-11-23T22:02:47Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T22:02:56Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T22:03:00Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — d9fa174: buscadas las copias de cada utilidad y reutilizadas diaDe, ocultarCredenciales, partirAutoridad y esRutaDeTest; nuevos subcomandoGit, solapeDeEtiquetas y utilidades-texto.ts (sin dependencias, lo carga la via rapida de estado); 1 fichero de test nuevo (6 tests) y 2 expectativas actualizadas (secretos: usuario oculto; estado: modulo nuevo); 5 mutaciones en rojo
+- code-quality-reviewer — d9fa174
