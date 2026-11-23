@@ -39,3 +39,8 @@ printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, e
 | 2026-11-23T11:25:54Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T11:25:55Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T11:25:56Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 424a988: buscados printCliError, printAutoCommit, extraerUnico y el texto aMano antes de escribir; nuevo ERRORES_COMUNES_CLI (la lista comun no existia: 23 catch con listas distintas) y textoAMano; 1 fichero de test nuevo y 2 tests ampliados (doctor-deploy, args); 3 mutaciones en rojo
+- code-quality-reviewer — 424a988
