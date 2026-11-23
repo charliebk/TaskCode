@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 16578042
-tokens_revision: null
+tokens_revision: 2261358
 creado: 2026-11-23
 actualizado: 2026-11-23
 dependencias: [TASK-148b]
@@ -44,9 +44,12 @@ Opciones globales de git, fechas, solape de etiquetas, ANSI, credenciales, URL d
 
 - 4D — d9fa174: buscadas las copias de cada utilidad y reutilizadas diaDe, ocultarCredenciales, partirAutoridad y esRutaDeTest; nuevos subcomandoGit, solapeDeEtiquetas y utilidades-texto.ts (sin dependencias, lo carga la via rapida de estado); 1 fichero de test nuevo (6 tests) y 2 expectativas actualizadas (secretos: usuario oculto; estado: modulo nuevo); 5 mutaciones en rojo
 - code-quality-reviewer — d9fa174
+- 4D — d3bdc7a: correccion de la ronda 1 sin helper nuevo (recortar y esObjeto comunes en doctor-deploy-tareas, secretos y entrada-pretooluse); 1 test nuevo (seleccion con Rust) y el puerto 0; 1 mutacion en rojo
+- code-quality-reviewer — d3bdc7a
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T22:24:20Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 48 | 34271 | 16522830 | 20893 | 11 | 16578042 | - | - |
+| 2026-11-23T22:40:21Z | revision | agente:a9acb9ad8a72a1695 | 40 | 130339 | 2118267 | 12712 | 1 | 2261358 | 1 | - |
