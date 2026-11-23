@@ -55,7 +55,14 @@
  */
 import { estimadaAnotada } from './duracion-estimada.js';
 import { leerCierre } from './cierre.js';
-import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre, type PrecisionFecha } from './transiciones.js';
+import {
+  leerTransiciones,
+  instanteDe,
+  precisionDeFecha,
+  versionDeCierre,
+  type FaseRegistrada,
+  type PrecisionFecha,
+} from './transiciones.js';
 import { TASK_COMPLEXITIES, type Task, type TaskComplexity, type TaskState, type TaskType } from './task.js';
 import {
   FASES_COSTE,
@@ -82,9 +89,6 @@ import { extraerSecciones } from './tarea-body.js';
 
 export type OrigenMetricas = 'registro' | 'git' | '—';
 
-/** Fases que se miden. `pausa` solo se cuenta. */
-export type FaseMedida = 'plan' | 'approve' | 'start' | 'review' | 'finish' | 'pausa';
-
 export interface Marca {
   ms: number;
   precision: PrecisionFecha;
@@ -93,7 +97,7 @@ export interface Marca {
 /** Un commit automatico reconocido: fase y fecha de autor (ms UTC). */
 export interface EventoGit {
   id: string;
-  fase: FaseMedida;
+  fase: FaseRegistrada;
   ms: number;
 }
 
@@ -270,13 +274,16 @@ export interface EntradaMetricas {
   suite?: { tests: number | null; completaS: number } | null;
 }
 
+/** TASK-147c (CORE2-12): segundos del registro de puertas como `Duracion` (ms, al segundo). */
+function duracionDeSegundos(s: number): Duracion {
+  return { valor: Math.round(s * 1000), precision: 'segundo' };
+}
+
 /** TASK-111/128: el resumen de una puerta en la forma de la fila (duracion en ms). */
 function puertaDeFila(
   r: { ejecuciones: number; duracionS: number } | null | undefined
 ): { ejecuciones: number; duracion: Duracion } | null {
-  return r === undefined || r === null
-    ? null
-    : { ejecuciones: r.ejecuciones, duracion: { valor: Math.round(r.duracionS * 1000), precision: 'segundo' } };
+  return r === undefined || r === null ? null : { ejecuciones: r.ejecuciones, duracion: duracionDeSegundos(r.duracionS) };
 }
 
 function kbPorRonda(peticiones: readonly { ronda: number; bytes: number }[]): PeticionRonda[] {
@@ -295,7 +302,7 @@ function kbPorRonda(peticiones: readonly { ronda: number; bytes: number }[]): Pe
 const ASUNTO_CHORE_RE =
   /^chore\((TASK-\d{3,}[a-z]?)\): (tarea en diseno|plan aprobado|tarea en curso|peticion de revision ronda \d+|tarea terminada y artefactos de cierre|pausa registrada)$/;
 
-function faseDeAsunto(resumen: string): FaseMedida {
+function faseDeAsunto(resumen: string): FaseRegistrada {
   if (resumen === 'tarea en diseno') return 'plan';
   if (resumen === 'plan aprobado') return 'approve';
   if (resumen === 'tarea en curso') return 'start';
@@ -334,7 +341,7 @@ interface Marcas {
 }
 
 /** TASK-086: cada racha de `pausa` seguidas, de su primera fila a la siguiente que no lo sea. */
-function intervalosDePausa(orden: readonly { fase: FaseMedida; marca: Marca }[]): IntervaloPausa[] {
+function intervalosDePausa(orden: readonly { fase: FaseRegistrada; marca: Marca }[]): IntervaloPausa[] {
   const intervalos: IntervaloPausa[] = [];
   let abierta: Marca | null = null;
   for (const e of orden) {
@@ -348,10 +355,10 @@ function intervalosDePausa(orden: readonly { fase: FaseMedida; marca: Marca }[])
   return intervalos;
 }
 
-function marcasDe(eventos: readonly { fase: FaseMedida; marca: Marca }[]): Marcas {
+function marcasDe(eventos: readonly { fase: FaseRegistrada; marca: Marca }[]): Marcas {
   // Orden cronologico: el registro ya lo esta, git log va al reves.
   const orden = [...eventos].sort((a, b) => a.marca.ms - b.marca.ms);
-  const primera = (fase: FaseMedida): Marca | null => orden.find((e) => e.fase === fase)?.marca ?? null;
+  const primera = (fase: FaseRegistrada): Marca | null => orden.find((e) => e.fase === fase)?.marca ?? null;
   const finishes = orden.filter((e) => e.fase === 'finish');
   return {
     plan: primera('plan'),
@@ -414,15 +421,24 @@ function ultimaMarca(m: Marcas): Marca | null {
 }
 
 /**
+ * TASK-147c (CORE2-12): las filas del registro de transiciones como marcas,
+ * convertidas una sola vez para la duracion que anota finish
+ * (`minutosPuntaAPunta`) y para la fila de metricas (`calcularFila`).
+ */
+function registroDe(body: string): { fase: FaseRegistrada; marca: Marca }[] {
+  return leerTransiciones(body).map((f) => ({
+    fase: f.fase,
+    marca: { ms: instanteDe(f.fecha), precision: precisionDeFecha(f.fecha) as PrecisionFecha },
+  }));
+}
+
+/**
  * TASK-097: minutos de punta a punta (de la fila start a la ultima finish, sin
  * pausas) del registro de una tarea; null si falta una marca o alguna es de
  * dia (nunca se inventa una cifra).
  */
 export function minutosPuntaAPunta(body: string): number | null {
-  const registro = leerTransiciones(body).map((f) => ({
-    fase: f.fase as FaseMedida,
-    marca: { ms: instanteDe(f.fecha), precision: precisionDeFecha(f.fecha) as PrecisionFecha },
-  }));
+  const registro = registroDe(body);
   if (registro.length === 0) return null;
   const m = marcasDe(registro);
   const d = duracionSinPausas(m.start, m.finish, m.intervalosPausa);
@@ -431,10 +447,7 @@ export function minutosPuntaAPunta(body: string): number | null {
 
 /** Una fila por tarea, sin la parte de heuristica. */
 export function calcularFila(e: EntradaMetricas): FilaMetricas {
-  const registro = leerTransiciones(e.body).map((f) => ({
-    fase: f.fase as FaseMedida,
-    marca: { ms: instanteDe(f.fecha), precision: precisionDeFecha(f.fecha) as PrecisionFecha },
-  }));
+  const registro = registroDe(e.body);
   let origen: OrigenMetricas;
   let marcas: Marcas;
   if (registro.length > 0) {
@@ -486,9 +499,7 @@ export function calcularFila(e: EntradaMetricas): FilaMetricas {
     total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
     finish: finishDe(e.body),
     sincronizacion:
-      e.sincronizacionS === undefined || e.sincronizacionS === null
-        ? null
-        : { valor: Math.round(e.sincronizacionS * 1000), precision: 'segundo' },
+      e.sincronizacionS === undefined || e.sincronizacionS === null ? null : duracionDeSegundos(e.sincronizacionS),
     freno: puertaDeFila(e.freno),
     review: puertaDeFila(e.review),
     finishVerificacion: puertaDeFila(e.finishVerificacion),

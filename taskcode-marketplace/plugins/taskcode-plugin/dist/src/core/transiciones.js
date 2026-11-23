@@ -47,6 +47,12 @@
 import { MODOS_FLUJO } from './config.js';
 import { VERSION_TASKCTL } from './version.js';
 export const SECCION_TRANSICIONES = '## Transiciones';
+/**
+ * Fases que deja en el registro. `pausa` es el «no» del semiautomatico.
+ * TASK-147c (CORE2-13): la unica lista de fases; el tipo se deriva de ella y
+ * metricas y progreso la usan, asi que una fase nueva no se ignora en silencio.
+ */
+export const FASES_REGISTRADAS = ['plan', 'approve', 'start', 'review', 'finish', 'pausa'];
 export const DECIDIDO_POR = ['persona', 'automatico'];
 /** `MAYOR.MENOR.PARCHE` con pre-release opcional (`0.12.0-dev`). */
 export const VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
@@ -77,7 +83,6 @@ export function instanteDe(fecha) {
 export function formatearInstante(d) {
     return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
-const FASES = ['plan', 'approve', 'start', 'review', 'finish', 'pausa'];
 const CABECERA = '| fecha | fase | modo | decidido_por | version |';
 const SEPARADOR = '|---|---|---|---|---|';
 /** Las celdas de la cabecera anterior a TASK-084, la unica que se reescribe. */
@@ -270,7 +275,7 @@ export function leerTransiciones(body) {
         // modo congelado (riesgo del plan): hay un test que lo fija.
         if (precisionDeFecha(fecha) === null)
             continue;
-        if (!FASES.includes(fase))
+        if (!FASES_REGISTRADAS.includes(fase))
             continue;
         if (!MODOS_FLUJO.includes(modo))
             continue;

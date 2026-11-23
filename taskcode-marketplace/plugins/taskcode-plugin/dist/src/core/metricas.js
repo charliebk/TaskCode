@@ -55,7 +55,7 @@
  */
 import { estimadaAnotada } from './duracion-estimada.js';
 import { leerCierre } from './cierre.js';
-import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre } from './transiciones.js';
+import { leerTransiciones, instanteDe, precisionDeFecha, versionDeCierre, } from './transiciones.js';
 import { TASK_COMPLEXITIES } from './task.js';
 import { FASES_COSTE, leerCostes, lecturasDeRevision, resumirCostes, } from './coste-registro.js';
 import { DIMENSIONES_4D, idsRegla4D, leerHallazgos, resumirHallazgos, rondasSoloMenores, veredictoDeRonda, } from './informe-revision.js';
@@ -76,11 +76,13 @@ export function claveTarea(proyecto, id) {
 export function etiquetaTarea(f, varios) {
     return varios ? `${f.proyecto}/${f.id}` : f.id;
 }
+/** TASK-147c (CORE2-12): segundos del registro de puertas como `Duracion` (ms, al segundo). */
+function duracionDeSegundos(s) {
+    return { valor: Math.round(s * 1000), precision: 'segundo' };
+}
 /** TASK-111/128: el resumen de una puerta en la forma de la fila (duracion en ms). */
 function puertaDeFila(r) {
-    return r === undefined || r === null
-        ? null
-        : { ejecuciones: r.ejecuciones, duracion: { valor: Math.round(r.duracionS * 1000), precision: 'segundo' } };
+    return r === undefined || r === null ? null : { ejecuciones: r.ejecuciones, duracion: duracionDeSegundos(r.duracionS) };
 }
 function kbPorRonda(peticiones) {
     const bytes = new Map();
@@ -207,15 +209,23 @@ function ultimaMarca(m) {
     return m.finish ?? m.review ?? m.start ?? m.plan;
 }
 /**
+ * TASK-147c (CORE2-12): las filas del registro de transiciones como marcas,
+ * convertidas una sola vez para la duracion que anota finish
+ * (`minutosPuntaAPunta`) y para la fila de metricas (`calcularFila`).
+ */
+function registroDe(body) {
+    return leerTransiciones(body).map((f) => ({
+        fase: f.fase,
+        marca: { ms: instanteDe(f.fecha), precision: precisionDeFecha(f.fecha) },
+    }));
+}
+/**
  * TASK-097: minutos de punta a punta (de la fila start a la ultima finish, sin
  * pausas) del registro de una tarea; null si falta una marca o alguna es de
  * dia (nunca se inventa una cifra).
  */
 export function minutosPuntaAPunta(body) {
-    const registro = leerTransiciones(body).map((f) => ({
-        fase: f.fase,
-        marca: { ms: instanteDe(f.fecha), precision: precisionDeFecha(f.fecha) },
-    }));
+    const registro = registroDe(body);
     if (registro.length === 0)
         return null;
     const m = marcasDe(registro);
@@ -224,10 +234,7 @@ export function minutosPuntaAPunta(body) {
 }
 /** Una fila por tarea, sin la parte de heuristica. */
 export function calcularFila(e) {
-    const registro = leerTransiciones(e.body).map((f) => ({
-        fase: f.fase,
-        marca: { ms: instanteDe(f.fecha), precision: precisionDeFecha(f.fecha) },
-    }));
+    const registro = registroDe(e.body);
     let origen;
     let marcas;
     if (registro.length > 0) {
@@ -278,9 +285,7 @@ export function calcularFila(e) {
         kbPeticionPorRonda: kbPorRonda(e.peticiones ?? []),
         total: duracionSinPausas(marcas.plan, marcas.finish, marcas.intervalosPausa),
         finish: finishDe(e.body),
-        sincronizacion: e.sincronizacionS === undefined || e.sincronizacionS === null
-            ? null
-            : { valor: Math.round(e.sincronizacionS * 1000), precision: 'segundo' },
+        sincronizacion: e.sincronizacionS === undefined || e.sincronizacionS === null ? null : duracionDeSegundos(e.sincronizacionS),
         freno: puertaDeFila(e.freno),
         review: puertaDeFila(e.review),
         finishVerificacion: puertaDeFila(e.finishVerificacion),

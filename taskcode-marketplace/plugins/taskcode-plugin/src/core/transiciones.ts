@@ -49,8 +49,13 @@ import { VERSION_TASKCTL } from './version.js';
 
 export const SECCION_TRANSICIONES = '## Transiciones';
 
-/** Fases que deja en el registro. `pausa` es el «no» del semiautomatico. */
-export type FaseRegistrada = 'plan' | 'approve' | 'start' | 'review' | 'finish' | 'pausa';
+/**
+ * Fases que deja en el registro. `pausa` es el «no» del semiautomatico.
+ * TASK-147c (CORE2-13): la unica lista de fases; el tipo se deriva de ella y
+ * metricas y progreso la usan, asi que una fase nueva no se ignora en silencio.
+ */
+export const FASES_REGISTRADAS = ['plan', 'approve', 'start', 'review', 'finish', 'pausa'] as const;
+export type FaseRegistrada = (typeof FASES_REGISTRADAS)[number];
 
 export type DecididoPor = 'persona' | 'automatico';
 export const DECIDIDO_POR: readonly DecididoPor[] = ['persona', 'automatico'];
@@ -103,7 +108,6 @@ export function formatearInstante(d: Date): string {
   return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-const FASES: readonly FaseRegistrada[] = ['plan', 'approve', 'start', 'review', 'finish', 'pausa'];
 const CABECERA = '| fecha | fase | modo | decidido_por | version |';
 const SEPARADOR = '|---|---|---|---|---|';
 /** Las celdas de la cabecera anterior a TASK-084, la unica que se reescribe. */
@@ -298,7 +302,7 @@ export function leerTransiciones(body: string): FilaTransicion[] {
     // secas haria invisibles las filas nuevas y apagaria en silencio el
     // modo congelado (riesgo del plan): hay un test que lo fija.
     if (precisionDeFecha(fecha) === null) continue;
-    if (!(FASES as readonly string[]).includes(fase)) continue;
+    if (!(FASES_REGISTRADAS as readonly string[]).includes(fase)) continue;
     if (!(MODOS_FLUJO as readonly string[]).includes(modo)) continue;
     if (!(DECIDIDO_POR as readonly string[]).includes(decidido)) continue;
     filas.push({
