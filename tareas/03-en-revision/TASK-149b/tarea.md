@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 8665810
-tokens_revision: 4180985
+tokens_revision: 5797250
 creado: 2026-11-23
 actualizado: 2026-11-23
 dependencias: [TASK-149a]
@@ -48,6 +48,8 @@ printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, e
 - code-quality-reviewer — 424a988
 - 4D — 2735c6e: correccion de la ronda 1; nuevo esErrorComunCli (la decision de main, exportada para probarla); 1 test nuevo con las 9 clases; 4 mutaciones en rojo (quitar una clase de la lista)
 - code-quality-reviewer — 2735c6e
+- 4D — e6292de: correccion de IMP-2 sin helper nuevo (el test usa la lista exportada); 2 mutaciones en rojo (alta y baja de una clase)
+- code-quality-reviewer — e6292de
 
 ## Coste
 
@@ -55,3 +57,8 @@ printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, e
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T11:37:36Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 42 | 25571 | 8624292 | 15905 | 7 | 8665810 | - | - |
 | 2026-11-23T12:00:40Z | revision | agente:a348b5fe1767a7433 | 64 | 146867 | 4019249 | 14805 | 2 | 4180985 | 1 | - |
+| 2026-11-23T12:08:44Z | revision | agente:ab23f399c176b645d | 28 | 131165 | 1465637 | 19435 | 4 | 1616265 | 2 | - |
+
+## Rondas extra
+
+- Ronda 3: Carlos, verificar la correccion de IMP-2 (el test compara con la lista exportada de errores comunes)
