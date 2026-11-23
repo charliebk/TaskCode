@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 5785814
-tokens_revision: null
+tokens_revision: 7948871
 creado: 2026-11-23
 actualizado: 2026-11-23
 dependencias: [TASK-147a]
@@ -51,3 +51,8 @@ casillasSinMarcar, normalizar, citar y el ID de tarea con un solo lector (CORE2-
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T09:39:11Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 50 | 38463 | 5723849 | 23452 | 10 | 5785814 | - | - |
+| 2026-11-23T10:17:50Z | revision | agente:a2ca1003205a4ff1f | 110 | 169187 | 7754364 | 25210 | 10 | 7948871 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-23T10:19:18Z: ronda 1; commit revisado bc04b10ebf2db9a8fc0aefa394eab12ee2c2b9c6; commit verificado a8767b7adb7d8f398e7cae0f402029e064d04c20; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/roadmap-comparar.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/task.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/ids-y-criterios.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/fs/ids-filtro.test.ts; corregidos: MEN-2, MEN-3, MEN-4; pendientes: ninguno
