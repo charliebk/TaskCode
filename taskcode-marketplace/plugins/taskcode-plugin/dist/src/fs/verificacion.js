@@ -28,7 +28,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { gitLinea as git, rutaGit } from './git-crudo.js';
+import { gitLinea, rutaGit } from './git-crudo.js';
 import { ejecutarAcotado, fotoDelArbol, fueCortado, MARCA_TIMEOUT } from './ejecucion-acotada.js';
 /** Bytes del final de la salida que se leen (el informe muestra menos: ver informe-verificacion). */
 const BYTES_COLA_LEIDOS = 16 * 1024;
@@ -86,7 +86,7 @@ export function ejecutarVerificacion(raiz, comando, timeoutS, opciones = {}) {
  * huella no hay memo, y se ejecuta siempre.
  */
 export function huellaDelArbol(raiz, comando, timeoutS, contexto) {
-    const head = git(['rev-parse', 'HEAD'], raiz);
+    const head = gitLinea(['rev-parse', 'HEAD'], raiz);
     if (head === null)
         return null;
     let foto;
@@ -114,7 +114,7 @@ export function huellaDelArbol(raiz, comando, timeoutS, contexto) {
  * con ese commit en HEAD y el arbol limpio. Sin contexto, la formula de siempre.
  */
 export function huellaDeCommit(raiz, ref, comando, timeoutS, contexto) {
-    const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
+    const sha = gitLinea(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
     if (sha === null || sha === '')
         return null;
     return cabeceraDeHuella(sha, comando, timeoutS, contexto).digest('hex');
@@ -172,7 +172,7 @@ export function guardarMemo(raiz, huella, resultado, tipo = 'completa') {
  * la misma cadena que guarda `verificarConMemo`, no una copia.
  */
 export function contextoSelectiva(raiz, base) {
-    const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`], raiz) ?? '';
+    const sha = gitLinea(['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`], raiz) ?? '';
     return `selectiva\0${base}\0${sha}`;
 }
 /**
@@ -219,7 +219,7 @@ export function verificarConMemo(raiz, p, opciones = {}) {
     const conBase = conRamaBase(p);
     const contexto = contextoDePeticion(raiz, p);
     const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
-    const commit = git(['rev-parse', 'HEAD'], raiz)?.trim() || null;
+    const commit = gitLinea(['rev-parse', 'HEAD'], raiz)?.trim() || null;
     const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
     if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
         return { resultado: guardado, deMemo: true, cambioElArbol: false, commit, huella };

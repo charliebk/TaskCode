@@ -14,6 +14,7 @@ import { closeSync, fstatSync, mkdtempSync, openSync, readFileSync, readSync, rm
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { gitCrudo } from './git-crudo.js';
 /** Codigo con el que ENVOLTORIO dice "lo he cortado por timeout". */
 export const CODIGO_TIMEOUT_ENVOLTORIO = 124;
 /**
@@ -180,15 +181,12 @@ export function fotoDelArbol(raiz) {
     // Sin runGit a proposito: recorta la salida, y el recorte se come el
     // espacio inicial de la primera entrada (" M ruta"), desplazando la
     // ruta un caracter.
-    const r = spawnSync('git', ['status', '--porcelain', '-z', '--untracked-files=all'], {
-        cwd: raiz,
-        encoding: 'utf8',
-        maxBuffer: 64 * 1024 * 1024,
-    });
-    if (r.status !== 0) {
-        throw new Error(`git status fallo: ${String(r.stderr ?? '').trim()}`);
+    // TASK-149a (MEN-2): sobre gitCrudo, que no recorta la salida.
+    const r = gitCrudo(['status', '--porcelain', '-z', '--untracked-files=all'], raiz);
+    if (r.error !== undefined || r.status !== 0) {
+        throw new Error(`git status fallo: ${(r.error?.message ?? r.stderr).trim()}`);
     }
-    const salida = r.stdout ?? '';
+    const salida = r.stdout.toString('utf8');
     const foto = new Map();
     const entradas = salida.split('\0');
     for (let i = 0; i < entradas.length; i++) {

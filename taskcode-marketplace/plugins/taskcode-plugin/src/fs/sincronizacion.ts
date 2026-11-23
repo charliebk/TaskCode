@@ -35,7 +35,7 @@
  */
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { gitOk as runGitOk } from './git-crudo.js';
+import { gitOk } from './git-crudo.js';
 import { raizDelRepo, type TaskcodeConfig } from '../core/config.js';
 import { runGit } from './git.js';
 import { ejecutarAcotado, fotoDelArbol, fueCortado, type SalidaEjecucion } from './ejecucion-acotada.js';
@@ -209,7 +209,7 @@ export function sincronizacionFallidaAlPreparar(
     // Desprepararla primero: si el add llego a meterla en el indice,
     // restaurar solo el arbol la dejaria en "A"/"M" y el siguiente
     // comando abortaria por workspace sucio.
-    runGitOk(['reset', '-q', '--', r], raiz);
+    gitOk(['reset', '-q', '--', r], raiz);
   }
   restaurarAHead(raiz, declaradas);
   const comando = config.comando_sincronizacion ?? '';
@@ -230,7 +230,7 @@ export function sincronizacionFallidaAlPreparar(
  */
 function motivoNoCommiteable(raiz: string, rutas: readonly string[]): string | null {
   for (const r of rutas) {
-    if (runGitOk(['check-ignore', '-q', '--', r], raiz)) {
+    if (gitOk(['check-ignore', '-q', '--', r], raiz)) {
       return `escribio ${r}, pero esa ruta esta en .gitignore y Git no la commitearia`;
     }
     const real = nombreRealEnDisco(raiz, r);
@@ -317,7 +317,7 @@ function restaurarAHead(
     // antes de ejecutar, es trabajo de la persona (en un disco que si
     // distingue mayusculas es OTRO fichero): no se toca.
     if (objetivo !== r && antes.has(objetivo)) continue;
-    if (runGitOk(['cat-file', '-e', `HEAD:${objetivo}`], raiz)) {
+    if (gitOk(['cat-file', '-e', `HEAD:${objetivo}`], raiz)) {
       runGit(['checkout', 'HEAD', '--', objetivo], raiz);
     } else if (!antes.has(objetivo)) {
       const abs = path.join(raiz, objetivo);

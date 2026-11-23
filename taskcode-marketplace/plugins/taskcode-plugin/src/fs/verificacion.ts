@@ -28,7 +28,7 @@
 import { createHash, type Hash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { gitLinea as git, rutaGit } from './git-crudo.js';
+import { gitLinea, rutaGit } from './git-crudo.js';
 import { ejecutarAcotado, fotoDelArbol, fueCortado, MARCA_TIMEOUT } from './ejecucion-acotada.js';
 import type { ResultadoVerificacion } from '../core/informe-verificacion.js';
 
@@ -116,7 +116,7 @@ export function huellaDelArbol(
   timeoutS: number,
   contexto?: string
 ): string | null {
-  const head = git(['rev-parse', 'HEAD'], raiz);
+  const head = gitLinea(['rev-parse', 'HEAD'], raiz);
   if (head === null) return null;
   let foto: Map<string, string>;
   try {
@@ -148,7 +148,7 @@ export function huellaDeCommit(
   timeoutS: number,
   contexto?: string
 ): string | null {
-  const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
+  const sha = gitLinea(['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], raiz);
   if (sha === null || sha === '') return null;
   return cabeceraDeHuella(sha, comando, timeoutS, contexto).digest('hex');
 }
@@ -250,7 +250,7 @@ export interface VerificacionConMemo {
  * la misma cadena que guarda `verificarConMemo`, no una copia.
  */
 export function contextoSelectiva(raiz: string, base: string): string {
-  const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`], raiz) ?? '';
+  const sha = gitLinea(['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`], raiz) ?? '';
   return `selectiva\0${base}\0${sha}`;
 }
 
@@ -303,7 +303,7 @@ export function verificarConMemo(
   const conBase = conRamaBase(p);
   const contexto = contextoDePeticion(raiz, p);
   const huella = huellaDelArbol(raiz, p.comando, p.timeoutS, contexto);
-  const commit = git(['rev-parse', 'HEAD'], raiz)?.trim() || null;
+  const commit = gitLinea(['rev-parse', 'HEAD'], raiz)?.trim() || null;
   const guardado = huella === null ? null : leerMemo(raiz, huella, p.tipo);
   if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
     return { resultado: guardado, deMemo: true, cambioElArbol: false, commit, huella };

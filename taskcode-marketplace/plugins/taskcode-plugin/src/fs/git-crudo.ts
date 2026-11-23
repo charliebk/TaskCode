@@ -1,8 +1,9 @@
 /**
- * `git` sin lanzar nunca y con la salida en bruto (`Buffer`), para
- * `taskctl doctor-deploy` (TASK-066): el recorrido del historial lee blobs que
- * pueden no ser UTF-8, y un fallo de Git tiene que poder convertirse en
- * «NO VERIFICADO» en vez de en una excepcion.
+ * `git` sin lanzar nunca. Nacio para `taskctl doctor-deploy` (TASK-066: salida
+ * en bruto, blobs que pueden no ser UTF-8, un fallo convertible en «NO
+ * VERIFICADO»). Desde TASK-149a es el unico envoltorio de git sin lanzar de fs
+ * y hooks: texto, linea, resultado, ok, ruta bajo el directorio de Git y rama
+ * actual. El `git` que lanza (GitCommandError) es runGit de fs/git.ts.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';

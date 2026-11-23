@@ -36,7 +36,12 @@ test('ramaActual: la rama; con HEAD desacoplado, null; durante un rebase, la que
     const dirRebase = rutaGit(raiz, 'rebase-merge') as string;
     await mkdir(dirRebase, { recursive: true });
     await writeFile(path.join(dirRebase, 'head-name'), 'refs/heads/feature/task-901-x\n', 'utf8');
-    assert.equal(ramaActual(raiz), 'feature/task-901-x', 'durante el rebase');
+    assert.equal(ramaActual(raiz), 'feature/task-901-x', 'durante el rebase (rebase-merge)');
+    await rm(dirRebase, { recursive: true, force: true });
+    const dirApply = rutaGit(raiz, 'rebase-apply') as string;
+    await mkdir(dirApply, { recursive: true });
+    await writeFile(path.join(dirApply, 'head-name'), 'refs/heads/feature/task-901-x\n', 'utf8');
+    assert.equal(ramaActual(raiz), 'feature/task-901-x', 'durante el rebase (rebase-apply, IMP-1 de la revision)');
     assert.equal(ramaActual(fuera), null);
   } finally {
     await rm(raiz, { recursive: true, force: true });

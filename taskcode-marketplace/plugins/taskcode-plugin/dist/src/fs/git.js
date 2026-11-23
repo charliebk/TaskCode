@@ -12,6 +12,7 @@ import path from 'node:path';
 import { resolverConfig } from '../core/config.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
 import { EXTENSIONES_CODIGO, PATRON_GREP_DEFINICION } from '../core/candidatos-4d.js';
+import { rutaGit } from './git-crudo.js';
 export class GitCommandError extends Error {
     args;
     stderr;
@@ -126,7 +127,7 @@ export function isInsideWorkTree(cwd) {
  *   No hay nada que abortar y aqui se devuelve null, igual que Git.
  */
 export function operacionEnCurso(cwd) {
-    const gitPath = (nombre) => path.resolve(cwd, runGit(['rev-parse', '--git-path', nombre], cwd));
+    const gitPath = (nombre) => rutaGitObligatoria(cwd, nombre);
     if (existsSync(gitPath('MERGE_HEAD')))
         return 'merge';
     if (existsSync(gitPath('rebase-merge')) || existsSync(gitPath('rebase-apply')))
@@ -153,6 +154,18 @@ export function operacionEnCurso(cwd) {
         return /^revert /m.test(todo) ? 'revert' : 'cherry-pick';
     }
     return null;
+}
+/**
+ * TASK-149a (MEN-1 de su revision): `rutaGit` para quien lanza fuera de un
+ * repo. Si no hay ruta, `rev-parse --git-dir` lanza el GitCommandError de
+ * siempre (y si no lanzara, se lanza aqui).
+ */
+export function rutaGitObligatoria(cwd, ruta) {
+    const r = rutaGit(cwd, ruta);
+    if (r !== null)
+        return r;
+    runGit(['rev-parse', '--git-dir'], cwd);
+    throw new GitCommandError(['rev-parse', '--git-path', ruta], 'sin ruta en el directorio de Git');
 }
 /** Nombre de la rama activa (equivalente a `git branch --show-current`). */
 export function currentBranch(cwd) {

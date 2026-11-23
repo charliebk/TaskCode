@@ -12,8 +12,8 @@
  *   3. `tareas/02-en-curso/` no existe en la raiz del repo (solo `stat`).
  *   4. Ninguna tarea en curso (lectura de esa carpeta).
  *   5. Config: sin `comando_verificacion`, nada. Config invalida: se recuerda.
- *   6. La rama actual (el unico `git`) no es la `rama` de ninguna tarea en
- *      curso: nada. HEAD desacoplado cae aqui (aceptado en el plan).
+ *   6. La rama actual (el primer `git`; durante un rebase, la que se rebasa) no es la `rama` de ninguna tarea en
+ *      curso: nada. HEAD desacoplado sin rebase cae aqui (aceptado en el plan).
  *   7. Config invalida con tarea en curso en la rama: BLOQUEA (decision de
  *      Carlos: fallo cerrado, como el resto de la config).
  *   8. Memo: misma huella del arbol que el ultimo verde del freno (TASK-111)
@@ -154,7 +154,7 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       errorConfig = e.message.replace(/^\[ERROR\]\s*/, '');
     }
 
-    // 6: el unico git hasta aqui.
+    // 6: los primeros git (branch --show-current y, en un rebase, rev-parse --git-path).
     rama = ramaActual(raiz);
     if (rama === null || !ramas.has(rama)) return sinLeer;
     const deEstaRama = tareas.filter((t) => t.task.rama === rama);

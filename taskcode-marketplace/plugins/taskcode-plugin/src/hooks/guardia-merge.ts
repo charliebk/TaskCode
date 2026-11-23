@@ -44,7 +44,7 @@ import { ConfigError, raizDelRepo, resolverConfigConAvisos, timeoutEfectivoS, ty
 import { huellaDeCommit, huellaDelArbol, leerMemo } from '../fs/verificacion.js';
 import { comandoSoloIntegra } from '../core/comando-merge.js';
 import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
-import { gitResultado as git, ramaActual } from '../fs/git-crudo.js';
+import { gitResultado, ramaActual } from '../fs/git-crudo.js';
 
 import { PASAR, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
 
@@ -74,7 +74,7 @@ export function comandoCandidato(entrada: EntradaPreToolUse): string | null {
 export const INVOCA_GIT_O_CIERRE = /\bgit\b|merge-[a-z]+-to-[a-z]+\.sh/i;
 
 function existeRef(ref: string, cwd: string): boolean {
-  return git(['rev-parse', '--verify', '--quiet', ref], cwd).ok;
+  return gitResultado(['rev-parse', '--verify', '--quiet', ref], cwd).ok;
 }
 
 /** La principal sin red: main o master en local (resolveMainBranch consulta origin). */
@@ -85,7 +85,7 @@ function ramaPrincipal(cwd: string): string | null {
 }
 
 function esAncestro(a: string, b: string, cwd: string): boolean {
-  return git(['merge-base', '--is-ancestor', '--end-of-options', a, b], cwd).ok;
+  return gitResultado(['merge-base', '--is-ancestor', '--end-of-options', a, b], cwd).ok;
 }
 
 interface Integracion {
@@ -135,7 +135,7 @@ export function decidirPreToolUse(entrada: EntradaPreToolUse): DecisionPreToolUs
     return (
       existeRef(`refs/heads/${n}`, cwd) ||
       existeRef(`refs/remotes/origin/${n}`, cwd) ||
-      git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${n}^{commit}`], cwd).ok
+      gitResultado(['rev-parse', '--verify', '--quiet', '--end-of-options', `${n}^{commit}`], cwd).ok
     );
   };
   const ops = analizarComando(comando, esRevision);
@@ -226,7 +226,7 @@ function integraciones(op: OperacionMerge, raiz: string, integracion: string, pr
 function motivoDeBloqueo(integ: Integracion, config: TaskcodeConfig, contexto: ContextoComando): string | null {
   const { fuente, destino, raiz } = integ;
   const comando = config.comando_verificacion as string;
-  const sha = git(['rev-parse', '--verify', '--quiet', '--end-of-options', `${fuente}^{commit}`], raiz);
+  const sha = gitResultado(['rev-parse', '--verify', '--quiet', '--end-of-options', `${fuente}^{commit}`], raiz);
   if (!sha.ok || sha.out === '') {
     return mensaje(fuente, null, destino, comando, `no se puede resolver "${fuente}" a un commit`);
   }
@@ -403,7 +403,7 @@ function decidirCierreDeMerge(comando: string, cwd: string): DecisionPreToolUse 
     let config: TaskcodeConfig;
     try {
       raiz = raizDelRepo(dir === null ? cwd : path.resolve(cwd, dir));
-      const mh = git(['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'], raiz);
+      const mh = gitResultado(['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'], raiz);
       if (!mh.ok || mh.out === '') continue;
       sha = mh.out;
       rama = ramaActual(raiz) ?? '';

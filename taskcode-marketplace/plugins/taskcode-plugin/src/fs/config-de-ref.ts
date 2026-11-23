@@ -7,10 +7,10 @@
  * Sin fichero en esa referencia, la configuracion por defecto. Un fichero
  * invalido lanza ConfigError: quien la usa decide el mensaje.
  */
-import { spawnSync } from 'node:child_process';
+import { gitTexto } from './git-crudo.js';
 import { parsearConfig, type TaskcodeConfig } from '../core/config.js';
 
 export function configDeRef(ref: string, cwd: string): TaskcodeConfig {
-  const r = spawnSync('git', ['show', `${ref}:.taskcode/config.yml`], { cwd, encoding: 'utf8', windowsHide: true });
-  return parsearConfig(r.status === 0 ? (r.stdout ?? '') : '', `${ref}:.taskcode/config.yml`);
+  // TASK-149a (MEN-2): con gitTexto (64 MB de buffer, no 1 MB que cortaria en silencio).
+  return parsearConfig(gitTexto(['show', `${ref}:.taskcode/config.yml`], cwd) ?? '', `${ref}:.taskcode/config.yml`);
 }
