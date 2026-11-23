@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-147-regla-4d-lectores-de-secciones-e-ids-en
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -36,3 +36,4 @@ Un solo tipo de fase y una sola conversion de fila a Marca (CORE2-12, CORE2-13).
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-23T10:21:42Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T10:21:43Z | approve | automatico | persona | 0.16.1 |
