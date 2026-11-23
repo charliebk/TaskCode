@@ -12,12 +12,12 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-149 (en diseño)
+- **En marcha:** TASK-149a (en diseño)
 - **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-145, TASK-146, TASK-148, TASK-150, TASK-151, TASK-152, TASK-019
 
 ## H0 — H0
 
-89 de 107 terminadas.
+89 de 109 terminadas.
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
@@ -114,19 +114,21 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 12 | TASK-145 | Regla 4D: duplicacion en las puertas de finish | media | — | lista para empezar |
 | 13 | TASK-146 | Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste | media | — | lista para empezar |
 | 14 | TASK-148 | Regla 4D: catalogos, config y utilidades en core | alta | — | lista para empezar |
-| 15 | TASK-149 | Regla 4D: duplicacion en fs, hooks y cli | alta | — | ▶ en diseño |
-| 16 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
-| 17 | TASK-151 | Regla 4D: disfraz en tests | media | — | lista para empezar |
-| 18 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
+| 15 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
+| 16 | TASK-151 | Regla 4D: disfraz en tests | media | — | lista para empezar |
+| 17 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
 | — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |
 | — | TASK-144a | cadena, Commit revisado y tarea en su rama (parte a de TASK-144) | alta | — | ✅ terminada |
 | — | TASK-147a | secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) | alta | — | ✅ terminada |
+| 18 | TASK-149a | git y hooks (parte a de TASK-149) | alta | — | ▶ en diseño |
 | — | TASK-153a | plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) | alta | — | ✅ terminada |
 | — | TASK-144b | flags con y sin valor (parte b de TASK-144) | alta | TASK-144a | ✅ terminada |
 | — | TASK-147b | criterios, normalizacion, citar e IDs (parte b de TASK-147) | alta | TASK-147a | ✅ terminada |
+| 19 | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | espera a TASK-149a |
 | — | TASK-153b | candidatos 4D en la peticion de revision (parte b de TASK-153) | alta | TASK-153a | ✅ terminada |
 | — | TASK-144c | patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) | alta | TASK-144b | ✅ terminada |
 | — | TASK-147c | fases y Marca en metricas (parte c de TASK-147) | alta | TASK-147b | ✅ terminada |
+| 20 | TASK-149c | utilidades de fs (parte c de TASK-149) | alta | TASK-149b | espera a TASK-149b |
 | — | TASK-153c | metricas de hallazgos 4D (parte c de TASK-153) | alta | TASK-153b | ✅ terminada |
 
 ## H1 — H1
@@ -135,11 +137,11 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 19 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
-| 20 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
-| 21 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
-| 22 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
-| 23 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
+| 21 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
+| 22 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
+| 23 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
+| 24 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
+| 25 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
 
 ## H2 — H2
 
@@ -168,7 +170,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-016 | Brainstorm paralelo por roles con agente unificador | alta | TASK-010 | ✅ terminada |
 | — | TASK-017 | Catálogo de skills determinista con selección en dos pasos | alta | TASK-010 | ✅ terminada |
 | — | TASK-018 | Enrutado de revisor por diff real, fragmentado por dominio | alta | TASK-013 | ✅ terminada |
-| 24 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
+| 26 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
 | — | TASK-020 | Comando taskctl codex-review (segunda opinión independiente) | media | TASK-013 | ✅ terminada |
 | — | TASK-032 | Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) | media | — | ✅ terminada |
 | — | TASK-037 | F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos | simple | — | ✅ terminada |
@@ -181,7 +183,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 25 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
+| 27 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
 | — | TASK-022 | Documentación de equipo e incorporación de colaboradores | simple | TASK-021 | ✅ terminada |
 | — | TASK-023 | Métricas de coste en tokens por fase | media | TASK-014 | ✅ terminada |
 | — | TASK-040 | F3-T1 taskctl review para la ronda 2 y siguientes | media | — | ✅ terminada |

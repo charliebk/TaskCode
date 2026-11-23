@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: cada caso tiene fichero y linea en do
 
 ## Enfoque propuesto
 
-Duracion estimada: 170 min (se trocea en tres partes de una hora o menos)
+Duracion estimada: 60 min (parte a del troceo; la tarea entera estimaba 170 min)
 
 Cada helper de E/S, Git y CLI copiado en fs, hooks y cli queda en un solo sitio:
 
@@ -53,3 +53,7 @@ Por parte, 1 o 2 tests nuevos del caso en que las copias divergian (rebase y ram
 ## Lo que necesita decision de una persona
 
 Nada abierto. Troceo autorizado de antemano por Carlos para el plan de correcciones 4D («trocear las de mas de 1 h sin preguntar»).
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-23: TASK-149a, TASK-149b, TASK-149c, todas en la misma rama. Este plan es el de TASK-149a; las demas partes se planifican al empezarlas.

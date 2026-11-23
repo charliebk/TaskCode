@@ -1,6 +1,6 @@
 ---
-id: TASK-149
-titulo: "Regla 4D: duplicacion en fs, hooks y cli"
+id: TASK-149a
+titulo: "git y hooks (parte a de TASK-149)"
 tipo: fix
 sprint: 0
 etiquetas: []
@@ -24,13 +24,17 @@ dependencias: []
 ---
 ## Objetivo
 
-Unificar los helpers de E/S, Git y CLI copiados en fs, hooks y cli (auditoria 4D completa, docs/auditoria-4d-completa.md, casos FS-02, FS-03 y FS-05 a FS-18).
+Parte a del troceo de TASK-149 (Regla 4D: duplicacion en fs, hooks y cli), partes TASK-149a, TASK-149b, TASK-149c en la rama fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli.
+
+gitTexto unico, una rama actual, un --git-path, el parser de la entrada de los hooks y hooks sin el grafo del freno (FS-05, FS-06, FS-07, FS-08, FS-17).
+
+Objetivo de la tarea entera:
+
+> Unificar los helpers de E/S, Git y CLI copiados en fs, hooks y cli (auditoria 4D completa, docs/auditoria-4d-completa.md, casos FS-02, FS-03 y FS-05 a FS-18).
 
 ## Criterios de aceptacion
+
 - [ ] Un solo envoltorio de git sin lanzar (gitTexto), una sola rama actual, un solo --git-path y un solo parser de la entrada de los hooks; registro-coste y guardia-merge no cargan el modulo del freno
-- [ ] doctor-deploy imprime con printAutoCommit y todos los comandos traducen GitCommandError igual, con test de un comando que antes caia en taskctl no pudo arrancar
-- [ ] Lockfiles, deteccion de binarios, lectura de cola, busqueda en PATH, JSON con BOM y nombreBase tienen una sola implementacion; los mensajes de evidencia nombran DIRS_EXCLUIDOS
-- [ ] extraerPushFlag vive en cli/args.ts y el texto aMano de sincronizacion existe una vez
 
 ## Transiciones
 
