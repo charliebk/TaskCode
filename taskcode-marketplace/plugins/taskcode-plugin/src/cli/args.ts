@@ -234,4 +234,3 @@ export function extraerPushFlag(argv: readonly string[]): { push: boolean; resto
   }
   return { push, resto };
 }
-

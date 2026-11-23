@@ -38,7 +38,7 @@ import { TaskFolderConflictError } from './fs/task-store.js';
 import { BaseBranchGuardError, GitCommandError, GitLaunchError, } from './fs/git.js';
 import { AutoCommitError } from './fs/git-commit.js';
 import { CODIGO_SINCRONIZACION_NO_APLICADA, sincronizacionNoAplicada, } from './fs/sincronizacion.js';
-// ConfigError se captura en los mismos catch que AutoCommitError
+// ConfigError es un error comun del CLI (ERRORES_COMUNES_CLI, TASK-149b)
 // (integracion TASK-030): sin esto cae al catch-all de bin/taskctl y
 // sale como "[ERROR] taskctl no pudo arrancar: ...", que miente —
 // taskctl arranco bien, lo que esta mal es el .taskcode/config.yml
@@ -403,7 +403,7 @@ export async function main(argv) {
         // TASK-149b (FS-03): los errores comunes se traducen igual en todos los
         // comandos; cada catch de comando conserva solo los suyos. Sin esto, un
         // GitCommandError en new, plan, approve... salia como «taskctl no pudo arrancar».
-        if (ERRORES_COMUNES_CLI.some((C) => e instanceof C)) {
+        if (esErrorComunCli(e)) {
             printCliError(e);
             return 1;
         }
@@ -412,7 +412,7 @@ export async function main(argv) {
     return codigo === 0 && sincronizacionPendiente ? CODIGO_SINCRONIZACION_NO_APLICADA : codigo;
 }
 /** TASK-149b (FS-03): errores que cualquier comando puede lanzar y que el CLI traduce a «[ERROR] ...» con codigo 1. */
-const ERRORES_COMUNES_CLI = [
+export const ERRORES_COMUNES_CLI = [
     AutoCommitError,
     ConfigError,
     GitLaunchError,
@@ -423,6 +423,10 @@ const ERRORES_COMUNES_CLI = [
     StateMachineError,
     TaskFolderConflictError,
 ];
+/** TASK-149b (IMP-1 de su revision): true si `main` traduce `e` a «[ERROR] ...» con codigo 1. */
+export function esErrorComunCli(e) {
+    return ERRORES_COMUNES_CLI.some((C) => e instanceof C);
+}
 async function mainComando(argvEntrada) {
     let argv = argvEntrada;
     const cmd = argv[0];
