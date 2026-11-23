@@ -45,7 +45,7 @@ import {
   seleccionarRolesDeTarea,
   type RolBrainstorm,
 } from '../core/roles-brainstorm.js';
-import { nombrePeticionRol } from '../core/plan-brainstorm.js';
+import { nombrePeticionRol, PETICION_ROL_RE } from '../core/plan-brainstorm.js';
 import { faltaReutilizacion, planEsEsqueleto, SECCION_REUTILIZACION } from '../core/validacion-tarea.js';
 import { conProgreso, crearProgreso, type Progreso } from '../fs/progreso.js';
 import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
@@ -79,6 +79,19 @@ export const FLAGS_APPROVE: readonly string[] = ['--decidido-por', '--push', '-p
 /** true si hay un plan que aprobar en cualquiera de las dos ubicaciones. */
 function planFinalExisteEn(u: PlanFinalUbicacion | null): boolean {
   return u !== null && (u.canonicaExiste || u.legadaExiste);
+}
+
+/**
+ * TASK-144c (CMD1-10 de la auditoria 4D): «que plan cuenta», una sola regla
+ * para approve, siguiente (planRedactado, duracionDelPlan) y trocear. La ruta
+ * del plan, null si no hay ninguno, o 'ambiguo' si hay uno en la raiz y otro
+ * en planificacion/ (approve aborta con eso; antes planRedactado elegia el
+ * canonico en silencio y siguiente mandaba a un approve que abortaba).
+ */
+export function planQueCuenta(u: PlanFinalUbicacion | null): string | null | 'ambiguo' {
+  if (!planFinalExisteEn(u) || u === null) return null;
+  if (u.canonicaExiste && u.legadaExiste) return 'ambiguo';
+  return u.canonicaExiste ? u.canonica : u.legada;
 }
 
 /**
@@ -194,7 +207,8 @@ async function runApprove(
   // roles se eligen en un orden fijo, asi que solo hay 0..N prefijos), no
   // con textos copiados, para que siga valiendo si la plantilla cambia.
   progreso.paso('plan');
-  const rutaPlan = ubicacion!.canonicaExiste ? ubicacion!.canonica : ubicacion!.legada;
+  // assertPlanNoAmbiguo y la guarda de estado ya descartaron 'ambiguo' y null.
+  const rutaPlan = planQueCuenta(ubicacion) as string;
   if (await planEsPlantilla(task, rutaPlan)) {
     throw new ApproveCommandError(
       `[ERROR] ${task.id}: "${rutaPlan}" es la plantilla sin rellenar: no hay plan que aprobar. ` +
@@ -315,7 +329,7 @@ async function juegosDeRolesEnDisco(rutaPlan: string): Promise<RolBrainstorm[][]
     }
     const rondas = new Set<number>();
     for (const f of ficheros) {
-      const m = /^peticion-brainstorm-[a-z0-9-]+-(\d+)\.md$/.exec(f);
+      const m = PETICION_ROL_RE.exec(f);
       if (m !== null) rondas.add(Number(m[1]));
     }
     for (const n of rondas) {
@@ -344,16 +358,23 @@ export async function planEsPlantilla(task: Task, rutaPlan: string): Promise<boo
   return planEsEsqueleto(await readFile(rutaPlan, 'utf8'), plantillas);
 }
 
-/** ¿La tarea tiene un plan-final.md redactado (existe y no es la plantilla)? */
-/** TASK-097: la duracion estimada del plan-final.md de la tarea (ausente si no hay plan). */
+/**
+ * TASK-097: la duracion estimada del plan-final.md de la tarea (ausente si no
+ * hay plan, o si hay dos y no se sabe cual cuenta).
+ */
 export async function duracionDelPlan(taskDir: string): Promise<ReturnType<typeof leerDuracionEstimada>> {
-  const u = await resolverPlanFinal(taskDir);
-  if (!planFinalExisteEn(u)) return { tipo: 'ausente' };
-  return leerDuracionEstimada(await readFile(u.canonicaExiste ? u.canonica : u.legada, 'utf8'));
+  const ruta = planQueCuenta(await resolverPlanFinal(taskDir));
+  if (ruta === null || ruta === 'ambiguo') return { tipo: 'ausente' };
+  return leerDuracionEstimada(await readFile(ruta, 'utf8'));
 }
 
+/**
+ * ¿La tarea tiene un plan-final.md redactado (existe, no es la plantilla y no
+ * hay dos)? Con dos planes, false: approve abortaria, asi que siguiente no
+ * puede mandar a aprobar (CMD1-10).
+ */
 export async function planRedactado(task: Task, taskDir: string): Promise<boolean> {
-  const u = await resolverPlanFinal(taskDir);
-  if (!planFinalExisteEn(u)) return false;
-  return !(await planEsPlantilla(task, u.canonicaExiste ? u.canonica : u.legada));
+  const ruta = planQueCuenta(await resolverPlanFinal(taskDir));
+  if (ruta === null || ruta === 'ambiguo') return false;
+  return !(await planEsPlantilla(task, ruta));
 }

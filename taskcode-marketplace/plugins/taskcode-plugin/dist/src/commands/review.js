@@ -40,7 +40,7 @@ import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { anotarLineaEnSeccion, registrarTransicion } from '../core/transiciones.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
-import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda, rondaYRevisorDeInforme, siguienteRonda, } from '../fs/rondas.js';
+import { INFORME_REVISION_RE, PETICION_REVISION_RE, RONDA_REVISION_RE, informesDeUltimaRonda, nombresDeRonda, rondaYRevisorDeInforme, siguienteRonda, } from '../fs/rondas.js';
 import { SECCION_RONDAS_EXTRA, lineaRondaExtra } from '../core/flujo.js';
 import { configDeRef } from '../fs/config-de-ref.js';
 import { rondaExtraDecidida } from '../core/rondas-extra.js';
@@ -76,18 +76,6 @@ const SCRIPT_BY_TYPE = {
     release: 'update-release.sh',
 };
 export const REVISION_DIRNAME = 'revision';
-/**
- * Nombre de fichero de una ronda de revision, CON o SIN sufijo de
- * dominio (TASK-018). El sufijo es el nombre de la skill revisora
- * (`java-spring-reviewer`, etc.) y solo aparece cuando la ronda se
- * fragmento por dominio — mismo precedente que
- * `peticion-brainstorm-<rol>-<ronda>.md` (TASK-016, plan.ts). Una ronda
- * SIN fragmentar (0 dominios detectados, o mas del umbral) sigue dejando
- * el nombre de siempre, sin sufijo: es lo que ya prueban 8 de los tests
- * de review.test.ts y lo que finish.ts ya sabia leer antes de esta
- * tarea.
- */
-const RONDA_FILE_RE = /^(?:peticion|informe)-revision-(\d+)(?:-[a-z0-9-]+)?\.md$/;
 /** TASK-110: los pasos de review, declarados de antemano para que se sepa cuantos faltan. */
 export const PASOS_REVIEW = ['guardas', 'integracion', 'verificacion', 'peticiones', 'commit'];
 /**
@@ -732,7 +720,7 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     // pisar una revision anterior — mismo principio que plan-final.md.
     const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
     await mkdir(revisionDir, { recursive: true });
-    const ronda = await siguienteRonda(revisionDir, RONDA_FILE_RE);
+    const ronda = await siguienteRonda(revisionDir, RONDA_REVISION_RE);
     progreso.paso('peticiones', { ronda });
     // Un par de nombres (con o sin sufijo de dominio) por grupo del plan.
     // Sin fragmentar hay un unico grupo y se usa el nombre de siempre, sin
@@ -744,12 +732,12 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
         ? modeloDeVerificacion(updated.modelo_sugerido)
         : null;
     const escrituras = plan.grupos.map((grupo) => {
-        const sufijo = conSufijo ? `-${grupo.revisor}` : '';
+        const nombres = nombresDeRonda(ronda, conSufijo ? `-${grupo.revisor}` : '');
         return {
             revisor: grupo.revisor,
             ficheros: grupo.ficheros,
-            nombrePeticion: `peticion-revision-${ronda}${sufijo}.md`,
-            nombreInforme: `informe-revision-${ronda}${sufijo}.md`,
+            nombrePeticion: nombres.peticion,
+            nombreInforme: nombres.informe,
             contexto: contextoPermitido({
                 carpetaTarea,
                 ficherosDelGrupo: grupo.ficheros,

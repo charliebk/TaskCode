@@ -27,7 +27,7 @@ import { planTemplate, resolverPlanFinal, BRAINSTORM_DIRNAME, PLANIFICACION_DIRN
 import { readFile, readdir } from 'node:fs/promises';
 import { describirExceso, leerDuracionEstimada, superaUmbral, UMBRAL_MINUTOS } from '../core/duracion-estimada.js';
 import { ROLES_BRAINSTORM, TODOS_LOS_ROLES, seleccionarRoles, seleccionarRolesDeTarea, } from '../core/roles-brainstorm.js';
-import { nombrePeticionRol } from '../core/plan-brainstorm.js';
+import { nombrePeticionRol, PETICION_ROL_RE } from '../core/plan-brainstorm.js';
 import { faltaReutilizacion, planEsEsqueleto, SECCION_REUTILIZACION } from '../core/validacion-tarea.js';
 import { conProgreso, crearProgreso } from '../fs/progreso.js';
 import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
@@ -54,6 +54,20 @@ export const FLAGS_APPROVE = ['--decidido-por', '--push', '-p'];
 /** true si hay un plan que aprobar en cualquiera de las dos ubicaciones. */
 function planFinalExisteEn(u) {
     return u !== null && (u.canonicaExiste || u.legadaExiste);
+}
+/**
+ * TASK-144c (CMD1-10 de la auditoria 4D): «que plan cuenta», una sola regla
+ * para approve, siguiente (planRedactado, duracionDelPlan) y trocear. La ruta
+ * del plan, null si no hay ninguno, o 'ambiguo' si hay uno en la raiz y otro
+ * en planificacion/ (approve aborta con eso; antes planRedactado elegia el
+ * canonico en silencio y siguiente mandaba a un approve que abortaba).
+ */
+export function planQueCuenta(u) {
+    if (!planFinalExisteEn(u) || u === null)
+        return null;
+    if (u.canonicaExiste && u.legadaExiste)
+        return 'ambiguo';
+    return u.canonicaExiste ? u.canonica : u.legada;
 }
 /**
  * Se llama DESPUES de assertTransitionAllowed, no antes (hallazgo MENOR
@@ -127,7 +141,8 @@ async function runApprove(tareasRoot, argv, today, deps, progreso) {
     // roles se eligen en un orden fijo, asi que solo hay 0..N prefijos), no
     // con textos copiados, para que siga valiendo si la plantilla cambia.
     progreso.paso('plan');
-    const rutaPlan = ubicacion.canonicaExiste ? ubicacion.canonica : ubicacion.legada;
+    // assertPlanNoAmbiguo y la guarda de estado ya descartaron 'ambiguo' y null.
+    const rutaPlan = planQueCuenta(ubicacion);
     if (await planEsPlantilla(task, rutaPlan)) {
         throw new ApproveCommandError(`[ERROR] ${task.id}: "${rutaPlan}" es la plantilla sin rellenar: no hay plan que aprobar. ` +
             'Redactalo (enfoque, riesgos, pruebas) y reintenta "taskctl approve".');
@@ -229,7 +244,7 @@ async function juegosDeRolesEnDisco(rutaPlan) {
         }
         const rondas = new Set();
         for (const f of ficheros) {
-            const m = /^peticion-brainstorm-[a-z0-9-]+-(\d+)\.md$/.exec(f);
+            const m = PETICION_ROL_RE.exec(f);
             if (m !== null)
                 rondas.add(Number(m[1]));
         }
@@ -257,17 +272,24 @@ export async function planEsPlantilla(task, rutaPlan) {
     const plantillas = juegos.map((roles) => planTemplate(task, roles));
     return planEsEsqueleto(await readFile(rutaPlan, 'utf8'), plantillas);
 }
-/** ¿La tarea tiene un plan-final.md redactado (existe y no es la plantilla)? */
-/** TASK-097: la duracion estimada del plan-final.md de la tarea (ausente si no hay plan). */
+/**
+ * TASK-097: la duracion estimada del plan-final.md de la tarea (ausente si no
+ * hay plan, o si hay dos y no se sabe cual cuenta).
+ */
 export async function duracionDelPlan(taskDir) {
-    const u = await resolverPlanFinal(taskDir);
-    if (!planFinalExisteEn(u))
+    const ruta = planQueCuenta(await resolverPlanFinal(taskDir));
+    if (ruta === null || ruta === 'ambiguo')
         return { tipo: 'ausente' };
-    return leerDuracionEstimada(await readFile(u.canonicaExiste ? u.canonica : u.legada, 'utf8'));
+    return leerDuracionEstimada(await readFile(ruta, 'utf8'));
 }
+/**
+ * ¿La tarea tiene un plan-final.md redactado (existe, no es la plantilla y no
+ * hay dos)? Con dos planes, false: approve abortaria, asi que siguiente no
+ * puede mandar a aprobar (CMD1-10).
+ */
 export async function planRedactado(task, taskDir) {
-    const u = await resolverPlanFinal(taskDir);
-    if (!planFinalExisteEn(u))
+    const ruta = planQueCuenta(await resolverPlanFinal(taskDir));
+    if (ruta === null || ruta === 'ambiguo')
         return false;
-    return !(await planEsPlantilla(task, u.canonicaExiste ? u.canonica : u.legada));
+    return !(await planEsPlantilla(task, ruta));
 }

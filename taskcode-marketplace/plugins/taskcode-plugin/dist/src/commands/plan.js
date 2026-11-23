@@ -41,7 +41,7 @@ import { proponerParticion } from '../core/particion-tarea.js';
 import { escribirPropuestaParticion } from '../fs/particion.js';
 import { cargarHeuristica, resolverNumeroAgentes, } from '../core/heuristica.js';
 import { seleccionarRolesDeTarea, condicionalesDescartados, TODOS_LOS_ROLES, MIN_ROLES_PARA_CONDICIONALES, } from '../core/roles-brainstorm.js';
-import { nombrePeticionRol, nombreSalidaRol, nombrePeticionUnificador, nombrePeticionRedaccion, peticionRedaccionTemplate, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
+import { nombrePeticionRol, nombreSalidaRol, PETICION_ROL_RE, SALIDA_ROL_RE, nombrePeticionUnificador, nombrePeticionRedaccion, peticionRedaccionTemplate, peticionRolTemplate, salidaRolTemplate, peticionUnificadorTemplate, } from '../core/plan-brainstorm.js';
 import { cargarCatalogoSkills, seleccionarSkill, FICHERO_CATALOGO_SKILLS, } from '../core/catalogo-skills.js';
 import { PETICION_DESEMPATE_SKILL_FILENAME, SALIDA_DESEMPATE_SKILL_FILENAME, peticionDesempateSkillTemplate, salidaDesempateSkillTemplate, leerGanadorDesempate, } from '../core/plan-desempate-skill.js';
 import { comprobarSkillInstalado } from '../core/plugin-instalado.js';
@@ -78,7 +78,7 @@ export const BRAINSTORM_DIRNAME = 'brainstorm';
 // (2 o mas roles, o carpetas antiguas) o la de redaccion (1 rol, sin
 // unificador). Las dos se escriben las ultimas y cierran la ronda.
 const RONDA_UNIFICADOR_RE = /^peticion-(unificador|plan)-(\d+)\.md$/;
-const PETICION_ROL_RE = /^peticion-brainstorm-[a-z0-9-]+-(\d+)\.md$/;
+// TASK-144c: PETICION_ROL_RE y SALIDA_ROL_RE salen de core/plan-brainstorm.ts.
 /**
  * Subcarpeta de artefactos de diseno dentro de la carpeta de la tarea
  * (TASK-027, item C3). La seccion 2 de la metodologia describe cada
@@ -669,7 +669,7 @@ async function runPlan(tareasRoot, argv, today, deps, progreso) {
     // unificador: se escribe solo la peticion de redaccion, salvo que la
     // ronda reutilizable ya tenga 2 o mas salidas en disco (se bajo de 2
     // roles a 1): esas salidas son trabajo real y alguien las consolida.
-    const contarSalidasDe = (n) => enBrainstorm.filter((f) => f.startsWith('salida-brainstorm-') && f.endsWith(`-${n}.md`)).length;
+    const contarSalidasDe = (n) => enBrainstorm.filter((f) => SALIDA_ROL_RE.exec(f)?.[1] === String(n)).length;
     const modo = roles.length === 1 && (rondaRoles === null || contarSalidasDe(rondaRoles) < 2)
         ? 'redaccion'
         : 'unificador';
@@ -757,9 +757,8 @@ async function runPlan(tareasRoot, argv, today, deps, progreso) {
     // cuantas sean.
     const salidasAConsolidar = [];
     if (rondaRoles !== null) {
-        const sufijo = `-${rondaRoles}.md`;
         for (const nombre of await listarDir(brainstormDir)) {
-            if (!nombre.startsWith('salida-brainstorm-') || !nombre.endsWith(sufijo))
+            if (SALIDA_ROL_RE.exec(nombre)?.[1] !== String(rondaRoles))
                 continue;
             const rol = TODOS_LOS_ROLES.find((r) => nombre === nombreSalidaRol(r, rondaRoles));
             salidasAConsolidar.push({

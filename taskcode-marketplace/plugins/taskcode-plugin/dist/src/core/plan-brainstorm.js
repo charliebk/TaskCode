@@ -20,6 +20,18 @@ export function nombrePeticionRol(rol, ronda) {
 export function nombreSalidaRol(rol, ronda) {
     return `salida-${rol.id}-${ronda}.md`;
 }
+/**
+ * TASK-144c (CMD2-09 de la auditoria 4D): los patrones de los ficheros de rol
+ * viven aqui, junto a `nombrePeticionRol` y `nombreSalidaRol`, que los
+ * generan. Antes plan y approve fijaban a mano el prefijo `brainstorm-`.
+ * Casan con CUALQUIER rol, tambien uno retirado o renombrado a mano (IMP-1 de
+ * su revision: su salida es trabajo real que el unificador tiene que ver);
+ * solo quedan fuera las peticiones del unificador y de redaccion, que no son
+ * de un rol. Grupo 1 = ronda.
+ */
+const NO_ES_ROL = String.raw `(?!(?:unificador|plan)-\d+\.md$)`;
+export const PETICION_ROL_RE = new RegExp(String.raw `^peticion-${NO_ES_ROL}[a-z0-9-]+-(\d+)\.md$`);
+export const SALIDA_ROL_RE = /^salida-[a-z0-9-]+-(\d+)\.md$/;
 export function nombrePeticionUnificador(ronda) {
     return `peticion-unificador-${ronda}.md`;
 }
