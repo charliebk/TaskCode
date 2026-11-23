@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 18305626
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-23
@@ -38,8 +38,15 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 | 2026-11-23T02:37:05Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T02:37:07Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T02:37:08Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T02:52:39Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 9f0985e: helper buscado (lector de faltasRegla4D extraido a valoresRegla4D, celdas y COLUMNAS_METRICAS); criterios citados; 2 tests nuevos, 3 mutaciones en rojo.
 - code-quality-reviewer — 9f0985e
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T02:52:39Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 54 | 27671 | 18262106 | 15795 | 14 | 18305626 | - | - |
