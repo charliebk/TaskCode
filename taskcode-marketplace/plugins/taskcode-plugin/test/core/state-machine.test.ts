@@ -256,6 +256,18 @@ test('cualquier comando (salvo import/new) rechazado sobre una tarea ya "termina
   }
 });
 
+// TASK-151a (TCORE-03, M2): la guarda de verificar-menores no tenia test.
+test('verificar-menores: solo en en-revision; en cualquier otro estado se rechaza con el motivo', () => {
+  assert.doesNotThrow(() => assertTransitionAllowed('verificar-menores', makeTask({ estado: 'en-revision' })));
+  for (const estado of ['planificada', 'en-diseno', 'en-curso', 'terminada'] as const) {
+    assert.throws(
+      () => assertTransitionAllowed('verificar-menores', makeTask({ estado })),
+      (e: unknown) => e instanceof Error && /verificar-menores solo se usa tras una ronda de revision aprobada/.test(e.message),
+      estado
+    );
+  }
+});
+
 // --- resultingState -------------------------------------------------------
 
 test('resultingState: mapea cada comando al estado esperado', () => {

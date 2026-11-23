@@ -12,8 +12,20 @@ import {
   type EstadoInstalacionSkill,
 } from '../../src/core/plugin-instalado.js';
 
-test('comprobarSkillInstalado nunca lanza y siempre devuelve un estado valido', () => {
-  const ESTADOS_VALIDOS: readonly EstadoInstalacionSkill[] = ['instalado', 'no-instalado', 'no-verificable'];
+// TASK-151a (TRES-06): antes aceptaba cualquiera de los tres estados, asi que no
+// probaba nada. Ahora cada caso tiene su estado esperado.
+test('comprobarSkillInstalado: un plugin inventado nunca sale como instalado', () => {
+  const ESPERADOS: readonly EstadoInstalacionSkill[] = ['no-instalado', 'no-verificable'];
   const estado = comprobarSkillInstalado('plugin-inventado@marketplace-inventado-para-el-test');
-  assert.ok(ESTADOS_VALIDOS.includes(estado), `estado inesperado: ${String(estado)}`);
+  assert.ok(ESPERADOS.includes(estado), `estado inesperado: ${String(estado)}`);
+});
+
+test('comprobarSkillInstalado: sin el binario claude en el PATH es no-verificable, sin lanzar', () => {
+  const antes = process.env['PATH'];
+  try {
+    process.env['PATH'] = '';
+    assert.equal(comprobarSkillInstalado('plugin-inventado@marketplace-inventado-para-el-test'), 'no-verificable');
+  } finally {
+    process.env['PATH'] = antes;
+  }
 });

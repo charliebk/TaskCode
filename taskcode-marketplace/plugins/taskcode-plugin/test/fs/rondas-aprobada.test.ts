@@ -48,6 +48,20 @@ test('solo cuenta la ultima ronda: la 1 aprobada no salva una 2 con cambios', as
   });
 });
 
+// TASK-151a (TCORE-09): con menos de diez rondas el orden alfabetico y el numerico
+// coinciden; con diez, «informe-revision-9» va detras de «informe-revision-10» por cadena.
+test('la ultima ronda es la de mayor NUMERO: con 10 rondas, la 10 manda sobre la 9', async () => {
+  await conDir(async (dir) => {
+    for (let n = 1; n <= 8; n++) await writeFile(path.join(dir, `informe-revision-${String(n)}.md`), informe('cambios-solicitados'));
+    await writeFile(path.join(dir, 'informe-revision-9.md'), informe('aprobada'));
+    await writeFile(path.join(dir, 'informe-revision-10.md'), informe('cambios-solicitados'));
+    assert.equal(await ultimaRondaAprobada(dir, INFORME_REVISION_RE), false, 'la 10 pide cambios');
+    await writeFile(path.join(dir, 'informe-revision-10.md'), informe('aprobada'));
+    await writeFile(path.join(dir, 'informe-revision-9.md'), informe('cambios-solicitados'));
+    assert.equal(await ultimaRondaAprobada(dir, INFORME_REVISION_RE), true, 'la 10 aprueba aunque la 9 pidiera cambios');
+  });
+});
+
 test('ronda fragmentada: basta un informe en PENDIENTE para que no apruebe', async () => {
   await conDir(async (dir) => {
     await writeFile(path.join(dir, 'informe-revision-1-java-spring-reviewer.md'), informe('aprobada'));

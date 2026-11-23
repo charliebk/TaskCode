@@ -144,10 +144,15 @@ test('listTareasEnEstados: las rutas ilegibles vienen ordenadas (mensaje reprodu
       await writeFile(path.join(dir, 'tarea.md'), 'roto\n', 'utf8');
     }
 
-    const r = await listTareasEnEstados(tareasRoot, ESTADOS_QUE_OCUPAN_WIP);
+    // TASK-151a: los estados al reves (en-revision antes que en-curso), para que el
+    // orden en que se recorren no sea ya el ordenado.
+    const r = await listTareasEnEstados(tareasRoot, [...ESTADOS_QUE_OCUPAN_WIP].reverse());
 
     assert.equal(r.ilegibles.length, 3);
-    assert.deepEqual(r.ilegibles, [...r.ilegibles].sort());
+    // TASK-151a (TCORE-08, M4): se compara con el orden esperado escrito a mano, no
+    // con el propio resultado ordenado (que salia ordenado solo por como se crean).
+    const rel = r.ilegibles.map((x) => path.relative(tareasRoot, x).split(path.sep).join('/'));
+    assert.deepEqual(rel, ['02-en-curso/TASK-906/tarea.md', '02-en-curso/TASK-907/tarea.md', '03-en-revision/TASK-908/tarea.md']);
   });
 });
 
