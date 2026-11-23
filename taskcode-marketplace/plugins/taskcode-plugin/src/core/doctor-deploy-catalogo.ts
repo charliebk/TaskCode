@@ -27,9 +27,17 @@
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseBloqueClaveValor, type ParClaveValor } from './frontmatter.js';
 import { PATRONES_REGLAS_SIN_HUELLA } from './doctor-deploy-reglas.js';
+import { rutaEnPlugin } from './raiz-plugin.js';
+import {
+  claveDeBloque,
+  validarEnteroNoNegativo,
+  validarEnum,
+  validarListaDeTexto,
+  validarTextoNoVacio,
+  type CrearError,
+} from './campos-catalogo.js';
 
 export class DoctorDeployCatalogoError extends Error {
   constructor(message: string) {
@@ -175,18 +183,9 @@ const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'huella', 'motivo', 'qu
 type Valor = { valor: unknown; numeroLinea: number };
 type Bloque = Map<string, Valor>;
 
-function packageRoot(): string {
-  // dist/src/core/doctor-deploy-catalogo.js -> core -> src -> dist -> raiz del plugin
-  return path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-}
-
 /** Ruta del catalogo del plugin. Respeta CLAUDE_PLUGIN_ROOT, como las demas. */
 export function resolverRutaCatalogoDeploy(): string {
-  const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
-  if (pluginRoot !== undefined && pluginRoot.trim() !== '') {
-    return path.join(pluginRoot, 'scripts', FICHERO_CATALOGO_DEPLOY);
-  }
-  return path.join(packageRoot(), 'scripts', FICHERO_CATALOGO_DEPLOY);
+  return rutaEnPlugin('scripts', FICHERO_CATALOGO_DEPLOY);
 }
 
 // ---------------------------------------------------------------------
@@ -229,13 +228,13 @@ function agrupar(
       extrasLeidos.set(par.clave, par);
       continue;
     }
-    const m = /^([a-z]+)_(\d+)_([a-z_]+)$/.exec(par.clave);
-    const fam = m === null ? undefined : familias.find((f) => f.prefijo === m[1]);
-    if (m === null || fam === undefined || !fam.campos.includes(m[3] as string)) {
+    const m = claveDeBloque(par.clave);
+    const fam = m === null ? undefined : familias.find((f) => f.prefijo === m.prefijo);
+    if (m === null || fam === undefined || !fam.campos.includes(m.campo)) {
       desconocidas.push(par);
       continue;
     }
-    const n = Number(m[2]);
+    const n = m.n;
     if (!Number.isSafeInteger(n) || n < 1 || n > MAX_ENTRADAS) {
       throw fallar(
         `[ERROR] ${donde}: "${par.clave}" tiene un numero fuera de rango (1 a ${MAX_ENTRADAS}). ` +
@@ -244,7 +243,7 @@ function agrupar(
     }
     const delFamilia = bloques.get(fam.prefijo) as Map<number, Bloque>;
     const bloque = delFamilia.get(n) ?? new Map<string, Valor>();
-    bloque.set(m[3] as string, { valor: par.valor, numeroLinea: par.numeroLinea });
+    bloque.set(m.campo, { valor: par.valor, numeroLinea: par.numeroLinea });
     delFamilia.set(n, bloque);
   }
   return { bloques, desconocidas, extras: extrasLeidos };
@@ -277,40 +276,24 @@ function exigir(bloque: Bloque, prefijo: string, n: number, campo: string, ruta:
   return v;
 }
 
-function texto(v: Valor, clave: string, ruta: string, fallar: (m: string) => Error): string {
-  if (typeof v.valor !== 'string' || v.valor.trim() === '') {
-    throw fallar(`[ERROR] ${ruta}:${v.numeroLinea}: "${clave}" debe ser un texto no vacio.`);
-  }
-  return v.valor.trim();
+// TASK-148a (CORE1-04): adaptadores de Valor a los validadores comunes de
+// campos-catalogo.ts; las reglas (lista sin vacios ni repetidos, enumerado
+// recortado, entero no negativo) son las mismas que en skills y heuristica.
+function texto(v: Valor, clave: string, ruta: string, fallar: CrearError): string {
+  return validarTextoNoVacio(`${ruta}:${v.numeroLinea}`, clave, v.valor, fallar);
 }
 
-function lista(v: Valor, clave: string, ruta: string, fallar: (m: string) => Error): string[] {
-  if (!Array.isArray(v.valor) || v.valor.length === 0 || v.valor.some((x) => typeof x !== 'string' || x.trim() === '')) {
-    throw fallar(`[ERROR] ${ruta}:${v.numeroLinea}: "${clave}" debe ser una lista no vacia de textos: [a, b].`);
-  }
-  return (v.valor as string[]).map((x) => x.trim());
+function lista(v: Valor, clave: string, ruta: string, fallar: CrearError): string[] {
+  return validarListaDeTexto(`${ruta}:${v.numeroLinea}`, clave, v.valor, fallar, { minimo: 1 });
 }
 
-function enumerado<T extends string>(
-  v: Valor,
-  clave: string,
-  validos: readonly T[],
-  ruta: string,
-  fallar: (m: string) => Error
-): T {
-  const t = typeof v.valor === 'string' ? v.valor.trim() : '';
-  if (!(validos as readonly string[]).includes(t)) {
-    throw fallar(`[ERROR] ${ruta}:${v.numeroLinea}: "${clave}" vale "${String(v.valor)}", pero debe ser uno de: ${validos.join(', ')}.`);
-  }
-  return t as T;
+function enumerado<T extends string>(v: Valor, clave: string, validos: readonly T[], ruta: string, fallar: CrearError): T {
+  return validarEnum(`${ruta}:${v.numeroLinea}`, clave, v.valor, validos, fallar);
 }
 
-function valorEntero(par: ParClaveValor | undefined, clave: string, ruta: string, fallar: (m: string) => Error): number {
+function valorEntero(par: ParClaveValor | undefined, clave: string, ruta: string, fallar: CrearError): number {
   if (par === undefined) throw fallar(`[ERROR] ${ruta}: falta la clave obligatoria "${clave}".`);
-  if (typeof par.valor !== 'number' || !Number.isInteger(par.valor) || par.valor < 0) {
-    throw fallar(`[ERROR] ${ruta}:${par.numeroLinea}: "${clave}" debe ser un entero no negativo.`);
-  }
-  return par.valor;
+  return validarEnteroNoNegativo(`${ruta}:${par.numeroLinea}`, clave, par.valor, fallar);
 }
 
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;

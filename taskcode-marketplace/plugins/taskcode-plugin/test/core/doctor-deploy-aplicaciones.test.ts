@@ -145,7 +145,7 @@ test('parser: eje equivocado aborta en los dos sentidos', () => {
 
 test('parser: "todos" en aplicaciones, o la lista vacia, abortan', () => {
   assert.match(errorDe(() => parsearCatalogoDeploy(MINIMO.replace('[web]', '[todos]'), 'x.yml')), /no admite "todos"/);
-  assert.match(errorDe(() => parsearCatalogoDeploy(MINIMO.replace('punto_1_aplicaciones: [web]', 'punto_1_aplicaciones: []'), 'x.yml')), /lista no vacia/);
+  assert.match(errorDe(() => parsearCatalogoDeploy(MINIMO.replace('punto_1_aplicaciones: [web]', 'punto_1_aplicaciones: []'), 'x.yml')), /no puede estar vacia/); // TASK-148a: el mensaje comun de campos-catalogo
 });
 
 test('parser: un id de aplicacion igual a uno de tipo, repetido o mal formado aborta', () => {
@@ -191,4 +191,11 @@ test('capa: la familia aplicacion no se puede declarar en el proyecto (clave des
   const c = parsearCapaProyecto('aplicacion_1_id: escritorio\n', 'p.yml', base);
   assert.equal(c.avisos.length, 1);
   assert.match(c.avisos[0] as string, /clave desconocida "aplicacion_1_id"/);
+});
+
+test('TASK-148a (CORE1-04): una lista con una entrada repetida aborta tambien en el catalogo de deploy (misma regla que skills y heuristica)', () => {
+  assert.match(
+    errorDe(() => parsearCatalogoDeploy(MINIMO.replace('punto_1_aplicaciones: [web]', 'punto_1_aplicaciones: [web, web]'), 'x.yml')),
+    /"punto_1_aplicaciones" tiene la entrada "web" repetida/
+  );
 });

@@ -84,11 +84,11 @@
  * ------------------------------------------------------------------
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
 import { masParecida } from './sugerencia.js';
 import { extraerSecciones, normalizarTexto } from './tarea-body.js';
+import { rutaEnPlugin } from './raiz-plugin.js';
+import { validarEnteroNoNegativo, validarListaDeTexto } from './campos-catalogo.js';
 export class HeuristicaError extends Error {
     constructor(message) {
         super(message);
@@ -139,24 +139,10 @@ export const SENAL_DEPENDENCIA = 'dependencias';
 export const SENAL_RELEASE = 'tipo_release';
 export const SENAL_HOTFIX_RIESGO = 'tipo_hotfix_con_palabra_riesgo';
 export const SENAL_CRITERIOS = 'criterios_aceptacion';
-function packageRoot() {
-    // dist/src/core/heuristica.js -> dist/src/core -> dist/src -> dist -> raiz
-    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-    return path.join(moduleDir, '..', '..', '..');
-}
-/**
- * Ruta del YML. Mismo patron que resolveGitflowScriptsDir(): respeta
- * CLAUDE_PLUGIN_ROOT (convencion documentada para cuando Claude Code
- * lanza taskctl como comando de plugin) si esta definida; si no,
- * calcula la ruta relativa al propio modulo compilado, necesario para
- * el dogfooding directo, donde esa variable no esta puesta.
- */
+/** Ruta dentro del plugin con rutaEnPlugin (core/raiz-plugin.ts: respeta CLAUDE_PLUGIN_ROOT). */
+const errorHeuristica = (m) => new HeuristicaError(m);
 export function resolverRutaHeuristica() {
-    const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
-    if (pluginRoot !== undefined && pluginRoot.trim() !== '') {
-        return path.join(pluginRoot, 'scripts', FICHERO_HEURISTICA);
-    }
-    return path.join(packageRoot(), 'scripts', FICHERO_HEURISTICA);
+    return rutaEnPlugin('scripts', FICHERO_HEURISTICA);
 }
 /**
  * EL punto de resolucion. Lee el fichero y lo valida, o lanza
@@ -212,10 +198,13 @@ export function parsearHeuristica(contenido, ruta) {
         }
         vistas.add(par.clave);
         if (par.clave === CLAVE_PALABRAS) {
-            palabras = validarListaDeTexto(donde, par.clave, par.valor);
+            // Una lista VACIA se acepta (minimo 0): un proyecto puede no querer vocabulario de riesgo.
+            palabras = validarListaDeTexto(donde, par.clave, par.valor, errorHeuristica, {
+                detalle: 'Sin corchetes se leeria como UNA sola entrada con todo el texto dentro.',
+            });
         }
         else {
-            numeros.set(par.clave, validarEnteroNoNegativo(donde, par.clave, par.valor));
+            numeros.set(par.clave, validarEnteroNoNegativo(donde, par.clave, par.valor, errorHeuristica, 'Un negativo restaria complejidad por tener una senal de mas, que es justo lo\ncontrario de lo que hace esta heuristica.'));
         }
     }
     const h = {
@@ -295,68 +284,6 @@ function mensajeClaveDesconocida(donde, clave) {
     lineas.push(`        Claves validas: ${CLAVES_HEURISTICA.join(', ')}.`);
     lineas.push(AVISO_REINSTALAR);
     return lineas.join('\n');
-}
-/**
- * Entero >= 0. El cero SI es legitimo aqui, a diferencia de
- * `limite_wip` en config.ts: `agentes_brainstorm_trivial: 0` es la
- * decision central del fichero (no se paga un brainstorm para algo
- * trivial). Lo que no puede ser es negativo: un peso negativo
- * restaria complejidad por tener una senal mas, que es lo contrario de
- * lo que el fichero dice hacer.
- */
-function validarEnteroNoNegativo(donde, clave, valor) {
-    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 0) {
-        throw new HeuristicaError(`[ERROR] ${donde}: "${clave}" debe ser un numero entero mayor o igual que 0, ` +
-            `y es ${describirValor(valor)}.\n` +
-            '        Escribe el numero sin comillas y sin decimales. Un negativo restaria\n' +
-            '        complejidad por tener una senal de mas, que es justo lo contrario de lo\n' +
-            '        que hace esta heuristica.');
-    }
-    return valor;
-}
-/**
- * Lista de textos no vacios. Una lista VACIA se acepta: un proyecto
- * que edite su copia del fichero para no tener vocabulario de riesgo
- * esta tomando una decision legitima, y el resto de senales sigue
- * funcionando. Lo que no se acepta es que no sea una lista: escrito
- * sin corchetes, el parser devuelve un texto y la comparacion por
- * subcadena buscaria la frase entera como si fuera una sola entrada.
- */
-function validarListaDeTexto(donde, clave, valor) {
-    if (!Array.isArray(valor) || !valor.every((x) => typeof x === 'string')) {
-        throw new HeuristicaError(`[ERROR] ${donde}: "${clave}" debe ser una lista de textos entre corchetes ` +
-            `(p. ej. ["migracion", "seguridad"]), y es ${describirValor(valor)}.\n` +
-            '        Sin corchetes se leeria como UNA sola entrada con todo el texto dentro.');
-    }
-    const entradas = valor.map((x) => x.trim());
-    if (entradas.some((x) => x === '')) {
-        throw new HeuristicaError(`[ERROR] ${donde}: "${clave}" tiene alguna entrada vacia.\n` +
-            '        Quitala: una entrada vacia casaria como subcadena con CUALQUIER tarea\n' +
-            '        y dispararia la senal siempre.');
-    }
-    // La regla "una vez por entrada DISTINTA" se cumple porque se
-    // recorre la lista, no el texto. Eso deja de ser cierto si la lista
-    // trae la misma entrada dos veces: casaria en las dos vueltas y la
-    // palabra puntuaria doble. Es exactamente el fallo silencioso que la
-    // regla existe para evitar, asi que se rechaza aqui en vez de
-    // deduplicar por detras (deduplicar callaria el error del fichero).
-    const repetida = entradas.find((x, i) => entradas.indexOf(x) !== i);
-    if (repetida !== undefined) {
-        throw new HeuristicaError(`[ERROR] ${donde}: "${clave}" tiene la entrada "${repetida}" repetida.\n` +
-            '        Deja solo una: la lista se recorre entera, asi que una entrada dos\n' +
-            '        veces haria que esa palabra puntuara el doble que las demas.');
-    }
-    return entradas;
-}
-/** Como se nombra un valor rechazado en un mensaje de error. */
-function describirValor(valor) {
-    if (valor === null)
-        return 'un valor vacio';
-    if (Array.isArray(valor))
-        return `una lista (${JSON.stringify(valor)})`;
-    if (typeof valor === 'string')
-        return `el texto "${valor}"`;
-    return `${String(valor)} (${typeof valor})`;
 }
 function mensajeClaveAusente(ruta, clave) {
     return (`[ERROR] ${ruta}: falta la clave obligatoria "${clave}".\n` +

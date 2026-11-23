@@ -28,11 +28,19 @@
  * el universo de claves validas no es una lista fija.
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
 import { masParecida } from './sugerencia.js';
 import type { ReglaSeleccionSkill, Task } from './task.js';
+import { rutaEnPlugin } from './raiz-plugin.js';
+import {
+  claveDeBloque,
+  validarEnteroNoNegativo,
+  validarEnum,
+  validarListaDeTexto,
+  validarTextoNoVacio,
+  type ClaveDeBloque,
+  type CrearError,
+} from './campos-catalogo.js';
 
 const MAX_TOTAL_SKILLS = 1000;
 
@@ -79,26 +87,12 @@ type CampoSkillObligatorio = (typeof CAMPOS_SKILL_OBLIGATORIOS)[number];
 const CAMPOS_SKILL_TODOS = [...CAMPOS_SKILL_OBLIGATORIOS, 'marketplace'] as const;
 type CampoSkill = (typeof CAMPOS_SKILL_TODOS)[number];
 
-const SKILL_KEY_RE =
-  /^skill_(\d+)_(id|origen|marketplace|rol|prioridad|etiquetas|patrones_archivo|descripcion)$/;
+/** TASK-148a (CORE1-05): la clave `skill_N_campo` se lee con claveDeBloque y el campo se valida contra CAMPOS_SKILL_TODOS. */
+const errorSkills: CrearError = (m) => new CatalogoSkillsError(m);
 
-function packageRoot(): string {
-  // dist/src/core/catalogo-skills.js -> dist/src/core -> dist/src -> dist -> raiz
-  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-  return path.join(moduleDir, '..', '..', '..');
-}
-
-/**
- * Ruta del YML. Mismo patron que resolverRutaHeuristica(): respeta
- * CLAUDE_PLUGIN_ROOT si esta definida; si no, calcula la ruta relativa
- * al propio modulo compilado.
- */
+/** Ruta dentro del plugin con rutaEnPlugin (core/raiz-plugin.ts: respeta CLAUDE_PLUGIN_ROOT). */
 export function resolverRutaCatalogoSkills(): string {
-  const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
-  if (pluginRoot !== undefined && pluginRoot.trim() !== '') {
-    return path.join(pluginRoot, 'scripts', FICHERO_CATALOGO_SKILLS);
-  }
-  return path.join(packageRoot(), 'scripts', FICHERO_CATALOGO_SKILLS);
+  return rutaEnPlugin('scripts', FICHERO_CATALOGO_SKILLS);
 }
 
 /**
@@ -150,7 +144,8 @@ export function parsearCatalogoSkills(contenido: string, ruta: string): Catalogo
   const totalSkills = validarEnteroNoNegativo(
     `${ruta}:${primerTotal.numeroLinea}`,
     'total_skills',
-    primerTotal.valor
+    primerTotal.valor,
+    errorSkills
   );
   // Cota superior aparte del "no negativo" de arriba (hallazgo MENOR de
   // revision por pares, TASK-017): construirClavesValidas() materializa
@@ -185,11 +180,10 @@ export function parsearCatalogoSkills(contenido: string, ruta: string): Catalogo
 
     if (par.clave === 'total_skills') continue;
 
-    const m = SKILL_KEY_RE.exec(par.clave) as RegExpExecArray;
-    const n = Number(m[1]);
-    const campo = m[2] as CampoSkill;
+    // clavesValidas ya garantiza la forma `skill_N_<campo de CAMPOS_SKILL_TODOS>`.
+    const { n, campo } = claveDeBloque(par.clave) as ClaveDeBloque;
     const bloque = bloques.get(n) ?? {};
-    bloque[campo] = { valor: par.valor, numeroLinea: par.numeroLinea };
+    bloque[campo as CampoSkill] = { valor: par.valor, numeroLinea: par.numeroLinea };
     bloques.set(n, bloque);
   }
 
@@ -239,10 +233,10 @@ function construirEntrada(
   const prefijo = `skill_${n}_`;
 
   const cId = exigirCampo(bloque, 'id', n, ruta);
-  const id = validarTextoNoVacio(`${ruta}:${cId.numeroLinea}`, `${prefijo}id`, cId.valor);
+  const id = validarTextoNoVacio(`${ruta}:${cId.numeroLinea}`, `${prefijo}id`, cId.valor, errorSkills);
 
   const cOrigen = exigirCampo(bloque, 'origen', n, ruta);
-  const origen = validarEnum(`${ruta}:${cOrigen.numeroLinea}`, `${prefijo}origen`, cOrigen.valor, ORIGENES_SKILL);
+  const origen = validarEnum(`${ruta}:${cOrigen.numeroLinea}`, `${prefijo}origen`, cOrigen.valor, ORIGENES_SKILL, errorSkills);
 
   // IMP-9 (revision por pares ronda 3, TASK-017): "plugin:skill" es la
   // convencion normativa para un id externo (seccion 6.6 de
@@ -267,13 +261,14 @@ function construirEntrada(
   }
 
   const cRol = exigirCampo(bloque, 'rol', n, ruta);
-  const rol = validarEnum(`${ruta}:${cRol.numeroLinea}`, `${prefijo}rol`, cRol.valor, ROLES_SKILL);
+  const rol = validarEnum(`${ruta}:${cRol.numeroLinea}`, `${prefijo}rol`, cRol.valor, ROLES_SKILL, errorSkills);
 
   const cPrioridad = exigirCampo(bloque, 'prioridad', n, ruta);
   const prioridad = validarEnteroNoNegativo(
     `${ruta}:${cPrioridad.numeroLinea}`,
     `${prefijo}prioridad`,
-    cPrioridad.valor
+    cPrioridad.valor,
+    errorSkills
   );
 
   const cEtiquetas = exigirCampo(bloque, 'etiquetas', n, ruta);
@@ -281,7 +276,13 @@ function construirEntrada(
     `${ruta}:${cEtiquetas.numeroLinea}`,
     `${prefijo}etiquetas`,
     cEtiquetas.valor,
-    1
+    errorSkills,
+    {
+      minimo: 1,
+      porQueNoVacia:
+        'Una entrada de catalogo sin etiquetas nunca puede coincidir con ninguna\n' +
+        'tarea por solape: seria un candidato imposible. Anadele al menos una.',
+    }
   );
 
   const cPatrones = exigirCampo(bloque, 'patrones_archivo', n, ruta);
@@ -289,14 +290,15 @@ function construirEntrada(
     `${ruta}:${cPatrones.numeroLinea}`,
     `${prefijo}patrones_archivo`,
     cPatrones.valor,
-    0
+    errorSkills
   );
 
   const cDescripcion = exigirCampo(bloque, 'descripcion', n, ruta);
   const descripcion = validarTextoNoVacio(
     `${ruta}:${cDescripcion.numeroLinea}`,
     `${prefijo}descripcion`,
-    cDescripcion.valor
+    cDescripcion.valor,
+    errorSkills
   );
 
   const cMarketplace: CampoValor = bloque['marketplace'];
@@ -310,7 +312,7 @@ function construirEntrada(
           '        de la seccion 6.6).'
       );
     }
-    marketplace = validarTextoNoVacio(`${ruta}:${cMarketplace.numeroLinea}`, `${prefijo}marketplace`, cMarketplace.valor);
+    marketplace = validarTextoNoVacio(`${ruta}:${cMarketplace.numeroLinea}`, `${prefijo}marketplace`, cMarketplace.valor, errorSkills);
   } else {
     if (cMarketplace !== undefined) {
       throw new CatalogoSkillsError(
@@ -343,82 +345,6 @@ function validarIdsUnicos(catalogo: readonly EntradaCatalogoSkill[], ruta: strin
 }
 
 // --- Validadores tipados (mismo criterio que heuristica.ts) -----------
-
-function validarEnteroNoNegativo(donde: string, clave: string, valor: unknown): number {
-  if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 0) {
-    throw new CatalogoSkillsError(
-      `[ERROR] ${donde}: "${clave}" debe ser un numero entero mayor o igual que 0, ` +
-        `y es ${describirValor(valor)}.\n` +
-        '        Escribe el numero sin comillas y sin decimales.'
-    );
-  }
-  return valor;
-}
-
-function validarTextoNoVacio(donde: string, clave: string, valor: unknown): string {
-  if (typeof valor !== 'string' || valor.trim() === '') {
-    throw new CatalogoSkillsError(
-      `[ERROR] ${donde}: "${clave}" debe ser texto no vacio, y es ${describirValor(valor)}.`
-    );
-  }
-  return valor.trim();
-}
-
-function validarEnum<T extends string>(
-  donde: string,
-  clave: string,
-  valor: unknown,
-  permitidos: readonly T[]
-): T {
-  if (typeof valor !== 'string' || !(permitidos as readonly string[]).includes(valor)) {
-    throw new CatalogoSkillsError(
-      `[ERROR] ${donde}: "${clave}" tiene el valor ${describirValor(valor)}, pero debe ser uno de: ` +
-        `${permitidos.join(', ')}.`
-    );
-  }
-  return valor as T;
-}
-
-/**
- * Lista de textos no vacios ni repetidos. `minimo` distingue
- * `etiquetas` (>=1: una entrada sin etiquetas nunca podria coincidir
- * con ninguna tarea por solape, seria un candidato imposible) de
- * `patrones_archivo` (>=0: vacia es el caso legitimo de un skill que no
- * se enruta por extension de fichero).
- */
-function validarListaDeTexto(donde: string, clave: string, valor: unknown, minimo: number): string[] {
-  if (!Array.isArray(valor) || !valor.every((x) => typeof x === 'string')) {
-    throw new CatalogoSkillsError(
-      `[ERROR] ${donde}: "${clave}" debe ser una lista de textos entre corchetes ` +
-        `(p. ej. [a, b]), y es ${describirValor(valor)}.`
-    );
-  }
-  const entradas = (valor as string[]).map((x) => x.trim());
-  if (entradas.some((x) => x === '')) {
-    throw new CatalogoSkillsError(`[ERROR] ${donde}: "${clave}" tiene alguna entrada vacia.`);
-  }
-  const repetida = entradas.find((x, i) => entradas.indexOf(x) !== i);
-  if (repetida !== undefined) {
-    throw new CatalogoSkillsError(
-      `[ERROR] ${donde}: "${clave}" tiene la entrada "${repetida}" repetida.`
-    );
-  }
-  if (entradas.length < minimo) {
-    throw new CatalogoSkillsError(
-      `[ERROR] ${donde}: "${clave}" no puede estar vacia.\n` +
-        '        Una entrada de catalogo sin etiquetas nunca puede coincidir con ninguna\n' +
-        '        tarea por solape: seria un candidato imposible. Anadele al menos una.'
-    );
-  }
-  return entradas;
-}
-
-function describirValor(valor: unknown): string {
-  if (valor === null) return 'un valor vacio';
-  if (Array.isArray(valor)) return `una lista (${JSON.stringify(valor)})`;
-  if (typeof valor === 'string') return `el texto "${valor}"`;
-  return `${String(valor)} (${typeof valor})`;
-}
 
 function mensajeClaveAusente(ruta: string, clave: string): string {
   return (

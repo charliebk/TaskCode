@@ -28,31 +28,18 @@
  * entero, no degrada en silencio al generico.
  */
 import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
+import { rutaEnPlugin } from './raiz-plugin.js';
 export class CatalogoRevisoresError extends Error {
     constructor(message) {
         super(message);
         this.name = 'CatalogoRevisoresError';
     }
 }
-function packageRoot() {
-    // dist/src/core/revisores.js -> dist/src/core -> dist/src -> dist -> raiz
-    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-    return path.join(moduleDir, '..', '..', '..');
-}
-/**
- * Ruta de `skills/`. Mismo patron que resolverRutaCatalogoSkills():
- * respeta CLAUDE_PLUGIN_ROOT si esta definida; si no, la calcula
- * relativa al propio modulo compilado.
- */
+/** Ruta dentro del plugin con rutaEnPlugin (core/raiz-plugin.ts: respeta CLAUDE_PLUGIN_ROOT). */
 export function resolverRutaSkills() {
-    const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
-    if (pluginRoot !== undefined && pluginRoot.trim() !== '') {
-        return path.join(pluginRoot, 'skills');
-    }
-    return path.join(packageRoot(), 'skills');
+    return rutaEnPlugin('skills');
 }
 /**
  * Lineas del PRIMER bloque ```yaml del cuerpo de una skill, o null si no

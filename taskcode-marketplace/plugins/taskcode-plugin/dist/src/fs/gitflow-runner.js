@@ -26,28 +26,12 @@
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { entornoParaBash, resolverBash } from '../core/resolver-bash.js';
-function packageRoot() {
-    // dist/src/fs/gitflow-runner.js -> dist/src/fs -> dist/src -> dist -> raiz del paquete
-    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-    return path.join(moduleDir, '..', '..', '..');
-}
-/**
- * Resuelve el directorio de scripts/gitflow/. Respeta
- * CLAUDE_PLUGIN_ROOT (convencion documentada para cuando Claude Code
- * lanza taskctl como comando de plugin) si esta definida; si no,
- * calcula la ruta relativa al propio modulo compilado — necesario
- * para el dogfooding directo (taskctl invocado a mano, como en este
- * mismo repo) donde esa variable no esta puesta.
- */
+import { rutaEnPlugin } from '../core/raiz-plugin.js';
+/** Ruta dentro del plugin con rutaEnPlugin (core/raiz-plugin.ts: respeta CLAUDE_PLUGIN_ROOT). */
 export function resolveGitflowScriptsDir() {
-    const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
-    if (pluginRoot !== undefined && pluginRoot.trim() !== '') {
-        return path.join(pluginRoot, 'scripts', 'gitflow');
-    }
-    return path.join(packageRoot(), 'scripts', 'gitflow');
+    return rutaEnPlugin('scripts', 'gitflow');
 }
 /**
  * "bash" no se pudo ni siquiera lanzar (no esta en el PATH, etc.).
