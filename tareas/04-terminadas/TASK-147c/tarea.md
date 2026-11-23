@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-147-regla-4d-lectores-de-secciones-e-ids-en
 asignado_a: claude
@@ -39,6 +39,7 @@ Un solo tipo de fase y una sola conversion de fila a Marca (CORE2-12, CORE2-13).
 | 2026-11-23T10:21:43Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T10:21:44Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T10:28:45Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T10:37:27Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -65,3 +66,9 @@ Un solo tipo de fase y una sola conversion de fila a Marca (CORE2-12, CORE2-13).
 ## Verificacion parcial
 
 - 2026-11-23T10:35:09Z: todo el codigo que cambia la tarea (7 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 30 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 16 min
+- Cierre (finish): 138 s, de 2026-11-23T10:35:09Z a 2026-11-23T10:37:27Z
