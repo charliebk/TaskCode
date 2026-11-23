@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-151-regla-4d-disfraz-en-tests
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-23T23:49:31Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T23:50:19Z | approve | automatico | persona | 0.16.1 |
