@@ -91,6 +91,9 @@ cada uno en su dominio):
   mutacion), un stub que devuelve exito, un criterio marcado sin evidencia.
   Los patrones tipicos en tests: [disfraz-tests.md](disfraz-tests.md).
 
+La peticion trae `## Candidatos 4D` (pistas desde el diff): comprueba cada
+posible duplicado y muta cada test que liste.
+
 Duplicacion y disfraz reales son **IMPORTANTE** como minimo; desviacion y
 diluvio, MENOR salvo que cambien comportamiento o escondan un fallo.
 

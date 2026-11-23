@@ -633,6 +633,26 @@ export function runCodexReview(invocation: CodexReviewInvocation): CodexReviewOu
  * si `paths` esta vacio, sin llamar a Git (una peticion sin ficheros no
  * tiene nada que pedirle).
  */
+/**
+ * TASK-153b: lineas con pinta de definicion (funcion, clase, constante,
+ * `nombre() {` de bash) en `ref`, como `ref:fichero:linea:texto`. Es la
+ * materia prima de los candidatos 4D: lo que YA existia antes de la tarea.
+ * El filtro fino (que linea es de verdad una definicion y de que lenguaje)
+ * lo hace `definicionesDeGrep`, en core. Sin coincidencias, git grep sale con
+ * 1 y sin stderr: eso es '' (no hay definiciones), no un error.
+ */
+export function definicionesEnRef(ref: string, cwd: string): string {
+  const patron =
+    '(function|class|fn|def|const|let|var|struct|interface|record|enum)[[:space:]]+[A-Za-z_$]' +
+    '|^[[:space:]]*[A-Za-z_][A-Za-z0-9_-]*[[:space:]]*\\(\\)[[:space:]]*\\{';
+  try {
+    return runGit([...SIN_COMILLAS, 'grep', '-n', '-I', '-E', patron, ref, '--'], cwd);
+  } catch (e) {
+    if (e instanceof GitCommandError && e.stderr.trim() === '') return '';
+    throw e;
+  }
+}
+
 export function diffRangeForPaths(
   desde: string,
   hasta: string,
