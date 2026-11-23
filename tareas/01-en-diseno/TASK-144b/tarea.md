@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-144-regla-4d-ciclo-de-vida-cadena-y-flags-en
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -38,3 +38,4 @@ Todos los flags con valor se leen con el mismo lector y todos los booleanos esta
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-23T03:55:21Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T03:55:23Z | approve | automatico | persona | 0.16.1 |
