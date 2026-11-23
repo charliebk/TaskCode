@@ -43,3 +43,8 @@ Objetivo de la tarea entera:
 | 2026-11-23T06:28:28Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T06:28:53Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T06:28:54Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 3aeb6c2: buscados anadirSeccionAlFinal, contenidoDeSeccion, rangoDeSeccion y dentroDeBloque antes de escribir; un helper nuevo (anadirSeccionAlFinal) que sustituye cinco copias; 1 fichero de test nuevo (5 tests); 4 mutaciones en rojo (menores, troceo, duracion, rondas-extra)
+- code-quality-reviewer — 3aeb6c2
