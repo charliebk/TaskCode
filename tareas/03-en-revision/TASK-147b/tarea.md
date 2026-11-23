@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-147-regla-4d-lectores-de-secciones-e-ids-en
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 5785814
 tokens_revision: null
 creado: 2026-11-23
 actualizado: 2026-11-23
@@ -39,8 +39,15 @@ casillasSinMarcar, normalizar, citar y el ID de tarea con un solo lector (CORE2-
 | 2026-11-23T09:23:14Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T09:23:24Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T09:23:26Z | start | automatico | persona | 0.16.1 |
+| 2026-11-23T09:39:11Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 21e802d: buscados extraerSecciones, normalizarTexto, isValidTaskId, taskIdSortKey y citar antes de escribir; nuevos quitarDiacriticos (normalizarTexto sin minusculas, para celdas) y compararIds (sustituye cinco lectores del numero); 1 fichero de test nuevo (3 tests); 9 mutaciones en rojo
 - code-quality-reviewer — 21e802d
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-23T09:39:11Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 50 | 38463 | 5723849 | 23452 | 10 | 5785814 | - | - |
