@@ -99,6 +99,21 @@ export function commitRevisadoDe(peticion: string): string | null {
 }
 
 /**
+ * TASK-144a (CMD2-04 de la auditoria 4D): «el Commit revisado de la ultima
+ * ronda», una sola regla para siguiente, verificar-menores, finish y review.
+ * Las peticiones tienen que ser de la MISMA ronda que los informes: si no,
+ * null (antes unos comandos lo exigian y otros tomaban el commit de otra
+ * ronda). Con varias peticiones (ronda fragmentada), el primero que haya.
+ */
+export function commitRevisadoDeRonda(
+  peticiones: { ronda: number; textos: readonly string[] },
+  rondaInformes: number
+): string | null {
+  if (peticiones.ronda !== rondaInformes) return null;
+  return peticiones.textos.map(commitRevisadoDe).find((c) => c !== null) ?? null;
+}
+
+/**
  * ¿Lo escribio un revisor? (IMP-1 y MEN-6 de la revision de TASK-059): una
  * linea `- Revisor:` rellenada (no la de la plantilla) y sin la fila de
  * ejemplo de la tabla. No prueba quien lo escribio: ese riesgo residual esta

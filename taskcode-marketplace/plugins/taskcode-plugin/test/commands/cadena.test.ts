@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import { runCadenaCommand, CadenaCommandError, GUARDADOS_POR_CADENA } from '../../src/commands/cadena.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -203,24 +204,34 @@ test('abrir sin ID valido, y subcomando desconocido, salen != 0 sin crear bloque
 
 // --- La guarda del CLI (IMP-1 de las rondas 1 y 2 de la revision) --------------
 
-/** Lo que tiene que estar guardado: todo comando que escribe o cambia de rama. */
-const ESPERADOS = [
-  'new',
-  'import',
-  'plan',
-  'approve',
-  'start',
-  'review',
-  'codex-review',
-  'veredicto',
-  'finish',
-  'pausa',
-  'registrar-coste',
-  'pause',
-  'resume',
-  'recover',
-  'abort-merge',
-];
+/**
+ * TASK-144a (CMD1-01 de la auditoria 4D): lo que tiene que estar guardado se
+ * DERIVA del codigo, no de una copia escrita a mano que se quedo sin
+ * trocear, verificar-menores, verificar-lote ni doctor-deploy: todo comando
+ * de src/commands que llama a `autoCommit(` o a `ensureBaseBranchReady(`
+ * (escribe o cambia de rama), mas los wrappers de Git-Flow y `veredicto`
+ * (escribe el informe; desde TASK-119 sin commit).
+ */
+const SRC_COMMANDS = path.join(PLUGIN_ROOT, 'src', 'commands');
+/** Fichero de src/commands cuyo comando del CLI se llama distinto. */
+const COMANDO_DE_FICHERO: Readonly<Record<string, string>> = {
+  'doctor-deploy-tareas': 'doctor-deploy',
+  'finish-verificacion': 'finish',
+};
+const WRAPPERS_GITFLOW = ['pause', 'resume', 'recover', 'abort-merge'];
+function comandosQueEscriben(): string[] {
+  const comandos = new Set<string>();
+  for (const f of readdirSync(SRC_COMMANDS)) {
+    if (!f.endsWith('.ts')) continue;
+    const texto = readFileSync(path.join(SRC_COMMANDS, f), 'utf8');
+    if (!/\bautoCommit\(|\bensureBaseBranchReady\(/.test(texto)) continue;
+    const base = f.slice(0, -'.ts'.length);
+    if (base === 'cadena') continue;
+    comandos.add(COMANDO_DE_FICHERO[base] ?? base);
+  }
+  return [...comandos];
+}
+const ESPERADOS = [...new Set([...comandosQueEscriben(), ...WRAPPERS_GITFLOW, 'veredicto'])];
 
 /** Argumentos minimos de cada comando (la guarda actua antes de mirarlos). */
 function argsDe(cmd: string): string[] {
@@ -236,13 +247,19 @@ function argsDe(cmd: string): string[] {
       return ['develop'];
     case 'pause':
     case 'abort-merge':
+    case 'verificar-lote':
+    case 'doctor-deploy':
       return [];
     default:
       return ['TASK-001'];
   }
 }
 
-test('la lista de comandos guardados es exactamente la esperada', () => {
+test('la lista de comandos guardados es la que se deriva del codigo (los que escriben o cambian de rama)', () => {
+  // Sin la derivacion, un comando nuevo con autoCommit quedaba sin guarda en silencio.
+  for (const cmd of ['trocear', 'verificar-menores', 'verificar-lote', 'doctor-deploy', 'review', 'finish']) {
+    assert.ok(ESPERADOS.includes(cmd), `la derivacion no encuentra ${cmd}`);
+  }
   assert.deepEqual([...GUARDADOS_POR_CADENA].sort(), [...ESPERADOS].sort());
 });
 

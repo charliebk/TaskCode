@@ -52,7 +52,7 @@ import { configDeRef } from '../fs/config-de-ref.js';
 import { rondaExtraDecidida } from '../core/rondas-extra.js';
 import {
   alcanceRondaSiguiente,
-  commitRevisadoDe,
+  commitRevisadoDeRonda,
   hallazgosNoCerrados,
   hallazgosPendientes,
   plantillaRegla4D,
@@ -475,13 +475,10 @@ async function leerRondaPrevia(revisionDir: string): Promise<RondaPrevia> {
     informes.nombres.map(async (n) => ({ nombre: n, texto: await readFile(path.join(revisionDir, n), 'utf8') }))
   );
   const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
-  let commit: string | null = null;
-  let fueAcotada = false;
-  for (const n of peticiones.nombres) {
-    const texto = await readFile(path.join(revisionDir, n), 'utf8');
-    if (ALCANCE_ACOTADA_RE.test(texto)) fueAcotada = true;
-    commit ??= commitRevisadoDe(texto);
-  }
+  const textosPeticion = await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8')));
+  const fueAcotada = textosPeticion.some((t) => ALCANCE_ACOTADA_RE.test(t));
+  // TASK-144a (CMD2-04): la misma regla que siguiente, verificar-menores y finish.
+  const commit = commitRevisadoDeRonda({ ronda: peticiones.ronda, textos: textosPeticion }, informes.ronda);
 
   // TASK-095: pendiente = todo lo que no esta `aceptado` (tambien lo
   // `corregido`, que es justo lo que hay que verificar), agrupado por el

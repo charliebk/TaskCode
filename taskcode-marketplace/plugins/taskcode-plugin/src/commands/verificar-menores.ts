@@ -24,7 +24,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { commitRevisadoDe, informeRellenado, veredictoDeRonda } from '../core/informe-revision.js';
+import { commitRevisadoDeRonda, informeRellenado, veredictoDeRonda } from '../core/informe-revision.js';
 import {
   MENORES_PENDIENTES,
   SECCION_VERIFICACION_LIGERA,
@@ -218,14 +218,10 @@ export async function runVerificarMenoresCommand(
   }
 
   const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
-  const revisado =
-    peticiones.ronda !== ronda
-      ? null
-      : (
-          await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8')))
-        )
-          .map(commitRevisadoDe)
-          .find((c) => c !== null) ?? null;
+  const revisado = commitRevisadoDeRonda(
+    { ronda: peticiones.ronda, textos: await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))) },
+    ronda
+  );
   if (revisado === null) {
     throw error(
       `la peticion de la ronda ${String(ronda)} no dice que commit se reviso ("- Commit revisado"): ` +
@@ -316,11 +312,11 @@ export async function codigoSinVerificar(
   const revisionDir = path.join(taskDir, REVISION_DIRNAME);
   const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
   const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
-  if (informes.nombres.length === 0 || peticiones.ronda !== informes.ronda) return null;
-  const revisado =
-    (await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))))
-      .map(commitRevisadoDe)
-      .find((c) => c !== null) ?? null;
+  if (informes.nombres.length === 0) return null;
+  const revisado = commitRevisadoDeRonda(
+    { ronda: peticiones.ronda, textos: await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))) },
+    informes.ronda
+  );
   if (revisado === null) return null;
   // Con referencia pero sin poder comparar (SHA que Git no conoce, o rama
   // reescrita despues de revisar) no se deja pasar: fail-closed.

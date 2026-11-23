@@ -24,7 +24,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { commitRevisadoDe, informeRellenado, veredictoDeRonda } from '../core/informe-revision.js';
+import { commitRevisadoDeRonda, informeRellenado, veredictoDeRonda } from '../core/informe-revision.js';
 import { MENORES_PENDIENTES, SECCION_VERIFICACION_LIGERA, backlogMenores, bloqueantesAbiertos, fueraDeAlcance, lineaVerificacionLigera, menoresAbiertos, repartirMenores, verificacionDeRonda, } from '../core/menores.js';
 import { anotarLineaEnSeccion } from '../core/transiciones.js';
 import { readTareaFile, writeTareaFile } from '../fs/task-store.js';
@@ -148,11 +148,7 @@ export async function runVerificarMenoresCommand(tareasRoot, argv, deps) {
             'la verificacion ligera no lo cubre.');
     }
     const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
-    const revisado = peticiones.ronda !== ronda
-        ? null
-        : (await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))))
-            .map(commitRevisadoDe)
-            .find((c) => c !== null) ?? null;
+    const revisado = commitRevisadoDeRonda({ ronda: peticiones.ronda, textos: await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))) }, ronda);
     if (revisado === null) {
         throw error(`la peticion de la ronda ${String(ronda)} no dice que commit se reviso ("- Commit revisado"): ` +
             'sin esa referencia no se puede saber que cambio despues. Lo decide una persona.');
@@ -223,11 +219,9 @@ export async function codigoSinVerificar(taskDir, body, ref, cwd) {
     const revisionDir = path.join(taskDir, REVISION_DIRNAME);
     const informes = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);
     const peticiones = await informesDeUltimaRonda(revisionDir, PETICION_REVISION_RE);
-    if (informes.nombres.length === 0 || peticiones.ronda !== informes.ronda)
+    if (informes.nombres.length === 0)
         return null;
-    const revisado = (await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))))
-        .map(commitRevisadoDe)
-        .find((c) => c !== null) ?? null;
+    const revisado = commitRevisadoDeRonda({ ronda: peticiones.ronda, textos: await Promise.all(peticiones.nombres.map((n) => readFile(path.join(revisionDir, n), 'utf8'))) }, informes.ronda);
     if (revisado === null)
         return null;
     // Con referencia pero sin poder comparar (SHA que Git no conoce, o rama

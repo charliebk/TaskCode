@@ -3,7 +3,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { avisoRegla4D, faltasRegla4D, idsRegla4D, plantillaRegla4D } from '../../src/core/informe-revision.js';
+import { avisoRegla4D, commitRevisadoDeRonda, faltasRegla4D, idsRegla4D, plantillaRegla4D } from '../../src/core/informe-revision.js';
 import { informeTemplate } from '../../src/commands/review.js';
 import { sampleTask } from '../helpers/review-fixtures.js';
 
@@ -59,4 +59,11 @@ test('TASK-153c: idsRegla4D da los ID de cada D (cumple, ninguno) y null sin sec
       '- Diluvio: MEN-3b\n- Disfraz: n/a\n'
   );
   assert.deepEqual(raros, { Duplicacion: [], Desviacion: ['MEN-1'], Diluvio: [], Disfraz: [] });
+});
+
+test('TASK-144a: commitRevisadoDeRonda solo vale con peticiones de la misma ronda que los informes', () => {
+  const p = (sha: string) => `# Peticion\n\n- Commit revisado (HEAD): ${sha}\n`;
+  assert.equal(commitRevisadoDeRonda({ ronda: 2, textos: ['# sin commit\n', p('abc1234')] }, 2), 'abc1234');
+  assert.equal(commitRevisadoDeRonda({ ronda: 1, textos: [p('abc1234')] }, 2), null, 'peticion de otra ronda');
+  assert.equal(commitRevisadoDeRonda({ ronda: 2, textos: ['# sin commit\n'] }, 2), null);
 });
