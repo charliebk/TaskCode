@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -37,3 +37,4 @@ Lockfiles, binarios, cola, PATH, JSON con BOM y nombreBase con una implementacio
 |---|---|---|---|---|
 | 2026-11-23T12:31:38Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T12:31:40Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T12:31:41Z | start | automatico | persona | 0.16.1 |
