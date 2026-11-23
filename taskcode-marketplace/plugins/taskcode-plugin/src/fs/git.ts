@@ -13,6 +13,7 @@ import type { Task } from '../core/task.js';
 import { resolverConfig } from '../core/config.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
 import { EXTENSIONES_CODIGO, PATRON_GREP_DEFINICION } from '../core/candidatos-4d.js';
+import { rutaGit } from './git-crudo.js';
 
 export class GitCommandError extends Error {
   constructor(
@@ -133,8 +134,7 @@ export type OperacionGitEnCurso = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
  *   No hay nada que abortar y aqui se devuelve null, igual que Git.
  */
 export function operacionEnCurso(cwd: string): OperacionGitEnCurso | null {
-  const gitPath = (nombre: string): string =>
-    path.resolve(cwd, runGit(['rev-parse', '--git-path', nombre], cwd));
+  const gitPath = (nombre: string): string => rutaGitObligatoria(cwd, nombre);
   if (existsSync(gitPath('MERGE_HEAD'))) return 'merge';
   if (existsSync(gitPath('rebase-merge')) || existsSync(gitPath('rebase-apply'))) return 'rebase';
   if (existsSync(gitPath('CHERRY_PICK_HEAD'))) return 'cherry-pick';
@@ -156,6 +156,18 @@ export function operacionEnCurso(cwd: string): OperacionGitEnCurso | null {
     return /^revert /m.test(todo) ? 'revert' : 'cherry-pick';
   }
   return null;
+}
+
+/**
+ * TASK-149a (MEN-1 de su revision): `rutaGit` para quien lanza fuera de un
+ * repo. Si no hay ruta, `rev-parse --git-dir` lanza el GitCommandError de
+ * siempre (y si no lanzara, se lanza aqui).
+ */
+export function rutaGitObligatoria(cwd: string, ruta: string): string {
+  const r = rutaGit(cwd, ruta);
+  if (r !== null) return r;
+  runGit(['rev-parse', '--git-dir'], cwd);
+  throw new GitCommandError(['rev-parse', '--git-path', ruta], 'sin ruta en el directorio de Git');
 }
 
 /** Nombre de la rama activa (equivalente a `git branch --show-current`). */

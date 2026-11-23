@@ -143,6 +143,20 @@ export const TIPOS_RAMA_PESADA = ['release', 'hotfix'];
  * presupuesto del freno no puede pasarlo (el hook se cancelaria antes).
  */
 export const TECHO_HOOK_STOP_S = 3600;
+/** Margen, en segundos, que se deja al hook Stop para escribir su informe tras cortar la verificacion. */
+export const MARGEN_HOOK_S = 60;
+/**
+ * Segundos que se le dan a la verificacion: `timeout_verificacion`, pero nunca
+ * mas que el `timeout` del hook menos el margen. Si el hook agotara el suyo,
+ * Claude Code descartaria el informe y el freno fallaria abierto. TASK-149a
+ * (FS-17): vive aqui para que guardia-merge no cargue el grafo del freno.
+ */
+export function timeoutEfectivoS(timeoutVerificacion) {
+    const techo = TECHO_HOOK_STOP_S - MARGEN_HOOK_S;
+    return timeoutVerificacion > techo
+        ? { timeoutS: techo, recortado: true }
+        : { timeoutS: timeoutVerificacion, recortado: false };
+}
 /** TASK-125: presupuesto del freno cuando se declara su comando sin presupuesto. */
 export const PRESUPUESTO_FRENO_POR_DEFECTO_S = 180;
 /** TASK-125: el presupuesto efectivo del freno, o null si no tiene tope propio. */

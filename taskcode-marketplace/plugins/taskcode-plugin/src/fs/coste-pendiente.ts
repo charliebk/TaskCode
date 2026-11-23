@@ -21,7 +21,7 @@
  */
 import { appendFileSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { rutaGit } from './git-crudo.js';
 import type { TipoFuente } from '../core/coste-automatico.js';
 
 export const FICHERO_LIBRO = 'coste-pendiente.jsonl';
@@ -38,10 +38,7 @@ export interface EntradaPendiente {
 
 /** Ruta absoluta del libro, o null fuera de un repo Git. */
 export function rutaLibro(raiz: string): string | null {
-  const r = spawnSync('git', ['rev-parse', '--git-path', FICHERO_LIBRO], { cwd: raiz, encoding: 'utf8', windowsHide: true });
-  if (r.error !== undefined || r.status !== 0) return null;
-  const p = (r.stdout ?? '').trim();
-  return p === '' ? null : path.resolve(raiz, p);
+  return rutaGit(raiz, FICHERO_LIBRO);
 }
 
 /** Añade las entradas al libro. Lanza si no puede escribir: quien llama decide si eso importa. */

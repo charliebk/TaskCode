@@ -15,9 +15,8 @@
  * (`recuperarApartado`), antes de leer la tarea: el veredicto vive en lo
  * apartado.
  */
-import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { GitCommandError, currentBranch, runGit } from './git.js';
+import { GitCommandError, currentBranch, operacionEnCurso, runGit } from './git.js';
 
 export class PendientesError extends Error {}
 
@@ -184,7 +183,7 @@ export function apartarPendientes(cwd: string, tareasRoot: string, id: string): 
       if (!activo) return null;
       // Ni con un merge a medias ni en otra rama (MEN-2 de la revision): ahi
       // lo pendiente quedaria sucio donde no toca y un commit a mano lo barreria.
-      if (existsSync(path.resolve(cwd, runGit(['rev-parse', '--git-path', 'MERGE_HEAD'], cwd)))) {
+      if (operacionEnCurso(cwd) === 'merge') {
         return comoRecuperar(id, rama);
       }
       if (currentBranch(cwd) !== rama) return comoRecuperar(id, rama);

@@ -11,12 +11,22 @@
  * como argumento de CLI (plan, approve, start...) un id sin sanear
  * como "../../etc" podria escapar de tareasRoot.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { readdir, readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { STATE_FOLDER, assertValidTaskId, isValidTaskId, } from '../core/task.js';
 import { parseTareaFile, serializeTareaFile } from '../core/tarea-file.js';
 const ALL_STATE_FOLDERS = Object.values(STATE_FOLDER);
+/** El directorio de tareas en curso, si existe. Sin procesos (lo usan los hooks). */
+export function carpetaEnCurso(raiz) {
+    const dir = path.join(raiz, 'tareas', STATE_FOLDER['en-curso']);
+    try {
+        return statSync(dir).isDirectory() ? dir : null;
+    }
+    catch {
+        return null;
+    }
+}
 export async function listExistingTaskIds(tareasRoot) {
     const ids = [];
     for (const folder of ALL_STATE_FOLDERS) {

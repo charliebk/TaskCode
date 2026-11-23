@@ -21,7 +21,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
-import { runGit } from '../fs/git.js';
+import { rutaGitObligatoria } from '../fs/git.js';
 import { isEexist, isEnoent } from '../fs/task-store.js';
 import { isValidTaskId } from '../core/task.js';
 export class CadenaCommandError extends Error {
@@ -30,7 +30,7 @@ export class CadenaCommandError extends Error {
 export const FLAGS_CADENA = ['--forzar'];
 /** Ruta absoluta del bloqueo, en el directorio de Git de este arbol. */
 export function rutaBloqueo(repoCwd) {
-    return path.resolve(repoCwd, runGit(['rev-parse', '--git-path', 'taskcode/cadena.lock'], repoCwd));
+    return rutaGitObligatoria(repoCwd, 'taskcode/cadena.lock');
 }
 /** Forma de un testigo valido: el que genera `abrir` (MEN-2: un vacio no puede casar con nada). */
 const TESTIGO_RE = /^[0-9a-f]{16}$/;

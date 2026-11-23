@@ -158,6 +158,23 @@ await caso('freno: verificacion en rojo bloquea con exit 2 y el comando, el codi
     })
   );
 });
+await caso('freno (TASK-149a): con un rebase a medias de la rama de la tarea verifica; desacoplado sin rebase no', async () => {
+  await conRepo((r) =>
+    conDesenlace(r, async () => {
+      await writeFile(r.desenlace, 'ko', 'utf8');
+      git(['checkout', '-q', '--detach'], r.raiz);
+      assert.deepEqual(await decidir(r), { codigo: 0, stderr: '' }, 'desacoplado sin rebase: no es la rama de ninguna tarea');
+      assert.equal(r.ejecuciones(), 0);
+      const dirRebase = path.join(r.raiz, '.git', 'rebase-apply');
+      await mkdir(dirRebase, { recursive: true });
+      await writeFile(path.join(dirRebase, 'head-name'), `refs/heads/${RAMA}\n`, 'utf8');
+      const d = await decidir(r);
+      assert.equal(d.codigo, 2, 'durante el rebase la tarea sigue protegida');
+      assert.match(d.stderr, /Tarea en curso en esta rama: TASK-071/);
+      assert.equal(r.ejecuciones(), 1);
+    })
+  );
+});
 await caso('freno: sin tarea en curso, rama ajena o sin comando no hace nada ni ejecuta el comando', async () => {
   await conRepo(
     (r) =>

@@ -13,7 +13,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { numerosHeldoutEnRuta, numerosHeldoutEnTexto } from '../../src/core/heldout.js';
 import { numeroDeRama } from '../../src/core/task-id.js';
-import { decidirHeldout, ramaActual } from '../../src/hooks/guardia-heldout.js';
+import { decidirHeldout } from '../../src/hooks/guardia-heldout.js';
+import { ramaActual } from '../../src/fs/git-crudo.js';
 import { git } from '../helpers/finish-fixtures.js';
 
 const RAIZ_PLUGIN = path.join(import.meta.dirname, '..', '..', '..');

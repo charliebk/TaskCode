@@ -21,7 +21,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
-import { runGit } from '../fs/git.js';
+import { rutaGitObligatoria } from '../fs/git.js';
 import { isEexist, isEnoent } from '../fs/task-store.js';
 import { isValidTaskId } from '../core/task.js';
 
@@ -49,7 +49,7 @@ export type CadenaCommandResult =
 
 /** Ruta absoluta del bloqueo, en el directorio de Git de este arbol. */
 export function rutaBloqueo(repoCwd: string): string {
-  return path.resolve(repoCwd, runGit(['rev-parse', '--git-path', 'taskcode/cadena.lock'], repoCwd));
+  return rutaGitObligatoria(repoCwd, 'taskcode/cadena.lock');
 }
 
 /** Forma de un testigo valido: el que genera `abrir` (MEN-2: un vacio no puede casar con nada). */
