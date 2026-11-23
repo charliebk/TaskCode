@@ -47,8 +47,7 @@ Precondiciones de cada transicion:
   `planificacion/plan-final.md` — **el contenido lo escribe un agente**, no el
   CLI — y, en `planificacion/brainstorm/`, una peticion por cada rol de
   brainstorm que resuelva la complejidad de la tarea, mas la del agente
-  unificador (con 1 solo rol no hay unificador: ver "El brainstorm de la fase
-  de diseno"). **No invoca a ningun modelo**: lanzar a esos agentes es trabajo de quien orquesta. Aborta sin
+  unificador (con 1 solo rol no hay unificador). **No invoca a ningun modelo**: lanzar a esos agentes es trabajo de quien orquesta. Aborta sin
   mover la tarea si el enunciado no esta listo (ver mas abajo).
 - **`approve`** — desde `en-diseno`, y tiene que existir un `plan-final.md`
   redactado: la plantilla sin rellenar se rechaza.
@@ -198,7 +197,7 @@ en verde, devuelve el turno con un informe. Arregla la causa; no borres,
 saltes ni debilites tests para pasarlo. Si el rojo no es tuyo, dilo:
 solo bloquea una vez por turno.
 `comando_verificacion_selectiva` y `comando_verificacion_freno`: [verificacion-selectiva.md](verificacion-selectiva.md).
-Tests por criterio y pesados: [tests-pesados.md](tests-pesados.md); poda: [poda-tests.md](poda-tests.md).
+Tests por criterio y pesados: [tests-pesados.md](tests-pesados.md); poda: [poda-tests.md](poda-tests.md); disfraz: [disfraz-tests.md](disfraz-tests.md).
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
 `taskctl finish` verifica antes de mergear y aborta en rojo. Un merge (o el

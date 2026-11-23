@@ -15,6 +15,35 @@
  * - AVISA de lo que conviene mirar: 9 a 12 criterios y criterios sin ancla.
  */
 import type { GrupoCriterios, SeccionesTarea } from './tarea-body.js';
+import { contenidoDeSeccion } from './transiciones.js';
+
+/**
+ * TASK-153 (Regla 4D al crear): el plan dice que reutiliza antes de disenar
+ * nada nuevo. La auditoria de TASK-141 encontro 102 duplicaciones: cada tarea
+ * escribia su propio lector en vez de buscar el que ya habia.
+ */
+export const SECCION_REUTILIZACION = '## Reutilizacion (Regla 4D)';
+
+/** La linea de la plantilla del plan bajo `SECCION_REUTILIZACION` (no cuenta como contenido). */
+export const LINEA_PLANTILLA_REUTILIZACION =
+  'Lo que ya existe y se usa (helpers, funciones, fixtures, tests), buscado en el repo antes de disenar; ' +
+  'y lo que se crea nuevo, con el motivo de no reutilizar:';
+
+/** Lo que piden las peticiones de redaccion y del unificador para esa seccion. */
+export const VINETA_PETICION_REUTILIZACION =
+  `- ${SECCION_REUTILIZACION.slice(3)}: lo que ya existe en el repo y se va a usar (helpers, ` +
+  'funciones, fixtures, tests), buscado ANTES de proponer nada nuevo; y lo que se crea nuevo, con el ' +
+  'motivo de no reutilizar lo que hay. Duplicar un helper que ya existe es un hallazgo IMPORTANTE.\n';
+
+/** ¿Le falta al plan la seccion de reutilizacion, o la trae sin mas que la linea de la plantilla? */
+export function faltaReutilizacion(plan: string): boolean {
+  // Mismo «contenido real» que la autorrevision (MEN-2 de la revision); ademas
+  // no cuentan la linea de la plantilla ni una subcabecera vacia.
+  const contenido = (contenidoDeSeccion(plan, SECCION_REUTILIZACION) ?? [])
+    .map((l) => l.trim())
+    .filter((l) => l !== LINEA_PLANTILLA_REUTILIZACION && !/^#{3,6}\s/.test(l));
+  return contenido.length === 0;
+}
 
 export const MAX_CRITERIOS = 12;
 export const AVISO_CRITERIOS = 8;

@@ -105,7 +105,7 @@ de acompañamiento.
 <3 lineas como maximo: en que consiste la propuesta>
 
 ## Piezas y limites
-- <pieza> — <se extiende | se crea nueva> — <por que>
+- <pieza> — <se extiende | se crea nueva: que parecido ya existe y por que no vale> — <por que>
 (maximo 6)
 
 ## Orden de construccion

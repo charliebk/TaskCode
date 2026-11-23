@@ -28,7 +28,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { describirExceso, leerDuracionEstimada, superaUmbral, UMBRAL_MINUTOS } from '../core/duracion-estimada.js';
 import { ROLES_BRAINSTORM, TODOS_LOS_ROLES, seleccionarRoles, seleccionarRolesDeTarea, } from '../core/roles-brainstorm.js';
 import { nombrePeticionRol } from '../core/plan-brainstorm.js';
-import { planEsEsqueleto } from '../core/validacion-tarea.js';
+import { faltaReutilizacion, planEsEsqueleto, SECCION_REUTILIZACION } from '../core/validacion-tarea.js';
 import { conProgreso, crearProgreso } from '../fs/progreso.js';
 import { hayCambiosFueraDeTarea } from '../fs/pendientes.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
@@ -149,10 +149,18 @@ async function runApprove(tareasRoot, argv, today, deps, progreso) {
     // cifra que no se entiende, la aprobacion automatica se rechaza: lo
     // decide una persona (trocear o aprobar entera con el motivo).
     const avisos = [];
-    const duracion = leerDuracionEstimada(await readFile(rutaPlan, 'utf8'));
+    const textoPlan = await readFile(rutaPlan, 'utf8');
+    const duracion = leerDuracionEstimada(textoPlan);
     if (duracion.tipo === 'ausente') {
         avisos.push(`${task.id}: el plan no dice su duracion estimada (linea "Duracion estimada: N min"). ` +
             `La regla de una hora pide trocear las tareas de mas de ${String(UMBRAL_MINUTOS)} min de punta a punta.`);
+    }
+    // TASK-153 (Regla 4D al crear): sin la seccion de reutilizacion, o con solo
+    // la linea de la plantilla, aviso (no bloquea: los planes viejos no se atascan).
+    if (faltaReutilizacion(textoPlan)) {
+        avisos.push(`${task.id}: el plan no dice que reutiliza (seccion "${SECCION_REUTILIZACION}" vacia o ausente). ` +
+            'La Regla 4D pide buscar en el repo los helpers, funciones y fixtures que ya existen antes de ' +
+            'crear nada nuevo, y anotarlos ahi; duplicar uno que ya existe es un hallazgo IMPORTANTE.');
     }
     if (decididoPor === 'automatico' && superaUmbral(duracion)) {
         throw new ApproveCommandError(`[ERROR] ${task.id}: no se aprueba como automatico: ${describirExceso(duracion)}: ` +

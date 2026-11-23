@@ -124,6 +124,11 @@ total.** Una línea por viñeta. Sin introducción, sin resumen final.
 ## Enfoque
 <4 lineas como maximo: que se crea, que se extiende, en que orden>
 
+## Reutilizacion (Regla 4D)
+- <helper, funcion, fixture o test que ya existe> — <donde> — <para que se usa>
+- Nuevo: <pieza> — <por que no vale nada de lo que ya hay>
+(1 a 4; buscado en el repo antes de proponer nada nuevo)
+
 ## Desacuerdos resueltos
 - <tema> — <rol A: su posicion> / <rol B: su posicion> — <cual gana> — <por que>
 (0 a 6; si ningun rol discrepo de otro, escribe "ninguno, y es una alarma: <por que>")

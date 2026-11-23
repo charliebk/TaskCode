@@ -114,3 +114,18 @@ test('esSoloVago y tieneAncla (MEN-1 y MEN-2 de su revision): femeninos, conjuga
   assert.equal(tieneAncla('si/no segun el caso'), false);
   assert.equal(tieneAncla('toca src/core/x'), true);
 });
+
+test('TASK-153a: faltaReutilizacion usa el mismo contenido real que la autorrevision', async () => {
+  const { faltaReutilizacion, SECCION_REUTILIZACION, LINEA_PLANTILLA_REUTILIZACION } = await import(
+    '../../src/core/validacion-tarea.js'
+  );
+  const S = SECCION_REUTILIZACION;
+  assert.equal(faltaReutilizacion('# Plan\n'), true);
+  assert.equal(faltaReutilizacion(`${S}\n\n${LINEA_PLANTILLA_REUTILIZACION}\n`), true);
+  // Comentario de varias lineas o subcabecera vacia: no es contenido (MEN-2).
+  assert.equal(faltaReutilizacion(`${S}\n\n<!--\nuna\n-->\n`), true);
+  assert.equal(faltaReutilizacion(`${S}\n\n### Nada\n`), true);
+  // Dentro de un bloque de codigo no cuenta como seccion.
+  assert.equal(faltaReutilizacion(`\`\`\`\n${S}\n- algo\n\`\`\`\n`), true);
+  assert.equal(faltaReutilizacion(`${S}\r\n\r\n- rangoDeSeccion (core/transiciones.ts)\r\n`), false);
+});

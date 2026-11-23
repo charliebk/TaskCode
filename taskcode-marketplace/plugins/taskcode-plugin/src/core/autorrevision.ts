@@ -14,27 +14,37 @@
  * Pura y total: no toca disco ni Git y nunca lanza. `review` la llama antes
  * de su primera escritura, y un fallo aqui no puede dejar una ronda a medias.
  */
-import { rangoDeSeccion } from './transiciones.js';
+import { contenidoDeSeccion } from './transiciones.js';
 
 /** Titulo exacto de la seccion, sin tilde, como `## Transiciones` y `## Coste`. */
 export const SECCION_AUTORREVISION = '## Autorrevision';
 
 /** ¿Tiene `body` la seccion de autorrevision con al menos una linea de contenido? */
 export function tieneAutorrevision(body: string): boolean {
-  const lineas = body.split(/\r?\n/);
-  const rango = rangoDeSeccion(lineas, SECCION_AUTORREVISION);
-  if (rango === null) return false;
-  const [inicio, fin] = rango;
-  const contenido = lineas
-    .slice(inicio + 1, fin)
-    .join('\n')
-    .replace(/<!--[\s\S]*?-->/g, '');
-  return contenido.trim() !== '';
+  return (contenidoDeSeccion(body, SECCION_AUTORREVISION) ?? []).length > 0;
 }
 
-/** El aviso de `review` si falta la constancia; null si esta. */
+/**
+ * TASK-153 (Regla 4D al crear): la linea `- 4D — <commit>: ...` de la
+ * autorrevision. Antes cualquier linea daba la constancia por buena (CONT-08
+ * de la auditoria de TASK-141), asi que la autorrevision 4D podia no hacerse
+ * sin que nada avisara. Vale con guion largo, corto o dos puntos tras «4D».
+ */
+export function tieneLinea4D(body: string): boolean {
+  return (contenidoDeSeccion(body, SECCION_AUTORREVISION) ?? []).some((l) => /^\s*[-*]\s*4D\s*(?:—|–|-|:)\s*\S/.test(l));
+}
+
+/** El aviso de `review` si falta la constancia o su linea 4D; null si esta todo. */
 export function avisoAutorrevision(body: string, id: string): string | null {
-  if (tieneAutorrevision(body)) return null;
+  if (tieneAutorrevision(body)) {
+    if (tieneLinea4D(body)) return null;
+    return (
+      `${id}: la autorrevision de tarea.md no trae la linea de la Regla 4D. La revision sigue, pero antes ` +
+      'de pedirla conviene hacer la autorrevision 4D (buscar el helper que ya existe antes de crear uno, ' +
+      'citar el criterio que motiva cada cambio, mutar cada test nuevo y verlo en rojo) y anotarla en ' +
+      `"${SECCION_AUTORREVISION}": "- 4D — <commit>: helper buscado, criterios citados, N tests mutados".`
+    );
+  }
   return (
     `${id}: tarea.md no tiene la constancia de la autorrevision (seccion "${SECCION_AUTORREVISION}" con contenido). ` +
     'La revision sigue, pero antes de pedirla conviene pasar la seccion "## Que se revisa" de cada revisora ' +

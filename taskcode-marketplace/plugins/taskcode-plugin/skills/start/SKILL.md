@@ -29,7 +29,8 @@ Abre la rama de la tarea con Git-Flow y la pasa a `en-curso`.
    Antes de pedir revision, la Regla 4D (`task-workflow/revision.md`):
    busca el helper existente antes de crear uno, cita el criterio que motiva
    cada cambio y comprueba por mutacion cada test nuevo (rompe el codigo, ve
-   el rojo). Anotalo en `## Autorrevision` de `tarea.md`:
+   el rojo; patrones tipicos en `task-workflow/disfraz-tests.md`). Anotalo en
+   `## Autorrevision` de `tarea.md`:
    `- 4D — <commit>: helper buscado, criterios citados, N tests mutados`.
 5. El coste de la implementacion se registra solo (`task-workflow/coste.md`):
    un hook anota que sesion y que subagentes trabajan con la tarea en curso, y

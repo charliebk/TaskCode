@@ -1,5 +1,6 @@
 import { UNIFICADOR_ID } from './roles-brainstorm.js';
 import { fenceFor } from './markdown.js';
+import { VINETA_PETICION_REUTILIZACION } from './validacion-tarea.js';
 /**
  * "1 rol" / "2 roles" / "ningun rol". Es texto que acaba en un fichero
  * versionado y delante de un agente, asi que un "Se lanzan 1 roles"
@@ -157,6 +158,7 @@ export function peticionRedaccionTemplate(task, objetivo, criterios, rol, ronda,
         '\n## Que tiene que traer el plan final\n\n' +
         '- Enfoque propuesto, concreto: que se crea, que se extiende, en que orden.\n' +
         '- Lo que el rol no cubrio, contrastado contra los criterios de aceptacion.\n' +
+        VINETA_PETICION_REUTILIZACION +
         '- Riesgos aceptados y que los contiene.\n' +
         '- Plan de pruebas.\n' +
         '- Lo que necesita decision de una persona antes de implementar. **El checkpoint humano es ' +
@@ -295,6 +297,7 @@ rondaSalidas, fecha, resolucion, planFinalRelativo) {
         '\n## Que tiene que traer el plan final\n\n' +
         '- Enfoque propuesto, concreto: que se crea, que se extiende, en que orden.\n' +
         desacuerdosEnPlanFinal +
+        VINETA_PETICION_REUTILIZACION +
         '- Riesgos aceptados y que los contiene.\n' +
         '- Plan de pruebas.\n' +
         '- Lo que necesita decision de una persona antes de implementar. **El checkpoint humano es ' +
