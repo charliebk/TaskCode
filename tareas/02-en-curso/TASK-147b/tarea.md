@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-147-regla-4d-lectores-de-secciones-e-ids-en
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -38,3 +38,4 @@ casillasSinMarcar, normalizar, citar y el ID de tarea con un solo lector (CORE2-
 |---|---|---|---|---|
 | 2026-11-23T09:23:14Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T09:23:24Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-23T09:23:26Z | start | automatico | persona | 0.16.1 |
