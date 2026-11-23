@@ -41,6 +41,7 @@ Los patrones de fichero de ronda y de peticion de rol, y la decision de que plan
 | 2026-11-23T05:12:07Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T05:12:08Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T05:26:05Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T05:45:35Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
