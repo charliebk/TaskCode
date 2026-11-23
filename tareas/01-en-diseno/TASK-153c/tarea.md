@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-22
-actualizado: 2026-11-22
+actualizado: 2026-11-23
 dependencias: [TASK-153b]
 ---
 ## Objetivo
@@ -30,3 +30,9 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 
 ## Criterios de aceptacion
 - [ ] taskctl metricas cuenta por tarea los hallazgos 4D de sus informes (por regla, desde la seccion Regla 4D: un ID suma, cumple no), con test; las tareas sin la seccion salen sin dato, no con cero
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T02:37:05Z | plan | automatico | persona | 0.16.1 |
