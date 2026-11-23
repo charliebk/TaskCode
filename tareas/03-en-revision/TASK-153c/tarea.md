@@ -29,7 +29,7 @@ Parte c del troceo de TASK-153 (Regla 4D en la creacion de codigo y tests), part
 taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la tendencia.
 
 ## Criterios de aceptacion
-- [ ] taskctl metricas cuenta por tarea los hallazgos 4D de sus informes (por regla, desde la seccion Regla 4D: un ID suma, cumple no), con test; las tareas sin la seccion salen sin dato, no con cero
+- [x] taskctl metricas cuenta por tarea los hallazgos 4D de sus informes (por regla, desde la seccion Regla 4D: un ID suma, cumple no), con test; las tareas sin la seccion salen sin dato, no con cero
 
 ## Transiciones
 
@@ -55,3 +55,14 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 ## Verificacion ligera
 
 - 2026-11-23T03:02:31Z: ronda 1; commit revisado 39494465e477f912b87cf8538689891f93eb2723; commit verificado fd6189b3c23d50b64469d8e5965d526639279d2a; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/informe-revision.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/regla-4d.test.ts; corregidos: MENOR-1, MENOR-2, MENOR-3; pendientes: ninguno
+
+## Resultado
+
+- idsRegla4D (core/informe-revision.ts) lee los ID de cada D de la seccion `## Regla 4D`; comparte con faltasRegla4D un unico lector (valoresRegla4D). Un `cumple` que abre la linea no suma aunque cite un ID.
+- metricas: FilaMetricas.hallazgos4D cuenta los ID distintos por revisor en todos los informes de la tarea; columna `4d` al final de la tabla (dup/desv/dil/disf), «—» sin seccion. Sobre el repo: TASK-137 0/0/0/2, TASK-141 0/1/0/1, TASK-142 0/0/0/2, TASK-153a 2/1/0/2, TASK-153b 1/0/0/1, TASK-154 0/0/0/0; las anteriores a TASK-137, «—».
+- Los tests que fijan la fila completa de metricas cuentan la columna nueva (cambio de expectativa buscado).
+- Revision ronda 1: aprobada con correcciones. Corregidos MENOR-1 (cumple con ID citado) y MENOR-2 (formatos raros con test); aceptado MENOR-3 (Set interno redundante pero inocuo). Fuera del alcance: --json y --por-version no llevan la columna (no lo pedia el criterio).
+
+## Verificacion parcial
+
+- 2026-11-23T03:02:41Z: todo el codigo que cambia la tarea (9 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
