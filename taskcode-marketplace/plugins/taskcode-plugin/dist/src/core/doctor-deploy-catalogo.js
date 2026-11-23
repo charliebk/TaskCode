@@ -27,9 +27,10 @@
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseBloqueClaveValor } from './frontmatter.js';
 import { PATRONES_REGLAS_SIN_HUELLA } from './doctor-deploy-reglas.js';
+import { rutaEnPlugin } from './raiz-plugin.js';
+import { claveDeBloque, validarEnteroNoNegativo, validarEnum, validarListaDeTexto, validarTextoNoVacio, } from './campos-catalogo.js';
 export class DoctorDeployCatalogoError extends Error {
     constructor(message) {
         super(message);
@@ -79,17 +80,9 @@ const CAMPOS_APLICACION = ['id', 'nombre', 'marcadores', 'contiene'];
 const CAMPOS_PUNTO = ['id', 'severidad', 'tipos', 'aplicaciones', 'metodo', 'sonda', 'arreglo', 'descripcion', 'referencia'];
 const CAMPOS_DESACTIVAR = ['id', 'motivo'];
 const CAMPOS_SILENCIAR = ['patron', 'fichero', 'commit', 'huella', 'motivo', 'quien', 'fecha'];
-function packageRoot() {
-    // dist/src/core/doctor-deploy-catalogo.js -> core -> src -> dist -> raiz del plugin
-    return path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-}
 /** Ruta del catalogo del plugin. Respeta CLAUDE_PLUGIN_ROOT, como las demas. */
 export function resolverRutaCatalogoDeploy() {
-    const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT'];
-    if (pluginRoot !== undefined && pluginRoot.trim() !== '') {
-        return path.join(pluginRoot, 'scripts', FICHERO_CATALOGO_DEPLOY);
-    }
-    return path.join(packageRoot(), 'scripts', FICHERO_CATALOGO_DEPLOY);
+    return rutaEnPlugin('scripts', FICHERO_CATALOGO_DEPLOY);
 }
 function agrupar(pares, familias, extras, ruta, fallar) {
     const bloques = new Map();
@@ -108,20 +101,20 @@ function agrupar(pares, familias, extras, ruta, fallar) {
             extrasLeidos.set(par.clave, par);
             continue;
         }
-        const m = /^([a-z]+)_(\d+)_([a-z_]+)$/.exec(par.clave);
-        const fam = m === null ? undefined : familias.find((f) => f.prefijo === m[1]);
-        if (m === null || fam === undefined || !fam.campos.includes(m[3])) {
+        const m = claveDeBloque(par.clave);
+        const fam = m === null ? undefined : familias.find((f) => f.prefijo === m.prefijo);
+        if (m === null || fam === undefined || !fam.campos.includes(m.campo)) {
             desconocidas.push(par);
             continue;
         }
-        const n = Number(m[2]);
+        const n = m.n;
         if (!Number.isSafeInteger(n) || n < 1 || n > MAX_ENTRADAS) {
             throw fallar(`[ERROR] ${donde}: "${par.clave}" tiene un numero fuera de rango (1 a ${MAX_ENTRADAS}). ` +
                 'Numera las entradas desde 1, sin saltos.');
         }
         const delFamilia = bloques.get(fam.prefijo);
         const bloque = delFamilia.get(n) ?? new Map();
-        bloque.set(m[3], { valor: par.valor, numeroLinea: par.numeroLinea });
+        bloque.set(m.campo, { valor: par.valor, numeroLinea: par.numeroLinea });
         delFamilia.set(n, bloque);
     }
     return { bloques, desconocidas, extras: extrasLeidos };
@@ -144,32 +137,22 @@ function exigir(bloque, prefijo, n, campo, ruta, fallar) {
     }
     return v;
 }
+// TASK-148a (CORE1-04): adaptadores de Valor a los validadores comunes de
+// campos-catalogo.ts; las reglas (lista sin vacios ni repetidos, enumerado
+// recortado, entero no negativo) son las mismas que en skills y heuristica.
 function texto(v, clave, ruta, fallar) {
-    if (typeof v.valor !== 'string' || v.valor.trim() === '') {
-        throw fallar(`[ERROR] ${ruta}:${v.numeroLinea}: "${clave}" debe ser un texto no vacio.`);
-    }
-    return v.valor.trim();
+    return validarTextoNoVacio(`${ruta}:${v.numeroLinea}`, clave, v.valor, fallar);
 }
 function lista(v, clave, ruta, fallar) {
-    if (!Array.isArray(v.valor) || v.valor.length === 0 || v.valor.some((x) => typeof x !== 'string' || x.trim() === '')) {
-        throw fallar(`[ERROR] ${ruta}:${v.numeroLinea}: "${clave}" debe ser una lista no vacia de textos: [a, b].`);
-    }
-    return v.valor.map((x) => x.trim());
+    return validarListaDeTexto(`${ruta}:${v.numeroLinea}`, clave, v.valor, fallar, { minimo: 1 });
 }
 function enumerado(v, clave, validos, ruta, fallar) {
-    const t = typeof v.valor === 'string' ? v.valor.trim() : '';
-    if (!validos.includes(t)) {
-        throw fallar(`[ERROR] ${ruta}:${v.numeroLinea}: "${clave}" vale "${String(v.valor)}", pero debe ser uno de: ${validos.join(', ')}.`);
-    }
-    return t;
+    return validarEnum(`${ruta}:${v.numeroLinea}`, clave, v.valor, validos, fallar);
 }
 function valorEntero(par, clave, ruta, fallar) {
     if (par === undefined)
         throw fallar(`[ERROR] ${ruta}: falta la clave obligatoria "${clave}".`);
-    if (typeof par.valor !== 'number' || !Number.isInteger(par.valor) || par.valor < 0) {
-        throw fallar(`[ERROR] ${ruta}:${par.numeroLinea}: "${clave}" debe ser un entero no negativo.`);
-    }
-    return par.valor;
+    return validarEnteroNoNegativo(`${ruta}:${par.numeroLinea}`, clave, par.valor, fallar);
 }
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 function construirPunto(bloque, n, ruta, origen, idsDeTipo, idsDeAplicacion, fallar) {

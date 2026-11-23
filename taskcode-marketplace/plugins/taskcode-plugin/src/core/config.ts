@@ -127,6 +127,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
+import { describirValor } from './campos-catalogo.js';
 import { distanciaEdicion, masParecida } from './sugerencia.js';
 import { normalizarBase, type Plataforma } from './plataforma-remota.js';
 import { STATE_FOLDER } from './task.js';
@@ -1443,14 +1444,6 @@ function validarPresupuestoFreno(donde: string, valor: unknown): number {
     );
   }
   return valor;
-}
-
-/** Como se nombra un valor rechazado en un mensaje de error. */
-function describirValor(valor: unknown): string {
-  if (valor === null) return 'un valor vacio';
-  if (Array.isArray(valor)) return `una lista (${JSON.stringify(valor)})`;
-  if (typeof valor === 'string') return `el texto "${valor}"`;
-  return `${String(valor)} (${typeof valor})`;
 }
 
 /**
