@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli
 asignado_a: claude
@@ -42,6 +42,7 @@ printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, e
 | 2026-11-23T11:37:36Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T12:02:30Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T12:23:28Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T12:31:17Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -74,3 +75,10 @@ printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, e
 ## Verificacion parcial
 
 - 2026-11-23T12:29:10Z: todo el codigo que cambia la tarea (40 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 50 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 65 min
+- Paso de la hora: 65 min reales frente a 50 estimados
+- Cierre (finish): 127 s, de 2026-11-23T12:29:10Z a 2026-11-23T12:31:17Z

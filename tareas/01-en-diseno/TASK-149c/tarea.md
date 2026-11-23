@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: fix/task-149-regla-4d-duplicacion-en-fs-hooks-y-cli
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -30,3 +30,10 @@ Lockfiles, binarios, cola, PATH, JSON con BOM y nombreBase con una implementacio
 
 ## Criterios de aceptacion
 - [ ] Lockfiles, deteccion de binarios, lectura de cola, busqueda en PATH, JSON con BOM y nombreBase tienen una sola implementacion; los mensajes de evidencia nombran DIRS_EXCLUIDOS
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-23T12:31:38Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-23T12:31:40Z | approve | automatico | persona | 0.16.1 |
