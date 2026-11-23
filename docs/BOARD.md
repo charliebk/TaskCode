@@ -1,8 +1,8 @@
 # Tablero de tareas
 
-> Generado automaticamente por taskctl finish el 2026-11-22. No editar a mano.
+> Generado automaticamente por taskctl finish el 2026-11-23. No editar a mano.
 
-## Planificadas (00-planificadas) — 29
+## Planificadas (00-planificadas) — 28
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -34,11 +34,10 @@ TASK-149   Regla 4D: duplicacion en fs, hooks y cli                             
 TASK-150   Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
 TASK-151   Regla 4D: disfraz en tests                                                                  (sin asignar)
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
-TASK-153b  candidatos 4D en la peticion de revision (parte b de TASK-153)                              (sin asignar)
 TASK-153c  metricas de hallazgos 4D (parte c de TASK-153)                                              (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 125
+## Terminadas (04-terminadas) — 126
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -167,5 +166,6 @@ TASK-137   Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo  
 TASK-141   Auditoria 4D inicial: reconocimiento completo del codigo existente                                                  charlie.bk@gmail.com
 TASK-142   Regla 4D: disfraz en los scripts de Git-Flow                                                                        charlie.bk@gmail.com
 TASK-153a  plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153)                                             charlie.bk@gmail.com
+TASK-153b  candidatos 4D en la peticion de revision (parte b de TASK-153)                                                      charlie.bk@gmail.com
 TASK-154   plan.test.ts en verde en Windows nativo                                                                             claude
 ```

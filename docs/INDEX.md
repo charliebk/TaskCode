@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-153b — candidatos 4D en la peticion de revision (parte b de TASK-153) · etiquetas: (sin etiquetas) · rama feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test · terminada 2026-11-23 · tareas/04-terminadas/TASK-153b/
 - TASK-153a — plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) · etiquetas: (sin etiquetas) · rama feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test · terminada 2026-11-22 · tareas/04-terminadas/TASK-153a/
 - TASK-154 — plan.test.ts en verde en Windows nativo · etiquetas: (sin etiquetas) · rama fix/task-154-plan-test-ts-en-verde-en-windows-nativo · terminada 2026-11-22 · tareas/04-terminadas/TASK-154/
 - TASK-142 — Regla 4D: disfraz en los scripts de Git-Flow · etiquetas: (sin etiquetas) · rama fix/task-142-regla-4d-disfraz-en-los-scripts-de-git-f · terminada 2026-11-22 · tareas/04-terminadas/TASK-142/

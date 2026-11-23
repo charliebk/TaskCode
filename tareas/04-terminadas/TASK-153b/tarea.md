@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-153-regla-4d-en-la-creacion-de-codigo-y-test
 asignado_a: charlie.bk@gmail.com
@@ -41,6 +41,7 @@ El CLI genera desde el diff una seccion con los posibles duplicados y los tests 
 | 2026-11-23T00:15:58Z | start | automatico | persona | 0.16.1 |
 | 2026-11-23T00:27:39Z | review | automatico | persona | 0.16.1 |
 | 2026-11-23T01:38:58Z | review | automatico | persona | 0.16.1 |
+| 2026-11-23T02:36:32Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -62,8 +63,16 @@ El CLI genera desde el diff una seccion con los posibles duplicados y los tests 
 - core/candidatos-4d.ts saca del diff las definiciones nuevas (TS/JS, Rust, Python, Java/Kotlin/C#, bash) y las cruza con las de la rama base por nombre igual o parecido, con indice por longitud (coste acotado); detecta tambien nuevas parecidas entre si y los tests nuevos cuyo nombre promete algo comprobable. Topes de 15/3/15 con «y N mas». El patron de git grep y las extensiones viven en el mismo modulo que el filtro fino.
 - fs/git.ts definicionesEnRef: git grep sobre la rama base, solo extensiones de codigo y sin lo excluido de la revision (dist/). review.ts anade `## Candidatos 4D` a la peticion; nunca aborta la ronda (si git falla, la seccion dice el motivo). revision.md pide comprobarla y mutar esos tests.
 - Revision: ronda 1 cambios solicitados (IMP-1 coste sin prefiltro, IMP-2 protecciones sin test, 7 MENOR), todo corregido; ronda 2 aprobada, 10 mutaciones muertas, coste del peor caso pedido de 25 s a 5,9 s. El test de sincronia por lenguaje encontro que `pub struct` de Rust no se reconocia.
+- MENOR-1 de la ronda 2 (test de coste por reloj, rojo en la suite completa de finish con la maquina cargada) corregido: candidatos4D cuenta sus comparaciones y el test las acota, sin cronometro.
 - Pendiente aceptado: coste residual en casos extremos (opcion: distanciaEdicion acotada) y dos mutaciones de MENOR sin red (mensaje de ENOBUFS, paso de excluir desde review), anotadas por el revisor de la ronda 2. La seccion la vera el plugin al publicar (el taskctl instalado es la 0.17.0).
 
 ## Verificacion ligera
 
 - 2026-11-23T02:16:26Z: ronda 2; commit revisado 090c91b02e47f7c1fe7caa1f0b4158e37da20e50; commit verificado d0c4467dbadb4c37cc174c0aec8cedd130836acd; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/candidatos-4d.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/candidatos-4d.test.ts; corregidos: MENOR-1; pendientes: ninguno
+
+## Duracion
+
+- Estimada: 60 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 141 min
+- Paso de la hora: 141 min reales frente a 60 estimados
+- Cierre (finish): 1205 s, de 2026-11-23T02:16:27Z a 2026-11-23T02:36:32Z
