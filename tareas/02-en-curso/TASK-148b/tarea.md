@@ -38,3 +38,8 @@ masParecida, validadores de entero y de enumerado, CLAVES_CONFIG atada al switch
 | 2026-11-23T13:40:55Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T13:40:57Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T13:40:58Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — d542a84: buscados masParecida, describirValor y las tres reglas de ruta; nuevos sugerenciaDeValor, validarEnteroEnRango, elementosDeEnumerado y ruta-relativa.ts (la regla comun no existia; se queda la de config, que cuatro tests fijan); 1 fichero de test nuevo (4 tests); 6 mutaciones en rojo
+- code-quality-reviewer — d542a84
