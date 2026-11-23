@@ -41,5 +41,5 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 
 ## Autorrevision
 
-- 4D — e4af694: helper buscado (lector de faltasRegla4D extraido a valoresRegla4D, celdas y COLUMNAS_METRICAS); criterios citados; 2 tests nuevos, 3 mutaciones en rojo.
-- code-quality-reviewer — e4af694
+- 4D — 9f0985e: helper buscado (lector de faltasRegla4D extraido a valoresRegla4D, celdas y COLUMNAS_METRICAS); criterios citados; 2 tests nuevos, 3 mutaciones en rojo.
+- code-quality-reviewer — 9f0985e
