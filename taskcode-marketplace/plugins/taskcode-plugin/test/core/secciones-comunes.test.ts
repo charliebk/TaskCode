@@ -60,3 +60,37 @@ test('troceo: «### Criterios de aceptacion» abre la seccion y la parte a no ar
   assert.ok(parteA.body.includes('criterio a'));
   assert.equal((parteA.body.match(/criterios de aceptaci/gi) ?? []).length, 1, parteA.body);
 });
+
+test('troceo: «### Criterios de aceptacion» dentro de una parte del plan no corta «## Troceo» (IMP-1 de la revision)', () => {
+  const plan =
+    '# Plan\n\nDuracion estimada: 90 min\n\n## Troceo\n\n### Parte a: uno\nObjetivo a.\nDuracion estimada: 40 min\n### Criterios de aceptacion\n- [ ] criterio a\n\n' +
+    '### Parte b: dos\nObjetivo b.\nDuracion estimada: 50 min\n- [ ] criterio b\n';
+  const partes = leerPartes(plan, 'TASK-007');
+  assert.deepEqual(
+    partes.map((p) => [p.letra, p.criterios]),
+    [
+      ['a', ['criterio a']],
+      ['b', ['criterio b']],
+    ]
+  );
+});
+
+test('troceo: un «## Objetivo» o «### Criterios» dentro de un bloque de codigo no es la seccion (MEN-1 de la revision)', () => {
+  const plan =
+    '# Plan\n\nDuracion estimada: 90 min\n\n## Troceo\n\n### Parte a: uno\nObjetivo a.\nDuracion estimada: 40 min\n- [ ] criterio a\n\n' +
+    '### Parte b: dos\nObjetivo b.\nDuracion estimada: 50 min\n- [ ] criterio b\n';
+  const body =
+    '## Contexto\n\n```\n## Objetivo\n\nobjetivo del ejemplo\n\n### Criterios de aceptacion\n- [ ] criterio del ejemplo\n```\n\n' +
+    '## Objetivo\n\nEl objetivo real.\n\n## Criterios de aceptacion\n- [ ] criterio viejo\n';
+  const { parteA } = planificarTroceo(tarea(), body, leerPartes(plan, 'TASK-007'), '2026-11-23');
+  const bloque = '```\n## Objetivo\n\nobjetivo del ejemplo\n\n### Criterios de aceptacion\n- [ ] criterio del ejemplo\n```';
+  assert.ok(parteA.body.includes(bloque), `el ejemplo queda intacto:\n${parteA.body}`);
+  assert.ok(!parteA.body.includes('> objetivo del ejemplo'), 'el ejemplo no se cita como objetivo de la tarea entera');
+  assert.ok(!parteA.body.includes('criterio viejo'), parteA.body);
+  assert.ok(parteA.body.includes('criterio a'), parteA.body);
+});
+
+test('duracion: estimadaAnotada solo lee dentro de «## Duracion» (MEN-2 de la revision)', () => {
+  assert.equal(estimadaAnotada('## Notas\n\n- Estimada: 30 min\n'), null, 'fuera de la seccion no cuenta');
+  assert.equal(estimadaAnotada('## Duracion\r\n\r\n- Estimada: 30 min\r\n'), 30, 'con CRLF');
+});

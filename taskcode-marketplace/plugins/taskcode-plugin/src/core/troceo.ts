@@ -44,7 +44,7 @@ const DURACION_RE = /duraci[oó]n estimada\s*[*_`]*\s*:/i;
 function lineasDeTroceo(plan: string): string[] | null {
   // TASK-147a: con rangoPorCabecera (dentroDeBloque), no con un interruptor propio de vallas.
   const lineas = plan.replace(/\r/g, '').split('\n');
-  const rango = rangoPorCabecera(lineas, CABECERA_TROCEO_RE);
+  const rango = rangoPorCabecera(lineas, CABECERA_TROCEO_RE, { cortaEnObjetivoOCriterios: false });
   return rango === null ? null : lineas.slice(rango[0] + 1, rango[1]);
 }
 
@@ -148,7 +148,11 @@ const CRITERIOS_RE = /^#{2,3}\s+criterios de aceptaci[oó]n\s*$/i;
  * fuera de bloques de codigo (`dentroDeBloque`, el detector comun); acaba en
  * la siguiente cabecera de su nivel o superior. null si no esta.
  */
-function rangoPorCabecera(lineas: readonly string[], cabecera: RegExp): [number, number] | null {
+function rangoPorCabecera(
+  lineas: readonly string[],
+  cabecera: RegExp,
+  { cortaEnObjetivoOCriterios }: { cortaEnObjetivoOCriterios: boolean }
+): [number, number] | null {
   const enBloque = dentroDeBloque(lineas);
   const ini = lineas.findIndex((l, i) => !enBloque[i] && cabecera.test(l.trim()));
   if (ini === -1) return null;
@@ -159,7 +163,9 @@ function rangoPorCabecera(lineas: readonly string[], cabecera: RegExp): [number,
     const m = /^(#{1,6})\s/.exec(l);
     // Como en extraerSecciones: una cabecera de Objetivo o de Criterios abre
     // su propia seccion aunque sea de nivel 3 (`### Criterios de aceptacion`).
-    const otraSeccion = OBJETIVO_RE.test(l.trim()) || CRITERIOS_RE.test(l.trim());
+    // Solo en tarea.md: en el plan, `### Criterios` dentro de una parte es de
+    // esa parte y no corta `## Troceo` (IMP-1 de la revision de TASK-147a).
+    const otraSeccion = cortaEnObjetivoOCriterios && (OBJETIVO_RE.test(l.trim()) || CRITERIOS_RE.test(l.trim()));
     if (!enBloque[fin] && m !== null && ((m[1] as string).length <= nivel || otraSeccion)) break;
     fin++;
   }
@@ -174,7 +180,7 @@ function rangoPorCabecera(lineas: readonly string[], cabecera: RegExp): [number,
 function reemplazarSeccion(body: string, cabecera: RegExp, titulo: string, contenido: string): string {
   const eol = body.includes('\r\n') ? '\r\n' : '\n';
   const lineas = body.split(/\r?\n/);
-  const rango = rangoPorCabecera(lineas, cabecera);
+  const rango = rangoPorCabecera(lineas, cabecera, { cortaEnObjetivoOCriterios: true });
   const bloque = [titulo, '', ...contenido.split('\n'), ''];
   if (rango === null) return [...bloque, ...lineas].join(eol);
   return [...lineas.slice(0, rango[0]), ...bloque, ...lineas.slice(rango[1])].join(eol);
@@ -231,7 +237,7 @@ export function planificarTroceo(task: Task, body: string, partes: readonly Part
 
 function extraerObjetivo(body: string): string {
   const lineas = body.replace(/\r/g, '').split('\n');
-  const rango = rangoPorCabecera(lineas, OBJETIVO_RE);
+  const rango = rangoPorCabecera(lineas, OBJETIVO_RE, { cortaEnObjetivoOCriterios: true });
   return rango === null ? '' : lineas.slice(rango[0] + 1, rango[1]).join('\n').trim();
 }
 
