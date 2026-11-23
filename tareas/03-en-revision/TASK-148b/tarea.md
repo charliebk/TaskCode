@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 15048864
-tokens_revision: null
+tokens_revision: 4806860
 creado: 2026-11-23
 actualizado: 2026-11-23
 dependencias: [TASK-148a]
@@ -44,9 +44,12 @@ masParecida, validadores de entero y de enumerado, CLAVES_CONFIG atada al switch
 
 - 4D — d542a84: buscados masParecida, describirValor y las tres reglas de ruta; nuevos sugerenciaDeValor, validarEnteroEnRango, elementosDeEnumerado y ruta-relativa.ts (la regla comun no existia; se queda la de config, que cuatro tests fijan); 1 fichero de test nuevo (4 tests); 6 mutaciones en rojo
 - code-quality-reviewer — d542a84
+- 4D — 2ee1779: correccion de la ronda 1 sin helper nuevo (normalizarRutaRelativa en config); 2 tests ampliados (veredicto normalizado contra repo real, dedupe y patron con ..); 3 mutaciones en rojo
+- code-quality-reviewer — 2ee1779
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T13:58:07Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 50 | 38632 | 14987425 | 22757 | 15 | 15048864 | - | - |
+| 2026-11-23T14:21:46Z | revision | agente:ad43513e1f20884cc | 72 | 160574 | 4625310 | 20904 | 25 | 4806860 | 1 | - |
