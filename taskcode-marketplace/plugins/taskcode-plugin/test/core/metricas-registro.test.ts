@@ -41,3 +41,16 @@ test('punta a punta: la duracion que anota finish y la de la fila de metricas so
 test('fases: el ciclo de progreso es el registro sin la pausa', () => {
   assert.deepEqual([...FASES_CICLO], FASES_REGISTRADAS.filter((f) => f !== 'pausa'));
 });
+
+test('puertas (MEN-1 de la revision): los segundos fraccionarios se redondean al milisegundo, no se truncan', () => {
+  const fila = calcularFila({
+    task: tarea({ id: 'TASK-007' }),
+    body: BODY,
+    ronda: 1,
+    eventosGit: [],
+    sincronizacionS: 1.2346,
+    freno: { ejecuciones: 2, duracionS: 0.0005 },
+  });
+  assert.deepEqual(fila.sincronizacion, { valor: 1235, precision: 'segundo' });
+  assert.deepEqual(fila.freno, { ejecuciones: 2, duracion: { valor: 1, precision: 'segundo' } });
+});

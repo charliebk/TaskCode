@@ -89,7 +89,6 @@ import { extraerSecciones } from './tarea-body.js';
 
 export type OrigenMetricas = 'registro' | 'git' | '—';
 
-
 export interface Marca {
   ms: number;
   precision: PrecisionFecha;

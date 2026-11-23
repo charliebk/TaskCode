@@ -49,7 +49,7 @@ import { VERSION_TASKCTL } from './version.js';
 export const SECCION_TRANSICIONES = '## Transiciones';
 /**
  * Fases que deja en el registro. `pausa` es el «no» del semiautomatico.
- * TASK-147b (CORE2-13): la unica lista de fases; el tipo se deriva de ella y
+ * TASK-147c (CORE2-13): la unica lista de fases; el tipo se deriva de ella y
  * metricas y progreso la usan, asi que una fase nueva no se ignora en silencio.
  */
 export const FASES_REGISTRADAS = ['plan', 'approve', 'start', 'review', 'finish', 'pausa'];
