@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-147b (fix) — criterios, normalizacion, citar e IDs (parte b de TASK-147) (2026-11-23)
 
 - TASK-147a (fix) — secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) (2026-11-23)
 
