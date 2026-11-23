@@ -38,3 +38,8 @@ Un solo tipo de fase y una sola conversion de fila a Marca (CORE2-12, CORE2-13).
 | 2026-11-23T10:21:42Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T10:21:43Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T10:21:44Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 2976c51: buscados FaseRegistrada, FASES, leerTransiciones e instanteDe antes de escribir; nuevos registroDe y duracionDeSegundos (cada conversion estaba dos veces); 1 fichero de test nuevo (2 tests); 2 mutaciones en rojo (registroDe en metricas-registro, duracionDeSegundos en metricas-puertas)
+- code-quality-reviewer — 2976c51
