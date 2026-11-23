@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 8665810
-tokens_revision: null
+tokens_revision: 4180985
 creado: 2026-11-23
 actualizado: 2026-11-23
 dependencias: [TASK-149a]
@@ -45,9 +45,12 @@ printAutoCommit en doctor-deploy, GitCommandError igual en todos los comandos, e
 
 - 4D — 424a988: buscados printCliError, printAutoCommit, extraerUnico y el texto aMano antes de escribir; nuevo ERRORES_COMUNES_CLI (la lista comun no existia: 23 catch con listas distintas) y textoAMano; 1 fichero de test nuevo y 2 tests ampliados (doctor-deploy, args); 3 mutaciones en rojo
 - code-quality-reviewer — 424a988
+- 4D — 2735c6e: correccion de la ronda 1; nuevo esErrorComunCli (la decision de main, exportada para probarla); 1 test nuevo con las 9 clases; 4 mutaciones en rojo (quitar una clase de la lista)
+- code-quality-reviewer — 2735c6e
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T11:37:36Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 42 | 25571 | 8624292 | 15905 | 7 | 8665810 | - | - |
+| 2026-11-23T12:00:40Z | revision | agente:a348b5fe1767a7433 | 64 | 146867 | 4019249 | 14805 | 2 | 4180985 | 1 | - |
