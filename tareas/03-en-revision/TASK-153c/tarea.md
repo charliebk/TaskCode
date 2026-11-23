@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 18305626
-tokens_revision: null
+tokens_revision: 1841963
 creado: 2026-11-22
 actualizado: 2026-11-23
 dependencias: [TASK-153b]
@@ -50,3 +50,8 @@ taskctl metricas cuenta por tarea los hallazgos 4D de sus informes, para ver la 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T02:52:39Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 54 | 27671 | 18262106 | 15795 | 14 | 18305626 | - | - |
+| 2026-11-23T03:02:29Z | revision | agente:a5a8df1de0febd54a | 34 | 117528 | 1714835 | 9566 | 2 | 1841963 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-23T03:02:31Z: ronda 1; commit revisado 39494465e477f912b87cf8538689891f93eb2723; commit verificado fd6189b3c23d50b64469d8e5965d526639279d2a; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/informe-revision.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/regla-4d.test.ts; corregidos: MENOR-1, MENOR-2, MENOR-3; pendientes: ninguno
