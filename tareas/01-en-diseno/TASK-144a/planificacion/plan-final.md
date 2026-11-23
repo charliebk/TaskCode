@@ -5,7 +5,7 @@ fichero, linea y la incoherencia localizada en la auditoria de TASK-141).
 
 ## Enfoque propuesto
 
-Duracion estimada: 60 min (la de la parte a; la tarea entera, unas 3 h, se trocea abajo)
+Duracion estimada: 60 min (parte a del troceo; la tarea entera estimaba 60 min)
 
 Tres porciones que se prueban solas y no comparten ficheros salvo `cli.ts`:
 
@@ -69,3 +69,7 @@ Tests nuevos por criterio (presupuesto de 1 a 3 por criterio): 1 por criterio en
 ## Lo que necesita decision de una persona
 
 Nada abierto: Carlos pidio encadenar todas las correcciones sin parar y trocear lo que pase de una hora.
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-23: TASK-144a, TASK-144b, TASK-144c, todas en la misma rama. Este plan es el de TASK-144a; las demas partes se planifican al empezarlas.
