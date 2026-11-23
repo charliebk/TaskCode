@@ -34,8 +34,8 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] Las mutaciones M1, M2, M4 y M5 de docs/auditoria-4d-completa.md ponen su test en rojo (board-format, state-machine, task-store-wip, git cmdQuoteWindows) y ultimaRonda se prueba con 10 rondas o mas
-- [ ] plugin-instalado y fases comprueban un resultado esperado (un estado concreto; indexOf distinto de -1)
+- [x] Las mutaciones M1, M2, M4 y M5 de docs/auditoria-4d-completa.md ponen su test en rojo (board-format, state-machine, task-store-wip, git cmdQuoteWindows) y ultimaRonda se prueba con 10 rondas o mas
+- [x] plugin-instalado y fases comprueban un resultado esperado (un estado concreto; indexOf distinto de -1)
 
 ## Transiciones
 
@@ -61,3 +61,13 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-23T23:42:17Z: ronda 1; commit revisado db1a8609267e050090b88d864bc5ec9826676349; commit verificado 711067d73e9adc88332541e57f6bc01e1bdbdfea; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/skills/fases.test.ts; corregidos: MEN-2; pendientes: ninguno
+
+## Resultado
+
+- Implementado (solo tests): board-format prueba TASK-999/TASK-1000 (M1); state-machine prueba la guarda de verificar-menores (M2); task-store-wip compara las ilegibles con el orden esperado escrito y recorre los estados al reves (M4); el codex falso de fs/git imprime cada argumento entre corchetes (M5); rondas-aprobada prueba diez rondas (TCORE-09); plugin-instalado tiene estado esperado y el caso sin claude en el PATH (TRES-06); fases usa antesQue, que exige que los dos textos aparezcan (TRES-09). Cada mutante de la auditoria pone ahora su test en rojo.
+- Revision: 1 ronda, aprobada. MEN-2 (un indexOf suelto mas en fases) corregido en la verificacion ligera; MEN-1 aceptado (el test del plugin inventado admite dos estados porque depende de si la maquina tiene claude; la rama sin binario y la interpretacion de la lista tienen tests exactos).
+- Nota: en Windows, el claude real no se lanza desde comprobarSkillInstalado (es un .cmd y spawnSync va sin shell), asi que el test de integracion siempre ve no-verificable alli. No se toca aqui: es comportamiento del producto, no del test.
+
+## Verificacion parcial
+
+- 2026-11-23T23:42:30Z: todo el codigo que cambia la tarea (7 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
