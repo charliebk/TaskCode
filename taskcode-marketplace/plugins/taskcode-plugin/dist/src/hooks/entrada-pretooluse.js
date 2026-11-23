@@ -5,12 +5,13 @@
  * de un hook. Sin dependencias: los hooks corren en cada herramienta y no deben
  * cargar el grafo del freno (FS-17).
  */
+import { esObjeto } from '../core/utilidades-texto.js';
 export const PASAR = Object.freeze({ codigo: 0, stderr: '' });
 /** El JSON de un hook (stdin entero). Un JSON roto, vacio o que no es un objeto es una entrada sin campos. */
 export function parsearEntradaHook(texto) {
     try {
         const v = JSON.parse(texto);
-        return typeof v === 'object' && v !== null && !Array.isArray(v) ? v : {};
+        return esObjeto(v) ? v : {};
     }
     catch {
         return {};

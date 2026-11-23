@@ -32,6 +32,16 @@ export interface ComplejidadPropuesta {
  * centrales: la mas barata (la heuristica del plan puede subirla). null sin
  * etiquetas, sin terminadas con complejidad declarada o sin ninguna en comun.
  */
+/**
+ * TASK-148c (CORE1-12): cuantas etiquetas de `a` estan en `b`, sin distinguir
+ * mayusculas (`Rust` y `rust` son la misma). La usan esta propuesta y la
+ * seleccion de skill del catalogo.
+ */
+export function solapeDeEtiquetas(a: readonly string[], b: readonly string[]): number {
+  const enB = new Set(b.map((e) => e.toLowerCase()));
+  return new Set(a.map((e) => e.toLowerCase()).filter((e) => enB.has(e))).size;
+}
+
 export function proponerComplejidad(
   etiquetas: readonly string[],
   terminadas: readonly TareaComparable[]
@@ -42,7 +52,7 @@ export function proponerComplejidad(
   let parecidas: TareaComparable[] = [];
   for (const t of terminadas) {
     if (t.complejidad === null) continue;
-    const comunes = new Set(t.etiquetas.map((e) => e.toLowerCase()).filter((e) => propias.has(e))).size;
+    const comunes = solapeDeEtiquetas(t.etiquetas, [...propias]);
     if (comunes === 0 || comunes < max) continue;
     if (comunes > max) {
       max = comunes;

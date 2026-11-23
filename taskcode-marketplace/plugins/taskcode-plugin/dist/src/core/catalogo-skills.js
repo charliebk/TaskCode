@@ -32,6 +32,7 @@ import { parseBloqueClaveValor } from './frontmatter.js';
 import { masParecida } from './sugerencia.js';
 import { rutaEnPlugin } from './raiz-plugin.js';
 import { claveDeBloque, validarEnteroNoNegativo, validarEnum, validarListaDeTexto, validarTextoNoVacio, } from './campos-catalogo.js';
+import { solapeDeEtiquetas } from './complejidad-similar.js';
 const MAX_TOTAL_SKILLS = 1000;
 export class CatalogoSkillsError extends Error {
     constructor(message) {
@@ -277,11 +278,10 @@ function mensajeClaveDesconocida(donde, clave, validas) {
  * candidatosEmpatados: []`, y quien llame decide como avisarlo.
  */
 export function seleccionarSkill(task, catalogo) {
-    const etiquetasTarea = new Set(task.etiquetas);
     const conSolape = catalogo
         .map((entrada) => ({
         entrada,
-        solape: entrada.etiquetas.filter((e) => etiquetasTarea.has(e)).length,
+        solape: solapeDeEtiquetas(entrada.etiquetas, task.etiquetas),
     }))
         .filter((x) => x.solape > 0);
     if (conSolape.length === 0) {

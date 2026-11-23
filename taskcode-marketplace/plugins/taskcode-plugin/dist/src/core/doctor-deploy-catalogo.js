@@ -31,6 +31,7 @@ import { parseBloqueClaveValor } from './frontmatter.js';
 import { PATRONES_REGLAS_SIN_HUELLA } from './doctor-deploy-reglas.js';
 import { rutaEnPlugin } from './raiz-plugin.js';
 import { claveDeBloque, validarEnteroNoNegativo, validarEnum, validarListaDeTexto, validarTextoNoVacio, } from './campos-catalogo.js';
+import { diaDe } from './documento-estado.js';
 export class DoctorDeployCatalogoError extends Error {
     constructor(message) {
         super(message);
@@ -329,7 +330,6 @@ function parsearAplicaciones(g, idsTipo, ruta, fallar) {
 // ---------------------------------------------------------------------
 // Capa del proyecto
 // ---------------------------------------------------------------------
-const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 export function cargarCapaProyecto(repoRoot, base) {
     const ruta = path.join(repoRoot, RUTA_CAPA_PROYECTO);
     let contenido;
@@ -403,7 +403,8 @@ export function parsearCapaProyecto(contenido, ruta, base) {
         const quien = t('quien');
         const cFecha = exigir(b, 'silenciar', n, 'fecha', ruta, fallar);
         const fecha = texto(cFecha, `silenciar_${n}_fecha`, ruta, fallar);
-        if (!FECHA_RE.test(fecha)) {
+        // TASK-148c (CORE1-11): diaDe, la validacion de fecha comun (rechaza 2026-02-30).
+        if (diaDe(fecha) !== fecha) {
             throw fallar(`[ERROR] ${ruta}:${cFecha.numeroLinea}: "silenciar_${n}_fecha" vale "${fecha}"; usa AAAA-MM-DD.`);
         }
         const cCommit = b.get('commit');

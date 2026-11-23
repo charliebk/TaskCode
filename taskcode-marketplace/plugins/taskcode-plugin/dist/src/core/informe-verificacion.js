@@ -11,18 +11,17 @@
  */
 import { fenceFor } from './markdown.js';
 import { ocultarCredenciales } from './plataforma-remota.js';
+import { quitarAnsi } from './utilidades-texto.js';
 /** Bytes y lineas maximos de la cola que se muestran. */
 export const MAX_BYTES_COLA = 4096;
 export const MAX_LINEAS_COLA = 40;
-// Secuencias CSI (colores, cursor) y OSC (titulos, hipervinculos) de terminal.
-const ANSI = /\u001b\[[0-9;?]*[ -/]*[@-~]|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)|\u001b[@-Z\\-_]/g;
 /**
  * La cola limpia y acotada a `maxLineas` lineas y `maxBytes` bytes (lo que
  * se cumpla antes), quedandose con el FINAL: en un test runner el resumen y
  * el ultimo fallo estan abajo.
  */
 export function recortarCola(texto, maxBytes = MAX_BYTES_COLA, maxLineas = MAX_LINEAS_COLA) {
-    const limpio = ocultarCredenciales(texto.replace(ANSI, '').replace(/\r\n?/g, '\n')).replace(/\s+$/, '');
+    const limpio = ocultarCredenciales(quitarAnsi(texto).replace(/\r\n?/g, '\n')).replace(/\s+$/, '');
     let lineas = limpio.split('\n');
     let recortada = false;
     if (lineas.length > maxLineas) {

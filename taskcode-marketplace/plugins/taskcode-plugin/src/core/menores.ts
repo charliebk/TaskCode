@@ -73,9 +73,20 @@ export function mismaRuta(rutaDiff: string, citada: string): boolean {
   return rutaDiff === citada || (citada.includes('/') && rutaDiff.endsWith(`/${citada}`));
 }
 
+/**
+ * TASK-148c (CORE2-15): la unica definicion de «fichero de test»: una carpeta de
+ * CARPETAS_TEST a cualquier profundidad o un nombre `*.<marca>.*` de MARCAS_TEST.
+ * De aqui salen esRutaDeTest y los globs de Git de fs/git.ts (PATRONES_TEST).
+ */
+export const CARPETAS_TEST: readonly string[] = ['test', 'tests', '__tests__'];
+export const MARCAS_TEST: readonly string[] = ['test', 'spec'];
+
+const CARPETA_TEST_RE = new RegExp(`(^|/)(${CARPETAS_TEST.join('|')})/`);
+const MARCA_TEST_RE = new RegExp(`\\.(${MARCAS_TEST.join('|')})\\.`);
+
 /** Heuristica de fichero de test por ruta: `test/`, `tests/`, `__tests__/`, `.test.`, `.spec.`. */
 export function esRutaDeTest(ruta: string): boolean {
-  return /(^|\/)(test|tests|__tests__)\//.test(ruta) || /\.(test|spec)\./.test(ruta);
+  return CARPETA_TEST_RE.test(ruta) || MARCA_TEST_RE.test(ruta);
 }
 
 /** Ficheros cambiados que no son de ningun MENOR abierto ni tests: lo que nadie reviso. */

@@ -16,6 +16,8 @@
  * salir (stdout, JSON, informe en disco, stderr) por si algo se coló.
  */
 import { createHash } from 'node:crypto';
+import { ocultarCredenciales } from './plataforma-remota.js';
+import { esObjeto } from './utilidades-texto.js';
 /** Texto que, como contrasena de una URL, es un marcador y no un secreto. */
 const CONTRASENA_MARCADOR = /^(?:password|passwd|pass|contrasena|changeme|secret|example|your[-_]?password|\*+|x+|\.{3,}|<[^>]*>|\$\{[^}]*\}|\{\{[^}]*\}\}|%[^%]+%)$/i;
 const HOST_LOCAL = /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|.*\.?example(?:\.[a-z]+)?|.*\.local|.*\.test|.*\.invalid)$/i;
@@ -27,7 +29,7 @@ function decodificarPayloadJwt(jwt) {
     try {
         const json = Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
         const o = JSON.parse(json);
-        return typeof o === 'object' && o !== null && !Array.isArray(o) ? o : null;
+        return esObjeto(o) ? o : null;
     }
     catch {
         return null;
@@ -148,8 +150,9 @@ export function ocultarSecretos(texto) {
         const re = new RegExp(p.re.source, p.re.flags);
         t = t.replace(re, (m) => {
             if (p.id === 'url-con-credenciales') {
-                // Solo la contrasena: `esquema://usuario:****@host`.
-                return m.replace(/:\/\/([^\s:/@'"`]+):[^\s@/'"`]+@/, '://$1:****@');
+                // TASK-148c (CORE2-16): el redactor comun de URLs, que oculta todo el
+                // usuario:contrasena (un token usado como usuario quedaba a la vista).
+                return ocultarCredenciales(m);
             }
             return enmascarar(m);
         });

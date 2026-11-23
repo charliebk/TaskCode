@@ -18,6 +18,7 @@
  * acaba pintado en la barra de Claude Code, asi que todo texto pasa por
  * `limpiarTexto` (sin secuencias ANSI ni caracteres de control, recortado).
  */
+import { quitarAnsi, recortar } from './utilidades-texto.js';
 export const VERSION_PROGRESO = 1;
 /** Las fases del ciclo de una tarea, en orden: la linea dice en cual va (`review (4/5)`). */
 // TASK-147c (CORE2-13): `satisfies` ata el ciclo a las fases del registro.
@@ -29,20 +30,15 @@ const SEPARADOR = ' · ';
 const MAX_CAMPO = 40;
 const MAX_PASOS = 20;
 export const MAX_LINEA = 160;
-const ANSI_CSI = /\u001b\[[0-9;?]*[ -/]*[@-~]/g;
-const ANSI_OSC = /\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)?/g;
 // Control C0 y C1, separadores de linea y marcas de direccion (podrian reordenar la barra).
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff]/g;
-/** Recorta a `max` caracteres (por puntos de codigo), con `…` si sobra. */
-export function recortar(texto, max) {
-    const cps = Array.from(texto);
-    return cps.length <= max ? texto : `${cps.slice(0, Math.max(0, max - 1)).join('')}…`;
-}
+// TASK-148c (CORE1-13): recortar vive en core/utilidades-texto.ts; se reexporta para quien la importa de aqui.
+export { recortar } from './utilidades-texto.js';
 /** Texto apto para la barra: sin ANSI ni control, espacios colapsados, recortado. null si no es texto o queda vacio. */
 export function limpiarTexto(valor, max = MAX_CAMPO) {
     if (typeof valor !== 'string')
         return null;
-    const limpio = valor.replace(ANSI_CSI, '').replace(ANSI_OSC, '').replace(CONTROL, ' ').replace(/\s+/g, ' ').trim();
+    const limpio = quitarAnsi(valor).replace(CONTROL, ' ').replace(/\s+/g, ' ').trim();
     return limpio === '' ? null : recortar(limpio, max);
 }
 const entero = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : null;

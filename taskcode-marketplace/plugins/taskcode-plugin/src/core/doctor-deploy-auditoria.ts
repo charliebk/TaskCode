@@ -16,6 +16,7 @@
  * herramienta real (que necesita red). Si una version nueva cambia el formato,
  * el resultado es `no-verificado`, no un OK falso.
  */
+import { esObjeto, recortar } from './utilidades-texto.js';
 
 export interface VeredictoAuditoria {
   estado: 'ok' | 'falla' | 'no-verificado';
@@ -29,9 +30,9 @@ export interface VeredictoAuditoria {
 
 const MAX_NOMBRES = 15;
 
-function recortar(t: string, max = 160): string {
-  const u = t.replace(/\s+/g, ' ').trim();
-  return u.length > max ? `${u.slice(0, max)}...` : u;
+/** El resumen de una linea: espacios colapsados y recortado con la utilidad comun. */
+function enUnaLinea(t: string, max = 160): string {
+  return recortar(t.replace(/\s+/g, ' ').trim(), max);
 }
 
 function ilegible(herramienta: string, detalle: string): VeredictoAuditoria {
@@ -52,10 +53,6 @@ function conVulnerabilidades(resumen: string, graves: string[], otras: string[])
   return { estado: graves.length > 0 ? 'falla' : 'ok', resumen, graves: unicos(graves), otras: unicos(otras) };
 }
 
-function esObjeto(x: unknown): x is Record<string, unknown> {
-  return typeof x === 'object' && x !== null && !Array.isArray(x);
-}
-
 function num(x: unknown): number | null {
   return typeof x === 'number' && Number.isFinite(x) && x >= 0 ? x : null;
 }
@@ -74,7 +71,7 @@ export function interpretarNpmAudit(herramienta: 'npm' | 'pnpm', stdout: string,
     const detalle = esObjeto(e) ? `${String(e['code'] ?? '')} ${String(e['summary'] ?? e['message'] ?? '')}` : String(e);
     return {
       estado: 'no-verificado',
-      resumen: `${herramienta} audit devolvio un error: ${recortar(detalle)}`,
+      resumen: `${herramienta} audit devolvio un error: ${enUnaLinea(detalle)}`,
       graves: [],
       otras: [],
     };

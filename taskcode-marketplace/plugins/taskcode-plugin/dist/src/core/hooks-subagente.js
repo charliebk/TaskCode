@@ -12,6 +12,7 @@
  * - Cualquier otra cosa: regex anclada (`^(?:...)$`); si no compila, se parte
  *   por `|` y se compara literal.
  */
+import { esObjeto } from './utilidades-texto.js';
 /** Herramientas con las que Claude Code lanza subagentes. */
 export const HERRAMIENTAS_SUBAGENTE = ['Agent', 'Task'];
 function porNombres(matcher) {
@@ -42,7 +43,6 @@ export function matcherAlcanzaSubagente(matcher) {
     }
     return HERRAMIENTAS_SUBAGENTE.some((h) => re.test(h));
 }
-const esObjeto = (x) => typeof x === 'object' && x !== null && !Array.isArray(x);
 /**
  * Hallazgos de un JSON con la forma de `hooks.json` o `settings.json`
  * (`{hooks: {PreToolUse: [{matcher, hooks}]}}`). Una forma inesperada no es

@@ -16,10 +16,11 @@
  * herramienta real (que necesita red). Si una version nueva cambia el formato,
  * el resultado es `no-verificado`, no un OK falso.
  */
+import { esObjeto, recortar } from './utilidades-texto.js';
 const MAX_NOMBRES = 15;
-function recortar(t, max = 160) {
-    const u = t.replace(/\s+/g, ' ').trim();
-    return u.length > max ? `${u.slice(0, max)}...` : u;
+/** El resumen de una linea: espacios colapsados y recortado con la utilidad comun. */
+function enUnaLinea(t, max = 160) {
+    return recortar(t.replace(/\s+/g, ' ').trim(), max);
 }
 function ilegible(herramienta, detalle) {
     return {
@@ -35,9 +36,6 @@ function limpio(resumen) {
 function conVulnerabilidades(resumen, graves, otras) {
     const unicos = (xs) => [...new Set(xs)].slice(0, MAX_NOMBRES);
     return { estado: graves.length > 0 ? 'falla' : 'ok', resumen, graves: unicos(graves), otras: unicos(otras) };
-}
-function esObjeto(x) {
-    return typeof x === 'object' && x !== null && !Array.isArray(x);
 }
 function num(x) {
     return typeof x === 'number' && Number.isFinite(x) && x >= 0 ? x : null;
@@ -58,7 +56,7 @@ export function interpretarNpmAudit(herramienta, stdout, status) {
         const detalle = esObjeto(e) ? `${String(e['code'] ?? '')} ${String(e['summary'] ?? e['message'] ?? '')}` : String(e);
         return {
             estado: 'no-verificado',
-            resumen: `${herramienta} audit devolvio un error: ${recortar(detalle)}`,
+            resumen: `${herramienta} audit devolvio un error: ${enUnaLinea(detalle)}`,
             graves: [],
             otras: [],
         };

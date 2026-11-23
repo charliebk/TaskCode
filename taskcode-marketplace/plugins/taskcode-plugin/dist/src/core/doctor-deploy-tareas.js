@@ -1,3 +1,4 @@
+import { recortar } from './utilidades-texto.js';
 /** Etiqueta comun de todas las tareas creadas por doctor-deploy. */
 export const ETIQUETA_DEPLOY = 'doctor-deploy';
 const PREFIJO_ETIQUETA = `${ETIQUETA_DEPLOY}:`;
@@ -17,7 +18,8 @@ export function puntoDeEtiquetas(etiquetas) {
 function plano(texto) {
     // eslint-disable-next-line no-control-regex
     const limpio = texto.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^#+\s*/, '');
-    return limpio.length > MAX_LARGO_TEXTO ? `${limpio.slice(0, MAX_LARGO_TEXTO - 3)}...` : limpio;
+    // TASK-148c (MEN-1 de su revision): el recorte comun (por puntos de codigo, con `…`).
+    return recortar(limpio, MAX_LARGO_TEXTO);
 }
 /** `fichero:linea` de las evidencias que lo traen, sin repetir y como mucho `MAX_DONDE`. */
 function dondeFalla(p) {

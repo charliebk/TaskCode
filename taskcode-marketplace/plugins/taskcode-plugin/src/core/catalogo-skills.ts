@@ -41,6 +41,7 @@ import {
   type ClaveDeBloque,
   type CrearError,
 } from './campos-catalogo.js';
+import { solapeDeEtiquetas } from './complejidad-similar.js';
 
 const MAX_TOTAL_SKILLS = 1000;
 
@@ -410,12 +411,11 @@ export interface SeleccionSkill {
  * candidatosEmpatados: []`, y quien llame decide como avisarlo.
  */
 export function seleccionarSkill(task: Task, catalogo: CatalogoSkills): SeleccionSkill {
-  const etiquetasTarea = new Set(task.etiquetas);
 
   const conSolape = catalogo
     .map((entrada) => ({
       entrada,
-      solape: entrada.etiquetas.filter((e) => etiquetasTarea.has(e)).length,
+      solape: solapeDeEtiquetas(entrada.etiquetas, task.etiquetas),
     }))
     .filter((x) => x.solape > 0);
 

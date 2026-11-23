@@ -80,6 +80,7 @@ test('ocultarSecretos reescribe cualquier clave que se haya colado en un texto',
   assert.ok(!o.includes(STRIPE.slice(4)));
   assert.ok(!o.includes(AWS.slice(4)));
   assert.ok(!o.includes('Xk29sLq81Zp'));
-  assert.match(o, /app:\*\*\*\*@db\.interno\.net/);
+  // TASK-148c (CORE2-16): el redactor comun oculta usuario y contrasena (el usuario puede ser un token).
+  assert.match(o, /postgres:\/\/\*\*\*@db\.interno\.net/);
   assert.equal(ocultarSecretos(o), o, 'es idempotente');
 });
