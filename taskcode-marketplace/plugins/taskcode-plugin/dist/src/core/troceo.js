@@ -15,7 +15,26 @@ function lineasDeTroceo(plan) {
     // TASK-147a: con rangoPorCabecera (dentroDeBloque), no con un interruptor propio de vallas.
     const lineas = plan.replace(/\r/g, '').split('\n');
     const rango = rangoPorCabecera(lineas, CABECERA_TROCEO_RE, { cortaEnObjetivoOCriterios: false });
-    return rango === null ? null : lineas.slice(rango[0] + 1, rango[1]);
+    if (rango === null)
+        return null;
+    const [ini, fin] = rango;
+    // IMP-2 de la revision: `### Criterios` u `### Objetivo` entre dos partes es
+    // de la parte de arriba; despues de la ultima parte ya no es de ninguna y
+    // cierra la seccion (sus criterios no se cuelan en la ultima parte).
+    const enBloque = dentroDeBloque(lineas);
+    let ultimaParte = -1;
+    for (let i = ini + 1; i < fin; i++)
+        if (!enBloque[i] && CABECERA_PARTE_RE.test(lineas[i].trim()))
+            ultimaParte = i;
+    let corte = fin;
+    for (let i = Math.max(ultimaParte, ini) + 1; i < fin; i++) {
+        const l = lineas[i].trim();
+        if (!enBloque[i] && (OBJETIVO_RE.test(l) || CRITERIOS_RE.test(l))) {
+            corte = i;
+            break;
+        }
+    }
+    return lineas.slice(ini + 1, corte);
 }
 /**
  * Las partes que declara el plan. Lanza TroceoError si no hay seccion

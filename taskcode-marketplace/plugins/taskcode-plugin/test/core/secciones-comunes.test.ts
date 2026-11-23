@@ -94,3 +94,16 @@ test('duracion: estimadaAnotada solo lee dentro de «## Duracion» (MEN-2 de la 
   assert.equal(estimadaAnotada('## Notas\n\n- Estimada: 30 min\n'), null, 'fuera de la seccion no cuenta');
   assert.equal(estimadaAnotada('## Duracion\r\n\r\n- Estimada: 30 min\r\n'), 30, 'con CRLF');
 });
+
+test('troceo: «### Criterios de aceptacion» despues de la ultima parte cierra «## Troceo» (IMP-2 de la revision)', () => {
+  const plan =
+    '# Plan\n\n## Troceo\n\n### Parte a: Primera\nObjetivo.\nDuracion estimada: 30 min\n- [ ] a1\n\n' +
+    '### Parte b: Segunda\nObjetivo.\nDuracion estimada: 30 min\n- [ ] b1\n\n### Criterios de aceptacion\n- [ ] global1\n\n## Notas\n';
+  assert.deepEqual(
+    leerPartes(plan, 'TASK-007').map((p) => [p.letra, p.criterios]),
+    [
+      ['a', ['a1']],
+      ['b', ['b1']],
+    ]
+  );
+});
