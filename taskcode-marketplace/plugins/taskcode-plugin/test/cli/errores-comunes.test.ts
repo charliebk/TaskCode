@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { esErrorComunCli } from '../../src/cli.js';
+import { ERRORES_COMUNES_CLI, esErrorComunCli } from '../../src/cli.js';
 import { AutoCommitError } from '../../src/fs/git-commit.js';
 import { ConfigError } from '../../src/core/config.js';
 import { BaseBranchGuardError, GitCommandError, GitLaunchError } from '../../src/fs/git.js';
@@ -55,6 +55,12 @@ test('esErrorComunCli (IMP-1 de la revision): cada una de las 9 clases comunes s
     const e = Object.assign(Object.create(C.prototype) as Error, { message: 'x' });
     assert.equal(esErrorComunCli(e), true, C.name);
   }
+  // IMP-2 de la revision: en las dos direcciones. Una clase nueva en la lista del CLI
+  // sin anadirla aqui (con su comprobacion) tambien pone el test en rojo.
+  assert.deepEqual(
+    [...ERRORES_COMUNES_CLI].map((C) => C.name).sort(),
+    comunes.map((C) => C.name).sort()
+  );
   assert.equal(esErrorComunCli(new Error('x')), false);
   assert.equal(esErrorComunCli('x'), false);
 });
