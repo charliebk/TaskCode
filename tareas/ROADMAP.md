@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-145, TASK-146, TASK-150, TASK-151, TASK-152, TASK-148d, TASK-019
+- **En marcha:** TASK-148d (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-139, TASK-140, TASK-143, TASK-145, TASK-146, TASK-150, TASK-151, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -132,7 +132,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-148c | utilidades de core (parte c de TASK-148) | alta | TASK-148b | ✅ terminada |
 | — | TASK-149c | utilidades de fs (parte c de TASK-149) | alta | TASK-149b | ✅ terminada |
 | — | TASK-153c | metricas de hallazgos 4D (parte c de TASK-153) | alta | TASK-153b | ✅ terminada |
-| 17 | TASK-148d | comentarios, diluvio y E/S en core (parte d de TASK-148) | alta | TASK-148c | lista para empezar |
+| 17 | TASK-148d | comentarios, diluvio y E/S en core (parte d de TASK-148) | alta | TASK-148c | ▶ en diseño |
 
 ## H1 — H1
 
