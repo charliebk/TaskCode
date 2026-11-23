@@ -19,10 +19,13 @@
  * `limpiarTexto` (sin secuencias ANSI ni caracteres de control, recortado).
  */
 
+import type { FaseRegistrada } from './transiciones.js';
+
 export const VERSION_PROGRESO = 1;
 
 /** Las fases del ciclo de una tarea, en orden: la linea dice en cual va (`review (4/5)`). */
-export const FASES_CICLO = ['plan', 'approve', 'start', 'review', 'finish'] as const;
+// TASK-147c (CORE2-13): `satisfies` ata el ciclo a las fases del registro.
+export const FASES_CICLO = ['plan', 'approve', 'start', 'review', 'finish'] as const satisfies readonly FaseRegistrada[];
 export type FaseCiclo = (typeof FASES_CICLO)[number];
 /** `freno`: el freno de fin de turno, que no es una fase del ciclo (va sin posicion). */
 export type FaseProgreso = FaseCiclo | 'freno';
