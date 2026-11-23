@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 15908296
-tokens_revision: null
+tokens_revision: 972936
 creado: 2026-11-22
 actualizado: 2026-11-23
 dependencias: []
@@ -49,9 +49,12 @@ Objetivo de la tarea entera:
 
 - 4D — b42169a: buscadas las cinco copias de packageRoot y los tres juegos de validadores; nuevos raiz-plugin.ts y campos-catalogo.ts (la regla comun no existia); deploy conserva adaptadores finos de Valor; 1 fichero de test nuevo (3 tests) y 1 test anadido en deploy; 3 mutaciones en rojo
 - code-quality-reviewer — b42169a
+- 4D — 1abf3a4: correccion de la ronda 1 sin helper nuevo (config importa describirValor de campos-catalogo); 1 test nuevo (recorte de enum y texto); 2 mutaciones en rojo
+- code-quality-reviewer — 1abf3a4
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-23T13:17:10Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 58 | 44276 | 15840843 | 23119 | 18 | 15908296 | - | - |
+| 2026-11-23T13:26:10Z | revision | agente:a8837df2048ffa364 | 20 | 104723 | 862243 | 5950 | 0 | 972936 | 1 | - |
