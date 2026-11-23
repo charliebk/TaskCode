@@ -24,6 +24,7 @@
  */
 import { ocultarCredenciales } from './plataforma-remota.js';
 import { ocultarSecretos } from './secretos.js';
+import { problemaDeRutaRelativa } from './ruta-relativa.js';
 import type { Evidencia, ResultadoPunto } from './doctor-deploy.js';
 
 export class VeredictoFormatoError extends Error {
@@ -100,17 +101,19 @@ export function parsearResultado(texto: string): EntradaResultado {
 
 /**
  * Comprueba la RUTA de una evidencia, sin tocar disco: null si es admisible, o el motivo del
- * rechazo. Relativa al repo, con `/` o `\`, sin `..`, sin unidad ni raiz, sin caracteres de control.
+ * rechazo. Relativa al repo, con `/` o `\`, sin salir de su raiz (un `..` que no sale se normaliza),
+ * sin unidad ni raiz, sin caracteres de control.
  */
 export function motivoRutaInvalida(ruta: string): string | null {
-  if (ruta.trim() === '') return 'el fichero esta vacio';
-  // eslint-disable-next-line no-control-regex
-  if (/[\u0000-\u001f\u007f]/.test(ruta)) return 'el fichero lleva caracteres de control';
-  if (ruta.startsWith('/') || ruta.startsWith('\\') || /^[A-Za-z]:/.test(ruta)) {
-    return 'el fichero es una ruta absoluta: debe ser relativa a la raiz del repositorio';
-  }
-  if (ruta.split(/[\\/]/).some((parte) => parte === '..')) return 'el fichero sale de la raiz del repositorio (".." no se admite)';
-  return null;
+  // TASK-148b (CORE1-10): la regla comun de core/ruta-relativa.ts, con el texto de las evidencias.
+  const MOTIVOS = {
+    vacia: 'el fichero esta vacio',
+    control: 'el fichero lleva caracteres de control',
+    absoluta: 'el fichero es una ruta absoluta: debe ser relativa a la raiz del repositorio',
+    sale: 'el fichero sale de la raiz del repositorio',
+  } as const;
+  const problema = problemaDeRutaRelativa(ruta);
+  return problema === null ? null : MOTIVOS[problema];
 }
 
 /** Comprueba fichero y linea contra el commit analizado: null si valen, o el motivo del rechazo. */
