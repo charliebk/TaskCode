@@ -41,6 +41,21 @@ test('entero en rango y lista de enumerado: el mismo mensaje y el mismo rango pa
   assert.match(errorDe('umbral_crecimiento_suite: 0\n'), /"umbral_crecimiento_suite" debe ser un numero entero de 1 a 1000/);
   assert.match(errorDe('tareas_entre_podas: 0\n'), /"tareas_entre_podas" debe ser un numero entero mayor o igual que 1/);
   assert.match(errorDe('fases_sincronizacion: [plan, inventada]\n'), /"fases_sincronizacion" contiene "inventada", que no es una fase/);
+  // MEN-1 de la revision: un repetido se queda una vez.
+  assert.deepEqual(
+    parsearConfig('comando_sincronizacion: "x"\nrutas_sincronizacion: [docs/a.md]\nfases_sincronizacion: [plan, plan]\n', 'c.yml')
+      .fases_sincronizacion,
+    ['plan']
+  );
+  assert.deepEqual(
+    parsearConfig(
+      'comando_verificacion: "x"\ncomando_verificacion_pesada: "y"\nverificacion_pesada_en: [release, release]\n',
+      'c.yml'
+    ).verificacion_pesada_en,
+    ['release']
+  );
+  // MEN-5: en un patron glob `..` se rechaza siempre (a/../** excluiria todo el repo).
+  assert.match(errorDe('excluir_de_revision: [a/../**]\n'), /no vale: sale del repo con "\.\."/);
 });
 
 test('ruta relativa: una regla en config y en los veredictos; a/../b vale (se normaliza), a/../../b no', () => {

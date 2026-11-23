@@ -128,7 +128,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseBloqueClaveValor } from './frontmatter.js';
 import { describirValor } from './campos-catalogo.js';
-import { problemaDeRutaRelativa } from './ruta-relativa.js';
+import { normalizarRutaRelativa, problemaDeRutaRelativa } from './ruta-relativa.js';
 import { masParecida } from './sugerencia.js';
 import { normalizarBase } from './plataforma-remota.js';
 import { STATE_FOLDER } from './task.js';
@@ -763,7 +763,7 @@ function validarInformeCobertura(donde, valor) {
 ` +
             '        Es la ruta del fichero lcov relativa a la raiz del repo, p. ej. informe_cobertura: coverage/lcov.info.');
     }
-    return path.posix.normalize(texto.replace(/\\/g, '/'));
+    return normalizarRutaRelativa(texto);
 }
 /**
  * TASK-124: ruta de un fichero relativa a la raiz del repo, con las mismas
@@ -778,7 +778,7 @@ function validarDocumentoEstado(donde, valor) {
 ` +
             '        Es la ruta del documento de estado del proyecto relativa a la raiz del repo, p. ej. documento_estado: docs/ESTADO.md.');
     }
-    return path.posix.normalize(texto.replace(/\\/g, '/'));
+    return normalizarRutaRelativa(texto);
 }
 /** Numero de 0 a 100 (admite decimales). */
 function validarUmbralCobertura(donde, valor) {
@@ -814,10 +814,13 @@ function validarPatronesExclusion(donde, valor, clave = 'excluir_de_revision', a
             throw new ConfigError(`[ERROR] ${donde}: "${clave}" contiene un elemento vacio o que no es texto.`);
         }
         const conBarras = elemento.trim().replace(/\\/g, '/');
-        const problema = problemaDeRutaRelativa(conBarras);
-        if (problema === 'absoluta' || problema === 'sale') {
+        // Un patron glob no es una ruta: git no resuelve `..` como lo haria el sistema de
+        // ficheros (`a/../**` excluye todo el repo). Aqui `..` se rechaza siempre (MEN-5 de la
+        // revision de TASK-148b); lo absoluto, con la regla comun.
+        const absoluto = problemaDeRutaRelativa(conBarras) === 'absoluta';
+        if (absoluto || conBarras.split('/').includes('..')) {
             throw new ConfigError(`[ERROR] ${donde}: el patron "${elemento.trim()}" de "${clave}" no vale: ` +
-                `${problema === 'absoluta' ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
+                `${absoluto ? 'es absoluto' : 'sale del repo con ".."'}.\n` +
                 '        Los patrones son relativos a la raiz del repo y siguen la semantica de ' +
                 'git :(glob) (por ejemplo **/dist/**).');
         }
@@ -909,7 +912,7 @@ function validarRutasSincronizacion(donde, valor) {
                 'de tareas/ solo un fichero suelto en su raiz (p. ej. tareas/ROADMAP.md), ' +
                 'nunca dentro de una carpeta de estado.');
         }
-        const normalizada = path.posix.normalize(original.replace(/\\/g, '/'));
+        const normalizada = normalizarRutaRelativa(original);
         if (!rutas.includes(normalizada))
             rutas.push(normalizada);
     }
@@ -942,7 +945,7 @@ function motivoRutaInvalida(original, opciones = {}) {
         return 'lleva caracteres de control';
     if (conBarras.endsWith('/'))
         return 'es una carpeta';
-    const normalizada = path.posix.normalize(conBarras);
+    const normalizada = normalizarRutaRelativa(conBarras);
     if (normalizada === '.' || normalizada === '')
         return 'es la raiz del repo';
     const segmentos = normalizada.split('/');

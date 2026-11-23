@@ -87,8 +87,8 @@ Reglas del formato, que se comprueban una por una:
 
 - `estado` es `ok`, `falla` o `no-verificado`. Nada más.
 - `ok` y `falla` **exigen** `fichero` y `linea`. `no-verificado` no los lleva.
-- `fichero` es una ruta **relativa a la raíz del repositorio**, con `/`, sin `..`
-  y sin ruta absoluta, de un fichero que esté versionado en ese commit, y
+- `fichero` es una ruta **relativa a la raíz del repositorio**, con `/`, sin salir
+  de ella y sin ruta absoluta, de un fichero que esté versionado en ese commit, y
   `linea` es un entero que existe en él.
 - `motivo`: una frase, de 300 caracteres como máximo, sin saltos de línea, sin
   código y sin valores. Qué viste y por qué eso decide el punto.

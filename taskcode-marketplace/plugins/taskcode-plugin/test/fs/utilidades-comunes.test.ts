@@ -35,6 +35,10 @@ test('binarios: un UTF-16 con BOM (lleva NUL) es texto y se cuentan sus lineas; 
     git(['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'x']);
     const comprobar = comprobadorEnCommit(raiz, git(['rev-parse', 'HEAD']));
     assert.equal(comprobar('utf16.txt', 3), null);
+    // TASK-148b (IMP-1 de su revision): la ruta se normaliza antes de pedirsela a git
+    // (`HEAD:sub/../utf16.txt` no existe para git; `HEAD:utf16.txt` si).
+    assert.equal(comprobar('sub/../utf16.txt', 3), null);
+    assert.equal(comprobar('./utf16.txt', 3), null);
     assert.match(comprobar('utf16.txt', 4) ?? '', /tiene 3 linea/);
     assert.match(comprobar('bin.dat', 1) ?? '', /binario/);
   } finally {

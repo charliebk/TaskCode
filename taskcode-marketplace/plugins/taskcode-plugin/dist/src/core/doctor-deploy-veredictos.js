@@ -68,7 +68,8 @@ export function parsearResultado(texto) {
 }
 /**
  * Comprueba la RUTA de una evidencia, sin tocar disco: null si es admisible, o el motivo del
- * rechazo. Relativa al repo, con `/` o `\`, sin `..`, sin unidad ni raiz, sin caracteres de control.
+ * rechazo. Relativa al repo, con `/` o `\`, sin salir de su raiz (un `..` que no sale se normaliza),
+ * sin unidad ni raiz, sin caracteres de control.
  */
 export function motivoRutaInvalida(ruta) {
     // TASK-148b (CORE1-10): la regla comun de core/ruta-relativa.ts, con el texto de las evidencias.
