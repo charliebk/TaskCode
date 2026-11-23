@@ -26,7 +26,7 @@ import { copyFileSync, existsSync, statSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { esObjeto, leerJson } from './json-claude.js';
 import { escribirAtomico } from './progreso.js';
-import { candidatosEnPath } from './herramientas-deploy.js';
+import { candidatosEnPath, PATHEXT_POR_DEFECTO } from './herramientas-deploy.js';
 
 /** Lo que ejecuta la status line. `--stdin`: toma el directorio del JSON que le pasa Claude Code. */
 export const COMANDO_STATUS_LINE = 'taskctl estado --stdin';
@@ -119,7 +119,8 @@ export function buscarTaskctl(env: NodeJS.ProcessEnv, configDir: string): Busque
   let soloEnPlugin = false;
   let scriptPlugin: string | null = null;
   const candidatos = candidatosEnPath('taskctl', variable(env, 'PATH') ?? '', {
-    pathext: variable(env, 'PATHEXT'),
+    // MEN-1 de la revision: el PATHEXT del env que se pasa, o el de por defecto (no el del proceso).
+    pathext: variable(env, 'PATHEXT') ?? PATHEXT_POR_DEFECTO,
     sinExtensionEnWindows: true,
   });
   for (const candidato of candidatos) {

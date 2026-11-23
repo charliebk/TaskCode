@@ -32,6 +32,8 @@ function esEjecutable(ruta, plataforma) {
         return false;
     }
 }
+/** PATHEXT de Windows cuando no hay uno. */
+export const PATHEXT_POR_DEFECTO = '.COM;.EXE;.BAT;.CMD';
 /**
  * TASK-149c (FS-13): todos los ejecutables `nombre` del PATH, en orden. En
  * Windows prueba las extensiones de PATHEXT (en minusculas) y, si se pide,
@@ -43,7 +45,7 @@ export function candidatosEnPath(nombre, pathEnv, o = {}) {
     const exts = plataforma === 'win32'
         ? [
             ...(o.sinExtensionEnWindows === true ? [''] : []),
-            ...(o.pathext ?? process.env['PATHEXT'] ?? '.COM;.EXE;.BAT;.CMD')
+            ...(o.pathext ?? process.env['PATHEXT'] ?? PATHEXT_POR_DEFECTO)
                 .split(';')
                 .filter((e) => e !== '')
                 .map((e) => e.toLowerCase()),

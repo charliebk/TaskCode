@@ -32,6 +32,9 @@ function esEjecutable(ruta: string, plataforma: NodeJS.Platform): boolean {
   }
 }
 
+/** PATHEXT de Windows cuando no hay uno. */
+export const PATHEXT_POR_DEFECTO = '.COM;.EXE;.BAT;.CMD';
+
 export interface OpcionesPath {
   plataforma?: NodeJS.Platform;
   /** PATHEXT de Windows; por defecto, el del proceso. */
@@ -52,7 +55,7 @@ export function candidatosEnPath(nombre: string, pathEnv: string, o: OpcionesPat
     plataforma === 'win32'
       ? [
           ...(o.sinExtensionEnWindows === true ? [''] : []),
-          ...(o.pathext ?? process.env['PATHEXT'] ?? '.COM;.EXE;.BAT;.CMD')
+          ...(o.pathext ?? process.env['PATHEXT'] ?? PATHEXT_POR_DEFECTO)
             .split(';')
             .filter((e) => e !== '')
             .map((e) => e.toLowerCase()),
