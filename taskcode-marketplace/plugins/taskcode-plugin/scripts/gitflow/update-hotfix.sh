@@ -27,50 +27,5 @@ detect_origin_available "No hay conexion con origin. Se intentara update en modo
 MAIN_BRANCH=$(resolve_main_branch "$MAIN_BRANCH")
 log_info "Rama principal detectada: $MAIN_BRANCH"
 
-
-if ! git show-ref --verify --quiet "refs/heads/$MAIN_BRANCH" 2>/dev/null; then
-    [ "$REMOTE_AVAILABLE" = false ] && { log_error "$MAIN_BRANCH no existe localmente y no hay conexion remota."; exit 1; }
-    invoke_git "No se pudo crear/cambiar a $MAIN_BRANCH desde origin." \
-        checkout -q -b "$MAIN_BRANCH" "origin/$MAIN_BRANCH"
-else
-    invoke_git "No se pudo cambiar a $MAIN_BRANCH." checkout -q "$MAIN_BRANCH"
-fi
-log_ok "Switched to branch $MAIN_BRANCH"
-
-if [ "$REMOTE_AVAILABLE" = true ]; then
-    invoke_git "No se pudo actualizar $MAIN_BRANCH desde origin." \
-        pull --ff-only --quiet origin "$MAIN_BRANCH"
-    log_ok "Actualizamos $MAIN_BRANCH"
-else
-    log_warn "Sincronizacion omitida para $MAIN_BRANCH por falta de conexion remota."
-fi
-
-TARGET_LOCAL=false; TARGET_REMOTE=false
-git show-ref --verify --quiet "refs/heads/$NAME" 2>/dev/null && TARGET_LOCAL=true || true
-if [ "$REMOTE_AVAILABLE" = true ]; then
-    _gf_ls_remote --heads origin "$NAME" 2>/dev/null | grep -q "refs/heads/$NAME" \
-        && TARGET_REMOTE=true || true
-fi
-
-if [ "$TARGET_LOCAL" = true ]; then
-    invoke_git "No se pudo cambiar a $NAME." checkout -q "$NAME"
-elif [ "$TARGET_REMOTE" = true ]; then
-    invoke_git "No se pudo crear la rama local $NAME desde origin/$NAME." \
-        checkout -q -b "$NAME" "origin/$NAME"
-else
-    log_error "La rama $NAME no existe ni localmente ni en remoto."; exit 1
-fi
-log_ok "Switched to branch $NAME"
-
-invoke_git "No se pudo actualizar $NAME con cambios de $MAIN_BRANCH." \
-    merge --no-ff "$MAIN_BRANCH" -m "update(hotfix): $MAIN_BRANCH -> $NAME"
-log_ok "Update completado: $MAIN_BRANCH -> $NAME"
-
-if [ "$PUSH" = true ] && [ "$REMOTE_AVAILABLE" = true ]; then
-    invoke_git "No se pudo subir $NAME a origin." push origin "$NAME"
-    log_ok "Push completado: $NAME"
-elif [ "$PUSH" = true ] && [ "$REMOTE_AVAILABLE" = false ]; then
-    log_warn "Push omitido para $NAME por falta de conexion remota."
-fi
-
-log_summary "COMPLETADO" "$MAIN_BRANCH integrado en $NAME"
+# TASK-143a (SCR-02): el cuerpo, comun a los cuatro update.
+invoke_update_work_branch "$NAME" "$PUSH" "$MAIN_BRANCH" hotfix
