@@ -8,8 +8,9 @@
  * aislarla evita que un fallo de "claude plugin list" se confunda con
  * un fallo de parseo del catalogo.
  *
- * Mismo patron de subproceso que runGit() en fs/git.ts (spawnSync +
- * comprobar result.error / result.status), pero con una semantica de
+ * Mismo patron de subproceso que runGit() en fs/git.ts (lanzar y
+ * comprobar error / status; desde TASK-155 via ejecutarHerramienta,
+ * para que un `claude.cmd` de Windows arranque), pero con una semantica de
  * error DISTINTA a proposito: runGit() LANZA porque un fallo de Git
  * debe abortar el comando que lo pidio. Aqui un fallo del subproceso
  * (binario ausente, timeout, JSON mal formado, forma inesperada) NUNCA
@@ -53,7 +54,7 @@
  * subproceso esta aislado aqui para que el resto de la seleccion de skill siga
  * siendo pura.
  */
-import { spawnSync } from 'node:child_process';
+import { ejecutarHerramienta, localizarHerramienta, pathDelProceso } from '../fs/herramientas-deploy.js';
 
 export type EstadoInstalacionSkill = 'instalado' | 'no-instalado' | 'no-verificable';
 
@@ -108,16 +109,24 @@ export function interpretarResultadoPluginList(
   return instalado ? 'instalado' : 'no-instalado';
 }
 
+/**
+ * TASK-155: en Windows `claude` es un `.cmd`, y `spawnSync('claude', ...)` sin
+ * shell no lo ejecuta (ENOENT), asi que el resultado era siempre
+ * 'no-verificable'. Se localiza en el PATH con PATHEXT y se lanza con
+ * `ejecutarHerramienta`, que pasa por el shell (ruta citada) solo si es un
+ * `.cmd`/`.bat` en Windows. Los argumentos son constantes, sin caracteres
+ * especiales del shell.
+ */
 export function comprobarSkillInstalado(pluginId: string): EstadoInstalacionSkill {
-  const result = spawnSync('claude', ['plugin', 'list', '--json'], {
-    encoding: 'utf8',
-    timeout: TIMEOUT_MS,
-  });
+  const pathEnv = pathDelProceso();
+  const ruta = localizarHerramienta('claude', pathEnv);
+  if (ruta === null) return 'no-verificable';
+  const e = ejecutarHerramienta(ruta, ['plugin', 'list', '--json'], process.cwd(), pathEnv, TIMEOUT_MS);
   return interpretarResultadoPluginList(
     {
-      error: result.error,
-      status: result.status,
-      stdout: typeof result.stdout === 'string' ? result.stdout : null,
+      error: e.error === null ? undefined : new Error(e.error),
+      status: e.status,
+      stdout: e.stdout,
     },
     pluginId
   );

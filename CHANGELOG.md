@@ -1,6 +1,8 @@
 # Changelog
 
 ## Sin publicar
+- TASK-145a (fix) — puertas, git y textos de error (parte a de TASK-145) (2026-11-24)
+- TASK-155 (fix) — comprobarSkillInstalado verificable en Windows (claude.cmd) (2026-11-24)
 - TASK-139b (fix) — la selectiva no recorta en silencio (parte b de TASK-139) (2026-11-24)
 - TASK-139a (fix) — disfraces B1-B5 (parte a de TASK-139) (2026-11-24)
 - TASK-151b (fix) — commands, hooks y cli (parte b de TASK-151) (2026-11-24)

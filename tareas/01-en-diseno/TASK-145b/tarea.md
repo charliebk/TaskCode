@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: fix/task-145-regla-4d-duplicacion-en-las-puertas-de-f
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,10 @@ La base de la rama decidida una vez, comprobarTagDeReintento sin copia, spreads 
 ## Criterios de aceptacion
 - [ ] La base de la rama de la tarea se decide una vez en finish, comprobarTagDeReintento esta una sola vez y sin rama inalcanzable, y los spreads repetidos se simplifican
 - [ ] Sin comentarios huerfanos ni obsoletos en approve, finish, finish-verificacion y codex-review, y sin el parametro _today sin uso
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T10:55:31Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-24T10:55:52Z | approve | automatico | persona | 0.16.1 |

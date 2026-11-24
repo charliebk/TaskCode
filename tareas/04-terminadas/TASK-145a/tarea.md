@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-145-regla-4d-duplicacion-en-las-puertas-de-f
 asignado_a: claude
@@ -46,6 +46,7 @@ Objetivo de la tarea entera:
 | 2026-11-24T09:37:47Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T10:04:40Z | review | automatico | persona | 0.16.1 |
 | 2026-11-24T10:31:57Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T10:55:07Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -75,3 +76,10 @@ Objetivo de la tarea entera:
 ## Verificacion parcial
 
 - 2026-11-24T10:51:28Z: todo el codigo que cambia la tarea (23 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 77 min
+- Paso de la hora: 77 min reales frente a 55 estimados
+- Cierre (finish): 219 s, de 2026-11-24T10:51:28Z a 2026-11-24T10:55:07Z
