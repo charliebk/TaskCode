@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-143-regla-4d-duplicacion-en-git-flow-bash-y
 asignado_a: claude
@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 5150761
-tokens_revision: 6093149
+tokens_revision: 8124739
 creado: 2026-11-24
 actualizado: 2026-11-24
 dependencias: [TASK-143a]
@@ -29,8 +29,16 @@ Parte b del troceo de TASK-143 (Regla 4D: duplicacion en Git-Flow (bash y TS)), 
 parse_gitflow_args y normalize_branch_name en los 13 scripts, diagnose-repo con detect_origin_available y develop configurable, y push-back-to-remote sin referencias ocultas.
 
 ## Criterios de aceptacion
-- [ ] La lectura de argumentos y assert_valid_branch_name vienen de un helper comun en los 13 scripts; diagnose-repo usa detect_origin_available
-- [ ] push-back-to-remote ensena en la vista previa todo lo que sube y el nombre del backup sale de una sola variable
+- [x] La lectura de argumentos y assert_valid_branch_name vienen de un helper comun en los 13 scripts; diagnose-repo usa detect_origin_available
+- [x] push-back-to-remote ensena en la vista previa todo lo que sube y el nombre del backup sale de una sola variable
+
+## Resultado
+
+- _gitflow-common.sh gana parse_gitflow_args (PUSH, MAIN_BRANCH, DEVELOP_BRANCH, TAG_SEEN, TAG_OVERRIDE y NAME) y normalize_branch_name (pregunta, recorte, prefijo y assert_valid_branch_name). Los usan 14 scripts: create, update y merge de feature, fix, release y hotfix, mas create-develop y start-work. Los merge-* pasan a validar el nombre de rama.
+- diagnose-repo usa detect_origin_available (con su cache, y antes de resolve_main_branch) y lee --main y --develop; el nombre de develop solo se muestra si no es el de siempre, y el aviso de la deteccion no ensucia el informe.
+- push-back-to-remote: el mirror sube y poda solo refs/heads y refs/tags (git push --force --prune con refspecs) en vez de push --mirror, que subia y borraba referencias que la vista previa no ensenaba; textos alineados; el nombre del backup sale de BACKUP_BASE.
+- Tests: test/gitflow/argumentos-comunes.test.ts (5): nombre invalido en merge a develop y a main, diagnose con --develop, recorte y --main (tambien al final sin valor), y mirror (rama exclusiva del destino borrada, divergente sobrescrita, sin notes ni refs/remotes). Fallan con los scripts anteriores y con los mutantes de --prune, --force, recorte, shift de --main y aviso de diagnose.
+- Revision: ronda 1 cambios-solicitados (IMP-1: --prune y --force sin test; MEN-1 a MEN-3), todo corregido; ronda 2 aprobada.
 
 ## Transiciones
 
@@ -41,6 +49,7 @@ parse_gitflow_args y normalize_branch_name en los 13 scripts, diagnose-repo con 
 | 2026-11-24T20:12:52Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T20:21:02Z | review | automatico | persona | 0.16.1 |
 | 2026-11-24T21:06:57Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T22:01:46Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -55,3 +64,11 @@ parse_gitflow_args y normalize_branch_name en los 13 scripts, diagnose-repo con 
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T20:21:02Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 36 | 24240 | 5112653 | 13832 | 7 | 5150761 | - | - |
 | 2026-11-24T20:53:23Z | revision | agente:abae51c09d98654ac | 90 | 158181 | 5909768 | 25110 | 6 | 6093149 | 1 | - |
+| 2026-11-24T21:20:18Z | revision | agente:a3ff93912e19ae3b9 | 36 | 124448 | 1892911 | 14195 | 4 | 2031590 | 2 | - |
+
+## Duracion
+
+- Estimada: 50 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 109 min
+- Paso de la hora: 109 min reales frente a 50 estimados
+- Cierre (finish): 2478 s, de 2026-11-24T21:20:28Z a 2026-11-24T22:01:46Z

@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-24. No editar a mano.
 
-## Planificadas (00-planificadas) — 20
+## Planificadas (00-planificadas) — 19
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -22,14 +22,13 @@ TASK-012   Precondicion de rama base + workspace limpio (seccion 8.3), con auto-
 TASK-019   Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021   Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
-TASK-143b  argumentos, diagnose y push-back (parte b de TASK-143)                                      (sin asignar)
 TASK-143c  paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143)                           (sin asignar)
 TASK-150   Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 TASK-158   Regla 4D preventiva en todos los procesos que crean o actualizan codigo                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 154
+## Terminadas (04-terminadas) — 155
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -162,6 +161,7 @@ TASK-139b  la selectiva no recorta en silencio (parte b de TASK-139)            
 TASK-141   Auditoria 4D inicial: reconocimiento completo del codigo existente                                                  charlie.bk@gmail.com
 TASK-142   Regla 4D: disfraz en los scripts de Git-Flow                                                                        charlie.bk@gmail.com
 TASK-143a  create, update y merge a main (parte a de TASK-143)                                                                 claude
+TASK-143b  argumentos, diagnose y push-back (parte b de TASK-143)                                                              claude
 TASK-144a  cadena, Commit revisado y tarea en su rama (parte a de TASK-144)                                                    charlie.bk@gmail.com
 TASK-144b  flags con y sin valor (parte b de TASK-144)                                                                         charlie.bk@gmail.com
 TASK-144c  patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144)                                            charlie.bk@gmail.com
