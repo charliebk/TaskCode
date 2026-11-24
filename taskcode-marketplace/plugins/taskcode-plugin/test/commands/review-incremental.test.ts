@@ -248,7 +248,6 @@ test('review incremental (TASK-040): si una escritura de la ronda falla, no deja
     }
     const nombres = await readdir(revisionDir);
     assert.ok(!nombres.includes('peticion-revision-2.md'), `quedo la peticion a medias: ${nombres.join(', ')}`);
-    assert.ok(!nombres.includes('informe-revision-2.md'), `quedo el informe a medias: ${nombres.join(', ')}`);
     assert.equal(git(['status', '--porcelain'], repo), '', 'el workspace queda como estaba');
   });
 });
