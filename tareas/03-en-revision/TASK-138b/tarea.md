@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-138-regla-4d-duplicacion-en-metricas-suite-y
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 19218100
 tokens_revision: null
 creado: 2026-11-24
 actualizado: 2026-11-24
@@ -39,8 +39,15 @@ La decision verde/rojo/omitido compartida por anotarFinish, review, anotarSuite 
 | 2026-11-24T16:39:13Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T16:39:45Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T16:39:47Z | start | automatico | persona | 0.16.1 |
+| 2026-11-24T16:51:01Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — ef06122: anotarVerificacion junto a anotarPuerta en fs/registro-puertas (sin modulo nuevo); textoSalidasTope compuesto de salidasTopeRondas, que ya era la fuente estructurada; leerTextosTerminadas sustituye cuatro recorridos de 04-terminadas en doctor, y las funciones exportadas conservan su firma con la lectura como parametro opcional; PUERTAS_VERIFICACION eliminada (nadie la usaba); mutacion en rojo: anotarVerificacion sin el caso omitido
 - code-quality-reviewer — ef06122
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T16:51:01Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 48 | 44720 | 19156058 | 17274 | 13 | 19218100 | - | - |
