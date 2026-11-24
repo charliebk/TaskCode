@@ -7,7 +7,7 @@ etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos l
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-24T03:25:39Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-24T03:25:57Z | approve | automatico | persona | 0.16.1 |
