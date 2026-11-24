@@ -18,7 +18,7 @@ export function gitCrudo(args, cwd, opciones = {}) {
         timeout: opciones.timeoutMs ?? TIMEOUT_POR_DEFECTO_MS,
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
-        env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' },
+        env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0', ...opciones.env },
     });
     return {
         status: r.status,

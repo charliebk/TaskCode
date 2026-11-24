@@ -46,6 +46,7 @@ import { comandoSoloIntegra } from '../core/comando-merge.js';
 import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
 import { gitResultado, ramaActual } from '../fs/git-crudo.js';
 import { PASAR } from './entrada-pretooluse.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 export { parsearEntradaPreToolUse } from './entrada-pretooluse.js';
 /** Guarda 1, sin I/O: el comando de la entrada, si puede contener un merge. */
 export function comandoCandidato(entrada) {
@@ -188,10 +189,6 @@ function configInvalida(op, raiz, error) {
         .filter((integ) => PROTEGIDAS_SIN_CONFIG.has(integ.destino))
         .map((integ) => ({ tipo: 'config-invalida', destino: integ.destino, error }));
 }
-/** El texto de un ConfigError sin su prefijo `[ERROR]`. */
-function textoDeConfigError(e) {
-    return e.message.replace(/^\[ERROR\]\s*/, '');
-}
 /** Pares fuente -> destino de una operacion. Para un merge sin destino explicito, la rama actual. */
 function integraciones(op, raiz, integracion, principal) {
     if (op.tipo === 'script') {
@@ -288,7 +285,7 @@ function exencionDocumentacion(integ, sha, contexto) {
     if (r.tipo === 'config-invalida') {
         return {
             pasa: false,
-            detalle: `La configuracion de "${destino}" no es valida, asi que no se aplica la exencion de solo documentacion: ${textoDeConfigError(r.error)}`,
+            detalle: `La configuracion de "${destino}" no es valida, asi que no se aplica la exencion de solo documentacion: ${sinPrefijoError(r.error.message)}`,
         };
     }
     const d = r.decision;
@@ -332,7 +329,7 @@ function exencionDocumentacion(integ, sha, contexto) {
 /** TASK-103: el texto para el agente cuando la config no se puede leer. */
 function mensajeConfigInvalida(destino, error) {
     return [
-        `Merge bloqueado: entraria en "${destino}" y la configuracion del repositorio no se puede leer: ${textoDeConfigError(error)}`,
+        `Merge bloqueado: entraria en "${destino}" y la configuracion del repositorio no se puede leer: ${sinPrefijoError(error.message)}`,
         'Sin una configuracion valida no se sabe que verificacion exigir, asi que no se integra en develop, main ni master.',
         'Corrige el fichero que nombra el error (taskctl doctor lo valida y dice como arreglarlo) y repite el merge,',
         'o cierra la tarea con taskctl finish TASK-NNN. No integres por otra via para saltarte esta comprobacion.',

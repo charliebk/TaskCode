@@ -42,7 +42,7 @@
  * la base invalida), la completa de siempre.
  */
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { gitLinea } from '../fs/git-crudo.js';
 import { writeFile } from 'node:fs/promises';
 import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
@@ -65,7 +65,8 @@ import { contarTests, PUERTA_SUITE } from '../core/crecimiento-suite.js';
 import type { ResultadoVerificacion } from '../core/informe-verificacion.js';
 import { configDeRef } from '../fs/config-de-ref.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
-import { FinishCommandError } from './finish-opciones.js';
+import { CIERRE_SIN_MERGE, FinishCommandError } from './finish-opciones.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 
 export const FLAG_SIN_VERIFICACION = '--sin-verificacion';
 
@@ -161,16 +162,7 @@ export function puertaPesada(o: PuertaPesadaOpts): boolean {
   const config = resolverConfig(o.cwd);
   const comando = config.comando_verificacion_pesada;
   if (comando === null || !(config.verificacion_pesada_en as readonly string[]).includes(o.tipo)) return false;
-  const timeoutS = config.timeout_verificacion;
-  const inicio = Date.now();
-  const r = ejecutarVerificacion(o.cwd, comando, timeoutS, {
-    ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
-    ...(o.env === undefined ? {} : { env: o.env }),
-  });
-  anotarFinish(o.cwd, o.id, 'pesada', inicio, r.estado);
-  const limpio = isWorkspaceClean(o.cwd);
-  const huella = limpio ? huellaDelArbol(o.cwd, comando, timeoutS) : null;
-  if (huella !== null) guardarMemo(o.cwd, huella, r, 'pesada');
+  const { r, limpio } = ejecutarPuerta(o.cwd, o.id, 'pesada', comando, config.timeout_verificacion, opcionesEjecucion(o));
   if (r.estado !== 'verde' && o.yaIntegradaEn !== undefined && o.yaIntegradaEn.length > 0) {
     const ramas = o.yaIntegradaEn.map((x) => `"${x}"`).join(' y ');
     throw new FinishCommandError(
@@ -178,8 +170,8 @@ export function puertaPesada(o: PuertaPesadaOpts): boolean {
         '(comando_verificacion_pesada) no salen en verde sobre ese arbol: no se cierra la tarea, que no se ha movido ' +
         'de carpeta. El merge ya esta hecho y no se deshace: se arregla hacia delante, en la rama de integracion.\n' +
         `${formatearVerificacionRoja(r)}\n` +
-        `Corrige alli hasta que los pesados salgan en verde, commitea y relanza taskctl finish ${o.id}. Si la persona ` +
-        `decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y lo deja anotado en la tarea.`
+        `Corrige alli hasta que los pesados salgan en verde, commitea y relanza taskctl finish ${o.id}. ` +
+        cerrarIgualmente(o.id)
     );
   }
   if (r.estado !== 'verde') {
@@ -187,16 +179,10 @@ export function puertaPesada(o: PuertaPesadaOpts): boolean {
       `[ERROR] ${o.id}: no se mergea con los tests pesados en rojo (comando_verificacion_pesada, que exigen las ` +
         `ramas ${config.verificacion_pesada_en.join(' y ')}). La completa salio en verde; no se ha tocado nada.\n` +
         `${formatearVerificacionRoja(r)}\n` +
-        `Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y lo deja ` +
-        'anotado en la tarea.'
+        cerrarIgualmente(o.id)
     );
   }
-  if (!limpio) {
-    throw new FinishCommandError(
-      `[ERROR] ${o.id}: los tests pesados salieron en verde, pero han dejado cambios en el arbol de trabajo ` +
-        `("${comando}" escribe ficheros versionados o no ignorados: mira git status). No se ha mergeado nada.`
-    );
-  }
+  if (!limpio) throw errorArbolSucio(o.id, 'los tests pesados salieron en verde, pero han dejado', comando);
   o.onAviso?.(`${o.id}: tests pesados en verde (comando_verificacion_pesada, rama ${o.tipo}).`);
   return true;
 }
@@ -231,11 +217,59 @@ export function anotarSuite(cwd: string, id: string, inicioMs: number, r: Result
   });
 }
 
-function opcionesEjecucion(o: PuertaVerificacionOpts): { timeoutMs?: number; env?: NodeJS.ProcessEnv } {
+/**
+ * Timeout (tests) y entorno con que se ejecuta una verificacion de finish.
+ * TASK-145a (CMD1-04): la unica copia; antes puertaReintento y la pesada la
+ * repetian.
+ */
+function opcionesEjecucion(o: {
+  timeoutMs?: number;
+  entornoVerificacion?: () => NodeJS.ProcessEnv;
+  env?: NodeJS.ProcessEnv;
+}): { timeoutMs?: number; env?: NodeJS.ProcessEnv } {
+  const env = o.entornoVerificacion?.() ?? o.env;
   return {
     ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
-    ...(o.entornoVerificacion === undefined ? {} : { env: o.entornoVerificacion() }),
+    ...(env === undefined ? {} : { env }),
   };
+}
+
+/**
+ * TASK-145a (CMD1-05): el bloque comun de las puertas pesada, completa y de
+ * documentacion: ejecutar, anotar la puerta (la completa, tambien su tamano),
+ * y guardar el memo solo con el arbol limpio (es la huella del commit que
+ * consulta el guardian de merges; con el arbol sucio no casaria nunca).
+ */
+function ejecutarPuerta(
+  cwd: string,
+  id: string,
+  modo: 'pesada' | 'completa' | 'documentacion',
+  comando: string,
+  timeoutS: number,
+  opciones: { timeoutMs?: number; env?: NodeJS.ProcessEnv }
+): { r: ResultadoVerificacion; limpio: boolean; inicioMs: number } {
+  const inicioMs = Date.now();
+  const r = ejecutarVerificacion(cwd, comando, timeoutS, opciones);
+  anotarFinish(cwd, id, modo, inicioMs, r.estado);
+  if (modo === 'completa') anotarSuite(cwd, id, inicioMs, r);
+  const limpio = isWorkspaceClean(cwd);
+  const huella = limpio ? huellaDelArbol(cwd, comando, timeoutS) : null;
+  if (huella !== null) guardarMemo(cwd, huella, r, modo);
+  return { r, limpio, inicioMs };
+}
+
+/** TASK-145a (CMD1-12): la salida de cerrar igualmente, la misma en todas las puertas. */
+function cerrarIgualmente(id: string): string {
+  return `Si la persona decide cerrar igualmente, taskctl finish ${id} ${FLAG_SIN_VERIFICACION} lo salta y lo deja anotado en la tarea.`;
+}
+
+/** TASK-145a (CMD1-12): una verificacion en verde que deja el arbol sucio (`que`: sujeto y verbos, con su concordancia). */
+function errorArbolSucio(id: string, que: string, comando: string, cierre = CIERRE_SIN_MERGE): FinishCommandError {
+  return new FinishCommandError(
+    `[ERROR] ${id}: ${que} cambios en el arbol de trabajo ` +
+      `("${comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita el ` +
+      `workspace limpio: ignoralos en .gitignore, o descartalos, y reintenta. ${cierre}`
+  );
 }
 
 export type ResultadoPuerta =
@@ -263,7 +297,7 @@ function decisionDocumentacion(
   if (r.tipo === 'config-invalida') {
     o.onAviso?.(
       `${o.id}: la configuracion de "${ramaBase}" no es valida, asi que no se puede saber si la tarea es solo ` +
-        `documentacion: se ejecuta la verificacion completa. Detalle: ${r.error.message.replace(/^\[ERROR\]\s*/, '')}`
+        `documentacion: se ejecuta la verificacion completa. Detalle: ${sinPrefijoError(r.error.message)}`
     );
     return null;
   }
@@ -347,16 +381,7 @@ export async function puertaVerificacion(
     }
   }
 
-  const timeoutS = config.timeout_verificacion;
-  const inicioMs = Date.now();
-  const r = ejecutarVerificacion(o.cwd, comando, timeoutS, opcionesEjecucion(o));
-  anotarFinish(o.cwd, o.id, 'completa', inicioMs, r.estado);
-  anotarSuite(o.cwd, o.id, inicioMs, r);
-  // El memo solo con el arbol limpio: es la huella del commit que consulta el
-  // guardian de merges; con el arbol sucio no la casaria nunca (MEN-3).
-  const limpio = isWorkspaceClean(o.cwd);
-  const huella = limpio ? huellaDelArbol(o.cwd, comando, timeoutS) : null;
-  if (huella !== null) guardarMemo(o.cwd, huella, r);
+  const { r, limpio, inicioMs } = ejecutarPuerta(o.cwd, o.id, 'completa', comando, config.timeout_verificacion, opcionesEjecucion(o));
   if (r.estado !== 'verde') {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: no se mergea con la verificacion en rojo. ` +
@@ -366,17 +391,10 @@ export async function puertaVerificacion(
           : `No se ha mergeado nada; solo se ha commiteado en la rama la anotacion del intento (${commitAnotacion}).\n`) +
         `${formatearVerificacionRoja(r)}\n` +
         textoDeLaCompleta(config, motivoCompleta) +
-        `Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y ` +
-        'lo deja anotado en la tarea.'
+        cerrarIgualmente(o.id)
     );
   }
-  if (!limpio) {
-    throw new FinishCommandError(
-      `[ERROR] ${o.id}: la verificacion salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
-        `("${comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita el ` +
-        'workspace limpio: ignora esos ficheros en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.'
-    );
-  }
+  if (!limpio) throw errorArbolSucio(o.id, 'la verificacion salio en verde, pero ha dejado', comando);
   return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea };
 }
 
@@ -398,28 +416,16 @@ async function puertaSoloDocumentacion(
   const c = { commit };
 
   if (decision.comando !== null) {
-    const inicioDoc = Date.now();
-    const r = ejecutarVerificacion(o.cwd, decision.comando, timeoutS, opcionesEjecucion(o));
-    anotarFinish(o.cwd, o.id, 'documentacion', inicioDoc, r.estado);
-    const limpio = isWorkspaceClean(o.cwd);
-    const huella = limpio ? huellaDelArbol(o.cwd, decision.comando, timeoutS) : null;
-    if (huella !== null) guardarMemo(o.cwd, huella, r, 'documentacion');
+    const { r, limpio } = ejecutarPuerta(o.cwd, o.id, 'documentacion', decision.comando, timeoutS, opcionesEjecucion(o));
     if (r.estado !== 'verde') {
       throw new FinishCommandError(
         `[ERROR] ${o.id}: la tarea solo cambia documentacion, pero su comprobacion ` +
-          `(comando_verificacion_documentacion) no sale en verde. No se ha mergeado nada.\n` +
+          `(comando_verificacion_documentacion) no sale en verde. ${CIERRE_SIN_MERGE}\n` +
           `${formatearVerificacionRoja(r)}\n` +
-          `Arregla la documentacion, commitea y reintenta. Si la persona decide cerrar igualmente, ` +
-          `taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y lo deja anotado en la tarea.`
+          `Arregla la documentacion, commitea y reintenta. ${cerrarIgualmente(o.id)}`
       );
     }
-    if (!limpio) {
-      throw new FinishCommandError(
-        `[ERROR] ${o.id}: la comprobacion de documentacion salio en verde, pero ha dejado cambios en el arbol ` +
-          `de trabajo ("${decision.comando}" escribe ficheros versionados o no ignorados: mira git status). ` +
-          'Ignoralos en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.'
-      );
-    }
+    if (!limpio) throw errorArbolSucio(o.id, 'la comprobacion de documentacion salio en verde, pero ha dejado', decision.comando);
   }
   o.onAviso?.(
     `${o.id}: ${decision.motivo}: no se ejecuta la verificacion completa ("${comando}"); ` +
@@ -523,17 +529,10 @@ async function puertaSelectiva(
         `${decision.motivo}). No se ha tocado nada.\n` +
         `${formatearVerificacionRoja(v.resultado)}\n` +
         `Correla a mano en la rama de la tarea (con RAMA_BASE=${ramaBase}) hasta que salga en verde, commitea ` +
-        `los arreglos y reintenta. Si la persona decide cerrar igualmente, taskctl finish ${o.id} ` +
-        `${FLAG_SIN_VERIFICACION} lo salta y lo deja anotado en la tarea.`
+        `los arreglos y reintenta. ${cerrarIgualmente(o.id)}`
     );
   }
-  if (!isWorkspaceClean(o.cwd)) {
-    throw new FinishCommandError(
-      `[ERROR] ${o.id}: la verificacion selectiva salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
-        `("${decision.comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita ` +
-        'el workspace limpio: ignoralos en .gitignore, o descartalos, y reintenta. No se ha mergeado nada.'
-    );
-  }
+  if (!isWorkspaceClean(o.cwd)) throw errorArbolSucio(o.id, 'la verificacion selectiva salio en verde, pero ha dejado', decision.comando);
   const body = anotarVerificacionParcial(o.initial.body, o.instante, comando, decision.motivo, decision.comando);
   const { commit, tarea } = await anotarYCommitear(o, body, 'cierre con verificacion parcial', 'anotar la verificacion');
   o.onAviso?.(
@@ -571,12 +570,6 @@ export type ResultadoReintento =
   | { tipo: 'omitida'; comando: string }
   | { tipo: 'verde'; que: 'completa' | 'selectiva' | 'documentacion'; deMemo: boolean };
 
-function gitOut(args: readonly string[], cwd: string): string | null {
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
-  if (r.error !== undefined || r.status !== 0) return null;
-  return (r.stdout ?? '').trim();
-}
-
 /**
  * El commit de la rama de integracion justo antes de que entrara la tarea: el
  * primero de su historia de primeros padres que no desciende de la rama. Es la
@@ -585,9 +578,9 @@ function gitOut(args: readonly string[], cwd: string): string | null {
  * que los commits de la tarea son la propia historia): entonces la completa.
  */
 function baseAntesDeIntegrar(rama: string, cwd: string): string | null {
-  const punta = gitOut(['rev-parse', '--verify', '--quiet', '--end-of-options', `${rama}^{commit}`], cwd);
-  const primeros = gitOut(['rev-list', '--first-parent', 'HEAD'], cwd);
-  const descendientes = gitOut(['rev-list', '--ancestry-path', `${rama}..HEAD`], cwd);
+  const punta = gitLinea(['rev-parse', '--verify', '--quiet', '--end-of-options', `${rama}^{commit}`], cwd);
+  const primeros = gitLinea(['rev-list', '--first-parent', 'HEAD'], cwd);
+  const descendientes = gitLinea(['rev-list', '--ancestry-path', `${rama}..HEAD`], cwd);
   if (punta === null || primeros === null || descendientes === null) return null;
   const nuevos = new Set(descendientes.split('\n').filter((l) => l !== ''));
   const base = primeros.split('\n').find((c) => c !== '' && !nuevos.has(c));
@@ -616,10 +609,7 @@ export function puertaReintento(o: PuertaReintentoOpts): ResultadoReintento {
     return { tipo: 'omitida', comando };
   }
 
-  const opciones = {
-    ...(o.timeoutMs === undefined ? {} : { timeoutMs: o.timeoutMs }),
-    ...(o.entornoVerificacion === undefined ? {} : { env: o.entornoVerificacion() }),
-  };
+  const opciones = opcionesEjecucion(o);
   const base = o.siempreCompleta ? null : baseAntesDeIntegrar(o.rama, o.cwd);
   const r = base === null ? null : decidirVerificacionEntre(base, 'HEAD', o.cwd);
   const d = r !== null && r.tipo === 'decision' ? r : null;
@@ -651,16 +641,11 @@ export function puertaReintento(o: PuertaReintentoOpts): ResultadoReintento {
         `${formatearVerificacionRoja(v.resultado)}\n` +
         `Arregla "${o.ramaIntegracion}": en la rama de la tarea, integra la base (git merge ${o.ramaIntegracion}), ` +
         `corrige alli hasta que la verificacion salga en verde, commitea y relanza taskctl finish ${o.id} desde ` +
-        `ella. Si la persona decide cerrar igualmente, taskctl finish ${o.id} ${FLAG_SIN_VERIFICACION} lo salta y ` +
-        'lo deja anotado en la tarea.'
+        `ella. ${cerrarIgualmente(o.id)}`
     );
   }
   if (!isWorkspaceClean(o.cwd)) {
-    throw new FinishCommandError(
-      `[ERROR] ${o.id}: la verificacion salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
-        `("${peticion.comando}" escribe ficheros versionados o no ignorados: mira git status). Ignoralos en ` +
-        '.gitignore, o descartalos, y reintenta. La tarea no se ha movido de carpeta.'
-    );
+    throw errorArbolSucio(o.id, 'la verificacion salio en verde, pero ha dejado', peticion.comando, 'La tarea no se ha movido de carpeta.');
   }
   return { tipo: 'verde', que: peticion.tipo, deMemo: v.deMemo };
 }

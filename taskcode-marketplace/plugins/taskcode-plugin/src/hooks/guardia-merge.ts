@@ -47,6 +47,7 @@ import { decidirVerificacionEntre } from '../fs/decision-documentacion.js';
 import { gitResultado, ramaActual } from '../fs/git-crudo.js';
 
 import { PASAR, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 
 export { parsearEntradaPreToolUse, type DecisionPreToolUse, type EntradaPreToolUse } from './entrada-pretooluse.js';
 
@@ -203,11 +204,6 @@ function configInvalida(op: OperacionMerge, raiz: string, error: ConfigError): P
     .map((integ) => ({ tipo: 'config-invalida', destino: integ.destino, error }));
 }
 
-/** El texto de un ConfigError sin su prefijo `[ERROR]`. */
-function textoDeConfigError(e: Error): string {
-  return e.message.replace(/^\[ERROR\]\s*/, '');
-}
-
 /** Pares fuente -> destino de una operacion. Para un merge sin destino explicito, la rama actual. */
 function integraciones(op: OperacionMerge, raiz: string, integracion: string, principal: string | null): Integracion[] {
   if (op.tipo === 'script') {
@@ -315,7 +311,7 @@ function exencionDocumentacion(
   if (r.tipo === 'config-invalida') {
     return {
       pasa: false,
-      detalle: `La configuracion de "${destino}" no es valida, asi que no se aplica la exencion de solo documentacion: ${textoDeConfigError(r.error)}`,
+      detalle: `La configuracion de "${destino}" no es valida, asi que no se aplica la exencion de solo documentacion: ${sinPrefijoError(r.error.message)}`,
     };
   }
   const d = r.decision;
@@ -359,7 +355,7 @@ function exencionDocumentacion(
 /** TASK-103: el texto para el agente cuando la config no se puede leer. */
 function mensajeConfigInvalida(destino: string, error: ConfigError): string {
   return [
-    `Merge bloqueado: entraria en "${destino}" y la configuracion del repositorio no se puede leer: ${textoDeConfigError(error)}`,
+    `Merge bloqueado: entraria en "${destino}" y la configuracion del repositorio no se puede leer: ${sinPrefijoError(error.message)}`,
     'Sin una configuracion valida no se sabe que verificacion exigir, asi que no se integra en develop, main ni master.',
     'Corrige el fichero que nombra el error (taskctl doctor lo valida y dice como arreglarlo) y repite el merge,',
     'o cierra la tarea con taskctl finish TASK-NNN. No integres por otra via para saltarte esta comprobacion.',

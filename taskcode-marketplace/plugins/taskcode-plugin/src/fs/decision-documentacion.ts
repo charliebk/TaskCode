@@ -29,6 +29,7 @@ import {
 } from '../core/verificacion-proporcional.js';
 import { configDeRef } from './config-de-ref.js';
 import { resolverCommits, rutasDelArbol, rutasDelArbolFueraDe, rutasDeTarea, rutasFueraDe } from './git.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 
 /**
  * Tests held-out de las tareas (`tareas/<estado>/TASK-NNN/aceptacion/`). `finish`
@@ -192,7 +193,7 @@ export function peticionDeTrabajo(e: EntradaTrabajo): { plan: PlanVerificacion; 
         avisos.push(
           `La configuracion de "${base()}" no es valida, asi que no se puede saber si solo cambia ` +
             `documentacion: se aplica la verificacion de siempre. Detalle: ` +
-            r.error.message.replace(/^\[ERROR\]\s*/, '')
+            sinPrefijoError(r.error.message)
         );
       } else if (r !== null && r.decision.tipo === 'documentacion') {
         return {

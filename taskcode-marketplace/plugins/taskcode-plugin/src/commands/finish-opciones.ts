@@ -34,9 +34,32 @@ import {
   type ResolucionDeclarada,
   type RemotoPlataforma,
 } from '../core/plataforma-remota.js';
-import { resolverConfig, type TaskcodeConfig } from '../core/config.js';
+import { ConfigError, resolverConfig, type TaskcodeConfig } from '../core/config.js';
+import { configDeRef } from '../fs/config-de-ref.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 
 export class FinishCommandError extends Error {}
+
+/** Coletilla de los errores de las puertas de finish: nada se ha integrado. */
+export const CIERRE_SIN_MERGE = 'No se ha mergeado nada.';
+
+/**
+ * TASK-145a (CMD1-03): la config de `.taskcode/config.yml` en `ref` (sin
+ * fichero, la de por defecto). Invalida, aborta finish diciendo para que
+ * manda (`queManda`). Antes, configBase en la cobertura y configDe en los
+ * held-out, la misma funcion.
+ */
+export function configDeLaRama(ref: string, cwd: string, id: string, queManda: string): TaskcodeConfig {
+  try {
+    return configDeRef(ref, cwd);
+  } catch (e: unknown) {
+    if (!(e instanceof ConfigError)) throw e;
+    throw new FinishCommandError(
+      `[ERROR] ${id}: la configuracion de "${ref}", que es la que manda en ${queManda}, no es valida:\n  ` +
+        `${sinPrefijoError(e.message)}\n${CIERRE_SIN_MERGE}`
+    );
+  }
+}
 
 /** Flags de `taskctl finish`: --push, las dos opciones de cierre de TASK-060 y el salto de la verificacion (TASK-072). */
 export const FLAGS_FINISH: readonly string[] = ['--push', '-p', '--tag', '--merge-request', '--sin-verificacion', '--aceptar-sin-revisar'];

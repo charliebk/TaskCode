@@ -19,31 +19,17 @@
  *
  * Lanza FinishCommandError si no se puede mergear; no escribe nada.
  */
-import { ConfigError } from '../core/config.js';
 import { EXCLUIR_HELDOUT } from '../core/heldout.js';
 import { cumpleUmbral, describirCruce, formatearPorcentaje } from '../core/cobertura-cambios.js';
 import { coberturaDeRama } from '../fs/cobertura.js';
-import { configDeRef } from '../fs/config-de-ref.js';
-import { FinishCommandError } from './finish-opciones.js';
-const CIERRE = 'No se ha mergeado nada.';
+import { CIERRE_SIN_MERGE, FinishCommandError, configDeLaRama } from './finish-opciones.js';
 /**
  * Margen para comparar el mtime del informe con el arranque de la verificacion:
  * hay sistemas de ficheros con mtime de resolucion gruesa.
  */
 const MARGEN_MTIME_MS = 1000;
-function configBase(o) {
-    try {
-        return configDeRef(o.ramaBase, o.cwd);
-    }
-    catch (e) {
-        if (!(e instanceof ConfigError))
-            throw e;
-        throw new FinishCommandError(`[ERROR] ${o.id}: la configuracion de "${o.ramaBase}", que es la que manda en el umbral de cobertura, ` +
-            `no es valida:\n  ${e.message.replace(/^\[ERROR\]\s*/, '')}\n${CIERRE}`);
-    }
-}
 export function puertaCobertura(o) {
-    const config = configBase(o);
+    const config = configDeLaRama(o.ramaBase, o.cwd, o.id, 'el umbral de cobertura');
     const umbral = config.umbral_cobertura;
     const informe = config.informe_cobertura;
     if (umbral === null || informe === null)
@@ -72,14 +58,14 @@ export function puertaCobertura(o) {
     if (o.verificacion.tipo === 'sin-comando') {
         throw new FinishCommandError(`[ERROR] ${o.id}: "${o.ramaBase}" declara umbral_cobertura (${umbral} %), pero la rama no declara ` +
             `comando_verificacion, asi que nadie regenera el informe ${informe} antes de medirlo. Restaura ` +
-            `comando_verificacion en la rama y reintenta. ${quitar} ${CIERRE}`);
+            `comando_verificacion en la rama y reintenta. ${quitar} ${CIERRE_SIN_MERGE}`);
     }
     const excluir = [...new Set([...config.excluir_de_revision, EXCLUIR_HELDOUT])];
     const c = coberturaDeRama(o.cwd, o.ramaBase, informe, excluir);
     const lectura = c.lectura;
     const sinDatos = (motivo) => new FinishCommandError(`[ERROR] ${o.id}: no se puede medir la cobertura de las lineas cambiadas (umbral ${umbral} %): ${motivo}. ` +
         `Sin datos fiables no se cierra: comprueba que comando_verificacion escribe el informe lcov en ` +
-        `${informe} con rutas del fuente del repo. ${quitar} ${CIERRE}`);
+        `${informe} con rutas del fuente del repo. ${quitar} ${CIERRE_SIN_MERGE}`);
     if (lectura.tipo === 'ausente')
         throw sinDatos(`la verificacion salio en verde pero no existe ${informe}`);
     if (lectura.tipo === 'truncado')
@@ -99,7 +85,7 @@ export function puertaCobertura(o) {
         throw new FinishCommandError(`[ERROR] ${o.id}: la cobertura de las lineas cambiadas (${formatearPorcentaje(cruce.porcentaje)} %) ` +
             `no llega al umbral de "${o.ramaBase}" (${umbral} %), medida desde la merge base ` +
             `(${c.mergeBase.slice(0, 10)}).\n${describirCruce(cruce)}\n` +
-            `Anade los tests que ejecutan esas lineas y reintenta. ${quitar} ${CIERRE}`);
+            `Anade los tests que ejecutan esas lineas y reintenta. ${quitar} ${CIERRE_SIN_MERGE}`);
     }
     return { tipo: 'cumple', porcentaje: cruce.porcentaje };
 }

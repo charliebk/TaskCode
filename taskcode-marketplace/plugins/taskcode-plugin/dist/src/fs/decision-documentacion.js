@@ -20,6 +20,7 @@ import { ConfigError } from '../core/config.js';
 import { decidirVerificacion, documentacionDeclarada, parcialDeclarada, patronesDocumentacion, patronesParcial, RUTA_CONFIG, } from '../core/verificacion-proporcional.js';
 import { configDeRef } from './config-de-ref.js';
 import { resolverCommits, rutasDelArbol, rutasDelArbolFueraDe, rutasDeTarea, rutasFueraDe } from './git.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 /**
  * Tests held-out de las tareas (`tareas/<estado>/TASK-NNN/aceptacion/`). `finish`
  * los corre con su propia puerta; el guardian no, asi que alli cuentan como
@@ -125,7 +126,7 @@ export function peticionDeTrabajo(e) {
             if (r !== null && r.tipo === 'config-invalida') {
                 avisos.push(`La configuracion de "${base()}" no es valida, asi que no se puede saber si solo cambia ` +
                     `documentacion: se aplica la verificacion de siempre. Detalle: ` +
-                    r.error.message.replace(/^\[ERROR\]\s*/, ''));
+                    sinPrefijoError(r.error.message));
             }
             else if (r !== null && r.decision.tipo === 'documentacion') {
                 return {

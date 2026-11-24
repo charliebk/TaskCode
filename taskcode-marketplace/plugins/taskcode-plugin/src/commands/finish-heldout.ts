@@ -24,14 +24,12 @@
  * `--sin-verificacion` no la salta: los held-out son de la persona.
  */
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { ConfigError, type TaskcodeConfig } from '../core/config.js';
-import { configDeRef } from '../fs/config-de-ref.js';
+import { gitLinea } from '../fs/git-crudo.js';
 import { carpetasHeldout, variantesHeldout, CARPETA_HELDOUT, VARIABLE_HELDOUT } from '../core/heldout.js';
 import { describirResultado } from '../core/informe-verificacion.js';
 import { currentBranch, isWorkspaceClean, runGit } from '../fs/git.js';
 import { ejecutarVerificacion } from '../fs/verificacion.js';
-import { FinishCommandError } from './finish-opciones.js';
+import { CIERRE_SIN_MERGE, FinishCommandError, configDeLaRama } from './finish-opciones.js';
 
 export interface PuertaHeldoutOpts {
   id: string;
@@ -53,7 +51,6 @@ export interface PuertaHeldoutOpts {
 
 export type ResultadoHeldout = { tipo: 'sin-heldout' } | { tipo: 'verde'; carpeta: string; duracionMs: number };
 
-const CIERRE = 'No se ha mergeado nada.';
 
 /**
  * Decision de Carlos en TASK-078: el remedio sobre los held-out lo ejecuta la
@@ -74,21 +71,7 @@ function arbol(ref: string, carpeta: string, cwd: string): string {
 }
 
 function mergeBase(a: string, b: string, cwd: string): string | null {
-  const r = spawnSync('git', ['merge-base', a, b], { cwd, encoding: 'utf8', windowsHide: true });
-  return r.status === 0 ? (r.stdout ?? '').trim() : null;
-}
-
-/** La config de `.taskcode/config.yml` en `ref`; sin fichero, la de por defecto. */
-function configDe(ref: string, cwd: string, id: string): TaskcodeConfig {
-  try {
-    return configDeRef(ref, cwd);
-  } catch (e: unknown) {
-    if (!(e instanceof ConfigError)) throw e;
-    throw new FinishCommandError(
-      `[ERROR] ${id}: la configuracion de "${ref}", que es la que manda en los held-out, no es valida:\n  ` +
-        `${e.message.replace(/^\[ERROR\]\s*/, '')}\n${CIERRE}`
-    );
-  }
+  return gitLinea(['merge-base', a, b], cwd);
 }
 
 /** Ordenes para dejar `destino` (en la rama) igual que `origen` en la base, y borrar el resto. */
@@ -120,7 +103,7 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
         (rarasBase.length > 0
           ? `Renombrala a ${CARPETA_HELDOUT}/ en "${o.ramaBase}" e integralo en la rama. `
           : `La rama no puede crear held-out: borrala de la rama. `) +
-        CIERRE
+        CIERRE_SIN_MERGE
     );
   }
   const enRama = carpetasHeldout(rutasRama, o.id);
@@ -132,7 +115,7 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
         `[ERROR] ${o.id}: los tests held-out de esta tarea estan en "${o.ramaDiseno}" (${enDiseno.join(', ')}), ` +
           `pero un hotfix nace de "${o.ramaBase}", que no los tiene, asi que no se ejecutarian. Commitealos ` +
           `tambien en "${o.ramaBase}" e integralo en la rama del hotfix; si no aplican al hotfix, quitalos de ` +
-          `"${o.ramaDiseno}". ${CIERRE}`
+          `"${o.ramaDiseno}". ${CIERRE_SIN_MERGE}`
       );
     }
     return { tipo: 'sin-heldout' };
@@ -144,13 +127,13 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
       `[ERROR] ${o.id}: la rama trae tests held-out (${enRama.join(', ')}) que no estan en "${o.ramaBase}". ` +
         `Los held-out los escribe la persona y los commitea en "${o.ramaBase}" durante el diseño, antes de ` +
         `start; la rama de la tarea no puede añadirlos. Si son de la persona, que los commitee en ` +
-        `"${o.ramaBase}" y despues integra "${o.ramaBase}" en la rama. ${CIERRE}`
+        `"${o.ramaBase}" y despues integra "${o.ramaBase}" en la rama. ${CIERRE_SIN_MERGE}`
     );
   }
   if (enBase.length > 1) {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: "${o.ramaBase}" tiene mas de una carpeta ${CARPETA_HELDOUT}/ para esta tarea ` +
-        `(${enBase.join(', ')}): deja una sola y reintenta. ${CIERRE}`
+        `(${enBase.join(', ')}): deja una sola y reintenta. ${CIERRE_SIN_MERGE}`
     );
   }
   const base = enBase[0] as string;
@@ -167,7 +150,7 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
       throw new FinishCommandError(
         `[ERROR] ${o.id}: los tests held-out de "${o.ramaBase}" han cambiado desde que nacio la rama, y la ` +
           `rama no los ha tocado: integra "${o.ramaBase}" en la rama (git merge ${o.ramaBase}) y reintenta, ` +
-          `para que finish ejecute los de ahora. ${CIERRE}`
+          `para que finish ejecute los de ahora. ${CIERRE_SIN_MERGE}`
       );
     }
     const enDestino = enRama.includes(destino);
@@ -185,25 +168,25 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
             `"${o.ramaBase}" (git merge ${o.ramaBase}; si hay conflicto en los held-out, con la version de ` +
             `"${o.ramaBase}") y reintente; si sigue sin coincidir, que los restaure`
           : 'Para restaurarlos') +
-        `${enDestino ? '' : ` en ${destino}`}:\n  ${remedio(o.ramaBase, base, destino, otras)}\n${CIERRE}`
+        `${enDestino ? '' : ` en ${destino}`}:\n  ${remedio(o.ramaBase, base, destino, otras)}\n${CIERRE_SIN_MERGE}`
     );
   }
 
-  const config = configDe(o.ramaBase, o.cwd, o.id);
+  const config = configDeLaRama(o.ramaBase, o.cwd, o.id, 'los held-out');
   const comando = config.comando_heldout;
   if (comando === null) {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: la tarea tiene tests held-out (${base}) y la configuracion de "${o.ramaBase}" no ` +
         `declara comando_heldout, asi que no se pueden ejecutar. Declaralo en .taskcode/config.yml de ` +
         `"${o.ramaBase}" (p. ej. comando_heldout: "node --test $${VARIABLE_HELDOUT}"), integralo en la rama ` +
-        `y reintenta. ${CIERRE}`
+        `y reintenta. ${CIERRE_SIN_MERGE}`
     );
   }
   const actual = currentBranch(o.cwd);
   if (actual !== o.rama) {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: los tests held-out se ejecutan sobre el arbol de la rama de la tarea, y la rama ` +
-        `activa es "${actual === '' ? 'HEAD desacoplado' : actual}". Cambiate a "${o.rama}" y reintenta. ${CIERRE}`
+        `activa es "${actual === '' ? 'HEAD desacoplado' : actual}". Cambiate a "${o.rama}" y reintenta. ${CIERRE_SIN_MERGE}`
     );
   }
 
@@ -215,7 +198,7 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
   if (r.estado !== 'verde') {
     // Sin la salida, a proposito (decision D4 del plan).
     throw new FinishCommandError(
-      `[ERROR] ${o.id}: los tests held-out no estan en verde; no se mergea. ${CIERRE}\n` +
+      `[ERROR] ${o.id}: los tests held-out no estan en verde; no se mergea. ${CIERRE_SIN_MERGE}\n` +
         `  Comando:   ${comando}\n` +
         `  Resultado: ${describirResultado(r)}\n` +
         `  Duracion:  ${(r.duracionMs / 1000).toFixed(1)} s\n` +
@@ -227,7 +210,7 @@ export function puertaHeldout(o: PuertaHeldoutOpts): ResultadoHeldout {
     throw new FinishCommandError(
       `[ERROR] ${o.id}: los tests held-out salieron en verde pero han dejado cambios en el arbol de trabajo ` +
         `(mira git status). El merge necesita el workspace limpio: que escriban en rutas ignoradas, y reintenta. ` +
-        CIERRE
+        CIERRE_SIN_MERGE
     );
   }
   return { tipo: 'verde', carpeta, duracionMs: r.duracionMs };

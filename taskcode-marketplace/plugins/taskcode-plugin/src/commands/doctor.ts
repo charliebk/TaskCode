@@ -30,7 +30,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { gitCrudo } from '../fs/git-crudo.js';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
   aviso,
@@ -153,14 +153,9 @@ interface GitSalida {
 
 /** `git` sin lanzar nunca: el resultado lleva el error de lanzamiento. */
 function git(args: readonly string[], cwd: string, env: NodeJS.ProcessEnv = {}, timeoutMs: number = TIMEOUT_GIT_MS): GitSalida {
-  const r: SpawnSyncReturns<string> = spawnSync('git', args, {
-    cwd,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: timeoutMs,
-    env: { ...process.env, ...env },
-  });
-  return { status: r.status, stdout: (r.stdout ?? '').trim(), stderr: (r.stderr ?? '').trim(), error: r.error };
+  // TASK-145a (CMD1-02): sobre gitCrudo, el envoltorio comun (maxBuffer, GIT_OPTIONAL_LOCKS y sin prompt).
+  const r = gitCrudo(args, cwd, { env, timeoutMs });
+  return { status: r.status, stdout: r.stdout.toString('utf8').trim(), stderr: r.stderr.trim(), error: r.error };
 }
 
 const una = (t: string): string => ocultarCredenciales(t).replace(/\s+/g, ' ').trim();

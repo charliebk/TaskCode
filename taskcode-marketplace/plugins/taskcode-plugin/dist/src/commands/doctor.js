@@ -30,7 +30,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { gitCrudo } from '../fs/git-crudo.js';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
 import { aviso, codigoSalida, error as fallo, formatearJson, formatearTexto, nodeSoportado, NODE_MINIMO, ok, omitida, } from '../core/doctor.js';
 import { avisoCrecimiento, suitePorVersion } from '../core/crecimiento-suite.js';
@@ -91,14 +91,9 @@ export function envolver(id, f) {
 }
 /** `git` sin lanzar nunca: el resultado lleva el error de lanzamiento. */
 function git(args, cwd, env = {}, timeoutMs = TIMEOUT_GIT_MS) {
-    const r = spawnSync('git', args, {
-        cwd,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: timeoutMs,
-        env: { ...process.env, ...env },
-    });
-    return { status: r.status, stdout: (r.stdout ?? '').trim(), stderr: (r.stderr ?? '').trim(), error: r.error };
+    // TASK-145a (CMD1-02): sobre gitCrudo, el envoltorio comun (maxBuffer, GIT_OPTIONAL_LOCKS y sin prompt).
+    const r = gitCrudo(args, cwd, { env, timeoutMs });
+    return { status: r.status, stdout: r.stdout.toString('utf8').trim(), stderr: r.stderr.trim(), error: r.error };
 }
 const una = (t) => ocultarCredenciales(t).replace(/\s+/g, ' ').trim();
 /** Como `una`, sin el `[ERROR]`/`[AVISO]` con que empiezan los mensajes de la config: doctor pone el suyo. */
