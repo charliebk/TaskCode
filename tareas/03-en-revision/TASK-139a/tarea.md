@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 11030221
-tokens_revision: 2507696
+tokens_revision: 2888776
 creado: 2026-11-22
 actualizado: 2026-11-24
 dependencias: []
@@ -34,8 +34,8 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] Un test falla si task-workflow/SKILL.md deja de enlazar poda-tests.md, y la rama de cerrojo ilegible de scripts/verificar-impacto.mjs tiene un test que falla al romperla
-- [ ] Las aserciones del mensaje bash de Git de doctor tienen equivalente que corre en Linux (o se documenta por que no), el test de 1100 ficheros de review-tests-stat se elimina o se justifica, y los criterios de TASK-133 quedan marcados segun su Resultado
+- [x] Un test falla si task-workflow/SKILL.md deja de enlazar poda-tests.md, y la rama de cerrojo ilegible de scripts/verificar-impacto.mjs tiene un test que falla al romperla
+- [x] Las aserciones del mensaje bash de Git de doctor tienen equivalente que corre en Linux (o se documenta por que no), el test de 1100 ficheros de review-tests-stat se elimina o se justifica, y los criterios de TASK-133 quedan marcados segun su Resultado
 
 ## Transiciones
 
@@ -60,3 +60,13 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T01:05:37Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 74 | 35225 | 10977308 | 17614 | 18 | 11030221 | - | - |
 | 2026-11-24T01:21:22Z | revision | agente:a2c007a146fb5b324 | 44 | 126702 | 2369611 | 11339 | 4 | 2507696 | 1 | - |
+| 2026-11-24T01:29:34Z | revision | agente:aa4a779719a0300d4 | 8 | 102060 | 273508 | 5504 | 3 | 381080 | 2 | - |
+
+## Resultado
+
+- B1: poda-tests comprueba el enlace a poda-tests.md desde task-workflow/SKILL.md.
+- B3: `tomarCerrojo`, exportado con un `dormir` sustituible, tiene test de la rama del cerrojo ilegible: reintenta antes de tomarlo y espera si en el reintento pasa a ser de un proceso vivo.
+- B4: `textoBashUsado` (core/resolver-bash) es puro y se prueba en las tres plataformas. El cableado en doctor solo se observa en Windows y queda documentado.
+- B5: el test de review con un grupo fragmentado no duplica al de 1300 rutas, porque es el único que prueba que review usa el diff por lotes (caza el mutante en Windows). Se justifica en el test y baja de 1100 a 500 ficheros.
+- TASK-133: criterios 1, 2 y 4 marcados. El 3 queda sin marcar y con su motivo: TASK-134 se cerró con --sin-verificacion.
+- Revisión: en la ronda 1, cambios solicitados (IMP-1: había marcado el criterio 3 sin evidencia); MEN-1 y MEN-2 corregidos. La ronda 2 aprueba.
