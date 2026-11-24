@@ -560,7 +560,8 @@ async function runFinish(tareasRoot, argv, today, deps, progreso, pendientes) {
     else {
         await puerta();
         const argsScript = argumentosScriptMerge(rama, ramaIntegracion, mainBranch, nombreTag);
-        tagLoPusoElScript = argsScript.includes('--tag');
+        // hotfix/release con nombre: el tag lo pone el script en main (argumentosScriptMerge le pasa --tag).
+        tagLoPusoElScript = nombreTag !== null && mainBranch !== null;
         const { code, signal } = runGitflowScript(scriptName, argsScript, {
             scriptsDir: deps.scriptsDir,
             cwd: deps.repoCwd,
