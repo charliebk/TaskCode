@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 11030221
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-24
@@ -44,8 +44,15 @@ Objetivo de la tarea entera:
 | 2026-11-24T00:44:49Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T00:45:29Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T00:45:32Z | start | automatico | persona | 0.16.1 |
+| 2026-11-24T01:05:37Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — c229ae2: tomarCerrojo reutilizado (exportado con dormir sustituible, sin copia para el test); textoBashUsado junto a resolverBash, donde ya vive la logica pura del bash; el test de 1100 ficheros no se borra porque es el unico que protege que review use el diff por lotes (mutante: review con una sola llamada a Git, rojo), y baja a 500; mutaciones en rojo: B1 sin el enlace, B3 sin el reintento del ilegible (y el reintento sin comprobar que el fichero existe cuelga el test hasta el timeout), B4 con la rama de Windows ampliada a darwin
 - code-quality-reviewer — c229ae2
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T01:05:37Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 74 | 35225 | 10977308 | 17614 | 18 | 11030221 | - | - |
