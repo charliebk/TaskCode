@@ -68,3 +68,7 @@ Objetivo de la tarea entera:
 - CMD2-07: `roadmap --comparar` decide con `prepararRoadmap(..., { escribir: false })`, que puede dar el estado nuevo `se-escribiria`. Un ROADMAP marcado con cambios sin commitear ya no sale como regenerable, y el caso `fallido` tiene su propio mensaje.
 - CMD2-10 y CMD2-11: verificar-lote usa `headCommit`, `listTareasEnEstados` y `compararIds`. Un fallo de git, una carpeta ilegible o una tarea ilegible abortan, cada uno con su test.
 - Revisión: la ronda 1 pidió cambios (IMP-1 e IMP-2: protecciones sin test). MEN-1 y MEN-3 se corrigieron. MEN-2, la doble lectura de cada tarea, se acepta porque evitarla obligaría a ampliar `listTareasEnEstados`, que comparten otros comandos. La ronda 2 aprueba.
+
+## Verificacion parcial
+
+- 2026-11-24T15:29:57Z: todo el codigo que cambia la tarea (15 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
