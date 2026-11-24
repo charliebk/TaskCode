@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-145b — finish.ts y comentarios (parte b de TASK-145) · etiquetas: (sin etiquetas) · rama fix/task-145-regla-4d-duplicacion-en-las-puertas-de-f · terminada 2026-11-24 · tareas/04-terminadas/TASK-145b/
 - TASK-156 — verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin · etiquetas: verificacion, scripts · rama fix/task-156-verificar-impacto-elige-los-tests-que-le · terminada 2026-11-24 · tareas/04-terminadas/TASK-156/
 - TASK-157 — Timeout de claude plugin list acorde al binario real · etiquetas: (sin etiquetas) · rama fix/task-157-timeout-de-claude-plugin-list-acorde-al · terminada 2026-11-24 · tareas/04-terminadas/TASK-157/
 - TASK-145a — puertas, git y textos de error (parte a de TASK-145) · etiquetas: (sin etiquetas) · rama fix/task-145-regla-4d-duplicacion-en-las-puertas-de-f · terminada 2026-11-24 · tareas/04-terminadas/TASK-145a/
