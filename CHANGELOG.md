@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-138a (fix) — agregador de la suite, mediana y pytest (parte a de TASK-138) (2026-11-24)
 - TASK-146b (fix) — registrar-coste, readdir, fecha y cabeceras (parte b de TASK-146) (2026-11-24)
 - TASK-146a (fix) — import, roadmap y verificar-lote (parte a de TASK-146) (2026-11-24)
 - TASK-145b (fix) — finish.ts y comentarios (parte b de TASK-145) (2026-11-24)
