@@ -58,6 +58,14 @@ const VERSION_MEMO = 1;
  */
 export const VARIABLE_RAMA_BASE = 'RAMA_BASE';
 
+/**
+ * TASK-139b: el tipo de verificacion que corre el comando (`selectiva` en
+ * review y finish, `freno` en el Stop, `completa`, `documentacion`). Asi un
+ * comando selectivo puede recortar en el freno, que corre en cada fin de
+ * turno, y no en finish, que integra. Informativa: quien la ignora no cambia.
+ */
+export const VARIABLE_TIPO_VERIFICACION = 'TIPO_VERIFICACION';
+
 export interface OpcionesVerificacion {
   /** Solo para tests: sustituye al timeout en segundos (en ms). */
   timeoutMs?: number;
@@ -309,9 +317,11 @@ export function verificarConMemo(
     return { resultado: guardado, deMemo: true, cambioElArbol: false, commit, huella };
   }
 
-  const env = conBase
-    ? { ...(opciones.env ?? process.env), [VARIABLE_RAMA_BASE]: p.base as string }
-    : opciones.env;
+  const env: NodeJS.ProcessEnv = {
+    ...(opciones.env ?? process.env),
+    [VARIABLE_TIPO_VERIFICACION]: p.tipo,
+    ...(conBase ? { [VARIABLE_RAMA_BASE]: p.base as string } : {}),
+  };
   const resultado = ejecutarVerificacion(raiz, p.comando, p.timeoutS, {
     ...(opciones.timeoutMs === undefined ? {} : { timeoutMs: opciones.timeoutMs }),
     ...(env === undefined ? {} : { env }),

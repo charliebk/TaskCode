@@ -33,6 +33,9 @@ corre la completa y `review` no verifica nada.
 - La **rama base** de la tarea llega en la variable de entorno `RAMA_BASE`
   (la de integracion, o la principal en un hotfix). No se anade nada al
   comando.
+- `TIPO_VERIFICACION` dice quien la corre: `selectiva` en review y finish
+  (que no recorte: deja integrar tests sin correr), `freno` con
+  `comando_verificacion_freno` (ahi puede recortar).
 - Verde es salir con codigo 0. Cualquier otro codigo, o pasarse del timeout,
   es rojo.
 

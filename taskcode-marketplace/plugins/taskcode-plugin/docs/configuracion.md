@@ -41,6 +41,16 @@ timeout_verificacion_selectiva: 600                                 # opcional (
 - Recibe la rama base de la tarea en la variable de entorno `RAMA_BASE` (la de
   integración, o la principal en un hotfix); no se añade nada al comando. El
   mapa de capas es del proyecto: el script decide qué correr.
+- Recibe también `TIPO_VERIFICACION` con quién la corre: `selectiva` en las
+  rondas de `review` y en `finish` con `rutas_verificacion_parcial`, `freno`
+  con `comando_verificacion_freno` (y `completa` o `documentacion` en las
+  demás). Así un script puede recortar en el fin de turno y no en las puertas
+  que integran: un recorte allí deja integrar tests afectados que nadie
+  ejecutó. Sin `comando_verificacion_freno`, el freno corre la selectiva tal
+  cual, recibe `selectiva` y comparte su memo: si el script no recorta con
+  `selectiva`, el fin de turno tarda lo que la selectiva entera (hasta
+  `timeout_verificacion_selectiva`). Para recortar solo en el freno se declara
+  esa clave.
 - Exige `comando_verificacion`: la selectiva sin la completa aborta, porque
   dejaría `finish` sin puerta. El timeout sin su comando también aborta.
 - **Hook `Stop`**: con la clave corre la selectiva en vez de la completa, con su
@@ -228,7 +238,8 @@ presupuesto_freno_s: 180                                            # opcional
 ```
 
 - `comando_verificacion_freno` exige `comando_verificacion` (la puerta sigue
-  siendo la completa). Recibe la rama base en `RAMA_BASE` y guarda su resultado
+  siendo la completa). Recibe la rama base en `RAMA_BASE`, y
+  `TIPO_VERIFICACION=freno` (puede recortar), y guarda su resultado
   en su propio memo (`.git/freno-verificacion-rapida.json`): su verde nunca
   abre un merge ni lo reutiliza `finish`.
 - `presupuesto_freno_s`: segundos que puede tardar la verificación del freno
