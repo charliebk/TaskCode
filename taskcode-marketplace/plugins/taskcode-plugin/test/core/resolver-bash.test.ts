@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { entornoParaBash, resolverBash } from '../../src/core/resolver-bash.js';
+import { entornoParaBash, resolverBash, textoBashUsado } from '../../src/core/resolver-bash.js';
 
 function win(pathVar: string, ficheros: readonly string[]) {
   const set = new Set(ficheros.map((f) => f.toLowerCase()));
@@ -69,4 +69,15 @@ test('entornoParaBash: con el bash de Git, su usr\\bin va delante en la misma cl
   assert.deepEqual(e, { Path: `${USR_BIN};${WSL};${GIT}\\cmd`, OTRA: 'x' }, 'sin una segunda clave PATH');
   assert.deepEqual(entornoParaBash(DE_GIT, { OTRA: 'x' }), { OTRA: 'x', PATH: USR_BIN });
   assert.equal(entornoParaBash({ comando: 'bash', origen: 'path' }, { PATH: '/usr/bin' }), null);
+});
+
+// TASK-139a (B4): las aserciones del mensaje de doctor solo veian la rama de su
+// plataforma; aqui se prueban las tres en cualquier sistema.
+test('textoBashUsado: bash de Git, Windows sin bash de Git, y Linux/macOS sin coletilla', () => {
+  const git = { comando: 'C:\\Git\\usr\\bin\\bash.exe', origen: 'git', herramientas: 'C:\\Git\\usr\\bin' } as const;
+  assert.equal(textoBashUsado(git, 'win32'), '; bash de Git: C:\\Git\\usr\\bin\\bash.exe');
+  assert.equal(textoBashUsado({ comando: 'bash', origen: 'path' }, 'win32'), '; no se encontro el bash de Git junto a git.exe: se usa el "bash" del PATH');
+  for (const plataforma of ['linux', 'darwin'] as const) {
+    assert.equal(textoBashUsado({ comando: 'bash', origen: 'path' }, plataforma), '', plataforma);
+  }
 });

@@ -10,7 +10,8 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { existsSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { plantillaRepo } from '../helpers/repo-plantilla.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -412,6 +413,36 @@ test('TASK-136: un cerrojo con el pid de un proceso muerto no bloquea: se toma, 
       rmSync(cerrojo, { force: true });
     }
   });
+});
+
+// TASK-139a (B3): la rama del cerrojo ilegible (pid null) no tenia test: el de
+// cerrojo muerto escribe JSON valido. `dormir` sustituido hace la prueba sin tiempos.
+test('TASK-139a: un cerrojo ilegible se reintenta antes de tomarlo; si en el reintento ya es de un vivo, se le espera', async () => {
+  const { tomarCerrojo } = (await import(pathToFileURL(SCRIPT).href)) as {
+    tomarCerrojo: (c: string, s: number, o?: { dormir?: (ms: number) => void }) => boolean;
+  };
+  const dir = mkdtempSync(path.join(tmpdir(), 'cerrojo-ilegible-'));
+  const cerrojo = path.join(dir, 'x.cerrojo');
+  try {
+    // A medio escribir: en el reintento ya tiene el pid de un proceso vivo (este).
+    writeFileSync(cerrojo, '{"pid": ');
+    let dormidas = 0;
+    const tomado = tomarCerrojo(cerrojo, 0, {
+      dormir: () => {
+        if (dormidas++ === 0) writeFileSync(cerrojo, JSON.stringify({ pid: process.pid, desde: 'x' }));
+      },
+    });
+    assert.equal(tomado, false, 'un cerrojo que pasa a ser de un vivo no se roba');
+    assert.equal(JSON.parse(readFileSync(cerrojo, 'utf8')).pid, process.pid, 'el cerrojo ajeno sigue ahi');
+    // Ilegible de verdad (sigue roto tras el reintento): es de una ejecucion cortada y se toma.
+    writeFileSync(cerrojo, 'basura');
+    let reintentos = 0;
+    assert.equal(tomarCerrojo(cerrojo, 0, { dormir: () => void reintentos++ }), true);
+    assert.equal(reintentos, 1, 'un unico reintento antes de tomarlo');
+    assert.equal(JSON.parse(readFileSync(cerrojo, 'utf8')).pid, process.pid, 'ahora es nuestro');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('TASK-136: con el cerrojo en manos de un proceso vivo y la espera agotada, sale con 1, lo explica y no toca dist/src', async () => {

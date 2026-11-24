@@ -45,6 +45,7 @@ import { hostDeRemoto, ocultarCredenciales, CLI_PLATAFORMA } from '../core/plata
 import { STATE_FOLDER, TASK_ID_RE, TASK_STATES, isValidTaskId } from '../core/task.js';
 import { diaLocal, evaluarDocumentoEstado } from '../core/documento-estado.js';
 import { resolveGitflowScriptsDir, sondearBash } from '../fs/gitflow-runner.js';
+import { textoBashUsado } from '../core/resolver-bash.js';
 import { urlsDeOrigin } from '../fs/git.js';
 import { sondearCli } from '../fs/merge-request.js';
 import { resolverRemotoDeOrigin } from './finish-opciones.js';
@@ -137,11 +138,7 @@ function arregloBash() {
 function comprobarBash(deps) {
     const r = sondearBash({ scriptsDir: deps.scriptsDir ?? resolveGitflowScriptsDir(), cwd: deps.repoCwd });
     // TASK-134: en Windows se dice que bash se usa, y si no aparecio el de Git junto a git.exe.
-    const cual = r.bash.origen === 'git'
-        ? `; bash de Git: ${r.bash.comando}`
-        : process.platform === 'win32'
-            ? '; no se encontro el bash de Git junto a git.exe: se usa el "bash" del PATH'
-            : '';
+    const cual = textoBashUsado(r.bash, process.platform);
     if (r.ok)
         return ok('bash', `bash ejecuta los scripts de Git-Flow${r.version === '' ? '' : ` (bash ${r.version})`}${cual}`);
     const que = r.causa === 'no-lanzable'
