@@ -30,16 +30,15 @@ TASK-150   Regla 4D: skills y agentes con una sola fuente por regla             
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 2
+## En diseno (01-en-diseno) — 1
 
 ```text
-ID         Titulo                                                                                 Asignado
----------  -------------------------------------------------------------------------------------  --------------------
-TASK-145a  puertas, git y textos de error (parte a de TASK-145)                                   charlie.bk@gmail.com
-TASK-156   verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin  charlie.bk@gmail.com
+ID        Titulo                                                                                 Asignado
+--------  -------------------------------------------------------------------------------------  --------------------
+TASK-156  verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 145
+## Terminadas (04-terminadas) — 146
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -172,6 +171,7 @@ TASK-142   Regla 4D: disfraz en los scripts de Git-Flow                         
 TASK-144a  cadena, Commit revisado y tarea en su rama (parte a de TASK-144)                                                    charlie.bk@gmail.com
 TASK-144b  flags con y sin valor (parte b de TASK-144)                                                                         charlie.bk@gmail.com
 TASK-144c  patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144)                                            charlie.bk@gmail.com
+TASK-145a  puertas, git y textos de error (parte a de TASK-145)                                                                claude
 TASK-147a  secciones con un solo lector y un solo «crear al final» (parte a de TASK-147)                                       charlie.bk@gmail.com
 TASK-147b  criterios, normalizacion, citar e IDs (parte b de TASK-147)                                                         claude
 TASK-147c  fases y Marca en metricas (parte c de TASK-147)                                                                     claude
