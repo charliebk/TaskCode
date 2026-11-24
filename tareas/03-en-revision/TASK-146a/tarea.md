@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 21523947
-tokens_revision: null
+tokens_revision: 2582200
 creado: 2026-11-22
 actualizado: 2026-11-24
 dependencias: []
@@ -50,9 +50,12 @@ Objetivo de la tarea entera:
 
 - 4D — 6e51ed4: parsearCamposDeTarea en new.ts (import ya importaba de new) en vez de un modulo nuevo; MODELO_POR_DEFECTO tambien para doctor-deploy; --comparar reutiliza prepararRoadmap con escribir:false en vez de duplicar sus reglas; verificar-lote reutiliza headCommit, listTareasEnEstados y compararIds; la propuesta de complejidad no se lleva a import porque depende de etiquetas e import no tiene (seria un disfraz: proponerComplejidad([]) siempre null); mutaciones en rojo: --comparar sin la decision y verificar-lote tragandose el error de lectura; el test de paridad new/import compara campos, defaults y mensajes de error
 - code-quality-reviewer — 6e51ed4
+- 4D — de2a5bd: commitDeHead en deps (como timeoutMs, solo tests) para provocar el fallo de git; tests de ilegible, orden numerico y fallido de --comparar con mensaje propio; MEN-2 aceptado
+- code-quality-reviewer — de2a5bd (ronda 2)
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T14:48:24Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 68 | 48235 | 21454125 | 21519 | 20 | 21523947 | - | - |
+| 2026-11-24T15:08:57Z | revision | agente:a8a5850237b04d996 | 42 | 133912 | 2436799 | 11447 | 6 | 2582200 | 1 | - |
