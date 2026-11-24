@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-151-regla-4d-disfraz-en-tests
 asignado_a: claude
@@ -16,10 +16,10 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 13334640
 tokens_revision: null
 creado: 2026-11-23
-actualizado: 2026-11-23
+actualizado: 2026-11-24
 dependencias: [TASK-151a]
 ---
 ## Objetivo
@@ -39,8 +39,15 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 | 2026-11-23T23:49:31Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:50:19Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T23:50:25Z | start | automatico | persona | 0.16.1 |
+| 2026-11-24T00:17:02Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — d5d4029: reutilizados porcelain (roadmap-fixtures) y git (finish-fixtures) en approve, plan y start; idPedido en el TransitionContext existente en vez de un parametro nuevo; mutaciones en rojo: M6 (y quitar solo build), M7 sin unlink, M8 sin el error propio, M9 integra = true, M10 sin rechazarFlagsDesconocidos, TCMD-01 sin timeout en git status, TRES-07 guardian que lanza la selectiva, «(desconocida)» en vez del ID; el endurecimiento de TCMD-03 destapo que el mensaje de tarea inexistente no nombraba el ID y se corrige aqui
 - code-quality-reviewer — d5d4029
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T00:17:02Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 146 | 75931 | 13221491 | 37072 | 52 | 13334640 | - | - |
