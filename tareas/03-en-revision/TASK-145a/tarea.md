@@ -71,3 +71,7 @@ Objetivo de la tarea entera:
 - FS-09: `sinPrefijoError` en core/utilidades-texto, usado en los seis sitios.
 - Revisión: la ronda 1 pidió cambios (IMP-1: anotarSuite sin test) y señaló dos MENORES, ya corregidos. La ronda 2 aprueba.
 - Fuera de alcance: los textos de árbol sucio de review.ts y verificar-lote.ts, y el git propio de verificar-lote.ts.
+
+## Verificacion parcial
+
+- 2026-11-24T10:51:28Z: todo el codigo que cambia la tarea (23 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
