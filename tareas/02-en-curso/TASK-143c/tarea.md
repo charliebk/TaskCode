@@ -39,3 +39,8 @@ detect_operation_in_progress comun con test de paridad frente a git.ts, ls-remot
 | 2026-11-24T22:03:08Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T22:03:40Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T22:03:43Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 6b91fad: detect_operation_in_progress en _gitflow-common.sh sustituye las dos copias bash (abort-merge y diagnose-repo), con test de paridad frente a operacionEnCurso de git.ts en nueve estados; lsRemoto en git.ts reutiliza gitCrudo (GIT_TERMINAL_PROMPT=0) y el limite GF_TIMEOUT_REMOTO de _gf_ls_remote en vez de cuatro spawnSync; argumentosScriptMerge, funcion pura, pasa --main; conDistProtegido extrae de verificar-impacto la copia y el cerrojo de TASK-136 y la usa perfil-tests; mutantes en rojo: ls-remote sin limite, finish sin --main, bash sin sequencer y perfil-tests sin proteccion
+- code-quality-reviewer — 6b91fad
