@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 160 / 166 items terminados (96%)** · última actualización: 2026-11-24
+**Progreso global: 161 / 166 items terminados (97%)** · última actualización: 2026-11-24
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,8 +41,8 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 20 | **14** | ~32h |
-| **Total pendiente** | **6** | — | — |
+| Q — Correcciones de la auditoría 4D | 20 | **15** | ~32h |
+| **Total pendiente** | **5** | — | — |
 
 
 Las fases cerradas (Sprint 0 y 1, A a P), las decisiones ya resueltas (#1 a
@@ -57,7 +57,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## Q — Correcciones de la auditoría 4D (14/20)
+## Q — Correcciones de la auditoría 4D (15/20)
 
 Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`docs/auditoria-4d-completa.md`](../auditoria-4d-completa.md).
 
@@ -89,4 +89,6 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
       *Las puertas de finish y doctor usan gitLinea/gitCrudo (timeout y entorno comunes), configDeLaRama y CIERRE_SIN_MERGE en finish-opciones, ejecutarPuerta comun (anotarSuite solo en la completa, con test), textos de una sola fuente (cerrarIgualmente, errorArbolSucio) y sinPrefijoError para la regex de [ERROR]. En finish.ts la base de la rama se decide una vez, el tag tras el merge solo en su caso alcanzable y los comentarios quedan en su funcion. 145a necesito 2 rondas; 145b, una con MENORES (MEN-2 y MEN-3, huecos de test previos, pendientes).*
 - [x] TASK-146 (a, b) — Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste — cerrada el 2026-11-24
       *import valida y compone como new (parsearCamposDeTarea, MODELO_POR_DEFECTO, componerCuerpo), roadmap --comparar decide con prepararRoadmap (escribir:false), verificar-lote usa headCommit y listTareasEnEstados y aborta ante un fallo de git o lectura, registrar-coste suma con CAMPOS_COSTE, un listarSiExiste y una claveRuta, diaUtc para el creado de doctor-deploy, cabeceras fieles a TASK-119. 146a necesito 2 rondas (protecciones sin test); 146b, una con MENORES.*
+- [x] TASK-138 (a, b) — Regla 4D: duplicacion en metricas, suite y registro de puertas — cerrada el 2026-11-24
+      *Un agregador de la suite por version (ultimaSuitePorTarea, resumirSuites) para metricas y doctor, una mediana (core/estadistica), pytest una vez, anotarVerificacion comun a finish, review, la suite y verificar-lote, PUERTAS_VERIFICACION fuera, textoSalidasTope (salidas numeradas) para siguiente y review, y doctor con una lectura de las terminadas. Una ronda cada parte, con MENORES.*
 - [ ] TASK-158 — Regla 4D preventiva en todos los procesos que crean o actualizan codigo — antes de publicar la 0.19.0 (decision de Carlos)
