@@ -152,6 +152,7 @@ export async function runCodexReviewCommand(
     revisionDir === null ? false : await ultimaRondaAprobada(revisionDir, INFORME_REVISION_RE);
   assertTransitionAllowed('codex-review', existing ? existing.task : null, {
     revisionPrimariaAprobada,
+    idPedido: id,
   });
   const { task, filePath } = existing!;
 

@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { runDoctorCommand } from '../../src/commands/doctor.js';
 import { NODE_MINIMO, nodeSoportado, type Comprobacion } from '../../src/core/doctor.js';
 import { STATE_FOLDER } from '../../src/core/task.js';
@@ -105,10 +106,18 @@ test('git status que no responde a tiempo es aviso, no error (timeout propio)', 
   await conRepo(async (repoRoot) => {
     // Un fsmonitor que tarda 30 s: git status se queda esperando al hook.
     git(['config', 'core.fsmonitor', 'sleep 30 #'], repoRoot);
+    // TASK-151b (TCMD-01): antes se media lo que tardaba el propio doctor y, si
+    // pasaba de 25 s, se saltaba el test; quitar el timeout de doctor.ts hacia
+    // justo eso, y el fallo se convertia en un skip. Ahora se pregunta a Git
+    // aparte, con su propio limite, si espera al hook; el doctor no decide el skip.
+    const sonda = spawnSync('git', ['status', '--porcelain'], { cwd: repoRoot, encoding: 'utf8', timeout: 4000 });
+    if ((sonda.error as NodeJS.ErrnoException | undefined)?.code !== 'ETIMEDOUT') {
+      return t.skip('esta version de Git no espera al hook de fsmonitor');
+    }
     const t0 = Date.now();
     const r = runDoctorCommand([], { repoCwd: repoRoot, configClaudeDir: SIN_CONFIG_CLAUDE, timeoutGitMs: 1500 });
     const w = por(r.comprobaciones, 'workspace');
-    if (Date.now() - t0 > 25_000) return t.skip('esta version de Git no espera al hook de fsmonitor');
+    assert.ok(Date.now() - t0 < 12_000, `el doctor tardo ${String(Date.now() - t0)} ms: no corto git status a los 1,5 s pedidos`);
     assert.equal(w.nivel, 'aviso', `${w.nivel}: ${w.mensaje}`);
     assert.match(w.mensaje, /no termino/);
     assert.ok(w.arreglo !== null);

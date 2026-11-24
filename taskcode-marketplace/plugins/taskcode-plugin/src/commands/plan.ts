@@ -466,7 +466,7 @@ async function runPlan(
   // disparar un TaskFolderConflictError falso comparando la carpeta
   // vieja con la carpeta real de la rama base).
   const initial = await readTareaFile(tareasRoot, id);
-  assertTransitionAllowed('plan', initial ? initial.task : null);
+  assertTransitionAllowed('plan', initial ? initial.task : null, { idPedido: id });
   progreso.fase(initial!.task.id, 'plan', PASOS_PLAN);
   progreso.paso('guardas');
 
@@ -488,7 +488,7 @@ async function runPlan(
   // mientras tanto) o aceptar como re-planificacion legitima un caso
   // que en la rama vieja parecia otra cosa.
   const existing = await readTareaFile(tareasRoot, id);
-  assertTransitionAllowed('plan', existing ? existing.task : null);
+  assertTransitionAllowed('plan', existing ? existing.task : null, { idPedido: id });
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
   // asignado_a se resuelve contra la lectura FRESCA (la de justo

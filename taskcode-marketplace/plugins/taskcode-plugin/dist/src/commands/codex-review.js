@@ -87,6 +87,7 @@ export async function runCodexReviewCommand(tareasRoot, argv, _today, deps) {
     const revisionPrimariaAprobada = revisionDir === null ? false : await ultimaRondaAprobada(revisionDir, INFORME_REVISION_RE);
     assertTransitionAllowed('codex-review', existing ? existing.task : null, {
         revisionPrimariaAprobada,
+        idPedido: id,
     });
     const { task, filePath } = existing;
     const baseBranch = resolveBaseBranchForTipo(task.tipo, deps.repoCwd);

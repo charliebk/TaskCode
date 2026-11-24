@@ -176,6 +176,7 @@ async function runApprove(
   const ubicacionInicial = initial ? await resolverPlanFinal(path.dirname(initial.filePath)) : null;
   assertTransitionAllowed('approve', initial ? initial.task : null, {
     planFinalExiste: planFinalExisteEn(ubicacionInicial),
+    idPedido: id,
   });
   assertPlanNoAmbiguo(id, ubicacionInicial!);
   progreso.fase(initial!.task.id, 'approve', PASOS_APPROVE);
@@ -197,6 +198,7 @@ async function runApprove(
   const ubicacion = existing ? await resolverPlanFinal(path.dirname(existing.filePath)) : null;
   assertTransitionAllowed('approve', existing ? existing.task : null, {
     planFinalExiste: planFinalExisteEn(ubicacion),
+    idPedido: id,
   });
   assertPlanNoAmbiguo(id, ubicacion!);
   const { task, body, filePath } = existing as NonNullable<typeof existing>;

@@ -3,7 +3,9 @@
  * temporales reales y los scripts de Git-Flow del repo; la evidencia se
  * lee de la peticion que escribe el comando y de `git log`.
  */
-import { test } from 'node:test';
+import { test, mock } from 'node:test';
+import fsPromises from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -15,6 +17,7 @@ import { writeTareaFile } from '../../src/fs/task-store.js';
 import { runReviewCommand } from '../../src/commands/review.js';
 import { runStartCommand } from '../../src/commands/start.js';
 import { runVeredictoCommand } from '../../src/commands/veredicto.js';
+import { ReviewCommandError } from '../../src/commands/review.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
 import {
   commitRevisadoDe,
@@ -218,20 +221,34 @@ test('review incremental (TASK-040): start sobre una tarea en revision manda a r
   });
 });
 
-test('review incremental (TASK-040): si una escritura de la ronda falla, no deja ficheros de esa ronda', async (t) => {
+// TASK-151b (TCMD-04, M7 y M8): antes el fallo se provocaba con una colision de
+// mayusculas, que solo existe en NTFS o APFS: en el CI de Linux el test se saltaba.
+// Y el `rejects` no miraba el error, asi que perder el error propio pasaba en verde.
+// Ahora el EEXIST se provoca sustituyendo writeFile (sincronizado con los imports
+// ESM del codigo), en cualquier sistema.
+test('review incremental (TASK-040): si una escritura de la ronda falla, no deja ficheros de esa ronda', async () => {
   await withRonda1(INFORME_R1('cambios-solicitados'), async (repo, tareas, revisionDir) => {
-    // Un fichero con otro case colisiona con el informe de la ronda 2 en
-    // un disco que no distingue mayusculas (NTFS, APFS por defecto); en
-    // uno que si las distingue no hay colision que provocar asi.
-    await writeFile(path.join(revisionDir, 'INFORME-REVISION-2.md'), 'x\n', 'utf8');
-    if (!existsSync(path.join(revisionDir, 'informe-revision-2.md'))) {
-      t.skip('disco que distingue mayusculas: no se puede provocar la colision');
-      return;
+    const original = fsPromises.writeFile;
+    mock.method(fsPromises, 'writeFile', (async (ruta: unknown, ...resto: unknown[]) => {
+      if (typeof ruta === 'string' && path.basename(ruta) === 'informe-revision-2.md') {
+        throw Object.assign(new Error(`EEXIST: file already exists, open '${ruta}'`), { code: 'EEXIST' });
+      }
+      return (original as (...a: unknown[]) => Promise<void>)(ruta, ...resto);
+    }) as typeof fsPromises.writeFile);
+    syncBuiltinESMExports();
+    try {
+      await assert.rejects(
+        runReviewCommand(tareas, ['TASK-950'], '2026-10-04', DEPS(repo)),
+        (e: unknown) =>
+          e instanceof ReviewCommandError && /ya existe un fichero de la ronda 2/.test(e.message) && /NO se ha\s+movido/.test(e.message)
+      );
+    } finally {
+      mock.restoreAll();
+      syncBuiltinESMExports();
     }
-    commitAll(repo, 'chore: colision');
-    await assert.rejects(runReviewCommand(tareas, ['TASK-950'], '2026-10-04', DEPS(repo)));
     const nombres = await readdir(revisionDir);
     assert.ok(!nombres.includes('peticion-revision-2.md'), `quedo la peticion a medias: ${nombres.join(', ')}`);
+    assert.equal(git(['status', '--porcelain'], repo), '', 'el workspace queda como estaba');
   });
 });
 

@@ -23,6 +23,8 @@ import {
   SALIDA_DESEMPATE_SKILL_FILENAME,
 } from '../../src/core/plan-desempate-skill.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
+import { git as gitTexto } from '../helpers/finish-fixtures.js';
+import { porcelain } from '../helpers/roadmap-fixtures.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import { CatalogoSkillsError } from '../../src/core/catalogo-skills.js';
 import type { Task } from '../../src/core/task.js';
@@ -385,12 +387,16 @@ test('taskctl plan: rechaza un estado que no admite plan (p. ej. en-curso)', asy
   });
 });
 
+// TASK-151b (TCMD-03): miraba solo la clase del error; ahora el mensaje, el workspace y HEAD.
 test('taskctl plan: rechaza si el ID no existe, sin efectos secundarios', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
+    const head = gitTexto(['rev-parse', 'HEAD'], repoRoot);
     await assert.rejects(
       () => runPlanCommand(tareasRoot, ['TASK-999'], '2026-09-04', { repoCwd: repoRoot }),
-      StateMachineError
+      (e: unknown) => e instanceof StateMachineError && /TASK-999/.test(e.message) && /taskctl import o taskctl new/.test(e.message)
     );
+    assert.equal(porcelain(repoRoot), '', 'no deja nada en el workspace');
+    assert.equal(gitTexto(['rev-parse', 'HEAD'], repoRoot), head, 'no commitea');
   });
 });
 
@@ -951,6 +957,8 @@ test('taskctl plan: IMP-9 (revision por pares ronda 3) -- un skill_N_id de orige
       await assert.rejects(
         () => stat(path.join(tareasRoot, '00-planificadas', 'TASK-700', PLANIFICACION_DIRNAME))
       );
+      // TASK-151b (TCMD-05): el nombre promete el workspace limpio y no se miraba.
+      assert.equal(porcelain(repoRoot), '', 'el workspace queda limpio');
     });
   } finally {
     if (previoPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT'];

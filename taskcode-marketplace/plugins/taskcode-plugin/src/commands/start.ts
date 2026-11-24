@@ -141,7 +141,7 @@ async function runStart(
   // (tarea no encontrada) o si el estado/campos actuales no permiten
   // "start" todavia — en ambos casos no se llega a tocar Git ni mover
   // nada.
-  assertTransitionAllowed('start', existing ? existing.task : null);
+  assertTransitionAllowed('start', existing ? existing.task : null, { idPedido: id });
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
   progreso.fase(task.id, 'start', PASOS_START);
   progreso.paso('guardas');

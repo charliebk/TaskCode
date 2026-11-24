@@ -261,6 +261,31 @@ test('deteccion de tipos: NO APLICA por cliente de BD, texto con resumen, sin ma
       }
     );
   });
+  // TASK-151b (TCMD-02, M6): el caso de arriba pasaba aunque DIRS_EXCLUIDOS se
+  // quedara en ['vendor', '.git'], porque las demas carpetas no estaban versionadas.
+  // Aqui cada carpeta excluida tiene versionado un marcador de un tipo distinto.
+  await caso('un marcador VERSIONADO dentro de cada carpeta excluida no detecta su tipo', async () => {
+    await conRepo(
+      {
+        ...NODE,
+        '.gitignore': '.env\n', // sin node_modules/: las cinco carpetas quedan versionadas
+        'node_modules/dep/Gemfile':"source 'https://rubygems.org'\n",
+        'vendor/x/composer.json': '{}\n',
+        'target/gen/go.mod': 'module x\n',
+        'dist/app/pom.xml': '<project/>\n',
+        'build/out/Dockerfile': 'FROM scratch\n',
+      },
+      async (raiz, opciones) => {
+        const informe = JSON.parse(ejecutar(raiz, opciones).salida) as InformeDeploy;
+        const ids = informe.tipos.map((t) => t.id);
+        for (const id of ['ruby', 'php', 'go', 'maven', 'docker']) {
+          assert.ok(!ids.includes(id), `detecta ${id} dentro de una carpeta excluida: ${ids.join(',')}`);
+        }
+        const alcance = punto(informe, 'secretos-en-arbol').evidencias.map((e) => e.descripcion).join('\n');
+        assert.match(alcance, /\b5 versionados dentro de node_modules, vendor, target, dist o build incluidos/);
+      }
+    );
+  });
 });
 
 // ---------------------------------------------------------------------

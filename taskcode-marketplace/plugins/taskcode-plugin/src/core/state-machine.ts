@@ -33,6 +33,11 @@ export interface TransitionContext {
    * ultima ronda. Lo calcula quien llama leyendo revision/.
    */
   veredictoRondaAnterior?: 'sin-linea' | 'pendiente' | 'cambios-solicitados' | 'aprobada' | 'desconocido';
+  /**
+   * TASK-151b: el ID que se pidio, para nombrarlo cuando la tarea no existe
+   * (antes el mensaje decia «(desconocida) no existe todavia»).
+   */
+  idPedido?: string;
 }
 
 export class StateMachineError extends Error {
@@ -89,7 +94,7 @@ export function assertTransitionAllowed(
 
   if (task === null) {
     throw err(
-      '(desconocida)',
+      ctx.idPedido ?? '(desconocida)',
       command,
       'no-existe',
       null,

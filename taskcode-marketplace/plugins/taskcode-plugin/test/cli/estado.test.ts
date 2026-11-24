@@ -4,7 +4,7 @@
  * necesitar git (los tests con git de verdad y como subproceso estan en
  * test/commands/estado.test.ts).
  */
-import { test } from 'node:test';
+import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -139,6 +139,22 @@ test('estado: mainEstado escribe la linea y sale con 0; un flag desconocido sale
     texto = '';
     assert.equal(await mainEstado([], { cwd: sinTareas, salida }), 0);
     assert.equal(texto, '', 'sin tareas no imprime nada, ni un salto de linea');
+    // TASK-151b (TRES-12, M10): el nombre prometia el flag desconocido y no se probaba.
+    let error = '';
+    mock.method(process.stderr, 'write', (chunk: string | Uint8Array) => {
+      error += chunk.toString();
+      return true;
+    });
+    let codigo: number;
+    try {
+      codigo = await mainEstado(['--seguirr'], { cwd: repo, salida });
+    } finally {
+      mock.restoreAll();
+    }
+    assert.equal(codigo, 1);
+    assert.equal(texto, '', 'con un flag desconocido no pinta la linea');
+    assert.match(error, /flag desconocido "--seguirr"/);
+    assert.match(error, /Quiza quisiste decir "--seguir"/);
   });
 });
 

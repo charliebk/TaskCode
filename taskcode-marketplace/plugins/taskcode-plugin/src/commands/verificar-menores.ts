@@ -167,7 +167,7 @@ export async function runVerificarMenoresCommand(
   }
 
   const existing = await readTareaFile(tareasRoot, id);
-  assertTransitionAllowed('verificar-menores', existing === null ? null : existing.task);
+  assertTransitionAllowed('verificar-menores', existing === null ? null : existing.task, { idPedido: id });
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
   const cwd = deps.repoCwd;
   const error = (texto: string): VerificarMenoresCommandError =>
