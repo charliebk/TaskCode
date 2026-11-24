@@ -7,7 +7,7 @@ etiquetas: [verificacion, scripts]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-156-verificar-impacto-elige-los-tests-que-le
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -37,3 +37,4 @@ scripts/verificar-impacto.mjs elegia los tests de un .md de skills/ solo por su 
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-24T09:56:01Z | plan | automatico | persona | 0.17.1 |
+| 2026-11-24T09:56:49Z | approve | automatico | persona | 0.17.1 |
