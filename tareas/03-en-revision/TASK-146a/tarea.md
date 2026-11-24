@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-146-regla-4d-duplicacion-en-new-import-roadm
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 21523947
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-24
@@ -44,8 +44,15 @@ Objetivo de la tarea entera:
 | 2026-11-24T14:26:27Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T14:27:01Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T14:27:04Z | start | automatico | persona | 0.16.1 |
+| 2026-11-24T14:48:24Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 6e51ed4: parsearCamposDeTarea en new.ts (import ya importaba de new) en vez de un modulo nuevo; MODELO_POR_DEFECTO tambien para doctor-deploy; --comparar reutiliza prepararRoadmap con escribir:false en vez de duplicar sus reglas; verificar-lote reutiliza headCommit, listTareasEnEstados y compararIds; la propuesta de complejidad no se lleva a import porque depende de etiquetas e import no tiene (seria un disfraz: proponerComplejidad([]) siempre null); mutaciones en rojo: --comparar sin la decision y verificar-lote tragandose el error de lectura; el test de paridad new/import compara campos, defaults y mensajes de error
 - code-quality-reviewer — 6e51ed4
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T14:48:24Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 68 | 48235 | 21454125 | 21519 | 20 | 21523947 | - | - |
