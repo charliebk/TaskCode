@@ -53,7 +53,7 @@
  * subproceso esta aislado aqui para que el resto de la seleccion de skill siga
  * siendo pura.
  */
-import { spawnSync } from 'node:child_process';
+import { ejecutarHerramienta, localizarHerramienta, pathDelProceso } from '../fs/herramientas-deploy.js';
 const TIMEOUT_MS = 5000;
 /**
  * Separada de comprobarSkillInstalado para poder probar cada desenlace
@@ -89,14 +89,23 @@ export function interpretarResultadoPluginList(result, pluginId) {
     const instalado = reconocibles.some((entrada) => entrada.id === pluginId);
     return instalado ? 'instalado' : 'no-instalado';
 }
+/**
+ * TASK-155: en Windows `claude` es un `.cmd`, y `spawnSync('claude', ...)` sin
+ * shell no lo ejecuta (ENOENT), asi que el resultado era siempre
+ * 'no-verificable'. Se localiza en el PATH con PATHEXT y se lanza con
+ * `ejecutarHerramienta`, que pasa por el shell (ruta citada) solo si es un
+ * `.cmd`/`.bat` en Windows. Los argumentos son constantes, sin caracteres
+ * especiales del shell.
+ */
 export function comprobarSkillInstalado(pluginId) {
-    const result = spawnSync('claude', ['plugin', 'list', '--json'], {
-        encoding: 'utf8',
-        timeout: TIMEOUT_MS,
-    });
+    const pathEnv = pathDelProceso();
+    const ruta = localizarHerramienta('claude', pathEnv);
+    if (ruta === null)
+        return 'no-verificable';
+    const e = ejecutarHerramienta(ruta, ['plugin', 'list', '--json'], process.cwd(), pathEnv, TIMEOUT_MS);
     return interpretarResultadoPluginList({
-        error: result.error,
-        status: result.status,
-        stdout: typeof result.stdout === 'string' ? result.stdout : null,
+        error: e.error === null ? undefined : new Error(e.error),
+        status: e.status,
+        stdout: e.stdout,
     }, pluginId);
 }
