@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 154 / 162 items terminados (95%)** · última actualización: 2026-11-24
+**Progreso global: 155 / 162 items terminados (96%)** · última actualización: 2026-11-24
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,7 +41,7 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 16 | **8** | ~32h |
+| Q — Correcciones de la auditoría 4D | 16 | **9** | ~32h |
 | **Total pendiente** | **9** | — | — |
 
 
@@ -57,7 +57,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## Q — Correcciones de la auditoría 4D (8/16)
+## Q — Correcciones de la auditoría 4D (9/16)
 
 Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`docs/auditoria-4d-completa.md`](../auditoria-4d-completa.md).
 
@@ -77,3 +77,5 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
       *Raiz del plugin en un modulo y un lector comun de catalogos (campos-catalogo), config con una regla por cosa (masParecida, entero en rango, lista de enumerado, paridad CLAVES_CONFIG/switch, una ruta relativa), utilidades de core una vez (git, fecha, etiquetas, ANSI, origin, credenciales, fichero de test) y comentarios ciertos sin diluvio. 148a, 148b y 148c necesitaron 2 rondas; 148d, una. timeout_verificacion sube a 3600 s (decision de Carlos).*
 - [x] TASK-151 (a, b) — Regla 4D: disfraz en tests — cerrada el 2026-11-24
       *Cada test sospechoso caza su mutante (M1..M10, TCORE, TCMD, TRES): orden numerico, guarda de verificar-menores, rondas con 10 o mas, review-incremental corre en Linux (EEXIST con mock), salida temprana con NODE_DEBUG=esm, doctor sin skip por tiempo, approve/plan/start miran mensaje, git status y HEAD. 151b destapo que el error de tarea inexistente decia «(desconocida)»: ahora nombra el ID. Una ronda cada parte, con MENORES.*
+- [x] TASK-139 (a, b) — Regla 4D: tests que no protegen lo que dicen — cerrada el 2026-11-24
+      *B1-B5 cerrados con mutante (enlace de poda-tests, cerrojo ilegible con dormir inyectable, mensaje del bash de Git puro, test de review por lotes justificado y a 500 ficheros, criterios de TASK-133 segun su Resultado; el 3 sigue sin marcar por falta de evidencia). La selectiva de review y finish ya no recorta: TIPO_VERIFICACION=selectiva corre todos los afectados (o la suite entera); el freno usa comando_verificacion_freno con tope y memo propios. 139a necesito 2 rondas; 139b, una con MENORES y un renombrado posterior cerrado con --aceptar-sin-revisar (Carlos).*
