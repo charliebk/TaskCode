@@ -283,3 +283,21 @@ test('roadmap --escribir migra un ROADMAP ajeno solo si --comparar sale limpio, 
     assert.equal(extraerZonaManual(texto), MANUAL);
   });
 });
+
+// TASK-146a (CMD2-07): --comparar decide con las reglas de prepararRoadmap. Antes
+// miraba solo la marca: un ROADMAP marcado con cambios sin commitear salia como
+// «las transiciones lo regeneran», cuando una transicion no lo toca.
+test('roadmap --comparar: un ROADMAP con marca y cambios sin commitear no lo regeneran las transiciones', async () => {
+  await withRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, tarea({ id: 'TASK-009', sprint: 0, estado: 'planificada' }), CUERPO_PLANIFICABLE);
+    commitAll(repoRoot, 'docs: una tarea');
+    assert.equal(runRoadmapCommand(repoRoot, ['--escribir']).codigo, 0);
+    commitAll(repoRoot, 'docs: roadmap');
+    const limpio = runRoadmapCommand(repoRoot, ['--comparar']);
+    assert.match(limpio.salida, /las transiciones lo regeneran/);
+    await writeFile(rutaRoadmap(repoRoot), `${readFileSync(rutaRoadmap(repoRoot), 'utf8')}\nnota a mano\n`, 'utf8');
+    const c = runRoadmapCommand(repoRoot, ['--comparar']);
+    assert.match(c.salida, /Las transiciones no lo tocan: .*cambios sin commitear/);
+    assert.doesNotMatch(c.salida, /las transiciones lo regeneran/);
+  });
+});

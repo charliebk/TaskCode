@@ -45,9 +45,11 @@ export interface ResultadoRoadmap {
    * - escrito: el fichero cambio en disco (ruta y anterior rellenos);
    * - sin-cambios: se genero y coincide byte a byte con el actual;
    * - omitido: las reglas dicen que no se toca (motivo en `motivo`);
-   * - fallido: algo fallo al generar; el fichero queda como estaba.
+   * - fallido: algo fallo al generar; el fichero queda como estaba;
+   * - se-escribiria: con `escribir: false` (TASK-146a, `roadmap --comparar`),
+   *   el fichero cambiaria pero no se ha tocado.
    */
-  estado: 'escrito' | 'sin-cambios' | 'omitido' | 'fallido';
+  estado: 'escrito' | 'sin-cambios' | 'omitido' | 'fallido' | 'se-escribiria';
   /** Ruta absoluta del ROADMAP (aunque no se haya escrito). */
   ruta: string;
   /** Contenido previo, o null si no existia. Para restaurarlo si su `git add` falla. */
@@ -147,8 +149,11 @@ export function generarDesdeDisco(raiz: string, actual: string | null): { texto:
 /**
  * Decide, genera y (si toca) escribe `tareas/ROADMAP.md`. Nunca lanza:
  * todo lo que va mal se devuelve como 'fallido' u 'omitido' con su aviso.
+ * Con `escribir: false` solo decide (TASK-146a, CMD2-07: `roadmap --comparar`
+ * usa estas mismas reglas en vez de las suyas): 'se-escribiria' en lugar de
+ * escribir.
  */
-export function prepararRoadmap(raiz: string, modo: ModoRoadmap): ResultadoRoadmap {
+export function prepararRoadmap(raiz: string, modo: ModoRoadmap, { escribir = true }: { escribir?: boolean } = {}): ResultadoRoadmap {
   const ruta = path.join(raiz, 'tareas', NOMBRE);
   const r = (estado: ResultadoRoadmap['estado'], motivo: string | null, extra: Partial<ResultadoRoadmap> = {}): ResultadoRoadmap => ({
     estado,
@@ -225,6 +230,7 @@ export function prepararRoadmap(raiz: string, modo: ModoRoadmap): ResultadoRoadm
     const avisos = generado.avisos.map((a) => `${ROADMAP_RUTA}: ${a}`);
     if (actual === generado.texto) return r('sin-cambios', null, { anterior: actual, avisos });
 
+    if (!escribir) return r('se-escribiria', null, { anterior: actual, avisos, diferencias });
     writeFileSync(ruta, generado.texto, 'utf8');
     return r('escrito', null, { anterior: actual, avisos, diferencias });
   } catch (e: unknown) {

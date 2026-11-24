@@ -287,3 +287,19 @@ test('verificar-lote (TASK-144b, IMP-2): el commit del lote sincroniza solo si f
     );
   }
 });
+
+// TASK-146a (CMD2-11): las terminadas se leen con listTareasEnEstados, que propaga
+// los errores de lectura. Antes un `catch {}` daba «sin pendientes» con la carpeta
+// ilegible (aqui, un fichero donde va la carpeta: ENOTDIR, portable), y un lote con
+// tareas pendientes quedaba sin verificar sin que nadie lo supiera.
+test('verificar-lote (TASK-146a): una carpeta de terminadas ilegible aborta, no da «sin pendientes»', async () => {
+  await conLote(async (e) => {
+    const terminadas = path.join(e.tareasRoot, '04-terminadas');
+    await rm(terminadas, { recursive: true, force: true });
+    await mkdir(e.tareasRoot, { recursive: true });
+    await writeFile(terminadas, 'no es una carpeta\n', 'utf8');
+    commitAll(e.repoRoot, 'carpeta rota');
+    await assert.rejects(() => lote(e), (err: unknown) => (err as NodeJS.ErrnoException).code === 'ENOTDIR');
+    assert.equal(e.ejecuciones(), 0);
+  });
+});

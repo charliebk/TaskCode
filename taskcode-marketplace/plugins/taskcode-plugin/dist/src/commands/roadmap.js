@@ -15,10 +15,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { rechazarFlagsDesconocidos } from '../cli/args.js';
-import { resolverConfigConAvisos } from '../core/config.js';
 import { compararRoadmaps } from '../core/roadmap-comparar.js';
-import { llevaMarcaTaskctl, ROADMAP_RUTA } from '../core/roadmap.js';
-import { generarDesdeDisco, prepararRoadmap, roadmapEnSincronizacion } from '../fs/roadmap.js';
+import { ROADMAP_RUTA } from '../core/roadmap.js';
+import { generarDesdeDisco, prepararRoadmap } from '../fs/roadmap.js';
 export class RoadmapCommandError extends Error {
 }
 const FLAGS_ROADMAP = ['--comparar', '--escribir'];
@@ -74,15 +73,15 @@ export function runRoadmapCommand(repoCwd, argv) {
         lineas.push(`${ROADMAP_RUTA} no existe: no hay nada que comparar. "taskctl roadmap" muestra el que se generaria.`);
         return { modo: 'comparar', salida: `${lineas.join('\n')}\n`, avisos: generado.avisos, codigo: 0, resultado: null };
     }
-    const { config } = resolverConfigConAvisos(repoCwd);
-    if (roadmapEnSincronizacion(config)) {
-        lineas.push(`${ROADMAP_RUTA} esta declarado en rutas_sincronizacion: las transiciones no lo tocan.`);
-    }
-    else if (llevaMarcaTaskctl(actual)) {
-        lineas.push(`${ROADMAP_RUTA} lleva la marca de taskctl: las transiciones lo regeneran.`);
+    // TASK-146a (CMD2-07): lo que haria una transicion lo decide prepararRoadmap
+    // (sincronizacion, mayusculas, cambios sin commitear, marca), no unas reglas
+    // propias de --comparar que se quedaban cortas.
+    const decision = prepararRoadmap(repoCwd, 'transicion', { escribir: false });
+    if (decision.estado === 'omitido' || decision.estado === 'fallido') {
+        lineas.push(`Las transiciones no lo tocan: ${decision.motivo ?? 'motivo desconocido'}`);
     }
     else {
-        lineas.push(`${ROADMAP_RUTA} no lleva la marca de taskctl: las transiciones no lo tocan.`);
+        lineas.push(`${ROADMAP_RUTA} lleva la marca de taskctl: las transiciones lo regeneran.`);
     }
     const diferencias = compararRoadmaps(actual, generado.texto);
     if (diferencias.length === 0) {

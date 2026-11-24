@@ -15,23 +15,21 @@
  * - en rojo, no anota nada y aborta listando esas tareas: son las sospechosas.
  *   La vuelta atras (revertir un merge, abrir un fix) la decide una persona.
  */
-import { readdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { writeFile } from 'node:fs/promises';
 import { rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { resolverConfig } from '../core/config.js';
 import { formatearVerificacionRoja } from '../core/informe-verificacion.js';
 import { PUERTA_FINISH } from '../core/registro-puertas.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
-import { isValidTaskId, STATE_FOLDER } from '../core/task.js';
+import { compararIds } from '../core/task.js';
 import { anotarLineaEnSeccion, MARCA_LOTE_VERDE, pendienteDeLote, SECCION_VERIFICACION_LOTE } from '../core/transiciones.js';
 import { crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
-import { currentBranch, isWorkspaceClean, resolveIntegrationBranch } from '../fs/git.js';
+import { currentBranch, headCommit, isWorkspaceClean, resolveIntegrationBranch } from '../fs/git.js';
 import { autoCommit, type AutoCommitResult } from '../fs/git-commit.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
 import { anotarSuite } from './finish-verificacion.js';
-import { readTareaFile, type ReadTareaResult } from '../fs/task-store.js';
+import { listTareasEnEstados, readTareaFile, type ReadTareaResult } from '../fs/task-store.js';
 import { ejecutarVerificacion, guardarMemo, huellaDelArbol } from '../fs/verificacion.js';
-import { spawnSync } from 'node:child_process';
 
 export class VerificarLoteCommandError extends Error {
   constructor(message: string) {
@@ -59,21 +57,22 @@ export interface VerificarLoteResult {
   autoCommit: AutoCommitResult | null;
 }
 
-function headDe(cwd: string): string {
-  const r = spawnSync('git', ['rev-parse', 'HEAD'], { cwd, encoding: 'utf8', windowsHide: true });
-  return (r.stdout ?? '').trim();
-}
-
-/** Las tareas terminadas pendientes de lote, en orden de su ultima anotacion. */
+/**
+ * Las tareas terminadas pendientes de lote, por ID. TASK-146a (CMD2-11): con
+ * listTareasEnEstados, que propaga los errores de lectura (antes un EACCES se
+ * tragaba como «sin pendientes»); y una tarea ilegible aborta, porque podria
+ * estar pendiente.
+ */
 async function pendientesDeLote(tareasRoot: string): Promise<ReadTareaResult[]> {
-  let entradas: string[];
-  try {
-    entradas = await readdir(path.join(tareasRoot, STATE_FOLDER.terminada));
-  } catch {
-    return [];
+  const { tareas, ilegibles } = await listTareasEnEstados(tareasRoot, ['terminada']);
+  if (ilegibles.length > 0) {
+    throw new VerificarLoteCommandError(
+      `[ERROR] taskctl verificar-lote: hay tareas terminadas que no se pueden leer (${ilegibles.join(', ')}), y podrian ` +
+        'estar pendientes de lote. Arreglalas y reintenta.'
+    );
   }
   const pendientes: ReadTareaResult[] = [];
-  for (const id of entradas.filter((e) => isValidTaskId(e)).sort()) {
+  for (const id of tareas.map((t) => t.task.id).sort(compararIds)) {
     const t = await readTareaFile(tareasRoot, id);
     if (t !== null && pendienteDeLote(t.body)) pendientes.push(t);
   }
@@ -118,7 +117,8 @@ export async function runVerificarLoteCommand(
     return { pendientes: [], commitVerificado: null, duracionMs: null, autoCommit: null };
   }
   const ids = pendientes.map((t) => t.task.id);
-  const commit = headDe(cwd);
+  // TASK-146a (CMD2-10): headCommit lanza si git falla (antes «lote en verde en » sin commit).
+  const commit = headCommit(cwd);
   const timeoutS = config.timeout_verificacion;
   const inicio = Date.now();
   // MEN-3 (revision TASK-115): como finish, el paso se ve y el comando recibe el contador (TASKCTL_PROGRESO).
