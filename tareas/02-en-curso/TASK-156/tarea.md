@@ -39,3 +39,7 @@ scripts/verificar-impacto.mjs elegia los tests de un .md de skills/ solo por su 
 | 2026-11-24T09:56:01Z | plan | automatico | persona | 0.17.1 |
 | 2026-11-24T09:56:49Z | approve | automatico | persona | 0.17.1 |
 | 2026-11-24T10:02:30Z | start | automatico | persona | 0.17.1 |
+
+## Autorrevision
+
+- code-quality-reviewer — 1e158b1
