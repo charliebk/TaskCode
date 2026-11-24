@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 17161227
-tokens_revision: null
+tokens_revision: 6171952
 creado: 2026-11-22
 actualizado: 2026-11-24
 dependencias: []
@@ -50,9 +50,12 @@ Objetivo de la tarea entera:
 
 - 4D — 3d8517d: reutilizados gitLinea y gitCrudo (con env nuevo) en vez de crear otro envoltorio; configDeLaRama y CIERRE_SIN_MERGE en finish-opciones, que ya importan las dos puertas; ejecutarPuerta, cerrarIgualmente y errorArbolSucio en finish-verificacion; fs/verificacion.ts ya no tenia copia de git (la de la auditoria se fue en 149a), y el test de paridad lo fija; el mensaje de arbol sucio de held-out sigue aparte a proposito (no muestra el comando); mutaciones en rojo: la regex copiada en freno-stop y un spawnSync de git en finish-heldout
 - code-quality-reviewer — 3d8517d
+- 4D — f5d4dbc: test de anotarSuite en pesada y documentacion; errorArbolSucio con sujeto y verbos; CIERRE_SIN_MERGE en finish-verificacion
+- code-quality-reviewer — f5d4dbc (ronda 2)
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T10:04:40Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 80 | 51596 | 17084868 | 24683 | 19 | 17161227 | - | - |
+| 2026-11-24T10:31:53Z | revision | agente:af40d63e24e9606f9 | 90 | 159207 | 5995235 | 17420 | 8 | 6171952 | 1 | - |
