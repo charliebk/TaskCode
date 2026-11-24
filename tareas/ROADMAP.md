@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-158, TASK-143c, TASK-019
+- **En marcha:** TASK-143c (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-158, TASK-019
 
 ## H0 — H0
 
@@ -137,7 +137,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | ✅ terminada |
 | — | TASK-151b | commands, hooks y cli (parte b de TASK-151) | media | TASK-151a | ✅ terminada |
 | — | TASK-153b | candidatos 4D en la peticion de revision (parte b de TASK-153) | alta | TASK-153a | ✅ terminada |
-| 12 | TASK-143c | paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143) | alta | TASK-143b | lista para empezar |
+| 12 | TASK-143c | paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143) | alta | TASK-143b | ▶ en diseño |
 | — | TASK-144c | patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) | alta | TASK-144b | ✅ terminada |
 | — | TASK-147c | fases y Marca en metricas (parte c de TASK-147) | alta | TASK-147b | ✅ terminada |
 | — | TASK-148c | utilidades de core (parte c de TASK-148) | alta | TASK-148b | ✅ terminada |
