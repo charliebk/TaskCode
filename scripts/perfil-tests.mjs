@@ -37,6 +37,7 @@ import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { conDistProtegido } from './verificar-impacto.mjs';
 
 const PLUGIN = 'taskcode-marketplace/plugins/taskcode-plugin';
 const WIN = process.platform === 'win32';
@@ -202,10 +203,19 @@ async function main(argv) {
   const o = opciones(argv);
   const raiz = (spawnSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).stdout ?? '').trim();
   const dirPlugin = path.resolve(o.dir ?? path.join(raiz, ...PLUGIN.split('/')));
-  if (!o.sinBuild) {
+  if (o.sinBuild) return medir(dirPlugin, o);
+  // TASK-143c (SCR-13): compilar reescribe dist/src (versionado). Con la
+  // misma proteccion que verificar-impacto (copia y cerrojo de TASK-136): el
+  // arbol queda como estaba y no se pisa con una verificacion a la vez.
+  return conDistProtegido(dirPlugin, async () => {
     const b = spawnSync('npm run limpiar:test && npm run build', { cwd: dirPlugin, shell: true, stdio: 'inherit' });
     if (b.status !== 0) return 1;
-  }
+    return medir(dirPlugin, o);
+  });
+}
+
+/** Corre y mide cada fichero de test ya compilado, y escribe el informe. */
+async function medir(dirPlugin, o) {
   const ficheros = ficherosDeTest(dirPlugin, o.filtro);
   const dirTmp = mkdtempSync(path.join(tmpdir(), 'perfil-tests-'));
   try {

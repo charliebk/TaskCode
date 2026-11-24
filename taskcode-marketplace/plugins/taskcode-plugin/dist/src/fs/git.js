@@ -13,7 +13,7 @@ import { resolverConfig } from '../core/config.js';
 import { ocultarCredenciales } from '../core/plataforma-remota.js';
 import { EXTENSIONES_CODIGO, PATRON_GREP_DEFINICION } from '../core/candidatos-4d.js';
 import { CARPETAS_TEST, MARCAS_TEST } from '../core/menores.js';
-import { rutaGit } from './git-crudo.js';
+import { gitCrudo, rutaGit } from './git-crudo.js';
 export class GitCommandError extends Error {
     args;
     stderr;
@@ -198,11 +198,37 @@ export function isValidBranchName(name, cwd) {
  * ya asume _gitflow-common.sh.
  */
 export function isRemoteAvailable(cwd) {
-    const result = spawnSync('git', ['ls-remote', '--heads', 'origin'], { cwd, encoding: 'utf8' });
-    if (result.error) {
-        throw new GitLaunchError(result.error);
-    }
-    return result.status === 0;
+    return lsRemoto(['--heads', 'origin'], cwd).ok;
+}
+/**
+ * TASK-143c (SCR-08): limite de los `ls-remote`, en milisegundos. Lo marca
+ * GF_TIMEOUT_REMOTO (segundos enteros mayores que 0; 5 por defecto), la misma
+ * variable y el mismo valor que `_gf_ls_remote` de _gitflow-common.sh.
+ */
+export function timeoutRemotoMs(env = process.env) {
+    const v = (env.GF_TIMEOUT_REMOTO ?? '').trim();
+    const n = /^\d+$/.test(v) ? Number(v) : 0;
+    return (n > 0 ? n : 5) * 1000;
+}
+/**
+ * TASK-143c (SCR-08): `git ls-remote` con el entorno de gitCrudo
+ * (GIT_TERMINAL_PROMPT=0: sin credenciales no se queda esperando una
+ * contrasena) y con limite de tiempo, como `_gf_ls_remote`. Antes cuatro
+ * spawnSync sin ninguna de las dos cosas: con la VPN caida, finish esperaba
+ * al timeout del sistema. Un limite agotado cuenta como remoto que no
+ * responde (ok false); no poder lanzar git sigue siendo GitLaunchError.
+ */
+function lsRemoto(args, cwd) {
+    const ms = timeoutRemotoMs();
+    const r = gitCrudo(['ls-remote', ...args], cwd, { timeoutMs: ms });
+    const agotado = r.error?.code === 'ETIMEDOUT';
+    if (r.error !== undefined && !agotado)
+        throw new GitLaunchError(r.error);
+    return {
+        ok: r.error === undefined && r.status === 0,
+        salida: r.stdout.toString('utf8'),
+        stderr: agotado ? `sin respuesta de origin en ${String(ms / 1000)} s (GF_TIMEOUT_REMOTO)` : r.stderr,
+    };
 }
 /**
  * Identidad Git de quien ejecuta el comando: el valor de
@@ -687,8 +713,10 @@ export function mensajeTareaEnOtraRama(id, rama) {
 }
 /** true si esa rama existe en "origin". Asume que ya se llamo isRemoteAvailable. */
 function remoteBranchExists(name, cwd) {
-    const output = runGit(['ls-remote', '--heads', 'origin', name], cwd);
-    return output
+    const ls = lsRemoto(['--heads', 'origin', name], cwd);
+    if (!ls.ok)
+        throw new GitCommandError(['ls-remote', '--heads', 'origin', name], ocultarCredenciales(ls.stderr));
+    return ls.salida
         .split('\n')
         .some((line) => line.trim().endsWith(`refs/heads/${name}`));
 }
@@ -937,13 +965,11 @@ export function tagRemoto(nombre, cwd) {
     if (!hasOrigin(cwd))
         return { estado: 'sin-origin' };
     const ref = `refs/tags/${nombre}`;
-    const result = spawnSync('git', ['ls-remote', '--tags', 'origin', ref, `${ref}^{}`], { cwd, encoding: 'utf8' });
-    if (result.error)
-        throw new GitLaunchError(result.error);
-    if (result.status !== 0)
+    const ls = lsRemoto(['--tags', 'origin', ref, `${ref}^{}`], cwd);
+    if (!ls.ok)
         return { estado: 'inalcanzable' };
     let sha = null;
-    for (const linea of (result.stdout ?? '').split(/\r?\n/)) {
+    for (const linea of ls.salida.split(/\r?\n/)) {
         const [oid, nombreRef] = linea.trim().split(/\s+/);
         // El anotado lista el objeto tag y, aparte, el commit con "^{}": manda el commit.
         if (oid !== undefined && nombreRef === `${ref}^{}`)
@@ -991,12 +1017,10 @@ export function fastForwardDesde(ref, cwd) {
 export function ramaRemotaContiene(rama, commit, cwd) {
     if (!hasOrigin(cwd))
         return false;
-    const ls = spawnSync('git', ['ls-remote', '--heads', 'origin', `refs/heads/${rama}`], { cwd, encoding: 'utf8' });
-    if (ls.error)
-        throw new GitLaunchError(ls.error);
-    if (ls.status !== 0)
+    const ls = lsRemoto(['--heads', 'origin', `refs/heads/${rama}`], cwd);
+    if (!ls.ok)
         return false;
-    const punta = (ls.stdout ?? '').trim().split(/\s+/)[0];
+    const punta = ls.salida.trim().split(/\s+/)[0];
     if (punta === undefined || punta === '')
         return false;
     const anc = spawnSync('git', ['merge-base', '--is-ancestor', '--end-of-options', commit, punta], {

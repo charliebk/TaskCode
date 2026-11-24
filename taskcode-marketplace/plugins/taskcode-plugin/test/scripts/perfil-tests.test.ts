@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -117,6 +117,32 @@ test('cuenta por fichero los tests y los procesos git (desde node y desde bash),
     assert.match(roto.stdout, /\| \d \| test\/rojo\.test\.ts \| [\d.]+ \| 1 \| 0 \| 0\.0 \| 1 \| 1 \|/);
     const json = spawnSync(process.execPath, [SCRIPT, '--dir', dir, '--sin-build', '--json', '--filtro', 'test/roto.test.ts'], { encoding: 'utf8', env: ENV });
     assert.deepEqual((JSON.parse(json.stdout) as { filas: { codigo: number }[] }).filas.map((f) => f.codigo), [1]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('perfil-tests (TASK-143c, SCR-13): compila con dist/src protegido y lo devuelve tal cual', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'perfil-protegido-'));
+  try {
+    await mkdir(path.join(dir, 'dist', 'src'), { recursive: true });
+    await mkdir(path.join(dir, 'dist', 'test'), { recursive: true });
+    await writeFile(path.join(dir, 'dist', 'src', 'x.js'), 'original\n');
+    await writeFile(path.join(dir, 'dist', 'test', 'uno.test.js'), "import { test } from 'node:test';\ntest('uno', () => {});\n");
+    // El "build" reescribe dist/src, como tsc en el plugin de verdad.
+    await writeFile(
+      path.join(dir, 'package.json'),
+      JSON.stringify({
+        scripts: {
+          'limpiar:test': 'node -e 0',
+          build: "node -e \"require('fs').writeFileSync('dist/src/x.js','compilado')\"",
+        },
+      })
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, '--dir', dir, '--json'], { encoding: 'utf8', env: ENV });
+    assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
+    assert.equal((JSON.parse(r.stdout.slice(r.stdout.indexOf('{'))) as { filas: unknown[] }).filas.length, 1);
+    assert.equal(await readFile(path.join(dir, 'dist', 'src', 'x.js'), 'utf8'), 'original\n');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
