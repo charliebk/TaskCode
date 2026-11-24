@@ -1,5 +1,6 @@
 import { compararVersiones } from './version.js';
 import { quitarAnsi } from './utilidades-texto.js';
+import { mediana } from './estadistica.js';
 /** TASK-129: la puerta con el tamano de la completa: modo = numero de tests (o `-`). */
 export const PUERTA_SUITE = 'suite';
 function sumar(texto, re) {
@@ -38,46 +39,54 @@ export function contarTests(salida, opciones = {}) {
     const dotnet = ultimo(t, /Total tests:\s*(\d+)/g);
     if (dotnet !== null)
         return dotnet;
-    const pytestFinal = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
+    // TASK-138a (A3): la linea final de pytest se busca una vez y vale para las dos preguntas.
+    const pytest = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
     const maven = ultimo(t, /Tests run:\s*(\d+)/g);
     if (maven !== null)
         return opciones.recortada === true && /Reactor Summary/.test(t) ? null : maven;
-    if (opciones.recortada === true && pytestFinal === null)
+    if (opciones.recortada === true && pytest === null)
         return null;
     const cargo = sumar(t, /test result: \w+\.\s+(\d+) passed;\s+(\d+) failed/g);
     if (cargo !== null)
         return cargo;
-    const pytest = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
     if (pytest !== null)
         return Number(pytest[2]) + (pytest[1] === undefined ? 0 : Number(pytest[1]));
     return null;
 }
-function mediana(xs) {
-    if (xs.length === 0)
-        return null;
-    const o = [...xs].sort((a, b) => a - b);
-    const m = Math.floor(o.length / 2);
-    return o.length % 2 === 1 ? o[m] : (o[m - 1] + o[m]) / 2;
-}
-/** Por version (orden semver), de las lineas `suite` en verde de las tareas de cada version. */
-export function suitePorVersion(tareas, lineas) {
-    const versionDe = new Map(tareas.filter((t) => t.version !== null).map((t) => [t.id, t.version]));
-    const tests = new Map();
-    const duraciones = new Map();
+/**
+ * TASK-138a (A1): la ultima linea `suite` en verde de cada tarea. Es la regla
+ * de las dos vistas (metricas --por-version y el aviso de crecimiento de
+ * doctor): una tarea que corre la completa dos veces cuenta una vez, con la
+ * ultima. Antes doctor sumaba todas las lineas a la mediana.
+ */
+export function ultimaSuitePorTarea(lineas) {
+    const porTarea = new Map();
     for (const l of lineas) {
         if (l.puerta !== PUERTA_SUITE || l.resultado !== 'verde')
             continue;
-        const v = versionDe.get(l.tarea);
-        if (v === undefined)
-            continue;
-        duraciones.set(v, [...(duraciones.get(v) ?? []), l.duracionS]);
-        if (/^\d+$/.test(l.modo))
-            tests.set(v, [...(tests.get(v) ?? []), Number(l.modo)]);
+        porTarea.set(l.tarea, { tests: /^\d+$/.test(l.modo) ? Number(l.modo) : null, completaS: l.duracionS });
     }
-    return [...new Set([...tests.keys(), ...duraciones.keys()])].sort(compararVersiones).map((version) => ({
+    return porTarea;
+}
+/** TASK-138a (A1, A2): de un grupo de tareas, el mayor numero de tests y la mediana de la duracion. */
+export function resumirSuites(suites) {
+    const tests = suites.map((x) => x?.tests ?? null).filter((x) => x !== null);
+    const duraciones = suites.map((x) => x?.completaS ?? null).filter((x) => x !== null);
+    return { tests: tests.length === 0 ? null : Math.max(...tests), completaS: mediana(duraciones) };
+}
+/** Por version (orden semver), de la ultima completa en verde de cada tarea de cada version. */
+export function suitePorVersion(tareas, lineas) {
+    const porTarea = ultimaSuitePorTarea(lineas);
+    const porVersion = new Map();
+    for (const t of tareas) {
+        const suite = porTarea.get(t.id);
+        if (t.version === null || suite === undefined)
+            continue;
+        porVersion.set(t.version, [...(porVersion.get(t.version) ?? []), suite]);
+    }
+    return [...porVersion.keys()].sort(compararVersiones).map((version) => ({
         version,
-        tests: tests.has(version) ? Math.max(...tests.get(version)) : null,
-        completaS: mediana(duraciones.get(version) ?? []),
+        ...resumirSuites(porVersion.get(version)),
     }));
 }
 /**

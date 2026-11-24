@@ -54,6 +54,7 @@
  * adivinar si un 0 es un cero o una ausencia.
  */
 import { estimadaAnotada } from './duracion-estimada.js';
+import { mediana } from './estadistica.js';
 import { leerCierre } from './cierre.js';
 import {
   leerTransiciones,
@@ -1041,13 +1042,9 @@ export function tareasSinCoste(
     .filter((t) => t.fases.length > 0);
 }
 
-/** Mediana de una lista (media de los dos centrales si es par); null si esta vacia. */
-export function mediana(valores: readonly number[]): number | null {
-  if (valores.length === 0) return null;
-  const v = [...valores].sort((a, b) => a - b);
-  const m = Math.floor(v.length / 2);
-  return v.length % 2 === 1 ? (v[m] as number) : ((v[m - 1] as number) + (v[m] as number)) / 2;
-}
+// TASK-138a (CORE2-11): la mediana vive en core/estadistica.ts; se reexporta aqui
+// para quien ya la tomaba de las metricas.
+export { mediana };
 
 /** Media redondeada a `decimales`; null si la lista esta vacia (nunca NaN). */
 export function media(valores: readonly number[], decimales = 2): number | null {

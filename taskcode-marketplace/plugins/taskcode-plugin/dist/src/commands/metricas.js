@@ -43,7 +43,7 @@
  */
 import { PUERTA_FINISH, PUERTA_REVIEW, resumirFreno, resumirPuerta, sumarPorTarea } from '../core/registro-puertas.js';
 import { claveRuta } from '../fs/cobertura.js';
-import { PUERTA_SUITE } from '../core/crecimiento-suite.js';
+import { ultimaSuitePorTarea } from '../core/crecimiento-suite.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import path from 'node:path';
 import { readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
@@ -333,12 +333,7 @@ export async function leerRepoMetricas(repo, varios) {
     const reviewPorTarea = resumirPuerta(registroPuertas, PUERTA_REVIEW);
     const finishPorTarea = resumirPuerta(registroPuertas, PUERTA_FINISH);
     // TASK-129: la ultima completa en verde de cada tarea (numero de tests y duracion).
-    const suitePorTarea = new Map();
-    for (const l of registroPuertas) {
-        if (l.puerta !== PUERTA_SUITE || l.resultado !== 'verde')
-            continue;
-        suitePorTarea.set(l.tarea, { tests: /^\d+$/.test(l.modo) ? Number(l.modo) : null, completaS: l.duracionS });
-    }
+    const suitePorTarea = ultimaSuitePorTarea(registroPuertas);
     const filas = leidas.map((l) => calcularFila({
         sincronizacionS: sincPorTarea.get(l.task.task.id) ?? null,
         freno: frenoPorTarea.get(l.task.task.id) ?? null,
