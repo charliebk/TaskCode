@@ -388,12 +388,13 @@ _gf_sync_branch() {
             log_error "$branch no existe localmente y no hay conexion remota para crearla."
             exit 1
         fi
+        log_ok "Switched to branch $branch (creada desde origin/$branch)"
     elif [ "$(git branch --show-current 2>/dev/null)" = "$branch" ]; then
         log_info "Ya estamos en $branch."
     else
         invoke_git "No se pudo cambiar a $branch." checkout -q "$branch"
+        log_ok "Switched to branch $branch"
     fi
-    log_ok "Switched to branch $branch"
 
     if [ "$REMOTE_AVAILABLE" = true ]; then
         invoke_git "No se pudo actualizar $branch desde origin." \
