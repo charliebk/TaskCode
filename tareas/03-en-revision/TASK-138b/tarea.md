@@ -69,3 +69,7 @@ La decision verde/rojo/omitido compartida por anotarFinish, review, anotarSuite 
   - MEN-3 y MEN-4 corregidos con tests: `omitido` en review al reutilizar el memo, y las terminadas ilegibles cuentan. `verificar-menores` los lista como pendientes porque no tocan el fichero citado, sino un test.
   - MEN-2 aceptado: el freno tiene su propio caso, `excedido`. Queda para TASK-140 o TASK-158.
   - MEN-5 aceptado: una lectura de más, solo con la config nula.
+
+## Verificacion parcial
+
+- 2026-11-24T17:16:59Z: todo el codigo que cambia la tarea (19 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
