@@ -29,8 +29,8 @@ Parte b del troceo de TASK-139 (Regla 4D: tests que no protegen lo que dicen), p
 El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos los afectados en review y finish.
 
 ## Criterios de aceptacion
-- [ ] El comando de verificacion recibe TASKCODE_VERIFICACION con su tipo (selectiva en review y finish, freno en el Stop), con test, y el README del plugin lo documenta
-- [ ] Con TASKCODE_VERIFICACION=selectiva, scripts/verificar-impacto.mjs no recorta: corre todos los afectados, y la suite completa si no sabe que afecta; con freno o a mano mantiene el tope, con test
+- [x] El comando de verificacion recibe TASKCODE_VERIFICACION con su tipo (selectiva en review y finish, freno en el Stop), con test, y el README del plugin lo documenta
+- [x] Con TASKCODE_VERIFICACION=selectiva, scripts/verificar-impacto.mjs no recorta: corre todos los afectados, y la suite completa si no sabe que afecta; con freno o a mano mantiene el tope, con test
 
 ## Transiciones
 
@@ -56,3 +56,15 @@ El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos l
 ## Verificacion ligera
 
 - 2026-11-24T04:17:42Z: ronda 1; commit revisado 99a5aa4e26d6e2474b3e60491d8206d8de59feab; commit verificado b2b9db03badecdca18441dda451ec15d5c86d043; ficheros: scripts/verificar-impacto.mjs, taskcode-marketplace/plugins/taskcode-plugin/docs/configuracion.md, taskcode-marketplace/plugins/taskcode-plugin/test/scripts/verificar-impacto.test.ts; corregidos: MEN-1, MEN-2, MEN-3, MEN-4; pendientes: ninguno
+
+## Resultado
+
+- El plugin pasa `TASKCODE_VERIFICACION` al comando de verificación con su tipo: `selectiva` en review y en finish con código parcial, `freno` con `comando_verificacion_freno`.
+- `scripts/verificar-impacto.mjs`:
+  - Con `selectiva` no aplica el tope: corre todos los afectados y, si no sabe qué afecta, la suite entera (la ejecuta de verdad, con test).
+  - Con `freno` o a mano conserva el tope de 10.
+  - No pasa la variable a los tests hijos.
+- Config del repo: el freno corre el script como comando propio (tipo y memo aparte, presupuesto 600 s), así que su verde recortado no lo reutilizan finish ni el guardián. `timeout_verificacion_selectiva` sube a 3600.
+- Desviación del plan: se probó a cambiar el tipo del freno en el plugin, pero rompía 6 tests de memo y mensajes. Se deshizo y se usó `comando_verificacion_freno` (TASK-125), que ya separa tipo y memo. La función pura `topeEfectivo` se prueba por `--listar` en vez de con un test aparte.
+- Documentación: docs/configuracion.md y task-workflow/verificacion-selectiva.md. El README del plugin enlaza a la primera.
+- Revisión, ronda 1: aprobada con correcciones. MEN-1 a MEN-4 corregidos: test de la suite entera, test de que la variable no se hereda, mensaje sin «queda para antes de publicar» y documentación del caso sin comando del freno.
