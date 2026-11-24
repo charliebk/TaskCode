@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { parseImportArgs, runImportCommand, normalizedTitleKey, ImportCommandError } from '../../src/commands/import.js';
 import { writeTareaFile } from '../../src/fs/task-store.js';
-import { buildNewTask, DEFAULT_BODY } from '../../src/commands/new.js';
+import { buildNewTask, DEFAULT_BODY, MODELO_POR_DEFECTO, NewTaskArgError, parseNewTaskArgs } from '../../src/commands/new.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import { listExistingTaskIds } from '../../src/fs/task-store.js';
 
@@ -176,7 +176,8 @@ test('runImportCommand: escenario de contenido sobre un mismo repo (5 tareas con
       /## Objetivo\n\nLinea uno\nlinea dos\n\nOtro parrafo\n\n## Criterios de aceptacion\n- \[ \] criterio a\n/
     );
     const sin = await readFile(rObj.creadas[1]!.filePath, 'utf8');
-    assert.match(sin.replace(/\r\n/g, '\n'), /## Objetivo\n\n\n## Criterios de aceptacion\n- \[ \] criterio b\n/);
+    // TASK-146a (CMD2-06): el cuerpo sale de componerCuerpo, como en new (objetivo vacio: linea en blanco).
+    assert.match(sin.replace(/\r\n/g, '\n'), /## Objetivo\n\n\n\n## Criterios de aceptacion\n- \[ \] criterio b\n/);
 
     // Un ">" tras un criterio invalida la entrada y no crea nada
     const mdMala = await writeFixture('### Mala\n> objetivo\n- criterio a\n> suelta\n');
@@ -310,4 +311,26 @@ test('runImportCommand: una tarea EXISTENTE con tarea.md corrupto, o con un valo
     assert.equal(result2.advertencias.length, 1);
     assert.match(result2.advertencias[0]!, /TASK-001/);
   });
+});
+
+// TASK-146a (CMD2-06): import valida y rellena los campos comunes igual que new
+// (antes los copiaba, con su propio 'sonnet').
+test('parseImportArgs y parseNewTaskArgs: mismos campos, mismos valores por defecto y mismos errores', () => {
+  const flags = ['--complejidad', 'alta', '--sprint', '4', '--modelo-sugerido', 'opus', '--agente-revisor', 'r'];
+  const imp = parseImportArgs(['x.md', '--tipo', 'fix', ...flags], 'por-defecto');
+  const nue = parseNewTaskArgs(['t', '--tipo', 'fix', ...flags], 'por-defecto');
+  for (const k of ['complejidad', 'sprint', 'modeloSugerido', 'agenteRevisor'] as const) assert.equal(imp[k], nue[k], k);
+  const impDef = parseImportArgs(['x.md'], 'por-defecto');
+  const nueDef = parseNewTaskArgs(['t', '--tipo', 'feature'], 'por-defecto');
+  assert.deepEqual(
+    [impDef.complejidad, impDef.sprint, impDef.modeloSugerido, impDef.agenteRevisor],
+    [nueDef.complejidad, nueDef.sprint, nueDef.modeloSugerido, nueDef.agenteRevisor]
+  );
+  assert.equal(impDef.modeloSugerido, MODELO_POR_DEFECTO);
+  for (const malo of [['--sprint', '-1'], ['--complejidad', 'enorme']]) {
+    const mi = (() => { try { parseImportArgs(['x.md', ...malo]); } catch (e) { return e; } })();
+    const mn = (() => { try { parseNewTaskArgs(['t', '--tipo', 'fix', ...malo]); } catch (e) { return e; } })();
+    assert.ok(mi instanceof ImportCommandError && mn instanceof NewTaskArgError, String(malo));
+    assert.equal(mi.message, mn.message, String(malo));
+  }
 });

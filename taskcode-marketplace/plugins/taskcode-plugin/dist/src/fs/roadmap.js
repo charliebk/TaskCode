@@ -109,8 +109,11 @@ export function generarDesdeDisco(raiz, actual) {
 /**
  * Decide, genera y (si toca) escribe `tareas/ROADMAP.md`. Nunca lanza:
  * todo lo que va mal se devuelve como 'fallido' u 'omitido' con su aviso.
+ * Con `escribir: false` solo decide (TASK-146a, CMD2-07: `roadmap --comparar`
+ * usa estas mismas reglas en vez de las suyas): 'se-escribiria' en lugar de
+ * escribir.
  */
-export function prepararRoadmap(raiz, modo) {
+export function prepararRoadmap(raiz, modo, { escribir = true } = {}) {
     const ruta = path.join(raiz, 'tareas', NOMBRE);
     const r = (estado, motivo, extra = {}) => ({
         estado,
@@ -177,6 +180,8 @@ export function prepararRoadmap(raiz, modo) {
         const avisos = generado.avisos.map((a) => `${ROADMAP_RUTA}: ${a}`);
         if (actual === generado.texto)
             return r('sin-cambios', null, { anterior: actual, avisos });
+        if (!escribir)
+            return r('se-escribiria', null, { anterior: actual, avisos, diferencias });
         writeFileSync(ruta, generado.texto, 'utf8');
         return r('escrito', null, { anterior: actual, avisos, diferencias });
     }

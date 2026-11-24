@@ -58,7 +58,8 @@ const DEFAULT_SPRINT = 0;
  * subir el numero de roles.
  */
 const DEFAULT_COMPLEJIDAD: TaskComplexity | null = null;
-const DEFAULT_MODELO = 'sonnet';
+/** TASK-146a (CMD2-06): el modelo por defecto de una tarea nueva, el mismo en new, import y doctor-deploy. */
+export const MODELO_POR_DEFECTO = 'sonnet';
 export const DEFAULT_BODY = '## Objetivo\n\n\n## Criterios de aceptacion\n- [ ] \n';
 
 /**
@@ -174,28 +175,7 @@ export function parseNewTaskArgs(
     );
   }
 
-  let complejidad: TaskComplexity | null = DEFAULT_COMPLEJIDAD;
-  const complejidadRaw = flags['complejidad'];
-  if (complejidadRaw !== undefined) {
-    if (
-      typeof complejidadRaw !== 'string' ||
-      !(TASK_COMPLEXITIES as readonly string[]).includes(complejidadRaw)
-    ) {
-      throw new NewTaskArgError(
-        `--complejidad invalida. Debe ser una de: ${TASK_COMPLEXITIES.join(', ')}.`
-      );
-    }
-    complejidad = complejidadRaw as TaskComplexity;
-  }
-
-  let sprint = DEFAULT_SPRINT;
-  const sprintRaw = flags['sprint'];
-  if (sprintRaw !== undefined) {
-    if (typeof sprintRaw !== 'string' || !/^\d+$/.test(sprintRaw)) {
-      throw new NewTaskArgError('--sprint debe ser un numero entero no negativo.');
-    }
-    sprint = parseInt(sprintRaw, 10);
-  }
+  const comunes = parsearCamposDeTarea(flags, agenteRevisorPorDefecto, (m) => new NewTaskArgError(m));
 
   const etiquetasRaw = flags['etiquetas'];
   const etiquetas =
@@ -206,16 +186,39 @@ export function parseNewTaskArgs(
           .filter((s) => s.length > 0)
       : [];
 
-  const modeloSugerido =
-    typeof flags['modelo-sugerido'] === 'string'
-      ? (flags['modelo-sugerido'] as string)
-      : DEFAULT_MODELO;
-  const agenteRevisor =
-    typeof flags['agente-revisor'] === 'string'
-      ? (flags['agente-revisor'] as string)
-      : agenteRevisorPorDefecto;
+  return { titulo, tipo: tipoRaw as TaskType, etiquetas, ...comunes };
+}
 
-  return { titulo, tipo: tipoRaw as TaskType, sprint, etiquetas, complejidad, modeloSugerido, agenteRevisor };
+/**
+ * TASK-146a (CMD2-06): --complejidad, --sprint, --modelo-sugerido y
+ * --agente-revisor, con sus valores por defecto. Los comparten new e import
+ * (antes import los copiaba, con su propio 'sonnet'). `fail` construye el
+ * error de cada comando.
+ */
+export function parsearCamposDeTarea(
+  flags: Readonly<Record<string, string | boolean | string[]>>,
+  agenteRevisorPorDefecto: string,
+  fail: (mensaje: string) => Error
+): { complejidad: TaskComplexity | null; sprint: number; modeloSugerido: string; agenteRevisor: string } {
+  let complejidad: TaskComplexity | null = DEFAULT_COMPLEJIDAD;
+  const complejidadRaw = flags['complejidad'];
+  if (complejidadRaw !== undefined) {
+    if (typeof complejidadRaw !== 'string' || !(TASK_COMPLEXITIES as readonly string[]).includes(complejidadRaw)) {
+      throw fail(`--complejidad invalida. Debe ser una de: ${TASK_COMPLEXITIES.join(', ')}.`);
+    }
+    complejidad = complejidadRaw as TaskComplexity;
+  }
+  let sprint = DEFAULT_SPRINT;
+  const sprintRaw = flags['sprint'];
+  if (sprintRaw !== undefined) {
+    if (typeof sprintRaw !== 'string' || !/^\d+$/.test(sprintRaw)) {
+      throw fail('--sprint debe ser un numero entero no negativo.');
+    }
+    sprint = parseInt(sprintRaw, 10);
+  }
+  const modeloSugerido = typeof flags['modelo-sugerido'] === 'string' ? flags['modelo-sugerido'] : MODELO_POR_DEFECTO;
+  const agenteRevisor = typeof flags['agente-revisor'] === 'string' ? flags['agente-revisor'] : agenteRevisorPorDefecto;
+  return { complejidad, sprint, modeloSugerido, agenteRevisor };
 }
 
 /**

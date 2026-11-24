@@ -28,7 +28,7 @@ import type { Task } from '../core/task.js';
 import { autoCommit, mensajeChore, type AutoCommitResult } from '../fs/git-commit.js';
 import { ensureBaseBranchReady, localBranches, type BaseBranchGuardResult } from '../fs/git.js';
 import { listExistingTaskIds, listTareasEnEstados, TaskAlreadyExistsError } from '../fs/task-store.js';
-import { componerCuerpo, crearTareaEn } from './new.js';
+import { componerCuerpo, crearTareaEn, MODELO_POR_DEFECTO } from './new.js';
 
 export class DoctorDeployTareasError extends Error {
   constructor(message: string) {
@@ -100,7 +100,7 @@ export async function crearTareasDeFallas(informe: InformeDeploy, raiz: string, 
             sprint: 0,
             etiquetas: t.etiquetas,
             complejidad: null,
-            modeloSugerido: 'sonnet',
+            modeloSugerido: MODELO_POR_DEFECTO,
             agenteRevisor: config.agente_revisor_por_defecto,
           },
           componerCuerpo(t.objetivo, t.criterios),

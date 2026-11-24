@@ -29,24 +29,17 @@ import path from 'node:path';
 import { parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { ensureBaseBranchReady } from '../fs/git.js';
-import { TASK_TYPES, TASK_COMPLEXITIES, TaskValidationError } from '../core/task.js';
+import { TASK_TYPES, TaskValidationError } from '../core/task.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { nextTaskId } from '../core/task-id.js';
 import { listExistingTaskIds, readTareaFile, writeTareaFile, TaskAlreadyExistsError, } from '../fs/task-store.js';
 import { parseImportMarkdown } from '../core/import-parser.js';
-import { slugify, buildNewTask, SLUG_FALLBACK } from './new.js';
+import { slugify, buildNewTask, componerCuerpo, parsearCamposDeTarea, SLUG_FALLBACK } from './new.js';
 import { CONFIG_DEFAULTS, resolverConfig } from '../core/config.js';
 export class ImportCommandError extends Error {
 }
 /** Flags de `taskctl import`: parseImportArgs y extraerPushFlag. */
 export const FLAGS_IMPORT = ['--tipo', '--sprint', '--complejidad', '--modelo-sugerido', '--agente-revisor', '--push', '-p'];
-const DEFAULT_SPRINT = 0;
-/**
- * Sin --complejidad la tarea nace sin declararla (null): la decide la
- * heuristica al planificar (TASK-042, decision C4). Antes era `media`.
- */
-const DEFAULT_COMPLEJIDAD = null;
-const DEFAULT_MODELO = 'sonnet';
 /**
  * Un unico --tipo/--sprint/--complejidad para todo el fichero (no hay
  * sintaxis por entrada): mismo enfoque deliberadamente simple que el
@@ -75,28 +68,9 @@ export function parseImportArgs(argv, agenteRevisorPorDefecto = CONFIG_DEFAULTS.
         }
         tipo = tipoRaw;
     }
-    let complejidad = DEFAULT_COMPLEJIDAD;
-    const complejidadRaw = flags['complejidad'];
-    if (complejidadRaw !== undefined) {
-        if (typeof complejidadRaw !== 'string' ||
-            !TASK_COMPLEXITIES.includes(complejidadRaw)) {
-            throw new ImportCommandError(`--complejidad invalida. Debe ser una de: ${TASK_COMPLEXITIES.join(', ')}.`);
-        }
-        complejidad = complejidadRaw;
-    }
-    let sprint = DEFAULT_SPRINT;
-    const sprintRaw = flags['sprint'];
-    if (sprintRaw !== undefined) {
-        if (typeof sprintRaw !== 'string' || !/^\d+$/.test(sprintRaw)) {
-            throw new ImportCommandError('--sprint debe ser un numero entero no negativo.');
-        }
-        sprint = parseInt(sprintRaw, 10);
-    }
-    const modeloSugerido = typeof flags['modelo-sugerido'] === 'string' ? flags['modelo-sugerido'] : DEFAULT_MODELO;
-    const agenteRevisor = typeof flags['agente-revisor'] === 'string'
-        ? flags['agente-revisor']
-        : agenteRevisorPorDefecto;
-    return { filePath, tipo, sprint, complejidad, modeloSugerido, agenteRevisor };
+    // TASK-146a (CMD2-06): los mismos campos y valores por defecto que new.
+    const comunes = parsearCamposDeTarea(flags, agenteRevisorPorDefecto, (msg) => new ImportCommandError(msg));
+    return { filePath, tipo, ...comunes };
 }
 /**
  * Clave de idempotencia por "titulo normalizado" (hallazgo CRITICO de
@@ -184,9 +158,8 @@ export async function runImportCommand(tareasRoot, argv, today, deps) {
             continue;
         }
         const id = nextTaskId(existingIds);
-        const body = `## Objetivo\n${entry.objetivo === '' ? '\n' : `\n${entry.objetivo}\n`}\n## Criterios de aceptacion\n${entry.criterios
-            .map((c) => `- [ ] ${c}`)
-            .join('\n')}\n`;
+        // TASK-146a (CMD2-06): el cuerpo con el mismo componerCuerpo que new.
+        const body = componerCuerpo(entry.objetivo === '' ? null : entry.objetivo, entry.criterios);
         const task = buildNewTask(id, {
             titulo: entry.titulo,
             tipo: opts.tipo,
