@@ -25,6 +25,22 @@ export function anotarPuerta(cwd, linea) {
         // sin registro: la transicion sigue
     }
 }
+/**
+ * TASK-138b (A4): la linea de una verificacion: instante, duracion desde
+ * `inicioMs` y resultado (`omitido` si salio del memo sin ejecutar; si no,
+ * verde o rojo). Antes, la misma decision escrita en finish, review,
+ * anotarSuite y verificar-lote.
+ */
+export function anotarVerificacion(cwd, o) {
+    anotarPuerta(cwd, {
+        puerta: o.puerta,
+        tarea: o.tarea,
+        instante: new Date().toISOString(),
+        modo: o.modo,
+        duracionS: (Date.now() - o.inicioMs) / 1000,
+        resultado: o.deMemo === true ? 'omitido' : o.estado === 'verde' ? 'verde' : 'rojo',
+    });
+}
 /** Las lineas del registro del repo de `cwd`; vacio si no hay registro o no se puede leer. */
 export function leerRegistroPuertas(cwd) {
     try {

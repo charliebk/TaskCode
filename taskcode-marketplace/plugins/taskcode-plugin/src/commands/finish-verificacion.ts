@@ -64,7 +64,7 @@ import { PUERTA_FINISH } from '../core/registro-puertas.js';
 import { contarTests, PUERTA_SUITE } from '../core/crecimiento-suite.js';
 import type { ResultadoVerificacion } from '../core/informe-verificacion.js';
 import { configDeRef } from '../fs/config-de-ref.js';
-import { anotarPuerta } from '../fs/registro-puertas.js';
+import { anotarVerificacion } from '../fs/registro-puertas.js';
 import { CIERRE_SIN_MERGE, FinishCommandError } from './finish-opciones.js';
 import { sinPrefijoError } from '../core/utilidades-texto.js';
 
@@ -124,14 +124,7 @@ function anotarFinish(
   estado: string,
   deMemo = false
 ): void {
-  anotarPuerta(cwd, {
-    puerta: PUERTA_FINISH,
-    tarea: id,
-    instante: new Date().toISOString(),
-    modo,
-    duracionS: (Date.now() - inicioMs) / 1000,
-    resultado: deMemo ? 'omitido' : estado === 'verde' ? 'verde' : 'rojo',
-  });
+  anotarVerificacion(cwd, { puerta: PUERTA_FINISH, tarea: id, modo, inicioMs, estado, deMemo });
 }
 
 export interface PuertaPesadaOpts {
@@ -206,14 +199,7 @@ function porLoteEnBase(o: PuertaVerificacionOpts, ramaBase: string): boolean {
 export function anotarSuite(cwd: string, id: string, inicioMs: number, r: ResultadoVerificacion): void {
   // IMP-2: la cola son los ultimos bytes; si la salida era mayor, se dice.
   const n = contarTests(r.cola, { recortada: r.bytesTotales > Buffer.byteLength(r.cola, 'utf8') });
-  anotarPuerta(cwd, {
-    puerta: PUERTA_SUITE,
-    tarea: id,
-    instante: new Date().toISOString(),
-    modo: n === null ? '-' : String(n),
-    duracionS: (Date.now() - inicioMs) / 1000,
-    resultado: r.estado === 'verde' ? 'verde' : 'rojo',
-  });
+  anotarVerificacion(cwd, { puerta: PUERTA_SUITE, tarea: id, modo: n === null ? '-' : String(n), inicioMs, estado: r.estado });
 }
 
 /**

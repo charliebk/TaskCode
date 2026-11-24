@@ -34,13 +34,13 @@ import { datosCoberturaRevision, seccionCoberturaRevision } from '../fs/cobertur
 import { formatearVerificacionRoja, seccionVerificacionRevision } from '../core/informe-verificacion.js';
 import { verificarConMemo } from '../fs/verificacion.js';
 import { PUERTA_REVIEW } from '../core/registro-puertas.js';
-import { anotarPuerta } from '../fs/registro-puertas.js';
+import { anotarVerificacion } from '../fs/registro-puertas.js';
 import { peticionDeTrabajo } from '../fs/decision-documentacion.js';
 import { anotarLineaEnSeccion, registrarTransicion } from '../core/transiciones.js';
 import { instanteDelVolcado, volcarCosteAutomatico } from '../fs/coste-automatico.js';
 import { readTareaFile, moveTareaFile, isEexist } from '../fs/task-store.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, RONDA_REVISION_RE, informesDeUltimaRonda, nombresDeRonda, rondaYRevisorDeInforme, siguienteRonda, } from '../fs/rondas.js';
-import { SECCION_RONDAS_EXTRA, lineaRondaExtra } from '../core/flujo.js';
+import { SECCION_RONDAS_EXTRA, lineaRondaExtra, textoSalidasTope } from '../core/flujo.js';
 import { configDeRef } from '../fs/config-de-ref.js';
 import { rondaExtraDecidida } from '../core/rondas-extra.js';
 import { alcanceRondaSiguiente, commitRevisadoDeRonda, hallazgosNoCerrados, hallazgosPendientes, plantillaRegla4D, severidadDe, veredictoDeRonda, } from '../core/informe-revision.js';
@@ -485,10 +485,7 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
             const nueva = previa.ronda + 1;
             if (!rondaExtra) {
                 throw new ReviewCommandError(`[ERROR] ${id}: la ronda ${String(previa.ronda)} ya llego al tope de rondas (${String(tope)}). ` +
-                    'Lo decide una persona: cerrar con lo que hay (lo abierto, aceptado con sus IDs y el motivo en el ' +
-                    'Resultado), volver a diseno (lo abierto, en una tarea nueva) o una ronda mas: anotar en tarea.md, ' +
-                    `seccion "${SECCION_RONDAS_EXTRA}", la linea "${lineaRondaExtra(nueva)}" y ejecutar ` +
-                    `"taskctl review ${id} --ronda-extra".`);
+                    textoSalidasTope(id, previa.ronda));
             }
             if (!rondaExtraDecidida(initial.body, nueva)) {
                 throw new ReviewCommandError(`[ERROR] ${id}: --ronda-extra pasado el tope de rondas (${String(tope)}) exige que conste la decision ` +
@@ -959,13 +956,13 @@ function verificacionDeRonda(id, config, base, tipoTarea, incremental, deps, avi
         ? { tipo: 'documentacion', comando, timeoutS: plan.timeoutS }
         : { tipo: 'selectiva', comando, timeoutS: plan.timeoutS, base }, { env: entornoVerificacion() });
     // TASK-128: la verificacion de la ronda queda en el registro de puertas, tambien en rojo.
-    anotarPuerta(raiz, {
+    anotarVerificacion(raiz, {
         puerta: PUERTA_REVIEW,
         tarea: id,
-        instante: new Date().toISOString(),
         modo: motivo !== null ? 'documentacion' : 'selectiva',
-        duracionS: (Date.now() - inicioVerificacion) / 1000,
-        resultado: v.deMemo ? 'omitido' : v.resultado.estado === 'verde' ? 'verde' : 'rojo',
+        inicioMs: inicioVerificacion,
+        estado: v.resultado.estado,
+        deMemo: v.deMemo,
     });
     const nombre = motivo !== null
         ? 'la comprobacion de documentacion (comando_verificacion_documentacion: solo cambia documentacion)'

@@ -102,8 +102,6 @@ export interface ResumenFreno {
  */
 export const PUERTA_REVIEW = 'review';
 export const PUERTA_FINISH = 'finish';
-/** Las puertas de verificacion que resume `metricas`, en su orden. */
-export const PUERTAS_VERIFICACION = Object.freeze([PUERTA_FRENO, PUERTA_REVIEW, PUERTA_FINISH] as const);
 
 /** Por tarea: cuantas veces corrio el freno y cuanto sumo. Ignora las demas puertas. */
 export function resumirFreno(lineas: readonly LineaPuerta[]): Map<string, ResumenFreno> {

@@ -9,7 +9,6 @@ import {
   parsearRegistroPuertas,
   PUERTA_FINISH,
   PUERTA_REVIEW,
-  PUERTAS_VERIFICACION,
   resumirPuerta,
   type LineaPuerta,
 } from '../../src/core/registro-puertas.js';
@@ -39,7 +38,6 @@ test('registro (TASK-128): resumirPuerta cuenta review y finish por separado, si
   assert.deepEqual(resumirPuerta(lineas, PUERTA_REVIEW).get('TASK-128'), { ejecuciones: 2, duracionS: 70 });
   assert.deepEqual(resumirPuerta(lineas, PUERTA_FINISH).get('TASK-128'), { ejecuciones: 1, duracionS: 600 });
   assert.equal(resumirPuerta(lineas, 'pesada').size, 0);
-  assert.deepEqual([...PUERTAS_VERIFICACION], ['freno', 'review', 'finish']);
 });
 
 function informe(ronda: number, filas: string[], revisor = ''): InformeLeido {

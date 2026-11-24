@@ -486,12 +486,37 @@ export function comprobarVerificacion(
  * ID de `comprobarTareas`). Una carpeta que falta o no se lee cuenta 0: de eso
  * ya informan `tareas-carpetas` y `tareas`.
  */
-export function contarTerminadas(tareasRoot: string): number {
+export function contarTerminadas(tareasRoot: string, terminadas: readonly TerminadaLeida[] = leerTextosTerminadas(tareasRoot)): number {
+  return terminadas.length;
+}
+
+/** Una tarea de 04-terminadas: su ID y el texto de su tarea.md (null si no se puede leer). */
+export interface TerminadaLeida {
+  id: string;
+  texto: string | null;
+}
+
+/**
+ * TASK-138b (A6): las tareas terminadas, leidas una vez para todas las
+ * comprobaciones de doctor (cuenta, crecimiento de la suite, poda y documento
+ * de estado); antes cada una recorria la carpeta y abria los tarea.md. Sin la
+ * carpeta, []; una tarea ilegible va con `texto: null` (de eso avisa `tareas`).
+ */
+export function leerTextosTerminadas(tareasRoot: string): TerminadaLeida[] {
+  const dir = path.join(tareasRoot, STATE_FOLDER.terminada);
+  let ids: string[];
   try {
-    return readdirSync(path.join(tareasRoot, STATE_FOLDER.terminada)).filter(isValidTaskId).length;
+    ids = readdirSync(dir).filter(isValidTaskId);
   } catch {
-    return 0;
+    return [];
   }
+  return ids.map((id) => {
+    try {
+      return { id, texto: readFileSync(path.join(dir, id, 'tarea.md'), 'utf8') };
+    } catch {
+      return { id, texto: null };
+    }
+  });
 }
 
 /**
@@ -583,21 +608,14 @@ export function comprobarPuertasVerificacion(cfg: TaskcodeConfig | null): Compro
  * con dato, crecieron mas de `umbral_crecimiento_suite`. Sin datos, nada: ni
  * avisa ni falla.
  */
-export function comprobarCrecimientoSuite(cwd: string, tareasRoot: string, cfg: TaskcodeConfig | null): Comprobacion[] {
+export function comprobarCrecimientoSuite(
+  cwd: string,
+  tareasRoot: string,
+  cfg: TaskcodeConfig | null,
+  terminadas: readonly TerminadaLeida[] = leerTextosTerminadas(tareasRoot)
+): Comprobacion[] {
   if (cfg === null || cfg.comando_verificacion === null) return [];
-  let ids: string[];
-  try {
-    ids = readdirSync(path.join(tareasRoot, STATE_FOLDER.terminada)).filter(isValidTaskId);
-  } catch {
-    return [];
-  }
-  const tareas = ids.map((id) => {
-    try {
-      return { id, version: versionDeCierre(readFileSync(path.join(tareasRoot, STATE_FOLDER.terminada, id, 'tarea.md'), 'utf8')) };
-    } catch {
-      return { id, version: null };
-    }
-  });
+  const tareas = terminadas.map((t) => ({ id: t.id, version: t.texto === null ? null : versionDeCierre(t.texto) }));
   const versiones = suitePorVersion(tareas, leerRegistroPuertas(cwd));
   if (versiones.length === 0) return [];
   const umbral = cfg.umbral_crecimiento_suite;
@@ -629,21 +647,18 @@ export function comprobarPodaTests(
   cwd: string,
   tareasRoot: string,
   cfg: TaskcodeConfig | null,
-  crecimiento: readonly Comprobacion[] = comprobarCrecimientoSuite(cwd, tareasRoot, cfg)
+  crecimiento: readonly Comprobacion[] = comprobarCrecimientoSuite(cwd, tareasRoot, cfg),
+  terminadas: readonly TerminadaLeida[] = leerTextosTerminadas(tareasRoot)
 ): Comprobacion[] {
   if (cfg === null) return [];
-  let ids: string[];
-  try {
-    ids = readdirSync(path.join(tareasRoot, STATE_FOLDER.terminada)).filter(isValidTaskId);
-  } catch {
-    return [];
-  }
+  const ids = terminadas.map((t) => t.id);
   if (ids.length === 0) return [];
   const numero = (id: string): number => Number(TASK_ID_RE.exec(id)?.[1] ?? 0);
   let ultimaPoda = -1;
-  for (const id of ids) {
+  for (const { id, texto } of terminadas) {
+    if (texto === null) continue;
     try {
-      const t = parseTareaFile(readFileSync(path.join(tareasRoot, STATE_FOLDER.terminada, id, 'tarea.md'), 'utf8')).task;
+      const t = parseTareaFile(texto).task;
       if (t.etiquetas.includes(ETIQUETA_PODA)) ultimaPoda = Math.max(ultimaPoda, numero(id));
     } catch {
       // ilegible: de eso avisa `tareas`
@@ -770,26 +785,18 @@ function comprobarTareas(tareasRoot: string): Comprobacion[] {
 // Documento de estado (TASK-124)
 // ---------------------------------------------------------------------
 
-/** `id` y `actualizado` de las tareas de 04-terminadas; las que no se pueden leer se saltan (las cuenta `tareas`). */
-function leerTerminadas(tareasRoot: string): TareaTerminadaFecha[] {
-  const dir = path.join(tareasRoot, STATE_FOLDER.terminada);
-  let entradas: string[];
-  try {
-    entradas = readdirSync(dir);
-  } catch {
-    return [];
-  }
-  const terminadas: TareaTerminadaFecha[] = [];
-  for (const id of entradas) {
-    if (!isValidTaskId(id)) continue;
+/** `id` y `actualizado` de las tareas terminadas legibles (las ilegibles las cuenta `tareas`). */
+function fechasDeTerminadas(terminadas: readonly TerminadaLeida[]): TareaTerminadaFecha[] {
+  const fechas: TareaTerminadaFecha[] = [];
+  for (const { id, texto } of terminadas) {
+    if (texto === null) continue;
     try {
-      const task = parseTareaFile(readFileSync(path.join(dir, id, 'tarea.md'), 'utf8')).task;
-      terminadas.push({ id, actualizado: task.actualizado });
+      fechas.push({ id, actualizado: parseTareaFile(texto).task.actualizado });
     } catch {
-      // Rota o ilegible: ya la senala la comprobacion `tareas`.
+      // Rota: ya la senala la comprobacion `tareas`.
     }
   }
-  return terminadas;
+  return fechas;
 }
 
 /**
@@ -800,7 +807,8 @@ export function comprobarDocumentoEstado(
   cwd: string,
   cfg: TaskcodeConfig | null,
   repo: EstadoRepo,
-  ahora: Date
+  ahora: Date,
+  terminadas?: readonly TerminadaLeida[]
 ): Comprobacion {
   if (cfg === null) return omitida('documento-estado', 'la config no se pudo leer (ver config)');
   const ruta = cfg.documento_estado;
@@ -827,7 +835,10 @@ export function comprobarDocumentoEstado(
     existe,
     fechaUltimoCommit: fecha,
     hoy: diaLocal(ahora),
-    terminadas: ruta !== null && existe && fecha !== null ? leerTerminadas(path.join(cwd, 'tareas')) : [],
+    terminadas:
+      ruta !== null && existe && fecha !== null
+        ? fechasDeTerminadas(terminadas ?? leerTextosTerminadas(path.join(cwd, 'tareas')))
+        : [],
   });
 }
 
@@ -1052,20 +1063,23 @@ export function runDoctorCommand(argv: readonly string[], deps: DoctorCommandDep
   cs.push(...envolver('workspace', () => comprobarWorkspace(cwd, repo, deps.timeoutGitMs ?? TIMEOUT_GIT_MS)));
 
   cs.push(...csConfig);
+  // TASK-138b (A6): las terminadas, una sola lectura para cuatro comprobaciones.
+  let leidas: TerminadaLeida[] | null = null;
+  const terminadas = (): TerminadaLeida[] => (leidas ??= leerTextosTerminadas(tareasRoot));
   cs.push(...envolver('verificacion', () => comprobarVerificacion(
         cfg,
         () => detectarComandosTests(cwd),
-        () => contarTerminadas(tareasRoot)
+        () => contarTerminadas(tareasRoot, terminadas())
       )
     )
   );
   cs.push(...envolver('verificacion-selectiva', () => comprobarVerificacionSelectiva(cfg)));
   cs.push(...envolver('puertas-verificacion', () => comprobarPuertasVerificacion(cfg)));
-  const crecimientoSuite = envolver('crecimiento-suite', () => comprobarCrecimientoSuite(cwd, tareasRoot, cfg));
+  const crecimientoSuite = envolver('crecimiento-suite', () => comprobarCrecimientoSuite(cwd, tareasRoot, cfg, terminadas()));
   cs.push(...crecimientoSuite);
-  cs.push(...envolver('poda-tests', () => comprobarPodaTests(cwd, tareasRoot, cfg, crecimientoSuite)));
+  cs.push(...envolver('poda-tests', () => comprobarPodaTests(cwd, tareasRoot, cfg, crecimientoSuite, terminadas())));
   cs.push(...envolver('tareas', () => comprobarTareas(tareasRoot)));
-  cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date())));
+  cs.push(...envolver('documento-estado', () => comprobarDocumentoEstado(cwd, cfg, repo, deps.ahora ?? new Date(), terminadas())));
   cs.push(
     ...envolver('plataforma', () =>
       comprobarPlataforma(cwd, cfg, hayOrigin, deps.timeoutPlataformaMs ?? TIMEOUT_PLATAFORMA_MS)
