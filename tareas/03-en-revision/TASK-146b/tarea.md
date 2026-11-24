@@ -29,8 +29,8 @@ Parte b del troceo de TASK-146 (Regla 4D: duplicacion en new, import, roadmap, v
 registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRuta en un sitio, diaLocal en doctor-deploy y creado con la regla de new, cabeceras fieles y la historia de runPlan fuera del codigo.
 
 ## Criterios de aceptacion
-- [ ] registrar-coste suma con CAMPOS_COSTE, los readdir tolerantes y claveRuta tienen un solo helper, y doctor-deploy usa diaLocal con la fecha de creado igual que new
-- [ ] Las cabeceras de registrar-coste, veredicto y review describen lo que hace el codigo, y runPlan deja la historia de las rondas en el CHANGELOG
+- [x] registrar-coste suma con CAMPOS_COSTE, los readdir tolerantes y claveRuta tienen un solo helper, y doctor-deploy usa diaLocal con la fecha de creado igual que new
+- [x] Las cabeceras de registrar-coste, veredicto y review describen lo que hace el codigo, y runPlan deja la historia de las rondas en el CHANGELOG
 
 ## Transiciones
 
@@ -56,3 +56,11 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 ## Verificacion ligera
 
 - 2026-11-24T16:13:34Z: ronda 1; commit revisado 42882e9cf3512cb5ab82cb32e1d616472609a02d; commit verificado 7b520d3633f1ed71da4ed3e9f423acf91fa3b122; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/plan.ts, taskcode-marketplace/plugins/taskcode-plugin/src/commands/registrar-coste.ts, taskcode-marketplace/plugins/taskcode-plugin/src/fs/task-store.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/doctor-deploy-tareas.test.ts; corregidos: MEN-1, MEN-2, MEN-3, MEN-4; pendientes: ninguno
+
+## Resultado
+
+- CMD2-12: registrar-coste pone a cero y suma con `costeCero` y `costeDeFila`, generados a partir de `CAMPOS_COSTE`. Un campo nuevo ya no queda sin poner ni da `NaN`.
+- CMD2-13: `listarSiExiste`, en task-store, sustituye los tres readdir tolerantes de metricas, plan y registrar-coste. `claveRuta` queda solo en fs/cobertura.
+- CMD1-08: `diaUtc`, en core/documento-estado, la usan `today()` de cli y el `creado` de doctor-deploy `--crear-tareas`, que antes iba en hora local. El informe de doctor-deploy se nombra con `diaLocal`. El test prueba dos instantes y discrimina en cualquier zona horaria salvo UTC.
+- CMD2-15 y CMD2-16: las cabeceras de registrar-coste, veredicto y review describen ya TASK-119 (no commitean, salvo registrar-coste con la tarea terminada) y TASK-018/091. La crónica de intentos de runPlan sale del código y queda en git.
+- Revisión, ronda 1: aprobada con correcciones; los cuatro MENORES están corregidos. El reordenado del import de doctor-deploy (parte de MEN-3) se deshizo porque cae fuera de los ficheros citados.
