@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-156 (fix) — verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin (2026-11-24)
 - TASK-157 (fix) — Timeout de claude plugin list acorde al binario real (2026-11-24)
 - TASK-145a (fix) — puertas, git y textos de error (parte a de TASK-145) (2026-11-24)
 - TASK-155 (fix) — comprobarSkillInstalado verificable en Windows (claude.cmd) (2026-11-24)

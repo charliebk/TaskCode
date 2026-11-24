@@ -29,16 +29,15 @@ TASK-150  Regla 4D: skills y agentes con una sola fuente por regla              
 TASK-152  Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 ```
 
-## En diseno (01-en-diseno) — 2
+## En diseno (01-en-diseno) — 1
 
 ```text
-ID         Titulo                                                                                 Asignado
----------  -------------------------------------------------------------------------------------  --------------------
-TASK-145b  finish.ts y comentarios (parte b de TASK-145)                                          charlie.bk@gmail.com
-TASK-156   verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin  charlie.bk@gmail.com
+ID         Titulo                                         Asignado
+---------  ---------------------------------------------  --------------------
+TASK-145b  finish.ts y comentarios (parte b de TASK-145)  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 147
+## Terminadas (04-terminadas) — 148
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -189,5 +188,6 @@ TASK-153b  candidatos 4D en la peticion de revision (parte b de TASK-153)       
 TASK-153c  metricas de hallazgos 4D (parte c de TASK-153)                                                                      charlie.bk@gmail.com
 TASK-154   plan.test.ts en verde en Windows nativo                                                                             claude
 TASK-155   comprobarSkillInstalado verificable en Windows (claude.cmd)                                                         charlie.bk@gmail.com
+TASK-156   verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin                               claude-156
 TASK-157   Timeout de claude plugin list acorde al binario real                                                                charlie.bk@gmail.com
 ```
