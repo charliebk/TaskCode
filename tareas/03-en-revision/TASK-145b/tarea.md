@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 27214431
-tokens_revision: null
+tokens_revision: 1828231
 creado: 2026-11-24
 actualizado: 2026-11-24
 dependencias: [TASK-145a]
@@ -51,3 +51,8 @@ La base de la rama decidida una vez, comprobarTagDeReintento sin copia, spreads 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T13:46:52Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 124 | 56779 | 27131097 | 26431 | 15 | 27214431 | - | - |
+| 2026-11-24T14:21:44Z | revision | agente:a6644eccdb941a414 | 32 | 124661 | 1693756 | 9782 | 2 | 1828231 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-24T14:21:57Z: ronda 1; commit revisado 260cda7a2c942cf6b18382e52469871740926e27; commit verificado 9bdc7cb9545c52c0599c8472cf27650c7dd05d6e; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/approve.ts, taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish.ts; corregidos: MEN-1, MEN-2, MEN-3, MEN-4; pendientes: ninguno
