@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-155-comprobarskillinstalado-verificable-en-w
 asignado_a: charlie.bk@gmail.com
@@ -37,3 +37,4 @@ En Windows claude es un .cmd y spawnSync sin shell no lo ejecuta, asi que compro
 |---|---|---|---|---|
 | 2026-11-24T09:44:26Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T09:45:19Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-24T09:45:21Z | start | automatico | persona | 0.16.1 |
