@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: cada caso tiene fichero y linea en do
 
 ## Enfoque propuesto
 
-Duracion estimada: 100 min (pasa de 60: se trocea en dos partes; troceo autorizado de antemano por Carlos para el plan de correcciones 4D)
+Duracion estimada: 55 min (parte a del troceo; la tarea entera estimaba 100 min)
 
 Cada comando suelto deja su reimplementacion y usa el helper que ya existe. Cambian comportamientos que hoy son fallos (lote verde sin commit, EACCES como «sin pendientes», `NaN` con un campo de coste nuevo, `creado` en UTC frente a hora local): cada uno lleva su test.
 
@@ -59,3 +59,7 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 Duracion estimada: 45 min
 - [ ] registrar-coste suma con CAMPOS_COSTE, los readdir tolerantes y claveRuta tienen un solo helper, y doctor-deploy usa diaLocal con la fecha de creado igual que new
 - [ ] Las cabeceras de registrar-coste, veredicto y review describen lo que hace el codigo, y runPlan deja la historia de las rondas en el CHANGELOG
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-24: TASK-146a, TASK-146b, todas en la misma rama. Este plan es el de TASK-146a; las demas partes se planifican al empezarlas.
