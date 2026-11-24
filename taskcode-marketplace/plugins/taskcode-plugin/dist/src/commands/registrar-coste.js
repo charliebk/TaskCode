@@ -13,7 +13,7 @@
  *    Agent. La cifra se lee de la transcripcion del subagente
  *    (`core/coste-transcripcion.ts`): lo que gasto de verdad, no el tamano
  *    de su contexto final, que es lo que muestra al terminar. Varios
- *    `--agente` se suman en un solo registro y un solo commit.
+ *    `--agente` se suman en un solo registro.
  *  - `--tokens N`: una cifra a mano (la parte del orquestador, estimada).
  *
  * Reglas:
@@ -27,8 +27,8 @@
  * 3. Escribe SOLO ese tarea.md (y lo commitea solo si la tarea esta
  *    terminada, con un commit limitado a ese fichero). La rama de la tarea es
  *    donde esta al dia: si no, aborta y dice a cual cambiar.
- * 4. Una cifra de 0 se rechaza: registrar nada no tiene sentido y dejaria un
- *    commit que parece un registro.
+ * 4. Una cifra de 0 se rechaza: registrar nada no tiene sentido y dejaria una
+ *    fila que parece un registro.
  * 5. TASK-063: cada llamada deja ademas una fila en la tabla `## Coste` del
  *    cuerpo (`core/coste-registro.ts`), en el mismo fichero y el mismo
  *    fichero que el total. Con `--agente`, el desglose sumado de sus agentes
@@ -43,10 +43,9 @@
  *    Las otras fases siguen con una sola fila por llamada.
  */
 import { writeFile } from 'node:fs/promises';
-import { listarSiExiste } from '../fs/task-store.js';
 import path from 'node:path';
 import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible, extraerPushFlag } from '../cli/args.js';
-import { readTareaFile } from '../fs/task-store.js';
+import { readTareaFile, listarSiExiste } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import { esAgentIdValido, rondaYRevisorDeTranscripcion, sumarUsoTranscripcion, } from '../core/coste-transcripcion.js';
 import { rondaYRevisorDePeticion } from '../fs/rondas.js';

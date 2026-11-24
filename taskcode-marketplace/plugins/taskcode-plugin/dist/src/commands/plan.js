@@ -94,7 +94,6 @@ const RONDA_UNIFICADOR_RE = /^peticion-(unificador|plan)-(\d+)\.md$/;
  * `revision/`.
  */
 export const PLANIFICACION_DIRNAME = 'planificacion';
-/** readdir tolerante: un directorio que no existe es "no hay nada". */
 /**
  * Fichero regular Y con algo dentro. Un fichero de cero bytes es lo
  * que deja una escritura que se corto entre el `open()` y el volcado,

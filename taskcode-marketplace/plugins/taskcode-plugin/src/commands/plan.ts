@@ -23,7 +23,7 @@
  * (ensureBaseBranchReady, antes de mover nada).
  */
 import path from 'node:path';
-import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import {
   parseAsignadoAFlag,
@@ -139,8 +139,6 @@ const RONDA_UNIFICADOR_RE = /^peticion-(unificador|plan)-(\d+)\.md$/;
  * `revision/`.
  */
 export const PLANIFICACION_DIRNAME = 'planificacion';
-
-/** readdir tolerante: un directorio que no existe es "no hay nada". */
 
 /**
  * Fichero regular Y con algo dentro. Un fichero de cero bytes es lo

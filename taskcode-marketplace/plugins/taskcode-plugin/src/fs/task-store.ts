@@ -334,20 +334,6 @@ export async function readTareaFile(
  * plan-final.md) necesitan la misma comprobacion de codigo de error
  * que esta capa ya resolvia solo para uso interno.
  */
-/**
- * TASK-146b (CMD2-13): las entradas de `dir`, o [] si no existe o no es una
- * carpeta; cualquier otro error (EACCES...) se propaga. Antes, copiada en
- * metricas, plan y registrar-coste.
- */
-export async function listarSiExiste(dir: string): Promise<string[]> {
-  try {
-    return await readdir(dir);
-  } catch (e: unknown) {
-    if (isEnoent(e) || isEnotdir(e)) return [];
-    throw e;
-  }
-}
-
 export function isEnoent(e: unknown): boolean {
   return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'ENOENT';
 }
@@ -366,4 +352,18 @@ export function isEexist(e: unknown): boolean {
  */
 export function isEnotdir(e: unknown): boolean {
   return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'ENOTDIR';
+}
+
+/**
+ * TASK-146b (CMD2-13): las entradas de `dir`, o [] si no existe o no es una
+ * carpeta; cualquier otro error (EACCES...) se propaga. Antes, copiada en
+ * metricas, plan y registrar-coste.
+ */
+export async function listarSiExiste(dir: string): Promise<string[]> {
+  try {
+    return await readdir(dir);
+  } catch (e: unknown) {
+    if (isEnoent(e) || isEnotdir(e)) return [];
+    throw e;
+  }
 }

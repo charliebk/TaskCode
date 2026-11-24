@@ -278,15 +278,18 @@ test('main(): --crear-tareas --json crea las tareas, stdout es solo el JSON y lo
   });
 });
 
-// TASK-146b (CMD1-08): `creado` sigue la regla de new (el dia en UTC). Con un
-// instante en el que el dia local y el UTC difieren (en una maquina al oeste de
-// UTC, las 01:00 UTC aun son el dia anterior), antes salia el dia local.
+// TASK-146b (CMD1-08): `creado` sigue la regla de new (el dia en UTC). MEN-4 de
+// la revision: dos instantes, uno justo despues y otro justo antes de la medianoche
+// UTC, para que el dia local difiera del UTC en uno de los dos en cualquier zona
+// salvo UTC (alli el dia local y el UTC son el mismo y no hay nada que distinguir).
 test('--crear-tareas: creado es el dia en UTC, como en taskctl new', async () => {
-  await conRepoDevelop(SIN_IGNORE, async (raiz, opciones) => {
-    const ahora = new Date('2026-11-25T01:00:00Z');
-    await ejecutarCompleto(raiz, opciones, ARGS, ahora);
-    const t = await readTareaFile(path.join(raiz, 'tareas'), 'TASK-9999');
-    assert.equal(t?.task.creado, '2026-11-25');
-    assert.equal(t?.task.creado, diaUtc(ahora));
-  });
+  for (const [instante, dia] of [['2026-11-25T00:30:00Z', '2026-11-25'], ['2026-11-24T23:30:00Z', '2026-11-24']] as const) {
+    await conRepoDevelop(SIN_IGNORE, async (raiz, opciones) => {
+      const ahora = new Date(instante);
+      await ejecutarCompleto(raiz, opciones, ARGS, ahora);
+      const t = await readTareaFile(path.join(raiz, 'tareas'), 'TASK-9999');
+      assert.equal(t?.task.creado, dia, instante);
+      assert.equal(t?.task.creado, diaUtc(ahora), instante);
+    });
+  }
 });
