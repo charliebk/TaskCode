@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-146a (fix) — import, roadmap y verificar-lote (parte a de TASK-146) (2026-11-24)
 - TASK-145b (fix) — finish.ts y comentarios (parte b de TASK-145) (2026-11-24)
 - TASK-156 (fix) — verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin (2026-11-24)
 - TASK-157 (fix) — Timeout de claude plugin list acorde al binario real (2026-11-24)
