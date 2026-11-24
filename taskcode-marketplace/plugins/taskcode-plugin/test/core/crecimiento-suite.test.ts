@@ -9,7 +9,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { avisoCrecimiento, contarTests, resumirSuites, suitePorVersion, ultimaSuitePorTarea } from '../../src/core/crecimiento-suite.js';
+import { avisoCrecimiento, contarTests, suitePorVersion } from '../../src/core/crecimiento-suite.js';
 import { mediana as medianaMetricas } from '../../src/core/metricas.js';
 import { mediana } from '../../src/core/estadistica.js';
 import { parsearRegistroPuertas } from '../../src/core/registro-puertas.js';
@@ -182,10 +182,9 @@ test('suite por version (TASK-138a): una tarea con la completa repetida da la mi
     [linea('TASK-1', '100', 600), linea('TASK-1', '105', 900), linea('TASK-2', '110', 700)].join('\n')
   );
   const doctor = suitePorVersion(tareas, lineas)[0];
-  const porTarea = ultimaSuitePorTarea(lineas);
-  const metricas = resumirSuites(tareas.map((t) => porTarea.get(t.id) ?? null));
+  // MEN-2 (revision TASK-138a): la cifra se comprueba contra el valor esperado, no contra
+  // las mismas funciones; con la regla vieja de doctor la mediana daria 700, no 800.
   assert.deepEqual(doctor, { version: '0.17.0', tests: 110, completaS: 800 });
-  assert.deepEqual({ tests: doctor?.tests, completaS: doctor?.completaS }, metricas);
 });
 
 // TASK-138a (A2, CORE2-11): una sola mediana; la de metricas es la misma funcion.
