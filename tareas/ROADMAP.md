@@ -12,12 +12,12 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-146a (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-150, TASK-152, TASK-158, TASK-019
+- **En marcha:** ninguna
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-150, TASK-152, TASK-158, TASK-146b, TASK-019
 
 ## H0 — H0
 
-105 de 120 terminadas.
+106 de 120 terminadas.
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
@@ -120,7 +120,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-139a | disfraces B1-B5 (parte a de TASK-139) | simple | — | ✅ terminada |
 | — | TASK-144a | cadena, Commit revisado y tarea en su rama (parte a de TASK-144) | alta | — | ✅ terminada |
 | — | TASK-145a | puertas, git y textos de error (parte a de TASK-145) | media | — | ✅ terminada |
-| 14 | TASK-146a | import, roadmap y verificar-lote (parte a de TASK-146) | media | — | ▶ en diseño |
+| — | TASK-146a | import, roadmap y verificar-lote (parte a de TASK-146) | media | — | ✅ terminada |
 | — | TASK-147a | secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) | alta | — | ✅ terminada |
 | — | TASK-148a | raiz del plugin y lector de catalogos (parte a de TASK-148) | alta | — | ✅ terminada |
 | — | TASK-149a | git y hooks (parte a de TASK-149) | alta | — | ✅ terminada |
@@ -129,7 +129,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-139b | la selectiva no recorta en silencio (parte b de TASK-139) | simple | TASK-139a | ✅ terminada |
 | — | TASK-144b | flags con y sin valor (parte b de TASK-144) | alta | TASK-144a | ✅ terminada |
 | — | TASK-145b | finish.ts y comentarios (parte b de TASK-145) | media | TASK-145a | ✅ terminada |
-| 15 | TASK-146b | registrar-coste, readdir, fecha y cabeceras (parte b de TASK-146) | media | TASK-146a | espera a TASK-146a |
+| 14 | TASK-146b | registrar-coste, readdir, fecha y cabeceras (parte b de TASK-146) | media | TASK-146a | lista para empezar |
 | — | TASK-147b | criterios, normalizacion, citar e IDs (parte b de TASK-147) | alta | TASK-147a | ✅ terminada |
 | — | TASK-148b | validacion de config (parte b de TASK-148) | alta | TASK-148a | ✅ terminada |
 | — | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | ✅ terminada |
@@ -148,11 +148,11 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 16 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
-| 17 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
-| 18 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
-| 19 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
-| 20 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
+| 15 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
+| 16 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
+| 17 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
+| 18 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
+| 19 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
 
 ## H2 — H2
 
@@ -181,7 +181,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-016 | Brainstorm paralelo por roles con agente unificador | alta | TASK-010 | ✅ terminada |
 | — | TASK-017 | Catálogo de skills determinista con selección en dos pasos | alta | TASK-010 | ✅ terminada |
 | — | TASK-018 | Enrutado de revisor por diff real, fragmentado por dominio | alta | TASK-013 | ✅ terminada |
-| 21 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
+| 20 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
 | — | TASK-020 | Comando taskctl codex-review (segunda opinión independiente) | media | TASK-013 | ✅ terminada |
 | — | TASK-032 | Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) | media | — | ✅ terminada |
 | — | TASK-037 | F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos | simple | — | ✅ terminada |
@@ -194,7 +194,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 22 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
+| 21 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
 | — | TASK-022 | Documentación de equipo e incorporación de colaboradores | simple | TASK-021 | ✅ terminada |
 | — | TASK-023 | Métricas de coste en tokens por fase | media | TASK-014 | ✅ terminada |
 | — | TASK-040 | F3-T1 taskctl review para la ronda 2 y siguientes | media | — | ✅ terminada |
