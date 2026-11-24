@@ -62,7 +62,7 @@ index a471062..8493818 100644
  comando_verificacion: "npm --prefix taskcode-marketplace/plugins/taskcode-plugin test"
  timeout_verificacion: 3600
  comando_verificacion_selectiva: "node scripts/verificar-impacto.mjs"
-+# TASK-139b: review y finish corren la selectiva SIN tope (TASKCODE_VERIFICACION=
++# TASK-139b: review y finish corren la selectiva SIN tope (TIPO_VERIFICACION=
 +# selectiva: todos los afectados, o la suite entera si no se sabe que afecta),
 +# asi que su timeout es el de la completa. El freno de fin de turno corre el
 +# mismo script como comando propio (tipo freno, memo aparte, con el tope de 10):
@@ -81,7 +81,7 @@ index 3bc6284..4f7a3ca 100644
   * luego los de una carpeta con el nombre de la suya (`test/gitflow/` para
   * `scripts/gitflow/*`) y despues el resto por orden alfabetico. La salida dice
   * cuantos se dejan fuera. Nunca queda en cero lo que cambia si tiene tests.
-+ * Con TASKCODE_VERIFICACION=selectiva (rondas de review y finish, TASK-139b) no
++ * Con TIPO_VERIFICACION=selectiva (rondas de review y finish, TASK-139b) no
 + * hay tope: todos los afectados, y la suite entera si no se sabe que afecta. El
 + * freno lo lanza como comando propio (tipo `freno`) y conserva el tope.
   *
@@ -92,13 +92,13 @@ index 3bc6284..4f7a3ca 100644
  }
  
 +/**
-+ * TASK-139b: el tope que se aplica. Con TASKCODE_VERIFICACION=selectiva (la
++ * TASK-139b: el tope que se aplica. Con TIPO_VERIFICACION=selectiva (la
 + * pasa el plugin en las rondas de review y en finish) no hay tope: se corren
 + * todos los afectados, porque un recorte ahi dejaba integrar rojos que nadie
 + * ejecuto. Con `freno` (comando_verificacion_freno) o a mano, el de siempre.
 + */
 +export function topeEfectivo(env) {
-+  return env.TASKCODE_VERIFICACION === 'selectiva' ? Infinity : leerTope(env.VERIFICAR_IMPACTO_TOPE);
++  return env.TIPO_VERIFICACION === 'selectiva' ? Infinity : leerTope(env.VERIFICAR_IMPACTO_TOPE);
 +}
 +
  function aDist(fichero) {
@@ -125,7 +125,7 @@ index 3bc6284..4f7a3ca 100644
  
    console.log(`[verificar-impacto] Base: ${base}. Ficheros cambiados: ${String(cambiadas.length)}.`);
 -  console.log(`[verificar-impacto] Siempre: ${rapido.join(', ')} (lo de test:rapido).`);
-+  if (sinTope) console.log('[verificar-impacto] Sin tope (TASKCODE_VERIFICACION=selectiva: ronda de review o finish): todos los afectados.');
++  if (sinTope) console.log('[verificar-impacto] Sin tope (TIPO_VERIFICACION=selectiva: ronda de review o finish): todos los afectados.');
    if (seleccion.enrutador !== undefined) console.log(`[verificar-impacto] Enrutador: ${seleccion.enrutador}.`);
 -  if (seleccion.recorte !== undefined) {
 -    console.log(`[verificar-impacto] Seleccion recortada: ${seleccion.recorte}. La suite completa queda para antes de publicar.`);
@@ -154,7 +154,7 @@ index 3bc6284..4f7a3ca 100644
      // cambia de comportamiento (el freno Stop siempre la pasa a la selectiva).
      delete env.RAMA_BASE;
 +    // TASK-139b: igual con el tipo de verificacion (lo leen los tests del freno).
-+    delete env.TASKCODE_VERIFICACION;
++    delete env.TIPO_VERIFICACION;
      const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', ...objetivos], {
        cwd: dirPlugin,
        env,
@@ -166,7 +166,7 @@ index e656397..8a9b6d6 100644
  - Recibe la rama base de la tarea en la variable de entorno `RAMA_BASE` (la de
    integración, o la principal en un hotfix); no se añade nada al comando. El
    mapa de capas es del proyecto: el script decide qué correr.
-+- Recibe también `TASKCODE_VERIFICACION` con quién la corre: `selectiva` en las
++- Recibe también `TIPO_VERIFICACION` con quién la corre: `selectiva` en las
 +  rondas de `review` y en `finish`, `freno` con `comando_verificacion_freno`
 +  (y `completa` o `documentacion` en las demás). Así un script puede recortar en
 +  el fin de turno y no en las puertas que integran: un recorte allí deja
@@ -184,7 +184,7 @@ index 6b0481d..08c2af2 100644
  - La **rama base** de la tarea llega en la variable de entorno `RAMA_BASE`
    (la de integracion, o la principal en un hotfix). No se anade nada al
    comando.
-+- `TASKCODE_VERIFICACION` dice quien la corre: `selectiva` en review y finish
++- `TIPO_VERIFICACION` dice quien la corre: `selectiva` en review y finish
 +  (que no recorte: deja integrar tests sin correr), `freno` con
 +  `comando_verificacion_freno` (ahi puede recortar).
  - Verde es salir con codigo 0. Cualquier otro codigo, o pasarse del timeout,
@@ -204,7 +204,7 @@ index 1e74d62..b99772a 100644
 + * comando selectivo puede recortar en el freno, que corre en cada fin de
 + * turno, y no en finish, que integra. Informativa: quien la ignora no cambia.
 + */
-+export const VARIABLE_TIPO_VERIFICACION = 'TASKCODE_VERIFICACION';
++export const VARIABLE_TIPO_VERIFICACION = 'TIPO_VERIFICACION';
 +
  export interface OpcionesVerificacion {
    /** Solo para tests: sustituye al timeout en segundos (en ms). */
@@ -292,7 +292,7 @@ Final de la salida (truncada: 145132 bytes en total):
 ✔ ejecuta lo elegido mas los rapidos y sale con el codigo de node --test (64954.7732ms)
 ✔ los tests que lanza no heredan RAMA_BASE (el freno siempre la pasa) (28614.1539ms)
 ✔ tope: si la seleccion pasa de VERIFICAR_IMPACTO_TOPE, solo los tests directos (y lo dice) (10467.3288ms)
-✔ TASK-139b: con TASKCODE_VERIFICACION=selectiva no hay tope; con freno o sin la variable, si (5502.3853ms)
+✔ TASK-139b: con TIPO_VERIFICACION=selectiva no hay tope; con freno o sin la variable, si (5502.3853ms)
 ✔ tope: si ni los directos caben, los N mas proximos al modulo cambiado, nunca cero (16183.5473ms)
 ✔ una ejecucion cortada a mitad: la siguiente restaura dist/src y lo avisa (8762.9233ms)
 ✔ la verificacion no cambia el arbol: dist/src vuelve tal cual tras compilar (6916.1732ms)

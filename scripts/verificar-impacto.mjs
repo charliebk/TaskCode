@@ -41,7 +41,7 @@
  * luego los de una carpeta con el nombre de la suya (`test/gitflow/` para
  * `scripts/gitflow/*`) y despues el resto por orden alfabetico. La salida dice
  * cuantos se dejan fuera. Nunca queda en cero lo que cambia si tiene tests.
- * Con TASKCODE_VERIFICACION=selectiva (rondas de review y finish, TASK-139b) no
+ * Con TIPO_VERIFICACION=selectiva (rondas de review y finish, TASK-139b) no
  * hay tope: todos los afectados, y la suite entera si no se sabe que afecta. El
  * freno lo lanza como comando propio (tipo `freno`) y conserva el tope.
  *
@@ -353,13 +353,13 @@ function leerTope(valor) {
 }
 
 /**
- * TASK-139b: el tope que se aplica. Con TASKCODE_VERIFICACION=selectiva (la
+ * TASK-139b: el tope que se aplica. Con TIPO_VERIFICACION=selectiva (la
  * pasa el plugin en las rondas de review y en finish) no hay tope: se corren
  * todos los afectados, porque un recorte ahi dejaba integrar rojos que nadie
  * ejecuto. Con `freno` (comando_verificacion_freno) o a mano, el de siempre.
  */
 export function topeEfectivo(env) {
-  return env.TASKCODE_VERIFICACION === 'selectiva' ? Infinity : leerTope(env.VERIFICAR_IMPACTO_TOPE);
+  return env.TIPO_VERIFICACION === 'selectiva' ? Infinity : leerTope(env.VERIFICAR_IMPACTO_TOPE);
 }
 
 function aDist(fichero) {
@@ -409,7 +409,7 @@ function main(argv) {
   }
 
   console.log(`[verificar-impacto] Base: ${base}. Ficheros cambiados: ${String(cambiadas.length)}.`);
-  if (sinTope) console.log('[verificar-impacto] Sin tope (TASKCODE_VERIFICACION=selectiva: ronda de review o finish): todos los afectados.');
+  if (sinTope) console.log('[verificar-impacto] Sin tope (TIPO_VERIFICACION=selectiva: ronda de review o finish): todos los afectados.');
   if (seleccion.enrutador !== undefined) console.log(`[verificar-impacto] Enrutador: ${seleccion.enrutador}.`);
   let objetivos;
   if (suiteEntera) {
@@ -466,7 +466,7 @@ function main(argv) {
     // cambia de comportamiento (el freno Stop siempre la pasa a la selectiva).
     delete env.RAMA_BASE;
     // TASK-139b: igual con el tipo de verificacion (lo leen los tests del freno).
-    delete env.TASKCODE_VERIFICACION;
+    delete env.TIPO_VERIFICACION;
     const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', ...objetivos], {
       cwd: dirPlugin,
       env,

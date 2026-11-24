@@ -89,8 +89,8 @@ function listar(raiz: string, base = 'develop', tope?: number, tipo?: string): S
   if (tope === undefined) delete env['VERIFICAR_IMPACTO_TOPE'];
   else env['VERIFICAR_IMPACTO_TOPE'] = String(tope);
   // TASK-139b: el tipo lo decide cada test, no el entorno de quien corre la suite.
-  if (tipo === undefined) delete env['TASKCODE_VERIFICACION'];
-  else env['TASKCODE_VERIFICACION'] = tipo;
+  if (tipo === undefined) delete env['TIPO_VERIFICACION'];
+  else env['TIPO_VERIFICACION'] = tipo;
   const r = spawnSync(process.execPath, [SCRIPT, '--listar'], { cwd: raiz, encoding: 'utf8', env });
   assert.equal(r.status, 0, r.stderr);
   return JSON.parse(r.stdout) as Seleccion;
@@ -227,19 +227,19 @@ test('ejecuta lo elegido mas los rapidos y sale con el codigo de node --test', a
   });
 });
 
-test('los tests que lanza no heredan RAMA_BASE (el freno siempre la pasa) ni TASKCODE_VERIFICACION', async () => {
+test('los tests que lanza no heredan RAMA_BASE (el freno siempre la pasa) ni TIPO_VERIFICACION', async () => {
   await conRepo(async (raiz) => {
     await cambiarYCommitear(raiz, `${PLUGIN}/test/c.test.ts`, "import { c } from '../src/c.js';\nvoid c; // cambio\n");
     // Lo "compilado" de ese test (el build del repo miniatura no hace nada): pasa solo sin las dos variables.
-    // TASK-139b (MEN-2): con TASKCODE_VERIFICACION heredada, un test que lanza el script perderia el tope.
+    // TASK-139b (MEN-2): con TIPO_VERIFICACION heredada, un test que lanza el script perderia el tope.
     await escribir(
       raiz,
       `${PLUGIN}/dist/test/c.test.js`,
       "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\n" +
         "test('sin RAMA_BASE', () => { assert.equal(process.env.RAMA_BASE, undefined); });\n" +
-        "test('sin TASKCODE_VERIFICACION', () => { assert.equal(process.env.TASKCODE_VERIFICACION, undefined); });\n"
+        "test('sin TIPO_VERIFICACION', () => { assert.equal(process.env.TIPO_VERIFICACION, undefined); });\n"
     );
-    const env = { ...process.env, RAMA_BASE: 'develop', TASKCODE_VERIFICACION: 'freno' };
+    const env = { ...process.env, RAMA_BASE: 'develop', TIPO_VERIFICACION: 'freno' };
     const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env });
     assert.equal(r.status, 0, r.stdout + r.stderr);
     assert.match(r.stdout, /test\/c\.test\.ts \(test cambiado\)/);
@@ -256,7 +256,7 @@ test('TASK-139b: con selectiva y un cambio sin test que lo nombre, corre la suit
       `${PLUGIN}/dist/test/fuera/z.test.js`,
       "import { test } from 'node:test';\ntest('fuera de rapido corre', () => {});\n"
     );
-    const env = { ...process.env, RAMA_BASE: 'develop', TASKCODE_VERIFICACION: 'selectiva' };
+    const env = { ...process.env, RAMA_BASE: 'develop', TIPO_VERIFICACION: 'selectiva' };
     const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env });
     // Sin mirar el codigo de salida: el repo miniatura trae un test en rojo a proposito.
     assert.match(r.stdout, /Suite entera: /);
@@ -281,10 +281,10 @@ test('tope: si la seleccion pasa de VERIFICAR_IMPACTO_TOPE, solo los tests direc
   });
 });
 
-// TASK-139b: en review y finish (TASKCODE_VERIFICACION=selectiva) no hay recorte
+// TASK-139b: en review y finish (TIPO_VERIFICACION=selectiva) no hay recorte
 // silencioso: todos los afectados, y la suite entera si no se sabe que afecta. El
 // freno (tipo freno) y una ejecucion a mano mantienen el tope.
-test('TASK-139b: con TASKCODE_VERIFICACION=selectiva no hay tope; con freno o sin la variable, si', async () => {
+test('TASK-139b: con TIPO_VERIFICACION=selectiva no hay tope; con freno o sin la variable, si', async () => {
   await conRepo(async (raiz) => {
     await cambiarYCommitear(raiz, `${PLUGIN}/src/a.ts`, 'export const a = 9;\n');
     await cambiarYCommitear(raiz, `${PLUGIN}/src/c.ts`, 'export const c = 9;\n');

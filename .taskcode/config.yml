@@ -6,7 +6,7 @@ modo_flujo: automatico
 comando_verificacion: "npm --prefix taskcode-marketplace/plugins/taskcode-plugin test"
 timeout_verificacion: 3600
 comando_verificacion_selectiva: "node scripts/verificar-impacto.mjs"
-# TASK-139b: review y finish corren la selectiva SIN tope (TASKCODE_VERIFICACION=
+# TASK-139b: review y finish corren la selectiva SIN tope (TIPO_VERIFICACION=
 # selectiva: todos los afectados, o la suite entera si no se sabe que afecta),
 # asi que su timeout es el de la completa. El freno de fin de turno corre el
 # mismo script como comando propio (tipo freno, memo aparte, con el tope de 10):

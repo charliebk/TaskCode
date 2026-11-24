@@ -26,11 +26,11 @@ dependencias: [TASK-139a]
 
 Parte b del troceo de TASK-139 (Regla 4D: tests que no protegen lo que dicen), partes TASK-139a, TASK-139b en la rama fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di.
 
-El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos los afectados en review y finish.
+El plugin pasa TIPO_VERIFICACION al comando; verificar-impacto corre todos los afectados en review y finish.
 
 ## Criterios de aceptacion
-- [x] El comando de verificacion recibe TASKCODE_VERIFICACION con su tipo (selectiva en review y finish, freno en el Stop), con test, y el README del plugin lo documenta
-- [x] Con TASKCODE_VERIFICACION=selectiva, scripts/verificar-impacto.mjs no recorta: corre todos los afectados, y la suite completa si no sabe que afecta; con freno o a mano mantiene el tope, con test
+- [x] El comando de verificacion recibe TIPO_VERIFICACION con su tipo (selectiva en review y finish, freno en el Stop), con test, y el README del plugin lo documenta
+- [x] Con TIPO_VERIFICACION=selectiva, scripts/verificar-impacto.mjs no recorta: corre todos los afectados, y la suite completa si no sabe que afecta; con freno o a mano mantiene el tope, con test
 
 ## Transiciones
 
@@ -43,7 +43,7 @@ El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos l
 
 ## Autorrevision
 
-- 4D — b481b52: TASKCODE_VERIFICACION en el mismo env que RAMA_BASE; el freno usa comando_verificacion_freno (TASK-125, tipo y memo propios) en vez de cambiar su tipo: probado primero y deshecho, rompia 6 tests de memo y mensajes del freno; topeEfectivo reutiliza leerTope y seleccionar acepta Infinity; mutaciones en rojo: sin la variable, sin el Infinity de selectiva, sin la suite entera
+- 4D — b481b52: TIPO_VERIFICACION en el mismo env que RAMA_BASE; el freno usa comando_verificacion_freno (TASK-125, tipo y memo propios) en vez de cambiar su tipo: probado primero y deshecho, rompia 6 tests de memo y mensajes del freno; topeEfectivo reutiliza leerTope y seleccionar acepta Infinity; mutaciones en rojo: sin la variable, sin el Infinity de selectiva, sin la suite entera
 - code-quality-reviewer — b481b52
 
 ## Coste
@@ -59,7 +59,7 @@ El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos l
 
 ## Resultado
 
-- El plugin pasa `TASKCODE_VERIFICACION` al comando de verificación con su tipo: `selectiva` en review y en finish con código parcial, `freno` con `comando_verificacion_freno`.
+- El plugin pasa `TIPO_VERIFICACION` al comando de verificación con su tipo: `selectiva` en review y en finish con código parcial, `freno` con `comando_verificacion_freno`.
 - `scripts/verificar-impacto.mjs`:
   - Con `selectiva` no aplica el tope: corre todos los afectados y, si no sabe qué afecta, la suite entera (la ejecuta de verdad, con test).
   - Con `freno` o a mano conserva el tope de 10.

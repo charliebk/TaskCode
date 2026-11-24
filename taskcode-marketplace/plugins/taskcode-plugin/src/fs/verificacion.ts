@@ -64,7 +64,7 @@ export const VARIABLE_RAMA_BASE = 'RAMA_BASE';
  * comando selectivo puede recortar en el freno, que corre en cada fin de
  * turno, y no en finish, que integra. Informativa: quien la ignora no cambia.
  */
-export const VARIABLE_TIPO_VERIFICACION = 'TASKCODE_VERIFICACION';
+export const VARIABLE_TIPO_VERIFICACION = 'TIPO_VERIFICACION';
 
 export interface OpcionesVerificacion {
   /** Solo para tests: sustituye al timeout en segundos (en ms). */

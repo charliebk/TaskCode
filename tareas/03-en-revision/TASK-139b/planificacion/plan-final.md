@@ -6,9 +6,9 @@ Redactado por el coordinador (modo rapido; el diseno ya se decidio en el plan de
 
 Duracion estimada: 45 min (parte b del troceo de TASK-139; senales: 2 ficheros de produccion, src/fs/verificacion.ts y scripts/verificar-impacto.mjs, mas README y config; 2 criterios)
 
-1. `verificarConMemo` (src/fs/verificacion.ts) ya anade `RAMA_BASE` al entorno del comando. Ahora anade tambien `TASKCODE_VERIFICACION` con el tipo de la peticion (`selectiva` en review y finish, `freno` en el Stop, `completa`, `documentacion`), en el mismo sitio. La constante se exporta junto a `VARIABLE_RAMA_BASE`.
+1. `verificarConMemo` (src/fs/verificacion.ts) ya anade `RAMA_BASE` al entorno del comando. Ahora anade tambien `TIPO_VERIFICACION` con el tipo de la peticion (`selectiva` en review y finish, `freno` en el Stop, `completa`, `documentacion`), en el mismo sitio. La constante se exporta junto a `VARIABLE_RAMA_BASE`.
 2. scripts/verificar-impacto.mjs:
-   - Con `TASKCODE_VERIFICACION=selectiva`, el tope es infinito: se corren todos los afectados.
+   - Con `TIPO_VERIFICACION=selectiva`, el tope es infinito: se corren todos los afectados.
    - Si no sabe que afecta (`todo`), corre la suite completa (`npm test`) en vez de los directos.
    - La salida lo dice («sin tope: verificacion de review/finish»).
    - Con `freno`, sin la variable (a mano) o con `VERIFICAR_IMPACTO_TOPE` explicito fuera de selectiva, sigue igual.
@@ -37,8 +37,8 @@ Modo rapido: no se lanzan roles.
 
 Tests nuevos por criterio (presupuesto de 1 a 3 por criterio; si se pasa, el motivo):
 
-- Criterio 1: 1 test (un comando que vuelca su entorno: con selectiva llega `TASKCODE_VERIFICACION=selectiva`, con freno `freno`). README: la asercion va en el test existente de documentacion, si lo hay.
-- Criterio 2: 2 tests (`topeEfectivo` puro con cada tipo; y verificar-impacto `--listar` con `TASKCODE_VERIFICACION=selectiva` no recorta, y con `freno` si).
+- Criterio 1: 1 test (un comando que vuelca su entorno: con selectiva llega `TIPO_VERIFICACION=selectiva`, con freno `freno`). README: la asercion va en el test existente de documentacion, si lo hay.
+- Criterio 2: 2 tests (`topeEfectivo` puro con cada tipo; y verificar-impacto `--listar` con `TIPO_VERIFICACION=selectiva` no recorta, y con `freno` si).
 
 Cada uno se comprueba con su mutante.
 

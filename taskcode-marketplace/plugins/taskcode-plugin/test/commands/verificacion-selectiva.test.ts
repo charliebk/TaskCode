@@ -51,7 +51,7 @@ const dir = __dirname;
 const nombre = process.argv[2];
 fs.appendFileSync(dir + '/cuenta-' + nombre, 'x');
 fs.writeFileSync(dir + '/base-' + nombre, process.env.RAMA_BASE === undefined ? '(sin RAMA_BASE)' : process.env.RAMA_BASE);
-fs.writeFileSync(dir + '/tipo-' + nombre, process.env.TASKCODE_VERIFICACION === undefined ? '(sin tipo)' : process.env.TASKCODE_VERIFICACION);
+fs.writeFileSync(dir + '/tipo-' + nombre, process.env.TIPO_VERIFICACION === undefined ? '(sin tipo)' : process.env.TIPO_VERIFICACION);
 const d = fs.readFileSync(dir + '/desenlace-' + nombre, 'utf8').trim();
 if (d === 'ok') { console.log(nombre + ': todo en verde'); process.exit(0); }
 if (d === 'ensucia') { fs.writeFileSync('artefacto.txt', 'x'); process.exit(0); }
@@ -66,7 +66,7 @@ interface Verifs {
   desenlace(nombre: 'completa' | 'selectiva', d: Desenlace): Promise<void>;
   ejecuciones(nombre: 'completa' | 'selectiva'): number;
   base(nombre: 'completa' | 'selectiva'): string | null;
-  /** TASK-139b: el TASKCODE_VERIFICACION que recibio el comando. */
+  /** TASK-139b: el TIPO_VERIFICACION que recibio el comando. */
   tipo(nombre: 'completa' | 'selectiva'): string | null;
 }
 
@@ -583,7 +583,7 @@ test('guia (TASK-091): task-workflow enlaza verificacion-selectiva.md, que expli
     /comando_verificacion:/,
     /timeout_verificacion_selectiva/,
     /RAMA_BASE/,
-    /TASKCODE_VERIFICACION[\s\S]*comando_verificacion_freno/, // TASK-139b
+    /TIPO_VERIFICACION[\s\S]*comando_verificacion_freno/, // TASK-139b
     /arbol de trabajo/,
     /git ls-files --others --exclude-standard/,
     /corre todo/,

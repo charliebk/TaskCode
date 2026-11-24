@@ -41,7 +41,7 @@ En el clon se instalo y compilo sin errores (`npm install` y `tsc`). La peticion
 ### Correcciones (coordinador)
 
 - **MEN-1:** test que lanza el script con `selectiva` y un cambio que ningun test nombra. Comprueba que corre un test de fuera de test/core y test/cli. Con M2 cae en rojo.
-- **MEN-2:** el test de «no heredan RAMA_BASE» comprueba tambien `TASKCODE_VERIFICACION`. Con M4 cae en rojo.
+- **MEN-2:** el test de «no heredan RAMA_BASE» comprueba tambien `TIPO_VERIFICACION`. Con M4 cae en rojo.
 - **MEN-3:** con la suite entera se quitan «(la completa queda para antes de publicar)» del motivo y el recorte. El test de MEN-1 lo comprueba, y con su mutante cae en rojo.
 - **MEN-4:** `finish` solo recibe `selectiva` con `rutas_verificacion_parcial`. Sin comando del freno, el Stop tarda lo que la selectiva entera. La seccion del freno dice que recibe `freno`.
 

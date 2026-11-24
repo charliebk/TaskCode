@@ -25,7 +25,7 @@ const path = require('node:path');
 const quien = process.argv[2];
 fs.appendFileSync(path.join(__dirname, 'cuenta-' + quien), 'x');
 fs.writeFileSync(path.join(__dirname, 'base-' + quien), process.env.RAMA_BASE || '');
-fs.writeFileSync(path.join(__dirname, 'tipo-' + quien), process.env.TASKCODE_VERIFICACION || '');
+fs.writeFileSync(path.join(__dirname, 'tipo-' + quien), process.env.TIPO_VERIFICACION || '');
 const d = fs.readFileSync(path.join(__dirname, 'desenlace'), 'utf8').trim();
 if (d === 'ok') { console.log('verde'); process.exit(0); }
 if (d === 'lento') { setTimeout(() => process.exit(0), 20000); }
@@ -36,7 +36,7 @@ interface Repo {
   raiz: string;
   ejecuciones(c: Comando): number;
   baseRecibida(c: Comando): string | null;
-  /** TASK-139b: el TASKCODE_VERIFICACION que recibio. */
+  /** TASK-139b: el TIPO_VERIFICACION que recibio. */
   tipoRecibido(c: Comando): string | null;
   desenlace(d: 'ok' | 'ko' | 'lento'): Promise<void>;
 }
