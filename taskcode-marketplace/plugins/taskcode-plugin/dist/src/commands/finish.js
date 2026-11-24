@@ -346,7 +346,8 @@ async function runFinish(tareasRoot, argv, today, deps, progreso, pendientes) {
     const mainBranch = MERGEA_A_MAIN[tipo] ? resolveMainBranch(deps.repoCwd) : null;
     // TASK-145a/b (CMD1-06): la base de la rama de la tarea, decidida una vez. Un
     // hotfix nace de la principal; el resto, de la rama de integracion.
-    const ramaBaseTarea = tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion;
+    const esHotfixConPrincipal = tipo === 'hotfix' && mainBranch !== null;
+    const ramaBaseTarea = esHotfixConPrincipal ? mainBranch : ramaIntegracion;
     const destinos = mainBranch === null ? [ramaIntegracion] : [mainBranch, ramaIntegracion];
     for (const destino of integradaPorMergeRequest ? [] : destinos) {
         const colision = detectarColisionId(id, titulo, rama, destino, deps.repoCwd);
@@ -427,7 +428,7 @@ async function runFinish(tareasRoot, argv, today, deps, progreso, pendientes) {
             rama,
             // Un hotfix nace de la principal: sus held-out se commitean ahi (MEN-1).
             ramaBase: ramaBaseTarea,
-            ...(tipo === 'hotfix' && mainBranch !== null ? { ramaDiseno: ramaIntegracion } : {}),
+            ...(esHotfixConPrincipal ? { ramaDiseno: ramaIntegracion } : {}),
             carpetaTarea: path
                 .relative(deps.repoCwd, path.dirname(initial.filePath))
                 .split(path.sep)
