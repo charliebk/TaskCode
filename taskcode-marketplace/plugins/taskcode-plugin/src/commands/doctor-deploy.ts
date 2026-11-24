@@ -23,6 +23,7 @@
  *   `ocultarSecretos`: es la segunda red tras el enmascarado en origen.
  */
 import { existsSync, linkSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { diaLocal, diaUtc } from '../core/documento-estado.js';
 import path from 'node:path';
 import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
@@ -206,11 +207,6 @@ function evaluarPunto(
       evidencias: [],
     };
   }
-}
-
-function fechaLocal(d: Date): string {
-  const dos = (n: number): string => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
 }
 
 /** Pone `tmp` en `destino` sin pisar nada: `link` (falla si existe) o, sin enlaces duros, `rename` tras comprobar. */
@@ -473,7 +469,7 @@ function emitir(a: Analisis): DoctorDeployResult {
   let mensajeEscritura = '';
   if (escribir) {
     try {
-      const destino = escribirInforme(raiz, fechaLocal(ahora), salidaSegura(formatearInforme(informe)), salidaSegura(formatearJson(informe)));
+      const destino = escribirInforme(raiz, diaLocal(ahora), salidaSegura(formatearInforme(informe)), salidaSegura(formatearJson(informe)));
       rutaInforme = destino.md;
       rutaJson = destino.json;
       const rel = path.relative(raiz, destino.md).replace(/\\/g, '/');
@@ -514,7 +510,7 @@ export async function runDoctorDeployCompleto(argv: readonly string[], deps: Doc
   if (!a.opciones.crearTareas) return emitir(a);
   let tareas: ResultadoCrearTareas;
   try {
-    tareas = await crearTareasDeFallas(a.informe, a.raiz, fechaLocal(a.ahora));
+    tareas = await crearTareasDeFallas(a.informe, a.raiz, diaUtc(a.ahora));
   } catch (e: unknown) {
     const resultado = a.opciones.resultado;
     if (

@@ -3,7 +3,9 @@
  *  (--agente <id>... | --tokens N) [--push]` — TASK-023.
  *
  * Suma al coste en tokens de una fase de la tarea (`tokens_diseno`,
- * `tokens_implementacion` o `tokens_revision` de su tarea.md) y lo commitea.
+ * `tokens_implementacion` o `tokens_revision` de su tarea.md). TASK-119: no
+ * lo commitea (queda pendiente y lo incluye el commit del siguiente comando de
+ * fase), salvo con la tarea ya terminada, que no tiene fase siguiente.
  * `taskctl` no ve el consumo del agente: lo registra quien lo ve.
  *
  * Dos formas de dar la cifra, excluyentes y una obligatoria:
@@ -11,7 +13,7 @@
  *    Agent. La cifra se lee de la transcripcion del subagente
  *    (`core/coste-transcripcion.ts`): lo que gasto de verdad, no el tamano
  *    de su contexto final, que es lo que muestra al terminar. Varios
- *    `--agente` se suman en un solo registro y un solo commit.
+ *    `--agente` se suman en un solo registro.
  *  - `--tokens N`: una cifra a mano (la parte del orquestador, estimada).
  *
  * Reglas:
@@ -22,34 +24,31 @@
  *    revision se conoce cuando la tarea ya esta casi o del todo cerrada.
  *    Por eso no pasa por la maquina de estados, y no cambia el estado ni
  *    `actualizado`.
- * 3. Escribe y commitea SOLO ese tarea.md. Mismas precondiciones que
- *    `pausa`: la rama de la tarea es donde esta al dia (si no, aborta y dice
- *    a cual cambiar), y el propio tarea.md no puede tener cambios sin
- *    commitear (el commit se los llevaria). Lo demas del arbol no importa:
- *    el commit es pathspec-limitado.
- * 4. Una cifra de 0 se rechaza: registrar nada no tiene sentido y dejaria un
- *    commit que parece un registro.
+ * 3. Escribe SOLO ese tarea.md (y lo commitea solo si la tarea esta
+ *    terminada, con un commit limitado a ese fichero). La rama de la tarea es
+ *    donde esta al dia: si no, aborta y dice a cual cambiar.
+ * 4. Una cifra de 0 se rechaza: registrar nada no tiene sentido y dejaria una
+ *    fila que parece un registro.
  * 5. TASK-063: cada llamada deja ademas una fila en la tabla `## Coste` del
  *    cuerpo (`core/coste-registro.ts`), en el mismo fichero y el mismo
- *    commit que el total. Con `--agente`, el desglose sumado de sus agentes
+ *    fichero que el total. Con `--agente`, el desglose sumado de sus agentes
  *    (entrada, escritura y lectura de cache, salida, lecturas); con
  *    `--tokens N`, una fila `manual` con solo el total.
  * 6. TASK-081: con `--fase revision` y `--agente`, UNA FILA POR AGENTE (en el
- *    mismo fichero y commit), cada una con la ronda y el revisor que deduce
+ *    mismo fichero), cada una con la ronda y el revisor que deduce
  *    de su transcripcion (el nombre `peticion-revision-N[-skill].md` del
  *    primer mensaje de usuario). Lo que no se deduce queda `-`: sin atribuir.
  *    `--ronda N [--revisor <skill>]` lo declaran a mano, solo con un unico
  *    `--agente`, y se validan contra las peticiones que hay en `revision/`.
  *    Las otras fases siguen con una sola fila por llamada.
  */
-import { readdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { rechazarFlagsDesconocidos, parseArgs, extraerRepetible, extraerPushFlag } from '../cli/args.js';
-import { readTareaFile } from '../fs/task-store.js';
+import { readTareaFile, listarSiExiste } from '../fs/task-store.js';
 import { serializeTareaFile } from '../core/tarea-file.js';
 import { esAgentIdValido, rondaYRevisorDeTranscripcion, sumarUsoTranscripcion, } from '../core/coste-transcripcion.js';
 import { rondaYRevisorDePeticion } from '../fs/rondas.js';
-import { isEnoent, isEnotdir } from '../fs/task-store.js';
 import { anadirCoste, FASES_COSTE, PREFIJO_DIFERENCIA, idsDeFuente, leerCostes, } from '../core/coste-registro.js';
 import { formatearInstante } from '../core/transiciones.js';
 import { buscarTranscripciones, directorioConfigClaude, leerTranscripcion } from '../fs/transcripciones.js';
@@ -114,6 +113,21 @@ function leerFaseYTokens(flags, hayAgentes) {
     return { fase: fase, tokens };
 }
 const CAMPOS_COSTE = ['tokens', 'entrada', 'cacheEscritura', 'cacheLectura', 'salida', 'lecturas'];
+/** TASK-146b (CMD2-12): un coste a cero, campo a campo desde CAMPOS_COSTE (un campo nuevo no queda sin poner). */
+function costeCero() {
+    return Object.fromEntries(CAMPOS_COSTE.map((k) => [k, 0]));
+}
+/** TASK-146b (CMD2-12): lo que suma una fila de `## Coste` (su `total` es `tokens`; sin lecturas, 0). */
+function costeDeFila(f) {
+    return {
+        tokens: f.total,
+        entrada: f.entrada ?? 0,
+        cacheEscritura: f.cacheEscritura ?? 0,
+        cacheLectura: f.cacheLectura ?? 0,
+        salida: f.salida ?? 0,
+        lecturas: f.lecturas ?? 0,
+    };
+}
 /**
  * Lo ya anotado en `## Coste` de la fase para cada id de `agentes` que
  * aparezca alli (TASK-065): la suma de sus filas, la original y las de
@@ -135,14 +149,7 @@ function yaAnotado(filas, fase, agentes, id) {
                     'sabe cuanto de esa fila es suyo para registrar solo lo que ha crecido su transcripcion. ' +
                     'Registra la diferencia a mano con --tokens N. No se ha tocado nada.');
             }
-            const previo = anotado.get(agente) ?? { tokens: 0, entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0, lecturas: 0 };
-            previo.tokens += f.total;
-            previo.entrada += f.entrada;
-            previo.cacheEscritura += f.cacheEscritura;
-            previo.cacheLectura += f.cacheLectura;
-            previo.salida += f.salida;
-            previo.lecturas += f.lecturas ?? 0;
-            anotado.set(agente, previo);
+            anotado.set(agente, sumarAgentes([anotado.get(agente) ?? costeCero(), costeDeFila(f)]));
         }
     }
     return anotado;
@@ -197,12 +204,7 @@ async function costeDeAgentes(agentes, configDir, anotado = new Map()) {
         }
         const delAgente = {
             id,
-            tokens: 0,
-            entrada: 0,
-            cacheEscritura: 0,
-            cacheLectura: 0,
-            salida: 0,
-            lecturas: 0,
+            ...costeCero(),
             atribucion: rondaYRevisorDeTranscripcion(texto),
         };
         for (const k of CAMPOS_COSTE)
@@ -215,7 +217,7 @@ async function costeDeAgentes(agentes, configDir, anotado = new Map()) {
     return porAgente;
 }
 function sumarAgentes(lista) {
-    const suma = { tokens: 0, entrada: 0, cacheEscritura: 0, cacheLectura: 0, salida: 0, lecturas: 0 };
+    const suma = costeCero();
     for (const a of lista)
         for (const k of CAMPOS_COSTE)
             suma[k] += a[k];
@@ -243,15 +245,7 @@ function leerAtribucionManual(flags, fase, nAgentes) {
 }
 /** Peticiones de revision de la carpeta de la tarea, con su ronda y su revisor; vacio sin `revision/`. */
 async function peticionesDeRevision(dirTarea) {
-    let nombres;
-    try {
-        nombres = await readdir(path.join(dirTarea, 'revision'));
-    }
-    catch (e) {
-        if (isEnoent(e) || isEnotdir(e))
-            return [];
-        throw e;
-    }
+    const nombres = await listarSiExiste(path.join(dirTarea, 'revision'));
     return nombres.flatMap((n) => {
         const p = rondaYRevisorDePeticion(n);
         return p === null ? [] : [p];

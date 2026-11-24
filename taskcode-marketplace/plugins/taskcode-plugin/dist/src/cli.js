@@ -3,6 +3,7 @@
  * "import" (TASK-004) y "board" (TASK-005).
  */
 import path from 'node:path';
+import { diaUtc } from './core/documento-estado.js';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
 import { TaskIdError } from './core/task-id.js';
 import { runImportCommand, ImportCommandError } from './commands/import.js';
@@ -182,7 +183,7 @@ dice el comando, taskctl aborta antes con instrucciones.
 Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 function today() {
-    return new Date().toISOString().slice(0, 10);
+    return diaUtc(new Date());
 }
 /**
  * TASK-052: el instante que se escribe en `## Transiciones`. Misma fuente

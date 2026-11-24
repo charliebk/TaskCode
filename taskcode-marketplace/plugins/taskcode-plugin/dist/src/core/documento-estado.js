@@ -40,6 +40,14 @@ export function diaLocal(fecha) {
     const p = (n) => String(n).padStart(2, '0');
     return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}`;
 }
+/**
+ * TASK-146b (CMD1-08): el dia AAAA-MM-DD en UTC. Es la fecha de `creado` y
+ * `actualizado` de las tareas (la de `taskctl new`); doctor-deploy la usaba en
+ * hora local y una tarea creada a las 23:30 de Madrid salia con otro dia.
+ */
+export function diaUtc(fecha) {
+    return fecha.toISOString().slice(0, 10);
+}
 /** Dias de calendario de `desde` a `hasta` (ambos AAAA-MM-DD); negativo si `hasta` es anterior. */
 export function diasEntre(desde, hasta) {
     const ms = (dia) => {

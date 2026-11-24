@@ -42,10 +42,11 @@
  * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
 import { PUERTA_FINISH, PUERTA_REVIEW, resumirFreno, resumirPuerta, sumarPorTarea } from '../core/registro-puertas.js';
+import { claveRuta } from '../fs/cobertura.js';
 import { PUERTA_SUITE } from '../core/crecimiento-suite.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import path from 'node:path';
-import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
 import { parseArgs, rechazarFlagsDesconocidos, extraerRepetible } from '../cli/args.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
 import { TaskValidationError, TASK_COMPLEXITIES } from '../core/task.js';
@@ -53,7 +54,7 @@ import { cargarHeuristica, nivelHeuristico, puntuarTarea } from '../core/heurist
 import { leerTransiciones } from '../core/transiciones.js';
 import { COLUMNAS_HEURISTICA, COLUMNAS_METRICAS, lineaTotalesPuertas, COLUMNAS_TOKENS, COLUMNAS_DESGLOSE_TOKENS, COLUMNA_PROYECTO, NOTA_DESGLOSE_TOKENS, avisosDeFila, avisoInformesSinTabla, claveTarea, etiquetaTarea, notasFilaEnriquecida, formatearLecturasRevision, lecturasRevisionJson, pausasJson, BloqueTokensError, NOTA_TOKENS, renderBloqueTokens, resumenesTokens, sustituirBloqueTokens, calcularFila, enMuestraHeuristica, formatearResumen, formatearTabla, parsearLogGit, resumirPorNivel, resumenSinCoste, } from '../core/metricas.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, nombresDeUltimaRonda, rondaYRevisorDeInforme, } from '../fs/rondas.js';
-import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
+import { listExistingTaskIds, listarSiExiste, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion } from '../core/evolucion.js';
 import { calcularGrupos, formatearGrupos } from '../core/grupos-metricas.js';
@@ -180,14 +181,7 @@ function parseFlagsMetricas(argv) {
     return f;
 }
 async function nombresDeRevision(dirTarea) {
-    try {
-        return await readdir(path.join(dirTarea, 'revision'));
-    }
-    catch (e) {
-        if (isEnoent(e) || isEnotdir(e))
-            return [];
-        throw e;
-    }
+    return listarSiExiste(path.join(dirTarea, 'revision'));
 }
 /** Informes de revision (todas las rondas) y bytes de cada peticion, de una pasada. */
 async function leerRevision(dirTarea, nombres) {
@@ -216,10 +210,6 @@ function eventosGit(repoCwd) {
             return null;
         throw e;
     }
-}
-/** Clave con la que se comparan dos rutas reales: en Windows, sin distinguir mayusculas. */
-function claveRuta(ruta) {
-    return process.platform === 'win32' ? ruta.toLowerCase() : ruta;
 }
 /**
  * Los repos de `--repo` (TASK-065), validados ANTES de leer nada: cada ruta

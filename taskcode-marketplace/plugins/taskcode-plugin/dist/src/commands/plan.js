@@ -23,10 +23,10 @@
  * (ensureBaseBranchReady, antes de mover nada).
  */
 import path from 'node:path';
-import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { parseArgs, rechazarFlagsDesconocidos, extraerPushFlag } from '../cli/args.js';
 import { parseAsignadoAFlag, identidadUsable, PISTA_VACIO_ESCRITURA, } from '../cli/asignado.js';
-import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir } from '../fs/task-store.js';
+import { readTareaFile, moveTareaFile, isEexist, isEnoent, isEnotdir, listarSiExiste } from '../fs/task-store.js';
 import { registrarTransicion } from '../core/transiciones.js';
 import { resolverConfig } from '../core/config.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
@@ -94,17 +94,6 @@ const RONDA_UNIFICADOR_RE = /^peticion-(unificador|plan)-(\d+)\.md$/;
  * `revision/`.
  */
 export const PLANIFICACION_DIRNAME = 'planificacion';
-/** readdir tolerante: un directorio que no existe es "no hay nada". */
-async function listarDir(dir) {
-    try {
-        return await readdir(dir);
-    }
-    catch (e) {
-        if (isEnoent(e) || isEnotdir(e))
-            return [];
-        throw e;
-    }
-}
 /**
  * Fichero regular Y con algo dentro. Un fichero de cero bytes es lo
  * que deja una escritura que se corto entre el `open()` y el volcado,
@@ -578,31 +567,11 @@ async function runPlan(tareasRoot, argv, today, deps, progreso) {
     //
     // ── COMO SE MODELA EL ESTADO DE ESTA CARPETA, y por que asi ────────
     //
-    // Este bloque se reescribio entero tras CUATRO rondas de revision por
-    // pares, en las que el MISMO CRITICO se arreglo tres veces y volvio a
-    // aparecer por una puerta distinta cada vez. Los tres arreglos eran
-    // correctos para el caso que tenian delante; lo que fallaba era el
-    // modelo. Merece la pena que quede escrito, porque es la parte
-    // reutilizable:
-    //
-    //   1º intento — la ronda se deducia de los TRES tipos de fichero, y
-    //      un resto de una ronda interrumpida la subia: la primera
-    //      planificacion acababa sin peticiones de rol, con exit 0.
-    //   2º intento — se eligio "el testigo" (la peticion del unificador,
-    //      que se escribe la ultima), pero validado POR SU NOMBRE: un
-    //      testigo huerfano o de cero bytes contaba como ronda completa.
-    //   3º intento — se exigio a TODA ronda lo que solo la ronda 1
-    //      produce, con lo que ninguna ronda >=2 podia estar completa y
-    //      el contador se quedaba clavado en 2 para siempre.
-    //   4ª ronda — un testigo con numero >=2 volvia a dejar la tarea sin
-    //      brainstorm; subir el numero de roles dejaba la peticion del
-    //      unificador rancia y contradiciendo a las peticiones de rol; y
-    //      bajarlo sin llegar a cero seguia tirando salidas reales.
-    //
-    // La grieta comun: se estaba modelando la carpeta con DOS escalares
-    // ("en que ronda voy" y "reutilizo el brainstorm") derivados de UN
-    // solo fichero. Lo que la logica necesita saber son TRES cosas
-    // independientes, y aqui se preguntan por separado y contra el disco:
+    // TASK-146b (CMD2-16): la historia de las rondas que llevaron a este modelo
+    // esta en git (TASK-012/017/027). Lo que importa: modelar la carpeta con dos
+    // escalares derivados de UN fichero fallo una y otra vez. Lo que la logica
+    // necesita saber son TRES cosas independientes, y aqui se preguntan por
+    // separado y contra el disco:
     //
     //   (a) ¿En que ronda escribo?  -> avanza con cada vuelta cerrada.
     //   (b) ¿Hay un brainstorm reutilizable PARA LOS ROLES DE HOY?
@@ -622,7 +591,7 @@ async function runPlan(tareasRoot, argv, today, deps, progreso) {
         throw new PlanCommandError(`[ERROR] ${task.id}: no se pudo crear "${brainstormDir}" (${e.code ?? 'error desconocido'}). Si ahi hay un fichero con ese nombre, renombralo o borralo: esa ruta tiene que ser la ` +
             'carpeta del brainstorm de la tarea. La tarea no se ha movido.');
     }
-    const enBrainstorm = await listarDir(brainstormDir);
+    const enBrainstorm = await listarSiExiste(brainstormDir);
     const rondasConAlgo = (re) => [...new Set(enBrainstorm.map((f) => re.exec(f)).filter((m) => m !== null).map((m) => Number(m[m.length - 1])))]
         .sort((a, b) => b - a);
     // (a) Ronda a escribir. El testigo (la peticion del unificador) se
@@ -757,7 +726,7 @@ async function runPlan(tareasRoot, argv, today, deps, progreso) {
     // cuantas sean.
     const salidasAConsolidar = [];
     if (rondaRoles !== null) {
-        for (const nombre of await listarDir(brainstormDir)) {
+        for (const nombre of await listarSiExiste(brainstormDir)) {
             if (SALIDA_ROL_RE.exec(nombre)?.[1] !== String(rondaRoles))
                 continue;
             const rol = TODOS_LOS_ROLES.find((r) => nombre === nombreSalidaRol(r, rondaRoles));

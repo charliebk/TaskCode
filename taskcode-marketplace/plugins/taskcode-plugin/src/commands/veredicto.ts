@@ -3,7 +3,8 @@
  * 2026-10-03, A5).
  *
  * Escribe la linea `- Veredicto:` del informe de revision de la ultima
- * ronda en su forma canonica y la commitea. Existe porque los revisores
+ * ronda en su forma canonica. TASK-119: no la commitea; queda pendiente y la
+ * incluye el commit del siguiente comando de fase (review o finish). Existe porque los revisores
  * la escribian a mano en su propio vocabulario (`**APROBADO CON
  * CAMBIOS**`, `**cambios-solicitados**`), el gate fail-closed de
  * `finish` las rechazaba con razon, y cada vez hacia falta un commit de
