@@ -897,3 +897,18 @@ test('plataforma: sesion rechazada, no instalado, timeout e instancia inalcanzab
     });
   });
 });
+
+// TASK-138b (MEN-4 de la revision): contarTerminadas cuenta tambien las tareas
+// terminadas cuyo tarea.md no se puede leer (como antes de la lectura unica).
+test('contarTerminadas (TASK-138b): una terminada ilegible tambien cuenta', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'taskctl-doctor-ilegible-'));
+  try {
+    const terminadas = path.join(dir, 'tareas', '04-terminadas');
+    await mkdir(path.join(terminadas, 'TASK-001'), { recursive: true });
+    await writeFile(path.join(terminadas, 'TASK-001', 'tarea.md'), 'roto\n', 'utf8');
+    await mkdir(path.join(terminadas, 'TASK-002'), { recursive: true });
+    assert.equal(contarTerminadas(path.join(dir, 'tareas')), 2);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

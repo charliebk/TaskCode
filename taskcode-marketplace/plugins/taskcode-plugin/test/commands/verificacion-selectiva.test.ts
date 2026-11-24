@@ -658,3 +658,22 @@ test('review (TASK-112, criterio 1): la peticion trae commit, huella, comando y 
     });
   });
 });
+
+// TASK-138b (MEN-3 de la revision): si la selectiva de la ronda sale del memo, el
+// registro de puertas la anota como `omitido` (no como una ejecucion verde).
+test('review (TASK-138b): una selectiva reutilizada del memo queda como omitido en el registro de puertas', async () => {
+  await conScripts(async (v) => {
+    await conTareaParaReview(dosClaves(v), async (repoRoot, tareasRoot) => {
+      verificarConMemo(repoRoot, { tipo: 'selectiva', comando: v.comando('selectiva'), timeoutS: 600, base: 'develop' });
+      assert.equal(v.ejecuciones('selectiva'), 1);
+      await review(repoRoot, tareasRoot);
+      assert.equal(v.ejecuciones('selectiva'), 1, 'review no la vuelve a ejecutar');
+      assert.deepEqual(
+        leerRegistroPuertas(repoRoot)
+          .filter((l) => l.puerta === 'review')
+          .map((l) => l.resultado),
+        ['omitido']
+      );
+    });
+  });
+});

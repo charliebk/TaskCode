@@ -93,8 +93,10 @@ export function salidasTopeRondas(id, rondaActual) {
  * antes cada uno tenia su redaccion.
  */
 export function textoSalidasTope(id, rondaActual) {
-    const salidas = salidasTopeRondas(id, rondaActual).map((s) => `${s.descripcion} ("${s.comando}")`);
-    return `Lo decide una persona: ${salidas.join('; ')}.`;
+    // MEN-1 (revision TASK-138b): numeradas y con el comando delante de su
+    // descripcion, que lleva sus propios «;» (la de la ronda extra).
+    const salidas = salidasTopeRondas(id, rondaActual).map((s, i) => `(${String(i + 1)}) "${s.comando}": ${s.descripcion}.`);
+    return `Lo decide una persona, entre tres salidas: ${salidas.join(' ')}`;
 }
 /**
  * Fases que abren una fase NUEVA del ciclo: en semiautomatico se pregunta

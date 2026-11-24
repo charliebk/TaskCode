@@ -219,9 +219,10 @@ test('siguienteFase: un veredicto que no se reconoce no se presenta como "falta 
 // compuesto de las salidas (cada una con su comando y la linea de la ronda extra).
 test('textoSalidasTope (TASK-138b): las tres salidas con su comando, y es el texto del motivo del tope', () => {
   const texto = textoSalidasTope('TASK-100', 2);
-  for (const c of ['taskctl veredicto TASK-100 aprobada-con-correcciones', 'taskctl review TASK-100 --ronda-extra', 'taskctl new']) {
-    assert.ok(texto.includes(`("${c}")`), c);
-  }
+  const comandos = ['taskctl veredicto TASK-100 aprobada-con-correcciones', 'taskctl review TASK-100 --ronda-extra', 'taskctl new'];
+  // MEN-1: numeradas y en orden, cada comando abriendo su salida.
+  comandos.forEach((c, i) => assert.ok(texto.includes(`(${String(i + 1)}) "${c}": `), c));
+  assert.ok(texto.indexOf('(1)') < texto.indexOf('(2)') && texto.indexOf('(2)') < texto.indexOf('(3)'));
   assert.ok(texto.includes('- Ronda 3: '), texto);
   const t = tarea({ estado: 'en-revision', plan_aprobado: true });
   const r = siguienteFase(t, { ...CTX, veredicto: 'cambios-solicitados', rondaRevision: 2 }, 'automatico');
