@@ -44,3 +44,8 @@ Objetivo de la tarea entera:
 | 2026-11-24T00:44:49Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T00:45:29Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T00:45:32Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — c229ae2: tomarCerrojo reutilizado (exportado con dormir sustituible, sin copia para el test); textoBashUsado junto a resolverBash, donde ya vive la logica pura del bash; el test de 1100 ficheros no se borra porque es el unico que protege que review use el diff por lotes (mutante: review con una sola llamada a Git, rojo), y baja a 500; mutaciones en rojo: B1 sin el enlace, B3 sin el reintento del ilegible (y el reintento sin comprobar que el fichero existe cuelga el test hasta el timeout), B4 con la rama de Windows ampliada a darwin
+- code-quality-reviewer — c229ae2
