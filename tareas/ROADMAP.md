@@ -12,12 +12,12 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-143 (en diseño)
+- **En marcha:** TASK-143a (en diseño)
 - **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-158, TASK-019
 
 ## H0 — H0
 
-109 de 121 terminadas.
+109 de 123 terminadas.
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
@@ -108,16 +108,16 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 8 | TASK-140 | Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion | media | — | lista para empezar |
 | — | TASK-141 | Auditoria 4D inicial: reconocimiento completo del codigo existente | alta | — | ✅ terminada |
 | — | TASK-142 | Regla 4D: disfraz en los scripts de Git-Flow | media | — | ✅ terminada |
-| 9 | TASK-143 | Regla 4D: duplicacion en Git-Flow (bash y TS) | alta | — | ▶ en diseño |
-| 10 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
-| 11 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
+| 9 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
+| 10 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
 | — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |
 | — | TASK-155 | comprobarSkillInstalado verificable en Windows (claude.cmd) | simple | — | ✅ terminada |
 | — | TASK-156 | verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin | simple | — | ✅ terminada |
 | — | TASK-157 | Timeout de claude plugin list acorde al binario real | simple | — | ✅ terminada |
-| 12 | TASK-158 | Regla 4D preventiva en todos los procesos que crean o actualizan codigo | alta | — | lista para empezar |
+| 11 | TASK-158 | Regla 4D preventiva en todos los procesos que crean o actualizan codigo | alta | — | lista para empezar |
 | — | TASK-138a | agregador de la suite, mediana y pytest (parte a de TASK-138) | media | — | ✅ terminada |
 | — | TASK-139a | disfraces B1-B5 (parte a de TASK-139) | simple | — | ✅ terminada |
+| 12 | TASK-143a | create, update y merge a main (parte a de TASK-143) | alta | — | ▶ en diseño |
 | — | TASK-144a | cadena, Commit revisado y tarea en su rama (parte a de TASK-144) | alta | — | ✅ terminada |
 | — | TASK-145a | puertas, git y textos de error (parte a de TASK-145) | media | — | ✅ terminada |
 | — | TASK-146a | import, roadmap y verificar-lote (parte a de TASK-146) | media | — | ✅ terminada |
@@ -128,6 +128,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-153a | plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) | alta | — | ✅ terminada |
 | — | TASK-138b | decision de la puerta, constante muerta, textos del tope y doctor (parte b de TASK-138) | media | TASK-138a | ✅ terminada |
 | — | TASK-139b | la selectiva no recorta en silencio (parte b de TASK-139) | simple | TASK-139a | ✅ terminada |
+| 13 | TASK-143b | argumentos, diagnose y push-back (parte b de TASK-143) | alta | TASK-143a | espera a TASK-143a |
 | — | TASK-144b | flags con y sin valor (parte b de TASK-144) | alta | TASK-144a | ✅ terminada |
 | — | TASK-145b | finish.ts y comentarios (parte b de TASK-145) | media | TASK-145a | ✅ terminada |
 | — | TASK-146b | registrar-coste, readdir, fecha y cabeceras (parte b de TASK-146) | media | TASK-146a | ✅ terminada |
@@ -136,6 +137,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | ✅ terminada |
 | — | TASK-151b | commands, hooks y cli (parte b de TASK-151) | media | TASK-151a | ✅ terminada |
 | — | TASK-153b | candidatos 4D en la peticion de revision (parte b de TASK-153) | alta | TASK-153a | ✅ terminada |
+| 14 | TASK-143c | paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143) | alta | TASK-143b | espera a TASK-143b |
 | — | TASK-144c | patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) | alta | TASK-144b | ✅ terminada |
 | — | TASK-147c | fases y Marca en metricas (parte c de TASK-147) | alta | TASK-147b | ✅ terminada |
 | — | TASK-148c | utilidades de core (parte c de TASK-148) | alta | TASK-148b | ✅ terminada |
@@ -149,11 +151,11 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 13 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
-| 14 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
-| 15 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
-| 16 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
-| 17 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
+| 15 | TASK-008 | Migrar scripts Git-Flow a scripts/gitflow/ del plugin | simple | TASK-006, TASK-007 | espera a TASK-006, TASK-007 |
+| 16 | TASK-009 | taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso | simple | TASK-002, TASK-008 | espera a TASK-002, TASK-008 |
+| 17 | TASK-010 | taskctl plan: version minima, un solo agente redacta plan-final.md | simple | TASK-002 | espera a TASK-002 |
+| 18 | TASK-011 | taskctl approve: checkpoint humano, marca plan_aprobado | simple | TASK-010 | espera a TASK-010 |
+| 19 | TASK-012 | Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio | media | TASK-009, TASK-010, TASK-011 | espera a TASK-009, TASK-010, TASK-011 |
 
 ## H2 — H2
 
@@ -182,7 +184,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-016 | Brainstorm paralelo por roles con agente unificador | alta | TASK-010 | ✅ terminada |
 | — | TASK-017 | Catálogo de skills determinista con selección en dos pasos | alta | TASK-010 | ✅ terminada |
 | — | TASK-018 | Enrutado de revisor por diff real, fragmentado por dominio | alta | TASK-013 | ✅ terminada |
-| 18 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
+| 20 | TASK-019 | Revisión ligera sin agente para tareas triviales | simple | TASK-013 | lista para empezar |
 | — | TASK-020 | Comando taskctl codex-review (segunda opinión independiente) | media | TASK-013 | ✅ terminada |
 | — | TASK-032 | Roles de brainstorm, heuristica de complejidad y skills revisoras (items D7 y D6) | media | — | ✅ terminada |
 | — | TASK-037 | F2-T1 Logging de los scripts de Git-Flow sin lanzar procesos | simple | — | ✅ terminada |
@@ -195,7 +197,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 
 | Paso | Tarea | Título | Complejidad | Depende de | Estado |
 |---|---|---|---|---|---|
-| 19 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
+| 21 | TASK-021 | Publicar el marketplace y la versión v0.1.0 del plugin | simple | TASK-006 | espera a TASK-006 |
 | — | TASK-022 | Documentación de equipo e incorporación de colaboradores | simple | TASK-021 | ✅ terminada |
 | — | TASK-023 | Métricas de coste en tokens por fase | media | TASK-014 | ✅ terminada |
 | — | TASK-040 | F3-T1 taskctl review para la ronda 2 y siguientes | media | — | ✅ terminada |

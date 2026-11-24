@@ -1,6 +1,6 @@
 ---
-id: TASK-143
-titulo: "Regla 4D: duplicacion en Git-Flow (bash y TS)"
+id: TASK-143a
+titulo: "create, update y merge a main (parte a de TASK-143)"
 tipo: fix
 sprint: 0
 etiquetas: []
@@ -24,14 +24,18 @@ dependencias: []
 ---
 ## Objetivo
 
-Unificar la logica de Git-Flow copiada entre scripts y entre bash y TypeScript (auditoria 4D completa, docs/auditoria-4d-completa.md, casos SCR-02 a SCR-08, SCR-12, SCR-13 y SCR-15).
+Parte a del troceo de TASK-143 (Regla 4D: duplicacion en Git-Flow (bash y TS)), partes TASK-143a, TASK-143b, TASK-143c en la rama fix/task-143-regla-4d-duplicacion-en-git-flow-bash-y.
+
+invoke_update_work_branch para los cuatro update, create-release y create-hotfix sobre invoke_create_work_branch con fetch, e invoke_merge_to_main con backmerge tras pull --ff-only.
+
+Objetivo de la tarea entera:
+
+> Unificar la logica de Git-Flow copiada entre scripts y entre bash y TypeScript (auditoria 4D completa, docs/auditoria-4d-completa.md, casos SCR-02 a SCR-08, SCR-12, SCR-13 y SCR-15).
 
 ## Criterios de aceptacion
+
 - [ ] update-feature/fix/release/hotfix y create-release/create-hotfix usan una funcion comun de _gitflow-common.sh, con el mismo fetch previo; merge-hotfix-to-main y merge-release-to-main comparten el cuerpo
 - [ ] El backmerge a develop de los merge a main hace pull --ff-only antes de mergear, como invoke_merge_work_branch_to_develop, con test que lo distingue
-- [ ] La lectura de argumentos y assert_valid_branch_name vienen de un helper comun en los 13 scripts; diagnose-repo usa detect_origin_available
-- [ ] La deteccion de operacion en curso (abort-merge, diagnose-repo, git.ts) tiene test de paridad, y los ls-remote de git.ts llevan GIT_TERMINAL_PROMPT=0 y limite de tiempo; finish pasa --main al script
-- [ ] perfil-tests.mjs reutiliza la compilacion protegida de verificar-impacto (copia de dist/src y cerrojo) o lo documenta
 
 ## Transiciones
 

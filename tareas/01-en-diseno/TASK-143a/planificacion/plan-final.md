@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: cada caso tiene fichero y linea en do
 
 ## Enfoque propuesto
 
-Duracion estimada: 160 min (pasa de 60: se trocea en tres partes; troceo autorizado de antemano por Carlos para el plan de correcciones 4D)
+Duracion estimada: 60 min (parte a del troceo; la tarea entera estimaba 160 min)
 
 Refactor de los scripts de Git-Flow sin cambio de comportamiento, salvo tres correcciones que la propia auditoria pide: el fetch previo que hoy solo hace create-release pasa a todos los create/update (SCR-02), el backmerge a develop de los merge a main hace `pull --ff-only` antes (SCR-05) y los merge-* validan el nombre de rama (SCR-06). Los tests de test/gitflow (repos reales con un origin bare) son la red; los mensajes de log no los compara ningun test, asi que se unifican al texto de la funcion comun.
 
@@ -71,3 +71,7 @@ detect_operation_in_progress comun con test de paridad frente a git.ts, ls-remot
 Duracion estimada: 50 min
 - [ ] La deteccion de operacion en curso (abort-merge, diagnose-repo, git.ts) tiene test de paridad, y los ls-remote de git.ts llevan GIT_TERMINAL_PROMPT=0 y limite de tiempo; finish pasa --main al script
 - [ ] perfil-tests.mjs reutiliza la compilacion protegida de verificar-impacto (copia de dist/src y cerrojo) o lo documenta
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-24: TASK-143a, TASK-143b, TASK-143c, todas en la misma rama. Este plan es el de TASK-143a; las demas partes se planifican al empezarlas.
