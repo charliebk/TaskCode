@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-138-regla-4d-duplicacion-en-metricas-suite-y
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-22
-actualizado: 2026-11-22
+actualizado: 2026-11-24
 dependencias: []
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Corregir las duplicaciones que encontro la auditoria 4D de TASK-137 (docs/audito
 - [ ] Una sola funcion mediana (versiones-metricas, crecimiento-suite, la exportada en metricas.ts y la de tramoDe en evolucion.ts la comparten; TASK-141, CORE2-11) y la regex de pytest se evalua una vez en contarTests
 - [ ] anotarFinish, el bloque de review, anotarSuite y verificar-lote (TASK-141) comparten la decision verde/rojo/omitido; PUERTAS_VERIFICACION se usa en metricas o se elimina con su test
 - [ ] Los textos de las salidas del tope de rondas (siguiente, salidasTopeRondas, error de review) salen de una sola fuente y doctor lee las terminadas una vez
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T16:18:49Z | plan | automatico | persona | 0.16.1 |
