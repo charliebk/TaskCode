@@ -6,18 +6,18 @@ sprint: 0
 etiquetas: [verificacion, scripts]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-156-verificar-impacto-elige-los-tests-que-le
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude-156
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
-tokens_revision: null
+tokens_implementacion: 3252550
+tokens_revision: 2782242
 creado: 2026-11-24
 actualizado: 2026-11-24
 dependencias: []
@@ -38,3 +38,20 @@ scripts/verificar-impacto.mjs elegia los tests de un .md de skills/ solo por su 
 |---|---|---|---|---|
 | 2026-11-24T09:56:01Z | plan | automatico | persona | 0.17.1 |
 | 2026-11-24T09:56:49Z | approve | automatico | persona | 0.17.1 |
+| 2026-11-24T10:02:30Z | start | automatico | persona | 0.17.1 |
+| 2026-11-24T10:12:56Z | review | automatico | persona | 0.17.1 |
+| 2026-11-24T10:38:52Z | review | automatico | persona | 0.17.1 |
+
+## Autorrevision
+
+- 4D — 1e158b1: helper buscado (MARCADORES, busqueda por nombre y proximidad de seleccionar), criterios citados, 1 test nuevo mutado (lectores vaciados: rojo).
+- code-quality-reviewer — 1e158b1
+- 4D — d8ef728: helper buscado (proximidad y directos existentes), criterio IMP-1 citado, 1 test ampliado mutado (lectores con prioridad 1: rojo).
+- code-quality-reviewer — d8ef728
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T10:12:56Z | implementacion | sesion:ff11dcd3-ab45-414c-b4b8-f02f1c965949 | 34 | 15179 | 3232270 | 5067 | 4 | 3252550 | - | - |
+| 2026-11-24T10:34:37Z | revision | agente:aabcb574a3f1c7091 | 46 | 96234 | 2672112 | 13850 | 5 | 2782242 | 1 | - |
