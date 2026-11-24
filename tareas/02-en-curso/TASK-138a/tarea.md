@@ -44,3 +44,8 @@ Objetivo de la tarea entera:
 | 2026-11-24T16:18:49Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T16:19:17Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T16:19:19Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — c62c44e: la regla de metricas (ultima completa por tarea) se lleva a crecimiento-suite y la usan las dos vistas; core/estadistica.ts nuevo y sin dependencias para la unica mediana (metricas la reexporta para no tocar a sus consumidores; evolucion la importa directa); resumirSuites sustituye las dos IIFE de versiones-metricas; pytest con una sola regex; mutacion en rojo: suitePorVersion promediando las completas de una tarea
+- code-quality-reviewer — c62c44e
