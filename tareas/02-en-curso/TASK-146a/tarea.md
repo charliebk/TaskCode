@@ -44,3 +44,8 @@ Objetivo de la tarea entera:
 | 2026-11-24T14:26:27Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T14:27:01Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T14:27:04Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 6e51ed4: parsearCamposDeTarea en new.ts (import ya importaba de new) en vez de un modulo nuevo; MODELO_POR_DEFECTO tambien para doctor-deploy; --comparar reutiliza prepararRoadmap con escribir:false en vez de duplicar sus reglas; verificar-lote reutiliza headCommit, listTareasEnEstados y compararIds; la propuesta de complejidad no se lleva a import porque depende de etiquetas e import no tiene (seria un disfraz: proponerComplejidad([]) siempre null); mutaciones en rojo: --comparar sin la decision y verificar-lote tragandose el error de lectura; el test de paridad new/import compara campos, defaults y mensajes de error
+- code-quality-reviewer — 6e51ed4
