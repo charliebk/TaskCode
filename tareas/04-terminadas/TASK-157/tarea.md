@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-157-timeout-de-claude-plugin-list-acorde-al
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ claude plugin list --json tarda unos 18 s en Windows con el claude.exe real, y T
 | 2026-11-24T10:59:53Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T10:59:57Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T11:12:29Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T11:47:13Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -62,3 +63,9 @@ claude plugin list --json tarda unos 18 s en Windows con el claude.exe real, y T
 ## Verificacion parcial
 
 - 2026-11-24T11:35:35Z: todo el codigo que cambia la tarea (3 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 25 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 47 min
+- Cierre (finish): 143 s, de 2026-11-24T11:44:50Z a 2026-11-24T11:47:13Z
