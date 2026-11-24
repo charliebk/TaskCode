@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 19218100
-tokens_revision: null
+tokens_revision: 3259738
 creado: 2026-11-24
 actualizado: 2026-11-24
 dependencias: [TASK-138a]
@@ -51,3 +51,8 @@ La decision verde/rojo/omitido compartida por anotarFinish, review, anotarSuite 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T16:51:01Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 48 | 44720 | 19156058 | 17274 | 13 | 19218100 | - | - |
+| 2026-11-24T17:16:42Z | revision | agente:ae24b58f4d0c70201 | 52 | 138828 | 3105868 | 14990 | 6 | 3259738 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-24T17:16:44Z: ronda 1; commit revisado 91b1c964891a28c4c6dff9759cb09c952e64ea55; commit verificado ae9368f23229a0d29e30fbb071b67dacd477ead3; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/core/flujo.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/doctor.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/verificacion-selectiva.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/siguiente.test.ts; corregidos: MEN-1; pendientes: MEN-2, MEN-3, MEN-4, MEN-5
