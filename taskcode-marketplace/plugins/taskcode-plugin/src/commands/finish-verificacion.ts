@@ -65,7 +65,7 @@ import { contarTests, PUERTA_SUITE } from '../core/crecimiento-suite.js';
 import type { ResultadoVerificacion } from '../core/informe-verificacion.js';
 import { configDeRef } from '../fs/config-de-ref.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
-import { FinishCommandError } from './finish-opciones.js';
+import { CIERRE_SIN_MERGE, FinishCommandError } from './finish-opciones.js';
 import { sinPrefijoError } from '../core/utilidades-texto.js';
 
 export const FLAG_SIN_VERIFICACION = '--sin-verificacion';
@@ -182,7 +182,7 @@ export function puertaPesada(o: PuertaPesadaOpts): boolean {
         cerrarIgualmente(o.id)
     );
   }
-  if (!limpio) throw errorArbolSucio(o.id, 'los tests pesados', comando);
+  if (!limpio) throw errorArbolSucio(o.id, 'los tests pesados salieron en verde, pero han dejado', comando);
   o.onAviso?.(`${o.id}: tests pesados en verde (comando_verificacion_pesada, rama ${o.tipo}).`);
   return true;
 }
@@ -263,10 +263,10 @@ function cerrarIgualmente(id: string): string {
   return `Si la persona decide cerrar igualmente, taskctl finish ${id} ${FLAG_SIN_VERIFICACION} lo salta y lo deja anotado en la tarea.`;
 }
 
-/** TASK-145a (CMD1-12): una verificacion en verde que deja el arbol sucio. */
-function errorArbolSucio(id: string, que: string, comando: string, cierre = 'No se ha mergeado nada.'): FinishCommandError {
+/** TASK-145a (CMD1-12): una verificacion en verde que deja el arbol sucio (`que`: sujeto y verbos, con su concordancia). */
+function errorArbolSucio(id: string, que: string, comando: string, cierre = CIERRE_SIN_MERGE): FinishCommandError {
   return new FinishCommandError(
-    `[ERROR] ${id}: ${que} salio en verde, pero ha dejado cambios en el arbol de trabajo ` +
+    `[ERROR] ${id}: ${que} cambios en el arbol de trabajo ` +
       `("${comando}" escribe ficheros versionados o no ignorados: mira git status). El merge necesita el ` +
       `workspace limpio: ignoralos en .gitignore, o descartalos, y reintenta. ${cierre}`
   );
@@ -394,7 +394,7 @@ export async function puertaVerificacion(
         cerrarIgualmente(o.id)
     );
   }
-  if (!limpio) throw errorArbolSucio(o.id, 'la verificacion', comando);
+  if (!limpio) throw errorArbolSucio(o.id, 'la verificacion salio en verde, pero ha dejado', comando);
   return { resultado: { tipo: 'verde', duracionMs: r.duracionMs, inicioMs }, tarea };
 }
 
@@ -420,12 +420,12 @@ async function puertaSoloDocumentacion(
     if (r.estado !== 'verde') {
       throw new FinishCommandError(
         `[ERROR] ${o.id}: la tarea solo cambia documentacion, pero su comprobacion ` +
-          `(comando_verificacion_documentacion) no sale en verde. No se ha mergeado nada.\n` +
+          `(comando_verificacion_documentacion) no sale en verde. ${CIERRE_SIN_MERGE}\n` +
           `${formatearVerificacionRoja(r)}\n` +
           `Arregla la documentacion, commitea y reintenta. ${cerrarIgualmente(o.id)}`
       );
     }
-    if (!limpio) throw errorArbolSucio(o.id, 'la comprobacion de documentacion', decision.comando);
+    if (!limpio) throw errorArbolSucio(o.id, 'la comprobacion de documentacion salio en verde, pero ha dejado', decision.comando);
   }
   o.onAviso?.(
     `${o.id}: ${decision.motivo}: no se ejecuta la verificacion completa ("${comando}"); ` +
@@ -532,7 +532,7 @@ async function puertaSelectiva(
         `los arreglos y reintenta. ${cerrarIgualmente(o.id)}`
     );
   }
-  if (!isWorkspaceClean(o.cwd)) throw errorArbolSucio(o.id, 'la verificacion selectiva', decision.comando);
+  if (!isWorkspaceClean(o.cwd)) throw errorArbolSucio(o.id, 'la verificacion selectiva salio en verde, pero ha dejado', decision.comando);
   const body = anotarVerificacionParcial(o.initial.body, o.instante, comando, decision.motivo, decision.comando);
   const { commit, tarea } = await anotarYCommitear(o, body, 'cierre con verificacion parcial', 'anotar la verificacion');
   o.onAviso?.(
@@ -645,7 +645,7 @@ export function puertaReintento(o: PuertaReintentoOpts): ResultadoReintento {
     );
   }
   if (!isWorkspaceClean(o.cwd)) {
-    throw errorArbolSucio(o.id, 'la verificacion', peticion.comando, 'La tarea no se ha movido de carpeta.');
+    throw errorArbolSucio(o.id, 'la verificacion salio en verde, pero ha dejado', peticion.comando, 'La tarea no se ha movido de carpeta.');
   }
   return { tipo: 'verde', que: peticion.tipo, deMemo: v.deMemo };
 }

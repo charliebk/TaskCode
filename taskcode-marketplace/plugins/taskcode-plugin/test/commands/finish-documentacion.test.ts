@@ -131,6 +131,8 @@ test('finish (TASK-100): solo documentacion con comando de documentacion: corre 
     assert.deepEqual(leerRegistroPuertas(e.repoRoot)
       .filter((l) => l.puerta === 'finish')
       .map((l) => [l.tarea, l.modo, l.resultado]), [['TASK-902', 'documentacion', 'verde']]);
+    // TASK-145a (IMP-1): la comprobacion de documentacion no es la suite: no anota su tamano.
+    assert.equal(leerRegistroPuertas(e.repoRoot).filter((l) => l.puerta === 'suite').length, 0);
     assert.ok(integradaEnDevelop(task.rama, e.repoRoot));
     assert.ok(avisos.some((a) => /comprobacion de documentacion \(".*docs"\) sale en verde/.test(a)), avisos.join('\n'));
     // Memo de documentacion para el commit integrado; ninguno de la completa.

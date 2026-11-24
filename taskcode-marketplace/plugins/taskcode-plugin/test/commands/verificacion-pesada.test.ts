@@ -117,6 +117,8 @@ test('finish (TASK-126): una release corre los pesados tras la completa y los an
         ['pesada', 'verde'],
       ]
     );
+    // TASK-145a (IMP-1): el tamano de la suite lo anota solo la completa, no la pesada.
+    assert.equal(leerRegistroPuertas(e.repoRoot).filter((l) => l.puerta === 'suite').length, 1);
   });
 });
 
