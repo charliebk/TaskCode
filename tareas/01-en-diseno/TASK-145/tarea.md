@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-145-regla-4d-duplicacion-en-las-puertas-de-f
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-22
-actualizado: 2026-11-22
+actualizado: 2026-11-24
 dependencias: []
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Unificar lo copiado dentro de finish y sus puertas (auditoria 4D completa, docs/
 - [ ] Las puertas pesada, completa y de documentacion comparten el bloque ejecutar-anotar-arbol limpio-memo, y puertaReintento usa opcionesEjecucion
 - [ ] La base de la rama de la tarea se decide una vez en finish, comprobarTagDeReintento sin copia, y los textos repetidos y la regex que quita [ERROR] salen de una sola fuente
 - [ ] Sin comentarios huerfanos ni obsoletos en approve, finish, finish-verificacion y codex-review
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T09:37:04Z | plan | automatico | persona | 0.16.1 |
