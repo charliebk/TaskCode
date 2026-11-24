@@ -74,7 +74,9 @@ export function entornoParaBash(
 /**
  * TASK-139a (B4): la coletilla del mensaje de `taskctl doctor` sobre que bash
  * se usa. Pura para probarla en cualquier sistema: en el CI de Linux las
- * aserciones del doctor real solo veian la rama de Linux.
+ * aserciones del doctor real solo veian la rama de Linux. El cableado en
+ * `comprobarBash` (doctor la usa con process.platform) solo se observa en
+ * Windows: en Linux el bash nunca tiene origen 'git'.
  */
 export function textoBashUsado(bash: BashResuelto, plataforma: NodeJS.Platform): string {
   if (bash.origen === 'git') return `; bash de Git: ${bash.comando}`;

@@ -275,6 +275,8 @@ test('diffRangeForPaths (TASK-135): el diff por lotes es identico al de una sola
 // este, que review la usa para el diff de un grupo fragmentado (si llamara a Git
 // con todas las rutas de una vez, en Windows ENAMETOOLONG). Baja de 1100 a 500
 // ficheros: basta con pasar del limite de la linea de comandos de Windows.
+// Solo protege en Windows: en Linux el limite (~2 MB) admite una sola llamada
+// con estas rutas, asi que alli el test pasa aunque review no use los lotes.
 test('review (TASK-135): peticion fragmentada con un grupo que pasa del limite de la linea de comandos embebe el diff de todos', async () => {
   const ficheros: Record<string, string> = { 'src/lib.rs': 'pub fn f() {}\n' };
   const n = 500;

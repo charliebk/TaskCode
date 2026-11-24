@@ -29,7 +29,7 @@ La suite completa de la 0.16.0 dio dos rojos reales ademas de los dos conocidos 
 ## Criterios de aceptacion
 - [x] revision-lecturas.test.ts pasa: registrar-coste con dos agentes no hace ningun commit
 - [x] task-workflow/SKILL.md enlaza poda-tests.md y sigue por debajo de 15 KB; los tests de skills pasan
-- [x] La suite completa solo falla en los dos tests conocidos de plan.test.ts (se comprobo en develop tras TASK-134, al publicar la 0.16.1: ver su Resultado)
+- [ ] La suite completa solo falla en los dos tests conocidos de plan.test.ts (sin verificar: TASK-134 se cerro con --sin-verificacion y no consta una ejecucion de la suite completa para la 0.16.1)
 - [x] Version 0.16.1 publicada: marketplace, plugin, package, version.ts, CHANGELOG, tag v0.16.1, push y release en GitHub (se hizo con TASK-134, tag v0.16.1)
 
 ## Transiciones
