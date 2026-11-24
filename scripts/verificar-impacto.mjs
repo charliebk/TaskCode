@@ -548,7 +548,8 @@ export function conDistProtegido(dirPlugin, fn) {
     throw e;
   }
   if (resultado !== null && typeof resultado === 'object' && typeof resultado.then === 'function') {
-    return resultado.finally(cerrar);
+    // HAL-3 de su revision: un "thenable" sin finally tambien suelta el cerrojo.
+    return Promise.resolve(resultado).finally(cerrar);
   }
   cerrar();
   return resultado;

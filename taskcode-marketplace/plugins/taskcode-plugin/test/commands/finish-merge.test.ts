@@ -9,7 +9,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, readFile, mkdir, stat } from 'node:fs/promises';
+import { cp, mkdtemp, rm, writeFile, readFile, mkdir, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -136,6 +136,32 @@ test('taskctl finish (hotfix): merge a main con tag y backmerge real a develop',
     // La tarea quedo terminada en el working tree de develop.
     const read = await readTareaFile(tareasRoot, 'TASK-702');
     assert.equal(read?.task.estado, 'terminada');
+  });
+});
+
+test('taskctl finish (hotfix, TASK-143c HAL-1): lanza el script con --main y la principal ya resuelta', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const task = sampleTask({ id: 'TASK-704', tipo: 'hotfix', rama: 'hotfix/task-704-argumentos' });
+    await setupTaskEnRevision(repoRoot, tareasRoot, task, { base: 'main' });
+    // Copia de los scripts donde el de hotfix anota sus argumentos y llama al real.
+    const scripts = await mkdtemp(path.join(tmpdir(), 'taskctl-scripts-args-'));
+    try {
+      const registro = path.join(scripts, 'args.txt').split(path.sep).join('/');
+      const real = path.join(SCRIPTS_DIR, 'merge-hotfix-to-main.sh').split(path.sep).join('/');
+      await cp(SCRIPTS_DIR, scripts, { recursive: true });
+      await writeFile(
+        path.join(scripts, 'merge-hotfix-to-main.sh'),
+        `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > "${registro}"\nexec bash "${real}" "$@"\n`
+      );
+
+      await runFinishCommand(tareasRoot, ['TASK-704'], '2026-09-07', { repoCwd: repoRoot, scriptsDir: scripts });
+
+      const args = (await readFile(registro, 'utf8')).split('\n').filter((l) => l !== '');
+      assert.deepEqual(args, ['hotfix/task-704-argumentos', '--develop', 'develop', '--main', 'main']);
+      assert.match(git(['log', '--oneline', 'main'], repoRoot), /merge\(hotfix\): hotfix\/task-704-argumentos -> main/);
+    } finally {
+      await rm(scripts, { recursive: true, force: true });
+    }
   });
 });
 

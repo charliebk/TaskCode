@@ -838,15 +838,6 @@ export function mensajeTareaEnOtraRama(id: string, rama: string): string {
   );
 }
 
-/** true si esa rama existe en "origin". Asume que ya se llamo isRemoteAvailable. */
-function remoteBranchExists(name: string, cwd: string): boolean {
-  const ls = lsRemoto(['--heads', 'origin', name], cwd);
-  if (!ls.ok) throw new GitCommandError(['ls-remote', '--heads', 'origin', name], ocultarCredenciales(ls.stderr));
-  return ls.salida
-    .split('\n')
-    .some((line) => line.trim().endsWith(`refs/heads/${name}`));
-}
-
 /**
  * Reimplementacion en TypeScript de resolve_main_branch()
  * (_gitflow-common.sh): que rama usar como base "principal" cuando no
@@ -856,11 +847,19 @@ function remoteBranchExists(name: string, cwd: string): boolean {
  * scripts create-*.sh, no como script independiente invocable — mismo
  * motivo por el que isValidBranchName (TASK-009) ya reimplemento
  * assert_valid_branch_name en vez de intentar invocar la funcion sola.
+ *
+ * TASK-143c (HAL-4 de su revision): como resolve_main_branch, una sola
+ * consulta para main y master, y si origin no esta, no responde o agota el
+ * limite, se cae a las ramas locales sin error. Antes eran tres ls-remote
+ * (disponibilidad, main y master), y con el limite nuevo el segundo podia
+ * agotarse tras responder el primero y lanzar.
  */
 export function resolveMainBranch(cwd: string): string {
-  if (isRemoteAvailable(cwd)) {
-    if (remoteBranchExists('main', cwd)) return 'main';
-    if (remoteBranchExists('master', cwd)) return 'master';
+  const ls = lsRemoto(['--heads', 'origin', 'main', 'master'], cwd);
+  if (ls.ok) {
+    const remotas = ls.salida.split('\n').map((l) => l.trim());
+    if (remotas.some((l) => l.endsWith('refs/heads/main'))) return 'main';
+    if (remotas.some((l) => l.endsWith('refs/heads/master'))) return 'master';
   }
   if (localBranchExists('main', cwd)) return 'main';
   if (localBranchExists('master', cwd)) return 'master';

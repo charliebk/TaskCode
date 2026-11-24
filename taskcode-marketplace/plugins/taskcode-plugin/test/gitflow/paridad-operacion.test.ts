@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { isRemoteAvailable, operacionEnCurso, timeoutRemotoMs } from '../../src/fs/git.js';
+import { isRemoteAvailable, operacionEnCurso, resolveMainBranch, timeoutRemotoMs } from '../../src/fs/git.js';
 import { argumentosScriptMerge } from '../../src/commands/finish.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -81,6 +81,28 @@ const ESTADOS: { nombre: string; testigos: (gitDir: string, sha: string) => Prom
       await writeFile(path.join(d, 'sequencer', 'todo'), `pick ${sha} inicial\n`);
     },
   },
+  // HAL-5 de su revision: la prioridad entre cada par vecino.
+  {
+    nombre: 'merge y rebase a la vez (manda merge)',
+    testigos: async (d, sha) => {
+      await writeFile(path.join(d, 'MERGE_HEAD'), `${sha}\n`);
+      await mkdir(path.join(d, 'rebase-merge'));
+    },
+  },
+  {
+    nombre: 'rebase y cherry-pick a la vez (manda rebase)',
+    testigos: async (d, sha) => {
+      await mkdir(path.join(d, 'rebase-apply'));
+      await writeFile(path.join(d, 'CHERRY_PICK_HEAD'), `${sha}\n`);
+    },
+  },
+  {
+    nombre: 'cherry-pick y revert a la vez (manda cherry-pick)',
+    testigos: async (d, sha) => {
+      await writeFile(path.join(d, 'CHERRY_PICK_HEAD'), `${sha}\n`);
+      await writeFile(path.join(d, 'REVERT_HEAD'), `${sha}\n`);
+    },
+  },
   {
     nombre: 'merge y cherry-pick a la vez (manda merge)',
     testigos: async (d, sha) => {
@@ -110,6 +132,24 @@ test('isRemoteAvailable (TASK-143c, SCR-08): con origin que no responde vuelve f
       assert.equal(isRemoteAvailable(repo), false);
       // Sin limite, la conexion a TEST-NET-1 sola tarda ~21 s.
       assert.ok(Date.now() - t0 < 10_000, `tardo ${String(Date.now() - t0)} ms`);
+    } finally {
+      if (antes === undefined) delete process.env.GF_TIMEOUT_REMOTO;
+      else process.env.GF_TIMEOUT_REMOTO = antes;
+    }
+  });
+});
+
+test('resolveMainBranch (TASK-143c, HAL-4): con origin que agota el limite cae a la rama local sin lanzar, como resolve_main_branch', async () => {
+  await conRepo(async (repo) => {
+    git(['branch', '-m', 'master'], repo);
+    git(['remote', 'add', 'origin', ORIGEN_MUERTO], repo);
+    const antes = process.env.GF_TIMEOUT_REMOTO;
+    process.env.GF_TIMEOUT_REMOTO = '1';
+    try {
+      const t0 = Date.now();
+      assert.equal(resolveMainBranch(repo), 'master');
+      // Una sola consulta: con tres (disponibilidad, main y master) serian ~3 s.
+      assert.ok(Date.now() - t0 < 2_800, `tardo ${String(Date.now() - t0)} ms`);
     } finally {
       if (antes === undefined) delete process.env.GF_TIMEOUT_REMOTO;
       else process.env.GF_TIMEOUT_REMOTO = antes;
