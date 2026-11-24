@@ -64,3 +64,7 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 - CMD1-08: `diaUtc`, en core/documento-estado, la usan `today()` de cli y el `creado` de doctor-deploy `--crear-tareas`, que antes iba en hora local. El informe de doctor-deploy se nombra con `diaLocal`. El test prueba dos instantes y discrimina en cualquier zona horaria salvo UTC.
 - CMD2-15 y CMD2-16: las cabeceras de registrar-coste, veredicto y review describen ya TASK-119 (no commitean, salvo registrar-coste con la tarea terminada) y TASK-018/091. La crónica de intentos de runPlan sale del código y queda en git.
 - Revisión, ronda 1: aprobada con correcciones; los cuatro MENORES están corregidos. El reordenado del import de doctor-deploy (parte de MEN-3) se deshizo porque cae fuera de los ficheros citados.
+
+## Verificacion parcial
+
+- 2026-11-24T16:13:49Z: todo el codigo que cambia la tarea (20 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
