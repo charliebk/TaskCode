@@ -1,19 +1,10 @@
 #!/usr/bin/env bash
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_gitflow-common.sh"
 
-PUSH=false; NAME=""; DEVELOP_BRANCH="develop"
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --push|-p) PUSH=true ;;
-        --develop) DEVELOP_BRANCH="$2"; shift ;;
-        *)         [ -z "$NAME" ] && NAME="$1" ;;
-    esac
-    shift
-done
+# TASK-143b (SCR-06): argumentos y nombre, de _gitflow-common.sh.
+parse_gitflow_args "$@"
 
-[ -z "$NAME" ] && read -rp "Nombre de feature a unir (ej: 1001-login): " NAME
-NAME="${NAME#"${NAME%%[![:space:]]*}"}"; NAME="${NAME%"${NAME##*[![:space:]]}"}"
-[[ "$NAME" != feature/* ]] && NAME="feature/$NAME"
+normalize_branch_name feature "1001-login" "Nombre de feature a unir"
 
 initialize_gitflow_log "merge-feature -> $DEVELOP_BRANCH ($NAME)"
 

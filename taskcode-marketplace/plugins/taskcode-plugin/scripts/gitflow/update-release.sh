@@ -1,20 +1,10 @@
 #!/usr/bin/env bash
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_gitflow-common.sh"
 
-PUSH=false; NAME=""; DEVELOP_BRANCH="develop"
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --push|-p) PUSH=true ;;
-        --develop) DEVELOP_BRANCH="$2"; shift ;;
-        *)         [ -z "$NAME" ] && NAME="$1" ;;
-    esac
-    shift
-done
+# TASK-143b (SCR-06): argumentos y nombre, de _gitflow-common.sh.
+parse_gitflow_args "$@"
 
-[ -z "$NAME" ] && read -rp "Nombre de release a actualizar desde develop (ej: 4001-cierre-q2): " NAME
-NAME="${NAME#"${NAME%%[![:space:]]*}"}"; NAME="${NAME%"${NAME##*[![:space:]]}"}"
-[[ "$NAME" != release/* ]] && NAME="release/$NAME"
-assert_valid_branch_name "$NAME" "release/4001-cierre-q2"
+normalize_branch_name release "4001-cierre-q2" "Nombre de release a actualizar desde develop"
 
 initialize_gitflow_log "update-release ($NAME desde $DEVELOP_BRANCH)"
 
