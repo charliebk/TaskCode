@@ -10,7 +10,9 @@ log_info "Analizando estado del repositorio..."
 current=$(git branch --show-current 2>/dev/null || echo "(detached HEAD)")
 # TASK-143b (SCR-12): la deteccion comun, con su cache, y antes de
 # resolve_main_branch para que este no repita la consulta.
-detect_origin_available "Sin conexion con origin."
+# MEN-3 de su revision: su linea de [OK]/[WARN] no se ensena; el informe ya
+# trae la del remoto. Sin subshell, asi que REMOTE_AVAILABLE queda puesta.
+detect_origin_available "Sin conexion con origin." > /dev/null
 main_branch=$(resolve_main_branch "$MAIN_BRANCH")
 
 status_raw=$(git status --porcelain 2>/dev/null)
@@ -29,6 +31,9 @@ remote_color="$C_GREEN"
 $remote_ok || { remote_label="✗ sin conexión con origin"; remote_color="$C_YELLOW"; }
 
 develop_local=false; develop_remote=false
+# El nombre de develop solo se ensena si no es el de siempre (MEN-3 de su revision).
+develop_label=""
+[ "$DEVELOP_BRANCH" != "develop" ] && develop_label="$DEVELOP_BRANCH: "
 git show-ref --verify --quiet "refs/heads/$DEVELOP_BRANCH" 2>/dev/null && develop_local=true || true
 if $remote_ok; then
     _gf_ls_remote --heads origin "$DEVELOP_BRANCH" 2>/dev/null | grep -q "refs/heads/$DEVELOP_BRANCH" \
@@ -83,7 +88,7 @@ printf "  %-20s %s\n"     "Rama actual:"    "$current"
 printf "  %-20s ${workspace_color}%s${C_RESET}\n" "Workspace:"   "$workspace_label"
 printf "  %-20s ${remote_color}%s${C_RESET}\n"    "Remoto:"      "$remote_label"
 printf "  %-20s %s\n"     "Rama principal:" "$main_branch"
-printf "  %-20s %s\n"     "Develop:"        "$DEVELOP_BRANCH: $develop_info"
+printf "  %-20s %s\n"     "Develop:"        "$develop_label$develop_info"
 printf "${C_CYAN}  %s${C_RESET}\n" "$bar"
 printf "  Estado vs origin/%s:\n" "$current"
 if $remote_ok && git show-ref --verify --quiet "refs/remotes/origin/$current" 2>/dev/null; then

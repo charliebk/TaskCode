@@ -69,7 +69,7 @@ log_ok "Conexion con '$TARGET_REMOTE' verificada."
 if [ -z "$MODE" ]; then
     printf "\n${C_CYAN}  Modos disponibles para devolver el trabajo:${C_RESET}\n"
     printf "    ${C_GREEN}1) ADITIVO${C_RESET}  Envia ramas+tags locales. NO borra nada del destino.\n"
-    printf "    ${C_RED}2) MIRROR${C_RESET}   Sobreescribe el destino con espejo exacto de local.\n"
+    printf "    ${C_RED}2) MIRROR${C_RESET}   Sobreescribe las ramas y tags del destino con las de local.\n"
     printf "              ${C_RED}BORRA del destino lo que no exista en local (incluso tags).${C_RESET}\n"
     printf "\n"
     read -rp "  Elige modo [1=aditivo / 2=mirror]: " MODE_NUM
@@ -152,7 +152,7 @@ else
     bar=$(printf '!%.0s' {1..56})
     printf "\n${C_RED}  %s${C_RESET}\n" "$bar"
     printf "${C_RED}    ATENCION: MODO MIRROR SELECCIONADO${C_RESET}\n"
-    printf "${C_RED}    Se sobreescribira '$TARGET_REMOTE' con espejo EXACTO de local.${C_RESET}\n"
+    printf "${C_RED}    Se sobreescribira '$TARGET_REMOTE' con las ramas y tags EXACTOS de local.${C_RESET}\n"
     printf "${C_RED}  %s${C_RESET}\n\n" "$bar"
 
     if [ -n "$DIVERGED" ]; then
@@ -241,7 +241,7 @@ if [ "$MODE" = "additive" ]; then
     fi
 else
     log_warn "Ejecutando el mirror de ramas y tags a '$TARGET_REMOTE'..."
-    log_warn "Esto sobreescribe las ramas y tags del destino con espejo exacto de local."
+    log_warn "Esto sobreescribe las ramas y tags del destino con las de local."
     # TASK-143b (SCR-15): antes `push --mirror`, que sube TODAS las referencias
     # (refs/remotes de otros remotos, refs/notes, refs/stash...) y borra las
     # del destino que no esten en local, mientras la vista previa solo ensena
@@ -292,7 +292,7 @@ TAG_COUNT=$(git tag --list | wc -l | tr -d ' ')
 
 if [ "$MODE" = "mirror" ]; then
     printf "\n${C_GREEN}  Mirror aplicado a '$TARGET_URL':${C_RESET}\n"
-    printf "${C_GREEN}    $BRANCH_COUNT rama(s) + $TAG_COUNT tag(s) (espejo exacto de local)${C_RESET}\n"
+    printf "${C_GREEN}    $BRANCH_COUNT rama(s) + $TAG_COUNT tag(s) (espejo de las ramas y tags de local)${C_RESET}\n"
     if [ -n "$REMOTE_ONLY_BRANCHES" ]; then
         FINAL_RB=$(printf "%s\n" "$REMOTE_ONLY_BRANCHES" | wc -l | tr -d ' ')
         printf "${C_YELLOW}    $FINAL_RB rama(s) borradas del destino${C_RESET}\n"
