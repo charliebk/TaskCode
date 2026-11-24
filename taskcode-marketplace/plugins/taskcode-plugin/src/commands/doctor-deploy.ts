@@ -23,8 +23,8 @@
  *   `ocultarSecretos`: es la segunda red tras el enmascarado en origen.
  */
 import { existsSync, linkSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import { diaLocal, diaUtc } from '../core/documento-estado.js';
+import path from 'node:path';
 import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import {
   cargarCapaProyecto,
