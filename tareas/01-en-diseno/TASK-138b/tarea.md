@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: fix/task-138-regla-4d-duplicacion-en-metricas-suite-y
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,10 @@ La decision verde/rojo/omitido compartida por anotarFinish, review, anotarSuite 
 ## Criterios de aceptacion
 - [ ] anotarFinish, el bloque de review, anotarSuite y verificar-lote comparten la decision verde/rojo/omitido, y PUERTAS_VERIFICACION se usa en metricas o se elimina con su test
 - [ ] Los textos de las salidas del tope de rondas (siguiente, salidasTopeRondas, error de review) salen de una sola fuente y doctor lee las terminadas una vez
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T16:39:13Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-24T16:39:45Z | approve | automatico | persona | 0.16.1 |
