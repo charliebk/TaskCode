@@ -34,8 +34,8 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] update-feature/fix/release/hotfix y create-release/create-hotfix usan una funcion comun de _gitflow-common.sh, con el mismo fetch previo; merge-hotfix-to-main y merge-release-to-main comparten el cuerpo
-- [ ] El backmerge a develop de los merge a main hace pull --ff-only antes de mergear, como invoke_merge_work_branch_to_develop, con test que lo distingue
+- [x] update-feature/fix/release/hotfix y create-release/create-hotfix usan una funcion comun de _gitflow-common.sh, con el mismo fetch previo; merge-hotfix-to-main y merge-release-to-main comparten el cuerpo
+- [x] El backmerge a develop de los merge a main hace pull --ff-only antes de mergear, como invoke_merge_work_branch_to_develop, con test que lo distingue
 
 ## Transiciones
 
@@ -61,3 +61,18 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-24T18:41:33Z: ronda 1; commit revisado 84d3207ea756aee0bbd0c5ab15b3ab4943f1bf4c; commit verificado 26a49352af6abb2f7d4aa9185994ea17a05212b8; ficheros: taskcode-marketplace/plugins/taskcode-plugin/scripts/gitflow/_gitflow-common.sh, taskcode-marketplace/plugins/taskcode-plugin/test/gitflow/flujo-comun.test.ts; corregidos: H-1, H-2, H-3; pendientes: ninguno
+
+## Resultado
+
+- _gitflow-common.sh gana _gf_fetch_origin (fetch una vez por invocacion), _gf_sync_branch (checkout o creacion desde origin y pull --ff-only) y _gf_locate_branch, que sustituyen el bloque copiado en create, update, merge a develop, merge a main y backmerge.
+- create-release y create-hotfix usan invoke_create_work_branch; los cuatro update, invoke_update_work_branch; merge-hotfix-to-main y merge-release-to-main, invoke_merge_to_main (eran identicos salvo ocho lineas). Todos hacen el fetch previo.
+- El backmerge pone develop al dia con pull --ff-only; y si develop local y origin/develop han divergido, el merge a main aborta antes de tocar nada (MEN H-1).
+- Tests nuevos en test/gitflow/flujo-comun.test.ts (10): fetch de una rama subida tras el clon (update y create), backmerge con develop atrasada para release y hotfix (mensajes y etiqueta del tag), develop divergida, update(<tipo>) por tipo, y create-release desde la punta de origin. Todos fallan con los scripts anteriores o con su mutante.
+- Revision ronda 1 (code-quality-reviewer): aprobada con correcciones, tres MENORES (H-1 a H-3), corregidos y registrados con verificar-menores.
+- Verificacion: verificar-impacto en verde; gitflow + start + rama-base + guardia-merge 137/138, el rojo fue el test de mirror con timeout de ls-remote (origin-deteccion), intermitente bajo carga: pasa aislado y no toca estos scripts.
+- Cambio de texto aceptado: los logs de create-release y create-hotfix pasan a los de invoke_create_work_branch; ningun test los compara.
+- Cierre con --sin-verificacion, autorizado por Carlos el 2026-11-24: la suite completa de finish (unos 38 min) salio dos veces en rojo, cada vez con un test distinto de tiempos bajo carga. La primera, doctor-deploy.test.js:452: git rev-list cortado por ETIMEDOUT de spawnSync en vez del limite propio; pasa aislado 28/28. La segunda, origin-deteccion «con origin inalcanzable responde en segundos»: 12,2 s frente a un margen de 12 s; aislado tarda unos 4,4 s con estos scripts y unos 4,1 s con los de develop, y con origin caido las funciones nuevas no hacen consultas de red.
+
+## Verificacion omitida
+
+- 2026-11-24T20:11:24Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
