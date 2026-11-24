@@ -394,6 +394,12 @@ function main(argv) {
   const seleccion = seleccionar(cambiadas, nodos, tope);
   // TASK-139b: sin tope y sin saber que afecta, la suite entera (no los directos).
   const suiteEntera = sinTope && seleccion.todo;
+  if (suiteEntera) {
+    // TASK-139b (MEN-3): aqui la completa corre ahora; el «queda para antes de
+    // publicar» del motivo (y el recorte) era de cuando se recortaba.
+    seleccion.motivo = seleccion.motivo.replace(/ \(la completa queda para antes de publicar\)$/, '');
+    delete seleccion.recorte;
+  }
   const rapido = RAPIDO.filter((d) => existsSync(path.join(dirPlugin, d)));
   const fuera = seleccion.tests.filter((t) => !enRapido(t.fichero));
 

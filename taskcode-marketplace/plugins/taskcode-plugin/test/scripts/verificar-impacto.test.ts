@@ -227,19 +227,41 @@ test('ejecuta lo elegido mas los rapidos y sale con el codigo de node --test', a
   });
 });
 
-test('los tests que lanza no heredan RAMA_BASE (el freno siempre la pasa)', async () => {
+test('los tests que lanza no heredan RAMA_BASE (el freno siempre la pasa) ni TASKCODE_VERIFICACION', async () => {
   await conRepo(async (raiz) => {
     await cambiarYCommitear(raiz, `${PLUGIN}/test/c.test.ts`, "import { c } from '../src/c.js';\nvoid c; // cambio\n");
-    // Lo "compilado" de ese test (el build del repo miniatura no hace nada): pasa solo sin RAMA_BASE.
+    // Lo "compilado" de ese test (el build del repo miniatura no hace nada): pasa solo sin las dos variables.
+    // TASK-139b (MEN-2): con TASKCODE_VERIFICACION heredada, un test que lanza el script perderia el tope.
     await escribir(
       raiz,
       `${PLUGIN}/dist/test/c.test.js`,
       "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\n" +
-        "test('sin RAMA_BASE', () => { assert.equal(process.env.RAMA_BASE, undefined); });\n"
+        "test('sin RAMA_BASE', () => { assert.equal(process.env.RAMA_BASE, undefined); });\n" +
+        "test('sin TASKCODE_VERIFICACION', () => { assert.equal(process.env.TASKCODE_VERIFICACION, undefined); });\n"
     );
-    const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env: { ...process.env, RAMA_BASE: 'develop' } });
+    const env = { ...process.env, RAMA_BASE: 'develop', TASKCODE_VERIFICACION: 'freno' };
+    const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env });
     assert.equal(r.status, 0, r.stdout + r.stderr);
     assert.match(r.stdout, /test\/c\.test\.ts \(test cambiado\)/);
+  });
+});
+
+// TASK-139b (MEN-1): sin tope y sin saber que afecta, corre de verdad la suite
+// entera (un test de fuera de test/core y test/cli), no solo lo dice --listar.
+test('TASK-139b: con selectiva y un cambio sin test que lo nombre, corre la suite entera', async () => {
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/huerfano.yml`, 'clave: 9\n');
+    await escribir(
+      raiz,
+      `${PLUGIN}/dist/test/fuera/z.test.js`,
+      "import { test } from 'node:test';\ntest('fuera de rapido corre', () => {});\n"
+    );
+    const env = { ...process.env, RAMA_BASE: 'develop', TASKCODE_VERIFICACION: 'selectiva' };
+    const r = spawnSync(process.execPath, [SCRIPT], { cwd: raiz, encoding: 'utf8', env });
+    // Sin mirar el codigo de salida: el repo miniatura trae un test en rojo a proposito.
+    assert.match(r.stdout, /Suite entera: /);
+    assert.doesNotMatch(r.stdout, /queda para antes de publicar/, 'no dice que la completa queda para despues: corre ahora');
+    assert.match(r.stdout, /fuera de rapido corre/);
   });
 });
 
