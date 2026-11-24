@@ -39,3 +39,8 @@ parse_gitflow_args y normalize_branch_name en los 13 scripts, diagnose-repo con 
 | 2026-11-24T20:12:10Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T20:12:50Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T20:12:52Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 1b668da: parse_gitflow_args y normalize_branch_name en _gitflow-common.sh sustituyen la lectura copiada en 14 scripts (12 de rama, create-develop y start-work) y el recorte y prefijo de 12; los scripts con opciones propias (mirror, push-back, switch, pause, resume, recover) no se tocan; diagnose-repo reutiliza detect_origin_available y resolve_main_branch con su cache; push-back sube y poda solo refs/heads y refs/tags, y el nombre del backup sale de una variable; los cuatro tests nuevos fallan con los scripts anteriores
+- code-quality-reviewer — 1b668da
