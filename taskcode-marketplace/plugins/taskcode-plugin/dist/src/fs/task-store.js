@@ -254,6 +254,21 @@ export async function readTareaFile(tareasRoot, id) {
  * plan-final.md) necesitan la misma comprobacion de codigo de error
  * que esta capa ya resolvia solo para uso interno.
  */
+/**
+ * TASK-146b (CMD2-13): las entradas de `dir`, o [] si no existe o no es una
+ * carpeta; cualquier otro error (EACCES...) se propaga. Antes, copiada en
+ * metricas, plan y registrar-coste.
+ */
+export async function listarSiExiste(dir) {
+    try {
+        return await readdir(dir);
+    }
+    catch (e) {
+        if (isEnoent(e) || isEnotdir(e))
+            return [];
+        throw e;
+    }
+}
 export function isEnoent(e) {
     return typeof e === 'object' && e !== null && e.code === 'ENOENT';
 }

@@ -3,6 +3,7 @@
  * "import" (TASK-004) y "board" (TASK-005).
  */
 import path from 'node:path';
+import { diaUtc } from './core/documento-estado.js';
 import { runNewCommand, NewTaskArgError } from './commands/new.js';
 import { TaskIdError } from './core/task-id.js';
 import { runImportCommand, ImportCommandError } from './commands/import.js';
@@ -203,7 +204,7 @@ Ver docs/PLAN_SPRINTS.md en el repo del proyecto.
 `;
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return diaUtc(new Date());
 }
 
 /**

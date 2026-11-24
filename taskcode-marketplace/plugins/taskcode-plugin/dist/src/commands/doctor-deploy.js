@@ -23,6 +23,7 @@
  *   `ocultarSecretos`: es la segunda red tras el enmascarado en origen.
  */
 import { existsSync, linkSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { diaLocal, diaUtc } from '../core/documento-estado.js';
 import path from 'node:path';
 import { extraerUnico, rechazarFlagsDesconocidos } from '../cli/args.js';
 import { cargarCapaProyecto, cargarCatalogoDeploy, combinarCatalogo, TIPO_TODOS, } from '../core/doctor-deploy-catalogo.js';
@@ -136,10 +137,6 @@ function evaluarPunto(punto, ctx, cat, aplicaciones) {
             evidencias: [],
         };
     }
-}
-function fechaLocal(d) {
-    const dos = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
 }
 /** Pone `tmp` en `destino` sin pisar nada: `link` (falla si existe) o, sin enlaces duros, `rename` tras comprobar. */
 function colocar(tmp, destino) {
@@ -351,7 +348,7 @@ function emitir(a) {
     let mensajeEscritura = '';
     if (escribir) {
         try {
-            const destino = escribirInforme(raiz, fechaLocal(ahora), salidaSegura(formatearInforme(informe)), salidaSegura(formatearJson(informe)));
+            const destino = escribirInforme(raiz, diaLocal(ahora), salidaSegura(formatearInforme(informe)), salidaSegura(formatearJson(informe)));
             rutaInforme = destino.md;
             rutaJson = destino.json;
             const rel = path.relative(raiz, destino.md).replace(/\\/g, '/');
@@ -391,7 +388,7 @@ export async function runDoctorDeployCompleto(argv, deps) {
         return emitir(a);
     let tareas;
     try {
-        tareas = await crearTareasDeFallas(a.informe, a.raiz, fechaLocal(a.ahora));
+        tareas = await crearTareasDeFallas(a.informe, a.raiz, diaUtc(a.ahora));
     }
     catch (e) {
         const resultado = a.opciones.resultado;

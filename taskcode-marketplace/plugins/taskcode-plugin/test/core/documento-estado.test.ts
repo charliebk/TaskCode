@@ -9,6 +9,7 @@ import {
   DIAS_MAXIMOS_DOCUMENTO_ESTADO,
   diaDe,
   diaLocal,
+  diaUtc,
   diasEntre,
   evaluarDocumentoEstado,
   terminadasPosteriores,
@@ -141,4 +142,10 @@ test('terminadasPosteriores: ordena de la mas reciente a la mas antigua y mira s
     '2026-11-10'
   );
   assert.deepEqual(r.map((t) => t.id), ['TASK-003', 'TASK-002', 'TASK-001']);
+});
+
+// TASK-146b (CMD1-08): el dia en UTC, el de creado y actualizado.
+test('diaUtc: el dia AAAA-MM-DD del instante en UTC', () => {
+  assert.equal(diaUtc(new Date('2026-11-24T23:30:00Z')), '2026-11-24');
+  assert.equal(diaUtc(new Date('2026-11-25T00:30:00Z')), '2026-11-25');
 });

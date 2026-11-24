@@ -14,6 +14,7 @@ import { DoctorDeployCommandError, runDoctorDeployCommand } from '../../src/comm
 import { moveTareaFile, readTareaFile, writeTareaFile } from '../../src/fs/task-store.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { InformeDeploy } from '../../src/core/doctor-deploy.js';
+import { diaUtc } from '../../src/core/documento-estado.js';
 import { NODE, STRIPE, commit, conRepoDevelop, ejecutarCompleto, escribir, git, punto } from '../helpers/deploy-fixtures.js';
 
 const SIN_IGNORE = { ...NODE, '.gitignore': 'node_modules/\n' }; // una FALLA: gitignore-cubre-env
@@ -274,5 +275,18 @@ test('main(): --crear-tareas --json crea las tareas, stdout es solo el JSON y lo
     // TASK-149b (FS-02): el mismo texto que printAutoCommit (no la copia vieja con «fichero(s)»), y por stderr con --json.
     assert.match(errores.join(''), /Commiteado [0-9a-f]+ en "develop" \(\d+ ficheros?\)\.\n/);
     assert.deepEqual(await carpetas(raiz, '00-planificadas'), ['TASK-9999']);
+  });
+});
+
+// TASK-146b (CMD1-08): `creado` sigue la regla de new (el dia en UTC). Con un
+// instante en el que el dia local y el UTC difieren (en una maquina al oeste de
+// UTC, las 01:00 UTC aun son el dia anterior), antes salia el dia local.
+test('--crear-tareas: creado es el dia en UTC, como en taskctl new', async () => {
+  await conRepoDevelop(SIN_IGNORE, async (raiz, opciones) => {
+    const ahora = new Date('2026-11-25T01:00:00Z');
+    await ejecutarCompleto(raiz, opciones, ARGS, ahora);
+    const t = await readTareaFile(path.join(raiz, 'tareas'), 'TASK-9999');
+    assert.equal(t?.task.creado, '2026-11-25');
+    assert.equal(t?.task.creado, diaUtc(ahora));
   });
 });

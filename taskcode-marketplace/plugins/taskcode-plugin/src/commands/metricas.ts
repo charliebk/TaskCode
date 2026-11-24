@@ -42,10 +42,11 @@
  * No entra en `--escribir`, y todo sale del repo: nunca se lee `~/.claude`.
  */
 import { PUERTA_FINISH, PUERTA_REVIEW, resumirFreno, resumirPuerta, sumarPorTarea } from '../core/registro-puertas.js';
+import { claveRuta } from '../fs/cobertura.js';
 import { PUERTA_SUITE } from '../core/crecimiento-suite.js';
 import { leerRegistroPuertas } from '../fs/registro-puertas.js';
 import path from 'node:path';
-import { readdir, readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, realpath } from 'node:fs/promises';
 import type { InformeLeido } from '../core/informe-revision.js';
 import { parseArgs, rechazarFlagsDesconocidos, extraerRepetible } from '../cli/args.js';
 import { FrontmatterParseError } from '../core/frontmatter.js';
@@ -92,7 +93,7 @@ import {
   nombresDeUltimaRonda,
   rondaYRevisorDeInforme,
 } from '../fs/rondas.js';
-import { listExistingTaskIds, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
+import { listExistingTaskIds, listarSiExiste, readTareaFile, isEnoent, isEnotdir } from '../fs/task-store.js';
 import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion, type Evolucion } from '../core/evolucion.js';
 import { calcularGrupos, formatearGrupos, type Grupos } from '../core/grupos-metricas.js';
@@ -319,12 +320,7 @@ function parseFlagsMetricas(argv: readonly string[]): FlagsMetricas {
 }
 
 async function nombresDeRevision(dirTarea: string): Promise<string[]> {
-  try {
-    return await readdir(path.join(dirTarea, 'revision'));
-  } catch (e: unknown) {
-    if (isEnoent(e) || isEnotdir(e)) return [];
-    throw e;
-  }
+  return listarSiExiste(path.join(dirTarea, 'revision'));
 }
 
 /** Informes de revision (todas las rondas) y bytes de cada peticion, de una pasada. */
@@ -355,11 +351,6 @@ function eventosGit(repoCwd: string): EventoGit[] | null {
     if (e instanceof GitCommandError || e instanceof GitLaunchError) return null;
     throw e;
   }
-}
-
-/** Clave con la que se comparan dos rutas reales: en Windows, sin distinguir mayusculas. */
-function claveRuta(ruta: string): string {
-  return process.platform === 'win32' ? ruta.toLowerCase() : ruta;
 }
 
 /**

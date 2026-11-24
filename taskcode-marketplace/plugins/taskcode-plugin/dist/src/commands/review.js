@@ -9,9 +9,8 @@
  * El CLI hace SOLO lo determinista: no invoca ningun LLM (decision
  * con Carlos, 2026-09-05 — mismo patron que el plan minimo de
  * TASK-010, donde el contenido lo redacta el agente que orquesta
- * Claude Code). La fragmentacion de revisores por dominio es TASK-018
- * y la puerta determinista build/lint/tests de la seccion 16
- * (correccion 5) queda para TASK-018/019.
+ * Claude Code). La ronda se fragmenta por dominio (TASK-018) y corre la
+ * verificacion selectiva antes de escribirse (TASK-091).
  *
  * `ultimo_commit_revisado` NO se actualiza aqui a proposito: segun la
  * seccion 16.3 se actualiza cuando una revision TERMINA (informe
@@ -363,7 +362,7 @@ export function informeTemplate(task, commitRevisado, ronda) {
         // taskctl finish exige que TODAS las lineas "- Veredicto:" del
         // informe aprueben: hay que SUSTITUIR esta linea, no anadir otra.
         // TASK-036: el veredicto lo escribe `taskctl veredicto`, que deja la
-        // linea canonica y la commitea; escribirla a mano en otro vocabulario
+        // linea canonica (sin commitear: TASK-119); escribirla a mano en otro vocabulario
         // obligaba a commits de normalizacion.
         '- Veredicto: PENDIENTE (escribelo con: taskctl veredicto ' +
         `${task.id} aprobada | aprobada-con-correcciones | cambios-solicitados)\n\n` +
