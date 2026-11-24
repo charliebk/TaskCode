@@ -42,16 +42,9 @@ export const FLAGS_APPROVE = ['--decidido-por', '--push', '-p'];
  * C3): `planificacion/plan-final.md` (canonica) o suelto en la raiz de
  * la carpeta (legado del CLI anterior). Mirar solo la canonica dejaria
  * sin poder aprobarse a toda tarea planificada antes del cambio, que
- * es justo el caso que tiene el plan ya redactado.
- *
- * Con los DOS a la vez rechaza, en lugar de aprobar el primero que
- * encuentra (hallazgo MENOR de revision por pares, TASK-027): "plan" ya
- * trata ese estado como irresoluble y aborta, y dos merges --no-ff sin
- * conflicto bastan para producirlo. Aprobar a ciegas un estado con dos
- * planes divergentes es marcar como revisado un plan que quiza nadie
- * ha leido.
+ * es justo el caso que tiene el plan ya redactado. true si hay un plan que
+ * aprobar en cualquiera de las dos.
  */
-/** true si hay un plan que aprobar en cualquiera de las dos ubicaciones. */
 function planFinalExisteEn(u) {
     return u !== null && (u.canonicaExiste || u.legadaExiste);
 }
@@ -70,6 +63,13 @@ export function planQueCuenta(u) {
     return u.canonicaExiste ? u.canonica : u.legada;
 }
 /**
+ * Con los DOS a la vez rechaza, en lugar de aprobar el primero que
+ * encuentra (hallazgo MENOR de revision por pares, TASK-027): "plan" ya
+ * trata ese estado como irresoluble y aborta, y dos merges --no-ff sin
+ * conflicto bastan para producirlo. Aprobar a ciegas un estado con dos
+ * planes divergentes es marcar como revisado un plan que quiza nadie
+ * ha leido.
+ *
  * Se llama DESPUES de assertTransitionAllowed, no antes (hallazgo MENOR
  * de revision por pares ronda 2, TASK-027): con la tarea en un estado
  * que no se puede aprobar, quejarse primero de la ambiguedad tapaba el

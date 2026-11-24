@@ -1034,7 +1034,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
     const repoCwd = process.cwd();
     const tareasRoot = path.join(repoCwd, 'tareas');
     try {
-      const result = await runCodexReviewCommand(tareasRoot, argv.slice(1), today(), { repoCwd });
+      const result = await runCodexReviewCommand(tareasRoot, argv.slice(1), { repoCwd });
       if (result.degradado) {
         // Codigo 0 a proposito (criterio de aceptacion 3): un Codex
         // ausente o fallando no rompe el flujo. El aviso deja claro por

@@ -66,7 +66,6 @@ export function extraerSinVerificacion(argv) {
     const resto = argv.filter((a) => a !== FLAG_SIN_VERIFICACION);
     return { sinVerificacion: resto.length !== argv.length, resto };
 }
-/** Las opciones de ejecucion del comando: el timeout de los tests y el entorno con el contador. */
 /**
  * TASK-128: cada verificacion de `finish` anota una linea de la puerta `finish`
  * en el registro de puertas (docs/registro-puertas.md), tambien en rojo.

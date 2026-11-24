@@ -111,7 +111,6 @@ export interface PuertaVerificacionOpts {
   entornoVerificacion?: () => NodeJS.ProcessEnv;
 }
 
-/** Las opciones de ejecucion del comando: el timeout de los tests y el entorno con el contador. */
 /**
  * TASK-128: cada verificacion de `finish` anota una linea de la puerta `finish`
  * en el registro de puertas (docs/registro-puertas.md), tambien en rojo.
