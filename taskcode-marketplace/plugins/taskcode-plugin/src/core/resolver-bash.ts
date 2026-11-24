@@ -70,3 +70,13 @@ export function entornoParaBash(
   const actual = entorno[clave] ?? '';
   return { ...entorno, [clave]: actual === '' ? bash.herramientas : `${bash.herramientas};${actual}` };
 }
+
+/**
+ * TASK-139a (B4): la coletilla del mensaje de `taskctl doctor` sobre que bash
+ * se usa. Pura para probarla en cualquier sistema: en el CI de Linux las
+ * aserciones del doctor real solo veian la rama de Linux.
+ */
+export function textoBashUsado(bash: BashResuelto, plataforma: NodeJS.Platform): string {
+  if (bash.origen === 'git') return `; bash de Git: ${bash.comando}`;
+  return plataforma === 'win32' ? '; no se encontro el bash de Git junto a git.exe: se usa el "bash" del PATH' : '';
+}

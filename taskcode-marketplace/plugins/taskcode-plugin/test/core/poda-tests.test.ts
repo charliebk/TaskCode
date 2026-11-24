@@ -81,4 +81,6 @@ test('guia (TASK-130): la skill task-workflow describe localizar, fusionar, borr
   assert.match(guia, /tareas_entre_podas/);
   assert.match(guia, /experimental-test-coverage/);
   assert.match(await readFile(path.join(raiz, 'skills', 'task-workflow', 'tests-pesados.md'), 'utf8'), /poda-tests\.md/);
+  // TASK-139a (B1): el criterio 2 de TASK-133 pedia el enlace desde la skill, y solo se miraba desde tests-pesados.md.
+  assert.match(await readFile(path.join(raiz, 'skills', 'task-workflow', 'SKILL.md'), 'utf8'), /\]\(poda-tests\.md\)/);
 });

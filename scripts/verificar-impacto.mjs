@@ -464,7 +464,7 @@ function leerEspera(valor) {
   return valor !== undefined && valor.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : ESPERA_POR_DEFECTO_S;
 }
 
-function dormir(ms) {
+function esperar(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
@@ -493,8 +493,10 @@ function pidDelCerrojo(cerrojo) {
  * un proceso que ya no existe, o ilegible, es de una ejecucion cortada: se
  * borra y se vuelve a intentar (otra puede ganar la carrera; entonces se la
  * espera). false si la espera se agota, con el motivo ya impreso.
+ * Exportada, con `dormir` sustituible, para probar la rama del cerrojo
+ * ilegible sin depender de tiempos (TASK-139a).
  */
-function tomarCerrojo(cerrojo, esperaS) {
+export function tomarCerrojo(cerrojo, esperaS, { dormir = esperar } = {}) {
   const limite = Date.now() + esperaS * 1000;
   let avisado = false;
   let dudaIlegible = false;
