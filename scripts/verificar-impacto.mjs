@@ -41,6 +41,9 @@
  * luego los de una carpeta con el nombre de la suya (`test/gitflow/` para
  * `scripts/gitflow/*`) y despues el resto por orden alfabetico. La salida dice
  * cuantos se dejan fuera. Nunca queda en cero lo que cambia si tiene tests.
+ * Con TASKCODE_VERIFICACION=selectiva (rondas de review y finish, TASK-139b) no
+ * hay tope: todos los afectados, y la suite entera si no se sabe que afecta. El
+ * freno lo lanza como comando propio (tipo `freno`) y conserva el tope.
  *
  * Base inexistente (RAMA_BASE o `develop`): sale con 1 y lo dice; no hay
  * verificacion por impacto sin una base con la que comparar.
@@ -349,6 +352,16 @@ function leerTope(valor) {
   return valor !== undefined && valor.trim() !== '' && Number.isInteger(n) && n >= 0 ? n : TOPE_POR_DEFECTO;
 }
 
+/**
+ * TASK-139b: el tope que se aplica. Con TASKCODE_VERIFICACION=selectiva (la
+ * pasa el plugin en las rondas de review y en finish) no hay tope: se corren
+ * todos los afectados, porque un recorte ahi dejaba integrar rojos que nadie
+ * ejecuto. Con `freno` (comando_verificacion_freno) o a mano, el de siempre.
+ */
+export function topeEfectivo(env) {
+  return env.TASKCODE_VERIFICACION === 'selectiva' ? Infinity : leerTope(env.VERIFICAR_IMPACTO_TOPE);
+}
+
 function aDist(fichero) {
   return `dist/${fichero.replace(/\.ts$/, '.js')}`;
 }
@@ -376,25 +389,35 @@ function main(argv) {
     return 1;
   }
   const nodos = grafoDelPlugin(dirPlugin);
-  const seleccion = seleccionar(cambiadas, nodos, leerTope(process.env.VERIFICAR_IMPACTO_TOPE));
+  const tope = topeEfectivo(process.env);
+  const sinTope = tope === Infinity;
+  const seleccion = seleccionar(cambiadas, nodos, tope);
+  // TASK-139b: sin tope y sin saber que afecta, la suite entera (no los directos).
+  const suiteEntera = sinTope && seleccion.todo;
   const rapido = RAPIDO.filter((d) => existsSync(path.join(dirPlugin, d)));
   const fuera = seleccion.tests.filter((t) => !enRapido(t.fichero));
 
   if (listar) {
-    console.log(JSON.stringify({ base, cambiadas, ...seleccion, rapido }, null, 2));
+    console.log(JSON.stringify({ base, cambiadas, ...seleccion, rapido, sinTope, suiteEntera }, null, 2));
     return 0;
   }
 
   console.log(`[verificar-impacto] Base: ${base}. Ficheros cambiados: ${String(cambiadas.length)}.`);
-  console.log(`[verificar-impacto] Siempre: ${rapido.join(', ')} (lo de test:rapido).`);
+  if (sinTope) console.log('[verificar-impacto] Sin tope (TASKCODE_VERIFICACION=selectiva: ronda de review o finish): todos los afectados.');
   if (seleccion.enrutador !== undefined) console.log(`[verificar-impacto] Enrutador: ${seleccion.enrutador}.`);
-  if (seleccion.recorte !== undefined) {
-    console.log(`[verificar-impacto] Seleccion recortada: ${seleccion.recorte}. La suite completa queda para antes de publicar.`);
+  let objetivos;
+  if (suiteEntera) {
+    console.log(`[verificar-impacto] Suite entera: ${seleccion.motivo}.`);
+    objetivos = ['dist/test/**/*.test.js'];
+  } else {
+    console.log(`[verificar-impacto] Siempre: ${rapido.join(', ')} (lo de test:rapido).`);
+    if (seleccion.recorte !== undefined) {
+      console.log(`[verificar-impacto] Seleccion recortada: ${seleccion.recorte}. La suite completa queda para antes de publicar.`);
+    }
+    console.log(`[verificar-impacto] Por impacto: ${String(fuera.length)} fichero(s) de test.`);
+    for (const t of fuera) console.log(`  - ${t.fichero} (${t.motivo})`);
+    objetivos = [...rapido.map((d) => `dist/${d}/**/*.test.js`), ...fuera.map((t) => aDist(t.fichero))];
   }
-  console.log(`[verificar-impacto] Por impacto: ${String(fuera.length)} fichero(s) de test.`);
-  for (const t of fuera) console.log(`  - ${t.fichero} (${t.motivo})`);
-
-  const objetivos = [...rapido.map((d) => `dist/${d}/**/*.test.js`), ...fuera.map((t) => aDist(t.fichero))];
   if (objetivos.length === 0) {
     console.log('[verificar-impacto] No hay tests que correr.');
     return 0;
@@ -436,6 +459,8 @@ function main(argv) {
     // RAMA_BASE es para elegir la seleccion, no para los tests: un test que la herede
     // cambia de comportamiento (el freno Stop siempre la pasa a la selectiva).
     delete env.RAMA_BASE;
+    // TASK-139b: igual con el tipo de verificacion (lo leen los tests del freno).
+    delete env.TASKCODE_VERIFICACION;
     const r = spawnSync(process.execPath, ['--test', '--test-reporter=spec', ...objetivos], {
       cwd: dirPlugin,
       env,

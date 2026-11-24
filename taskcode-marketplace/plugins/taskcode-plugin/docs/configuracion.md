@@ -41,6 +41,13 @@ timeout_verificacion_selectiva: 600                                 # opcional (
 - Recibe la rama base de la tarea en la variable de entorno `RAMA_BASE` (la de
   integración, o la principal en un hotfix); no se añade nada al comando. El
   mapa de capas es del proyecto: el script decide qué correr.
+- Recibe también `TASKCODE_VERIFICACION` con quién la corre: `selectiva` en las
+  rondas de `review` y en `finish`, `freno` con `comando_verificacion_freno`
+  (y `completa` o `documentacion` en las demás). Así un script puede recortar en
+  el fin de turno y no en las puertas que integran: un recorte allí deja
+  integrar tests afectados que nadie ejecutó. Sin `comando_verificacion_freno`,
+  el freno corre la selectiva tal cual y comparte su memo, así que para
+  recortar solo en el freno se declara esa clave.
 - Exige `comando_verificacion`: la selectiva sin la completa aborta, porque
   dejaría `finish` sin puerta. El timeout sin su comando también aborta.
 - **Hook `Stop`**: con la clave corre la selectiva en vez de la completa, con su

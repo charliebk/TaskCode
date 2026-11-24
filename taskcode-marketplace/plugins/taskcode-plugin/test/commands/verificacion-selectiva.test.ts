@@ -51,6 +51,7 @@ const dir = __dirname;
 const nombre = process.argv[2];
 fs.appendFileSync(dir + '/cuenta-' + nombre, 'x');
 fs.writeFileSync(dir + '/base-' + nombre, process.env.RAMA_BASE === undefined ? '(sin RAMA_BASE)' : process.env.RAMA_BASE);
+fs.writeFileSync(dir + '/tipo-' + nombre, process.env.TASKCODE_VERIFICACION === undefined ? '(sin tipo)' : process.env.TASKCODE_VERIFICACION);
 const d = fs.readFileSync(dir + '/desenlace-' + nombre, 'utf8').trim();
 if (d === 'ok') { console.log(nombre + ': todo en verde'); process.exit(0); }
 if (d === 'ensucia') { fs.writeFileSync('artefacto.txt', 'x'); process.exit(0); }
@@ -65,6 +66,8 @@ interface Verifs {
   desenlace(nombre: 'completa' | 'selectiva', d: Desenlace): Promise<void>;
   ejecuciones(nombre: 'completa' | 'selectiva'): number;
   base(nombre: 'completa' | 'selectiva'): string | null;
+  /** TASK-139b: el TASKCODE_VERIFICACION que recibio el comando. */
+  tipo(nombre: 'completa' | 'selectiva'): string | null;
 }
 
 async function conScripts<T>(fn: (v: Verifs) => Promise<T>): Promise<T> {
@@ -78,6 +81,7 @@ async function conScripts<T>(fn: (v: Verifs) => Promise<T>): Promise<T> {
     desenlace: (n, d) => writeFile(path.join(dir, `desenlace-${n}`), d, 'utf8'),
     ejecuciones: (n) => (leer(`cuenta-${n}`) ?? '').length,
     base: (n) => leer(`base-${n}`),
+    tipo: (n) => leer(`tipo-${n}`),
   };
   try {
     return await fn(v);
@@ -181,6 +185,10 @@ test('Stop (TASK-091): con la clave corre la selectiva (no la completa) con RAMA
       assert.equal(v.ejecuciones('selectiva'), 1);
       assert.equal(v.ejecuciones('completa'), 0, 'la completa no se corre en el fin de turno');
       assert.equal(v.base('selectiva'), 'develop');
+      // TASK-139b: sin comando_verificacion_freno, el freno corre la selectiva tal
+      // cual y comparte su memo con review y finish; para recortar en el fin de
+      // turno se declara comando_verificacion_freno (tipo freno, memo propio).
+      assert.equal(v.tipo('selectiva'), 'selectiva');
       // Misma huella: el siguiente fin de turno reutiliza el memo de la selectiva.
       assert.equal((await stop(raiz)).codigo, 0);
       assert.equal(v.ejecuciones('selectiva'), 1);
@@ -297,6 +305,8 @@ test('review (TASK-091): con la clave corre la selectiva con la base y la petici
       assert.equal(v.ejecuciones('selectiva'), 1);
       assert.equal(v.ejecuciones('completa'), 0, 'review no corre la completa');
       assert.equal(v.base('selectiva'), 'develop');
+      // TASK-139b: y que corre en review (no debe recortar en silencio).
+      assert.equal(v.tipo('selectiva'), 'selectiva');
       // TASK-128: la verificacion de la ronda queda en el registro de puertas.
       assert.deepEqual(
         leerRegistroPuertas(repoRoot)
@@ -573,6 +583,7 @@ test('guia (TASK-091): task-workflow enlaza verificacion-selectiva.md, que expli
     /comando_verificacion:/,
     /timeout_verificacion_selectiva/,
     /RAMA_BASE/,
+    /TASKCODE_VERIFICACION[\s\S]*comando_verificacion_freno/, // TASK-139b
     /arbol de trabajo/,
     /git ls-files --others --exclude-standard/,
     /corre todo/,

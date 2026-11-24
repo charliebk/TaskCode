@@ -25,6 +25,7 @@ const path = require('node:path');
 const quien = process.argv[2];
 fs.appendFileSync(path.join(__dirname, 'cuenta-' + quien), 'x');
 fs.writeFileSync(path.join(__dirname, 'base-' + quien), process.env.RAMA_BASE || '');
+fs.writeFileSync(path.join(__dirname, 'tipo-' + quien), process.env.TASKCODE_VERIFICACION || '');
 const d = fs.readFileSync(path.join(__dirname, 'desenlace'), 'utf8').trim();
 if (d === 'ok') { console.log('verde'); process.exit(0); }
 if (d === 'lento') { setTimeout(() => process.exit(0), 20000); }
@@ -35,6 +36,8 @@ interface Repo {
   raiz: string;
   ejecuciones(c: Comando): number;
   baseRecibida(c: Comando): string | null;
+  /** TASK-139b: el TASKCODE_VERIFICACION que recibio. */
+  tipoRecibido(c: Comando): string | null;
   desenlace(d: 'ok' | 'ko' | 'lento'): Promise<void>;
 }
 
@@ -80,6 +83,10 @@ async function conRepo(extra: string, fn: (r: Repo) => Promise<void>): Promise<v
         const f = path.join(fuera, `base-${c}`);
         return existsSync(f) ? readFileSync(f, 'utf8') : null;
       },
+      tipoRecibido: (c) => {
+        const f = path.join(fuera, `tipo-${c}`);
+        return existsSync(f) ? readFileSync(f, 'utf8') : null;
+      },
       desenlace: (d) => writeFile(path.join(fuera, 'desenlace'), d, 'utf8'),
     });
   } finally {
@@ -101,6 +108,8 @@ test('freno (TASK-125): con comando_verificacion_freno corre ese comando, con RA
     assert.deepEqual(await decidir(r), { codigo: 0, stderr: '' });
     assert.deepEqual([r.ejecuciones('freno'), r.ejecuciones('selectiva'), r.ejecuciones('completa')], [1, 0, 0]);
     assert.equal(r.baseRecibida('freno'), 'develop');
+    // TASK-139b: el comando sabe que corre en el freno, y puede recortar.
+    assert.equal(r.tipoRecibido('freno'), 'freno');
     assert.deepEqual(
       freno(r).map((l) => [l.modo, l.resultado]),
       [['freno', 'verde']]

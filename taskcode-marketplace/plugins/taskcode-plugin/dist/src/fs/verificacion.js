@@ -47,6 +47,13 @@ const VERSION_MEMO = 1;
  * la leen proyectos ajenos.
  */
 export const VARIABLE_RAMA_BASE = 'RAMA_BASE';
+/**
+ * TASK-139b: el tipo de verificacion que corre el comando (`selectiva` en
+ * review y finish, `freno` en el Stop, `completa`, `documentacion`). Asi un
+ * comando selectivo puede recortar en el freno, que corre en cada fin de
+ * turno, y no en finish, que integra. Informativa: quien la ignora no cambia.
+ */
+export const VARIABLE_TIPO_VERIFICACION = 'TASKCODE_VERIFICACION';
 /** Ejecuta `comando` en `raiz` con un tope de `timeoutS` segundos. Nunca lanza. */
 export function ejecutarVerificacion(raiz, comando, timeoutS, opciones = {}) {
     const timeoutMs = opciones.timeoutMs ?? timeoutS * 1000;
@@ -224,9 +231,11 @@ export function verificarConMemo(raiz, p, opciones = {}) {
     if (guardado !== null && (p.memoSoloVerde !== true || guardado.estado === 'verde')) {
         return { resultado: guardado, deMemo: true, cambioElArbol: false, commit, huella };
     }
-    const env = conBase
-        ? { ...(opciones.env ?? process.env), [VARIABLE_RAMA_BASE]: p.base }
-        : opciones.env;
+    const env = {
+        ...(opciones.env ?? process.env),
+        [VARIABLE_TIPO_VERIFICACION]: p.tipo,
+        ...(conBase ? { [VARIABLE_RAMA_BASE]: p.base } : {}),
+    };
     const resultado = ejecutarVerificacion(raiz, p.comando, p.timeoutS, {
         ...(opciones.timeoutMs === undefined ? {} : { timeoutMs: opciones.timeoutMs }),
         ...(env === undefined ? {} : { env }),

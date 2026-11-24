@@ -80,12 +80,17 @@ interface Seleccion {
   recorte?: string;
   enrutador?: string;
   tests: { fichero: string; motivo: string }[];
+  sinTope?: boolean;
+  suiteEntera?: boolean;
 }
 
-function listar(raiz: string, base = 'develop', tope?: number): Seleccion {
+function listar(raiz: string, base = 'develop', tope?: number, tipo?: string): Seleccion {
   const env: NodeJS.ProcessEnv = { ...process.env, RAMA_BASE: base };
   if (tope === undefined) delete env['VERIFICAR_IMPACTO_TOPE'];
   else env['VERIFICAR_IMPACTO_TOPE'] = String(tope);
+  // TASK-139b: el tipo lo decide cada test, no el entorno de quien corre la suite.
+  if (tipo === undefined) delete env['TASKCODE_VERIFICACION'];
+  else env['TASKCODE_VERIFICACION'] = tipo;
   const r = spawnSync(process.execPath, [SCRIPT, '--listar'], { cwd: raiz, encoding: 'utf8', env });
   assert.equal(r.status, 0, r.stderr);
   return JSON.parse(r.stdout) as Seleccion;
@@ -251,6 +256,31 @@ test('tope: si la seleccion pasa de VERIFICAR_IMPACTO_TOPE, solo los tests direc
     const cero = listar(raiz, 'develop', 0);
     assert.match(cero.recorte ?? '', /los 1 tests directos mas proximos de 1 \(0 se dejan fuera\)/);
     assert.deepEqual(ficheros(cero), ['test/c.test.ts', 'test/core/x.test.ts']);
+  });
+});
+
+// TASK-139b: en review y finish (TASKCODE_VERIFICACION=selectiva) no hay recorte
+// silencioso: todos los afectados, y la suite entera si no se sabe que afecta. El
+// freno (tipo freno) y una ejecucion a mano mantienen el tope.
+test('TASK-139b: con TASKCODE_VERIFICACION=selectiva no hay tope; con freno o sin la variable, si', async () => {
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/src/a.ts`, 'export const a = 9;\n');
+    await cambiarYCommitear(raiz, `${PLUGIN}/src/c.ts`, 'export const c = 9;\n');
+    const todos = ['test/b.test.ts', 'test/c.test.ts', 'test/core/x.test.ts'];
+    const sel = listar(raiz, 'develop', 1, 'selectiva');
+    assert.equal(sel.sinTope, true);
+    assert.equal(sel.recorte, undefined, 'sin recorte');
+    assert.deepEqual(ficheros(sel), todos);
+    for (const tipo of ['freno', undefined]) {
+      const s = listar(raiz, 'develop', 1, tipo);
+      assert.equal(s.sinTope, false, String(tipo));
+      assert.match(s.recorte ?? '', /pasan del tope de 1/, String(tipo));
+    }
+  });
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/huerfano.yml`, 'clave: 9\n');
+    assert.equal(listar(raiz, 'develop', undefined, 'selectiva').suiteEntera, true, 'sin saber que afecta: la suite entera');
+    assert.equal(listar(raiz, 'develop', undefined, 'freno').suiteEntera, false);
   });
 });
 
