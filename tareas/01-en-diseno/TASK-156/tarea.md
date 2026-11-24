@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [verificacion, scripts]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-156-verificar-impacto-elige-los-tests-que-le
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ scripts/verificar-impacto.mjs elegia los tests de un .md de skills/ solo por su 
 - [ ] Un fichero bajo agents/ elige los tests que leen agents/, y uno bajo docs/ del plugin los que leen PLUGIN_ROOT/docs, sin arrastrar los que usan docs en su repo temporal
 - [ ] test/scripts/verificar-impacto.test.ts tiene un test que cae en rojo si se vuelve a ignorar un .md de skill (mutacion comprobada)
 - [ ] La cabecera de scripts/verificar-impacto.mjs documenta la regla
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T09:56:01Z | plan | automatico | persona | 0.17.1 |

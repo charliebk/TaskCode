@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-145a (en diseño), TASK-155 (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-146, TASK-150, TASK-152, TASK-156, TASK-019
+- **En marcha:** TASK-145a (en diseño), TASK-155 (en diseño), TASK-156 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-146, TASK-150, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -137,7 +137,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-153c | metricas de hallazgos 4D (parte c de TASK-153) | alta | TASK-153b | ✅ terminada |
 | — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |
 | 16 | TASK-155 | comprobarSkillInstalado verificable en Windows (claude.cmd) | simple | — | ▶ en diseño |
-| 17 | TASK-156 | verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin | simple | — | lista para empezar |
+| 17 | TASK-156 | verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin | simple | — | ▶ en diseño |
 
 ## H1 — H1
 
