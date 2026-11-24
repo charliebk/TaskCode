@@ -39,3 +39,8 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 | 2026-11-24T15:32:33Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T15:32:59Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T15:33:01Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 679ff9f: costeCero y costeDeFila sobre CAMPOS_COSTE (sin campos a mano); listarSiExiste junto a isEnoent/isEnotdir en task-store; claveRuta de fs/cobertura reutilizada; diaUtc junto a diaLocal y usada tambien por today() de cli; en plan solo se quita la cronica de intentos, no las explicaciones de por que el codigo es asi; mutacion en rojo: creado con diaLocal
+- code-quality-reviewer — 679ff9f
