@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-143-regla-4d-duplicacion-en-git-flow-bash-y
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -38,3 +38,4 @@ parse_gitflow_args y normalize_branch_name en los 13 scripts, diagnose-repo con 
 |---|---|---|---|---|
 | 2026-11-24T20:12:10Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T20:12:50Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-24T20:12:52Z | start | automatico | persona | 0.16.1 |
