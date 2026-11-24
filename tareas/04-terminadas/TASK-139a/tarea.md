@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di
 asignado_a: claude
@@ -46,6 +46,7 @@ Objetivo de la tarea entera:
 | 2026-11-24T00:45:32Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T01:05:37Z | review | automatico | persona | 0.16.1 |
 | 2026-11-24T01:22:03Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T03:25:18Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -70,3 +71,10 @@ Objetivo de la tarea entera:
 - B5: el test de review con un grupo fragmentado no duplica al de 1300 rutas, porque es el único que prueba que review usa el diff por lotes (caza el mutante en Windows). Se justifica en el test y baja de 1100 a 500 ficheros.
 - TASK-133: criterios 1, 2 y 4 marcados. El 3 queda sin marcar y con su motivo: TASK-134 se cerró con --sin-verificacion.
 - Revisión: en la ronda 1, cambios solicitados (IMP-1: había marcado el criterio 3 sin evidencia); MEN-1 y MEN-2 corregidos. La ronda 2 aprueba.
+
+## Duracion
+
+- Estimada: 40 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 160 min
+- Paso de la hora: 160 min reales frente a 40 estimados
+- Cierre (finish): 2451 s, de 2026-11-24T02:44:27Z a 2026-11-24T03:25:18Z
