@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: los casos A1-A6 tienen fichero y line
 
 ## Enfoque propuesto
 
-Duracion estimada: 90 min (pasa de 60: se trocea en dos partes; troceo autorizado de antemano por Carlos para el plan de correcciones 4D)
+Duracion estimada: 45 min (parte a del troceo; la tarea entera estimaba 90 min)
 
 1. A1: un solo agregador de la suite por version, en core/crecimiento-suite.ts, usado por `metricas --por-version` y por el aviso de crecimiento de doctor. Se elige la regla de metricas (la ultima linea `suite` verde por tarea) o la de doctor segun cual sea correcta para una tarea que corre la completa dos veces, y se fija con un test que da la misma cifra en las dos vistas.
 2. A2 y CORE2-11: una sola `mediana` (y el maximo con ella), compartida por versiones-metricas, crecimiento-suite, la exportada de metricas.ts y `tramoDe` de evolucion.ts.
@@ -55,3 +55,7 @@ La decision verde/rojo/omitido compartida por anotarFinish, review, anotarSuite 
 Duracion estimada: 45 min
 - [ ] anotarFinish, el bloque de review, anotarSuite y verificar-lote comparten la decision verde/rojo/omitido, y PUERTAS_VERIFICACION se usa en metricas o se elimina con su test
 - [ ] Los textos de las salidas del tope de rondas (siguiente, salidasTopeRondas, error de review) salen de una sola fuente y doctor lee las terminadas una vez
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-24: TASK-138a, TASK-138b, todas en la misma rama. Este plan es el de TASK-138a; las demas partes se planifican al empezarlas.

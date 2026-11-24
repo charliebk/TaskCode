@@ -1,0 +1,33 @@
+---
+id: TASK-138b
+titulo: "decision de la puerta, constante muerta, textos del tope y doctor (parte b de TASK-138)"
+tipo: fix
+sprint: 0
+etiquetas: []
+complejidad: media
+modelo_sugerido: sonnet
+estado: planificada
+plan_aprobado: false
+rama: fix/task-138-regla-4d-duplicacion-en-metricas-suite-y
+asignado_a: null
+agente_revisor: general-purpose
+skills_recomendados: []
+regla_seleccion_skill: null
+ultimo_commit_revisado: null
+revision_codex: false
+tokens_diseno: null
+tokens_implementacion: null
+tokens_revision: null
+creado: 2026-11-24
+actualizado: 2026-11-24
+dependencias: [TASK-138a]
+---
+## Objetivo
+
+Parte b del troceo de TASK-138 (Regla 4D: duplicacion en metricas, suite y registro de puertas), partes TASK-138a, TASK-138b en la rama fix/task-138-regla-4d-duplicacion-en-metricas-suite-y.
+
+La decision verde/rojo/omitido compartida por anotarFinish, review, anotarSuite y verificar-lote; PUERTAS_VERIFICACION usada o eliminada; textos del tope de rondas de una fuente; doctor lee las terminadas una vez.
+
+## Criterios de aceptacion
+- [ ] anotarFinish, el bloque de review, anotarSuite y verificar-lote comparten la decision verde/rojo/omitido, y PUERTAS_VERIFICACION se usa en metricas o se elimina con su test
+- [ ] Los textos de las salidas del tope de rondas (siguiente, salidasTopeRondas, error de review) salen de una sola fuente y doctor lee las terminadas una vez
