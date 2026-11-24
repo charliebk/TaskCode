@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 156 / 163 items terminados (96%)** · última actualización: 2026-11-24
+**Progreso global: 157 / 164 items terminados (96%)** · última actualización: 2026-11-24
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,7 +41,7 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 17 | **10** | ~32h |
+| Q — Correcciones de la auditoría 4D | 18 | **11** | ~32h |
 | **Total pendiente** | **7** | — | — |
 
 
@@ -57,7 +57,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## Q — Correcciones de la auditoría 4D (10/17)
+## Q — Correcciones de la auditoría 4D (11/18)
 
 Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`docs/auditoria-4d-completa.md`](../auditoria-4d-completa.md).
 
@@ -67,6 +67,8 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
       *El test de EACCES se omite con motivo solo si chmod no impide escribir (NTFS); el de CRLF compara sin finales de linea. Sin rojos esperados en Windows: finish vuelve a verificar de verdad (completa en verde). Una ronda aprobada con correcciones (MEN-1).*
 - [x] TASK-155 — comprobarSkillInstalado verificable en Windows (claude.cmd) — cerrada el 2026-11-24
       *claude se localiza con PATHEXT (localizarHerramienta) y se lanza con ejecutarHerramienta, que pasa por el shell con la ruta citada si es .cmd/.bat. Doble claude.cmd en un PATH temporal: instalado y no-instalado (antes, no-verificable). Una ronda aprobada sin hallazgos. Pendiente aparte: TIMEOUT_MS de 5 s frente a los ~18 s del claude.exe real.*
+- [x] TASK-157 — Timeout de claude plugin list acorde al binario real — cerrada el 2026-11-24
+      *TIMEOUT_MS de comprobarSkillInstalado de 5 a 30 s: el claude.exe real tarda ~18 s y ya da instalado (16,8 s). Doble claude lento (6 s) en el test; un claude colgado se corta a los 30 s. Una ronda aprobada (MEN-1 aceptado: el test con el claude real tarda 16-25 s).*
 - [x] TASK-153 (a, b, c) — Regla 4D en la creacion de codigo y tests — cerrada el 2026-11-23
       *Plan con ## Reutilizacion (aviso de approve), linea 4D exigida en la autorrevision, guia disfraz-tests.md, ## Candidatos 4D en la peticion (duplicados y tests a mutar, coste acotado) y columna 4d en metricas. 153b necesito 2 rondas (IMP coste e IMP tests); 153a y 153c, una con correcciones.*
 - [x] TASK-144 (a, b, c) — Regla 4D: ciclo de vida, cadena y flags en commands — cerrada el 2026-11-23
