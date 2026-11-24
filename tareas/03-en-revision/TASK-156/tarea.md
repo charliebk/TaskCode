@@ -43,6 +43,7 @@ scripts/verificar-impacto.mjs elegia los tests de un .md de skills/ solo por su 
 
 ## Autorrevision
 
+- 4D — 1e158b1: helper buscado (MARCADORES, busqueda por nombre y proximidad de seleccionar), criterios citados, 1 test nuevo mutado (lectores vaciados: rojo).
 - code-quality-reviewer — 1e158b1
 
 ## Coste
