@@ -2,33 +2,34 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-24. No editar a mano.
 
-## Planificadas (00-planificadas) — 19
+## Planificadas (00-planificadas) — 20
 
 ```text
-ID        Titulo                                                                                      Asignado
---------  ------------------------------------------------------------------------------------------  --------------------
-TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
-TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
-TASK-003  Comando taskctl new (alta individual de tarea)                                              (sin asignar)
-TASK-004  Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
-TASK-005  Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
-TASK-006  Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
-TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
-TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
-TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
-TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
-TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
-TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
-TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
-TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-140  Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
-TASK-143  Regla 4D: duplicacion en Git-Flow (bash y TS)                                               (sin asignar)
-TASK-150  Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
-TASK-152  Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
-TASK-158  Regla 4D preventiva en todos los procesos que crean o actualizan codigo                     (sin asignar)
+ID         Titulo                                                                                      Asignado
+---------  ------------------------------------------------------------------------------------------  --------------------
+TASK-001   Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
+TASK-002   Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
+TASK-003   Comando taskctl new (alta individual de tarea)                                              (sin asignar)
+TASK-004   Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
+TASK-005   Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
+TASK-006   Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
+TASK-007   Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
+TASK-008   Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
+TASK-009   taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
+TASK-010   taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
+TASK-011   taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
+TASK-012   Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
+TASK-019   Revisión ligera sin agente para tareas triviales                                            (sin asignar)
+TASK-021   Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
+TASK-143b  argumentos, diagnose y push-back (parte b de TASK-143)                                      (sin asignar)
+TASK-143c  paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143)                           (sin asignar)
+TASK-150   Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
+TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
+TASK-158   Regla 4D preventiva en todos los procesos que crean o actualizan codigo                     (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 153
+## Terminadas (04-terminadas) — 154
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -160,6 +161,7 @@ TASK-139a  disfraces B1-B5 (parte a de TASK-139)                                
 TASK-139b  la selectiva no recorta en silencio (parte b de TASK-139)                                                           claude
 TASK-141   Auditoria 4D inicial: reconocimiento completo del codigo existente                                                  charlie.bk@gmail.com
 TASK-142   Regla 4D: disfraz en los scripts de Git-Flow                                                                        charlie.bk@gmail.com
+TASK-143a  create, update y merge a main (parte a de TASK-143)                                                                 claude
 TASK-144a  cadena, Commit revisado y tarea en su rama (parte a de TASK-144)                                                    charlie.bk@gmail.com
 TASK-144b  flags con y sin valor (parte b de TASK-144)                                                                         charlie.bk@gmail.com
 TASK-144c  patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144)                                            charlie.bk@gmail.com
