@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 14359061
 tokens_revision: null
 creado: 2026-11-24
 actualizado: 2026-11-24
@@ -39,8 +39,15 @@ El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos l
 | 2026-11-24T03:25:39Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T03:25:57Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T03:25:59Z | start | automatico | persona | 0.16.1 |
+| 2026-11-24T03:46:13Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — b481b52: TASKCODE_VERIFICACION en el mismo env que RAMA_BASE; el freno usa comando_verificacion_freno (TASK-125, tipo y memo propios) en vez de cambiar su tipo: probado primero y deshecho, rompia 6 tests de memo y mensajes del freno; topeEfectivo reutiliza leerTope y seleccionar acepta Infinity; mutaciones en rojo: sin la variable, sin el Infinity de selectiva, sin la suite entera
 - code-quality-reviewer — b481b52
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T03:46:13Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 78 | 46637 | 14288540 | 23806 | 18 | 14359061 | - | - |
