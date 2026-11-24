@@ -125,7 +125,7 @@ export async function runVeredictoCommand(
   }
 
   const existing = await readTareaFile(tareasRoot, id);
-  assertTransitionAllowed('veredicto', existing === null ? null : existing.task);
+  assertTransitionAllowed('veredicto', existing === null ? null : existing.task, { idPedido: id });
   const { task, filePath } = existing as NonNullable<typeof existing>;
 
   const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);

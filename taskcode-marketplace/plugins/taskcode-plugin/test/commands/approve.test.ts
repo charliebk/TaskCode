@@ -17,6 +17,8 @@ import {
   resolverPlanFinal,
 } from '../../src/commands/plan.js';
 import { StateMachineError } from '../../src/core/state-machine.js';
+import { git as gitTexto } from '../helpers/finish-fixtures.js';
+import { porcelain } from '../helpers/roadmap-fixtures.js';
 import { BaseBranchGuardError } from '../../src/fs/git.js';
 import type { Task } from '../../src/core/task.js';
 
@@ -230,12 +232,17 @@ test('taskctl approve: rechaza si la tarea no esta en en-diseno (p. ej. en-curso
   });
 });
 
+// TASK-151b (TCMD-03): los dos tests prometian «sin efectos» y «error claro» y solo
+// miraban la clase del error; ahora miran el mensaje, el workspace y HEAD.
 test('taskctl approve: rechaza si el ID no existe, sin efectos secundarios', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
+    const head = gitTexto(['rev-parse', 'HEAD'], repoRoot);
     await assert.rejects(
       () => runApproveCommand(tareasRoot, ['TASK-999'], '2026-09-05', { repoCwd: repoRoot }),
-      StateMachineError
+      (e: unknown) => e instanceof StateMachineError && /TASK-999/.test(e.message) && /no existe todavia/.test(e.message)
     );
+    assert.equal(porcelain(repoRoot), '', 'no deja nada en el workspace');
+    assert.equal(gitTexto(['rev-parse', 'HEAD'], repoRoot), head, 'no commitea');
   });
 });
 
@@ -243,8 +250,9 @@ test('taskctl approve: error claro si falta el ID', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await assert.rejects(
       () => runApproveCommand(tareasRoot, [], '2026-09-05', { repoCwd: repoRoot }),
-      ApproveCommandError
+      (e: unknown) => e instanceof ApproveCommandError && /Falta el ID de la tarea: taskctl approve TASK-NNN/.test(e.message)
     );
+    assert.equal(porcelain(repoRoot), '');
   });
 });
 

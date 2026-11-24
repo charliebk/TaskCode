@@ -35,7 +35,7 @@ export function assertTransitionAllowed(command, task, ctx = {}) {
         return;
     }
     if (task === null) {
-        throw err('(desconocida)', command, 'no-existe', null, 'no existe todavia. Usa taskctl import o taskctl new primero.');
+        throw err(ctx.idPedido ?? '(desconocida)', command, 'no-existe', null, 'no existe todavia. Usa taskctl import o taskctl new primero.');
     }
     switch (command) {
         case 'plan': {

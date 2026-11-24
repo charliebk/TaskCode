@@ -17,6 +17,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { plantillaRepo, type ConRepo } from '../helpers/repo-plantilla.js';
+import { git as gitTexto } from '../helpers/finish-fixtures.js';
+import { porcelain } from '../helpers/roadmap-fixtures.js';
 import { writeTareaFile, readTareaFile, moveTareaFile } from '../../src/fs/task-store.js';
 import { serializeTareaFile } from '../../src/core/tarea-file.js';
 import { runStartCommand, StartCommandError } from '../../src/commands/start.js';
@@ -290,11 +292,18 @@ test('taskctl start: rechaza si el workspace tiene cambios sin commitear, sin in
   });
 });
 
+// TASK-151b (TCMD-03): miraba solo la clase del error; ahora el mensaje, la rama,
+// el workspace y HEAD.
 test('taskctl start: error claro si el ID no existe, sin efectos secundarios', async () => {
   await withTempRepo(async (repoRoot, tareasRoot) => {
+    const head = gitTexto(['rev-parse', 'HEAD'], repoRoot);
+    const rama = gitTexto(['branch', '--show-current'], repoRoot);
     await assert.rejects(
       () => runStartCommand(tareasRoot, ['TASK-999'], '2026-09-04', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR }),
-      StateMachineError
+      (e: unknown) => e instanceof StateMachineError && /TASK-999/.test(e.message) && /taskctl import o taskctl new/.test(e.message)
     );
+    assert.equal(porcelain(repoRoot), '', 'no deja nada en el workspace');
+    assert.equal(gitTexto(['rev-parse', 'HEAD'], repoRoot), head, 'no commitea');
+    assert.equal(gitTexto(['branch', '--show-current'], repoRoot), rama, 'no cambia de rama');
   });
 });

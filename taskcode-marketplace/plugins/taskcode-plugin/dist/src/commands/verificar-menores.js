@@ -105,7 +105,7 @@ export async function runVerificarMenoresCommand(tareasRoot, argv, deps) {
         throw new VerificarMenoresCommandError(`[ERROR] Argumentos de mas: ${sobra.join(' ')}. ${uso}`);
     }
     const existing = await readTareaFile(tareasRoot, id);
-    assertTransitionAllowed('verificar-menores', existing === null ? null : existing.task);
+    assertTransitionAllowed('verificar-menores', existing === null ? null : existing.task, { idPedido: id });
     const { task, body, filePath } = existing;
     const cwd = deps.repoCwd;
     const error = (texto) => new VerificarMenoresCommandError(`[ERROR] ${task.id}: ${texto}`);

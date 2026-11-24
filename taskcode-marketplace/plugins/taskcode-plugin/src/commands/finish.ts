@@ -814,7 +814,7 @@ async function runFinish(
   const existing = await readTareaFile(tareasRoot, id);
   const ctx =
     existing === null ? {} : await buildTransitionContext(path.dirname(existing.filePath));
-  assertTransitionAllowed('finish', existing ? existing.task : null, ctx);
+  assertTransitionAllowed('finish', existing ? existing.task : null, { ...ctx, idPedido: id });
   const { task, body, filePath } = existing as NonNullable<typeof existing>;
 
   // TASK-085: red del volcado de review. Si alli no se pudo, lo que quede

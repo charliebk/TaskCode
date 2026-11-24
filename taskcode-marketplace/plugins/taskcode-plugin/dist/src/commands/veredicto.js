@@ -85,7 +85,7 @@ export async function runVeredictoCommand(tareasRoot, argv, deps) {
         throw new VeredictoCommandError(`[ERROR] Argumentos de mas: ${sobra.join(' ')}. ${uso}`);
     }
     const existing = await readTareaFile(tareasRoot, id);
-    assertTransitionAllowed('veredicto', existing === null ? null : existing.task);
+    assertTransitionAllowed('veredicto', existing === null ? null : existing.task, { idPedido: id });
     const { task, filePath } = existing;
     const revisionDir = path.join(path.dirname(filePath), REVISION_DIRNAME);
     const { ronda, nombres } = await informesDeUltimaRonda(revisionDir, INFORME_REVISION_RE);

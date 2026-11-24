@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { decidirPreToolUse } from '../../src/hooks/guardia-merge.js';
@@ -52,7 +52,9 @@ async function conEntorno(
         tareasRoot,
         comandoCompleta: comandos.completa,
         comandoDocs: comandos.docs,
-        ejecutadoAlguno: () => existsSync(path.join(dir, 'cuenta-completa')) || existsSync(path.join(dir, 'cuenta-docs')),
+        // TASK-151b (TRES-07): antes solo miraba cuenta-completa y cuenta-docs; un guardian
+        // que lanzara la selectiva (cuenta-sel) pasaba. Ahora cuenta cualquier cuenta-*.
+        ejecutadoAlguno: () => readdirSync(dir).some((n) => n.startsWith('cuenta-')),
       });
     });
   } finally {

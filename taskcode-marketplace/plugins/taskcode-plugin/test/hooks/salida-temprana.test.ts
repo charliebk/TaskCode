@@ -45,10 +45,16 @@ async function conRepo(config: string | null, fn: (raiz: string) => Promise<void
 }
 
 /** Lanza un punto de entrada con un PATH que no tiene git (una carpeta vacia). */
-async function lanzarSinGit(entrada: string, cwd: string, tool_name: string, tool_input: Record<string, unknown>) {
+async function lanzarSinGit(
+  entrada: string,
+  cwd: string,
+  tool_name: string,
+  tool_input: Record<string, unknown>,
+  envExtra: NodeJS.ProcessEnv = {}
+) {
   const vacia = await mkdtemp(path.join(tmpdir(), 'path-sin-git-'));
   try {
-    const env: NodeJS.ProcessEnv = { ...process.env, PATH: vacia, Path: vacia };
+    const env: NodeJS.ProcessEnv = { ...process.env, PATH: vacia, Path: vacia, ...envExtra };
     return spawnSync(process.execPath, [entrada], {
       input: JSON.stringify({ cwd, tool_name, tool_input, hook_event_name: 'PreToolUse' }),
       encoding: 'utf8',
@@ -105,6 +111,18 @@ test('salida temprana (TASK-114, criterio 2): un comando sin git ni script de ci
       const r = await lanzarSinGit(ENTRADA_SHELL, raiz, 'Bash', { command });
       assert.equal(r.status, 0, `${command}: ${r.stderr}`);
       assert.equal(r.stderr, '');
+    }
+    // TASK-151b (TRES-08, M9): salir 0 no prueba que el guardian no se cargue
+    // (sin git, el guardian tambien deja pasar). NODE_DEBUG=esm deja ver que
+    // modulos se cargan; el control positivo evita que el test quede vacio si
+    // otra version de Node no imprime esa traza.
+    const cargaGuardian = async (command: string): Promise<boolean> => {
+      const r = await lanzarSinGit(ENTRADA_SHELL, raiz, 'Bash', { command }, { NODE_DEBUG: 'esm' });
+      return r.stderr.includes('guardia-merge');
+    };
+    assert.equal(await cargaGuardian('git merge feature/x'), true, 'control: con git si se carga el guardian');
+    for (const command of ['grep -rn merge src', 'npm run commit-lint']) {
+      assert.equal(await cargaGuardian(command), false, `${command} carga el guardian`);
     }
   });
 });

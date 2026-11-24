@@ -472,7 +472,7 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
         previa = await leerRondaPrevia(path.join(path.dirname(initial.filePath), REVISION_DIRNAME));
         ctx.veredictoRondaAnterior = previa.veredicto;
     }
-    assertTransitionAllowed('review', initial ? initial.task : null, ctx);
+    assertTransitionAllowed('review', initial ? initial.task : null, { ...ctx, idPedido: id });
     // TASK-095: el tope de rondas lo aplica tambien review, no solo siguiente:
     // llamar a review sin pasar por siguiente abria rondas sin limite (una tarea
     // llego a 14). Pasado el tope, otra ronda solo con --ronda-extra, que la
@@ -555,7 +555,7 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
     // decide si se muta algo y con que contenido (regla de la doble
     // lectura — el update pudo traer de la base un tarea.md mas nuevo).
     const existing = await readTareaFile(tareasRoot, id);
-    assertTransitionAllowed('review', existing ? existing.task : null, ctx);
+    assertTransitionAllowed('review', existing ? existing.task : null, { ...ctx, idPedido: id });
     const { task, body, filePath } = existing;
     const commitRevisado = headCommit(deps.repoCwd);
     // TASK-040: inicio del rango. En la ronda incremental, el commit
