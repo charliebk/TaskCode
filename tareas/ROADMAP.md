@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-145a (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-146, TASK-150, TASK-152, TASK-155, TASK-019
+- **En marcha:** TASK-155 (en diseño), TASK-145a (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-146, TASK-150, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -114,7 +114,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 12 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
 | 13 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
 | — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |
-| 14 | TASK-155 | comprobarSkillInstalado verificable en Windows (claude.cmd) | simple | — | lista para empezar |
+| 14 | TASK-155 | comprobarSkillInstalado verificable en Windows (claude.cmd) | simple | — | ▶ en diseño |
 | — | TASK-139a | disfraces B1-B5 (parte a de TASK-139) | simple | — | ✅ terminada |
 | — | TASK-144a | cadena, Commit revisado y tarea en su rama (parte a de TASK-144) | alta | — | ✅ terminada |
 | 15 | TASK-145a | puertas, git y textos de error (parte a de TASK-145) | media | — | ▶ en diseño |

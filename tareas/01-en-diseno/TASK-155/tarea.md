@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-155-comprobarskillinstalado-verificable-en-w
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -30,3 +30,9 @@ En Windows claude es un .cmd y spawnSync sin shell no lo ejecuta, asi que compro
 - [ ] comprobarSkillInstalado localiza claude en el PATH con candidatosEnPath y, en Windows, lanza un .cmd o .bat a traves del shell con la ruta citada; sin claude en el PATH sigue siendo no-verificable sin lanzar nada
 - [ ] Un test de integracion pone un claude.cmd (Windows) o un claude ejecutable (resto) de prueba en un PATH temporal que imprime el JSON de plugin list y comprueba instalado y no-instalado; antes del cambio da no-verificable en Windows
 - [ ] La verificacion por impacto queda en verde
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T09:44:26Z | plan | automatico | persona | 0.16.1 |
