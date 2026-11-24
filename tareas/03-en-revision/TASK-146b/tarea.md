@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-146-regla-4d-duplicacion-en-new-import-roadm
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 17475795
 tokens_revision: null
 creado: 2026-11-24
 actualizado: 2026-11-24
@@ -39,8 +39,15 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 | 2026-11-24T15:32:33Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T15:32:59Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T15:33:01Z | start | automatico | persona | 0.16.1 |
+| 2026-11-24T15:53:07Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — 679ff9f: costeCero y costeDeFila sobre CAMPOS_COSTE (sin campos a mano); listarSiExiste junto a isEnoent/isEnotdir en task-store; claveRuta de fs/cobertura reutilizada; diaUtc junto a diaLocal y usada tambien por today() de cli; en plan solo se quita la cronica de intentos, no las explicaciones de por que el codigo es asi; mutacion en rojo: creado con diaLocal
 - code-quality-reviewer — 679ff9f
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T15:53:07Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 50 | 31481 | 17427880 | 16384 | 16 | 17475795 | - | - |
