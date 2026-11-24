@@ -70,3 +70,7 @@ Objetivo de la tarea entera:
 - A2 y CORE2-11: core/estadistica.ts tiene la única `mediana`; metricas la reexporta.
 - A3: la línea final de pytest se busca una sola vez en `contarTests`. El revisor comprobó 3072 combinaciones sin ninguna diferencia.
 - Revisión, ronda 1: aprobada con correcciones. MEN-2 se corrigió (aserción tautológica fuera). MEN-1 se acepta y queda documentado aquí.
+
+## Verificacion parcial
+
+- 2026-11-24T16:36:49Z: todo el codigo que cambia la tarea (13 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
