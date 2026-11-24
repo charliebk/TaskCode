@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-138b — decision de la puerta, constante muerta, textos del tope y doctor (parte b de TASK-138) · etiquetas: (sin etiquetas) · rama fix/task-138-regla-4d-duplicacion-en-metricas-suite-y · terminada 2026-11-24 · tareas/04-terminadas/TASK-138b/
 - TASK-138a — agregador de la suite, mediana y pytest (parte a de TASK-138) · etiquetas: (sin etiquetas) · rama fix/task-138-regla-4d-duplicacion-en-metricas-suite-y · terminada 2026-11-24 · tareas/04-terminadas/TASK-138a/
 - TASK-146b — registrar-coste, readdir, fecha y cabeceras (parte b de TASK-146) · etiquetas: (sin etiquetas) · rama fix/task-146-regla-4d-duplicacion-en-new-import-roadm · terminada 2026-11-24 · tareas/04-terminadas/TASK-146b/
 - TASK-146a — import, roadmap y verificar-lote (parte a de TASK-146) · etiquetas: (sin etiquetas) · rama fix/task-146-regla-4d-duplicacion-en-new-import-roadm · terminada 2026-11-24 · tareas/04-terminadas/TASK-146a/
