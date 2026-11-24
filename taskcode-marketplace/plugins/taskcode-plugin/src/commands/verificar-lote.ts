@@ -26,7 +26,7 @@ import { anotarLineaEnSeccion, MARCA_LOTE_VERDE, pendienteDeLote, SECCION_VERIFI
 import { crearProgreso, entornoConContador, type Progreso } from '../fs/progreso.js';
 import { currentBranch, headCommit, isWorkspaceClean, resolveIntegrationBranch } from '../fs/git.js';
 import { autoCommit, type AutoCommitResult } from '../fs/git-commit.js';
-import { anotarPuerta } from '../fs/registro-puertas.js';
+import { anotarVerificacion } from '../fs/registro-puertas.js';
 import { anotarSuite } from './finish-verificacion.js';
 import { listTareasEnEstados, readTareaFile, type ReadTareaResult } from '../fs/task-store.js';
 import { ejecutarVerificacion, guardarMemo, huellaDelArbol } from '../fs/verificacion.js';
@@ -139,14 +139,7 @@ export async function runVerificarLoteCommand(
     throw e;
   }
   progreso.terminar(r.estado === 'verde' ? 'ok' : 'en-rojo');
-  anotarPuerta(cwd, {
-    puerta: PUERTA_FINISH,
-    tarea: '-',
-    instante: new Date().toISOString(),
-    modo: 'lote',
-    duracionS: (Date.now() - inicio) / 1000,
-    resultado: r.estado === 'verde' ? 'verde' : 'rojo',
-  });
+  anotarVerificacion(cwd, { puerta: PUERTA_FINISH, tarea: '-', modo: 'lote', inicioMs: inicio, estado: r.estado });
   // TASK-129: el tamano de la completa, anotado a la ultima tarea del lote.
   anotarSuite(cwd, ids[ids.length - 1] as string, inicio, r);
   // Como finish: el memo de la completa solo con el arbol limpio (la huella del commit).

@@ -88,6 +88,15 @@ export function salidasTopeRondas(id, rondaActual) {
     ];
 }
 /**
+ * TASK-138b (A6): el texto de las tres salidas del tope de rondas, compuesto
+ * de `salidasTopeRondas`. Lo usan `siguiente` (motivo) y el error de review;
+ * antes cada uno tenia su redaccion.
+ */
+export function textoSalidasTope(id, rondaActual) {
+    const salidas = salidasTopeRondas(id, rondaActual).map((s) => `${s.descripcion} ("${s.comando}")`);
+    return `Lo decide una persona: ${salidas.join('; ')}.`;
+}
+/**
  * Fases que abren una fase NUEVA del ciclo: en semiautomatico se pregunta
  * antes de entrar. Las demas (veredicto, la primera codex-review, otra ronda
  * de review) son pasos internos de la revision y siguen solas, salvo las que
@@ -178,9 +187,7 @@ export function siguienteFase(task, ctx, modo) {
                             comando: `taskctl review ${task.id}`,
                             accion: 'preguntar',
                             motivo: `la ronda ${String(ctx.rondaRevision)} pidio cambios y es el tope de rondas (${String(tope)}). ` +
-                                'Lo decide una persona: cerrar con lo que hay (lo abierto, aceptado con sus IDs y el motivo ' +
-                                'en el Resultado), una ronda mas (anotada en tarea.md y con ' +
-                                `"taskctl review ${task.id} --ronda-extra") o volver a diseno (lo abierto, en una tarea nueva)`,
+                                textoSalidasTope(task.id, ctx.rondaRevision),
                             salidas: salidasTopeRondas(task.id, ctx.rondaRevision),
                         };
                     }

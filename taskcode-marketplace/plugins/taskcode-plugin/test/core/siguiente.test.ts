@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { siguienteFase, type ContextoFlujo, type SiguientePaso } from '../../src/core/flujo.js';
+import { siguienteFase, textoSalidasTope, type ContextoFlujo, type SiguientePaso } from '../../src/core/flujo.js';
 import { assertTransitionAllowed, type TaskCommand } from '../../src/core/state-machine.js';
 import type { ModoFlujo } from '../../src/core/config.js';
 import type { Task } from '../../src/core/task.js';
@@ -213,4 +213,17 @@ test('siguienteFase: un veredicto que no se reconoce no se presenta como "falta 
     siguienteFase(conCodex, { ...ctxCodex, veredictoCodex: 'pendiente' }, 'manual').motivo,
     /no tiene veredicto/
   );
+});
+
+// TASK-138b (A6): el motivo del tope y el error de review salen del mismo texto,
+// compuesto de las salidas (cada una con su comando y la linea de la ronda extra).
+test('textoSalidasTope (TASK-138b): las tres salidas con su comando, y es el texto del motivo del tope', () => {
+  const texto = textoSalidasTope('TASK-100', 2);
+  for (const c of ['taskctl veredicto TASK-100 aprobada-con-correcciones', 'taskctl review TASK-100 --ronda-extra', 'taskctl new']) {
+    assert.ok(texto.includes(`("${c}")`), c);
+  }
+  assert.ok(texto.includes('- Ronda 3: '), texto);
+  const t = tarea({ estado: 'en-revision', plan_aprobado: true });
+  const r = siguienteFase(t, { ...CTX, veredicto: 'cambios-solicitados', rondaRevision: 2 }, 'automatico');
+  assert.ok(r.motivo.endsWith(texto), r.motivo);
 });
