@@ -61,6 +61,7 @@ const FICHEROS: Record<string, string> = {
   [`${PLUGIN}/test/manual.test.ts`]: "const L = readdirSync(path.join(PLUGIN_ROOT, 'docs'));\nvoid L;\n",
   [`${PLUGIN}/test/tablero.test.ts`]: "const B = path.join(repoRoot, 'docs', 'BOARD.md');\nvoid B;\n",
   [`${PLUGIN}/test/nombra.test.ts`]: "const F = 'pasos.md';\nvoid F;\n",
+  [`${PLUGIN}/test/recorre.test.ts`]: "const D = readdirSync(path.join(PLUGIN_ROOT, 'skills'));\nvoid D;\n",
   // El enrutador de comandos: quien lo importa solo depende de los comandos que nombra.
   [`${PLUGIN}/src/cli.ts`]: "import { alfa } from './commands/alfa.js';\nimport { beta } from './commands/beta.js';\nexport const main = [alfa, beta];\n",
   [`${PLUGIN}/src/commands/alfa.ts`]: "import { x } from '../core/x.js';\nexport const alfa = x;\n",
@@ -187,16 +188,20 @@ test('TASK-156: un .md de skills/, agents/ o docs/ del plugin elige los tests qu
     await cambiarYCommitear(raiz, `${PLUGIN}/skills/flujo/pasos.md`, '# pasos cambiados\n');
     const s = listar(raiz);
     assert.equal(s.todo, false);
-    assert.deepEqual(ficheros(s), ['test/nombra.test.ts', 'test/skills/marcas.test.ts']);
-    // Con tope, el que vive en test/skills/ esta mas cerca que el que solo lo nombra.
-    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/skills/marcas.test.ts']);
+    assert.deepEqual(ficheros(s), ['test/nombra.test.ts', 'test/recorre.test.ts', 'test/skills/marcas.test.ts']);
+    // Con tope, el que lee justo ese fichero va antes que los lectores de la carpeta
+    // (revision IMP-1: el tope dejaba fuera a quien lo nombra); luego, el de test/skills/.
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/nombra.test.ts']);
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 2)), ['test/nombra.test.ts', 'test/skills/marcas.test.ts']);
   });
   await conRepo(async (raiz) => {
     // Nadie nombra SKILL.md: sin la carpeta, seria «ningun test lo referencia».
     await cambiarYCommitear(raiz, `${PLUGIN}/skills/flujo/SKILL.md`, '# flujo cambiado\n');
     const s = listar(raiz);
     assert.equal(s.todo, false, s.motivo);
-    assert.deepEqual(ficheros(s), ['test/skills/marcas.test.ts']);
+    assert.deepEqual(ficheros(s), ['test/recorre.test.ts', 'test/skills/marcas.test.ts']);
+    // Entre lectores de la carpeta, primero el que vive en test/skills/.
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/skills/marcas.test.ts']);
   });
   await conRepo(async (raiz) => {
     await cambiarYCommitear(raiz, `${PLUGIN}/agents/rol.md`, '# rol cambiado\n');

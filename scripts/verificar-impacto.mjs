@@ -45,8 +45,9 @@
  * minimo 1) directos mas proximos: primero los tests cambiados, luego los que
  * se llaman como el modulo cambiado (`finish*` para `src/commands/finish.ts`),
  * luego los de una carpeta con el nombre de la suya (`test/gitflow/` para
- * `scripts/gitflow/*`, `test/skills/` para `skills/<x>/*`) y despues el resto
- * por orden alfabetico. La salida dice
+ * `scripts/gitflow/*`), despues el resto por orden alfabetico y, al final, los
+ * que solo leen la carpeta del fichero (primero los de `test/skills/` para
+ * `skills/<x>/*`). La salida dice
  * cuantos se dejan fuera. Nunca queda en cero lo que cambia si tiene tests.
  * Con TIPO_VERIFICACION=selectiva (rondas de review y finish, TASK-139b) no
  * hay tope: todos los afectados, y la suite entera si no se sabe que afecta. El
@@ -267,16 +268,21 @@ export const TOPE_POR_DEFECTO = 10;
  */
 export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
   const elegidos = new Map();
-  /** Directos: fichero -> { motivo, origenes } (rutas cambiadas de las que viene). */
+  /**
+   * Directos: fichero -> { motivo, origenes, soloCarpeta }: las rutas cambiadas
+   * de las que viene y, de ellas, por las que solo entro por leer su carpeta
+   * (TASK-156; ver `proximidad`).
+   */
   const directos = new Map();
   const anotar = (mapa, fichero, motivo) => {
     if (!mapa.has(fichero)) mapa.set(fichero, motivo);
   };
-  const anotarDirecto = (fichero, motivo, origen) => {
-    if (!directos.has(fichero)) directos.set(fichero, { motivo, origenes: new Set() });
+  const anotarDirecto = (fichero, motivo, origen, soloCarpeta = false) => {
+    if (!directos.has(fichero)) directos.set(fichero, { motivo, origenes: new Set(), soloCarpeta: new Set() });
     const d = directos.get(fichero);
     if (motivo === 'test cambiado') d.motivo = motivo;
     d.origenes.add(origen);
+    if (soloCarpeta) d.soloCarpeta.add(origen);
   };
   let todo = null;
   const cortes = [];
@@ -314,7 +320,8 @@ export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
       continue;
     }
     for (const t of testsQueDependenDe(nodos, mencionan.map(([f]) => f), cortes)) anotar(elegidos, t, `usa ${ruta}`);
-    for (const [f] of mencionan) if (esTest(f)) anotarDirecto(f, `usa ${ruta}`, ruta);
+    const nombran = new Set(porNombre.map(([f]) => f));
+    for (const [f] of mencionan) if (esTest(f)) anotarDirecto(f, `usa ${ruta}`, ruta, !nombran.has(f));
   }
   const lista = (mapa) =>
     [...mapa].map(([fichero, m]) => ({ fichero, motivo: typeof m === 'string' ? m : m.motivo })).sort((a, b) => a.fichero.localeCompare(b.fichero));
@@ -359,20 +366,28 @@ export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
  * 0 si es un test cambiado; 1 si se llama como el modulo cambiado
  * (`finish.ts` -> `finish*.test.ts`); 2 si vive en una carpeta con el nombre
  * de la del modulo (`scripts/gitflow/x.sh` -> `test/gitflow/`); 3 el resto.
+ * TASK-156: quien solo entro por leer la carpeta del fichero (skills/,
+ * agents/, docs/) va detras de todos los que lo nombran, que es lo que se
+ * elegia antes: 3.5 si vive en `test/<esa carpeta>/` (`test/skills/` para
+ * `skills/plan/SKILL.md`) y 4 si no. Asi el tope nunca deja fuera, por un
+ * lector de carpeta, a un test que lee justo el fichero cambiado.
  */
 function proximidad(fichero, directo) {
   if (directo.motivo === 'test cambiado') return 0;
   const base = path.posix.basename(fichero).replace(/\.test\.ts$/, '');
   const carpetas = path.posix.dirname(fichero).split('/');
-  let p = 3;
+  let p = 4;
   for (const origen of directo.origenes) {
+    if (directo.soloCarpeta.has(origen)) {
+      const leida = carpetaLeida(origen.slice(PLUGIN.length + 1))?.carpeta;
+      p = Math.min(p, leida !== undefined && carpetas.includes(leida) ? 3.5 : 4);
+      continue;
+    }
+    p = Math.min(p, 3);
     const modulo = path.posix.basename(origen).replace(/\.[^.]+$/, '').replace(/^_+/, '');
     const carpeta = path.posix.basename(path.posix.dirname(origen));
-    // TASK-156: `skills/plan/SKILL.md` tambien esta cerca de `test/skills/`.
-    const leida = origen.startsWith(`${PLUGIN}/`) ? carpetaLeida(origen.slice(PLUGIN.length + 1))?.carpeta : undefined;
     if (modulo !== '' && base.startsWith(modulo)) p = Math.min(p, 1);
     else if (!['src', 'test', 'helpers', '.', ''].includes(carpeta) && carpetas.includes(carpeta)) p = Math.min(p, 2);
-    else if (leida !== undefined && carpetas.includes(leida)) p = Math.min(p, 2);
   }
   return p;
 }
