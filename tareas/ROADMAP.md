@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-156 (en diseño), TASK-145b (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-146, TASK-150, TASK-152, TASK-157, TASK-019
+- **En marcha:** TASK-156 (en diseño), TASK-157 (en diseño), TASK-145b (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-146, TASK-150, TASK-152, TASK-019
 
 ## H0 — H0
 
@@ -116,7 +116,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |
 | — | TASK-155 | comprobarSkillInstalado verificable en Windows (claude.cmd) | simple | — | ✅ terminada |
 | 14 | TASK-156 | verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin | simple | — | ▶ en diseño |
-| 15 | TASK-157 | Timeout de claude plugin list acorde al binario real | simple | — | lista para empezar |
+| 15 | TASK-157 | Timeout de claude plugin list acorde al binario real | simple | — | ▶ en diseño |
 | — | TASK-139a | disfraces B1-B5 (parte a de TASK-139) | simple | — | ✅ terminada |
 | — | TASK-144a | cadena, Commit revisado y tarea en su rama (parte a de TASK-144) | alta | — | ✅ terminada |
 | — | TASK-145a | puertas, git y textos de error (parte a de TASK-145) | media | — | ✅ terminada |

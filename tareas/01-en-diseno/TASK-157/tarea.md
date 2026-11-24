@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-157-timeout-de-claude-plugin-list-acorde-al
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -30,3 +30,9 @@ claude plugin list --json tarda unos 18 s en Windows con el claude.exe real, y T
 - [ ] TIMEOUT_MS de src/core/plugin-instalado.ts sube de 5000 a 30000 ms, con el motivo (medida real ~18 s) en un comentario
 - [ ] Un test en test/integracion/plugin-instalado.test.ts con un claude de prueba que tarda unos 6 s en responder da instalado; con el timeout de 5000 da no-verificable
 - [ ] Con el claude real de la maquina, comprobarSkillInstalado('taskcode-plugin@taskcode-marketplace') ya no da no-verificable; y RAMA_BASE=develop node scripts/verificar-impacto.mjs queda en verde
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T10:59:19Z | plan | automatico | persona | 0.16.1 |
