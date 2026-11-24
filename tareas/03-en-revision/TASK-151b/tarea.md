@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 13334640
-tokens_revision: null
+tokens_revision: 5420980
 creado: 2026-11-23
 actualizado: 2026-11-24
 dependencias: [TASK-151a]
@@ -51,3 +51,8 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T00:17:02Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 146 | 75931 | 13221491 | 37072 | 52 | 13334640 | - | - |
+| 2026-11-24T00:36:50Z | revision | agente:adac97c3f4d5e96fa | 90 | 139670 | 5265734 | 15486 | 9 | 5420980 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-24T00:37:29Z: ronda 1; commit revisado e6a09c1411fe4da225c614227893187ec3bb2ef4; commit verificado b21c9096cb791d7f716f377350461486d3ffe134; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/commands/review-incremental.test.ts; corregidos: ninguno; pendientes: ninguno
