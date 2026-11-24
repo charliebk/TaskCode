@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 17475795
-tokens_revision: null
+tokens_revision: 1849693
 creado: 2026-11-24
 actualizado: 2026-11-24
 dependencias: [TASK-146a]
@@ -51,3 +51,8 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T15:53:07Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 50 | 31481 | 17427880 | 16384 | 16 | 17475795 | - | - |
+| 2026-11-24T16:13:19Z | revision | agente:a78cc77913fc7b9ca | 32 | 124957 | 1714437 | 10267 | 4 | 1849693 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-24T16:13:34Z: ronda 1; commit revisado 42882e9cf3512cb5ab82cb32e1d616472609a02d; commit verificado 7b520d3633f1ed71da4ed3e9f423acf91fa3b122; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/plan.ts, taskcode-marketplace/plugins/taskcode-plugin/src/commands/registrar-coste.ts, taskcode-marketplace/plugins/taskcode-plugin/src/fs/task-store.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/doctor-deploy-tareas.test.ts; corregidos: MEN-1, MEN-2, MEN-3, MEN-4; pendientes: ninguno
