@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-138-regla-4d-duplicacion-en-metricas-suite-y
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -43,3 +43,4 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|
 | 2026-11-24T16:18:49Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T16:19:17Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-24T16:19:19Z | start | automatico | persona | 0.16.1 |
