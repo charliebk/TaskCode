@@ -39,3 +39,8 @@ La decision verde/rojo/omitido compartida por anotarFinish, review, anotarSuite 
 | 2026-11-24T16:39:13Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T16:39:45Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T16:39:47Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — ef06122: anotarVerificacion junto a anotarPuerta en fs/registro-puertas (sin modulo nuevo); textoSalidasTope compuesto de salidasTopeRondas, que ya era la fuente estructurada; leerTextosTerminadas sustituye cuatro recorridos de 04-terminadas en doctor, y las funciones exportadas conservan su firma con la lectura como parametro opcional; PUERTAS_VERIFICACION eliminada (nadie la usaba); mutacion en rojo: anotarVerificacion sin el caso omitido
+- code-quality-reviewer — ef06122
