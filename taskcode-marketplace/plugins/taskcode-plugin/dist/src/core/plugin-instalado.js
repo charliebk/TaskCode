@@ -55,7 +55,11 @@
  * siendo pura.
  */
 import { ejecutarHerramienta, localizarHerramienta, pathDelProceso } from '../fs/herramientas-deploy.js';
-const TIMEOUT_MS = 5000;
+// TASK-157: `claude plugin list --json` tarda unos 18 s en Windows con el
+// `claude.exe` real (medido en TASK-155); con 5 s salia siempre
+// 'no-verificable'. 30 s deja margen y sigue acotando la espera de `plan`
+// (que lo llama una vez) si `claude` no responde.
+const TIMEOUT_MS = 30_000;
 /**
  * Separada de comprobarSkillInstalado para poder probar cada desenlace
  * (binario ausente, timeout, status != 0, JSON mal formado, forma

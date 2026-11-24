@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-157 — Timeout de claude plugin list acorde al binario real · etiquetas: (sin etiquetas) · rama fix/task-157-timeout-de-claude-plugin-list-acorde-al · terminada 2026-11-24 · tareas/04-terminadas/TASK-157/
 - TASK-145a — puertas, git y textos de error (parte a de TASK-145) · etiquetas: (sin etiquetas) · rama fix/task-145-regla-4d-duplicacion-en-las-puertas-de-f · terminada 2026-11-24 · tareas/04-terminadas/TASK-145a/
 - TASK-155 — comprobarSkillInstalado verificable en Windows (claude.cmd) · etiquetas: (sin etiquetas) · rama fix/task-155-comprobarskillinstalado-verificable-en-w · terminada 2026-11-24 · tareas/04-terminadas/TASK-155/
 - TASK-139b — la selectiva no recorta en silencio (parte b de TASK-139) · etiquetas: (sin etiquetas) · rama fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di · terminada 2026-11-24 · tareas/04-terminadas/TASK-139b/

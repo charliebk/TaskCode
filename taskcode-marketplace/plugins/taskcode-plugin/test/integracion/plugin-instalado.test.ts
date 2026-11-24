@@ -44,14 +44,19 @@ test('comprobarSkillInstalado: sin el binario claude en el PATH es no-verificabl
 // TASK-155: en Windows `claude` es un `.cmd`, y `spawnSync` sin shell no lo
 // ejecuta: el resultado era siempre no-verificable. El doble imprime el JSON
 // de `claude plugin list --json`; en Windows es un `claude.cmd` de verdad.
-function conClaudeDoble<T>(json: string, fn: () => T): T {
+// TASK-157: `esperaS` hace que el doble tarde ese tiempo antes de contestar. El
+// PATH del proceso es solo `dir`, asi que la espera usa rutas del sistema.
+function conClaudeDoble<T>(json: string, fn: () => T, esperaS = 0): T {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'taskcode-claude-doble-'));
   try {
     if (process.platform === 'win32') {
-      writeFileSync(path.join(dir, 'claude.cmd'), `@echo ${json}\r\n`);
+      // `ping -n N` tarda unos N-1 s.
+      const espera = esperaS > 0 ? `@"%SystemRoot%\\System32\\PING.EXE" -n ${esperaS + 1} 127.0.0.1 >nul\r\n` : '';
+      writeFileSync(path.join(dir, 'claude.cmd'), `${espera}@echo ${json}\r\n`);
     } else {
       const script = path.join(dir, 'claude');
-      writeFileSync(script, `#!/bin/sh\nprintf '%s\\n' '${json}'\n`);
+      const espera = esperaS > 0 ? `PATH=/usr/bin:/bin sleep ${esperaS}\n` : '';
+      writeFileSync(script, `#!/bin/sh\n${espera}printf '%s\\n' '${json}'\n`);
       chmodSync(script, 0o755);
     }
     return conPath(dir, fn);
@@ -72,4 +77,16 @@ test('comprobarSkillInstalado: con un claude (.cmd en Windows) en el PATH que no
     comprobarSkillInstalado('plugin-de-prueba@marketplace-de-prueba')
   );
   assert.equal(estado, 'no-instalado');
+});
+
+// TASK-157: el `claude` real tarda unos 18 s en `plugin list --json`; con el
+// timeout de 5 s salia siempre no-verificable. Un doble que tarda 6 s, por
+// encima del timeout viejo, tiene que llegar a contestar.
+test('comprobarSkillInstalado: un claude que tarda mas de 5 s en responder llega a dar instalado', () => {
+  const estado = conClaudeDoble(
+    '[{"id":"plugin-de-prueba@marketplace-de-prueba","enabled":true}]',
+    () => comprobarSkillInstalado('plugin-de-prueba@marketplace-de-prueba'),
+    6
+  );
+  assert.equal(estado, 'instalado');
 });
