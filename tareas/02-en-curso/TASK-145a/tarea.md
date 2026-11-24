@@ -44,3 +44,8 @@ Objetivo de la tarea entera:
 | 2026-11-24T09:37:04Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T09:37:41Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T09:37:47Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — 3d8517d: reutilizados gitLinea y gitCrudo (con env nuevo) en vez de crear otro envoltorio; configDeLaRama y CIERRE_SIN_MERGE en finish-opciones, que ya importan las dos puertas; ejecutarPuerta, cerrarIgualmente y errorArbolSucio en finish-verificacion; fs/verificacion.ts ya no tenia copia de git (la de la auditoria se fue en 149a), y el test de paridad lo fija; el mensaje de arbol sucio de held-out sigue aparte a proposito (no muestra el comando); mutaciones en rojo: la regex copiada en freno-stop y un spawnSync de git en finish-heldout
+- code-quality-reviewer — 3d8517d
