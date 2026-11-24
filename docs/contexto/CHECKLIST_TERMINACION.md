@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 158 / 165 items terminados (96%)** · última actualización: 2026-11-24
+**Progreso global: 159 / 166 items terminados (96%)** · última actualización: 2026-11-24
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,7 +41,7 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 19 | **12** | ~32h |
+| Q — Correcciones de la auditoría 4D | 20 | **13** | ~32h |
 | **Total pendiente** | **7** | — | — |
 
 
@@ -57,7 +57,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## Q — Correcciones de la auditoría 4D (12/19)
+## Q — Correcciones de la auditoría 4D (13/20)
 
 Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`docs/auditoria-4d-completa.md`](../auditoria-4d-completa.md).
 
@@ -85,3 +85,6 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
       *Cada test sospechoso caza su mutante (M1..M10, TCORE, TCMD, TRES): orden numerico, guarda de verificar-menores, rondas con 10 o mas, review-incremental corre en Linux (EEXIST con mock), salida temprana con NODE_DEBUG=esm, doctor sin skip por tiempo, approve/plan/start miran mensaje, git status y HEAD. 151b destapo que el error de tarea inexistente decia «(desconocida)»: ahora nombra el ID. Una ronda cada parte, con MENORES.*
 - [x] TASK-139 (a, b) — Regla 4D: tests que no protegen lo que dicen — cerrada el 2026-11-24
       *B1-B5 cerrados con mutante (enlace de poda-tests, cerrojo ilegible con dormir inyectable, mensaje del bash de Git puro, test de review por lotes justificado y a 500 ficheros, criterios de TASK-133 segun su Resultado; el 3 sigue sin marcar por falta de evidencia). La selectiva de review y finish ya no recorta: TIPO_VERIFICACION=selectiva corre todos los afectados (o la suite entera); el freno usa comando_verificacion_freno con tope y memo propios. 139a necesito 2 rondas; 139b, una con MENORES y un renombrado posterior cerrado con --aceptar-sin-revisar (Carlos).*
+- [x] TASK-145 (a, b) — Regla 4D: duplicacion en las puertas de finish — cerrada el 2026-11-24
+      *Las puertas de finish y doctor usan gitLinea/gitCrudo (timeout y entorno comunes), configDeLaRama y CIERRE_SIN_MERGE en finish-opciones, ejecutarPuerta comun (anotarSuite solo en la completa, con test), textos de una sola fuente (cerrarIgualmente, errorArbolSucio) y sinPrefijoError para la regex de [ERROR]. En finish.ts la base de la rama se decide una vez, el tag tras el merge solo en su caso alcanzable y los comentarios quedan en su funcion. 145a necesito 2 rondas; 145b, una con MENORES (MEN-2 y MEN-3, huecos de test previos, pendientes).*
+- [ ] TASK-158 — Regla 4D preventiva en todos los procesos que crean o actualizan codigo — antes de publicar la 0.19.0 (decision de Carlos)
