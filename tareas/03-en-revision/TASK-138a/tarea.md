@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-138-regla-4d-duplicacion-en-metricas-suite-y
 asignado_a: claude
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 10500803
 tokens_revision: null
 creado: 2026-11-22
 actualizado: 2026-11-24
@@ -44,8 +44,15 @@ Objetivo de la tarea entera:
 | 2026-11-24T16:18:49Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T16:19:17Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T16:19:19Z | start | automatico | persona | 0.16.1 |
+| 2026-11-24T16:24:48Z | review | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
 - 4D — c62c44e: la regla de metricas (ultima completa por tarea) se lleva a crecimiento-suite y la usan las dos vistas; core/estadistica.ts nuevo y sin dependencias para la unica mediana (metricas la reexporta para no tocar a sus consumidores; evolucion la importa directa); resumirSuites sustituye las dos IIFE de versiones-metricas; pytest con una sola regex; mutacion en rojo: suitePorVersion promediando las completas de una tarea
 - code-quality-reviewer — c62c44e
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-24T16:24:48Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 28 | 22314 | 10466774 | 11687 | 9 | 10500803 | - | - |
