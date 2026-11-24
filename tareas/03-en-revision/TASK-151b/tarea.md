@@ -62,3 +62,7 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 - Cada caso de la parte b caza su mutante: M6 (doctor-deploy, marcadores versionados en cada carpeta excluida), M7 y M8 (review-incremental; el EEXIST se provoca con un mock de writeFile, así que corre en Linux, y el rejects mira el ReviewCommandError), M9 (salida-temprana con NODE_DEBUG=esm y control positivo), M10 (cli/estado: un flag desconocido sale con 1 y lo dice), TCMD-01 (doctor-correcciones: el skip lo decide una sonda de Git aparte, no la duración del doctor), TCMD-03 y TCMD-05 (approve, plan y start miran el mensaje, git status y HEAD) y TRES-07 (guardia-documentacion cuenta cualquier cuenta-*).
 - El endurecimiento de TCMD-03 destapó un fallo real: el error de una tarea inexistente decía «(desconocida)» en vez del ID. Se corrige con `idPedido` en el TransitionContext.
 - Revisión ronda 1: aprobada con correcciones. MEN-1 corregido (assert trivial). MEN-2..5 aceptados con su motivo en el informe.
+
+## Verificacion parcial
+
+- 2026-11-24T00:37:52Z: todo el codigo que cambia la tarea (27 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
