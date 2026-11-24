@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di
-asignado_a: charlie.bk@gmail.com
+asignado_a: claude
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -38,3 +38,4 @@ El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos l
 |---|---|---|---|---|
 | 2026-11-24T03:25:39Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T03:25:57Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-24T03:25:59Z | start | automatico | persona | 0.16.1 |
