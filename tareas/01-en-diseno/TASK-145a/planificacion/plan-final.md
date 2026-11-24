@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: cada caso tiene fichero y linea en do
 
 ## Enfoque propuesto
 
-Duracion estimada: 100 min (pasa de 60: se trocea en dos partes; troceo autorizado de antemano por Carlos para el plan de correcciones 4D)
+Duracion estimada: 55 min (parte a del troceo; la tarea entera estimaba 100 min)
 
 Refactor sin cambio de comportamiento, salvo CMD1-02 (los git de finish ganan el timeout y el entorno de `gitTexto`). La suite de finish es la red: antes de tocar cada bloque se comprueba que tiene tests, y si un camino no los tiene se anade uno antes de unificar.
 
@@ -57,3 +57,7 @@ La base de la rama decidida una vez, comprobarTagDeReintento sin copia, spreads 
 Duracion estimada: 45 min
 - [ ] La base de la rama de la tarea se decide una vez en finish, comprobarTagDeReintento esta una sola vez y sin rama inalcanzable, y los spreads repetidos se simplifican
 - [ ] Sin comentarios huerfanos ni obsoletos en approve, finish, finish-verificacion y codex-review, y sin el parametro _today sin uso
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-24: TASK-145a, TASK-145b, todas en la misma rama. Este plan es el de TASK-145a; las demas partes se planifican al empezarlas.
