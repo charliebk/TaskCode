@@ -361,48 +361,79 @@ detect_origin_available() {
     fi
 }
 
+# ── _gf_fetch_origin ──────────────────────────────────────────────────────────
+# TASK-143a (SCR-02): el fetch previo, una sola vez por invocacion. Antes lo
+# hacian create-release, create-hotfix y los merge, pero no los update ni
+# create-feature/fix. Sin origin disponible no hace nada.
+GF_FETCH_HECHO=false
+_gf_fetch_origin() {
+    [ "$REMOTE_AVAILABLE" = true ] || return 0
+    [ "$GF_FETCH_HECHO" = true ] && return 0
+    invoke_git "No se pudo hacer fetch de origin." fetch origin
+    GF_FETCH_HECHO=true
+}
+
+# ── _gf_sync_branch ───────────────────────────────────────────────────────────
+# TASK-143a (SCR-02..05): cambia a <rama> (creandola desde origin/<rama> si no
+# existe en local) y la pone al dia con pull --ff-only si hay origin. Era el
+# bloque copiado en create, update, merge a develop, merge a main y backmerge;
+# el backmerge no lo hacia (SCR-05). Espera detect_origin_available ya hecho.
+_gf_sync_branch() {
+    local branch="$1"
+    if ! git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+        if [ "$REMOTE_AVAILABLE" = true ]; then
+            invoke_git "No se pudo crear o cambiar a $branch desde origin/$branch." \
+                checkout -q -b "$branch" "origin/$branch"
+        else
+            log_error "$branch no existe localmente y no hay conexion remota para crearla."
+            exit 1
+        fi
+    elif [ "$(git branch --show-current 2>/dev/null)" = "$branch" ]; then
+        log_info "Ya estamos en $branch."
+    else
+        invoke_git "No se pudo cambiar a $branch." checkout -q "$branch"
+    fi
+    log_ok "Switched to branch $branch"
+
+    if [ "$REMOTE_AVAILABLE" = true ]; then
+        invoke_git "No se pudo actualizar $branch desde origin." \
+            pull --ff-only --quiet origin "$branch"
+        log_ok "Actualizamos $branch"
+    else
+        log_warn "Sincronizacion omitida para $branch: no hay conexion con origin."
+    fi
+}
+
+# ── _gf_locate_branch ─────────────────────────────────────────────────────────
+# TASK-143a (SCR-02, SCR-03): si <rama> existe en local y en origin, en
+# GF_TARGET_LOCAL y GF_TARGET_REMOTE ("true"/"false").
+GF_TARGET_LOCAL=false
+GF_TARGET_REMOTE=false
+_gf_locate_branch() {
+    local name="$1"
+    GF_TARGET_LOCAL=false; GF_TARGET_REMOTE=false
+    git show-ref --verify --quiet "refs/heads/$name" 2>/dev/null && GF_TARGET_LOCAL=true || true
+    if [ "$REMOTE_AVAILABLE" = true ]; then
+        _gf_ls_remote --heads origin "$name" 2>/dev/null | grep -q "refs/heads/$name" \
+            && GF_TARGET_REMOTE=true || true
+    fi
+}
+
 # ── invoke_create_work_branch ─────────────────────────────────────────────────
+# Crea <rama> desde <base> (o cambia a ella si ya existe). TASK-143a (SCR-03):
+# create-release y create-hotfix la usan en vez de su copia en linea, y gana
+# el fetch previo que solo hacian ellos.
 invoke_create_work_branch() {
     local name="$1" push="$2" base_branch="$3"
 
     detect_origin_available
     local remote_available="$REMOTE_AVAILABLE"
 
-    local current_branch
-    current_branch=$(git branch --show-current 2>&1)
+    _gf_fetch_origin
+    _gf_sync_branch "$base_branch"
 
-    if [ "$current_branch" != "$base_branch" ]; then
-        log_info "Rama actual: $current_branch. Cambiando a $base_branch..."
-        if ! git show-ref --verify --quiet "refs/heads/$base_branch" 2>/dev/null; then
-            if [ "$remote_available" = true ]; then
-                invoke_git "No se pudo crear o cambiar a $base_branch desde origin/$base_branch." \
-                    checkout -q -b "$base_branch" "origin/$base_branch"
-            else
-                log_error "$base_branch no existe localmente y no hay conexion remota para crearla."
-                exit 1
-            fi
-        else
-            invoke_git "No se pudo cambiar a $base_branch." checkout -q "$base_branch"
-        fi
-        log_ok "Switched to branch $base_branch"
-    else
-        log_info "Ya estamos en $base_branch."
-    fi
-
-    if [ "$remote_available" = true ]; then
-        invoke_git "No se pudo actualizar $base_branch desde origin." \
-            pull --ff-only --quiet origin "$base_branch"
-        log_ok "Actualizamos $base_branch"
-    else
-        log_warn "Sincronizacion omitida: no hay conexion con origin."
-    fi
-
-    local target_local=false target_remote=false
-    git show-ref --verify --quiet "refs/heads/$name" 2>/dev/null && target_local=true || true
-    if [ "$remote_available" = true ]; then
-        _gf_ls_remote --heads origin "$name" 2>/dev/null | grep -q "refs/heads/$name" \
-            && target_remote=true || true
-    fi
+    _gf_locate_branch "$name"
+    local target_local="$GF_TARGET_LOCAL" target_remote="$GF_TARGET_REMOTE"
 
     if [ "$target_local" = true ]; then
         log_info "La rama $name ya existe localmente. Cambiando a ella..."
@@ -438,6 +469,158 @@ invoke_create_work_branch() {
     log_ok "Rama activa final: $name"
 }
 
+# ── invoke_update_work_branch ─────────────────────────────────────────────────
+# TASK-143a (SCR-02): el cuerpo de update-feature, update-fix, update-release
+# y update-hotfix, antes copiado cuatro veces y sin fetch previo. Pone <base>
+# al dia, cambia a <rama> (local o desde origin) y mergea la base con
+# --no-ff; con <push>=true la sube. Espera detect_origin_available ya hecho
+# (cada script conserva su aviso de "sin conexion").
+invoke_update_work_branch() {
+    local name="$1" push="$2" base_branch="$3" type="$4"
+
+    _gf_fetch_origin
+    _gf_sync_branch "$base_branch"
+
+    _gf_locate_branch "$name"
+    if [ "$GF_TARGET_LOCAL" = true ]; then
+        invoke_git "No se pudo cambiar a $name." checkout -q "$name"
+    elif [ "$GF_TARGET_REMOTE" = true ]; then
+        invoke_git "No se pudo crear la rama local $name desde origin/$name." \
+            checkout -q -b "$name" "origin/$name"
+    else
+        log_error "La rama $name no existe ni localmente ni en remoto."; exit 1
+    fi
+    log_ok "Switched to branch $name"
+
+    invoke_git "No se pudo actualizar $name con cambios de $base_branch." \
+        merge --no-ff "$base_branch" -m "update($type): $base_branch -> $name"
+    log_ok "Update completado: $base_branch -> $name"
+
+    if [ "$push" = true ] && [ "$REMOTE_AVAILABLE" = true ]; then
+        invoke_git "No se pudo subir $name a origin." push origin "$name"
+        log_ok "Push completado: $name"
+    elif [ "$push" = true ] && [ "$REMOTE_AVAILABLE" = false ]; then
+        log_warn "Push omitido para $name por falta de conexion remota."
+    fi
+
+    log_summary "COMPLETADO" "$base_branch integrado en $name"
+}
+
+# ── invoke_merge_to_main ──────────────────────────────────────────────────────
+# TASK-143a (SCR-04, SCR-05): el cuerpo de merge-hotfix-to-main y
+# merge-release-to-main, que eran identicos salvo ocho lineas. Mergea <rama>
+# en la principal con tag y la devuelve a develop (backmerge). El backmerge
+# pone develop al dia con pull --ff-only antes de mergear, como el merge a
+# develop: antes mergeaba sobre la develop local y, si estaba atrasada, el
+# push se rechazaba con la principal y el tag ya subidos.
+# Uso: invoke_merge_to_main <rama> <tipo> <Etiqueta> <push> <main> <develop> <tag_visto> <tag>
+invoke_merge_to_main() {
+    local name="$1" type="$2" label="$3" push="$4" main_branch="$5" develop_branch="$6"
+    local tag_seen="$7" tag_override="$8"
+
+    # TASK-060: --tag sustituye el nombre que el script calcula (sigue habiendo
+    # UN solo tag, el del merge a main). Se valida ANTES de tocar ninguna rama:
+    # un nombre invalido, con "-" inicial (se leeria como opcion de git) o ya
+    # usado abortaria despues del merge, con main ya movida.
+    if [ "$tag_seen" = true ] && [ -z "$tag_override" ]; then
+        log_error "--tag necesita un nombre (--tag v1.2.0). No se ha tocado nada."
+        exit 1
+    fi
+    if [ -n "$tag_override" ]; then
+        if [[ "$tag_override" == -* ]] || ! git check-ref-format "refs/tags/$tag_override" 2>/dev/null; then
+            log_error "El nombre de tag '$tag_override' no es valido (git check-ref-format, y sin '-' inicial). No se ha tocado nada."
+            exit 1
+        fi
+        if git show-ref --verify --quiet "refs/tags/$tag_override" 2>/dev/null; then
+            log_error "El tag '$tag_override' ya existe. Elige otro nombre con --tag. No se ha tocado nada."
+            exit 1
+        fi
+    fi
+
+    ensure_workspace_ready \
+        "Workspace no limpio antes de merge. Hacer commit local en la rama actual? Si/No" \
+        "chore: commit local antes de merge $type->main" || exit 0
+
+    # TASK-038: antes de resolve_main_branch, para que este use la cache.
+    detect_origin_available
+    main_branch=$(resolve_main_branch "$main_branch")
+    log_info "Rama principal detectada: $main_branch"
+
+    # Hallazgo IMPORTANTE de revision por pares (B2): origin configurado pero
+    # inaccesible NO es lo mismo que no tener origin. Con el remoto caido, la
+    # rama principal local puede estar obsoleta y el tag de version se crearia
+    # sobre historia divergente. Mejor abortar y que la persona decida.
+    if [ "$REMOTE_CONFIGURED" = true ] && [ "$REMOTE_AVAILABLE" = false ]; then
+        log_error "origin esta configurado pero no responde. Mergear a $main_branch sin sincronizar puede crear el tag sobre una $main_branch obsoleta. Revisa conexion/credenciales; si de verdad quieres operar sin remoto, ejecuta git remote remove origin y reintenta."
+        exit 1
+    fi
+
+    _gf_fetch_origin
+
+    # Hallazgo MENOR de revision por pares (B2): validar/recuperar la rama de
+    # trabajo ANTES de tocar la rama principal, para que un nombre inexistente
+    # falle dejando a la persona en su rama de partida.
+    if ! git show-ref --verify --quiet "refs/heads/$name" 2>/dev/null; then
+        if [ "$REMOTE_AVAILABLE" = true ]; then
+            invoke_git "No se pudo crear/cambiar a $name desde origin." checkout -b "$name" "origin/$name"
+        else
+            log_error "$name no existe localmente y no hay conexion remota para recuperarla."
+            exit 1
+        fi
+    fi
+
+    _gf_sync_branch "$main_branch"
+
+    show_merge_diff "$name" "$main_branch" || exit 0
+
+    local commit_count
+    commit_count=$(git rev-list --count "$main_branch..$name" 2>/dev/null || echo "?")
+
+    invoke_git "No se pudo hacer merge de $name en $main_branch." \
+        merge --no-ff "$name" -m "merge($type): $name -> $main_branch"
+
+    local tag_name="${name#"$type"/}"
+    [[ "$tag_name" =~ ^[0-9] ]] && tag_name="v$tag_name"
+    [ -n "$tag_override" ] && tag_name="$tag_override"
+    invoke_git "No se pudo crear tag $tag_name en $main_branch." \
+        tag -a "$tag_name" -m "$label $tag_name"
+    log_ok "Tag creado: $tag_name"
+
+    if [ "$push" = true ]; then
+        if [ "$REMOTE_AVAILABLE" = true ]; then
+            invoke_git "No se pudo subir $main_branch a origin." push origin "$main_branch"
+            invoke_git "No se pudo subir tag $tag_name a origin." push origin "$tag_name"
+            log_ok "Push completado: $main_branch y tag $tag_name"
+        else
+            log_warn "Push omitido: no hay conexion con origin."
+        fi
+    fi
+
+    log_info "Preparando backmerge: $name -> $develop_branch..."
+    _gf_sync_branch "$develop_branch"
+
+    if ! show_merge_diff "$name" "$develop_branch"; then
+        log_warn "Backmerge cancelado. $main_branch y tag $tag_name ya estan actualizados."
+        log_summary "PARCIAL" "merge a $main_branch OK | backmerge a $develop_branch cancelado"
+        exit 0
+    fi
+
+    invoke_git "No se pudo hacer merge de $name en $develop_branch." \
+        merge --no-ff "$name" -m "merge($type): $name -> $develop_branch (backmerge)"
+    log_ok "Merge back completado: $name -> $develop_branch"
+
+    if [ "$push" = true ]; then
+        if [ "$REMOTE_AVAILABLE" = true ]; then
+            invoke_git "No se pudo subir $develop_branch a origin." push origin "$develop_branch"
+            log_ok "Push completado: $develop_branch"
+        else
+            log_warn "Push omitido: no hay conexion con origin."
+        fi
+    fi
+
+    log_summary "COMPLETADO" "${commit_count} commit(s) | tag $tag_name | backmerge a $develop_branch"
+}
+
 # ── invoke_merge_work_branch_to_develop ───────────────────────────────────────
 invoke_merge_work_branch_to_develop() {
     local name="$1" push="$2" develop_branch="$3" type="$4"
@@ -458,28 +641,8 @@ invoke_merge_work_branch_to_develop() {
         log_warn "origin esta configurado pero no responde: el merge se hace sobre la $develop_branch LOCAL, que puede estar desfasada. Cuando vuelva la red, sincroniza (pull) y sube $develop_branch antes de seguir."
     fi
 
-    if [ "$remote_available" = true ]; then
-        invoke_git "No se pudo hacer fetch de origin." fetch origin
-    fi
-
-    if ! git show-ref --verify --quiet "refs/heads/$develop_branch" 2>/dev/null; then
-        if [ "$remote_available" = true ]; then
-            invoke_git "No se pudo crear/cambiar a $develop_branch desde origin." \
-                checkout -b "$develop_branch" "origin/$develop_branch"
-        else
-            log_error "$develop_branch no existe localmente y no hay conexion remota para crearla."
-            exit 1
-        fi
-    else
-        invoke_git "No se pudo cambiar a $develop_branch." checkout "$develop_branch"
-    fi
-
-    if [ "$remote_available" = true ]; then
-        invoke_git "No se pudo actualizar $develop_branch desde origin." \
-            pull --ff-only origin "$develop_branch"
-    else
-        log_warn "Sincronizacion omitida: no hay conexion con origin."
-    fi
+    _gf_fetch_origin
+    _gf_sync_branch "$develop_branch"
 
     if ! git show-ref --verify --quiet "refs/heads/$name" 2>/dev/null; then
         if [ "$remote_available" = true ]; then

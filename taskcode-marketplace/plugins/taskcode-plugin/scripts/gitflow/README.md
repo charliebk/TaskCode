@@ -87,11 +87,14 @@ logica, en seis scripts mas. Historia de como se cerro:
   **corregidos en TASK-029** (item C6), ya con la funcion compartida.
   Cubiertos por `test/gitflow/origin-guard.test.ts`.
 
-**Lo que queda**: `create-hotfix.sh` y `create-release.sh` siguen llevando
-su copia inline de TASK-009, anterior a la extraccion de B2, asi que
-detectan si hay remoto pero **no distinguen "sin origin" de "origin caido"**.
-No es el bug original —no mueren con el `fatal:` de Git— pero es la misma
-logica duplicada en dos sitios y con menos criterio que la compartida.
+**Cerrado en TASK-143a**: `create-hotfix.sh` y `create-release.sh` llevaban
+su copia inline de TASK-009; ahora usan `invoke_create_work_branch`. Los
+cuatro `update-*` comparten `invoke_update_work_branch`, y los dos
+`merge-*-to-main` comparten `invoke_merge_to_main`. Todos hacen el mismo
+`fetch` previo (`_gf_fetch_origin`) y ponen la rama base al dia con
+`_gf_sync_branch` (checkout, o creacion desde `origin`, y `pull --ff-only`).
+Eso incluye el backmerge a develop de los merge a main, que antes mergeaba
+sobre la develop local sin traerla de `origin`.
 
 ## Hallazgo real de TASK-009: `moveTareaFile` y el checkout de hotfix/release
 
