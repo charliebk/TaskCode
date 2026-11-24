@@ -61,6 +61,11 @@ export class ApproveCommandError extends Error {}
 /** Flags de `taskctl approve`: extraerDecididoPor y extraerPushFlag. */
 export const FLAGS_APPROVE: readonly string[] = ['--decidido-por', '--push', '-p'];
 
+/** true si hay un plan que aprobar en cualquiera de las dos ubicaciones. */
+function planFinalExisteEn(u: PlanFinalUbicacion | null): boolean {
+  return u !== null && (u.canonicaExiste || u.legadaExiste);
+}
+
 /**
  * Acepta el plan en CUALQUIERA de sus dos ubicaciones (TASK-027, item
  * C3): `planificacion/plan-final.md` (canonica) o suelto en la raiz de
@@ -74,13 +79,7 @@ export const FLAGS_APPROVE: readonly string[] = ['--decidido-por', '--push', '-p
  * conflicto bastan para producirlo. Aprobar a ciegas un estado con dos
  * planes divergentes es marcar como revisado un plan que quiza nadie
  * ha leido.
- */
-/** true si hay un plan que aprobar en cualquiera de las dos ubicaciones. */
-function planFinalExisteEn(u: PlanFinalUbicacion | null): boolean {
-  return u !== null && (u.canonicaExiste || u.legadaExiste);
-}
-
-/**
+ *
  * TASK-144c (CMD1-10 de la auditoria 4D): «que plan cuenta», una sola regla
  * para approve, siguiente (planRedactado, duracionDelPlan) y trocear. La ruta
  * del plan, null si no hay ninguno, o 'ambiguo' si hay uno en la raiz y otro

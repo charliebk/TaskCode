@@ -8,8 +8,9 @@
  * aislarla evita que un fallo de "claude plugin list" se confunda con
  * un fallo de parseo del catalogo.
  *
- * Mismo patron de subproceso que runGit() en fs/git.ts (spawnSync +
- * comprobar result.error / result.status), pero con una semantica de
+ * Mismo patron de subproceso que runGit() en fs/git.ts (lanzar y
+ * comprobar error / status; desde TASK-155 via ejecutarHerramienta,
+ * para que un `claude.cmd` de Windows arranque), pero con una semantica de
  * error DISTINTA a proposito: runGit() LANZA porque un fallo de Git
  * debe abortar el comando que lo pidio. Aqui un fallo del subproceso
  * (binario ausente, timeout, JSON mal formado, forma inesperada) NUNCA

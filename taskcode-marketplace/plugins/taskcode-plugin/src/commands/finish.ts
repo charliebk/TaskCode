@@ -521,6 +521,9 @@ async function runFinish(
   // hotfix/release tambien la principal. Un MR ya mergeado en la plataforma
   // no mergea nada aqui: la carpeta de la tarea ya llego con su historia.
   const mainBranch = MERGEA_A_MAIN[tipo] ? resolveMainBranch(deps.repoCwd) : null;
+  // TASK-145a/b (CMD1-06): la base de la rama de la tarea, decidida una vez. Un
+  // hotfix nace de la principal; el resto, de la rama de integracion.
+  const ramaBaseTarea = tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion;
   const destinos = mainBranch === null ? [ramaIntegracion] : [mainBranch, ramaIntegracion];
   for (const destino of integradaPorMergeRequest ? [] : destinos) {
     const colision = detectarColisionId(id, titulo, rama, destino, deps.repoCwd);
@@ -550,6 +553,9 @@ async function runFinish(
   // scripts lo exigen) y se devuelve antes de la escritura de cierre.
   const apartado = apartarPendientes(deps.repoCwd, tareasRoot, initial.task.id);
   pendientes.apartado = apartado;
+  // TASK-145b (CMD1-14): lo que todas las puertas reciben igual.
+  const conAviso = deps.onAviso === undefined ? {} : { onAviso: deps.onAviso };
+  const conTimeout = deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs };
   const puerta = async () => {
     progreso.paso('verificacion');
     const r = await puertaVerificacion({
@@ -563,12 +569,12 @@ async function runFinish(
       sinVerificacion,
       cwd: deps.repoCwd,
       instante: deps.ahora ?? today,
-      ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
-      ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+      ...conAviso,
+      ...conTimeout,
       // TASK-100: la misma base que la cobertura y los held-out. Un release no:
       // su diff propio puede ser solo el CHANGELOG, pero lleva a la principal
       // todo lo acumulado en la rama de integracion. Siempre la completa.
-      ...(tipo === 'release' ? {} : { ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion }),
+      ...(tipo === 'release' ? {} : { ramaBase: ramaBaseTarea }),
       // TASK-106: un hotfix integra en la principal: nunca la selectiva (si su camino de solo documentacion).
       permitirSelectiva: tipo !== 'hotfix',
       // TASK-110: solo el comando de verificacion recibe el contador (TASKCTL_PROGRESO).
@@ -582,8 +588,8 @@ async function runFinish(
         tipo,
         cwd: deps.repoCwd,
         env: entornoConContador(process.env, progreso.contador()),
-        ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
-        ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+        ...conTimeout,
+        ...conAviso,
       });
     }
     // TASK-074: con el informe que la verificacion acaba de regenerar, y antes
@@ -591,24 +597,24 @@ async function runFinish(
     progreso.paso('cobertura');
     puertaCobertura({
       id,
-      ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion,
+      ramaBase: ramaBaseTarea,
       verificacion: r.resultado,
       cwd: deps.repoCwd,
-      ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+      ...conAviso,
     });
     progreso.paso('held-out');
     puertaHeldout({
       id,
       rama,
       // Un hotfix nace de la principal: sus held-out se commitean ahi (MEN-1).
-      ramaBase: tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion,
+      ramaBase: ramaBaseTarea,
       ...(tipo === 'hotfix' && mainBranch !== null ? { ramaDiseno: ramaIntegracion } : {}),
       carpetaTarea: path
         .relative(deps.repoCwd, path.dirname((initial as NonNullable<typeof initial>).filePath))
         .split(path.sep)
         .join('/'),
       cwd: deps.repoCwd,
-      ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+      ...conTimeout,
     });
     progreso.paso('merge');
     return r;
@@ -683,8 +689,8 @@ async function runFinish(
         cwd: deps.repoCwd,
         permitirSelectiva: tipo !== 'hotfix' && tipo !== 'release',
         siempreCompleta: tipo === 'release',
-        ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
-        ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
+        ...conAviso,
+        ...conTimeout,
         entornoVerificacion: () => entornoConContador(process.env, progreso.contador()),
       });
       // TASK-126 (IMP-1 de la revision): tambien en el camino idempotente, tras la
@@ -693,11 +699,11 @@ async function runFinish(
         puertaPesada({
           id,
           tipo,
-          yaIntegradaEn: mainBranch !== null && tipo !== 'feature' && tipo !== 'fix' ? [mainBranch, ramaIntegracion] : [ramaIntegracion],
+          yaIntegradaEn: mainBranch !== null ? [mainBranch, ramaIntegracion] : [ramaIntegracion],
           cwd: deps.repoCwd,
           env: entornoConContador(process.env, progreso.contador()),
-          ...(deps.verificacionTimeoutMs === undefined ? {} : { timeoutMs: deps.verificacionTimeoutMs }),
-          ...(deps.onAviso === undefined ? {} : { onAviso: deps.onAviso }),
+          ...conTimeout,
+          ...conAviso,
         });
       }
     } catch (e: unknown) {
@@ -730,13 +736,11 @@ async function runFinish(
     });
     if (code !== 0) {
       const signalInfo = signal ? ` (terminado por senal ${signal})` : '';
-      // TASK-123: un hotfix nace de la principal: esa es su base.
-      const base = tipo === 'hotfix' && mainBranch !== null ? mainBranch : ramaIntegracion;
       throw new FinishCommandError(
         `[ERROR] ${id}: ${scriptName} termino con codigo ${code}${signalInfo}. ` +
           'Revisa la salida de arriba; la tarea no se ha movido de carpeta. Si es un conflicto de merge, no ' +
           `lo cierres en la rama destino: abortalo con taskctl abort-merge, integra la base en la rama de ` +
-          `la tarea (git checkout ${rama} && git merge ${base}), resuelvelo y commitea alli, y ` +
+          `la tarea (git checkout ${rama} && git merge ${ramaBaseTarea}), resuelvelo y commitea alli, y ` +
           `relanza taskctl finish ${id} desde la rama de la tarea, que verifica antes de mergear.`
       );
     }
@@ -778,17 +782,14 @@ async function runFinish(
       commitParaTag = commitDeMergeParaTag(id, rama, ramaDelTag, nombreTag, deps.repoCwd);
     }
     if (mainBranch !== null) {
-      // hotfix/release: UN solo tag por tarea, el del script. Se comprueba que
-      // existe con el nombre pedido y sobre el merge a main; crear otro con
-      // otro nombre en un reintento seria el segundo tag que se quiere evitar.
-      if (planificarTag(nombreTag, commitParaTag, id, deps.repoCwd) !== 'existe-local') {
+      // hotfix/release: UN solo tag por tarea, el del script. En un reintento
+      // (merge ya hecho) lo comprobo comprobarTagDeReintento antes de cambiar de
+      // rama; aqui queda el caso del script: que el tag este sobre el merge a main.
+      // TASK-145b (CMD1-07): la rama del reintento era inalcanzable aqui.
+      if (tagLoPusoElScript && planificarTag(nombreTag, commitParaTag, id, deps.repoCwd) !== 'existe-local') {
         throw new FinishCommandError(
-          tagLoPusoElScript
-            ? `[ERROR] ${id}: ${scriptName} termino bien pero el tag "${nombreTag}" no esta sobre el merge a ` +
-                `"${ramaDelTag}". Revisa el repo a mano.`
-            : `[ERROR] ${id}: el merge a "${mainBranch}" ya esta hecho (con el tag que puso el script) y ` +
-                `"${nombreTag}" no es ese tag. Un ${tipo} lleva un solo tag: no se crea un segundo. ` +
-                'Reintenta sin --tag, o con --tag igual al que ya existe.'
+          `[ERROR] ${id}: ${scriptName} termino bien pero el tag "${nombreTag}" no esta sobre el merge a ` +
+            `"${ramaDelTag}". Revisa el repo a mano.`
         );
       }
       tag = {
@@ -857,16 +858,12 @@ async function runFinish(
   }
   const newFilePath = await moveTareaFile(tareasRoot, filePath, updated, conRegistro);
 
-  // Renderizado de cierre (criterio 3): plantillas desde el
-  // frontmatter. BOARD.md se regenera entero reutilizando el mismo
-  // render de "taskctl board" — la direccion que la tabla de la
-  // seccion 8 da por hecha; B5 decidira si el comando board tambien
-  // lo escribe.
+  // Renderizado de cierre: plantillas desde el frontmatter. BOARD.md se
+  // regenera entero con el mismo render que "taskctl board --escribir".
   const changelogPath = path.join(deps.repoCwd, 'CHANGELOG.md');
   const docsDir = path.join(deps.repoCwd, 'docs');
   await mkdir(docsDir, { recursive: true });
   const indexPath = path.join(docsDir, 'INDEX.md');
-  // Misma ruta que usa "taskctl board --escribir" (item B5).
   const boardPath = boardFilePath(deps.repoCwd);
 
   await appendEntry(changelogPath, CHANGELOG_INICIAL, CHANGELOG_HEADER, changelogEntry(updated, today));
@@ -1148,14 +1145,6 @@ interface TraerIntegracionOpts {
 }
 
 /**
- * Segundo `finish`, con el MR mergeado en la plataforma (merge, squash o
- * rebase: el criterio es el estado `merged`, no la ancestria): trae origin,
- * comprueba que el resultado del merge esta en la rama de integracion del
- * remoto y deja la local al dia con un fast-forward. Todas las comprobaciones
- * van ANTES de cambiar de rama. Devuelve el commit que la plataforma da como
- * resultado del merge (el del tag), o null si no lo informa.
- */
-/**
  * IMP-1 de la revision: con squash o rebase la ancestria no dice si la rama
  * esta integrada (decision de Carlos), pero SI se sabe que punta integro la
  * plataforma (`headCommit`) y que hay en origin y en local tras el fetch:
@@ -1196,6 +1185,14 @@ function comprobarRamaIntegrada(o: TraerIntegracionOpts): void {
   }
 }
 
+/**
+ * Segundo `finish`, con el MR mergeado en la plataforma (merge, squash o
+ * rebase: el criterio es el estado `merged`, no la ancestria): trae origin,
+ * comprueba que el resultado del merge esta en la rama de integracion del
+ * remoto y deja la local al dia con un fast-forward. Todas las comprobaciones
+ * van ANTES de cambiar de rama. Devuelve el commit que la plataforma da como
+ * resultado del merge (el del tag), o null si no lo informa.
+ */
 function traerIntegracionDeLaPlataforma(o: TraerIntegracionOpts): string | null {
   const { id, integrado, ramaIntegracion, cwd } = o;
   if (integrado.base !== ramaIntegracion) {

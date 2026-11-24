@@ -137,7 +137,7 @@ test('taskctl codex-review: rechaza si revision_codex no esta activada, sin invo
     let invocado = false;
     await assert.rejects(
       () =>
-        runCodexReviewCommand(tareasRoot, ['TASK-801'], '2026-09-13', {
+        runCodexReviewCommand(tareasRoot, ['TASK-801'], {
           repoCwd: repoRoot,
           runCodex: () => {
             invocado = true;
@@ -163,7 +163,7 @@ test('taskctl codex-review: rechaza si la revision primaria no esta aprobada (PE
 
     await assert.rejects(
       () =>
-        runCodexReviewCommand(tareasRoot, ['TASK-802'], '2026-09-13', {
+        runCodexReviewCommand(tareasRoot, ['TASK-802'], {
           repoCwd: repoRoot,
           runCodex: fakeRunCodex({}),
         }),
@@ -189,7 +189,7 @@ test('taskctl codex-review: rechaza una tarea que no esta en-revision', async ()
 
     await assert.rejects(
       () =>
-        runCodexReviewCommand(tareasRoot, ['TASK-803'], '2026-09-13', {
+        runCodexReviewCommand(tareasRoot, ['TASK-803'], {
           repoCwd: repoRoot,
           runCodex: fakeRunCodex({}),
         }),
@@ -204,7 +204,7 @@ test('taskctl codex-review: codex ausente (ENOENT simulado) degrada con aviso, s
     await setupTaskEnRevision(repoRoot, tareasRoot, task);
 
     const enoent = Object.assign(new Error('spawnSync codex ENOENT'), { code: 'ENOENT' });
-    const result = await runCodexReviewCommand(tareasRoot, ['TASK-804'], '2026-09-13', {
+    const result = await runCodexReviewCommand(tareasRoot, ['TASK-804'], {
       repoCwd: repoRoot,
       runCodex: () => ({ lanzado: false, code: null, stdout: '', errorLanzamiento: enoent }),
     });
@@ -229,7 +229,7 @@ test('taskctl codex-review: codex presente pero exit distinto de cero degrada ig
     const task = sampleTask({ id: 'TASK-805', rama: 'feature/task-805-codex-falla' });
     await setupTaskEnRevision(repoRoot, tareasRoot, task);
 
-    const result = await runCodexReviewCommand(tareasRoot, ['TASK-805'], '2026-09-13', {
+    const result = await runCodexReviewCommand(tareasRoot, ['TASK-805'], {
       repoCwd: repoRoot,
       runCodex: () => ({
         lanzado: true,
@@ -256,7 +256,7 @@ test('taskctl codex-review: codex corre bien (exit 0) escribe informe-codex-1.md
 
     const salidaSintetica = '## Hallazgos de codex\n\nCRITICO: nada encontrado, ejemplo sintetico.\n';
     const args: { invocation: CodexReviewInvocation | null } = { invocation: null };
-    const result = await runCodexReviewCommand(tareasRoot, ['TASK-806'], '2026-09-13', {
+    const result = await runCodexReviewCommand(tareasRoot, ['TASK-806'], {
       repoCwd: repoRoot,
       runCodex: (invocation) => {
         args.invocation = invocation;
@@ -295,13 +295,13 @@ test('taskctl codex-review: una segunda invocacion numera el informe como -2, si
     const task = sampleTask({ id: 'TASK-807', rama: 'feature/task-807-segunda-ronda' });
     await setupTaskEnRevision(repoRoot, tareasRoot, task);
 
-    const primera = await runCodexReviewCommand(tareasRoot, ['TASK-807'], '2026-09-13', {
+    const primera = await runCodexReviewCommand(tareasRoot, ['TASK-807'], {
       repoCwd: repoRoot,
       runCodex: fakeRunCodex({ stdout: 'primera pasada\n' }),
     });
     assert.equal(primera.ronda, 1);
 
-    const segunda = await runCodexReviewCommand(tareasRoot, ['TASK-807'], '2026-09-13', {
+    const segunda = await runCodexReviewCommand(tareasRoot, ['TASK-807'], {
       repoCwd: repoRoot,
       runCodex: fakeRunCodex({ stdout: 'segunda pasada\n' }),
     });
@@ -323,8 +323,8 @@ test('taskctl codex-review: dos invocaciones concurrentes sobre la misma ronda p
       runCodex: fakeRunCodex({ stdout: 'salida concurrente\n' }),
     };
     const resultados = await Promise.allSettled([
-      runCodexReviewCommand(tareasRoot, ['TASK-808'], '2026-09-13', deps),
-      runCodexReviewCommand(tareasRoot, ['TASK-808'], '2026-09-13', deps),
+      runCodexReviewCommand(tareasRoot, ['TASK-808'], deps),
+      runCodexReviewCommand(tareasRoot, ['TASK-808'], deps),
     ]);
 
     const cumplidas = resultados.filter((r) => r.status === 'fulfilled');
@@ -353,7 +353,7 @@ test('taskctl codex-review: error claro si falta el ID o la tarea no existe', as
   await withTempRepo(async (repoRoot, tareasRoot) => {
     await assert.rejects(
       () =>
-        runCodexReviewCommand(tareasRoot, [], '2026-09-13', {
+        runCodexReviewCommand(tareasRoot, [], {
           repoCwd: repoRoot,
           runCodex: fakeRunCodex({}),
         }),
@@ -361,7 +361,7 @@ test('taskctl codex-review: error claro si falta el ID o la tarea no existe', as
     );
     await assert.rejects(
       () =>
-        runCodexReviewCommand(tareasRoot, ['TASK-999'], '2026-09-13', {
+        runCodexReviewCommand(tareasRoot, ['TASK-999'], {
           repoCwd: repoRoot,
           runCodex: fakeRunCodex({}),
         }),
@@ -375,7 +375,7 @@ test('readTareaFile sigue viendo la tarea en 03-en-revision tras codex-review (n
     const task = sampleTask({ id: 'TASK-809', rama: 'feature/task-809-no-cambia-estado' });
     await setupTaskEnRevision(repoRoot, tareasRoot, task);
 
-    await runCodexReviewCommand(tareasRoot, ['TASK-809'], '2026-09-13', {
+    await runCodexReviewCommand(tareasRoot, ['TASK-809'], {
       repoCwd: repoRoot,
       runCodex: fakeRunCodex({ stdout: 'ok\n' }),
     });

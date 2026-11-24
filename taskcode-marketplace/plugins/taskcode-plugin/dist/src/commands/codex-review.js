@@ -67,14 +67,7 @@ export function codexInformeTemplate(task, commitRevisado, ronda, salidaCodex) {
         `${bloque}\n` +
         `${fence}\n`);
 }
-/**
- * `today` se recibe por simetria con el resto de comandos del ciclo de
- * vida (mismo cableado desde cli.ts), pero NO se usa: a diferencia de
- * review/finish, "codex-review" no reescribe tarea.md ni le cambia el
- * estado (sigue en-revision) — solo anade un informe dentro de
- * revision/, asi que no hay ningun campo "actualizado" que tocar.
- */
-export async function runCodexReviewCommand(tareasRoot, argv, _today, deps) {
+export async function runCodexReviewCommand(tareasRoot, argv, deps) {
     // TASK-047: un flag mal escrito aborta antes de cualquier efecto.
     rechazarFlagsDesconocidos(argv, FLAGS_CODEX_REVIEW, 'codex-review', (m) => new CodexReviewCommandError(m));
     const { push, resto } = extraerPushFlag(argv);
