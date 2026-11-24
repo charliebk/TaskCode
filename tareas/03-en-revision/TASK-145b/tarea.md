@@ -67,3 +67,7 @@ La base de la rama decidida una vez, comprobarTagDeReintento sin copia, spreads 
   - MEN-2: ningún test comprueba la base que nombra el mensaje de conflicto de un hotfix.
   - MEN-3: ningún test cubre que el script deje el tag fuera del merge.
   Quedan para TASK-152, la de helpers de test, o para una tarea aparte.
+
+## Verificacion parcial
+
+- 2026-11-24T14:22:17Z: todo el codigo que cambia la tarea (11 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
