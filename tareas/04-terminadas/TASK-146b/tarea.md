@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-146-regla-4d-duplicacion-en-new-import-roadm
 asignado_a: claude
@@ -40,6 +40,7 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 | 2026-11-24T15:32:59Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T15:33:01Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T15:53:07Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T16:18:10Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -68,3 +69,9 @@ registrar-coste suma con CAMPOS_COSTE, un helper de readdir tolerante y claveRut
 ## Verificacion parcial
 
 - 2026-11-24T16:13:49Z: todo el codigo que cambia la tarea (20 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 45 min
+- Cierre (finish): 261 s, de 2026-11-24T16:13:49Z a 2026-11-24T16:18:10Z
