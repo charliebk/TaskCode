@@ -69,7 +69,7 @@ log_ok "Conexion con '$TARGET_REMOTE' verificada."
 if [ -z "$MODE" ]; then
     printf "\n${C_CYAN}  Modos disponibles para devolver el trabajo:${C_RESET}\n"
     printf "    ${C_GREEN}1) ADITIVO${C_RESET}  Envia ramas+tags locales. NO borra nada del destino.\n"
-    printf "    ${C_RED}2) MIRROR${C_RESET}   Sobreescribe el destino con espejo exacto de local.\n"
+    printf "    ${C_RED}2) MIRROR${C_RESET}   Sobreescribe las ramas y tags del destino con las de local.\n"
     printf "              ${C_RED}BORRA del destino lo que no exista en local (incluso tags).${C_RESET}\n"
     printf "\n"
     read -rp "  Elige modo [1=aditivo / 2=mirror]: " MODE_NUM
@@ -152,7 +152,7 @@ else
     bar=$(printf '!%.0s' {1..56})
     printf "\n${C_RED}  %s${C_RESET}\n" "$bar"
     printf "${C_RED}    ATENCION: MODO MIRROR SELECCIONADO${C_RESET}\n"
-    printf "${C_RED}    Se sobreescribira '$TARGET_REMOTE' con espejo EXACTO de local.${C_RESET}\n"
+    printf "${C_RED}    Se sobreescribira '$TARGET_REMOTE' con las ramas y tags EXACTOS de local.${C_RESET}\n"
     printf "${C_RED}  %s${C_RESET}\n\n" "$bar"
 
     if [ -n "$DIVERGED" ]; then
@@ -198,7 +198,7 @@ else
         log_summary "CANCELADO" "frase de confirmacion no coincide"
         exit 0
     fi
-    log_warn "Confirmacion mirror aceptada. Procediendo con push --mirror..."
+    log_warn "Confirmacion mirror aceptada. Procediendo con el mirror de ramas y tags..."
 fi
 
 # ── 7-8. Push segun modo ──────────────────────────────────────────────────────
@@ -240,20 +240,25 @@ if [ "$MODE" = "additive" ]; then
         exit 1
     fi
 else
-    log_warn "Ejecutando push --mirror a '$TARGET_REMOTE'..."
-    log_warn "Esto sobreescribe el destino con espejo exacto de local."
-    MIRROR_OUTPUT=$(git push "$TARGET_REMOTE" --mirror 2>&1) || {
-        log_error "Fallo el push --mirror a '$TARGET_REMOTE'. Detalle:"
+    log_warn "Ejecutando el mirror de ramas y tags a '$TARGET_REMOTE'..."
+    log_warn "Esto sobreescribe las ramas y tags del destino con las de local."
+    # TASK-143b (SCR-15): antes `push --mirror`, que sube TODAS las referencias
+    # (refs/remotes de otros remotos, refs/notes, refs/stash...) y borra las
+    # del destino que no esten en local, mientras la vista previa solo ensena
+    # ramas y tags. Ahora se suben y podan solo ramas y tags: lo que se ensena.
+    MIRROR_OUTPUT=$(git push --force --prune "$TARGET_REMOTE" \
+        'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*' 2>&1) || {
+        log_error "Fallo el mirror a '$TARGET_REMOTE'. Detalle:"
         printf "%s\n" "$MIRROR_OUTPUT" | while IFS= read -r line; do
             [ -n "$line" ] && printf "[ERROR] %s\n" "$line"
         done
-        log_summary "FALLIDO" "push --mirror rechazado por el servidor"
+        log_summary "FALLIDO" "mirror rechazado por el servidor"
         exit 1
     }
     printf "%s\n" "$MIRROR_OUTPUT" | while IFS= read -r line; do
         [ -n "$line" ] && printf "${C_DGRAY}    %s${C_RESET}\n" "$line"
     done
-    log_ok "Mirror completado: '$TARGET_REMOTE' es ahora espejo exacto de local."
+    log_ok "Mirror completado: '$TARGET_REMOTE' tiene ahora las ramas y tags exactos de local."
 fi
 
 # ── 9. Restaurar como origin si el usuario lo pidio ───────────────────────────
@@ -265,10 +270,12 @@ if [ "$RESTORE_AS_ORIGIN" = true ]; then
         if [ -n "$CURRENT_ORIGIN_URL" ]; then
             log_info "Renombrando origin actual..."
             # Buscar un nombre libre para el origin actual
-            BACKUP_NAME="gitlab-personal-bak"
+            # TASK-143b (SCR-15): el nombre base, una vez.
+            BACKUP_BASE="gitlab-personal-bak"
+            BACKUP_NAME="$BACKUP_BASE"
             i=2
             while git remote get-url "$BACKUP_NAME" > /dev/null 2>&1; do
-                BACKUP_NAME="gitlab-personal-bak-$i"
+                BACKUP_NAME="$BACKUP_BASE-$i"
                 i=$((i+1))
             done
             invoke_git "No se pudo renombrar origin a $BACKUP_NAME." remote rename origin "$BACKUP_NAME"
@@ -285,7 +292,7 @@ TAG_COUNT=$(git tag --list | wc -l | tr -d ' ')
 
 if [ "$MODE" = "mirror" ]; then
     printf "\n${C_GREEN}  Mirror aplicado a '$TARGET_URL':${C_RESET}\n"
-    printf "${C_GREEN}    $BRANCH_COUNT rama(s) + $TAG_COUNT tag(s) (espejo exacto de local)${C_RESET}\n"
+    printf "${C_GREEN}    $BRANCH_COUNT rama(s) + $TAG_COUNT tag(s) (espejo de las ramas y tags de local)${C_RESET}\n"
     if [ -n "$REMOTE_ONLY_BRANCHES" ]; then
         FINAL_RB=$(printf "%s\n" "$REMOTE_ONLY_BRANCHES" | wc -l | tr -d ' ')
         printf "${C_YELLOW}    $FINAL_RB rama(s) borradas del destino${C_RESET}\n"

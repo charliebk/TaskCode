@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_gitflow-common.sh"
 
-MAIN_BRANCH=""; DEVELOP_BRANCH="develop"; PUSH=false
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --push|-p) PUSH=true ;;
-        --main)    MAIN_BRANCH="$2";    shift ;;
-        --develop) DEVELOP_BRANCH="$2"; shift ;;
-    esac
-    shift
-done
+# TASK-143b (SCR-06): argumentos y nombre, de _gitflow-common.sh.
+parse_gitflow_args "$@"
 
 initialize_gitflow_log "create-develop ($DEVELOP_BRANCH)"
 

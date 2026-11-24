@@ -325,6 +325,38 @@ assert_valid_branch_name() {
     fi
 }
 
+# ── parse_gitflow_args ────────────────────────────────────────────────────────
+# TASK-143b (SCR-06): la lectura de argumentos, antes copiada en catorce
+# scripts. Deja en globales PUSH, MAIN_BRANCH, DEVELOP_BRANCH (por defecto
+# "develop"), TAG_SEEN, TAG_OVERRIDE y NAME (el primer argumento suelto).
+# Cada script usa las que le tocan.
+PUSH=false; NAME=""; MAIN_BRANCH=""; DEVELOP_BRANCH="develop"; TAG_OVERRIDE=""; TAG_SEEN=false
+parse_gitflow_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --push|-p) PUSH=true ;;
+            --main)    MAIN_BRANCH="${2:-}";    shift ;;
+            --develop) DEVELOP_BRANCH="${2:-}"; shift ;;
+            --tag)     TAG_SEEN=true; TAG_OVERRIDE="${2:-}"; shift ;;
+            *)         [ -z "$NAME" ] && NAME="$1" ;;
+        esac
+        [[ $# -gt 0 ]] && shift
+    done
+}
+
+# ── normalize_branch_name ─────────────────────────────────────────────────────
+# TASK-143b (SCR-06): pide NAME si falta, le quita los espacios de los
+# extremos, le pone el prefijo <tipo>/ y lo valida (assert_valid_branch_name).
+# Antes los merge-* no validaban el nombre.
+# Uso: normalize_branch_name <tipo> <ejemplo sin prefijo> <pregunta>
+normalize_branch_name() {
+    local type="$1" example="$2" question="$3"
+    [ -z "$NAME" ] && read -rp "$question (ej: $example): " NAME
+    NAME="${NAME#"${NAME%%[![:space:]]*}"}"; NAME="${NAME%"${NAME##*[![:space:]]}"}"
+    [[ "$NAME" != "$type"/* ]] && NAME="$type/$NAME"
+    assert_valid_branch_name "$NAME" "$type/$example"
+}
+
 # ── detect_origin_available ───────────────────────────────────────────────────
 # Ajuste B2 (mismo guard que introdujo TASK-008 en
 # invoke_merge_work_branch_to_develop): la deteccion de origin estaba
