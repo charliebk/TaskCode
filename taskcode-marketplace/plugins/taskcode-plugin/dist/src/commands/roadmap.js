@@ -77,8 +77,12 @@ export function runRoadmapCommand(repoCwd, argv) {
     // (sincronizacion, mayusculas, cambios sin commitear, marca), no unas reglas
     // propias de --comparar que se quedaban cortas.
     const decision = prepararRoadmap(repoCwd, 'transicion', { escribir: false });
-    if (decision.estado === 'omitido' || decision.estado === 'fallido') {
+    if (decision.estado === 'omitido') {
         lineas.push(`Las transiciones no lo tocan: ${decision.motivo ?? 'motivo desconocido'}`);
+    }
+    else if (decision.estado === 'fallido') {
+        // MEN-1 (revision TASK-146a): una transicion lo intentaria y fallaria; no es que no lo toque.
+        lineas.push(`Una transicion intentaria regenerarlo y fallaria: ${decision.motivo ?? 'motivo desconocido'}`);
     }
     else {
         lineas.push(`${ROADMAP_RUTA} lleva la marca de taskctl: las transiciones lo regeneran.`);

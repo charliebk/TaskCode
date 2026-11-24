@@ -303,3 +303,47 @@ test('verificar-lote (TASK-146a): una carpeta de terminadas ilegible aborta, no 
     assert.equal(e.ejecuciones(), 0);
   });
 });
+
+// TASK-146a (IMP-1 de la revision): si git no da el commit de HEAD, el lote no se
+// da por verde (antes headDe se tragaba el fallo y anotaba «lote en verde en » sin commit).
+test('verificar-lote (TASK-146a): un fallo de git al leer HEAD aborta sin anotar nada', async () => {
+  await conLote(async (e) => {
+    await cerrar(e, 'TASK-960');
+    await assert.rejects(
+      () =>
+        runVerificarLoteCommand(e.tareasRoot, [], {
+          repoCwd: e.repoRoot,
+          ahora: '2026-11-13T12:00:00Z',
+          commitDeHead: () => {
+            throw new Error('git rev-parse HEAD fallo');
+          },
+        }),
+      /git rev-parse HEAD fallo/
+    );
+    assert.equal(e.ejecuciones(), 0);
+    assert.ok(pendienteDeLote((await readTareaFile(e.tareasRoot, 'TASK-960'))!.body), 'sigue pendiente');
+  });
+});
+
+// TASK-146a (IMP-2 de la revision): una terminada ilegible podria estar pendiente:
+// aborta y lo dice, sin ejecutar la completa.
+test('verificar-lote (TASK-146a): una tarea terminada ilegible aborta y la nombra', async () => {
+  await conLote(async (e) => {
+    const dir = path.join(e.tareasRoot, '04-terminadas', 'TASK-990');
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, 'tarea.md'), 'esto no es frontmatter\n', 'utf8');
+    commitAll(e.repoRoot, 'tarea rota');
+    await assert.rejects(() => lote(e), (err: unknown) => err instanceof VerificarLoteCommandError && /no se pueden leer/.test(err.message) && /TASK-990/.test(err.message));
+    assert.equal(e.ejecuciones(), 0);
+  });
+});
+
+// TASK-146a (MEN-3 de la revision): las pendientes van en orden de ID numerico.
+test('verificar-lote (TASK-146a): las pendientes se ordenan por numero, TASK-999 antes que TASK-1000', async () => {
+  await conLote(async (e) => {
+    await cerrar(e, 'TASK-1000');
+    await cerrar(e, 'TASK-999');
+    const r = await lote(e);
+    assert.deepEqual(r.pendientes, ['TASK-999', 'TASK-1000']);
+  });
+});

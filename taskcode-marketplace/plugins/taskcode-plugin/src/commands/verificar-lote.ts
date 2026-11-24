@@ -46,6 +46,8 @@ export interface VerificarLoteDeps {
   timeoutMs?: number;
   /** Progreso visible (por defecto, bajo el .git del repo). MEN-3: el comando recibe el contador. */
   progreso?: Progreso;
+  /** Solo para tests (TASK-146a, IMP-1): sustituye a headCommit, para provocar un fallo de git. */
+  commitDeHead?: (cwd: string) => string;
 }
 
 export interface VerificarLoteResult {
@@ -118,7 +120,7 @@ export async function runVerificarLoteCommand(
   }
   const ids = pendientes.map((t) => t.task.id);
   // TASK-146a (CMD2-10): headCommit lanza si git falla (antes «lote en verde en » sin commit).
-  const commit = headCommit(cwd);
+  const commit = (deps.commitDeHead ?? headCommit)(cwd);
   const timeoutS = config.timeout_verificacion;
   const inicio = Date.now();
   // MEN-3 (revision TASK-115): como finish, el paso se ve y el comando recibe el contador (TASKCTL_PROGRESO).

@@ -301,3 +301,18 @@ test('roadmap --comparar: un ROADMAP con marca y cambios sin commitear no lo reg
     assert.doesNotMatch(c.salida, /las transiciones lo regeneran/);
   });
 });
+
+// TASK-146a (MEN-1 de la revision): si la transicion fallaria (config invalida),
+// --comparar lo dice asi y no como «no lo tocan».
+test('roadmap --comparar: con la config invalida dice que la transicion fallaria', async () => {
+  await withRepo(async (repoRoot, tareasRoot) => {
+    await writeTareaFile(tareasRoot, tarea({ id: 'TASK-009', sprint: 0, estado: 'planificada' }), CUERPO_PLANIFICABLE);
+    commitAll(repoRoot, 'docs: una tarea');
+    assert.equal(runRoadmapCommand(repoRoot, ['--escribir']).codigo, 0);
+    commitAll(repoRoot, 'docs: roadmap');
+    await mkdir(path.join(repoRoot, '.taskcode'), { recursive: true });
+    await writeFile(path.join(repoRoot, '.taskcode', 'config.yml'), 'limite_wip: [roto\n', 'utf8');
+    const c = runRoadmapCommand(repoRoot, ['--comparar']);
+    assert.match(c.salida, /Una transicion intentaria regenerarlo y fallaria: /);
+  });
+});
