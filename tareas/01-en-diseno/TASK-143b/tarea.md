@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: fix/task-143-regla-4d-duplicacion-en-git-flow-bash-y
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,10 @@ parse_gitflow_args y normalize_branch_name en los 13 scripts, diagnose-repo con 
 ## Criterios de aceptacion
 - [ ] La lectura de argumentos y assert_valid_branch_name vienen de un helper comun en los 13 scripts; diagnose-repo usa detect_origin_available
 - [ ] push-back-to-remote ensena en la vista previa todo lo que sube y el nombre del backup sale de una sola variable
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T20:12:10Z | plan | automatico | persona | 0.16.1 |
+| 2026-11-24T20:12:50Z | approve | automatico | persona | 0.16.1 |
