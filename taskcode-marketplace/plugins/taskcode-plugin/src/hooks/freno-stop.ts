@@ -68,6 +68,7 @@ import { crearProgreso, entornoConContador, type Progreso } from '../fs/progreso
 import { PUERTA_FRENO, type LineaPuerta, type ResultadoFreno } from '../core/registro-puertas.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
 import { esUltimoVerde, guardarUltimoVerde } from '../fs/freno-ultimo-verde.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 
 /**
  * `timeout` del hook Stop en hooks/hooks.json, en segundos. Claude Code cancela
@@ -151,7 +152,7 @@ export async function decidirStop(entrada: EntradaStop, deps: DepsFreno = {}): P
       if (config.comando_verificacion === null) return DEJAR_PARAR;
     } catch (e: unknown) {
       if (!(e instanceof ConfigError)) throw e;
-      errorConfig = e.message.replace(/^\[ERROR\]\s*/, '');
+      errorConfig = sinPrefijoError(e.message);
     }
 
     // 6: los primeros git (branch --show-current y, en un rebase, rev-parse --git-path).

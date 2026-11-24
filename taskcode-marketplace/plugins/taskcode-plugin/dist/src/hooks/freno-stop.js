@@ -59,6 +59,7 @@ import { crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { PUERTA_FRENO } from '../core/registro-puertas.js';
 import { anotarPuerta } from '../fs/registro-puertas.js';
 import { esUltimoVerde, guardarUltimoVerde } from '../fs/freno-ultimo-verde.js';
+import { sinPrefijoError } from '../core/utilidades-texto.js';
 /**
  * `timeout` del hook Stop en hooks/hooks.json, en segundos. Claude Code cancela
  * el hook al vencerlo y descarta su salida: el freno fallaria ABIERTO. Por eso
@@ -116,7 +117,7 @@ export async function decidirStop(entrada, deps = {}) {
         catch (e) {
             if (!(e instanceof ConfigError))
                 throw e;
-            errorConfig = e.message.replace(/^\[ERROR\]\s*/, '');
+            errorConfig = sinPrefijoError(e.message);
         }
         // 6: los primeros git (branch --show-current y, en un rebase, rev-parse --git-path).
         rama = ramaActual(raiz);

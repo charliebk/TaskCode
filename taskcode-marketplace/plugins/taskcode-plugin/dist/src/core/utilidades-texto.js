@@ -19,3 +19,11 @@ const ANSI = /\u001b\[[0-9;?]*[ -/]*[@-~]|\u001b\][^\u0007\u001b]*(?:\u0007|\u00
 export function quitarAnsi(texto) {
     return texto.replace(ANSI, '');
 }
+/**
+ * TASK-145a (FS-09): el texto de un error sin su prefijo `[ERROR]` (los de
+ * ConfigError lo traen), para incrustarlo en otro mensaje. Antes, la misma
+ * expresion copiada en seis sitios.
+ */
+export function sinPrefijoError(texto) {
+    return texto.replace(/^\[ERROR\]\s*/, '');
+}

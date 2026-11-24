@@ -21,6 +21,8 @@ export interface OpcionesGitCrudo {
   input?: string | Buffer;
   maxBuffer?: number;
   timeoutMs?: number;
+  /** TASK-145a: variables que se anaden al entorno (el de doctor, p. ej.). */
+  env?: NodeJS.ProcessEnv;
 }
 
 const MAX_BUFFER_POR_DEFECTO = 64 * 1024 * 1024;
@@ -34,7 +36,7 @@ export function gitCrudo(args: readonly string[], cwd: string, opciones: Opcione
     timeout: opciones.timeoutMs ?? TIMEOUT_POR_DEFECTO_MS,
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
-    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' },
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0', ...opciones.env },
   });
   return {
     status: r.status,

@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { realpathSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gitOk, ramaActual, rutaGit } from '../../src/fs/git-crudo.js';
@@ -87,4 +87,26 @@ test('los hooks de coste y de merges no cargan el modulo del freno (ni directa n
     const freno = [...visitados].filter((f) => path.basename(f) === 'freno-stop.js');
     assert.deepEqual(freno, [], `${hook} carga el freno`);
   }
+});
+
+// TASK-145a (CMD1-02, FS-09): las puertas de finish y doctor no tienen su propio
+// git sin lanzar (sin el timeout ni el entorno de gitCrudo), y la regex que quita
+// el prefijo de error vive solo en sinPrefijoError.
+test('sin copias: git sin lanzar en las puertas de finish y doctor, y la regex del prefijo de error', async () => {
+  const dirSrc = path.join(import.meta.dirname, '..', '..', 'src');
+  for (const rel of ['commands/finish-verificacion.js', 'commands/finish-heldout.js', 'commands/doctor.js', 'fs/verificacion.js']) {
+    const texto = await readFile(path.join(dirSrc, rel), 'utf8');
+    assert.doesNotMatch(texto, /spawnSync\(\s*['"]git['"]/, `${rel} lanza git por su cuenta`);
+  }
+  const { readdirSync } = await import('node:fs');
+  const copias: string[] = [];
+  const recorrer = (dir: string): void => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const ruta = path.join(dir, e.name);
+      if (e.isDirectory()) recorrer(ruta);
+      else if (e.name.endsWith('.js') && readFileSync(ruta, 'utf8').includes('/^\\[ERROR\\]\\s*/')) copias.push(path.relative(dirSrc, ruta));
+    }
+  };
+  recorrer(dirSrc);
+  assert.deepEqual(copias.map((c) => c.split(path.sep).join('/')), ['core/utilidades-texto.js']);
 });
