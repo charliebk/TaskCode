@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-155 — comprobarSkillInstalado verificable en Windows (claude.cmd) · etiquetas: (sin etiquetas) · rama fix/task-155-comprobarskillinstalado-verificable-en-w · terminada 2026-11-24 · tareas/04-terminadas/TASK-155/
 - TASK-139b — la selectiva no recorta en silencio (parte b de TASK-139) · etiquetas: (sin etiquetas) · rama fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di · terminada 2026-11-24 · tareas/04-terminadas/TASK-139b/
 - TASK-139a — disfraces B1-B5 (parte a de TASK-139) · etiquetas: (sin etiquetas) · rama fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di · terminada 2026-11-24 · tareas/04-terminadas/TASK-139a/
 - TASK-151b — commands, hooks y cli (parte b de TASK-151) · etiquetas: (sin etiquetas) · rama fix/task-151-regla-4d-disfraz-en-tests · terminada 2026-11-24 · tareas/04-terminadas/TASK-151b/

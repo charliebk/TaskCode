@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-155-comprobarskillinstalado-verificable-en-w
 asignado_a: charlie.bk@gmail.com
@@ -39,6 +39,7 @@ En Windows claude es un .cmd y spawnSync sin shell no lo ejecuta, asi que compro
 | 2026-11-24T09:45:19Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T09:45:21Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T10:04:01Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T10:14:25Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -62,3 +63,9 @@ En Windows claude es un .cmd y spawnSync sin shell no lo ejecuta, asi que compro
 ## Verificacion parcial
 
 - 2026-11-24T10:13:07Z: todo el codigo que cambia la tarea (3 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 30 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 29 min
+- Cierre (finish): 78 s, de 2026-11-24T10:13:07Z a 2026-11-24T10:14:25Z
