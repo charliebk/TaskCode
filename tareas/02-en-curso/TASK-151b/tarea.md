@@ -39,3 +39,8 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 | 2026-11-23T23:49:31Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-23T23:50:19Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T23:50:25Z | start | automatico | persona | 0.16.1 |
+
+## Autorrevision
+
+- 4D — d5d4029: reutilizados porcelain (roadmap-fixtures) y git (finish-fixtures) en approve, plan y start; idPedido en el TransitionContext existente en vez de un parametro nuevo; mutaciones en rojo: M6 (y quitar solo build), M7 sin unlink, M8 sin el error propio, M9 integra = true, M10 sin rechazarFlagsDesconocidos, TCMD-01 sin timeout en git status, TRES-07 guardian que lanza la selectiva, «(desconocida)» en vez del ID; el endurecimiento de TCMD-03 destapo que el mensaje de tarea inexistente no nombraba el ID y se corrige aqui
+- code-quality-reviewer — d5d4029
