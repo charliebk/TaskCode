@@ -42,7 +42,7 @@ tomada y documentada, no aplazada.
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
 | Q — Correcciones de la auditoría 4D | 16 | **9** | ~32h |
-| **Total pendiente** | **9** | — | — |
+| **Total pendiente** | **7** | — | — |
 
 
 Las fases cerradas (Sprint 0 y 1, A a P), las decisiones ya resueltas (#1 a
