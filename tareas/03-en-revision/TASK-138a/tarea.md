@@ -34,8 +34,8 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] metricas --por-version y el aviso de crecimiento de doctor usan el mismo agregador de suite por version, con un test de una tarea que corre la completa dos veces que da la misma cifra en las dos vistas
-- [ ] Una sola funcion mediana (versiones-metricas, crecimiento-suite, metricas y tramoDe de evolucion) y la regex de pytest se evalua una vez en contarTests
+- [x] metricas --por-version y el aviso de crecimiento de doctor usan el mismo agregador de suite por version, con un test de una tarea que corre la completa dos veces que da la misma cifra en las dos vistas
+- [x] Una sola funcion mediana (versiones-metricas, crecimiento-suite, metricas y tramoDe de evolucion) y la regex de pytest se evalua una vez en contarTests
 
 ## Transiciones
 
@@ -61,3 +61,12 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-24T16:36:44Z: ronda 1; commit revisado 2a0a6e53d9cb82919feff40a73f8580066810adf; commit verificado 1d451d20dd9724625b6ad5a68805ae3e52d104d9; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/core/crecimiento-suite.test.ts; corregidos: MEN-2; pendientes: MEN-1
+
+## Resultado
+
+- A1: `ultimaSuitePorTarea` y `resumirSuites` en core/crecimiento-suite, que usan `metricas --por-version`, versiones-metricas y el aviso de crecimiento de doctor. Una tarea con la completa repetida cuenta una vez, con la última. Cambia la cifra de doctor, que antes mezclaba todas las líneas, en dos sentidos:
+  - la duración pasa a ser la mediana de la última completa de cada tarea;
+  - si la última completa de una tarea quedó con `-` (salida recortada), la tarea queda sin cifra de tests, aunque una completa anterior sí la contara. Así lo hacía ya métricas (MEN-1).
+- A2 y CORE2-11: core/estadistica.ts tiene la única `mediana`; metricas la reexporta.
+- A3: la línea final de pytest se busca una sola vez en `contarTests`. El revisor comprobó 3072 combinaciones sin ninguna diferencia.
+- Revisión, ronda 1: aprobada con correcciones. MEN-2 se corrigió (aserción tautológica fuera). MEN-1 se acepta y queda documentado aquí.
