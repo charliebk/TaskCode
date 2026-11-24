@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 17161227
-tokens_revision: 6171952
+tokens_revision: 8051138
 creado: 2026-11-22
 actualizado: 2026-11-24
 dependencias: []
@@ -34,8 +34,8 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] finish-verificacion, finish-heldout, fs/verificacion y doctor usan gitTexto (con timeout y entorno) en vez de sus copias, y configBase y configDe son una sola funcion
-- [ ] Las puertas pesada, completa y de documentacion comparten el bloque ejecutar-anotar-arbol limpio-memo, puertaReintento usa opcionesEjecucion, y los textos repetidos y la regex que quita [ERROR] salen de una sola fuente
+- [x] finish-verificacion, finish-heldout, fs/verificacion y doctor usan gitTexto (con timeout y entorno) en vez de sus copias, y configBase y configDe son una sola funcion
+- [x] Las puertas pesada, completa y de documentacion comparten el bloque ejecutar-anotar-arbol limpio-memo, puertaReintento usa opcionesEjecucion, y los textos repetidos y la regex que quita [ERROR] salen de una sola fuente
 
 ## Transiciones
 
@@ -60,3 +60,14 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T10:04:40Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 80 | 51596 | 17084868 | 24683 | 19 | 17161227 | - | - |
 | 2026-11-24T10:31:53Z | revision | agente:af40d63e24e9606f9 | 90 | 159207 | 5995235 | 17420 | 8 | 6171952 | 1 | - |
+| 2026-11-24T10:51:22Z | revision | agente:a82998a754e202ca8 | 34 | 118514 | 1749105 | 11533 | 3 | 1879186 | 2 | - |
+
+## Resultado
+
+- CMD1-02: finish-verificacion, finish-heldout y doctor usan gitLinea o gitCrudo, con timeout y entorno comunes; `gitCrudo` admite `env`. fs/verificacion ya no tenía copia (se fue en 149a). Un test de paridad lo fija.
+- CMD1-03: `configDeLaRama` y `CIERRE_SIN_MERGE` viven en finish-opciones y sustituyen a configBase y configDe.
+- CMD1-04 y CMD1-05: `opcionesEjecucion` queda como única copia, y `ejecutarPuerta` es el bloque común de las puertas pesada, completa y de documentación. `anotarSuite` solo corre en la completa, con test.
+- CMD1-12: `cerrarIgualmente` y `errorArbolSucio`, este último con su concordancia en cada puerta. El texto de árbol sucio de held-out sigue aparte a propósito: no muestra el comando.
+- FS-09: `sinPrefijoError` en core/utilidades-texto, usado en los seis sitios.
+- Revisión: la ronda 1 pidió cambios (IMP-1: anotarSuite sin test) y señaló dos MENORES, ya corregidos. La ronda 2 aprueba.
+- Fuera de alcance: los textos de árbol sucio de review.ts y verificar-lote.ts, y el git propio de verificar-lote.ts.
