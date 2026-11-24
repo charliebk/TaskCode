@@ -99,22 +99,82 @@ for (const { script, args } of [
   });
 }
 
-test('merge-release-to-main.sh (TASK-143a, SCR-05): con la develop local atrasada, el backmerge hace pull y el push de develop no se rechaza', async () => {
+// MEN H-2 de la revision: release y hotfix, porque tipo y etiqueta del tag son parametros de una sola funcion.
+for (const { script, tipo, etiqueta, base } of [
+  { script: 'merge-release-to-main.sh', tipo: 'release', etiqueta: 'Release', base: 'develop' },
+  { script: 'merge-hotfix-to-main.sh', tipo: 'hotfix', etiqueta: 'Hotfix', base: 'main' },
+] as const) {
+  test(`${script} (TASK-143a, SCR-05): con la develop local atrasada, el backmerge hace pull y el push de develop no se rechaza`, async () => {
+    await conOrigenYDosClones(async ({ mio, otro, origen }) => {
+      const rama = `${tipo}/800-cierre`;
+      git(['checkout', '-q', base], mio);
+      git(['checkout', '-q', '-b', rama], mio);
+      await commitEn(mio, `${tipo}.txt`, `cambio de ${tipo}`);
+      // El otro sube un commit a develop: la develop local de `mio` queda atrasada.
+      await commitEn(otro, 'otro-en-develop.txt', 'commit del otro en develop');
+      git(['push', '-q', 'origin', 'develop'], otro);
+      const delOtro = git(['rev-parse', 'HEAD'], otro);
+
+      const r = runScript(script, [rama, '--push'], mio);
+      assert.equal(r.status, 0, r.output);
+      const developRemota = git(['rev-parse', 'refs/heads/develop'], origen);
+      assert.equal(spawnSync('git', ['merge-base', '--is-ancestor', delOtro, developRemota], { cwd: origen }).status, 0);
+      assert.equal(git(['log', '-1', '--format=%s', developRemota], origen), `merge(${tipo}): ${rama} -> develop (backmerge)`);
+      assert.equal(git(['log', '-1', '--format=%s', 'refs/heads/main'], origen), `merge(${tipo}): ${rama} -> main`);
+      assert.equal(git(['tag', '-l', '--format=%(contents:subject)', 'v800-cierre'], origen), `${etiqueta} v800-cierre`);
+    });
+  });
+}
+
+test('merge-release-to-main.sh (MEN H-1 de la revision de TASK-143a): con develop divergida de origin aborta antes de tocar main y sin tag', async () => {
   await conOrigenYDosClones(async ({ mio, otro, origen }) => {
-    git(['checkout', '-q', '-b', 'release/800-cierre'], mio);
+    await commitEn(mio, 'local-en-develop.txt', 'commit local sin subir');
+    git(['checkout', '-q', '-b', 'release/801-diverge'], mio);
     await commitEn(mio, 'release.txt', 'cambio de release');
-    // El otro sube un commit a develop: la develop local de `mio` queda atrasada.
+    await commitEn(otro, 'otro-en-develop.txt', 'commit del otro en develop');
+    git(['push', '-q', 'origin', 'develop'], otro);
+    const mainAntes = git(['rev-parse', 'refs/heads/main'], origen);
+
+    const r = runScript('merge-release-to-main.sh', ['release/801-diverge', '--push'], mio);
+    assert.notEqual(r.status, 0, r.output);
+    assert.equal(git(['rev-parse', 'refs/heads/main'], origen), mainAntes);
+    assert.equal(git(['rev-parse', 'refs/heads/main'], mio), mainAntes, 'la main local tampoco se mueve');
+    assert.equal(git(['tag', '-l', 'v801-diverge'], mio), '');
+  });
+});
+
+// MEN H-2: el tipo del mensaje de update es un parametro; cada script pasa el suyo.
+for (const { script, tipo, base } of [
+  { script: 'update-fix.sh', tipo: 'fix', base: 'develop' },
+  { script: 'update-release.sh', tipo: 'release', base: 'develop' },
+  { script: 'update-hotfix.sh', tipo: 'hotfix', base: 'main' },
+] as const) {
+  test(`${script} (TASK-143a, MEN H-2): el merge de la base lleva update(${tipo})`, async () => {
+    await conOrigenYDosClones(async ({ mio }) => {
+      const rama = `${tipo}/702-tipo`;
+      git(['checkout', '-q', base], mio);
+      git(['checkout', '-q', '-b', rama], mio);
+      await commitEn(mio, 'rama.txt', 'trabajo en la rama');
+      git(['checkout', '-q', base], mio);
+      await commitEn(mio, 'base.txt', 'avance de la base');
+      git(['push', '-q', 'origin', base], mio);
+
+      const r = runScript(script, [rama], mio);
+      assert.equal(r.status, 0, r.output);
+      assert.equal(git(['log', '-1', '--format=%s', rama], mio), `update(${tipo}): ${base} -> ${rama}`);
+    });
+  });
+}
+
+test('create-release.sh (TASK-143a, MEN H-3): con develop local atrasada, la rama nace de la punta de origin', async () => {
+  await conOrigenYDosClones(async ({ mio, otro }) => {
     await commitEn(otro, 'otro-en-develop.txt', 'commit del otro en develop');
     git(['push', '-q', 'origin', 'develop'], otro);
     const delOtro = git(['rev-parse', 'HEAD'], otro);
 
-    const r = runScript('merge-release-to-main.sh', ['release/800-cierre', '--push'], mio);
+    const r = runScript('create-release.sh', ['803-desde-origin'], mio);
     assert.equal(r.status, 0, r.output);
-    const developRemota = git(['rev-parse', 'refs/heads/develop'], origen);
-    assert.equal(spawnSync('git', ['merge-base', '--is-ancestor', delOtro, developRemota], { cwd: origen }).status, 0);
-    assert.match(git(['log', '-1', '--format=%s', developRemota], origen), /^merge\(release\): release\/800-cierre -> develop \(backmerge\)$/);
-    // La principal y su tag, con el mensaje de release.
-    assert.match(git(['log', '-1', '--format=%s', 'refs/heads/main'], origen), /^merge\(release\): release\/800-cierre -> main$/);
-    assert.equal(git(['tag', '-l', '--format=%(contents:subject)', 'v800-cierre'], origen), 'Release v800-cierre');
+    assert.equal(git(['branch', '--show-current'], mio), 'release/803-desde-origin');
+    assert.equal(git(['rev-parse', 'HEAD'], mio), delOtro, r.output);
   });
 });

@@ -570,6 +570,19 @@ invoke_merge_to_main() {
         fi
     fi
 
+    # MEN H-1 de la revision de TASK-143a: si develop local y origin/develop
+    # han divergido, el pull --ff-only del backmerge fallaria con la principal
+    # y el tag ya subidos. Se comprueba aqui, sin cambiar de rama, antes de
+    # tocar nada. Develop atrasada o adelantada si vale (avance rapido o nada).
+    if [ "$REMOTE_AVAILABLE" = true ] \
+        && git show-ref --verify --quiet "refs/heads/$develop_branch" 2>/dev/null \
+        && git show-ref --verify --quiet "refs/remotes/origin/$develop_branch" 2>/dev/null \
+        && ! git merge-base --is-ancestor "$develop_branch" "origin/$develop_branch" 2>/dev/null \
+        && ! git merge-base --is-ancestor "origin/$develop_branch" "$develop_branch" 2>/dev/null; then
+        log_error "$develop_branch y origin/$develop_branch han divergido: el backmerge no podria hacerse tras el merge a $main_branch. Sincroniza $develop_branch con origin y reintenta. No se ha tocado nada."
+        exit 1
+    fi
+
     _gf_sync_branch "$main_branch"
 
     show_merge_diff "$name" "$main_branch" || exit 0
