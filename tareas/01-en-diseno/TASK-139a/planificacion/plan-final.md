@@ -4,7 +4,7 @@ Redactado por el coordinador (modo rapido: los casos B1-B5 tienen fichero y line
 
 ## Enfoque propuesto
 
-Duracion estimada: 80 min (pasa de 60: se trocea en dos partes, abajo; troceo autorizado de antemano por Carlos para el plan de correcciones 4D)
+Duracion estimada: 40 min (parte a del troceo; la tarea entera estimaba 80 min)
 
 1. B1: un test en test/core/poda-tests.test.ts que falla si skills/task-workflow/SKILL.md deja de enlazar poda-tests.md.
 2. B3: un test de scripts/verificar-impacto.mjs con un cerrojo ilegible (JSON roto, `pid === null`): la ejecucion espera y reintenta en vez de tomarlo a ciegas; se comprueba con su mutante.
@@ -55,3 +55,7 @@ El plugin pasa TASKCODE_VERIFICACION al comando; verificar-impacto corre todos l
 Duracion estimada: 45 min
 - [ ] El comando de verificacion recibe TASKCODE_VERIFICACION con su tipo (selectiva en review y finish, freno en el Stop), con test, y el README del plugin lo documenta
 - [ ] Con TASKCODE_VERIFICACION=selectiva, scripts/verificar-impacto.mjs no recorta: corre todos los afectados, y la suite completa si no sabe que afecta; con freno o a mano mantiene el tope, con test
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-24: TASK-139a, TASK-139b, todas en la misma rama. Este plan es el de TASK-139a; las demas partes se planifican al empezarlas.
