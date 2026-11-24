@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-151-regla-4d-disfraz-en-tests
 asignado_a: claude
@@ -40,6 +40,7 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 | 2026-11-23T23:50:19Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-23T23:50:25Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T00:17:02Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T00:42:16Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -66,3 +67,9 @@ doctor-deploy, review-incremental, salida-temprana, cli/estado, doctor-correccio
 ## Verificacion parcial
 
 - 2026-11-24T00:37:52Z: todo el codigo que cambia la tarea (27 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 52 min
+- Cierre (finish): 264 s, de 2026-11-24T00:37:52Z a 2026-11-24T00:42:16Z
