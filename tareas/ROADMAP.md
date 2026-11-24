@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-146, TASK-150, TASK-152, TASK-158, TASK-019
+- **En marcha:** TASK-146 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-138, TASK-140, TASK-143, TASK-150, TASK-152, TASK-158, TASK-019
 
 ## H0 — H0
 
@@ -110,7 +110,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-141 | Auditoria 4D inicial: reconocimiento completo del codigo existente | alta | — | ✅ terminada |
 | — | TASK-142 | Regla 4D: disfraz en los scripts de Git-Flow | media | — | ✅ terminada |
 | 10 | TASK-143 | Regla 4D: duplicacion en Git-Flow (bash y TS) | alta | — | lista para empezar |
-| 11 | TASK-146 | Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste | media | — | lista para empezar |
+| 11 | TASK-146 | Regla 4D: duplicacion en new, import, roadmap, verificar-lote y registrar-coste | media | — | ▶ en diseño |
 | 12 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
 | 13 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
 | — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |

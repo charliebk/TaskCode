@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: media
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-146-regla-4d-duplicacion-en-new-import-roadm
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-22
-actualizado: 2026-11-22
+actualizado: 2026-11-24
 dependencias: []
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Quitar las reimplementaciones de helpers existentes en comandos sueltos (auditor
 - [ ] roadmap --comparar decide con prepararRoadmap; verificar-lote usa headCommit y listTareasEnEstados y un fallo de git o de readdir no da un lote verde
 - [ ] registrar-coste suma con CAMPOS_COSTE; los readdir tolerantes y claveRuta tienen un solo helper; doctor-deploy usa diaLocal y la fecha de creado es la misma que la de new
 - [ ] Las cabeceras de registrar-coste, veredicto y review describen lo que hace el codigo y runPlan deja la historia de las rondas en el CHANGELOG
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-24T14:26:27Z | plan | automatico | persona | 0.16.1 |
