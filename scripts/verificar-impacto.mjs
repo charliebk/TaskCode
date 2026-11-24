@@ -23,12 +23,6 @@
  *      `scripts/gitflow/**` (marcador `'scripts', 'gitflow'`); cualquier otro
  *      fichero que no es documentacion, por los tests que mencionan su nombre;
  *      si nadie lo menciona, la suite entera (ante la duda, todo);
- *    - un fichero bajo `skills/`, `agents/` o `docs/` del plugin (los `.md`
- *      que instala el plugin) NO es documentacion: hay tests que lo leen.
- *      Ademas de los que mencionan su nombre, elige los que leen su carpeta
- *      entera (`'skills'`, `'agents'`, `PLUGIN_ROOT, 'docs'`; ver
- *      `CARPETAS_LEIDAS`), como `test/skills/task-workflow.test.ts`, que
- *      vigila todas las skills sin nombrar ninguna (TASK-156);
  *    - `package.json`, `package-lock.json` y `tsconfig.json`: harian falta la
  *      suite entera; se corren los tests que los nombran (con el tope de abajo)
  *      y la completa queda para antes de publicar;
@@ -45,8 +39,7 @@
  * minimo 1) directos mas proximos: primero los tests cambiados, luego los que
  * se llaman como el modulo cambiado (`finish*` para `src/commands/finish.ts`),
  * luego los de una carpeta con el nombre de la suya (`test/gitflow/` para
- * `scripts/gitflow/*`, `test/skills/` para `skills/<x>/*`) y despues el resto
- * por orden alfabetico. La salida dice
+ * `scripts/gitflow/*`) y despues el resto por orden alfabetico. La salida dice
  * cuantos se dejan fuera. Nunca queda en cero lo que cambia si tiene tests.
  * Con TIPO_VERIFICACION=selectiva (rondas de review y finish, TASK-139b) no
  * hay tope: todos los afectados, y la suite entera si no se sabe que afecta. El
@@ -88,23 +81,6 @@ const MARCADORES = [
 ];
 /** El enrutador de comandos (ver testsQueDependenDe); es lo que carga `bin/taskctl`. */
 export const ENRUTADOR = 'src/cli.ts';
-/**
- * TASK-156: carpetas del plugin que los tests leen enteras (recorren la
- * carpeta, o componen la ruta) sin nombrar cada fichero. Un fichero cambiado
- * bajo ellas elige, ademas de los tests que mencionan su nombre, los que leen
- * su carpeta. Sin esto, un `.md` de skill solo elegia a quien lo nombra y
- * `test/skills/task-workflow.test.ts` (que vigila todas las skills) quedaba
- * fuera: en TASK-139b un rojo suyo solo lo vio la suite completa de finish.
- * `docs` va acotado a la carpeta del plugin (`PLUGIN_ROOT, 'docs'`): media
- * suite usa `'docs'` para los repos temporales de sus pruebas.
- */
-const CARPETAS_LEIDAS = [
-  { carpeta: 'skills', patron: /['"]skills['"]|['"/]skills\// },
-  { carpeta: 'agents', patron: /['"]agents['"]|['"/]agents\// },
-  { carpeta: 'docs', patron: /PLUGIN_ROOT\s*,\s*['"]docs['"]/ },
-];
-/** La carpeta de CARPETAS_LEIDAS bajo la que vive `rel` (relativa al plugin), o undefined. */
-const carpetaLeida = (rel) => CARPETAS_LEIDAS.find((c) => rel.startsWith(`${c.carpeta}/`));
 const LANZA_TASKCTL = MARCADORES[0].patron;
 const IMPORT_RE = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
 
@@ -304,11 +280,7 @@ export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
     // Ficheros que los tests usan sin importarlos.
     const marcados = [...nodos].filter(([, n]) => MARCADORES.some((m) => enPlugin && m.dependeDe(rel) && m.patron.test(n.texto)));
     const nombre = path.posix.basename(ruta);
-    const porNombre = marcados.length > 0 ? marcados : [...nodos].filter(([, n]) => n.texto.includes(nombre));
-    // TASK-156: y los tests que leen la carpeta entera (skills/, agents/, docs/ del plugin).
-    const leida = enPlugin ? carpetaLeida(rel) : undefined;
-    const lectores = leida === undefined ? [] : [...nodos].filter(([f, n]) => esTest(f) && leida.patron.test(n.texto));
-    const mencionan = [...new Map([...porNombre, ...lectores]).entries()];
+    const mencionan = marcados.length > 0 ? marcados : [...nodos].filter(([, n]) => n.texto.includes(nombre));
     if (mencionan.length === 0) {
       todo ??= `ningun test referencia ${ruta}: ante la duda, la suite entera (la completa queda para antes de publicar)`;
       continue;
@@ -368,11 +340,8 @@ function proximidad(fichero, directo) {
   for (const origen of directo.origenes) {
     const modulo = path.posix.basename(origen).replace(/\.[^.]+$/, '').replace(/^_+/, '');
     const carpeta = path.posix.basename(path.posix.dirname(origen));
-    // TASK-156: `skills/plan/SKILL.md` tambien esta cerca de `test/skills/`.
-    const leida = origen.startsWith(`${PLUGIN}/`) ? carpetaLeida(origen.slice(PLUGIN.length + 1))?.carpeta : undefined;
     if (modulo !== '' && base.startsWith(modulo)) p = Math.min(p, 1);
     else if (!['src', 'test', 'helpers', '.', ''].includes(carpeta) && carpetas.includes(carpeta)) p = Math.min(p, 2);
-    else if (leida !== undefined && carpetas.includes(leida)) p = Math.min(p, 2);
   }
   return p;
 }

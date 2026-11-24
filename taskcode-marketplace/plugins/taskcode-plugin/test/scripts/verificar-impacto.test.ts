@@ -50,17 +50,6 @@ const FICHEROS: Record<string, string> = {
   [`${PLUGIN}/test/lanza.test.ts`]: "import { BIN } from './helpers/h.js';\nvoid BIN;\n",
   [`${PLUGIN}/test/flujo.test.ts`]: "const S = ['scripts', 'gitflow'];\nconst Y = 'plantilla.yml';\nvoid S; void Y;\n",
   [`${PLUGIN}/test/core/x.test.ts`]: "import { c } from '../../src/c.js';\nvoid c;\n",
-  // TASK-156: lo que instala el plugin (skills, agentes, docs) y los tests que lo leen
-  // por carpeta, sin nombrar el fichero; uno lo nombra; otro usa 'docs' en su repo temporal.
-  [`${PLUGIN}/skills/flujo/SKILL.md`]: '# flujo\n',
-  [`${PLUGIN}/skills/flujo/pasos.md`]: '# pasos\n',
-  [`${PLUGIN}/agents/rol.md`]: '# rol\n',
-  [`${PLUGIN}/docs/ajustes.md`]: '# ajustes\n',
-  [`${PLUGIN}/test/skills/marcas.test.ts`]: "const DIR = path.join(PLUGIN_ROOT, 'skills');\nvoid DIR;\n",
-  [`${PLUGIN}/test/roles.test.ts`]: "const DIR = path.join(PLUGIN_ROOT, 'agents');\nvoid DIR;\n",
-  [`${PLUGIN}/test/manual.test.ts`]: "const L = readdirSync(path.join(PLUGIN_ROOT, 'docs'));\nvoid L;\n",
-  [`${PLUGIN}/test/tablero.test.ts`]: "const B = path.join(repoRoot, 'docs', 'BOARD.md');\nvoid B;\n",
-  [`${PLUGIN}/test/nombra.test.ts`]: "const F = 'pasos.md';\nvoid F;\n",
   // El enrutador de comandos: quien lo importa solo depende de los comandos que nombra.
   [`${PLUGIN}/src/cli.ts`]: "import { alfa } from './commands/alfa.js';\nimport { beta } from './commands/beta.js';\nexport const main = [alfa, beta];\n",
   [`${PLUGIN}/src/commands/alfa.ts`]: "import { x } from '../core/x.js';\nexport const alfa = x;\n",
@@ -177,35 +166,6 @@ test('bin/taskctl y scripts/gitflow eligen a quien los lanza; otro fichero, a qu
   await conRepo(async (raiz) => {
     await cambiarYCommitear(raiz, `${PLUGIN}/plantilla.yml`, 'clave: 3\n');
     assert.deepEqual(ficheros(listar(raiz)), ['test/flujo.test.ts']);
-  });
-});
-
-test('TASK-156: un .md de skills/, agents/ o docs/ del plugin elige los tests que leen su carpeta, ademas de los que lo nombran', async () => {
-  // Antes se elegian solo por el nombre del fichero: el test que vigila todas
-  // las skills (sin nombrar ninguna) quedaba fuera y su rojo solo salia en finish.
-  await conRepo(async (raiz) => {
-    await cambiarYCommitear(raiz, `${PLUGIN}/skills/flujo/pasos.md`, '# pasos cambiados\n');
-    const s = listar(raiz);
-    assert.equal(s.todo, false);
-    assert.deepEqual(ficheros(s), ['test/nombra.test.ts', 'test/skills/marcas.test.ts']);
-    // Con tope, el que vive en test/skills/ esta mas cerca que el que solo lo nombra.
-    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/skills/marcas.test.ts']);
-  });
-  await conRepo(async (raiz) => {
-    // Nadie nombra SKILL.md: sin la carpeta, seria «ningun test lo referencia».
-    await cambiarYCommitear(raiz, `${PLUGIN}/skills/flujo/SKILL.md`, '# flujo cambiado\n');
-    const s = listar(raiz);
-    assert.equal(s.todo, false, s.motivo);
-    assert.deepEqual(ficheros(s), ['test/skills/marcas.test.ts']);
-  });
-  await conRepo(async (raiz) => {
-    await cambiarYCommitear(raiz, `${PLUGIN}/agents/rol.md`, '# rol cambiado\n');
-    assert.deepEqual(ficheros(listar(raiz)), ['test/roles.test.ts']);
-  });
-  await conRepo(async (raiz) => {
-    // docs/ del plugin: el que lee PLUGIN_ROOT/docs, no el que usa 'docs' en su repo temporal.
-    await cambiarYCommitear(raiz, `${PLUGIN}/docs/ajustes.md`, '# ajustes cambiados\n');
-    assert.deepEqual(ficheros(listar(raiz)), ['test/manual.test.ts']);
   });
 });
 
