@@ -25,6 +25,7 @@
 import { celdaNumero, media, tablaDeTexto } from './metricas.js';
 import { resumirGrupo } from './grupos-metricas.js';
 import { compararVersiones } from './version.js';
+import { resumirSuites } from './crecimiento-suite.js';
 // El orden semver vive en `version.ts` desde TASK-087 (doctor lo usa tambien);
 // se reexporta para no cambiar los imports existentes.
 export { compararVersiones };
@@ -60,17 +61,8 @@ export function resumirVersion(version, filas) {
         sinTablaHallazgos: g.sinTablaHallazgos,
         hallazgosPorSeveridad: porSeveridad,
         hallazgosPorOrigen: porOrigen,
-        tests: (() => {
-            const xs = filas.map((f) => f.suite?.tests ?? null).filter((x) => x !== null);
-            return xs.length === 0 ? null : Math.max(...xs);
-        })(),
-        completaS: (() => {
-            const xs = filas.map((f) => f.suite?.completaS ?? null).filter((x) => x !== null).sort((a, b) => a - b);
-            if (xs.length === 0)
-                return null;
-            const m = Math.floor(xs.length / 2);
-            return xs.length % 2 === 1 ? xs[m] : (xs[m - 1] + xs[m]) / 2;
-        })(),
+        // TASK-138a (A1, A2): el mismo resumen que el aviso de crecimiento de doctor.
+        ...resumirSuites(filas.map((f) => f.suite)),
         tokens: {
             diseno: cifraTokens(filas.map((f) => f.tokens.diseno)),
             implementacion: cifraTokens(filas.map((f) => f.tokens.implementacion)),

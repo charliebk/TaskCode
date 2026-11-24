@@ -13,6 +13,7 @@
 import type { LineaPuerta } from './registro-puertas.js';
 import { compararVersiones } from './version.js';
 import { quitarAnsi } from './utilidades-texto.js';
+import { mediana } from './estadistica.js';
 
 /** TASK-129: la puerta con el tamano de la completa: modo = numero de tests (o `-`). */
 export const PUERTA_SUITE = 'suite';
@@ -50,13 +51,13 @@ export function contarTests(salida: string, opciones: { recortada?: boolean } = 
   if (jest !== null) return jest;
   const dotnet = ultimo(t, /Total tests:\s*(\d+)/g);
   if (dotnet !== null) return dotnet;
-  const pytestFinal = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
+  // TASK-138a (A3): la linea final de pytest se busca una vez y vale para las dos preguntas.
+  const pytest = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
   const maven = ultimo(t, /Tests run:\s*(\d+)/g);
   if (maven !== null) return opciones.recortada === true && /Reactor Summary/.test(t) ? null : maven;
-  if (opciones.recortada === true && pytestFinal === null) return null;
+  if (opciones.recortada === true && pytest === null) return null;
   const cargo = sumar(t, /test result: \w+\.\s+(\d+) passed;\s+(\d+) failed/g);
   if (cargo !== null) return cargo;
-  const pytest = /=+\s*(?:(\d+) failed,\s*)?(\d+) passed/.exec(t);
   if (pytest !== null) return Number(pytest[2]) + (pytest[1] === undefined ? 0 : Number(pytest[1]));
   return null;
 }
@@ -69,32 +70,49 @@ export interface SuiteVersion {
   completaS: number | null;
 }
 
-function mediana(xs: readonly number[]): number | null {
-  if (xs.length === 0) return null;
-  const o = [...xs].sort((a, b) => a - b);
-  const m = Math.floor(o.length / 2);
-  return o.length % 2 === 1 ? (o[m] as number) : ((o[m - 1] as number) + (o[m] as number)) / 2;
+/** La ultima completa en verde de una tarea: su numero de tests (si se conto) y su duracion. */
+export interface SuiteDeTarea {
+  tests: number | null;
+  completaS: number;
 }
 
-/** Por version (orden semver), de las lineas `suite` en verde de las tareas de cada version. */
+/**
+ * TASK-138a (A1): la ultima linea `suite` en verde de cada tarea. Es la regla
+ * de las dos vistas (metricas --por-version y el aviso de crecimiento de
+ * doctor): una tarea que corre la completa dos veces cuenta una vez, con la
+ * ultima. Antes doctor sumaba todas las lineas a la mediana.
+ */
+export function ultimaSuitePorTarea(lineas: readonly LineaPuerta[]): Map<string, SuiteDeTarea> {
+  const porTarea = new Map<string, SuiteDeTarea>();
+  for (const l of lineas) {
+    if (l.puerta !== PUERTA_SUITE || l.resultado !== 'verde') continue;
+    porTarea.set(l.tarea, { tests: /^\d+$/.test(l.modo) ? Number(l.modo) : null, completaS: l.duracionS });
+  }
+  return porTarea;
+}
+
+/** TASK-138a (A1, A2): de un grupo de tareas, el mayor numero de tests y la mediana de la duracion. */
+export function resumirSuites(suites: readonly (SuiteDeTarea | null)[]): { tests: number | null; completaS: number | null } {
+  const tests = suites.map((x) => x?.tests ?? null).filter((x): x is number => x !== null);
+  const duraciones = suites.map((x) => x?.completaS ?? null).filter((x): x is number => x !== null);
+  return { tests: tests.length === 0 ? null : Math.max(...tests), completaS: mediana(duraciones) };
+}
+
+/** Por version (orden semver), de la ultima completa en verde de cada tarea de cada version. */
 export function suitePorVersion(
   tareas: readonly { id: string; version: string | null }[],
   lineas: readonly LineaPuerta[]
 ): SuiteVersion[] {
-  const versionDe = new Map(tareas.filter((t) => t.version !== null).map((t) => [t.id, t.version as string]));
-  const tests = new Map<string, number[]>();
-  const duraciones = new Map<string, number[]>();
-  for (const l of lineas) {
-    if (l.puerta !== PUERTA_SUITE || l.resultado !== 'verde') continue;
-    const v = versionDe.get(l.tarea);
-    if (v === undefined) continue;
-    duraciones.set(v, [...(duraciones.get(v) ?? []), l.duracionS]);
-    if (/^\d+$/.test(l.modo)) tests.set(v, [...(tests.get(v) ?? []), Number(l.modo)]);
+  const porTarea = ultimaSuitePorTarea(lineas);
+  const porVersion = new Map<string, SuiteDeTarea[]>();
+  for (const t of tareas) {
+    const suite = porTarea.get(t.id);
+    if (t.version === null || suite === undefined) continue;
+    porVersion.set(t.version, [...(porVersion.get(t.version) ?? []), suite]);
   }
-  return [...new Set([...tests.keys(), ...duraciones.keys()])].sort(compararVersiones).map((version) => ({
+  return [...porVersion.keys()].sort(compararVersiones).map((version) => ({
     version,
-    tests: tests.has(version) ? Math.max(...(tests.get(version) as number[])) : null,
-    completaS: mediana(duraciones.get(version) ?? []),
+    ...resumirSuites(porVersion.get(version) as SuiteDeTarea[]),
   }));
 }
 

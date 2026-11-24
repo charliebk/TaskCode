@@ -34,7 +34,8 @@
  * primer tramo con el ultimo: crece o baja si la mediana cambia mas de un
  * `UMBRAL_TENDENCIA`; si no, se mantiene.
  */
-import { celdaNumero, media, mediana, tablaDeTexto } from './metricas.js';
+import { celdaNumero, media, tablaDeTexto } from './metricas.js';
+import { mediana } from './estadistica.js';
 import { compararIds } from './task.js';
 export const TRAMO_POR_DEFECTO = 20;
 /** TASK-122: cambio relativo (0.15 = 15 %) por debajo del cual el coste fijo «se mantiene». */

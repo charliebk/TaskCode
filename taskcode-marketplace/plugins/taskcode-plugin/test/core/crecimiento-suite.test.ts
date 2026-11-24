@@ -9,7 +9,9 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { avisoCrecimiento, contarTests, suitePorVersion } from '../../src/core/crecimiento-suite.js';
+import { avisoCrecimiento, contarTests, resumirSuites, suitePorVersion, ultimaSuitePorTarea } from '../../src/core/crecimiento-suite.js';
+import { mediana as medianaMetricas } from '../../src/core/metricas.js';
+import { mediana } from '../../src/core/estadistica.js';
 import { parsearRegistroPuertas } from '../../src/core/registro-puertas.js';
 import { ConfigError, parsearConfig } from '../../src/core/config.js';
 import { comprobarCrecimientoSuite } from '../../src/commands/doctor.js';
@@ -166,4 +168,35 @@ test('anotarSuite (TASK-129, ronda 2): con la salida recortada de cargo anota «
   } finally {
     await rm(raiz, { recursive: true, force: true, maxRetries: 5 });
   }
+});
+
+// TASK-138a (A1): las dos vistas (metricas --por-version, que resume las filas con
+// la ultima completa de cada tarea, y el aviso de doctor) usan la misma regla. Antes
+// doctor metia en la mediana las dos completas de una tarea que la corrio dos veces.
+test('suite por version (TASK-138a): una tarea con la completa repetida da la misma cifra en las dos vistas', () => {
+  const tareas = [
+    { id: 'TASK-1', version: '0.17.0' },
+    { id: 'TASK-2', version: '0.17.0' },
+  ];
+  const lineas = parsearRegistroPuertas(
+    [linea('TASK-1', '100', 600), linea('TASK-1', '105', 900), linea('TASK-2', '110', 700)].join('\n')
+  );
+  const doctor = suitePorVersion(tareas, lineas)[0];
+  const porTarea = ultimaSuitePorTarea(lineas);
+  const metricas = resumirSuites(tareas.map((t) => porTarea.get(t.id) ?? null));
+  assert.deepEqual(doctor, { version: '0.17.0', tests: 110, completaS: 800 });
+  assert.deepEqual({ tests: doctor?.tests, completaS: doctor?.completaS }, metricas);
+});
+
+// TASK-138a (A2, CORE2-11): una sola mediana; la de metricas es la misma funcion.
+test('mediana (TASK-138a): una sola implementacion, reexportada por metricas', () => {
+  assert.equal(medianaMetricas, mediana);
+  assert.equal(mediana([4, 10, 7, 1]), 5.5);
+  assert.equal(mediana([]), null);
+});
+
+// TASK-138a (A3): con la salida recortada, una linea final de pytest sigue contando.
+test('contarTests (TASK-138a): pytest recortado con su linea final cuenta; sin ella, null', () => {
+  assert.equal(contarTests('...\n===== 3 passed in 0.2s =====\n', { recortada: true }), 3);
+  assert.equal(contarTests('... sin resumen ...', { recortada: true }), null);
 });

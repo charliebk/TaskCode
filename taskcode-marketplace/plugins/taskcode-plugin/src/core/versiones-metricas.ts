@@ -26,6 +26,7 @@ import { celdaNumero, media, tablaDeTexto, type FilaMetricas } from './metricas.
 import { resumirGrupo } from './grupos-metricas.js';
 import type { ConteoOrigen, ConteoSeveridad } from './informe-revision.js';
 import { compararVersiones } from './version.js';
+import { resumirSuites } from './crecimiento-suite.js';
 
 /** Tokens de una fase en un grupo; `media` null si ninguna tarea tiene dato. */
 export interface CifraTokens {
@@ -101,16 +102,8 @@ export function resumirVersion(version: string | null, filas: readonly FilaMetri
     sinTablaHallazgos: g.sinTablaHallazgos,
     hallazgosPorSeveridad: porSeveridad,
     hallazgosPorOrigen: porOrigen,
-    tests: (() => {
-      const xs = filas.map((f) => f.suite?.tests ?? null).filter((x): x is number => x !== null);
-      return xs.length === 0 ? null : Math.max(...xs);
-    })(),
-    completaS: (() => {
-      const xs = filas.map((f) => f.suite?.completaS ?? null).filter((x): x is number => x !== null).sort((a, b) => a - b);
-      if (xs.length === 0) return null;
-      const m = Math.floor(xs.length / 2);
-      return xs.length % 2 === 1 ? (xs[m] as number) : ((xs[m - 1] as number) + (xs[m] as number)) / 2;
-    })(),
+    // TASK-138a (A1, A2): el mismo resumen que el aviso de crecimiento de doctor.
+    ...resumirSuites(filas.map((f) => f.suite)),
     tokens: {
       diseno: cifraTokens(filas.map((f) => f.tokens.diseno)),
       implementacion: cifraTokens(filas.map((f) => f.tokens.implementacion)),
