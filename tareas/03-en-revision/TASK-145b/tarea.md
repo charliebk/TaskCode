@@ -29,8 +29,8 @@ Parte b del troceo de TASK-145 (Regla 4D: duplicacion en las puertas de finish),
 La base de la rama decidida una vez, comprobarTagDeReintento sin copia, spreads simplificados y comentarios huerfanos u obsoletos fuera.
 
 ## Criterios de aceptacion
-- [ ] La base de la rama de la tarea se decide una vez en finish, comprobarTagDeReintento esta una sola vez y sin rama inalcanzable, y los spreads repetidos se simplifican
-- [ ] Sin comentarios huerfanos ni obsoletos en approve, finish, finish-verificacion y codex-review, y sin el parametro _today sin uso
+- [x] La base de la rama de la tarea se decide una vez en finish, comprobarTagDeReintento esta una sola vez y sin rama inalcanzable, y los spreads repetidos se simplifican
+- [x] Sin comentarios huerfanos ni obsoletos en approve, finish, finish-verificacion y codex-review, y sin el parametro _today sin uso
 
 ## Transiciones
 
@@ -56,3 +56,14 @@ La base de la rama decidida una vez, comprobarTagDeReintento sin copia, spreads 
 ## Verificacion ligera
 
 - 2026-11-24T14:21:57Z: ronda 1; commit revisado 260cda7a2c942cf6b18382e52469871740926e27; commit verificado 9bdc7cb9545c52c0599c8472cf27650c7dd05d6e; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/approve.ts, taskcode-marketplace/plugins/taskcode-plugin/src/commands/finish.ts; corregidos: MEN-1, MEN-2, MEN-3, MEN-4; pendientes: ninguno
+
+## Resultado
+
+- CMD1-06: `ramaBaseTarea` (y `esHotfixConPrincipal`) se deciden una vez en finish.ts: la base de la puerta, la cobertura, los held-out y el mensaje de conflicto del script.
+- CMD1-07: la comprobación del tag tras el merge queda solo para el tag que pone el script; en el reintento ya aborta `comprobarTagDeReintento`, antes de cambiar de rama.
+- CMD1-14: `conAviso` y `conTimeout` sustituyen cinco spreads repetidos, y se quita la condición redundante de `yaIntegradaEn`.
+- CMD1-13 y CMD1-15: los comentarios huérfanos de approve, finish-verificacion y finish quedan sobre su función, se reescribe el de B5 y se quita el parámetro `_today` de codex-review.
+- Revisión ronda 1: aprobada con correcciones. MEN-1 y MEN-4 están corregidos. **MEN-2 y MEN-3 NO se corrigen**, aunque `verificar-menores` los liste como corregidos porque sus ficheros cambiaron. Son huecos de test anteriores al diff:
+  - MEN-2: ningún test comprueba la base que nombra el mensaje de conflicto de un hotfix.
+  - MEN-3: ningún test cubre que el script deje el tag fuera del merge.
+  Quedan para TASK-152, la de helpers de test, o para una tarea aparte.
