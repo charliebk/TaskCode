@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 21523947
-tokens_revision: 2582200
+tokens_revision: 5706765
 creado: 2026-11-22
 actualizado: 2026-11-24
 dependencias: []
@@ -34,8 +34,8 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] import valida y compone la tarea con lo mismo que new (componerCuerpo, defaults, propuesta de complejidad), y el modelo por defecto esta en un solo sitio
-- [ ] roadmap --comparar decide con prepararRoadmap, y verificar-lote usa headCommit y listTareasEnEstados sin dar un lote verde ante un fallo de git o de readdir
+- [x] import valida y compone la tarea con lo mismo que new (componerCuerpo, defaults, propuesta de complejidad), y el modelo por defecto esta en un solo sitio
+- [x] roadmap --comparar decide con prepararRoadmap, y verificar-lote usa headCommit y listTareasEnEstados sin dar un lote verde ante un fallo de git o de readdir
 
 ## Transiciones
 
@@ -60,3 +60,11 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-24T14:48:24Z | implementacion | sesion:f01cea62-faf0-422a-95c5-8ee5895e07a8 | 68 | 48235 | 21454125 | 21519 | 20 | 21523947 | - | - |
 | 2026-11-24T15:08:57Z | revision | agente:a8a5850237b04d996 | 42 | 133912 | 2436799 | 11447 | 6 | 2582200 | 1 | - |
+| 2026-11-24T15:29:54Z | revision | agente:a534d8a3e4d3f6d7b | 54 | 131937 | 2976100 | 16474 | 8 | 3124565 | 2 | - |
+
+## Resultado
+
+- CMD2-06: `parsearCamposDeTarea` y `MODELO_POR_DEFECTO` en new.ts, compartidos por new, import y doctor-deploy. import compone el cuerpo con `componerCuerpo`. Un test de paridad fija campos, valores por defecto y mensajes de error. La propuesta de complejidad no se lleva a import: depende de las etiquetas e import no tiene, así que `proponerComplejidad([])` siempre daría null. El revisor lo confirma.
+- CMD2-07: `roadmap --comparar` decide con `prepararRoadmap(..., { escribir: false })`, que puede dar el estado nuevo `se-escribiria`. Un ROADMAP marcado con cambios sin commitear ya no sale como regenerable, y el caso `fallido` tiene su propio mensaje.
+- CMD2-10 y CMD2-11: verificar-lote usa `headCommit`, `listTareasEnEstados` y `compararIds`. Un fallo de git, una carpeta ilegible o una tarea ilegible abortan, cada uno con su test.
+- Revisión: la ronda 1 pidió cambios (IMP-1 e IMP-2: protecciones sin test). MEN-1 y MEN-3 se corrigieron. MEN-2, la doble lectura de cada tarea, se acepta porque evitarla obligaría a ampliar `listTareasEnEstados`, que comparten otros comandos. La ronda 2 aprueba.
