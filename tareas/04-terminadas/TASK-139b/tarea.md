@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di
 asignado_a: claude
@@ -40,6 +40,7 @@ El plugin pasa TIPO_VERIFICACION al comando; verificar-impacto corre todos los a
 | 2026-11-24T03:25:57Z | approve | automatico | persona | 0.16.1 |
 | 2026-11-24T03:25:59Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T03:46:13Z | review | automatico | persona | 0.16.1 |
+| 2026-11-24T09:35:11Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -70,3 +71,14 @@ El plugin pasa TIPO_VERIFICACION al comando; verificar-impacto corre todos los a
 - Revisión, ronda 1: aprobada con correcciones. MEN-1 a MEN-4 corregidos: test de la suite entera, test de que la variable no se hereda, mensaje sin «queda para antes de publicar» y documentación del caso sin comando del freno.
 - Tras aprobar, la suite completa del finish falló en skills/task-workflow.test.js: el nombre `TASKCODE_VERIFICACION` metía una marca del repo en verificacion-selectiva.md, que se instala en otros proyectos. La variable pasa a `TIPO_VERIFICACION` (2e46542, renombrado mecánico). Carlos autorizó cerrar con `--aceptar-sin-revisar` solo por ese cambio.
 - Hueco detectado: la selectiva de review no lo vio porque verificar-impacto trata los .md de las skills como documentación y no corre nada, aunque haya tests que los leen. Queda como tarea aparte.
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 369 min
+- Paso de la hora: 369 min reales frente a 45 estimados
+- Cierre (finish): 2186 s, de 2026-11-24T08:58:45Z a 2026-11-24T09:35:11Z
+
+## Codigo integrado sin revisar
+
+- 2026-11-24T08:58:45Z: taskctl finish --aceptar-sin-revisar; integrado sin revisar ni verificacion ligera el codigo de 99a5aa4..fix/task-139-regla-4d-tests-que-no-protegen-lo-que-di (ronda 1): .taskcode/config.yml, scripts/verificar-impacto.mjs, taskcode-marketplace/plugins/taskcode-plugin/docs/configuracion.md, taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/verificacion-selectiva.md, taskcode-marketplace/plugins/taskcode-plugin/src/fs/verificacion.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/verificacion-selectiva.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/hooks/freno-presupuesto.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/scripts/verificar-impacto.test.ts

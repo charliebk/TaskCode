@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-139b (fix) — la selectiva no recorta en silencio (parte b de TASK-139) (2026-11-24)
 - TASK-139a (fix) — disfraces B1-B5 (parte a de TASK-139) (2026-11-24)
 - TASK-151b (fix) — commands, hooks y cli (parte b de TASK-151) (2026-11-24)
 - TASK-151a (fix) — core, fs, skills e integracion (parte a de TASK-151) (2026-11-23)
