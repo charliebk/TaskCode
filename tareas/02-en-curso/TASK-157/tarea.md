@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-157-timeout-de-claude-plugin-list-acorde-al
 asignado_a: charlie.bk@gmail.com
@@ -37,3 +37,4 @@ claude plugin list --json tarda unos 18 s en Windows con el claude.exe real, y T
 |---|---|---|---|---|
 | 2026-11-24T10:59:19Z | plan | automatico | persona | 0.16.1 |
 | 2026-11-24T10:59:53Z | approve | automatico | persona | 0.16.1 |
+| 2026-11-24T10:59:57Z | start | automatico | persona | 0.16.1 |
