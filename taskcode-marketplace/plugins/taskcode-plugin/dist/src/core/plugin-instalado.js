@@ -8,8 +8,9 @@
  * aislarla evita que un fallo de "claude plugin list" se confunda con
  * un fallo de parseo del catalogo.
  *
- * Mismo patron de subproceso que runGit() en fs/git.ts (spawnSync +
- * comprobar result.error / result.status), pero con una semantica de
+ * Mismo patron de subproceso que runGit() en fs/git.ts (lanzar y
+ * comprobar error / status; desde TASK-155 via ejecutarHerramienta,
+ * para que un `claude.cmd` de Windows arranque), pero con una semantica de
  * error DISTINTA a proposito: runGit() LANZA porque un fallo de Git
  * debe abortar el comando que lo pidio. Aqui un fallo del subproceso
  * (binario ausente, timeout, JSON mal formado, forma inesperada) NUNCA
@@ -54,7 +55,11 @@
  * siendo pura.
  */
 import { ejecutarHerramienta, localizarHerramienta, pathDelProceso } from '../fs/herramientas-deploy.js';
-const TIMEOUT_MS = 5000;
+// TASK-157: `claude plugin list --json` tarda unos 18 s en Windows con el
+// `claude.exe` real (medido en TASK-155); con 5 s salia siempre
+// 'no-verificable'. 30 s deja margen y sigue acotando la espera de `plan`
+// (que lo llama una vez) si `claude` no responde.
+const TIMEOUT_MS = 30_000;
 /**
  * Separada de comprobarSkillInstalado para poder probar cada desenlace
  * (binario ausente, timeout, status != 0, JSON mal formado, forma
