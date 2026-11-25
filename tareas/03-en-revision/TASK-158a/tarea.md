@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 6470820
-tokens_revision: 1605856
+tokens_revision: 3883827
 creado: 2026-11-24
 actualizado: 2026-11-25
 dependencias: []
@@ -62,6 +62,7 @@ Objetivo de la tarea entera:
 - 4D — b3b9b4d: helper buscado (seccion/faltanD de regla-4d.test.ts reutilizados), usos buscados (grep de Regla 4D y duplicacion en skills/ y agents/), criterios citados, 5 tests nuevos con 7 mutaciones (todas en rojo)
 - code-quality-reviewer — cb84d8b
 - 4D ronda 1 — cb84d8b: usos buscados (las lineas 4D se definen solo en revision.md; review remite), 3 tests reescritos con 5 mutaciones en rojo
+- 4D menores — 5e1a96d: usos buscados (unica mencion de la linea de menores en review; revision.md define el formato), 0 tests nuevos (el de review sigue cubriendo el orden: mutado en la ronda 2)
 
 ## Transiciones
 
@@ -79,3 +80,8 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T02:26:14Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 72 | 46002 | 6400358 | 24388 | 6 | 6470820 | - | - |
 | 2026-11-25T03:14:10Z | revision | agente:a388c6e006d480bc2 | 28 | 132070 | 1458948 | 14810 | 4 | 1605856 | 1 | - |
+| 2026-11-25T03:50:06Z | revision | agente:a8adc7fc4355d7189 | 38 | 139333 | 2117702 | 20898 | 2 | 2277971 | 2 | - |
+
+## Verificacion ligera
+
+- 2026-11-25T03:50:48Z: ronda 2; commit revisado 00aef24b25b81d40623b3fbab134026a538e7c79; commit verificado 5e1a96dd8c0760c7e2827c30d16a312ed7b8a8de; ficheros: taskcode-marketplace/plugins/taskcode-plugin/skills/review/SKILL.md; corregidos: MEN-NUEVO-1; pendientes: ninguno
