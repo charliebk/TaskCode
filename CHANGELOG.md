@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- TASK-158a (feature) — los textos de cada camino exigen 4D y buscar todos los usos (parte a de TASK-158) (2026-11-25)
+
 ## 0.18.0 — 2026-11-25
 
 Olas 2 a 4 de las correcciones de la auditoria 4D (TASK-141) y la segunda
