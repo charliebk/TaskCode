@@ -67,12 +67,12 @@ Objetivo de la tarea entera:
 ## Resultado
 
 - Inventario 4D de cada camino que crea o actualiza codigo en la propia tarea (seccion de arriba): roles del brainstorm, unificador, plan/approve, implementacion tras start (feature, fix, hotfix), correcciones de ronda, MENORES tras aprobar, hotfix y release, doctor-deploy y revisoras; lo de taskctl queda para 158b y la carrera de verificar-impacto para 158c.
-- Cada camino exige 4D al escribir: apartado  en los cinco roles y en el unificador; revision.md define «Todos los usos, no solo los citados» y el formato de  y ; start pide buscar todos los usos y anotar «usos buscados»; review nombra la linea de las correcciones en la autorrevision de cada ronda y la de los MENORES antes de verificar-menores; finish (hotfix por start) y doctor-deploy (arreglo por plan y start) remiten al ciclo.
+- Cada camino exige 4D al escribir: apartado `Regla 4D desde tu rol` en los cinco roles (y `Regla 4D` en el unificador); revision.md define «Todos los usos, no solo los citados» y el formato de `- 4D ronda K — ` y `- 4D menores — `; start pide buscar todos los usos y anotar «usos buscados»; review nombra la linea de las correcciones en la autorrevision de cada ronda y la de los MENORES antes de verificar-menores; finish (hotfix por start) y doctor-deploy (arreglo por plan y start) remiten al ciclo.
 - Un test por camino en test/skills/regla-4d.test.ts (5 tests), todos mutados en rojo (ronda 1: 7 mutaciones; ronda 2: el revisor muto cada uno). Topes de tamano sin subir: el margen sale de quitar duplicaciones (verificar-menores descrito en revision.md y en review; una frase repetida en review).
 - test:rapido 701/701; verificacion por impacto de review: 2063 pasan, 0 fallan.
 - Revision ronda 1 (sonnet): cambios-solicitados. IMP-1 (frase sin verbo por el recorte) e IMP-2 (review no nombraba las lineas) corregidos; MEN-1 y MEN-2 (tests que prometian mas de lo que comprobaban) corregidos; MEN-3 (margen de 1 B) corregido liberando espacio en vez de subir el tope; MEN-4 (cuenta de tests) corregido.
 - Revision ronda 2 (haiku, acotada): aprobada con correcciones. MEN-NUEVO-1 (anotar el commit antes de hacerlo) corregido y cerrado con verificar-menores.
-- Incidencias: el revisor de la ronda 1 clono dentro del repo (TaskCode/TaskCode, en el commit revisado, limpio y sin commits propios); se borro. El de la ronda 2 escribio la cabecera  y verificar-menores no leia el fichero del MENOR: se corrigio la cabecera del informe a la de la plantilla. Propuesta: que el parser acepte  (tarea aparte).
+- Incidencias: el revisor de la ronda 1 clono dentro del repo (TaskCode/TaskCode, en el commit revisado, limpio y sin commits propios); se borro. El de la ronda 2 escribio la cabecera `Fichero:linea` y verificar-menores no leia el fichero del MENOR: se corrigio la cabecera del informe a la de la plantilla (`Fichero`). Propuesta: que el parser acepte `Fichero:linea` (tarea aparte).
 
 ## Transiciones
 
