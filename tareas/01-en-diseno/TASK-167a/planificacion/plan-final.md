@@ -6,7 +6,7 @@ se preguntaron a Carlos el 2026-11-25 y van abajo.)
 
 ## Enfoque propuesto
 
-Duracion estimada: 240 min (de la rama abierta al cierre con merge; senales: unos 6 ficheros de codigo —un modulo nuevo en core para el parecido por cuerpo, su uso en `commands/review.ts` y en la peticion, el registro y lectura de auditorias en fs/core, `commands/metricas.ts`— mas 1 skill nueva y 4-6 `.md` de skills, 3 capas, 5 criterios)
+Duracion estimada: 45 min (parte a del troceo; la tarea entera estimaba 240 min)
 
 Lo que ya existe y se reutiliza: la Regla 4D en revisoras, start y review
 (TASK-137, 153, 158), la guia de disfraz en tests (`disfraz-tests.md`), el
@@ -95,3 +95,7 @@ Tests nuevos por criterio (presupuesto de 1 a 3 por criterio; si se pasa, el mot
 ## Lo que necesita decision de una persona
 
 Resuelto arriba (decisiones de Carlos del 2026-11-25).
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-25: TASK-167a, TASK-167b, TASK-167c, TASK-167d, todas en la misma rama. Este plan es el de TASK-167a; las demas partes se planifican al empezarlas.
