@@ -357,6 +357,46 @@ normalize_branch_name() {
     assert_valid_branch_name "$NAME" "$type/$example"
 }
 
+# ── detect_operation_in_progress ──────────────────────────────────────────────
+# TASK-143c (SCR-07): la operacion de Git a medias, antes copiada en
+# abort-merge y diagnose-repo (y en operacionEnCurso de src/fs/git.ts, con
+# test de paridad). Deja merge_in_progress, rebase_in_progress,
+# cherry_pick_in_progress y revert_in_progress ("true"/"false") y escribe en
+# stdout la operacion por la que manda, en el orden de git.ts (merge, rebase,
+# cherry-pick, revert), o nada. Fuera de un repo, todo a false.
+#
+# Una secuencia multi-commit puede quedar a medias SIN CHERRY_PICK_HEAD ni
+# REVERT_HEAD: si se resuelve el conflicto y se hace "git commit" a mano en
+# vez de "--continue", Git borra el testigo pero deja .git/sequencer con los
+# commits que faltan, y "--abort" sigue funcionando. Ahi el testigo es el
+# directorio; si alguna entrada de su "todo" empieza por "revert " es un
+# revert, y si no, un cherry-pick (Git no mezcla los dos verbos).
+merge_in_progress=false; rebase_in_progress=false
+cherry_pick_in_progress=false; revert_in_progress=false
+detect_operation_in_progress() {
+    merge_in_progress=false; rebase_in_progress=false
+    cherry_pick_in_progress=false; revert_in_progress=false
+    local git_dir
+    git_dir=$(git rev-parse --git-dir 2>/dev/null) || return 0
+    [ -f "$git_dir/MERGE_HEAD" ]                                         && merge_in_progress=true
+    { [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; } && rebase_in_progress=true
+    [ -f "$git_dir/CHERRY_PICK_HEAD" ]                                   && cherry_pick_in_progress=true
+    [ -f "$git_dir/REVERT_HEAD" ]                                        && revert_in_progress=true
+    if ! $cherry_pick_in_progress && ! $revert_in_progress && [ -d "$git_dir/sequencer" ]; then
+        if grep -qE '^revert ' "$git_dir/sequencer/todo" 2>/dev/null; then
+            revert_in_progress=true
+        else
+            cherry_pick_in_progress=true
+        fi
+    fi
+    if $merge_in_progress; then printf 'merge'
+    elif $rebase_in_progress; then printf 'rebase'
+    elif $cherry_pick_in_progress; then printf 'cherry-pick'
+    elif $revert_in_progress; then printf 'revert'
+    fi
+    return 0
+}
+
 # ── detect_origin_available ───────────────────────────────────────────────────
 # Ajuste B2 (mismo guard que introdujo TASK-008 en
 # invoke_merge_work_branch_to_develop): la deteccion de origin estaba

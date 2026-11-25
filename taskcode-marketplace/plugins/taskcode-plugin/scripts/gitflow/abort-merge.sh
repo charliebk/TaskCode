@@ -6,30 +6,9 @@ git_dir=$(git rev-parse --git-dir 2>/dev/null) || { log_error "No estás en un r
 current=$(git branch --show-current 2>/dev/null || echo "(detached HEAD)")
 
 # ── Detectar operación en curso ───────────────────────────────────────────────
-merge_in_progress=false
-rebase_in_progress=false
-cherry_pick_in_progress=false
-revert_in_progress=false
-[ -f "$git_dir/MERGE_HEAD" ]                                            && merge_in_progress=true
-{ [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; } && rebase_in_progress=true
-[ -f "$git_dir/CHERRY_PICK_HEAD" ]                                      && cherry_pick_in_progress=true
-[ -f "$git_dir/REVERT_HEAD" ]                                           && revert_in_progress=true
-
-# Una secuencia multi-commit puede quedar a medias SIN ninguno de los dos
-# testigos de arriba: si se resuelve el conflicto y se hace "git commit" a
-# mano en vez de "--continue", Git borra CHERRY_PICK_HEAD pero deja
-# .git/sequencer con los commits que faltan, y "--abort" sigue funcionando
-# (medido en git 2.55). El testigo ahí es el directorio; si alguna entrada
-# de su "todo" empieza por "revert " es un revert, y si no, un cherry-pick.
-# Se mira el fichero entero y no solo su primera línea: Git no mezcla los
-# dos verbos en una misma secuencia, así que basta con encontrar uno.
-if ! $cherry_pick_in_progress && ! $revert_in_progress && [ -d "$git_dir/sequencer" ]; then
-    if grep -qE '^revert ' "$git_dir/sequencer/todo" 2>/dev/null; then
-        revert_in_progress=true
-    else
-        cherry_pick_in_progress=true
-    fi
-fi
+# TASK-143c (SCR-07): la deteccion comun (con el caso del sequencer), sin
+# subshell para que queden puestos los cuatro *_in_progress.
+detect_operation_in_progress > /dev/null
 
 if ! $merge_in_progress && ! $rebase_in_progress \
    && ! $cherry_pick_in_progress && ! $revert_in_progress; then

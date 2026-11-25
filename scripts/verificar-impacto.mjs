@@ -474,30 +474,7 @@ function main(argv) {
     console.log('[verificar-impacto] No hay tests que correr.');
     return 0;
   }
-  // La verificacion no puede cambiar el arbol: `npm run build` reescribe
-  // dist/src (versionado). Se guarda antes y se devuelve tal cual al acabar.
-  const distSrc = path.join(dirPlugin, 'dist', 'src');
-  const copia = dirCopia(dirPlugin);
-  // TASK-136: la copia es una por plugin. Sin cerrojo, una segunda ejecucion
-  // (review en segundo plano y el freno Stop a la vez) tomaba la copia viva de
-  // la primera por huerfana, la restauraba y la borraba; la primera acababa
-  // borrando dist/src sin nada que devolver. Con el cerrojo, quien llega
-  // segundo espera; y la copia solo se toca con el cerrojo en la mano.
-  const cerrojo = `${copia}.cerrojo`;
-  if (!tomarCerrojo(cerrojo, leerEspera(process.env.VERIFICAR_IMPACTO_ESPERA_S))) return 1;
-  let habiaDist = false;
-  try {
-    restaurarHuerfana(copia, distSrc);
-    mkdirSync(copia, { recursive: true });
-    habiaDist = existsSync(distSrc);
-    if (habiaDist) cpSync(distSrc, path.join(copia, 'src'), { recursive: true });
-    // El marcador va el ultimo: sin el, la copia esta a medias y no se restaura.
-    writeFileSync(path.join(copia, MARCADOR), JSON.stringify({ dirPlugin, habiaDist, pid: process.pid }));
-  } catch (e) {
-    soltarCerrojo(cerrojo);
-    throw e;
-  }
-  try {
+  return conDistProtegido(dirPlugin, () => {
     if (existsSync(path.join(dirPlugin, 'package.json'))) {
       const scripts = JSON.parse(readFileSync(path.join(dirPlugin, 'package.json'), 'utf8')).scripts ?? {};
       if (scripts['limpiar:test'] && npm('limpiar:test', dirPlugin) !== 0) return 1;
@@ -521,13 +498,61 @@ function main(argv) {
     });
     console.log(`[verificar-impacto] node --test termino con ${String(r.status)} en ${((Date.now() - inicio) / 1000).toFixed(1)} s.`);
     return r.status ?? 1;
-  } finally {
+  });
+}
+
+/**
+ * TASK-143c (SCR-13): ejecuta `fn` con dist/src del plugin protegido. Quien
+ * compila (`npm run build` reescribe dist/src, que esta versionado) no puede
+ * cambiar el arbol: dist/src se guarda en una copia antes y se devuelve tal
+ * cual al acabar, tambien si `fn` falla. Lo usan verificar-impacto y
+ * perfil-tests; antes perfil-tests recompilaba sin copia ni cerrojo.
+ *
+ * TASK-136: la copia es una por plugin. Sin cerrojo, una segunda ejecucion
+ * (review en segundo plano y el freno Stop a la vez) tomaba la copia viva de
+ * la primera por huerfana, la restauraba y la borraba; la primera acababa
+ * borrando dist/src sin nada que devolver. Con el cerrojo, quien llega
+ * segundo espera; y la copia solo se toca con el cerrojo en la mano.
+ *
+ * `fn` puede devolver un valor o una promesa; sin cerrojo, devuelve 1.
+ */
+export function conDistProtegido(dirPlugin, fn) {
+  const distSrc = path.join(dirPlugin, 'dist', 'src');
+  const copia = dirCopia(dirPlugin);
+  const cerrojo = `${copia}.cerrojo`;
+  if (!tomarCerrojo(cerrojo, leerEspera(process.env.VERIFICAR_IMPACTO_ESPERA_S))) return 1;
+  let habiaDist = false;
+  try {
+    restaurarHuerfana(copia, distSrc);
+    mkdirSync(copia, { recursive: true });
+    habiaDist = existsSync(distSrc);
+    if (habiaDist) cpSync(distSrc, path.join(copia, 'src'), { recursive: true });
+    // El marcador va el ultimo: sin el, la copia esta a medias y no se restaura.
+    writeFileSync(path.join(copia, MARCADOR), JSON.stringify({ dirPlugin, habiaDist, pid: process.pid }));
+  } catch (e) {
+    soltarCerrojo(cerrojo);
+    throw e;
+  }
+  const cerrar = () => {
     try {
       devolver(copia, distSrc, habiaDist);
     } finally {
       soltarCerrojo(cerrojo);
     }
+  };
+  let resultado;
+  try {
+    resultado = fn();
+  } catch (e) {
+    cerrar();
+    throw e;
   }
+  if (resultado !== null && typeof resultado === 'object' && typeof resultado.then === 'function') {
+    // HAL-3 de su revision: un "thenable" sin finally tambien suelta el cerrojo.
+    return Promise.resolve(resultado).finally(cerrar);
+  }
+  cerrar();
+  return resultado;
 }
 
 const MARCADOR = 'marcador.json';

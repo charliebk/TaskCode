@@ -618,3 +618,44 @@ test('TASK-136 (MEN-1): un cerrojo muerto solo lo retira quien tiene el .robo; u
     }
   });
 });
+
+test('conDistProtegido (TASK-143c, HAL-2 y HAL-3): devuelve dist/src y suelta el cerrojo aunque fn lance, rechace o sea un thenable sin finally', async () => {
+  type Protegido = (dir: string, fn: () => unknown) => unknown;
+  const { conDistProtegido, dirCopia } = (await import(pathToFileURL(SCRIPT).href)) as {
+    conDistProtegido: Protegido;
+    dirCopia: (d: string) => string;
+  };
+  const dir = mkdtempSync(path.join(tmpdir(), 'dist-protegido-'));
+  try {
+    const x = path.join(dir, 'dist', 'src', 'x.js');
+    await mkdir(path.dirname(x), { recursive: true });
+    writeFileSync(x, 'original\n');
+    const cerrojo = `${dirCopia(dir)}.cerrojo`;
+    const pisar = (): void => {
+      writeFileSync(x, 'compilado');
+      writeFileSync(path.join(dir, 'dist', 'src', 'nuevo.js'), 'de mas');
+    };
+    const comprobar = (caso: string): void => {
+      assert.equal(readFileSync(x, 'utf8'), 'original\n', caso);
+      assert.equal(existsSync(path.join(dir, 'dist', 'src', 'nuevo.js')), false, caso);
+      assert.equal(existsSync(cerrojo), false, `${caso}: cerrojo sin soltar`);
+    };
+
+    assert.throws(() => conDistProtegido(dir, () => { pisar(); throw new Error('sincrono'); }), /sincrono/);
+    comprobar('fn que lanza');
+    await assert.rejects(
+      Promise.resolve(conDistProtegido(dir, async () => { pisar(); throw new Error('rechazo'); })),
+      /rechazo/
+    );
+    comprobar('promesa rechazada');
+    await assert.rejects(
+      Promise.resolve(conDistProtegido(dir, () => { pisar(); return { then: (_ok: unknown, ko: (e: Error) => void) => ko(new Error('thenable')) }; })),
+      /thenable/
+    );
+    comprobar('thenable sin finally');
+    assert.equal(conDistProtegido(dir, () => { pisar(); return 7; }), 7);
+    comprobar('valor');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

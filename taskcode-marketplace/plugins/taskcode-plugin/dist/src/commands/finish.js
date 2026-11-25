@@ -65,6 +65,21 @@ const SCRIPT_BY_TYPE = {
     hotfix: 'merge-hotfix-to-main.sh',
     release: 'merge-release-to-main.sh',
 };
+/**
+ * Argumentos del script de merge de finish. Todos llevan la rama de
+ * integracion (--develop). hotfix y release (con `mainBranch`) llevan la
+ * principal que finish ya resolvio (--main; TASK-143c, SCR-08: antes el script
+ * la resolvia otra vez, con otro ls-remote) y, si lo hay, el nombre del tag que
+ * pone el script en ella (--tag).
+ */
+export function argumentosScriptMerge(rama, ramaIntegracion, mainBranch, nombreTag) {
+    const args = [rama, '--develop', ramaIntegracion];
+    if (mainBranch !== null)
+        args.push('--main', mainBranch);
+    if (mainBranch !== null && nombreTag !== null)
+        args.push('--tag', nombreTag);
+    return args;
+}
 /** hotfix/release mergean a main (con tag) y backmergean a la rama de integracion. */
 const MERGEA_A_MAIN = {
     feature: false,
@@ -544,12 +559,9 @@ async function runFinish(tareasRoot, argv, today, deps, progreso, pendientes) {
     }
     else {
         await puerta();
-        const argsScript = [rama, '--develop', ramaIntegracion];
-        // hotfix/release: el script pone el tag en main; --tag le da el nombre.
-        if (nombreTag !== null && mainBranch !== null) {
-            argsScript.push('--tag', nombreTag);
-            tagLoPusoElScript = true;
-        }
+        const argsScript = argumentosScriptMerge(rama, ramaIntegracion, mainBranch, nombreTag);
+        // hotfix/release con nombre: el tag lo pone el script en main (argumentosScriptMerge le pasa --tag).
+        tagLoPusoElScript = nombreTag !== null && mainBranch !== null;
         const { code, signal } = runGitflowScript(scriptName, argsScript, {
             scriptsDir: deps.scriptsDir,
             cwd: deps.repoCwd,
