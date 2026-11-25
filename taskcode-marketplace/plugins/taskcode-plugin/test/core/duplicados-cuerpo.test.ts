@@ -64,6 +64,11 @@ test('TASK-167b: el cuerpo se corta en su llave de cierre o por sangria, y por d
   assert.equal(cuerpoDesde(python, 1).split('\n').length, 3, 'Python: corta al volver a la sangria');
   // Una llave dentro de una cadena no cierra el cuerpo.
   assert.equal(cuerpoDesde(['function f() {', '  const s = "}";', '  return s;', '}', 'otra();'], 1).split('\n').length, 4);
+  // Flecha de una linea sin llave: su cuerpo es esa linea, no lo que viene debajo.
+  assert.equal(cuerpoDesde(['const f = (a, b) => a + b;', ...ORIGINAL], 1).split('\n').length, 1);
+  assert.equal(cuerpoDesde(['const g = (a) =>', '  a * 2;', ...ORIGINAL], 1).split('\n').length, 2);
+  // Firma partida: las comas de los parametros no cortan el cuerpo.
+  assert.equal(cuerpoDesde(['function h(', '  a: number,', '  b: number', '): number {', '  return a + b;', '}', 'x();'], 1).split('\n').length, 6);
   const corto = ['function id(x) { return x; }'];
   assert.ok(tokensNormalizados(corto[0] as string).length < MIN_TOKENS);
   assert.deepEqual(duplicadosPorCuerpo([con(def('id', 'a.ts'), corto)], [con(def('ident', 'b.ts'), corto)]), []);

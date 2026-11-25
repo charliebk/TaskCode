@@ -38,7 +38,8 @@ export interface DuplicadoPorCuerpo {
 
 /**
  * El cuerpo de la definicion que empieza en la linea `desde` (1-based): hasta
- * equilibrar las llaves si las hay; si la linea termina en `:` (Python), las
+ * equilibrar las llaves si las hay (sin llave, hasta la primera linea que
+ * termina en `;` o `,`); si la linea termina en `:` (Python), las
  * lineas siguientes con mas sangria. Como mucho MAX_LINEAS_CUERPO.
  */
 export function cuerpoDesde(lineas: readonly string[], desde: number): string {
@@ -57,19 +58,29 @@ export function cuerpoDesde(lineas: readonly string[], desde: number): string {
   }
   let nivel = 0;
   let abierto = false;
+  let parentesis = 0;
   const salida: string[] = [];
   for (let i = i0; i < lineas.length && salida.length < MAX_LINEAS_CUERPO; i++) {
     const l = lineas[i] as string;
     salida.push(l);
-    for (const c of sinCadenas(sinComentariosC(l))) {
+    const limpia = sinCadenas(sinComentariosC(l));
+    for (const c of limpia) {
       if (c === '{') {
         nivel++;
         abierto = true;
       } else if (c === '}') {
         nivel--;
+      } else if (c === '(' || c === '[') {
+        parentesis++;
+      } else if (c === ')' || c === ']') {
+        parentesis--;
       }
     }
     if (abierto && nivel <= 0) break;
+    // Sin llave abierta y fuera de parentesis (no es una firma partida), una
+    // linea que termina en ';' o ',' cierra la definicion (flecha o expresion
+    // de una linea): no se sigue leyendo lo de debajo.
+    if (!abierto && parentesis <= 0 && /[;,]\s*$/.test(limpia)) break;
   }
   return salida.join('\n');
 }
