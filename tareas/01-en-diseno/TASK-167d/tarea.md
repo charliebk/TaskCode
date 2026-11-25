@@ -7,7 +7,7 @@ etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-167-regla-4d-preventiva-en-los-proyectos-que
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -40,3 +40,4 @@ Troceo sin preguntar: autorizado por Carlos (2026-11-22 y 2026-11-25).
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-25T19:55:47Z | plan | automatico | persona | 0.18.0 |
+| 2026-11-25T19:56:08Z | approve | automatico | persona | 0.18.0 |
