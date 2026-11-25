@@ -28,6 +28,7 @@ import { commitRevisadoDeRonda, informeRellenado, veredictoDeRonda } from '../co
 import { MENORES_PENDIENTES, SECCION_VERIFICACION_LIGERA, backlogMenores, bloqueantesAbiertos, fueraDeAlcance, lineaVerificacionLigera, menoresAbiertos, repartirMenores, verificacionDeRonda, } from '../core/menores.js';
 import { anotarLineaEnSeccion } from '../core/transiciones.js';
 import { readTareaFile, writeTareaFile } from '../fs/task-store.js';
+import { avisoAutorrevisionMenores } from '../core/autorrevision.js';
 import { INFORME_REVISION_RE, PETICION_REVISION_RE, informesDeUltimaRonda } from '../fs/rondas.js';
 import { isAncestor, runGit } from '../fs/git.js';
 import { resolverConfig } from '../core/config.js';
@@ -155,6 +156,12 @@ export async function runVerificarMenoresCommand(tareasRoot, argv, deps) {
             `o que una persona decida integrarlo con taskctl finish ${task.id} --aceptar-sin-revisar.`);
     }
     const { corregidos, pendientes } = repartirMenores(menores, cambiados);
+    // TASK-158b: los MENORES corregidos pasan la misma Regla 4D que la
+    // implementacion. Sin codigo cambiado no se corrigio nada: no hay que avisar.
+    const avisos = [];
+    const sinMenores4D = cambiados.length === 0 ? null : avisoAutorrevisionMenores(body, task.id);
+    if (sinMenores4D !== null)
+        avisos.push(sinMenores4D);
     const commitVerificado = runGit(['rev-parse', 'HEAD'], cwd);
     const linea = lineaVerificacionLigera({
         instante: deps.ahora ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
@@ -191,6 +198,7 @@ export async function runVerificarMenoresCommand(tareasRoot, argv, deps) {
         pendientes: pendientes.map((h) => h.id),
         backlogPath,
         autoCommit: commitResult,
+        avisos,
     };
 }
 /**

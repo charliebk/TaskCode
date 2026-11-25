@@ -255,6 +255,8 @@ test('verificar-menores sin codigo posterior: solo pasa los MENORES al backlog, 
     const r = await runVerificarMenoresCommand(tareasRoot, [id], { repoCwd: repoRoot });
     assert.deepEqual(r.corregidos, []);
     assert.deepEqual(r.pendientes, ['MEN-1', 'MEN-2']);
+    // TASK-158b: sin codigo corregido no hay autorrevision 4D que pedir.
+    assert.deepEqual(r.avisos, []);
     assert.ok(existsSync(path.join(revisionDir, 'menores-pendientes.md')));
     assert.equal(await fase(tareasRoot, repoRoot, id), 'finish');
   });
@@ -319,4 +321,30 @@ test('TASK-144a: una peticion de otra ronda no da Commit revisado: verificar-men
     assert.notEqual(paso.accion, 'continuar', JSON.stringify(paso));
     assert.match(String(paso.motivo), /no coincide con lo revisado/);
   });
+});
+
+test('TASK-158b: con MENORES corregidos, verificar-menores avisa sin bloquear si falta "- 4D menores — " y calla con ella', async () => {
+  for (const conLinea of [false, true]) {
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      const id = conLinea ? 'TASK-958' : 'TASK-957';
+      await montar(repoRoot, tareasRoot, id, 'aprobada con correcciones', [FILA_MEN1]);
+      await escribir(repoRoot, 'src/a.ts', '// src/a.ts\nexport const x = 2;\n');
+      commitAll(repoRoot, `fix(${id}): MEN-1`);
+      if (conLinea) {
+        // tareas/ no cuenta como codigo cambiado: la linea puede ir sin commitear, como en el flujo real.
+        const tarea = tareaEnRevision(tareasRoot, id);
+        const texto = await readFile(tarea, 'utf8');
+        await writeFile(tarea, `${texto.trimEnd()}\n\n## Autorrevision\n\n- 4D menores — abc1234: usos buscados, 0 tests mutados\n`, 'utf8');
+      }
+      const r = await runVerificarMenoresCommand(tareasRoot, [id], { repoCwd: repoRoot });
+      assert.deepEqual(r.corregidos, ['MEN-1'], 'la verificacion se registra igual');
+      if (conLinea) {
+        assert.deepEqual(r.avisos, []);
+      } else {
+        assert.equal(r.avisos.length, 1);
+        assert.match(r.avisos[0] as string, new RegExp(`${id}: los MENORES corregidos no traen su autorrevision 4D`));
+        assert.match(r.avisos[0] as string, /"- 4D menores — <commit>: usos buscados, N tests mutados"/);
+      }
+    });
+  }
 });

@@ -906,6 +906,7 @@ async function mainComando(argvEntrada) {
                 `Siguiente: taskctl finish ${r.id}
 `);
             printAutoCommit(r.autoCommit);
+            printAvisos(...r.avisos);
             return 0;
         }
         catch (e) {

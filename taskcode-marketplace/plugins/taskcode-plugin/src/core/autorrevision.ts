@@ -29,9 +29,45 @@ export function tieneAutorrevision(body: string): boolean {
  * autorrevision. Antes cualquier linea daba la constancia por buena (CONT-08
  * de la auditoria de TASK-141), asi que la autorrevision 4D podia no hacerse
  * sin que nada avisara. Vale con guion largo, corto o dos puntos tras «4D».
+ *
+ * TASK-158b: `etiqueta` distingue las lineas de quien corrige: `''` es la de
+ * la implementacion (`- 4D — `), `ronda K` la de las correcciones de la ronda
+ * K (`- 4D ronda K — `) y `menores` la de los MENORES tras aprobar. Ninguna
+ * cuenta por otra: la de la ronda 1 no vale para la ronda 2.
  */
-export function tieneLinea4D(body: string): boolean {
-  return (contenidoDeSeccion(body, SECCION_AUTORREVISION) ?? []).some((l) => /^\s*[-*]\s*4D\s*(?:—|–|-|:)\s*\S/.test(l));
+export function tieneLinea4D(body: string, etiqueta = ''): boolean {
+  const tras4D = etiqueta === '' ? '' : `\\s+${etiqueta.trim().split(/\s+/).join('\\s+')}`;
+  const linea = new RegExp(`^\\s*[-*]\\s*4D${tras4D}\\s*(?:—|–|-|:)\\s*\\S`);
+  return (contenidoDeSeccion(body, SECCION_AUTORREVISION) ?? []).some((l) => linea.test(l));
+}
+
+/** El formato de la linea de quien corrige, el mismo que da revision.md. */
+const FORMATO_CORRECCION = '<commit>: usos buscados, N tests mutados';
+
+/**
+ * TASK-158b: aviso de `review` al abrir la ronda K+1 si las correcciones de la
+ * ronda K no traen su autorrevision 4D; null si esta.
+ */
+export function avisoAutorrevisionRonda(body: string, id: string, ronda: number): string | null {
+  if (tieneLinea4D(body, `ronda ${String(ronda)}`)) return null;
+  return (
+    `${id}: las correcciones de la ronda ${String(ronda)} no traen su autorrevision 4D en "${SECCION_AUTORREVISION}". ` +
+    'La ronda se abre igual, pero quien corrige busca todos los usos de lo que corrige (no solo los que cita el ' +
+    `hallazgo), muta cada test nuevo y lo anota: "- 4D ronda ${String(ronda)} — ${FORMATO_CORRECCION}".`
+  );
+}
+
+/**
+ * TASK-158b: aviso de `verificar-menores` si los MENORES corregidos no traen
+ * su autorrevision 4D; null si esta.
+ */
+export function avisoAutorrevisionMenores(body: string, id: string): string | null {
+  if (tieneLinea4D(body, 'menores')) return null;
+  return (
+    `${id}: los MENORES corregidos no traen su autorrevision 4D en "${SECCION_AUTORREVISION}". ` +
+    'La verificacion queda registrada igual, pero quien corrige busca todos los usos de lo que corrige, muta ' +
+    `cada test nuevo y lo anota: "- 4D menores — ${FORMATO_CORRECCION}".`
+  );
 }
 
 /** El aviso de `review` si falta la constancia o su linea 4D; null si esta todo. */
@@ -41,8 +77,8 @@ export function avisoAutorrevision(body: string, id: string): string | null {
     return (
       `${id}: la autorrevision de tarea.md no trae la linea de la Regla 4D. La revision sigue, pero antes ` +
       'de pedirla conviene hacer la autorrevision 4D (buscar el helper que ya existe antes de crear uno, ' +
-      'citar el criterio que motiva cada cambio, mutar cada test nuevo y verlo en rojo) y anotarla en ' +
-      `"${SECCION_AUTORREVISION}": "- 4D — <commit>: helper buscado, criterios citados, N tests mutados".`
+      'citar el criterio que motiva cada cambio, buscar todos los usos de lo que se unifica, mutar cada test nuevo y verlo en rojo) y anotarla en ' +
+      `"${SECCION_AUTORREVISION}": "- 4D — <commit>: helper buscado, usos buscados, criterios citados, N tests mutados".`
     );
   }
   return (
@@ -50,6 +86,6 @@ export function avisoAutorrevision(body: string, id: string): string | null {
     'La revision sigue, pero antes de pedirla conviene pasar la seccion "## Que se revisa" de cada revisora ' +
     'que da "taskctl siguiente --json" (campo "revisores"), corregir lo evidente y anotar en tarea.md ' +
     `"${SECCION_AUTORREVISION}" con una linea "- <revisora> — <commit>" por revisora, commiteada, ` +
-    'y la de la Regla 4D: "- 4D — <commit>: helper buscado, criterios citados, N tests mutados".'
+    'y la de la Regla 4D: "- 4D — <commit>: helper buscado, usos buscados, criterios citados, N tests mutados".'
   );
 }

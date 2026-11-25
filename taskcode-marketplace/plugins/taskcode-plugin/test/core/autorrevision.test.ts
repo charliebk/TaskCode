@@ -4,7 +4,14 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { avisoAutorrevision, tieneAutorrevision, tieneLinea4D, SECCION_AUTORREVISION } from '../../src/core/autorrevision.js';
+import {
+  avisoAutorrevision,
+  avisoAutorrevisionMenores,
+  avisoAutorrevisionRonda,
+  tieneAutorrevision,
+  tieneLinea4D,
+  SECCION_AUTORREVISION,
+} from '../../src/core/autorrevision.js';
 
 const BASE = '## Objetivo\n\nAlgo.\n\n## Criterios de aceptacion\n- [ ] uno\n';
 
@@ -78,4 +85,27 @@ test('nunca lanza, ni con entradas raras', () => {
     assert.doesNotThrow(() => avisoAutorrevision(body, 'TASK-900'));
   }
   assert.equal(tieneAutorrevision(`${SECCION_AUTORREVISION}\n- a — b`), true);
+});
+
+test('TASK-158b: cada linea 4D cuenta solo por la suya (implementacion, ronda K, menores)', () => {
+  const con = (l: string) => `${BASE}\n${SECCION_AUTORREVISION}\n\n${l}\n`;
+  assert.equal(tieneLinea4D(con('- 4D ronda 2 — abc: usos buscados')), false, 'la de una ronda no es la de la implementacion');
+  assert.equal(tieneLinea4D(con('- 4D ronda 2 — abc: usos buscados'), 'ronda 2'), true);
+  assert.equal(tieneLinea4D(con('- 4D ronda 2 — abc: usos buscados'), 'ronda 1'), false, 'la ronda 2 no vale por la 1');
+  assert.equal(tieneLinea4D(con('- 4D ronda 12 — abc'), 'ronda 1'), false, 'ronda 12 no es ronda 1');
+  assert.equal(tieneLinea4D(con('- 4D — abc: helper buscado'), 'ronda 1'), false);
+  assert.equal(tieneLinea4D(con('- 4D menores: abc'), 'menores'), true, 'dos puntos tambien valen');
+  assert.equal(tieneLinea4D(con('- 4D menores — abc'), 'ronda 1'), false);
+});
+
+test('TASK-158b: los avisos de ronda y de menores nombran la tarea y dan la linea exacta; null con la linea', () => {
+  const ronda = avisoAutorrevisionRonda(BASE, 'TASK-900', 3);
+  assert.ok(ronda !== null);
+  assert.match(ronda, /^TASK-900: las correcciones de la ronda 3 no traen su autorrevision 4D/);
+  assert.ok(ronda.includes('"- 4D ronda 3 — <commit>: usos buscados, N tests mutados"'));
+  assert.equal(avisoAutorrevisionRonda(`${BASE}\n${SECCION_AUTORREVISION}\n\n- 4D ronda 3 — abc: x\n`, 'TASK-900', 3), null);
+  const menores = avisoAutorrevisionMenores(BASE, 'TASK-900');
+  assert.ok(menores !== null);
+  assert.ok(menores.includes('"- 4D menores — <commit>: usos buscados, N tests mutados"'));
+  assert.equal(avisoAutorrevisionMenores(`${BASE}\n${SECCION_AUTORREVISION}\n\n- 4D menores — abc: x\n`, 'TASK-900'), null);
 });

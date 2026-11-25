@@ -976,6 +976,7 @@ async function mainComando(argvEntrada: readonly string[]): Promise<number> {
 `
       );
       printAutoCommit(r.autoCommit);
+      printAvisos(...r.avisos);
       return 0;
     } catch (e) {
       if (e instanceof VerificarMenoresCommandError) {
