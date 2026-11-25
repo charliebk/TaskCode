@@ -1,6 +1,23 @@
 # Changelog
 
-## Sin publicar
+## 0.18.0 — 2026-11-25
+
+Olas 2 a 4 de las correcciones de la auditoria 4D (TASK-141) y la segunda
+auditoria 4D completa. Lo que estaba copiado tiene una sola fuente: secciones
+de tarea.md, IDs y criterios, catalogos y raiz del plugin, validacion de config,
+el envoltorio de git sin lanzar, los errores del CLI, las puertas de finish, los
+helpers de import, roadmap, verificar-lote y registrar-coste, y el agregador de
+la suite de metricas y doctor (TASK-145 a 149, 138). Git-Flow: crear, actualizar
+y unir a main comparten su cuerpo, traen antes lo ultimo de origin y la vuelta a
+develop para antes de tocar main si develop no encaja; argumentos y nombre de
+rama comunes; push-back espejo solo sube ramas y tags; las consultas a origin de
+taskctl se cortan con GF_TIMEOUT_REMOTO (TASK-143). Cada test marcado como
+disfraz caza su mutante y la selectiva no recorta en silencio (TASK-151, 139).
+claude.cmd se encuentra en Windows, claude plugin list espera 30 s y
+verificar-impacto elige los tests de los md de skills (TASK-155 a 157). La
+segunda auditoria (docs/auditoria-4d-segunda.md) da 99 de 150 casos
+corregidos y 130 nuevos sin ningun CRITICO, con seguimiento en TASK-159 a 166.
+
 - TASK-143c (fix) — paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143) (2026-11-25)
 - TASK-143b (fix) — argumentos, diagnose y push-back (parte b de TASK-143) (2026-11-24)
 - TASK-143a (fix) — create, update y merge a main (parte a de TASK-143) (2026-11-24)
@@ -26,7 +43,6 @@
 - TASK-149a (fix) — git y hooks (parte a de TASK-149) (2026-11-23)
 - TASK-147c (fix) — fases y Marca en metricas (parte c de TASK-147) (2026-11-23)
 - TASK-147b (fix) — criterios, normalizacion, citar e IDs (parte b de TASK-147) (2026-11-23)
-
 - TASK-147a (fix) — secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) (2026-11-23)
 
 ## 0.17.1 — 2026-11-23
