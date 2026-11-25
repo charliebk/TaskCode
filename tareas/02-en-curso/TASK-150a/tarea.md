@@ -40,6 +40,11 @@ Objetivo de la tarea entera:
 - [ ] La descripcion de cada revisora coincide con el reparto real (solo patrones de fichero) y ningun caso sale con dos severidades
 - [ ] Un test por regla falla si vuelve la frase contradictoria
 
+## Autorrevision
+
+- code-quality-reviewer — a8cb5e7
+- 4D — a8cb5e7: helper buscado (cargarCatalogoRevisores, patron de seccion de los tests de skills), usos buscados (grep en skills/, agents/, docs/ y README de cada frase: clave mal escrita, casillas, test duplicado MENOR, pedir contexto, menciona, tres claves y ocho comandos), criterios citados, 3 tests nuevos con 7 mutaciones en rojo
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
