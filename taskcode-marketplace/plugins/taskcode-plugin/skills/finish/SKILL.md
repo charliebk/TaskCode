@@ -80,7 +80,9 @@ la tarea y `cierre` la clave `cierre_por_defecto` de la configuracion
 - **Hotfix y release** no tienen merge request (se mergean a la rama principal
   con tag y backmerge) y se cierran siempre con pregunta, en cualquier modo.
   Solo pregunta el tag: el nombre sustituye al que el script habria puesto,
-  siempre queda un unico tag.
+  siempre queda un unico tag. El codigo de un hotfix pasa por `start` y su
+  autorrevision de la Regla 4D como cualquier otro; una release solo sube
+  version y notas: si trae codigo, es una tarea aparte con su propio ciclo.
 
 Un nombre de tag que ya existe o no vale para Git aborta antes de mergear sin
 tocar nada: muestra el error y pregunta otro nombre.

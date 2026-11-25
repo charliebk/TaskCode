@@ -94,6 +94,10 @@ cada uno en su dominio):
 La peticion trae `## Candidatos 4D` (pistas desde el diff): comprueba cada
 posible duplicado y muta cada test que liste.
 
+Todos los usos: antes de dar una duplicacion por cerrada, busca cada sitio
+que la tiene, no solo los citados. Al corregir `- 4D ronda K — ` o
+`- 4D menores — ` en la autorrevision.
+
 Duplicacion y disfraz reales son **IMPORTANTE** como minimo; desviacion y
 diluvio, MENOR salvo que cambien comportamiento o escondan un fallo.
 

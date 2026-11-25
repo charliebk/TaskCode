@@ -67,3 +67,48 @@ test('TASK-153b: revision.md pide comprobar los candidatos 4D de la peticion y m
   assert.match(revision, /`## Candidatos 4D`/);
   assert.match(revision, /muta cada test que liste/);
 });
+
+/*
+ * TASK-158a (Regla 4D preventiva): cada camino que crea o cambia codigo la
+ * exige al escribir, con la busqueda de todos los usos antes de dar una
+ * duplicacion por resuelta. Un test por camino: si ese camino pierde la
+ * instruccion, falla el suyo y nombra el camino.
+ */
+const AGENTS_DIR = path.join(SKILLS_DIR, '..', 'agents');
+const TODOS_LOS_USOS = /todos\s+los\s+usos/;
+
+test('TASK-158a revision: todos los usos antes de dar una duplicacion por resuelta, y la misma autorrevision al corregir', async () => {
+  const regla = seccion(await leer('task-workflow/revision.md'), '## Regla 4D');
+  assert.match(regla, /Todos los usos: antes de dar una duplicacion por cerrada[\s\S]*no solo los citados/);
+  for (const linea of ['- 4D ronda K — ', '- 4D menores — ']) {
+    assert.ok(regla.includes(`\`${linea}`), `revision.md: falta la linea de autorrevision "${linea}"`);
+  }
+});
+
+test('TASK-158a implementacion (start): busca todos los usos y lo anota en la linea 4D', async () => {
+  const start = await leer('start/SKILL.md');
+  assert.match(start, TODOS_LOS_USOS);
+  assert.match(start, /- 4D — <commit>: helper buscado, usos buscados,/);
+});
+
+test('TASK-158a correcciones de ronda y MENORES (review): autorrevision 4D por ronda y antes de verificar-menores', async () => {
+  const review = await leer('review/SKILL.md');
+  assert.match(review, /Regla 4D al corregir y en los MENORES: todos los usos\./);
+});
+
+test('TASK-158a brainstorm: cada rol trae su apartado de la Regla 4D en "## Qué miras" con la busqueda de usos', async () => {
+  const roles = ['arquitectura', 'dominio', 'rendimiento', 'riesgos', 'testing', 'unificador'];
+  for (const rol of roles) {
+    const texto = await readFile(path.join(AGENTS_DIR, `brainstorm-${rol}.md`), 'utf8');
+    const queMiras = seccion(texto, '## Qué miras');
+    assert.match(queMiras, /^- \*\*Regla 4D[^*]*\*\*: \S/m, `brainstorm-${rol}: sin apartado de la Regla 4D`);
+    assert.match(queMiras, /todos\s+(los\s+)?(usos|sitios|tests)/, `brainstorm-${rol}: no pide buscar todos los usos`);
+  }
+});
+
+test('TASK-158a hotfix y doctor-deploy: el codigo pasa por start con la Regla 4D, no se arregla por fuera', async () => {
+  assert.match(await leer('finish/SKILL.md'), /hotfix pasa por `start` y su\s+autorrevision de la Regla 4D/);
+  const deploy = await leer('doctor-deploy/SKILL.md');
+  assert.match(deploy, /No arregles el código aquí: cada arreglo pasa por\s+plan y start, con la Regla 4D/);
+  assert.match(deploy, TODOS_LOS_USOS);
+});

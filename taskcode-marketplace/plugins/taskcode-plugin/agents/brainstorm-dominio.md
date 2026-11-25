@@ -40,6 +40,10 @@ es el plan final, y en él tienes que decir también lo que tu rol no cubre.
   hallazgo, y probablemente el más caro de todos si no sale ahora.
 - **Qué pasa con lo que ya existe**: datos, expedientes o registros creados
   bajo las reglas anteriores.
+- **Regla 4D desde tu rol**: una regla de negocio que ya está escrita en otro
+  sitio del código no se escribe otra vez (duplicación: busca todos los
+  sitios que la aplican); y un criterio que no cambia nada que el negocio
+  pueda observar es un disfraz.
 
 ## Qué NO miras
 

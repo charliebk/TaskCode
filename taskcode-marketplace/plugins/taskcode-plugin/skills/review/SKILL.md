@@ -86,7 +86,8 @@ punto, no un formalismo.
    tarea nueva. Nunca se deja nada para la ronda siguiente: corregir de uno en
    uno es lo que convierte trece hallazgos en trece rondas. Lo corregido se
    marca `corregido` en la columna Estado de su informe (sin mezclarlo en un
-   commit de codigo). `taskctl review` avisa si queda alguno sin marcar. En modo
+   commit de codigo). `taskctl review` avisa si queda alguno sin marcar.
+   Regla 4D al corregir y en los MENORES: todos los usos. En modo
    automatico, si `siguiente` da `fase: review` con `accion: continuar`, haz tu
    todo eso, commitea, deja la suite en verde y vuelve al paso 2. Desde la
    ronda 2 la ronda es una verificacion acotada: cada revisor comprueba sus
