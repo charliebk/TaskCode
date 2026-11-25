@@ -66,3 +66,7 @@ que describe la de `informeTemplate`.
 ## Verificacion ligera
 
 - 2026-11-25T12:03:07Z: ronda 1; commit revisado 2aab1621747686dbd34a08f0596801914eb5d885; commit verificado d1751091ca97a04f4ce49068261f63defa0ac06a; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/skills/revisores.test.ts; corregidos: MEN-1, MEN-2; pendientes: ninguno
+
+## Verificacion omitida
+
+- 2026-11-25T12:50:49Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
