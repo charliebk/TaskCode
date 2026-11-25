@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 4984955
-tokens_revision: null
+tokens_revision: 4371865
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: [TASK-158a]
@@ -54,3 +54,6 @@ las tareas viejas no se atascan).
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T04:33:38Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 34 | 27806 | 4944785 | 12330 | 7 | 4984955 | - | - |
+| 2026-11-25T05:28:58Z | revision | agente:a0cd841bd2667d7cb | 68 | 150294 | 4203505 | 17998 | 10 | 4371865 | 1 | - |
+- code-quality-reviewer — e075501
+- 4D ronda 1 — e075501: usos buscados (printAvisos ya cubierto en otros comandos; la etiqueta solo se usa con tres literales), 2 tests nuevos (CLI y etiqueta escapada) con 2 mutaciones en rojo
