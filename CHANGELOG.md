@@ -1,6 +1,22 @@
 # Changelog
 
-## Sin publicar
+## 0.19.0 — 2026-11-25
+
+Regla 4D preventiva: lo que las auditorias 4D encontraban despues, el plugin lo
+evita antes, en este repo y en los proyectos que lo usan. Cada camino que crea o
+toca codigo (brainstorm, start, review, finish, hotfix, doctor-deploy) exige la
+4D y buscar todos los usos; taskctl comprueba la linea de autorrevision 4D por
+ronda y en los MENORES (TASK-158). Nueva guia instalable de duplicacion de grano
+fino (duplicacion.md), a la que remiten start, review y las revisoras; review
+avisa de definiciones nuevas casi identicas a otras por su cuerpo aunque se
+llamen distinto; la skill auditoria-4d audita todo el proyecto con agentes de
+solo lectura y deja docs/auditoria-4d-<fecha>.md con plan por olas y, si se
+pide, una tarea por ola; taskctl metricas muestra la serie entre auditorias
+(TASK-167). Textos que contradecian al codigo, y la plantilla del informe de
+revision en un solo sitio (TASK-150a y 150b). Agilidad: un cambio solo en md de
+skills o agentes se verifica con sus ~20 tests en vez de ~119, y verificar-impacto
+no devuelve dist/src si HEAD cambio durante la ejecucion (TASK-168, 158c).
+
 - TASK-167d (feature) — tendencia de hallazgos 4D en las metricas (parte d de TASK-167) (2026-11-25)
 - TASK-167c (feature) — auditoria 4D invocable (parte c de TASK-167) (2026-11-25)
 - TASK-167b (feature) — detector de duplicados por cuerpo en el diff (parte b de TASK-167) (2026-11-25)
@@ -10,7 +26,6 @@
 - TASK-150a (fix) — textos que contradicen al codigo o a la Regla 4D (parte a de TASK-150) (2026-11-25)
 - TASK-158c (feature) — verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158) (2026-11-25)
 - TASK-158b (feature) — taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158) (2026-11-25)
-
 - TASK-158a (feature) — los textos de cada camino exigen 4D y buscar todos los usos (parte a de TASK-158) (2026-11-25)
 
 ## 0.18.0 — 2026-11-25
