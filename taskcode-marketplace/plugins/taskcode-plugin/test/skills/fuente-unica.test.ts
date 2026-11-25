@@ -45,7 +45,7 @@ test('TASK-150a (CONT-03, CONT-04): ninguna skill rebaja el test duplicado a MEN
     // IMP-1 (ronda 1) e IMP-2 (ronda 2) de su revision: las variantes, con negrita o sin ella.
     assert.doesNotMatch(
       texto,
-      /pedirlo explicitamente|pide siempre|pidelo si un|lo pide (para un hallazgo|como contexto)/,
+      /pedirlo explicitamente|pide siempre|pidelo si un|lo pide (para un hallazgo|como contexto)|Contexto adicional pedido|\.d\.ts pedidos/,
       `${rel}: pide contexto`
     );
   }

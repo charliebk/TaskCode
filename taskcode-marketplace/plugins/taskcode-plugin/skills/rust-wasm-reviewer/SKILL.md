@@ -358,44 +358,20 @@ contrario de lo que dice:
 
 ## Estructura del informe
 
-Se rellena el esqueleto que deja `taskctl review`, respetando su cabecera
-(ver revision.md), con el nombre de esta skill en `- Revisor:`. Las secciones
-propias de este revisor van **despues** de `## Hallazgos`, donde no chocan con
-lo que el esqueleto ya trae:
+Se rellena el esqueleto que deja `taskctl review` (cabecera, tabla de
+hallazgos, Regla 4D y lecturas fuera del contexto), como dice "El informe" de
+revision.md, con `rust-wasm-reviewer` en `- Revisor:`. Este revisor anade, despues
+de `## Hallazgos`:
 
-```markdown
-# Informe de revision — <ID de la tarea> (ronda <N>)
-
-- Commit revisado: <sha>
-- Revisor: rust-wasm-reviewer
-- Veredicto: aprobada
-
-## Hallazgos
-
-<un bloque por hallazgo, con la plantilla de revision.md>
-
-## Alcance
-- Ficheros revisados: <los del diff que casaron con los patrones>
-- Contexto adicional pedido: <ninguno, o que y por que>
-- Limite JS-WASM: <sin cambios de firma exportada, o llamador y .d.ts pedidos y lo encontrado>
-
-## Reproduccion
-- Clon: <ruta temporal y rama>
-- Build: <comandos, objetivos (nativo, wasm32) y resultado>
-- Formato y lints: <cargo fmt --check, cargo clippy y resultado>
-- Suite: <comando, resultado, y linea base antes del diff>
-- Casos construidos: <entradas reales o extremas usadas para cada hallazgo>
-- Mutacion: <que proteccion se quito y que test se puso rojo, o que no>
-- Medidas: <tiempos, tamano del .wasm o copias por llamada, si aplican>
-
-## Revisado sin hallazgos
-<areas del diff que se miraron y salieron limpias, para que conste que se
-miraron>
-```
-
-Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
-forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
-llegar a esa conclusion.
+- `## Alcance`: los ficheros del diff que casaron con los patrones, y el limite JS-WASM
+  (sin cambios de firma exportada, o el llamador y el `.d.ts` leidos y lo
+  encontrado).
+- `## Reproduccion`: clon y rama, build por objetivo (nativo, wasm32), `cargo fmt --check` y
+  `cargo clippy`, suite con su linea base, entradas reales o extremas de cada
+  hallazgo, la mutacion hecha y las medidas (tiempos, tamano del `.wasm`,
+  copias por llamada) si aplican.
+- `## Revisado sin hallazgos`: las areas del diff que se miraron y salieron
+  limpias.
 
 ## Lo que esta skill no hace
 

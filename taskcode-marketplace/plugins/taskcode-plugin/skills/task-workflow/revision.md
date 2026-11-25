@@ -162,8 +162,8 @@ la tarea, numerado por ronda. Se escribe sobre ese fichero, sin borrar la
 peticion, y **respetando su cabecera**: el titulo tal cual, la linea
 `- Commit revisado:` con el sha, la linea `- Revisor:` con el nombre de la
 skill revisora, y la linea `- Veredicto:`, que se **sustituye** en su sitio —
-nunca se borra de la cabecera ni se repite mas abajo. La cabecera de cada
-revisor, con su nombre, esta en su skill.
+nunca se borra de la cabecera ni se repite mas abajo. Las skills revisoras no
+la copian: solo anaden sus secciones propias despues de `## Hallazgos`.
 
 Cada hallazgo, bajo `## Hallazgos`, con esta plantilla:
 
