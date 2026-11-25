@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 6470820
-tokens_revision: null
+tokens_revision: 1605856
 creado: 2026-11-24
 actualizado: 2026-11-25
 dependencias: []
@@ -59,7 +59,9 @@ Objetivo de la tarea entera:
 ## Autorrevision
 
 - code-quality-reviewer — b3b9b4d
-- 4D — b3b9b4d: helper buscado (seccion/faltanD de regla-4d.test.ts reutilizados), usos buscados (grep de Regla 4D y duplicacion en skills/ y agents/), criterios citados, 7 tests mutados
+- 4D — b3b9b4d: helper buscado (seccion/faltanD de regla-4d.test.ts reutilizados), usos buscados (grep de Regla 4D y duplicacion en skills/ y agents/), criterios citados, 5 tests nuevos con 7 mutaciones (todas en rojo)
+- code-quality-reviewer — cb84d8b
+- 4D ronda 1 — cb84d8b: usos buscados (las lineas 4D se definen solo en revision.md; review remite), 3 tests reescritos con 5 mutaciones en rojo
 
 ## Transiciones
 
@@ -75,3 +77,4 @@ Objetivo de la tarea entera:
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T02:26:14Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 72 | 46002 | 6400358 | 24388 | 6 | 6470820 | - | - |
+| 2026-11-25T03:14:10Z | revision | agente:a388c6e006d480bc2 | 28 | 132070 | 1458948 | 14810 | 4 | 1605856 | 1 | - |
