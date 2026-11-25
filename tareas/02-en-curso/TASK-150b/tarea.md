@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f
 asignado_a: charlie.bk@gmail.com
@@ -39,3 +39,4 @@ que describe la de `informeTemplate`.
 |---|---|---|---|---|
 | 2026-11-25T10:59:58Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T11:01:03Z | approve | automatico | persona | 0.18.0 |
+| 2026-11-25T11:01:05Z | start | automatico | persona | 0.18.0 |
