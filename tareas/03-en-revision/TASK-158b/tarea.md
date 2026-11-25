@@ -48,6 +48,8 @@ las tareas viejas no se atascan).
 
 - code-quality-reviewer — 5782832
 - 4D — 5782832: helper buscado (tieneLinea4D parametrizado, printAvisos, withRonda1 y montar reutilizados), usos buscados (avisoAutorrevision solo en review.ts; tieneLinea4D solo en su test), criterios citados, 4 tests nuevos con 5 mutaciones en rojo
+- code-quality-reviewer — e075501
+- 4D ronda 1 — e075501: usos buscados (printAvisos ya cubierto en otros comandos; la etiqueta solo se usa con tres literales), 2 tests nuevos (CLI y etiqueta escapada) con 2 mutaciones en rojo
 
 ## Coste
 
@@ -55,5 +57,3 @@ las tareas viejas no se atascan).
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T04:33:38Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 34 | 27806 | 4944785 | 12330 | 7 | 4984955 | - | - |
 | 2026-11-25T05:28:58Z | revision | agente:a0cd841bd2667d7cb | 68 | 150294 | 4203505 | 17998 | 10 | 4371865 | 1 | - |
-- code-quality-reviewer — e075501
-- 4D ronda 1 — e075501: usos buscados (printAvisos ya cubierto en otros comandos; la etiqueta solo se usa con tres literales), 2 tests nuevos (CLI y etiqueta escapada) con 2 mutaciones en rojo
