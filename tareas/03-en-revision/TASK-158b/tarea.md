@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 4984955
-tokens_revision: 4371865
+tokens_revision: 5902864
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: [TASK-158a]
@@ -32,8 +32,17 @@ Parte b del troceo de TASK-158 (Regla 4D preventiva en todos los procesos que cr
 las tareas viejas no se atascan).
 
 ## Criterios de aceptacion
-- [ ] Las correcciones de una ronda de revision y los MENORES corregidos pasan por la misma exigencia 4D que la implementacion (autorrevision 4D por ronda y por correccion)
-- [ ] Un test por comando (review en ronda 2, verificar-menores) falla si deja de avisar
+- [x] Las correcciones de una ronda de revision y los MENORES corregidos pasan por la misma exigencia 4D que la implementacion (autorrevision 4D por ronda y por correccion)
+- [x] Un test por comando (review en ronda 2, verificar-menores) falla si deja de avisar
+
+## Resultado
+
+- `tieneLinea4D(body, etiqueta)` distingue la linea de la implementacion (`- 4D — `), la de cada ronda (`- 4D ronda K — `) y la de los MENORES (`- 4D menores — `); ninguna cuenta por otra (ronda 12 no es ronda 1) y la etiqueta se escapa. La linea base no cambia de comportamiento.
+- `review` avisa, sin bloquear, al abrir la ronda K+1 si falta `- 4D ronda K — `; `verificar-menores` avisa, sin bloquear, si hay codigo corregido y falta `- 4D menores — `, y el CLI lo imprime por stderr. Los mensajes dan la linea exacta con el formato de revision.md.
+- Tests: 2 en core, 1 en review-incremental (sin linea, con la de otra ronda, con la suya), 2 en verificar-menores (comando y CLI real) y una asercion en el caso sin codigo corregido. Mutaciones: 5 en la implementacion y 2 en la ronda 1, todas en rojo.
+- test:rapido 703/703; verificacion por impacto de las rondas: 1950 y 1949 pasan, 0 fallan.
+- Revision ronda 1 (sonnet): cambios-solicitados. IMP-1 (ningun test cubria la impresion del aviso por el CLI) corregido con un test sobre bin/taskctl; MEN-1 (etiqueta sin escapar) corregido; MEN-2 (mayusculas) aceptado: mismo criterio que la linea base desde TASK-153.
+- Revision ronda 2 (haiku, acotada): aprobada, sin hallazgos nuevos.
 
 ## Transiciones
 
@@ -58,3 +67,4 @@ las tareas viejas no se atascan).
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T04:33:38Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 34 | 27806 | 4944785 | 12330 | 7 | 4984955 | - | - |
 | 2026-11-25T05:28:58Z | revision | agente:a0cd841bd2667d7cb | 68 | 150294 | 4203505 | 17998 | 10 | 4371865 | 1 | - |
+| 2026-11-25T06:09:05Z | revision | agente:a0c40ddb4048190dc | 28 | 120275 | 1398832 | 11864 | 5 | 1530999 | 2 | - |
