@@ -714,11 +714,16 @@ function devolver(copia, distSrc, habiaDist, head = null) {
   const dirPlugin = path.dirname(path.dirname(distSrc));
   const ahora = head === null ? null : headDe(dirPlugin);
   if (ahora !== null && ahora !== head) {
-    git(['checkout', 'HEAD', '--', 'dist/src'], dirPlugin);
-    git(['clean', '-fdq', '--', 'dist/src'], dirPlugin);
+    // MEN-1 de su revision: solo se limpia si dist/src salio de Git; si no esta
+    // versionado (o el checkout falla), limpiar lo borraria entero.
+    const restaurado = git(['checkout', 'HEAD', '--', 'dist/src'], dirPlugin) !== null;
+    if (restaurado) git(['clean', '-fdq', '--', 'dist/src'], dirPlugin);
     console.log(
       `[verificar-impacto] AVISO: HEAD cambio durante la ejecucion (${head.slice(0, 7)} -> ${ahora.slice(0, 7)}): ` +
-        'no devuelvo la copia de dist/src, que es de otro commit; lo dejo como esta en el HEAD actual.'
+        'no devuelvo la copia de dist/src, que es de otro commit; ' +
+        (restaurado
+          ? 'lo dejo como esta en el HEAD actual.'
+          : 'no he podido sacarlo de Git y lo dejo como esta: "npm run build" lo regenera.')
     );
     rmSync(copia, { recursive: true, force: true });
     return;

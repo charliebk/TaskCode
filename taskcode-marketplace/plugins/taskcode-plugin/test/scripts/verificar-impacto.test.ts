@@ -690,7 +690,11 @@ test('TASK-158c: si HEAD cambia durante la ejecucion, no devuelve la copia de di
   console.log = (...a: unknown[]) => { salida.push(a.join(' ')); };
   try {
     // La copia se toma en `main` (v1); durante fn se compila y otro proceso cambia de rama.
+    const headMain = git(['rev-parse', 'HEAD'], dir).trim();
     conDistProtegido(dir, () => {
+      // IMP-1 de su revision: el marcador lleva el HEAD de la copia, para que una huerfana tampoco vuelva sobre otra rama.
+      const marcador = JSON.parse(readFileSync(path.join(dirCopia(dir), 'marcador.json'), 'utf8')) as { head?: unknown };
+      assert.equal(marcador.head, headMain);
       writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'compilado');
       writeFileSync(path.join(dir, 'dist', 'src', 'nuevo.js'), 'de mas');
       git(['checkout', '-q', '-f', 'otra'], dir);
@@ -737,6 +741,38 @@ test('TASK-158c: una copia huerfana de otro commit tampoco se devuelve', async (
   } finally {
     console.log = log;
     rmSync(copia, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('TASK-158c (MEN-1 de su revision): con dist/src sin versionar, un cambio de HEAD no lo borra ni dice que salio de Git', async () => {
+  type Protegido = (dir: string, fn: () => unknown) => unknown;
+  const { conDistProtegido } = (await import(pathToFileURL(SCRIPT).href)) as { conDistProtegido: Protegido };
+  const dir = mkdtempSync(path.join(tmpdir(), 'dist-sin-git-'));
+  const salida: string[] = [];
+  const log = console.log;
+  console.log = (...a: unknown[]) => { salida.push(a.join(' ')); };
+  try {
+    git(['init', '-q', '-b', 'main'], dir);
+    git(['config', 'user.email', 't@t'], dir);
+    git(['config', 'user.name', 't'], dir);
+    writeFileSync(path.join(dir, 'README.md'), 'r\n');
+    git(['add', '-A'], dir);
+    git(['commit', '-q', '-m', 'inicial'], dir);
+    mkdirSync(path.join(dir, 'dist', 'src'), { recursive: true });
+    writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'sin versionar\n');
+    conDistProtegido(dir, () => {
+      writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'compilado');
+      git(['commit', '-q', '--allow-empty', '-m', 'otro commit'], dir);
+    });
+  } finally {
+    console.log = log;
+  }
+  try {
+    assert.equal(readFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'utf8'), 'compilado', 'dist/src no se borra');
+    assert.ok(salida.some((l) => l.includes('no he podido sacarlo de Git')), salida.join('\n'));
+    assert.ok(!salida.some((l) => l.includes('lo dejo como esta en el HEAD actual')));
+  } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
