@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-167-regla-4d-preventiva-en-los-proyectos-que
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 4698066
 tokens_revision: null
 creado: 2026-11-25
 actualizado: 2026-11-25
@@ -53,3 +53,10 @@ Objetivo de la tarea entera:
 | 2026-11-25T12:55:40Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T12:57:40Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T12:57:42Z | start | automatico | persona | 0.18.0 |
+| 2026-11-25T13:40:09Z | review | automatico | persona | 0.18.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-25T13:40:09Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 16 | 12842 | 4678079 | 7129 | 2 | 4698066 | - | - |
