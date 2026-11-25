@@ -92,7 +92,7 @@ import { runGitflowScript } from '../fs/gitflow-runner.js';
 import { conPendientesApartados, hayCambiosFueraDeTarea, recuperarApartado } from '../fs/pendientes.js';
 import { cargarCatalogoRevisores, clasificarPorDominio } from '../core/revisores.js';
 import { excluirDeRevision } from '../fs/revisores-rango.js';
-import { avisoAutorrevision } from '../core/autorrevision.js';
+import { avisoAutorrevision, avisoAutorrevisionRonda } from '../core/autorrevision.js';
 import { contextoPermitido } from '../core/contexto-revision.js';
 import { modeloDeVerificacion } from '../core/modelo-revision.js';
 
@@ -842,6 +842,12 @@ async function runReview(
   // avisoAutorrevision es pura y nunca lanza.
   const sinAutorrevision = avisoAutorrevision(body, id);
   if (sinAutorrevision !== null) avisos.push(sinAutorrevision);
+  // TASK-158b: las correcciones de la ronda anterior pasan la misma Regla 4D
+  // que la implementacion, con su linea `- 4D ronda K — `. Aviso, sin bloquear.
+  if (previa !== null) {
+    const sinRonda4D = avisoAutorrevisionRonda(body, id, previa.ronda);
+    if (sinRonda4D !== null) avisos.push(sinRonda4D);
+  }
   // TASK-095: entre ronda y ronda se corrige TODO lo de la ronda anterior; lo
   // que no compense (un MENOR) se marca `aceptado` con su motivo o pasa a una
   // tarea nueva. Dejarlo para la ronda siguiente es lo que alargaba el ciclo.

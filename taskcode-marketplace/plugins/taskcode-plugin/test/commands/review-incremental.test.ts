@@ -273,3 +273,23 @@ test('informe-revision (TASK-040): veredictos historicos, tabla ausente, fila de
     abiertos: [{ id: 'IMP-2', severidad: 'IMPORTANTE', estado: 'Abierto', fichero: 'a.ts' }],
   });
 });
+
+test('TASK-158b: la ronda 2 avisa, sin bloquear, si las correcciones de la ronda 1 no traen "- 4D ronda 1 — "; con ella, no', async () => {
+  const AVISO_RONDA = /TASK-950: las correcciones de la ronda 1 no traen su autorrevision 4D/;
+  for (const linea of [null, '- 4D ronda 2 — abc: usos buscados, 1 tests mutados', '- 4D ronda 1 — abc: usos buscados, 1 tests mutados']) {
+    await withRonda1(INFORME_R1('PENDIENTE'), async (repo, tareas) => {
+      await runVeredictoCommand(tareas, ['TASK-950', 'cambios-solicitados'], { repoCwd: repo });
+      if (linea !== null) {
+        const tarea = path.join(tareas, '03-en-revision', 'TASK-950', 'tarea.md');
+        await writeFile(tarea, `${(await readFile(tarea, 'utf8')).trimEnd()}\n\n## Autorrevision\n\n${linea}\n`, 'utf8');
+      }
+      commitAll(repo, 'docs(TASK-950): veredicto y autorrevision');
+      const r2 = await runReviewCommand(tareas, ['TASK-950'], '2026-10-04', DEPS(repo));
+      assert.equal(r2.ronda, 2, 'la ronda se abre igual');
+      // Solo la linea de la ronda corregida (la 1) cuenta; la de otra ronda no.
+      const avisa = r2.avisos.some((a) => AVISO_RONDA.test(a));
+      assert.equal(avisa, linea === null || linea.includes('ronda 2'), `linea: ${String(linea)}`);
+      if (avisa) assert.ok(r2.avisos.some((a) => a.includes('"- 4D ronda 1 — <commit>: usos buscados, N tests mutados"')));
+    });
+  }
+});
