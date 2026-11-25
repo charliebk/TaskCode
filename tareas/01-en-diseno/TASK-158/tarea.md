@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-24
-actualizado: 2026-11-24
+actualizado: 2026-11-25
 dependencias: []
 ---
 ## Objetivo
@@ -32,3 +32,9 @@ Que la Regla 4D (sin duplicacion, desviacion, diluvio ni disfraz) se aplique al 
 - [ ] Las correcciones de una ronda de revision y los MENORES corregidos pasan por la misma exigencia 4D que la implementacion (autorrevision 4D por ronda y por correccion)
 - [ ] Un test por camino falla si ese camino deja de exigir 4D
 - [ ] verificar-impacto no devuelve la copia de dist/src si HEAD cambio durante la ejecucion (carrera del freno con update-fix vista en TASK-145b)
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-25T02:09:52Z | plan | automatico | persona | 0.18.0 |

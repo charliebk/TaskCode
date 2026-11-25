@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-158, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
+- **En marcha:** TASK-158 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
 
 ## H0 — H0
 
@@ -105,16 +105,45 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-135 | diffRangeForPaths por lotes: ENAMETOOLONG en la revision fragmentada | simple | — | ✅ terminada |
 | — | TASK-136 | Cerrojo en verificar-impacto: dos ejecuciones solapadas borran dist/src | simple | — | ✅ terminada |
 | — | TASK-137 | Regla 4D: sin duplicacion, desviacion, diluvio ni disfraz de codigo | media | — | ✅ terminada |
+| — | TASK-138a | agregador de la suite, mediana y pytest (parte a de TASK-138) | media | — | ✅ terminada |
+| — | TASK-138b | decision de la puerta, constante muerta, textos del tope y doctor (parte b de TASK-138) | media | TASK-138a | ✅ terminada |
+| — | TASK-139a | disfraces B1-B5 (parte a de TASK-139) | simple | — | ✅ terminada |
+| — | TASK-139b | la selectiva no recorta en silencio (parte b de TASK-139) | simple | TASK-139a | ✅ terminada |
 | 8 | TASK-140 | Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion | media | — | lista para empezar |
 | — | TASK-141 | Auditoria 4D inicial: reconocimiento completo del codigo existente | alta | — | ✅ terminada |
 | — | TASK-142 | Regla 4D: disfraz en los scripts de Git-Flow | media | — | ✅ terminada |
+| — | TASK-143a | create, update y merge a main (parte a de TASK-143) | alta | — | ✅ terminada |
+| — | TASK-143b | argumentos, diagnose y push-back (parte b de TASK-143) | alta | TASK-143a | ✅ terminada |
+| — | TASK-143c | paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143) | alta | TASK-143b | ✅ terminada |
+| — | TASK-144a | cadena, Commit revisado y tarea en su rama (parte a de TASK-144) | alta | — | ✅ terminada |
+| — | TASK-144b | flags con y sin valor (parte b de TASK-144) | alta | TASK-144a | ✅ terminada |
+| — | TASK-144c | patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) | alta | TASK-144b | ✅ terminada |
+| — | TASK-145a | puertas, git y textos de error (parte a de TASK-145) | media | — | ✅ terminada |
+| — | TASK-145b | finish.ts y comentarios (parte b de TASK-145) | media | TASK-145a | ✅ terminada |
+| — | TASK-146a | import, roadmap y verificar-lote (parte a de TASK-146) | media | — | ✅ terminada |
+| — | TASK-146b | registrar-coste, readdir, fecha y cabeceras (parte b de TASK-146) | media | TASK-146a | ✅ terminada |
+| — | TASK-147a | secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) | alta | — | ✅ terminada |
+| — | TASK-147b | criterios, normalizacion, citar e IDs (parte b de TASK-147) | alta | TASK-147a | ✅ terminada |
+| — | TASK-147c | fases y Marca en metricas (parte c de TASK-147) | alta | TASK-147b | ✅ terminada |
+| — | TASK-148a | raiz del plugin y lector de catalogos (parte a de TASK-148) | alta | — | ✅ terminada |
+| — | TASK-148b | validacion de config (parte b de TASK-148) | alta | TASK-148a | ✅ terminada |
+| — | TASK-148c | utilidades de core (parte c de TASK-148) | alta | TASK-148b | ✅ terminada |
+| — | TASK-148d | comentarios, diluvio y E/S en core (parte d de TASK-148) | alta | TASK-148c | ✅ terminada |
+| — | TASK-149a | git y hooks (parte a de TASK-149) | alta | — | ✅ terminada |
+| — | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | ✅ terminada |
+| — | TASK-149c | utilidades de fs (parte c de TASK-149) | alta | TASK-149b | ✅ terminada |
 | 9 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
+| — | TASK-151a | core, fs, skills e integracion (parte a de TASK-151) | media | — | ✅ terminada |
+| — | TASK-151b | commands, hooks y cli (parte b de TASK-151) | media | TASK-151a | ✅ terminada |
 | 10 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
+| — | TASK-153a | plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) | alta | — | ✅ terminada |
+| — | TASK-153b | candidatos 4D en la peticion de revision (parte b de TASK-153) | alta | TASK-153a | ✅ terminada |
+| — | TASK-153c | metricas de hallazgos 4D (parte c de TASK-153) | alta | TASK-153b | ✅ terminada |
 | — | TASK-154 | plan.test.ts en verde en Windows nativo | simple | — | ✅ terminada |
 | — | TASK-155 | comprobarSkillInstalado verificable en Windows (claude.cmd) | simple | — | ✅ terminada |
 | — | TASK-156 | verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin | simple | — | ✅ terminada |
 | — | TASK-157 | Timeout de claude plugin list acorde al binario real | simple | — | ✅ terminada |
-| 11 | TASK-158 | Regla 4D preventiva en todos los procesos que crean o actualizan codigo | alta | — | lista para empezar |
+| 11 | TASK-158 | Regla 4D preventiva en todos los procesos que crean o actualizan codigo | alta | — | ▶ en diseño |
 | 12 | TASK-159 | Regla 4D (2a auditoria): lectores de vallas, secciones y celdas en core | alta | — | lista para empezar |
 | 13 | TASK-160 | Regla 4D (2a auditoria): duplicacion residual en core | alta | — | lista para empezar |
 | 14 | TASK-161 | Regla 4D (2a auditoria): duplicacion residual en commands | alta | — | lista para empezar |
@@ -123,35 +152,6 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 17 | TASK-164 | Regla 4D (2a auditoria): skills que contradicen al CLI | media | — | lista para empezar |
 | 18 | TASK-165 | Regla 4D (2a auditoria): disfraz en tests | alta | — | lista para empezar |
 | 19 | TASK-166 | Regla 4D (2a auditoria): helpers de test duplicados por las correcciones | media | — | lista para empezar |
-| — | TASK-138a | agregador de la suite, mediana y pytest (parte a de TASK-138) | media | — | ✅ terminada |
-| — | TASK-139a | disfraces B1-B5 (parte a de TASK-139) | simple | — | ✅ terminada |
-| — | TASK-143a | create, update y merge a main (parte a de TASK-143) | alta | — | ✅ terminada |
-| — | TASK-144a | cadena, Commit revisado y tarea en su rama (parte a de TASK-144) | alta | — | ✅ terminada |
-| — | TASK-145a | puertas, git y textos de error (parte a de TASK-145) | media | — | ✅ terminada |
-| — | TASK-146a | import, roadmap y verificar-lote (parte a de TASK-146) | media | — | ✅ terminada |
-| — | TASK-147a | secciones con un solo lector y un solo «crear al final» (parte a de TASK-147) | alta | — | ✅ terminada |
-| — | TASK-148a | raiz del plugin y lector de catalogos (parte a de TASK-148) | alta | — | ✅ terminada |
-| — | TASK-149a | git y hooks (parte a de TASK-149) | alta | — | ✅ terminada |
-| — | TASK-151a | core, fs, skills e integracion (parte a de TASK-151) | media | — | ✅ terminada |
-| — | TASK-153a | plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153) | alta | — | ✅ terminada |
-| — | TASK-138b | decision de la puerta, constante muerta, textos del tope y doctor (parte b de TASK-138) | media | TASK-138a | ✅ terminada |
-| — | TASK-139b | la selectiva no recorta en silencio (parte b de TASK-139) | simple | TASK-139a | ✅ terminada |
-| — | TASK-143b | argumentos, diagnose y push-back (parte b de TASK-143) | alta | TASK-143a | ✅ terminada |
-| — | TASK-144b | flags con y sin valor (parte b de TASK-144) | alta | TASK-144a | ✅ terminada |
-| — | TASK-145b | finish.ts y comentarios (parte b de TASK-145) | media | TASK-145a | ✅ terminada |
-| — | TASK-146b | registrar-coste, readdir, fecha y cabeceras (parte b de TASK-146) | media | TASK-146a | ✅ terminada |
-| — | TASK-147b | criterios, normalizacion, citar e IDs (parte b de TASK-147) | alta | TASK-147a | ✅ terminada |
-| — | TASK-148b | validacion de config (parte b de TASK-148) | alta | TASK-148a | ✅ terminada |
-| — | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | ✅ terminada |
-| — | TASK-151b | commands, hooks y cli (parte b de TASK-151) | media | TASK-151a | ✅ terminada |
-| — | TASK-153b | candidatos 4D en la peticion de revision (parte b de TASK-153) | alta | TASK-153a | ✅ terminada |
-| — | TASK-143c | paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143) | alta | TASK-143b | ✅ terminada |
-| — | TASK-144c | patrones de ronda, plan que cuenta y doctor-deploy (parte c de TASK-144) | alta | TASK-144b | ✅ terminada |
-| — | TASK-147c | fases y Marca en metricas (parte c de TASK-147) | alta | TASK-147b | ✅ terminada |
-| — | TASK-148c | utilidades de core (parte c de TASK-148) | alta | TASK-148b | ✅ terminada |
-| — | TASK-149c | utilidades de fs (parte c de TASK-149) | alta | TASK-149b | ✅ terminada |
-| — | TASK-153c | metricas de hallazgos 4D (parte c de TASK-153) | alta | TASK-153b | ✅ terminada |
-| — | TASK-148d | comentarios, diluvio y E/S en core (parte d de TASK-148) | alta | TASK-148c | ✅ terminada |
 
 ## H1 — H1
 
