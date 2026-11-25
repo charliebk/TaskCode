@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 161 / 166 items terminados (97%)** · última actualización: 2026-11-24
+**Progreso global: 162 / 166 items terminados (98%)** · última actualización: 2026-11-24
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,8 +41,8 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 20 | **15** | ~32h |
-| **Total pendiente** | **5** | — | — |
+| Q — Correcciones de la auditoría 4D | 20 | **16** | ~32h |
+| **Total pendiente** | **4** | — | — |
 
 
 Las fases cerradas (Sprint 0 y 1, A a P), las decisiones ya resueltas (#1 a
@@ -91,4 +91,6 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
       *import valida y compone como new (parsearCamposDeTarea, MODELO_POR_DEFECTO, componerCuerpo), roadmap --comparar decide con prepararRoadmap (escribir:false), verificar-lote usa headCommit y listTareasEnEstados y aborta ante un fallo de git o lectura, registrar-coste suma con CAMPOS_COSTE, un listarSiExiste y una claveRuta, diaUtc para el creado de doctor-deploy, cabeceras fieles a TASK-119. 146a necesito 2 rondas (protecciones sin test); 146b, una con MENORES.*
 - [x] TASK-138 (a, b) — Regla 4D: duplicacion en metricas, suite y registro de puertas — cerrada el 2026-11-24
       *Un agregador de la suite por version (ultimaSuitePorTarea, resumirSuites) para metricas y doctor, una mediana (core/estadistica), pytest una vez, anotarVerificacion comun a finish, review, la suite y verificar-lote, PUERTAS_VERIFICACION fuera, textoSalidasTope (salidas numeradas) para siguiente y review, y doctor con una lectura de las terminadas. Una ronda cada parte, con MENORES.*
+- [x] TASK-143 (a, b, c) — Regla 4D: duplicacion en Git-Flow (bash y TS) — cerrada el 2026-11-24
+      *Create, update y merge a main con cuerpo comun (_gf_fetch_origin, _gf_sync_branch, invoke_update_work_branch, invoke_merge_to_main): fetch previo en todos y backmerge con pull --ff-only, abortando antes de tocar main si develop diverge. Argumentos y nombre de rama de parse_gitflow_args y normalize_branch_name en 14 scripts (los merge-* validan), diagnose con detect_origin_available y --develop, mirror de push-back solo de ramas y tags. detect_operation_in_progress con paridad bash/TS, ls-remote de git.ts con GIT_TERMINAL_PROMPT=0 y GF_TIMEOUT_REMOTO, finish con --main y perfil-tests con la compilacion protegida (conDistProtegido). 143a y 143c cerradas con --sin-verificacion autorizado por Carlos: rojos intermitentes de tiempos bajo carga, cada uno pasa aislado.*
 - [ ] TASK-158 — Regla 4D preventiva en todos los procesos que crean o actualizan codigo — antes de publicar la 0.19.0 (decision de Carlos)
