@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-158b (feature) — taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158) (2026-11-25)
 
 - TASK-158a (feature) — los textos de cada camino exigen 4D y buscar todos los usos (parte a de TASK-158) (2026-11-25)
 

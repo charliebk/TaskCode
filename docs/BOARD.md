@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-25. No editar a mano.
 
-## Planificadas (00-planificadas) — 27
+## Planificadas (00-planificadas) — 26
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -24,7 +24,6 @@ TASK-021   Publicar el marketplace y la versión v0.1.0 del plugin              
 TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
 TASK-150   Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
-TASK-158b  taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158)      (sin asignar)
 TASK-158c  verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158)                 (sin asignar)
 TASK-159   Regla 4D (2a auditoria): lectores de vallas, secciones y celdas en core                     (sin asignar)
 TASK-160   Regla 4D (2a auditoria): duplicacion residual en core                                       (sin asignar)
@@ -36,7 +35,7 @@ TASK-165   Regla 4D (2a auditoria): disfraz en tests                            
 TASK-166   Regla 4D (2a auditoria): helpers de test duplicados por las correcciones                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 157
+## Terminadas (04-terminadas) — 158
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -198,4 +197,5 @@ TASK-155   comprobarSkillInstalado verificable en Windows (claude.cmd)          
 TASK-156   verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin                               claude-156
 TASK-157   Timeout de claude plugin list acorde al binario real                                                                charlie.bk@gmail.com
 TASK-158a  los textos de cada camino exigen 4D y buscar todos los usos (parte a de TASK-158)                                   charlie.bk@gmail.com
+TASK-158b  taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158)                              charlie.bk@gmail.com
 ```

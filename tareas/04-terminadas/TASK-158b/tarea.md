@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
 asignado_a: charlie.bk@gmail.com
@@ -53,6 +53,7 @@ las tareas viejas no se atascan).
 | 2026-11-25T04:21:49Z | start | automatico | persona | 0.18.0 |
 | 2026-11-25T04:33:38Z | review | automatico | persona | 0.18.0 |
 | 2026-11-25T05:29:15Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T06:36:20Z | finish | automatico | persona | 0.18.0 |
 
 ## Autorrevision
 
@@ -72,3 +73,10 @@ las tareas viejas no se atascan).
 ## Verificacion parcial
 
 - 2026-11-25T06:09:14Z: todo el codigo que cambia la tarea (11 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 135 min
+- Paso de la hora: 135 min reales frente a 55 estimados
+- Cierre (finish): 1626 s, de 2026-11-25T06:09:14Z a 2026-11-25T06:36:20Z
