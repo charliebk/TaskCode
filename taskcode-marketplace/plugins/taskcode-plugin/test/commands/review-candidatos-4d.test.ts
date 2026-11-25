@@ -100,3 +100,37 @@ test('IMP-2: en la ronda incremental solo salen los tests del delta y las existe
     assert.doesNotMatch(s, /Posible duplicacion con lo que ya existia/);
   });
 });
+
+test('TASK-167b: review avisa, sin bloquear, de una funcion copiada con otro nombre y la lista en la peticion; sin copia, nada', async () => {
+  const ORIGINAL =
+    'export function leerSeccion(texto: string, titulo: string): string[] {\n' +
+    '  const lineas = texto.split("\n");\n' +
+    '  const inicio = lineas.findIndex((l) => l.trim() === titulo);\n' +
+    '  if (inicio === -1) return [];\n' +
+    '  const fin = lineas.findIndex((l, i) => i > inicio && l.startsWith("## "));\n' +
+    '  return lineas.slice(inicio + 1, fin === -1 ? lineas.length : fin).filter((l) => l.trim() !== "");\n' +
+    '}\n';
+  const COPIA = ORIGINAL.replace('leerSeccion', 'bloqueDe').replace(/lineas/g, 'ls').replace(/inicio/g, 'desde');
+  for (const copia of [true, false]) {
+    await withTempRepo(async (repoRoot, tareasRoot) => {
+      await escribirFichero(repoRoot, 'src/core/secciones.ts', ORIGINAL);
+      commitAll(repoRoot, 'helper existente en develop');
+      const task = sampleTask({ id: 'TASK-831', rama: 'feature/task-831-cuerpo' });
+      await setupTaskEnCursoSoloTarea(repoRoot, tareasRoot, task);
+      await escribirFichero(repoRoot, 'src/commands/nuevo.ts', copia ? COPIA : 'export function otraCosa(): number {\n  return 1;\n}\n');
+      commitAll(repoRoot, 'trabajo de la tarea');
+      const result = await runReviewCommand(tareasRoot, ['TASK-831'], '2026-11-25', { repoCwd: repoRoot, scriptsDir: SCRIPTS_DIR });
+      const peticion = await readFile(path.join(path.dirname(result.filePath), 'revision', 'peticion-revision-1.md'), 'utf8');
+      const aviso = result.avisos.find((a) => a.includes('casi identica(s) a otra por su cuerpo'));
+      if (copia) {
+        assert.ok(aviso !== undefined, `sin aviso: ${result.avisos.join(' | ')}`);
+        assert.match(aviso, /bloqueDe en src\/commands\/nuevo\.ts:1 ~ leerSeccion en src\/core\/secciones\.ts:1/);
+        assert.match(peticion, /### Posible duplicacion por cuerpo[\s\S]*`bloqueDe` \(src\/commands\/nuevo\.ts:1\) ~ `leerSeccion` \(src\/core\/secciones\.ts:1\)/);
+      } else {
+        assert.equal(aviso, undefined, 'avisa sin copia');
+        assert.doesNotMatch(peticion, /Posible duplicacion por cuerpo/);
+      }
+      assert.equal(result.ronda, 1, 'la ronda se abre igual');
+    });
+  }
+});
