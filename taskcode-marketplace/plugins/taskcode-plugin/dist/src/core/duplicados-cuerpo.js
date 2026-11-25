@@ -1,3 +1,17 @@
+/**
+ * TASK-167b (Regla 4D preventiva): duplicados por CUERPO.
+ *
+ * Los candidatos de `candidatos-4d.ts` comparan nombres; la duplicacion que
+ * mas repitieron las auditorias 4D es la misma logica con otro nombre. Aqui
+ * se compara lo que hace cada definicion: su cuerpo normalizado (sin
+ * comentarios, con cadenas, numeros e identificadores genericos) en tejas de
+ * tokens, por Jaccard. Sin parser por lenguaje: sirve para los que extrae
+ * candidatos-4d (llaves; Python por sangria).
+ *
+ * Puro: recibe lineas y definiciones y devuelve pares. Quien lee ficheros y
+ * Git es `commands/review.ts`.
+ */
+import { loc } from './candidatos-4d.js';
 import { sinComentariosC } from './doctor-deploy-reglas.js';
 /** Parecido minimo (Jaccard de tejas) para contar como duplicado. */
 export const UMBRAL_PARECIDO = 0.85;
@@ -7,36 +21,36 @@ export const MIN_TOKENS = 30;
 const MAX_LINEAS_CUERPO = 200;
 /** Tokens por teja. */
 const TEJA = 4;
+const sangriaDe = (l) => /^\s*/.exec(l)?.[0].length ?? 0;
 /**
- * El cuerpo de la definicion que empieza en la linea `desde` (1-based): hasta
- * equilibrar las llaves si las hay (sin llave, hasta la primera linea que
- * termina en `;` o `,`); si la linea termina en `:` (Python), las
- * lineas siguientes con mas sangria. Como mucho MAX_LINEAS_CUERPO.
+ * El cuerpo de la definicion que empieza en la linea `desde` (1-based), como
+ * mucho MAX_LINEAS_CUERPO lineas:
+ * - con llaves, hasta equilibrarlas;
+ * - si la cabecera (la firma, aunque ocupe varias lineas) termina en `:`
+ *   (Python), las lineas siguientes con mas sangria;
+ * - sin llave, hasta la primera linea que termina en `;` o `,` fuera de
+ *   parentesis, o hasta la siguiente linea con la misma sangria o menos (la
+ *   siguiente definicion: `def f(a): return a`, una flecha sin `;`).
  */
 export function cuerpoDesde(lineas, desde) {
     const i0 = desde - 1;
     const primera = lineas[i0];
     if (primera === undefined)
         return '';
-    if (/:\s*(#.*)?$/.test(primera) && !primera.includes('{')) {
-        const sangria = /^\s*/.exec(primera)?.[0].length ?? 0;
-        const salida = [primera];
-        for (let i = i0 + 1; i < lineas.length && salida.length < MAX_LINEAS_CUERPO; i++) {
-            const l = lineas[i];
-            if (l.trim() !== '' && (/^\s*/.exec(l)?.[0].length ?? 0) <= sangria)
-                break;
-            salida.push(l);
-        }
-        return salida.join('\n');
-    }
+    const base = sangriaDe(primera);
     let nivel = 0;
     let abierto = false;
     let parentesis = 0;
     const salida = [];
     for (let i = i0; i < lineas.length && salida.length < MAX_LINEAS_CUERPO; i++) {
         const l = lineas[i];
+        const fueraDeCabecera = !abierto && parentesis <= 0;
+        // Otra sentencia al mismo nivel: la definicion ya acabo (una `{` sola es su llave, estilo Allman).
+        if (i > i0 && fueraDeCabecera && l.trim() !== '' && sangriaDe(l) <= base && !l.trim().startsWith('{'))
+            break;
         salida.push(l);
-        const limpia = sinCadenas(sinComentariosC(l));
+        // Las llaves y parentesis escapados (`/\{/` en una regex) no cuentan.
+        const limpia = sinCadenas(sinComentariosC(l)).replace(/\\[{}()[\]]/g, '');
         for (const c of limpia) {
             if (c === '{') {
                 nivel++;
@@ -54,10 +68,21 @@ export function cuerpoDesde(lineas, desde) {
         }
         if (abierto && nivel <= 0)
             break;
-        // Sin llave abierta y fuera de parentesis (no es una firma partida), una
-        // linea que termina en ';' o ',' cierra la definicion (flecha o expresion
-        // de una linea): no se sigue leyendo lo de debajo.
-        if (!abierto && parentesis <= 0 && /[;,]\s*$/.test(limpia))
+        if (abierto || parentesis > 0)
+            continue;
+        // Fin de una cabecera de Python: el cuerpo es lo que tiene mas sangria.
+        if (/:\s*(#.*)?$/.test(l)) {
+            for (let j = i + 1; j < lineas.length && salida.length < MAX_LINEAS_CUERPO; j++) {
+                const s = lineas[j];
+                if (s.trim() !== '' && sangriaDe(s) <= base)
+                    break;
+                salida.push(s);
+            }
+            break;
+        }
+        // Sin llave y fuera de parentesis (no es una firma partida), `;` o `,` al
+        // final cierran la definicion (flecha o expresion de una linea).
+        if (/[;,]\s*$/.test(limpia))
             break;
     }
     return salida.join('\n');
@@ -123,7 +148,6 @@ export function duplicadosPorCuerpo(nuevas, existentes) {
 export function seccionDuplicadosPorCuerpo(pares, max = 10) {
     if (pares.length === 0)
         return '';
-    const loc = (d) => `\`${d.nombre}\` (${d.fichero}:${String(d.linea)})`;
     const resto = pares.length > max ? `- ... y ${String(pares.length - max)} mas\n` : '';
     return ('### Posible duplicacion por cuerpo\n\n' +
         'Definiciones nuevas casi identicas a otra, aunque se llamen distinto (Regla 4D: busca todos los usos y ' +

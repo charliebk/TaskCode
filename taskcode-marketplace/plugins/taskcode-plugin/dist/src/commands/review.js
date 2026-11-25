@@ -48,7 +48,9 @@ import { fenceFor } from '../core/markdown.js';
 import { candidatos4D, definicionesDeGrep, definicionesNuevas, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
 import { cuerpoDesde, duplicadosPorCuerpo, seccionDuplicadosPorCuerpo, } from '../core/duplicados-cuerpo.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, definicionesEnRef, showFileAtRef, GitLaunchError, GitCommandError, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
+import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, definicionesEnRef, GitLaunchError, GitCommandError, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
+import { ficherosEnRef } from '../fs/git-crudo.js';
+import { extension } from '../core/cobertura-cambios.js';
 import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
@@ -1011,44 +1013,31 @@ function verificacionDeRonda(id, config, base, tipoTarea, incremental, deps, avi
     }
     return motivo !== null ? { tipo: 'documentacion', v, motivo } : { tipo: 'selectiva', v };
 }
-/** TASK-167b: ficheros de la rama base que se leen como mucho para comparar cuerpos. */
-const MAX_FICHEROS_CUERPO = 400;
 /**
  * TASK-167b: pares de definiciones nuevas del diff casi identicas por su
  * cuerpo a otra (de la rama base o nueva). Solo se leen ficheros de las
- * extensiones que trae el diff, una vez cada uno. Nunca lanza: si Git falla,
- * no hay pares (los candidatos por nombre siguen saliendo).
+ * extensiones que trae el diff, todos con un `git cat-file --batch` por ref.
+ * Nunca lanza: si Git falla, no hay pares (los candidatos por nombre siguen
+ * saliendo).
  */
 export function duplicadosDeRonda(baseBranch, diffCodigo, cwd, excluir = []) {
     try {
         const nuevas = definicionesNuevas(diffCodigo);
         if (nuevas.length === 0)
             return [];
-        const extension = (f) => path.posix.extname(f).toLowerCase();
         const extensiones = new Set(nuevas.map((d) => extension(d.fichero)));
         const enBase = definicionesDeGrep(definicionesEnRef(baseBranch, cwd, excluir), baseBranch).filter((d) => extensiones.has(extension(d.fichero)));
-        const permitidos = new Set([...new Set(enBase.map((d) => d.fichero))].slice(0, MAX_FICHEROS_CUERPO));
-        const lector = (ref) => {
-            const cache = new Map();
-            return (f) => {
-                if (!cache.has(f)) {
-                    let lineas = null;
-                    try {
-                        lineas = showFileAtRef(ref, f, cwd).split(/\r?\n/);
-                    }
-                    catch {
-                        lineas = null;
-                    }
-                    cache.set(f, lineas);
-                }
-                return cache.get(f) ?? null;
-            };
+        const conCuerpo = (defs, ref) => {
+            const contenidos = ficherosEnRef(ref, [...new Set(defs.map((d) => d.fichero))], cwd);
+            if (contenidos === null)
+                return [];
+            const lineasDe = new Map([...contenidos].map(([f, t]) => [f, t.split(/\r?\n/)]));
+            return defs.flatMap((def) => {
+                const lineas = lineasDe.get(def.fichero);
+                return lineas === undefined ? [] : [{ def, cuerpo: cuerpoDesde(lineas, def.linea) }];
+            });
         };
-        const conCuerpo = (defs, leer) => defs.flatMap((def) => {
-            const lineas = leer(def.fichero);
-            return lineas === null ? [] : [{ def, cuerpo: cuerpoDesde(lineas, def.linea) }];
-        });
-        return duplicadosPorCuerpo(conCuerpo(nuevas, lector('HEAD')), conCuerpo(enBase.filter((d) => permitidos.has(d.fichero)), lector(baseBranch)));
+        return duplicadosPorCuerpo(conCuerpo(nuevas, 'HEAD'), conCuerpo(enBase, baseBranch));
     }
     catch {
         return [];

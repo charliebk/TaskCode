@@ -11,7 +11,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { gitOk, ramaActual, rutaGit } from '../../src/fs/git-crudo.js';
+import { ficherosEnRef, gitOk, ramaActual, rutaGit } from '../../src/fs/git-crudo.js';
 import { parsearEntradaHook } from '../../src/hooks/entrada-pretooluse.js';
 
 function git(args: string[], cwd: string): void {
@@ -109,4 +109,27 @@ test('sin copias: git sin lanzar en las puertas de finish y doctor, y la regex d
   };
   recorrer(dirSrc);
   assert.deepEqual(copias.map((c) => c.split(path.sep).join('/')), ['core/utilidades-texto.js']);
+});
+
+test('TASK-167b: ficherosEnRef lee varios ficheros de un ref con un solo git; los que faltan no salen', async () => {
+  const raiz = await repo();
+  try {
+    await mkdir(path.join(raiz, 'src'), { recursive: true });
+    await writeFile(path.join(raiz, 'src', 'a.ts'), 'const a = 1;\nconst b = 2;\n', 'utf8');
+    await writeFile(path.join(raiz, 'src', 'ñ.ts'), 'export const año = "ç";\n', 'utf8');
+    await writeFile(path.join(raiz, 'vacio.ts'), '', 'utf8');
+    git(['add', '-A'], raiz);
+    git(['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'ficheros'], raiz);
+    const m = ficherosEnRef('HEAD', ['src/a.ts', 'no/existe.ts', 'src/ñ.ts', 'vacio.ts', 'src'], raiz);
+    assert.ok(m !== null);
+    assert.equal(m.get('src/a.ts'), 'const a = 1;\nconst b = 2;\n');
+    assert.equal(m.get('src/ñ.ts'), 'export const año = "ç";\n');
+    assert.equal(m.get('vacio.ts'), '');
+    assert.equal(m.has('no/existe.ts'), false);
+    assert.equal(m.has('src'), false, 'un arbol no es un fichero');
+    assert.deepEqual([...(ficherosEnRef('HEAD', [], raiz) ?? new Map())], []);
+    assert.equal(ficherosEnRef('HEAD', ['src/a.ts'], path.join(raiz, 'no-existe')), null);
+  } finally {
+    await rm(raiz, { recursive: true, force: true });
+  }
 });

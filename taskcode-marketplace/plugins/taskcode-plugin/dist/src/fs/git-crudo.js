@@ -51,6 +51,43 @@ export function gitOk(args, cwd) {
     return gitLinea(args, cwd) !== null;
 }
 /**
+ * TASK-167b: el contenido de varios ficheros en `ref` con un solo `git cat-file
+ * --batch` (un proceso, no uno por fichero). Los que no existen en `ref` no
+ * salen en el mapa. null si git falla o su salida no se puede leer entera.
+ */
+export function ficherosEnRef(ref, rutas, cwd) {
+    const salida = new Map();
+    if (rutas.length === 0)
+        return salida;
+    const r = gitCrudo(['cat-file', '--batch'], cwd, {
+        input: `${rutas.map((f) => `${ref}:${f}`).join('\n')}\n`,
+        maxBuffer: 512 * 1024 * 1024,
+    });
+    if (r.error !== undefined || r.status !== 0)
+        return null;
+    // Formato: `<sha> <tipo> <tam>\n<contenido>\n`, o `<pedido> missing\n`.
+    const buf = r.stdout;
+    let pos = 0;
+    for (const ruta of rutas) {
+        const finLinea = buf.indexOf(0x0a, pos);
+        if (finLinea === -1)
+            return null;
+        const cabecera = buf.toString('utf8', pos, finLinea);
+        const m = /^[0-9a-f]+ (\w+) (\d+)$/.exec(cabecera);
+        if (m === null) {
+            if (!cabecera.endsWith(' missing') && !cabecera.endsWith(' ambiguous'))
+                return null;
+            pos = finLinea + 1;
+            continue;
+        }
+        const tam = Number(m[2]);
+        if (m[1] === 'blob')
+            salida.set(ruta, buf.toString('utf8', finLinea + 1, finLinea + 1 + tam));
+        pos = finLinea + 1 + tam + 1;
+    }
+    return salida;
+}
+/**
  * TASK-149a (FS-08): ruta absoluta de `ruta` dentro del directorio de Git
  * (`git rev-parse --git-path`, por worktree), o null fuera de un repo.
  * `--git-path` responde relativa al cwd de Git, por eso se resuelve contra `cwd`.

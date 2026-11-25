@@ -273,7 +273,8 @@ export function candidatos4D(diffCodigo: string, diffTests: string, existentes: 
   };
 }
 
-const loc = (d: Definicion): string => `\`${d.nombre}\` (${d.fichero}:${String(d.linea)})`;
+/** `nombre` (fichero:linea): como se cita una definicion en las listas 4D. */
+export const loc = (d: Definicion): string => `\`${d.nombre}\` (${d.fichero}:${String(d.linea)})`;
 
 function masAlla(mostrados: number, total: number, tope: number): string {
   return total > mostrados ? `- ... y ${String(total - mostrados)} mas (tope ${String(tope)})\n` : '';
