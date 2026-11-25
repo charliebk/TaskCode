@@ -88,6 +88,10 @@ test('TASK-167b: el cuerpo se corta en su llave de cierre o por sangria, y por d
   const pyMulti = ['def f(', '    a,', '    b):', '    return a + b', 'x = f(1, 2)'];
   assert.equal(cuerpoDesde(pyMulti, 1).split('\n').length, 4);
   assert.equal(cuerpoDesde(['def g(a): return a', 'def h(b):', '    return b'], 1).split('\n').length, 1);
+  // En el cuerpo de Python una coma final no corta (manda la sangria)...
+  assert.equal(cuerpoDesde(['def t(a):', '    return a,', '    # tupla', 'x = 1'], 1).split('\n').length, 3);
+  // ...y en una flecha con ';' la linea mas sangrada de debajo ya no es suya.
+  assert.equal(cuerpoDesde(['const u = (a) => a + 1;', '    sigue();', 'x();'], 1).split('\n').length, 1);
   // Una llave escapada de una regex no desequilibra el contador.
   assert.equal(cuerpoDesde(['function r(t) {', '  return /\\{/.test(t);', '}', 'otra();'], 1).split('\n').length, 3);
   // Estilo Allman: la llave sola en la linea siguiente sigue siendo de la definicion.
