@@ -61,6 +61,7 @@ Objetivo de la tarea entera:
 - test:rapido 703/703; verificacion por impacto 830/830 (un rojo intermitente de tiempos en freno-presupuesto bajo carga: aislado, 7/7 verde).
 - Revision ronda 1 (sonnet): cambios-solicitados. IMP-1 (rust-wasm aun pedia el contexto) corregido; MEN-2 (.ifcjson) y MEN-3 («la tercera es opcional») corregidos; MEN-1 (plantilla copiada con «Contexto adicional pedido») aceptado: lo quita TASK-150b.
 - Revision ronda 2 (haiku): cambios-solicitados por IMP-2 (la regex exigia negrita), corregido con MEN-4. Ronda 3 extra decidida por Carlos al llegar al tope: aprobada, sin hallazgos nuevos.
+- Cierre con `finish --sin-verificacion`, autorizado por Carlos el 2026-11-25: la suite completa dio 2 rojos, los intermitentes de tiempos conocidos (origin-deteccion.test: tardo 12 s; freno-presupuesto.test: no corto al presupuesto); aislados, 12/12 en verde.
 
 ## Rondas extra
 
