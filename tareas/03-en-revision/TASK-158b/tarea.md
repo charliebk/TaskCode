@@ -68,3 +68,7 @@ las tareas viejas no se atascan).
 | 2026-11-25T04:33:38Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 34 | 27806 | 4944785 | 12330 | 7 | 4984955 | - | - |
 | 2026-11-25T05:28:58Z | revision | agente:a0cd841bd2667d7cb | 68 | 150294 | 4203505 | 17998 | 10 | 4371865 | 1 | - |
 | 2026-11-25T06:09:05Z | revision | agente:a0c40ddb4048190dc | 28 | 120275 | 1398832 | 11864 | 5 | 1530999 | 2 | - |
+
+## Verificacion parcial
+
+- 2026-11-25T06:09:14Z: todo el codigo que cambia la tarea (11 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
