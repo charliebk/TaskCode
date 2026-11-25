@@ -8,11 +8,11 @@
 
 | ID | Severidad | Estado | Fichero | Origen |
 |---|---|---|---|---|
-| IMP-1 | IMPORTANTE | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/duplicados-cuerpo.ts:217 | implementacion |
-| IMP-2 | IMPORTANTE | abierto | taskcode-marketplace/plugins/taskcode-plugin/test/core/duplicados-cuerpo.test.ts:41 | implementacion |
-| MEN-1 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/commands/review.ts:1409 | plan |
-| MEN-2 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/core/duplicados-cuerpo.ts:233 | implementacion |
-| MEN-3 | MENOR | abierto | taskcode-marketplace/plugins/taskcode-plugin/src/commands/review.ts:1403 | implementacion |
+| IMP-1 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/duplicados-cuerpo.ts:217 | implementacion |
+| IMP-2 | IMPORTANTE | corregido | taskcode-marketplace/plugins/taskcode-plugin/test/core/duplicados-cuerpo.test.ts:41 | implementacion |
+| MEN-1 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/commands/review.ts:1409 | plan |
+| MEN-2 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/core/duplicados-cuerpo.ts:233 | implementacion |
+| MEN-3 | MENOR | corregido | taskcode-marketplace/plugins/taskcode-plugin/src/commands/review.ts:1403 | implementacion |
 
 Origen, uno por hallazgo: `implementacion` si el codigo no hace lo que el plan pedia; `plan` si el
 plan era ambiguo o equivocado y el codigo lo siguio; `especificacion` si el fallo esta en el

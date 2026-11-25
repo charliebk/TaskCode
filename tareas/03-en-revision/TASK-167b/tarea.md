@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 11365330
-tokens_revision: null
+tokens_revision: 7321484
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: [TASK-167a]
@@ -40,6 +40,7 @@ anade a `## Candidatos 4D` de la peticion. Avisa, no bloquea.
 
 - code-quality-reviewer — c96edb5
 - 4D — c96edb5: helper buscado (definicionesNuevas, definicionesDeGrep, definicionesEnRef, showFileAtRef, sinComentariosC y el repo de review-candidatos-4d reutilizados), usos buscados (no habia comparacion de cuerpos en src/ ni scripts/), criterios citados, 3 tests nuevos con 2 mutaciones en rojo
+- 4D ronda 1 — 09ddcf3: usos buscados (showFileAtRef en review.ts sustituido por ficherosEnRef; loc de candidatos-4d y extension de cobertura-cambios reutilizados, sin copias; cat-file --batch ya existia solo en sondas-deploy, con otro formato de entrada por sha), 6 tests mutados en rojo (umbral 0.6 y 0.3, teja 1, corte sin llave, guarda de parentesis, salto de no-blob); sobre el diff real 0 pares y 2 s (antes 2 falsos positivos y unos 19 s)
 
 ## Transiciones
 
@@ -49,9 +50,11 @@ anade a `## Candidatos 4D` de la peticion. Avisa, no bloquea.
 | 2026-11-25T17:00:27Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T17:00:31Z | start | automatico | persona | 0.18.0 |
 | 2026-11-25T17:06:57Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T17:58:33Z | review | automatico | persona | 0.18.0 |
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T17:06:57Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 32 | 24262 | 11325179 | 15857 | 6 | 11365330 | - | - |
+| 2026-11-25T17:58:19Z | revision | agente:a031f605875d95502 | 108 | 170678 | 7122415 | 28283 | 13 | 7321484 | 1 | - |
