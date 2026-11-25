@@ -42,3 +42,8 @@ las tareas viejas no se atascan).
 | 2026-11-25T04:21:01Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T04:21:47Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T04:21:49Z | start | automatico | persona | 0.18.0 |
+
+## Autorrevision
+
+- code-quality-reviewer — 5782832
+- 4D — 5782832: helper buscado (tieneLinea4D parametrizado, printAvisos, withRonda1 y montar reutilizados), usos buscados (avisoAutorrevision solo en review.ts; tieneLinea4D solo en su test), criterios citados, 4 tests nuevos con 5 mutaciones en rojo
