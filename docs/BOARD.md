@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-25. No editar a mano.
 
-## Planificadas (00-planificadas) — 27
+## Planificadas (00-planificadas) — 26
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -32,7 +32,6 @@ TASK-163   Regla 4D (2a auditoria): Git-Flow residual y hotfix sin develop      
 TASK-164   Regla 4D (2a auditoria): skills que contradicen al CLI                                      (sin asignar)
 TASK-165   Regla 4D (2a auditoria): disfraz en tests                                                   (sin asignar)
 TASK-166   Regla 4D (2a auditoria): helpers de test duplicados por las correcciones                    (sin asignar)
-TASK-167c  auditoria 4D invocable (parte c de TASK-167)                                                (sin asignar)
 TASK-167d  tendencia de hallazgos 4D en las metricas (parte d de TASK-167)                             (sin asignar)
 ```
 
@@ -44,7 +43,7 @@ ID         Titulo                                                               
 TASK-150c  formatos del brainstorm y secciones del plan con una fuente (parte c de TASK-150)  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 164
+## Terminadas (04-terminadas) — 165
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -212,5 +211,6 @@ TASK-158b  taskctl comprueba la autorrevision 4D por ronda y en los MENORES (par
 TASK-158c  verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158)                                         charlie.bk@gmail.com
 TASK-167a  guia instalable de duplicacion de grano fino (parte a de TASK-167)                                                  charlie.bk@gmail.com
 TASK-167b  detector de duplicados por cuerpo en el diff (parte b de TASK-167)                                                  charlie.bk@gmail.com
+TASK-167c  auditoria 4D invocable (parte c de TASK-167)                                                                        charlie.bk@gmail.com
 TASK-168   Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests                                        charlie.bk@gmail.com
 ```
