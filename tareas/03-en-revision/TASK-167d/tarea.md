@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 7468361
-tokens_revision: null
+tokens_revision: 4495764
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: [TASK-167c]
@@ -54,3 +54,8 @@ Troceo sin preguntar: autorizado por Carlos (2026-11-22 y 2026-11-25).
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T20:04:09Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 46 | 36254 | 7411094 | 20967 | 10 | 7468361 | - | - |
+| 2026-11-25T20:54:14Z | revision | agente:ac3909edebc0d5e41 | 76 | 139150 | 4338848 | 17690 | 7 | 4495764 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-25T20:54:28Z: ronda 1; commit revisado d2f38080af6cb842097e947926626e75222a2a40; commit verificado 9fb1ff1d64f44eafceacb01d4b5a405638610817; ficheros: taskcode-marketplace/plugins/taskcode-plugin/src/commands/metricas.ts, taskcode-marketplace/plugins/taskcode-plugin/src/core/auditoria-4d.ts, taskcode-marketplace/plugins/taskcode-plugin/src/fs/auditorias-4d.ts, taskcode-marketplace/plugins/taskcode-plugin/test/commands/metricas-auditorias.test.ts, taskcode-marketplace/plugins/taskcode-plugin/test/core/auditoria-4d.test.ts; corregidos: H1, H2, H3, H4, H5; pendientes: ninguno
