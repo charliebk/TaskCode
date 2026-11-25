@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-143c (fix) — paridad bash y TS, ls-remote y perfil-tests (parte c de TASK-143) (2026-11-25)
 - TASK-143b (fix) — argumentos, diagnose y push-back (parte b de TASK-143) (2026-11-24)
 - TASK-143a (fix) — create, update y merge a main (parte a de TASK-143) (2026-11-24)
 - TASK-138b (fix) — decision de la puerta, constante muerta, textos del tope y doctor (parte b de TASK-138) (2026-11-24)

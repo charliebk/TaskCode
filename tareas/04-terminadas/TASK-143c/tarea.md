@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-143-regla-4d-duplicacion-en-git-flow-bash-y
 asignado_a: claude
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: 10060379
 tokens_revision: 10967497
 creado: 2026-11-24
-actualizado: 2026-11-24
+actualizado: 2026-11-25
 dependencias: [TASK-143b]
 ---
 ## Objetivo
@@ -51,6 +51,7 @@ detect_operation_in_progress comun con test de paridad frente a git.ts, ls-remot
 | 2026-11-24T22:03:43Z | start | automatico | persona | 0.16.1 |
 | 2026-11-24T22:27:19Z | review | automatico | persona | 0.16.1 |
 | 2026-11-24T23:21:31Z | review | automatico | persona | 0.16.1 |
+| 2026-11-25T00:41:27Z | finish | automatico | persona | 0.16.1 |
 
 ## Autorrevision
 
@@ -70,3 +71,10 @@ detect_operation_in_progress comun con test de paridad frente a git.ts, ls-remot
 ## Verificacion omitida
 
 - 2026-11-25T00:41:13Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 158 min
+- Paso de la hora: 158 min reales frente a 55 estimados
+- Cierre (finish): 14 s, de 2026-11-25T00:41:13Z a 2026-11-25T00:41:27Z
