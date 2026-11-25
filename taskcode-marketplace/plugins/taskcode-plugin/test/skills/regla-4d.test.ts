@@ -124,3 +124,17 @@ test('TASK-158a hotfix y doctor-deploy: el codigo pasa por start con la Regla 4D
   assert.match(deploy, /No arregles el código aquí: cada arreglo pasa por\s+plan y start, con la Regla 4D/);
   assert.match(deploy, TODOS_LOS_USOS);
 });
+
+test('TASK-167a: la guia de duplicacion de grano fino se instala con sus patrones y start, review, revision.md y las revisoras remiten a ella', async () => {
+  const guia = await leer('task-workflow/duplicacion.md');
+  for (const patron of [/helper copiado con otro nombre/, /lector repetido/, /envoltorio repetido/, /lista escrita dos veces/, /regla copiada entre documentos/, /helpers de test por fichero/, /correccion a medias/]) {
+    assert.match(guia, patron, `duplicacion.md: falta el patron ${String(patron)}`);
+  }
+  assert.match(await leer('start/SKILL.md'), /`duplicacion\.md`/);
+  assert.match(await leer('review/SKILL.md'), /`task-workflow\/duplicacion\.md`/);
+  assert.match(seccion(await leer('task-workflow/revision.md'), '## Regla 4D'), /\[duplicacion\.md\]\(duplicacion\.md\)/);
+  const catalogo = cargarCatalogoRevisores();
+  for (const nombre of [...catalogo.dominio.map((r) => r.nombre), catalogo.generico.nombre]) {
+    assert.match(seccion(await leer(`${nombre}/SKILL.md`), '## Que se revisa'), /los patrones de\s+duplicacion, en duplicacion\.md/, `${nombre}: no remite a la guia`);
+  }
+});

@@ -82,6 +82,7 @@ cada uno en su dominio):
 - **Duplicacion**: dos funciones o clases que hacen lo mismo con pequenas
   diferencias. Ej.: `formatearFecha` nueva junto a la `fechaCorta` que ya
   habia. Se reutiliza y se generaliza (parametro, composicion, herencia).
+  Patrones: [duplicacion.md](duplicacion.md).
 - **Desviacion**: el diff se sale del objetivo de la tarea. Ej.: un
   refactor del parser en una tarea de mensajes. Lo ajeno va a otra tarea.
 - **Diluvio**: muchas lineas o clases donde bastan pocas. Ej.: interfaz,
@@ -98,7 +99,7 @@ posible duplicado y muta cada test que liste.
 resuelta, busca por nombre y por patron cada sitio que la tiene. Quien corrige
 hace la misma autorrevision que quien implementa y la anota en
 `## Autorrevision`: `- 4D ronda K — <commit>: usos buscados, N tests mutados`
-(K, la ronda cuyos hallazgos corrige) o, para los MENORES tras aprobar,
+(K, la ronda corregida) o, para los MENORES tras aprobar,
 `- 4D menores — <commit>: usos buscados, N tests mutados`.
 
 Duplicacion y disfraz reales son **IMPORTANTE** como minimo; desviacion y
