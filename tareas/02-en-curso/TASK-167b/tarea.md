@@ -36,6 +36,11 @@ anade a `## Candidatos 4D` de la peticion. Avisa, no bloquea.
 - [ ] Al escribir codigo, taskctl detecta en el diff funciones casi identicas a otras ya existentes del proyecto y lo avisa antes de pedir revision, no solo como candidato para el revisor
 - [ ] Un test falla si el detector deja de encontrar un duplicado real con otro nombre, o si da por duplicadas dos funciones distintas
 
+## Autorrevision
+
+- code-quality-reviewer — c96edb5
+- 4D — c96edb5: helper buscado (definicionesNuevas, definicionesDeGrep, definicionesEnRef, showFileAtRef, sinComentariosC y el repo de review-candidatos-4d reutilizados), usos buscados (no habia comparacion de cuerpos en src/ ni scripts/), criterios citados, 3 tests nuevos con 2 mutaciones en rojo
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
