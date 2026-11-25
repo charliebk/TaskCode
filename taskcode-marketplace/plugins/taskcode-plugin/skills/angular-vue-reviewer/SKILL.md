@@ -23,10 +23,9 @@ que casa con los patrones de mas abajo**: el backend, la infraestructura o
 la base de datos van a su propio revisor, en paralelo. Este revisor no
 opina sobre el endpoint, solo sobre como el frontend lo consume.
 
-Si para juzgar un cambio hace falta mas contexto, **pedirlo explicitamente**
-(el componente padre, el store que se lee, el tipo de la respuesta) en vez
-de dar por hecho lo que no se ve. Lo que no vale es cargar el proyecto
-entero "por si acaso": pedir tres ficheros concretos es barato.
+Si para juzgar un cambio hace falta mas contexto (el componente padre, el store que se lee, el tipo de la respuesta), leelo y
+anotalo como dice "Lo que lees" de revision.md, en vez de dar por hecho lo que
+no se ve. Leer el proyecto entero "por si acaso" no es revisar mejor.
 
 Si el diff toca tantos dominios distintos que fragmentarlo deja de tener
 sentido, el enrutado puede caer a un unico pase generico. Eso lo decide
@@ -315,8 +314,8 @@ contrario de lo que dice:
 
 - Lista editable sin identidad estable: al refrescar se pierde el foco y lo
   escrito en la fila.
-- Dialogo sin trampa de foco, sin cierre con Escape y sin devolver el foco
-  al abridor: con teclado la vista queda inutilizable.
+- Dialogo sin cierre con Escape o que no devuelve el foco al abridor: con
+  teclado se completa la accion, pero se pierde el sitio en la vista.
 - Entrada tipada como `any` u obligatoria por asercion, con la plantilla
   accediendo a un campo que puede no venir: pantalla en blanco.
 - Observador o intervalo que sigue disparando peticiones despues de salir de

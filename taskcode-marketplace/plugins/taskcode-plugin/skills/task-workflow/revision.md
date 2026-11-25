@@ -276,7 +276,8 @@ y obliga a un commit de normalizacion que no arregla nada.
 - **No mueve la tarea de estado ni mergea.** Eso es trabajo de
   `taskctl finish`, y solo ocurre si el veredicto aprueba.
 - **No revisa el repositorio entero**: revisa el diff que le llega. Si de
-  verdad necesita mas contexto, lo pide para un hallazgo concreto.
+  verdad necesita mas contexto, lo lee para un hallazgo concreto y lo anota
+  (ver "Lo que lees").
 - **Un revisor de dominio no revisa ficheros fuera de sus patrones**: si al
   leer el diff aparece algo de otro dominio que preocupa, se anota en una
   linea y se deja para su revisor, no se juzga alli.

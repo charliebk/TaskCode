@@ -81,7 +81,6 @@ punto, no un formalismo.
    completo: `--informe informe-revision-N-<revisor>.md`. Con CRITICO o
    IMPORTANTE abiertos, `cambios-solicitados`: se corrigen, se commitea, y se
    vuelve a esta skill (abre la ronda siguiente).
-   Un test que duplica a otro ya existente es MENOR.
    **Antes de abrir la ronda siguiente se corrige TODO lo de la ronda**, en
    cualquier modo: los CRITICO e IMPORTANTE siempre; un MENOR que no compense
    corregir se marca `aceptado` con su motivo en su informe o se pasa a una

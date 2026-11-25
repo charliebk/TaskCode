@@ -1,6 +1,6 @@
 ---
 name: csharp-autocad-ifc-reviewer
-description: Revisor por pares de C# sobre la API de AutoCAD o modelos IFC. Se usa si el diff toca .cs, .csproj, .sln, .ifc o .ifcxml, o la tarea menciona AutoCAD, ObjectARX, AcDbMgd, Civil 3D, BricsCAD, IFC, IfcOpenShell, xBIM o BIM. Es una skill de revision, no de implementacion.
+description: Revisor por pares de C# sobre la API de AutoCAD (ObjectARX, AcDbMgd, Civil 3D, BricsCAD) o modelos IFC (IfcOpenShell, xBIM). Se usa si el diff toca .cs, .csproj, .sln, .ifc, .ifcxml o .ifcjson. Es una skill de revision, no de implementacion.
 ---
 
 # Revisor de C# sobre AutoCAD e IFC
@@ -71,8 +71,9 @@ se documenta igual. Misma frase, dos resultados, porque lo que cambia es si
 renunciar deja el dominio sin revisor.
 
 Si el diff toca ademas otros dominios, cada revisor recibe **solo la parte que
-casa con su patron**. No pidas el resto del diff por comodidad; pidelo si un
-hallazgo concreto lo necesita para sostenerse.
+casa con su patron**. No leas el resto del diff por comodidad; solo si un
+hallazgo concreto lo necesita para sostenerse, y anotalo como dice "Lo que
+lees" de revision.md.
 
 ## Antes de revisar: la puerta determinista
 
