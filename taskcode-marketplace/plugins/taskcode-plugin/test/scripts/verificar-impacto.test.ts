@@ -71,6 +71,9 @@ const FICHEROS: Record<string, string> = {
   [`${PLUGIN}/src/comenta-skill.ts`]: "// lee el SKILL.md de 'flujo'\n/* y el de 'flujo' */\nexport const z = 1;\n",
   [`${PLUGIN}/test/usa-comenta.test.ts`]: "import { z } from '../src/comenta-skill.js';\nvoid z;\n",
   [`${PLUGIN}/test/ruta-flujo.test.ts`]: 'const R = `${process.cwd()}/flujo/SKILL.md`;\nvoid R;\n',
+  // IMP-2 de su revision: un glob con `/*` y un `//` dentro de cadenas no son comentarios.
+  [`${PLUGIN}/test/glob-flujo.test.ts`]:
+    "const G = 'lib/*';\nconst F = ['flujo', 'SKILL.md'];\nconst H = '*/fin';\nconst U = 'a//b'; const R = 'flujo/SKILL.md';\nvoid G; void F; void H; void U; void R;\n",
   // El enrutador de comandos: quien lo importa solo depende de los comandos que nombra.
   [`${PLUGIN}/src/cli.ts`]: "import { alfa } from './commands/alfa.js';\nimport { beta } from './commands/beta.js';\nexport const main = [alfa, beta];\n",
   [`${PLUGIN}/src/commands/alfa.ts`]: "import { x } from '../core/x.js';\nexport const alfa = x;\n",
@@ -209,10 +212,10 @@ test('TASK-156: un .md de skills/, agents/ o docs/ del plugin elige los tests qu
     const s = listar(raiz);
     assert.equal(s.todo, false, s.motivo);
     // TASK-168: y el que nombra el SKILL.md de flujo (su carpeta y el fichero).
-    assert.deepEqual(ficheros(s), ['test/nombra-flujo.test.ts', 'test/recorre.test.ts', 'test/ruta-flujo.test.ts', 'test/skills/marcas.test.ts']);
+    assert.deepEqual(ficheros(s), ['test/glob-flujo.test.ts', 'test/nombra-flujo.test.ts', 'test/recorre.test.ts', 'test/ruta-flujo.test.ts', 'test/skills/marcas.test.ts']);
     // Con tope, primero quien lo nombra (TASK-168); entre lectores, el de test/skills/.
-    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/nombra-flujo.test.ts']);
-    assert.deepEqual(ficheros(listar(raiz, 'develop', 3)), ['test/nombra-flujo.test.ts', 'test/ruta-flujo.test.ts', 'test/skills/marcas.test.ts']);
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/glob-flujo.test.ts']);
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 4)), ['test/glob-flujo.test.ts', 'test/nombra-flujo.test.ts', 'test/ruta-flujo.test.ts', 'test/skills/marcas.test.ts']);
   });
   await conRepo(async (raiz) => {
     await cambiarYCommitear(raiz, `${PLUGIN}/agents/rol.md`, '# rol cambiado\n');
@@ -234,6 +237,7 @@ test('TASK-168: un .md de skill o agente no elige a quien solo cita test/skills/
     assert.ok(!elegidos.includes('test/comenta.test.ts'), `el comentario no lee la carpeta: ${elegidos.join(', ')}`);
     assert.ok(!elegidos.includes('test/otra-skill.test.ts'), `nombra el SKILL.md de otra skill: ${elegidos.join(', ')}`);
     assert.ok(elegidos.includes('test/nombra-flujo.test.ts'), `deja fuera al que nombra esta skill: ${elegidos.join(', ')}`);
+    assert.ok(elegidos.includes('test/glob-flujo.test.ts'), `un glob o una URL en una cadena se toman por comentario: ${elegidos.join(', ')}`);
     assert.ok(elegidos.includes('test/ruta-flujo.test.ts'), `deja fuera al que la nombra por su ruta: ${elegidos.join(', ')}`);
     assert.ok(!elegidos.includes('test/usa-comenta.test.ts'), `un src que la cita en comentarios arrastra a quien lo importa: ${elegidos.join(', ')}`);
   });

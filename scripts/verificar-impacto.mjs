@@ -79,6 +79,9 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statS
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// TASK-168 (IMP-2 de su revision): quitar comentarios respetando las cadenas
+// ya lo hace el plugin; se usa su build versionado, no una copia.
+import { sinComentariosC as sinComentarios } from '../taskcode-marketplace/plugins/taskcode-plugin/dist/src/core/doctor-deploy-reglas.js';
 
 export const PLUGIN = 'taskcode-marketplace/plugins/taskcode-plugin';
 const RAPIDO = ['test/core', 'test/cli'];
@@ -110,15 +113,6 @@ const CARPETAS_LEIDAS = [
 ];
 /** La carpeta de CARPETAS_LEIDAS bajo la que vive `rel` (relativa al plugin), o undefined. */
 const carpetaLeida = (rel) => CARPETAS_LEIDAS.find((c) => rel.startsWith(`${c.carpeta}/`));
-/**
- * TASK-168: el texto sin comentarios de bloque ni de linea (`//` y `#` al
- * principio de linea). Aproximado a proposito: basta para que una mencion en
- * un comentario no cuente como uso; un `//` dentro de una cadena recorta de
- * mas, que solo puede hacer que se elija algo de menos en ese fichero.
- */
-function sinComentarios(texto) {
-  return texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1').replace(/^\s*#.*$/gm, '');
-}
 const LANZA_TASKCTL = MARCADORES[0].patron;
 const IMPORT_RE = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
 
