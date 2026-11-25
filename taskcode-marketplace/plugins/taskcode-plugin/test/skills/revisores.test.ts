@@ -31,11 +31,10 @@
  *    la suite siguio verde. Una tabla de rutas realistas contra los
  *    patrones leidos de los propios SKILL.md cierra las dos direcciones.
  *
- * 3. EL VEREDICTO, CONTRA EL CODIGO QUE LO LEE. La linea que cada skill
- *    prescribe se pasa por `veredictoAprobado` de finish.ts — la funcion
- *    real, no una copia de su regex. Una skill que prescriba una linea que
- *    el comando de cierre no acepta deja la tarea imposible de cerrar, y
- *    ese fallo solo se veria al final del ciclo, cuando ya no hay margen.
+ * 3. EL VEREDICTO, CONTRA EL CODIGO QUE LO LEE. La tabla del veredicto de
+ *    revision.md se pasa por `veredictoAprobado` de finish.ts — la funcion
+ *    real, no una copia de su regex (10f). Desde TASK-150b ninguna skill
+ *    copia la linea de veredicto: la escribe `taskctl veredicto` (10c).
  *
  * 4. INTEGRACION. El validador real, con CONTRAPRUEBA: sobre una copia
  *    temporal se rompe el frontmatter de las cuatro y se comprueba que las
@@ -580,15 +579,9 @@ test('6d. NEGATIVA: ninguna ruta ajena llega a un revisor de dominio', async () 
 
 // --- 3. El veredicto, contra el codigo que lo lee -----------------------
 
-test('7. ninguna revisora copia la linea de veredicto: la escribe taskctl veredicto', async () => {
-  // TASK-150b (CONT-05): la cabecera del informe vive en el esqueleto de
-  // `taskctl review` y en revision.md; las revisoras no la copian. Lo que
-  // acepta finish.ts lo contrasta el 10f con la tabla de revision.md.
-  for (const nombre of REVISORES) {
-    const copias = (await leer(nombre)).split('\n').filter((l) => /^-\s*veredicto:/i.test(l.trim()));
-    assert.deepEqual(copias, [], `${nombre}: copia la linea de veredicto de la cabecera`);
-  }
-});
+// El antiguo test 7 (la linea de veredicto que prescribia cada skill) se fue
+// con la copia de la cabecera (TASK-150b): que ninguna la copie lo comprueba
+// el 10c, y lo que acepta finish.ts, el 10f con la tabla de revision.md.
 
 test('8. cada skill prescribe tambien la forma de NO aprobar, y finish.ts la rechaza', async () => {
   for (const nombre of REVISORES) {
@@ -806,18 +799,12 @@ test('10 bis. la seccion de reproduccion NO la satisface la etiqueta del esquele
 // --- 3bis. La estructura del informe, contra el esqueleto que genera el CLI ---
 
 /**
- * Las cuatro skills prescriben una estructura de informe. `taskctl review`
- * genera el esqueleto de verdad. En la ronda 1 (hallazgo 16) esas dos cosas
- * no coincidian: dos skills reproducian el esqueleto y las otras dos
- * inventaban otro titulo, PERDIAN la linea `- Commit revisado:` y movian el
- * veredicto a una seccion al final. Consecuencia real: quien anadiera el
- * veredicto al final sin borrar el de la cabecera dejaba DOS lineas de
- * veredicto, y `taskctl finish` exige que aprueben todas.
+ * `taskctl review` genera el esqueleto del informe. Las skills lo copiaban y
+ * la copia divergia (titulo inventado, `- Commit revisado:` perdido, dos
+ * lineas de veredicto); desde TASK-150b (CONT-05) no lo copian: lo rellenan.
  *
- * En vez de copiar aqui las cadenas del esqueleto —que es como se llego a
- * la divergencia— se importa `informeTemplate` y se derivan de su salida.
- * Si el CLI cambia el titulo o los campos de la cabecera, este test se pone
- * rojo y obliga a mirar las skills.
+ * Las cadenas del esqueleto no se copian aqui: se importa `informeTemplate`
+ * y se derivan de su salida, para comprobar que ninguna skill las repite.
  *
  * Limitacion asumida: `informeTemplate` pide un `Task` completo pero solo
  * lee `task.id`, asi que se le pasa un objeto minimo con un cast. Si algun
