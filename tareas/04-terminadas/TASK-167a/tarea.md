@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-167-regla-4d-preventiva-en-los-proyectos-que
 asignado_a: charlie.bk@gmail.com
@@ -64,6 +64,7 @@ Objetivo de la tarea entera:
 | 2026-11-25T12:57:40Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T12:57:42Z | start | automatico | persona | 0.18.0 |
 | 2026-11-25T13:40:09Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T14:52:56Z | finish | automatico | persona | 0.18.0 |
 
 ## Coste
 
@@ -79,3 +80,10 @@ Objetivo de la tarea entera:
 ## Verificacion parcial
 
 - 2026-11-25T14:22:25Z: todo el codigo que cambia la tarea (12 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 115 min
+- Paso de la hora: 115 min reales frente a 45 estimados
+- Cierre (finish): 1831 s, de 2026-11-25T14:22:25Z a 2026-11-25T14:52:56Z

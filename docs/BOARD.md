@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-25. No editar a mano.
 
-## Planificadas (00-planificadas) — 26
+## Planificadas (00-planificadas) — 28
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -22,7 +22,6 @@ TASK-012   Precondicion de rama base + workspace limpio (seccion 8.3), con auto-
 TASK-019   Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021   Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
-TASK-150c  formatos del brainstorm y secciones del plan con una fuente (parte c de TASK-150)           (sin asignar)
 TASK-150d  pasos copiados, diluvio e historial, y la sonda (parte d de TASK-150)                       (sin asignar)
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
 TASK-159   Regla 4D (2a auditoria): lectores de vallas, secciones y celdas en core                     (sin asignar)
@@ -33,9 +32,20 @@ TASK-163   Regla 4D (2a auditoria): Git-Flow residual y hotfix sin develop      
 TASK-164   Regla 4D (2a auditoria): skills que contradicen al CLI                                      (sin asignar)
 TASK-165   Regla 4D (2a auditoria): disfraz en tests                                                   (sin asignar)
 TASK-166   Regla 4D (2a auditoria): helpers de test duplicados por las correcciones                    (sin asignar)
+TASK-167b  detector de duplicados por cuerpo en el diff (parte b de TASK-167)                          (sin asignar)
+TASK-167c  auditoria 4D invocable (parte c de TASK-167)                                                (sin asignar)
+TASK-167d  tendencia de hallazgos 4D en las metricas (parte d de TASK-167)                             (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 161
+## En diseno (01-en-diseno) — 1
+
+```text
+ID         Titulo                                                                             Asignado
+---------  ---------------------------------------------------------------------------------  --------------------
+TASK-150c  formatos del brainstorm y secciones del plan con una fuente (parte c de TASK-150)  charlie.bk@gmail.com
+```
+
+## Terminadas (04-terminadas) — 162
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -201,4 +211,5 @@ TASK-157   Timeout de claude plugin list acorde al binario real                 
 TASK-158a  los textos de cada camino exigen 4D y buscar todos los usos (parte a de TASK-158)                                   charlie.bk@gmail.com
 TASK-158b  taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158)                              charlie.bk@gmail.com
 TASK-158c  verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158)                                         charlie.bk@gmail.com
+TASK-167a  guia instalable de duplicacion de grano fino (parte a de TASK-167)                                                  charlie.bk@gmail.com
 ```
