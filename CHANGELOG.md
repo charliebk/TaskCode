@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-167d (feature) — tendencia de hallazgos 4D en las metricas (parte d de TASK-167) (2026-11-25)
 - TASK-167c (feature) — auditoria 4D invocable (parte c de TASK-167) (2026-11-25)
 - TASK-167b (feature) — detector de duplicados por cuerpo en el diff (parte b de TASK-167) (2026-11-25)
 - TASK-168 (fix) — Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests (2026-11-25)
