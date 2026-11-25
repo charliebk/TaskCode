@@ -41,6 +41,26 @@ Objetivo de la tarea entera:
 - [ ] La skill o el agente de cada camino del inventario exige 4D al escribir, incluido buscar todos los usos antes de dar una duplicacion por resuelta
 - [ ] Un test por camino (skills y agentes) falla si ese camino deja de exigir 4D
 
+## Inventario 4D de los caminos que crean o actualizan codigo
+
+| Camino | Que exigia de 4D (antes de TASK-158) | Que le faltaba | Donde se cierra |
+|---|---|---|---|
+| Roles del brainstorm: arquitectura, dominio, rendimiento, riesgos, testing | Solo arquitectura: reutilizar el punto de extension | Apartado 4D de cada rol y buscar todos los usos | 158a: `- **Regla 4D desde tu rol**` en `## Qué miras` de cada uno |
+| Unificador | `## Reutilizacion (Regla 4D)` en la salida | Que lo reutilizado salga de buscar todos los usos | 158a: `- **Regla 4D**` en `## Qué miras` |
+| `taskctl plan` / `approve` | Plantilla con la reutilizacion; `approve` avisa si va vacia (TASK-153) | Nada | — |
+| Implementacion tras `start` (feature, fix y hotfix) | Autorrevision 4D: helper, criterio, mutacion; `review` avisa sin la linea | Buscar todos los usos al unificar | 158a: start/SKILL.md y la linea `usos buscados` |
+| Correcciones de cada ronda (review, paso 4) | Nada: autorrevision una vez por tarea | Autorrevision por ronda (`- 4D ronda K — `) y su aviso | 158a: texto de review y revision.md; 158b: aviso de `review` |
+| MENORES tras aprobar (`verificar-menores`) | Nada | Autorrevision (`- 4D menores — `) y su aviso | 158a: texto; 158b: aviso de `verificar-menores` |
+| Hotfix y release (`finish`) | Hotfix hereda de start; release no escribe codigo | Dejarlo escrito | 158a: finish/SKILL.md |
+| `doctor-deploy` y `revisor-seguridad-deploy` | No escriben codigo: crean tareas | Que el arreglo no se haga por fuera del ciclo | 158a: doctor-deploy/SKILL.md (plan y start, todos los usos del patron) |
+| Skills revisoras (4 de dominio + generica) | Ejemplo por D y remision a revision.md | Todos los usos antes de dar una duplicacion por resuelta | 158a: revision.md, que todas citan |
+| `scripts/verificar-impacto.mjs` | — | Carrera: devuelve dist/src aunque HEAD cambie | 158c |
+
+## Autorrevision
+
+- code-quality-reviewer — b3b9b4d
+- 4D — b3b9b4d: helper buscado (seccion/faltanD de regla-4d.test.ts reutilizados), usos buscados (grep de Regla 4D y duplicacion en skills/ y agents/), criterios citados, 7 tests mutados
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
