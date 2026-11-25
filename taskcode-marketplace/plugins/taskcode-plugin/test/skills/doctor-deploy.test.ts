@@ -82,6 +82,7 @@ test('skills/ contiene exactamente las skills esperadas, doctor-deploy entre ell
   const esperadas = [
     'angular-vue-reviewer',
     'approve',
+    'auditoria-4d',
     'board',
     'code-quality-reviewer',
     'csharp-autocad-ifc-reviewer',
@@ -160,11 +161,13 @@ test('skill: ejecuta el CLI, lanza el agente, guarda su JSON fuera del repo y us
   }
 });
 
-test('skill: ni nombra el proyecto que construye el plugin ni sus rutas internas', async () => {
-  const texto = await readFile(SKILL, 'utf8');
-  const minusculas = sinPrefijoDelPlugin(texto);
-  assert.ok(!minusculas.includes('taskcode'), 'nombra el proyecto fuera del prefijo del plugin');
-  assertSinMarcas('skill', minusculas, texto);
+test('skill: ni nombra el proyecto que construye el plugin ni sus rutas internas (tampoco la de auditoria 4D, TASK-167c)', async () => {
+  for (const [nombre, ruta] of [['doctor-deploy', SKILL], ['auditoria-4d', path.join(SKILLS_DIR, 'auditoria-4d', 'SKILL.md')]] as const) {
+    const texto = await readFile(ruta, 'utf8');
+    const minusculas = sinPrefijoDelPlugin(texto);
+    assert.ok(!minusculas.includes('taskcode'), `${nombre}: nombra el proyecto fuera del prefijo del plugin`);
+    assertSinMarcas(nombre, minusculas, texto);
+  }
 });
 
 // --- el agente ----------------------------------------------------------

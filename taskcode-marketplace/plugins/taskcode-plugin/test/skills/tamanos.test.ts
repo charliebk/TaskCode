@@ -44,6 +44,7 @@ const TOPES_PLUGIN: Readonly<Record<string, number>> = {
   'agents/revisor-seguridad-deploy.md': 7 * KB, // 5712
   'skills/angular-vue-reviewer/SKILL.md': 23 * KB, // 20295
   'skills/approve/SKILL.md': 4 * KB, // 3021
+  'skills/auditoria-4d/SKILL.md': 6 * KB, // TASK-167c
   'skills/board/SKILL.md': 2 * KB, // 1183
   'skills/code-quality-reviewer/SKILL.md': 16 * KB, // 14192
   'skills/csharp-autocad-ifc-reviewer/SKILL.md': 18 * KB, // 15727
