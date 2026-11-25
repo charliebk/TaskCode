@@ -41,6 +41,11 @@ Objetivo de la tarea entera:
 - [ ] Hay una guia instalable de duplicacion de grano fino (helpers copiados, lectores de secciones repetidos, envoltorios de git o fs duplicados, catalogos escritos dos veces) sacada de las auditorias 4D, y start, review y las revisoras remiten a ella
 - [ ] Un test falla si la guia deja de instalarse o alguien deja de remitir a ella
 
+## Autorrevision
+
+- code-quality-reviewer — c94acce
+- 4D — c94acce: helper buscado (disfraz-tests.md como modelo; seccion y cargarCatalogoRevisores de regla-4d.test.ts), usos buscados (donde se remite a disfraz-tests.md: start, revision.md, task-workflow; las revisoras remiten a revision.md), criterios citados, 1 test nuevo con 2 mutaciones en rojo (y el 20b caza el enlace)
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
