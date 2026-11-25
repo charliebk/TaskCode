@@ -19,6 +19,13 @@ revisor con ella.
 - **La lista escrita dos veces.** Flags, claves de config, nombres de fases
   o extensiones escritos a mano en el codigo, en los tests y en la
   documentacion. Deriva las copias de la fuente, o un test que compare.
+- **El mismo hecho decidido en varios sitios.** Que es un ID valido, una
+  fecha, una ruta permitida o «cual es la rama base», con una regla en cada
+  modulo: un caso pasa en uno y falla en otro. Una funcion que decide, y los
+  demas la preguntan.
+- **Los mensajes y valores por defecto repetidos.** El mismo texto de error,
+  el mismo timeout o el mismo tope escritos en cada sitio que los usa: se
+  cambia uno y el resto queda viejo. Una constante.
 - **La regla copiada entre documentos.** La misma instruccion en varios
   ficheros que lee un agente o una persona: cuando una cambia, las otras
   mienten. Una fuente y remisiones.

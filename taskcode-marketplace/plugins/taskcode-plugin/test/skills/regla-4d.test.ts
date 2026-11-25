@@ -127,7 +127,7 @@ test('TASK-158a hotfix y doctor-deploy: el codigo pasa por start con la Regla 4D
 
 test('TASK-167a: la guia de duplicacion de grano fino se instala con sus patrones y start, review, revision.md y las revisoras remiten a ella', async () => {
   const guia = await leer('task-workflow/duplicacion.md');
-  for (const patron of [/helper copiado con otro nombre/, /lector repetido/, /envoltorio repetido/, /lista escrita dos veces/, /regla copiada entre documentos/, /helpers de test por fichero/, /correccion a medias/]) {
+  for (const patron of [/helper copiado con otro nombre/, /lector repetido/, /envoltorio repetido/, /lista escrita dos veces/, /mismo hecho decidido en varios sitios/, /mensajes y valores por defecto repetidos/, /regla copiada entre documentos/, /helpers de test por fichero/, /correccion a medias/]) {
     assert.match(guia, patron, `duplicacion.md: falta el patron ${String(patron)}`);
   }
   assert.match(await leer('start/SKILL.md'), /`duplicacion\.md`/);
