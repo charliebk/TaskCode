@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-150c (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-167c, TASK-019
+- **En marcha:** TASK-150c (en diseño), TASK-167c (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
 
 ## H0 — H0
 
@@ -159,7 +159,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 19 | TASK-166 | Regla 4D (2a auditoria): helpers de test duplicados por las correcciones | media | — | lista para empezar |
 | — | TASK-167a | guia instalable de duplicacion de grano fino (parte a de TASK-167) | alta | — | ✅ terminada |
 | — | TASK-167b | detector de duplicados por cuerpo en el diff (parte b de TASK-167) | alta | TASK-167a | ✅ terminada |
-| 20 | TASK-167c | auditoria 4D invocable (parte c de TASK-167) | alta | TASK-167b | lista para empezar |
+| 20 | TASK-167c | auditoria 4D invocable (parte c de TASK-167) | alta | TASK-167b | ▶ en diseño |
 | 21 | TASK-167d | tendencia de hallazgos 4D en las metricas (parte d de TASK-167) | alta | TASK-167c | espera a TASK-167c |
 | — | TASK-168 | Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests | simple | — | ✅ terminada |
 
