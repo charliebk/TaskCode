@@ -1,6 +1,6 @@
 ---
 id: TASK-167
-titulo: "Regla 4D preventiva en los proyectos que usan el plugin (0.20.0)"
+titulo: "Regla 4D preventiva en los proyectos que usan el plugin (0.19.0)"
 tipo: feature
 sprint: 0
 etiquetas: [regla-4d]
@@ -24,7 +24,7 @@ dependencias: []
 ---
 ## Objetivo
 
-Que los proyectos que instalan el plugin no cometan los fallos 4D que las auditorias encontraron en TaskCode: lo aprendido en las dos auditorias pasa a guia y a comprobaciones automaticas que el plugin instala y ejecuta al escribir codigo, no solo al revisarlo. Decision de Carlos (2026-11-25): version 0.20.0, despues de publicar la 0.19.0.
+Que los proyectos que instalan el plugin no cometan los fallos 4D que las auditorias encontraron en TaskCode: lo aprendido en las dos auditorias pasa a guia y a comprobaciones automaticas que el plugin instala y ejecuta al escribir codigo, no solo al revisarlo. Decision de Carlos (2026-11-25): va antes que las correcciones pendientes y se publica en la 0.19.0; TASK-150c (aparcada en diseno), 150d, 159..166, 152 y 140 pasan a la 0.20.0.
 
 ## Criterios de aceptacion
 - [ ] Hay una guia instalable de duplicacion de grano fino (helpers copiados, lectores de secciones repetidos, envoltorios de git o fs duplicados, catalogos escritos dos veces) sacada de las auditorias 4D, y start, review y las revisoras remiten a ella
