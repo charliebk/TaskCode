@@ -30,14 +30,21 @@ CONT-05: las revisoras dejan de copiar la plantilla y remiten a revision.md,
 que describe la de `informeTemplate`.
 
 ## Criterios de aceptacion
-- [ ] La plantilla del informe vive solo en informeTemplate y revision.md; las revisoras remiten a ella en vez de copiarla
-- [ ] Un test falla si una revisora vuelve a copiar la plantilla
+- [x] La plantilla del informe vive solo en informeTemplate y revision.md; las revisoras remiten a ella en vez de copiarla
+- [x] Un test falla si una revisora vuelve a copiar la plantilla
 
 ## Autorrevision
 
 - code-quality-reviewer — 97f9ff3
 - 4D — 97f9ff3: helper buscado (ESQUELETO, TITULO_ANTES y CAMPOS_CABECERA de revisores.test.ts reutilizados), usos buscados (titulo, Commit revisado y Contexto adicional pedido en skills/, agents/ y docs/: solo las cinco revisoras; tests 7 y 10c exigian la copia), criterios citados, 2 tests reescritos y 1 asercion, 3 mutaciones en rojo
 - 4D menores — d175109: usos buscados (el test 7 lo cubria el 10c: borrado; comentarios de revisores.test.ts al dia), 0 tests nuevos
+
+## Resultado
+
+- CONT-05: las cinco revisoras (angular-vue, java-spring, rust-wasm, code-quality, csharp) dejan de copiar la cabecera del informe: rellenan el esqueleto de `taskctl review` (informeTemplate), como dice "El informe" de revision.md, con su nombre en `- Revisor:`, y solo listan sus secciones propias despues de `## Hallazgos`. Fuera «Contexto adicional pedido» (lo leido fuera va en `## Lecturas fuera del contexto permitido`) y el parrafo de «sin hallazgos», que ya define revision.md.
+- Tests: el 10c de `revisores.test.ts` pasa de exigir la copia a prohibirla (titulo, campos de cabecera) y exige la remision; el antiguo 7 queda cubierto por el 10c y el 10f; `fuente-unica.test.ts` prohibe «Contexto adicional pedido». Mutaciones: 3 propias y 6 del revisor, todas en rojo.
+- test:rapido 703/703; verificacion por impacto de review en verde.
+- Revision ronda 1 (sonnet): aprobada con correcciones. MEN-1 (comentarios obsoletos en revisores.test.ts) y MEN-2 (test 7 redundante) corregidos y cerrados con verificar-menores.
 
 ## Transiciones
 
