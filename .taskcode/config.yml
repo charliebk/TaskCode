@@ -15,7 +15,10 @@ timeout_verificacion_selectiva: 3600
 comando_verificacion_freno: "node scripts/verificar-impacto.mjs"
 presupuesto_freno_s: 600
 rutas_documentacion: [docs/**, "*.md"]
-rutas_verificacion_parcial: [taskcode-marketplace/plugins/taskcode-plugin/src/**, taskcode-marketplace/plugins/taskcode-plugin/test/**, taskcode-marketplace/plugins/taskcode-plugin/dist/src/**]
+# 2026-11-25 (Carlos, agilidad): las skills y los agentes del plugin tambien
+# se verifican por impacto en finish; la suite completa se corre una vez sobre
+# develop antes de publicar cada version.
+rutas_verificacion_parcial: [taskcode-marketplace/plugins/taskcode-plugin/src/**, taskcode-marketplace/plugins/taskcode-plugin/test/**, taskcode-marketplace/plugins/taskcode-plugin/dist/src/**, taskcode-marketplace/plugins/taskcode-plugin/skills/**, taskcode-marketplace/plugins/taskcode-plugin/agents/**]
 
 # TASK-124: doctor avisa si el documento de estado lleva mas de 14 dias sin
 # commits o va por detras de las tareas terminadas.
