@@ -112,16 +112,16 @@ test('doctor (TASK-129): avisa si la suite crecio mas del umbral entre versiones
   }
 });
 
-test('plantilla y skills (TASK-129): presupuesto de tests por criterio, duplicados como MENOR y pesados por lenguaje', async () => {
+test('plantilla y skills (TASK-129): presupuesto de tests por criterio, duplicados segun la Regla 4D y pesados por lenguaje', async () => {
   const task = buildNewTask('TASK-129', { titulo: 't', tipo: 'feature', sprint: 0, etiquetas: [], complejidad: null, modeloSugerido: 'sonnet', agenteRevisor: 'g' }, '2026-11-13');
   assert.ok(planTemplate(task, []).includes(`## Plan de pruebas\n\n${LINEA_PLANTILLA_PRESUPUESTO_TESTS}\n`));
   const raiz = path.join(import.meta.dirname, '..', '..', '..');
   const plan = await readFile(path.join(raiz, 'skills', 'plan', 'SKILL.md'), 'utf8');
   assert.match(plan, /cuantos tests nuevos preve \(de 1\s+a 3; si pasa, el motivo\)/);
   assert.match(plan, /tests-pesados\.md/);
-  const review = await readFile(path.join(raiz, 'skills', 'review', 'SKILL.md'), 'utf8');
-  assert.match(review, /Un test que duplica a otro ya existente es MENOR/);
+  // TASK-150a (CONT-03): el test duplicado es duplicacion de la Regla 4D (IMPORTANTE), no MENOR.
   const pesados = await readFile(path.join(raiz, 'skills', 'task-workflow', 'tests-pesados.md'), 'utf8');
+  assert.match(pesados, /duplica a otro ya existente\s+es duplicacion de la Regla 4D/);
   for (const marca of ['Node', 'Rust', '#[ignore]', 'Java', '@Tag', '.NET', '[Trait', 'comando_verificacion_pesada', 'de 1 a 3']) {
     assert.ok(pesados.includes(marca), marca);
   }
