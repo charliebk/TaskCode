@@ -173,11 +173,10 @@ decision de la persona responsable, explicita.
 
 **8. Diffs minimos y reutilizar lo que ya existe.** Acotados a lo que motiva
 la tarea. Antes de escribir un helper, buscar el que ya esta: duplicar la
-comprobacion es como acaban existiendo dos comportamientos para el mismo
-hecho.
+comprobacion da dos comportamientos para el mismo hecho.
 
 **9. Los mensajes de error se dirigen a la persona y dicen que hacer.** Un
-error que no propone el siguiente paso deja al lector adivinando. Y un mensaje
+error sin siguiente paso deja al lector adivinando. Y un mensaje
 que ha dejado de ser cierto es peor que no tenerlo.
 
 ## Configuracion (`.taskcode/config.yml`)
@@ -198,6 +197,7 @@ saltes ni debilites tests para pasarlo. Si el rojo no es tuyo, dilo:
 solo bloquea una vez por turno.
 `comando_verificacion_selectiva` y `comando_verificacion_freno`: [verificacion-selectiva.md](verificacion-selectiva.md).
 Tests y Regla 4D: [tests-pesados.md](tests-pesados.md), [poda-tests.md](poda-tests.md), [disfraz-tests.md](disfraz-tests.md), [duplicacion.md](duplicacion.md).
+Auditoria 4D de todo el codigo: `/taskcode-plugin:auditoria-4d`.
 
 **Puerta de `finish` y guardian de merges.** Con `comando_verificacion`,
 `taskctl finish` verifica antes de mergear y aborta en rojo. Un merge (o el
