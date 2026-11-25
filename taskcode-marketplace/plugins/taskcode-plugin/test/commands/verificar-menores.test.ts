@@ -8,11 +8,13 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { runVerificarMenoresCommand, VerificarMenoresCommandError } from '../../src/commands/verificar-menores.js';
 import { runFinishCommand, FinishCommandError } from '../../src/commands/finish.js';
 import { runSiguienteCommand } from '../../src/commands/siguiente.js';
 import { SECCION_CODIGO_SIN_REVISAR, SECCION_VERIFICACION_LIGERA } from '../../src/core/menores.js';
 import {
+  HERE,
   SCRIPTS_DIR,
   sampleTask,
   git,
@@ -347,4 +349,18 @@ test('TASK-158b: con MENORES corregidos, verificar-menores avisa sin bloquear si
       }
     });
   }
+});
+
+test('TASK-158b (IMP-1 de su revision): el CLI imprime el aviso de "- 4D menores — " por stderr y sale con 0', async () => {
+  await withTempRepo(async (repoRoot, tareasRoot) => {
+    const id = 'TASK-959';
+    await montar(repoRoot, tareasRoot, id, 'aprobada con correcciones', [FILA_MEN1]);
+    await escribir(repoRoot, 'src/a.ts', '// src/a.ts\nexport const x = 2;\n');
+    commitAll(repoRoot, `fix(${id}): MEN-1`);
+    const taskctl = path.join(HERE, '..', '..', '..', 'bin', 'taskctl');
+    const r = spawnSync(process.execPath, [taskctl, 'verificar-menores', id], { cwd: repoRoot, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, new RegExp(`Tarea ${id}: verificacion ligera de la ronda 1 registrada`));
+    assert.match(r.stderr, new RegExp(`${id}: los MENORES corregidos no traen su autorrevision 4D`));
+  });
 });

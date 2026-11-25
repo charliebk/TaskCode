@@ -33,7 +33,9 @@ export function tieneAutorrevision(body) {
  * cuenta por otra: la de la ronda 1 no vale para la ronda 2.
  */
 export function tieneLinea4D(body, etiqueta = '') {
-    const tras4D = etiqueta === '' ? '' : `\\s+${etiqueta.trim().split(/\s+/).join('\\s+')}`;
+    // MEN-1 de su revision: la etiqueta es texto, no regex (se escapa cada palabra).
+    const palabras = etiqueta.trim().split(/\s+/).filter((p) => p !== '').map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const tras4D = palabras.length === 0 ? '' : `\\s+${palabras.join('\\s+')}`;
     const linea = new RegExp(`^\\s*[-*]\\s*4D${tras4D}\\s*(?:—|–|-|:)\\s*\\S`);
     return (contenidoDeSeccion(body, SECCION_AUTORREVISION) ?? []).some((l) => linea.test(l));
 }

@@ -96,6 +96,9 @@ test('TASK-158b: cada linea 4D cuenta solo por la suya (implementacion, ronda K,
   assert.equal(tieneLinea4D(con('- 4D — abc: helper buscado'), 'ronda 1'), false);
   assert.equal(tieneLinea4D(con('- 4D menores: abc'), 'menores'), true, 'dos puntos tambien valen');
   assert.equal(tieneLinea4D(con('- 4D menores — abc'), 'ronda 1'), false);
+  // MEN-1 de su revision: la etiqueta no se interpreta como regex.
+  assert.equal(tieneLinea4D(con('- 4D ronda 1 — abc'), 'ronda 1.*'), false);
+  assert.equal(tieneLinea4D(con('- 4D ronda 1.* — abc'), 'ronda 1.*'), true);
 });
 
 test('TASK-158b: los avisos de ronda y de menores nombran la tarea y dan la linea exacta; null con la linea', () => {
