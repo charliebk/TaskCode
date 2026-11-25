@@ -35,6 +35,11 @@ persona lo pide, crea una tarea por ola con `taskctl new`.
 - [ ] Hay una auditoria 4D invocable para el proyecto que produce hallazgos clasificados por D y un plan de correccion por olas
 - [ ] Un test falla si la skill pierde el formato del informe o la creacion de tareas por ola
 
+## Autorrevision
+
+- code-quality-reviewer — d1adc94
+- 4D — d1adc94: helper buscado (la Regla 4D, los patrones y la duracion se remiten a revision.md, duplicacion.md y duracion.md sin copiarlos; FLAGS_NEW de new.ts y assertSinMarcas de doctor-deploy.test.ts reutilizados en vez de otra lista de marcas), usos buscados (no habia formato de auditoria en src/ ni skills/; el formato vive solo en core/auditoria-4d.ts), criterios citados, 2 tests nuevos con 4 mutaciones en rojo (fila del resumen, flag inventado, commit antes de new, encabezado de ola)
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
