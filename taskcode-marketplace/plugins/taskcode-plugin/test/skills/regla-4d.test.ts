@@ -77,11 +77,13 @@ test('TASK-153b: revision.md pide comprobar los candidatos 4D de la peticion y m
 const AGENTS_DIR = path.join(SKILLS_DIR, '..', 'agents');
 const TODOS_LOS_USOS = /todos\s+los\s+usos/;
 
-test('TASK-158a revision: todos los usos antes de dar una duplicacion por resuelta, y la misma autorrevision al corregir', async () => {
+test('TASK-158a revision: todos los usos antes de dar una duplicacion por resuelta, y quien corrige anota su autorrevision', async () => {
   const regla = seccion(await leer('task-workflow/revision.md'), '## Regla 4D');
-  assert.match(regla, /Todos los usos: antes de dar una duplicacion por cerrada[\s\S]*no solo los citados/);
+  assert.match(regla, /\*\*Todos los usos, no solo los citados\*\*: antes de dar una duplicacion por\s+resuelta/);
+  // IMP-1 de su revision: cada linea con su formato completo, no un nombre suelto.
   for (const linea of ['- 4D ronda K — ', '- 4D menores — ']) {
-    assert.ok(regla.includes(`\`${linea}`), `revision.md: falta la linea de autorrevision "${linea}"`);
+    const formato = '`' + linea + '<commit>: usos buscados, N tests mutados`';
+    assert.ok(regla.includes(formato), `revision.md: falta el formato de "${linea}"`);
   }
 });
 
@@ -91,9 +93,17 @@ test('TASK-158a implementacion (start): busca todos los usos y lo anota en la li
   assert.match(start, /- 4D — <commit>: helper buscado, usos buscados,/);
 });
 
-test('TASK-158a correcciones de ronda y MENORES (review): autorrevision 4D por ronda y antes de verificar-menores', async () => {
+test('TASK-158a correcciones de ronda y MENORES (review): nombra la linea 4D de cada una y remite a su formato', async () => {
   const review = await leer('review/SKILL.md');
-  assert.match(review, /Regla 4D al corregir y en los MENORES: todos los usos\./);
+  // La autorrevision de cada ronda siguiente (paso 2) lleva la linea de las correcciones.
+  const autorrevision = review.slice(review.indexOf('**Autorrevision**'), review.indexOf('\n3. '));
+  assert.match(autorrevision, /la `- 4D ronda K — ` de las correcciones \(todos los usos;/);
+  assert.match(autorrevision, /"Regla 4D" de `task-workflow\/revision\.md`/);
+  // Los MENORES tras aprobar anotan la suya antes de ejecutar verificar-menores.
+  const menores = review.slice(review.indexOf('**MENORES tras aprobar**'));
+  const linea = menores.indexOf('`- 4D menores — `');
+  assert.ok(linea >= 0, 'review: los MENORES no anotan su linea 4D');
+  assert.ok(linea < menores.indexOf('`taskctl verificar-menores'), 'review: la linea 4D va antes de verificar-menores');
 });
 
 test('TASK-158a brainstorm: cada rol trae su apartado de la Regla 4D en "## Qué miras" con la busqueda de usos', async () => {
@@ -101,8 +111,10 @@ test('TASK-158a brainstorm: cada rol trae su apartado de la Regla 4D en "## Qué
   for (const rol of roles) {
     const texto = await readFile(path.join(AGENTS_DIR, `brainstorm-${rol}.md`), 'utf8');
     const queMiras = seccion(texto, '## Qué miras');
-    assert.match(queMiras, /^- \*\*Regla 4D[^*]*\*\*: \S/m, `brainstorm-${rol}: sin apartado de la Regla 4D`);
-    assert.match(queMiras, /todos\s+(los\s+)?(usos|sitios|tests)/, `brainstorm-${rol}: no pide buscar todos los usos`);
+    // MEN-2 de su revision: la busqueda de usos se mira dentro del apartado 4D, no en toda la seccion.
+    const apartado = /^- \*\*Regla 4D[^*]*\*\*: \S.*(?:\r?\n {2}.*)*/m.exec(queMiras);
+    assert.ok(apartado !== null, `brainstorm-${rol}: sin apartado de la Regla 4D`);
+    assert.match(apartado[0], /todos\s+(los\s+)?(usos|sitios|tests)/, `brainstorm-${rol}: su apartado 4D no pide buscar todos los usos`);
   }
 });
 

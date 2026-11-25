@@ -94,9 +94,12 @@ cada uno en su dominio):
 La peticion trae `## Candidatos 4D` (pistas desde el diff): comprueba cada
 posible duplicado y muta cada test que liste.
 
-Todos los usos: antes de dar una duplicacion por cerrada, busca cada sitio
-que la tiene, no solo los citados. Al corregir `- 4D ronda K — ` o
-`- 4D menores — ` en la autorrevision.
+**Todos los usos, no solo los citados**: antes de dar una duplicacion por
+resuelta, busca por nombre y por patron cada sitio que la tiene. Quien corrige
+hace la misma autorrevision que quien implementa y la anota en
+`## Autorrevision`: `- 4D ronda K — <commit>: usos buscados, N tests mutados`
+(K, la ronda cuyos hallazgos corrige) o, para los MENORES tras aprobar,
+`- 4D menores — <commit>: usos buscados, N tests mutados`.
 
 Duplicacion y disfraz reales son **IMPORTANTE** como minimo; desviacion y
 diluvio, MENOR salvo que cambien comportamiento o escondan un fallo.
@@ -105,13 +108,8 @@ diluvio, MENOR salvo que cambien comportamiento o escondan un fallo.
 
 Se numeran: `peticion-revision-N.md` e `informe-revision-N.md` en
 `revision/`. **Una ronda sin CRITICO ni IMPORTANTE abiertos cierra la
-tarea.** Los MENOR que se corrijan no abren ronda 2: se corrigen los
-baratos, se commitea y `taskctl verificar-menores TASK-NNN` comprueba que lo
-cambiado desde el `Commit revisado` son solo los ficheros de esos MENORES (o
-tests), lo registra en `tarea.md` y deja los no corregidos en
-`revision/menores-pendientes.md` (backlog que no bloquea `finish`). Sin esa
-verificacion, `finish` no integra codigo posterior al revisado salvo que una
-persona pase `--aceptar-sin-revisar`. La ronda 2 solo se
+tarea.** Los MENOR que se corrijan no abren ronda 2: los comprueba
+`taskctl verificar-menores` (detalle en la skill de review). La ronda 2 solo se
 pide si se corrigio algun CRITICO o IMPORTANTE (veredicto `cambios-solicitados`):
 `taskctl review` sobre la tarea en revision la genera con solo el diff desde
 la ronda anterior y los hallazgos aun abiertos de su tabla, sin integrar la

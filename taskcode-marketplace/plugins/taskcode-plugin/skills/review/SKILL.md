@@ -37,7 +37,9 @@ punto, no un formalismo.
    linea por revisora: `- <revisora> — <commit>`, con el commit corto que
    repasaste, y nada mas. Sin juicios ni «sin hallazgos»: el revisor lee
    `tarea.md` y no debe anclarse. Commitea antes de `taskctl review` (con el
-   workspace sucio aborta). En cada ronda siguiente, anade otra linea. Si el
+   workspace sucio aborta). En cada ronda siguiente, anade otra linea por
+   revisora y la `- 4D ronda K — ` de las correcciones (todos los usos;
+   formato en "Regla 4D" de `task-workflow/revision.md`). Si el
    JSON no trae `revisores`, usa las revisoras cuya `description` encaje
    con los ficheros del diff, y `code-quality-reviewer` para el resto.
    `taskctl review` avisa, sin bloquear, si falta la constancia.
@@ -86,8 +88,7 @@ punto, no un formalismo.
    tarea nueva. Nunca se deja nada para la ronda siguiente: corregir de uno en
    uno es lo que convierte trece hallazgos en trece rondas. Lo corregido se
    marca `corregido` en la columna Estado de su informe (sin mezclarlo en un
-   commit de codigo). `taskctl review` avisa si queda alguno sin marcar.
-   Regla 4D al corregir y en los MENORES: todos los usos. En modo
+   commit de codigo). `taskctl review` avisa si queda alguno sin marcar. En modo
    automatico, si `siguiente` da `fase: review` con `accion: continuar`, haz tu
    todo eso, commitea, deja la suite en verde y vuelve al paso 2. Desde la
    ronda 2 la ronda es una verificacion acotada: cada revisor comprueba sus
@@ -109,16 +110,15 @@ punto, no un formalismo.
    **MENORES tras aprobar** (`aprobada-con-correcciones` sin CRITICO ni
    IMPORTANTE abiertos): **nunca** se piden como `cambios-solicitados` ni
    abren otra ronda, en ningun modo. Corrige los baratos tocando solo los
-   ficheros que cita cada MENOR (y sus tests), commitea y ejecuta
+   ficheros que cita cada MENOR (y sus tests), anota su linea
+   `- 4D menores — ` (misma regla), commitea y ejecuta
    `taskctl verificar-menores TASK-NNN [--motivo "<por que no se corrigen
-   los demas>"]`: comprueba que lo cambiado desde el `Commit revisado` se
-   limita a eso, lo registra en `tarea.md` y deja los MENORES no corregidos
-   en `revision/menores-pendientes.md` (backlog: no bloquean `finish`).
+   los demas>"]`: comprueba que solo cambia eso y deja los no corregidos en
+   `revision/menores-pendientes.md` (backlog: no bloquean `finish`).
    Si aborta porque hay un fichero ajeno, no lo fuerces: o se deshace ese
    cambio, o hace falta otra ronda, o una persona decide
    `taskctl finish TASK-NNN --aceptar-sin-revisar`. `finish` no integra
-   codigo posterior al revisado sin una de las dos cosas. Un CRITICO o
-   IMPORTANTE abierto sigue siendo `cambios-solicitados` y otra ronda.
+   codigo posterior al revisado sin una de las dos cosas.
 5. **Segunda opinion** (`revision_codex: true` y primaria aprobada):
    ejecuta `taskctl codex-review TASK-NNN` una vez.
    - Si avisa de que Codex no respondio y no escribio informe, muestra el
