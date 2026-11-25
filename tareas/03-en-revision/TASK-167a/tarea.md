@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 4698066
-tokens_revision: null
+tokens_revision: 2729331
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: []
@@ -45,6 +45,7 @@ Objetivo de la tarea entera:
 
 - code-quality-reviewer — c94acce
 - 4D — c94acce: helper buscado (disfraz-tests.md como modelo; seccion y cargarCatalogoRevisores de regla-4d.test.ts), usos buscados (donde se remite a disfraz-tests.md: start, revision.md, task-workflow; las revisoras remiten a revision.md), criterios citados, 1 test nuevo con 2 mutaciones en rojo (y el 20b caza el enlace)
+- 4D menores — 59b32c7: usos buscados (los dos patrones nuevos no estaban en revision.md ni en disfraz-tests.md), 1 asercion ampliada
 
 ## Transiciones
 
@@ -60,3 +61,8 @@ Objetivo de la tarea entera:
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T13:40:09Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 16 | 12842 | 4678079 | 7129 | 2 | 4698066 | - | - |
+| 2026-11-25T14:20:48Z | revision | agente:a9b446550ba4ccb19 | 42 | 146457 | 2570500 | 12332 | 8 | 2729331 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-25T14:22:09Z: ronda 1; commit revisado af87a4195849627ba94283d27a910facdf4b34ad; commit verificado 59b32c7124f74be787a49f949401a81383245ddf; ficheros: taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/duplicacion.md, taskcode-marketplace/plugins/taskcode-plugin/test/skills/regla-4d.test.ts; corregidos: MENOR-1; pendientes: MENOR-2, MENOR-3
