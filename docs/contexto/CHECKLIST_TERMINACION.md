@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 163 / 175 items terminados (93%)** · última actualización: 2026-11-24
+**Progreso global: 164 / 175 items terminados (94%)** · última actualización: 2026-11-25
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,8 +41,8 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 29 | **17** | ~45h |
-| **Total pendiente** | **12** | — | — |
+| Q — Correcciones de la auditoría 4D | 29 | **18** | ~45h |
+| **Total pendiente** | **11** | — | — |
 
 
 Las fases cerradas (Sprint 0 y 1, A a P), las decisiones ya resueltas (#1 a
@@ -57,7 +57,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## Q — Correcciones de la auditoría 4D (15/20)
+## Q — Correcciones de la auditoría 4D (18/29)
 
 Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`docs/auditoria-4d-completa.md`](../auditoria-4d-completa.md).
 
@@ -103,4 +103,4 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
 - [ ] TASK-164 — Regla 4D (2a auditoria): skills que contradicen al CLI
 - [ ] TASK-165 — Regla 4D (2a auditoria): disfraz en tests
 - [ ] TASK-166 — Regla 4D (2a auditoria): helpers de test duplicados por las correcciones
-- [ ] TASK-158 — Regla 4D preventiva en todos los procesos que crean o actualizan codigo — antes de publicar la 0.19.0 (decision de Carlos)
+- [x] TASK-158 (a, b, c) — Regla 4D preventiva en todos los procesos que crean o actualizan codigo — cerrada el 2026-11-25
