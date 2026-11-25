@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 10711630
 tokens_revision: null
 creado: 2026-11-25
 actualizado: 2026-11-25
@@ -45,3 +45,10 @@ que describe la de `informeTemplate`.
 | 2026-11-25T10:59:58Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T11:01:03Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T11:01:05Z | start | automatico | persona | 0.18.0 |
+| 2026-11-25T11:12:44Z | review | automatico | persona | 0.18.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-25T11:12:44Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 44 | 27218 | 10670804 | 13564 | 7 | 10711630 | - | - |
