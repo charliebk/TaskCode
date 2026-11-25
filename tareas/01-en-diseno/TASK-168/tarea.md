@@ -7,7 +7,7 @@ etiquetas: [agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: fix/task-168-agilidad-un-cambio-solo-en-md-de-skills
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -36,3 +36,4 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-25T14:53:37Z | plan | automatico | persona | 0.18.0 |
+| 2026-11-25T14:54:52Z | approve | automatico | persona | 0.18.0 |
