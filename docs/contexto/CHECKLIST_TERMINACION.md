@@ -10,7 +10,7 @@
 > contadores de la tabla de abajo, y se muestra el checklist actualizado en la
 > respuesta. Ver `CONVENCIONES.md`.
 
-**Progreso global: 164 / 175 items terminados (94%)** · última actualización: 2026-11-25
+**Progreso global: 166 / 177 items terminados (94%)** · última actualización: 2026-11-25
 
 Desde el 2026-10-04 se suma la fase G (urgente, pedida por Carlos): el
 plugin conduce el ciclo con fases invocables y modos manual, semiautomatico y
@@ -41,7 +41,7 @@ tomada y documentada, no aplazada.
 | ✅ N — Mejoras tras las métricas de la 0.8 | 10 | **10** | — |
 | ✅ O — Verificación selectiva por impacto | 1 | **1** | — |
 | ✅ P — Agilidad sin perder calidad | 45 | **45** | — |
-| Q — Correcciones de la auditoría 4D | 29 | **18** | ~45h |
+| Q — Correcciones de la auditoría 4D | 31 | **20** | ~45h |
 | **Total pendiente** | **11** | — | — |
 
 
@@ -57,7 +57,7 @@ Ninguna abierta. Las resueltas, con su razonamiento, en el archivo.
 
 ---
 
-## Q — Correcciones de la auditoría 4D (18/29)
+## Q — Correcciones de la auditoría 4D (20/31)
 
 Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`docs/auditoria-4d-completa.md`](../auditoria-4d-completa.md).
 
@@ -104,3 +104,7 @@ Plan en [`docs/plan-correccion-4d.md`](../plan-correccion-4d.md); casos en [`doc
 - [ ] TASK-165 — Regla 4D (2a auditoria): disfraz en tests
 - [ ] TASK-166 — Regla 4D (2a auditoria): helpers de test duplicados por las correcciones
 - [x] TASK-158 (a, b, c) — Regla 4D preventiva en todos los procesos que crean o actualizan codigo — cerrada el 2026-11-25
+- [x] TASK-168 — Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests — cerrada el 2026-11-25
+      *verificar-impacto ya no elige tests por comentarios ni por cualquier SKILL.md: un cambio en una skill pasa de ~119 tests elegidos a ~20. 3 rondas (la 3 extra, decidida por Carlos).*
+- [x] TASK-167 (a, b, c, d) — Regla 4D preventiva en los proyectos que usan el plugin — cerrada el 2026-11-25
+      *Guia instalable duplicacion.md; review avisa de definiciones nuevas casi identicas por su cuerpo (Jaccard de tejas, un cat-file por ref, 2 s); skill auditoria-4d con informe por D y severidad, plan por olas y tareas por ola; metricas muestra la serie entre auditorias. 167b y 167c, 2 rondas; 167a y 167d, una con MENORES.*
