@@ -522,20 +522,23 @@ export function conDistProtegido(dirPlugin, fn) {
   const cerrojo = `${copia}.cerrojo`;
   if (!tomarCerrojo(cerrojo, leerEspera(process.env.VERIFICAR_IMPACTO_ESPERA_S))) return 1;
   let habiaDist = false;
+  // TASK-158c: el commit del que es la copia; si cambia antes de devolverla, no se devuelve.
+  let head = null;
   try {
     restaurarHuerfana(copia, distSrc);
     mkdirSync(copia, { recursive: true });
     habiaDist = existsSync(distSrc);
+    head = headDe(dirPlugin);
     if (habiaDist) cpSync(distSrc, path.join(copia, 'src'), { recursive: true });
     // El marcador va el ultimo: sin el, la copia esta a medias y no se restaura.
-    writeFileSync(path.join(copia, MARCADOR), JSON.stringify({ dirPlugin, habiaDist, pid: process.pid }));
+    writeFileSync(path.join(copia, MARCADOR), JSON.stringify({ dirPlugin, habiaDist, head, pid: process.pid }));
   } catch (e) {
     soltarCerrojo(cerrojo);
     throw e;
   }
   const cerrar = () => {
     try {
-      devolver(copia, distSrc, habiaDist);
+      devolver(copia, distSrc, habiaDist, head);
     } finally {
       soltarCerrojo(cerrojo);
     }
@@ -692,7 +695,39 @@ export function dirCopia(dirPlugin) {
   return path.join(tmpdir(), `verificar-impacto-${hash}`);
 }
 
-function devolver(copia, distSrc, habiaDist) {
+/** HEAD del repo que contiene `dir`; null fuera de Git. */
+function headDe(dir) {
+  const h = git(['rev-parse', 'HEAD'], dir);
+  return h === null ? null : h.trim();
+}
+
+/**
+ * TASK-158c: devuelve la copia de dist/src, salvo que sea de otro commit.
+ * `head` es el HEAD de cuando se tomo la copia (null fuera de Git o en una
+ * copia vieja sin el dato: se devuelve como antes). Si HEAD cambio entretanto
+ * (el freno `Stop` corriendo mientras `update-fix` tenia otra rama activa,
+ * TASK-145b), la copia es de otra rama: devolverla dejaria dist/src con su
+ * contenido y el arbol sucio. Se deja dist/src como esta en el HEAD de ahora
+ * (dist/src es salida de compilacion versionada) y se avisa.
+ */
+function devolver(copia, distSrc, habiaDist, head = null) {
+  const dirPlugin = path.dirname(path.dirname(distSrc));
+  const ahora = head === null ? null : headDe(dirPlugin);
+  if (ahora !== null && ahora !== head) {
+    // MEN-1 de su revision: solo se limpia si dist/src salio de Git; si no esta
+    // versionado (o el checkout falla), limpiar lo borraria entero.
+    const restaurado = git(['checkout', 'HEAD', '--', 'dist/src'], dirPlugin) !== null;
+    if (restaurado) git(['clean', '-fdq', '--', 'dist/src'], dirPlugin);
+    console.log(
+      `[verificar-impacto] AVISO: HEAD cambio durante la ejecucion (${head.slice(0, 7)} -> ${ahora.slice(0, 7)}): ` +
+        'no devuelvo la copia de dist/src, que es de otro commit; ' +
+        (restaurado
+          ? 'lo dejo como esta en el HEAD actual.'
+          : 'no he podido sacarlo de Git y lo dejo como esta: "npm run build" lo regenera.')
+    );
+    rmSync(copia, { recursive: true, force: true });
+    return;
+  }
   // TASK-136: segunda barrera. Sin copia que devolver, borrar dist/src lo
   // perderia entero (bin/taskctl dejaria de arrancar): se deja como esta.
   if (habiaDist && !existsSync(path.join(copia, 'src'))) {
@@ -717,8 +752,11 @@ function restaurarHuerfana(copia, distSrc) {
     return;
   }
   let habiaDist = true;
+  let head = null;
   try {
-    habiaDist = JSON.parse(readFileSync(marcador, 'utf8')).habiaDist !== false;
+    const datos = JSON.parse(readFileSync(marcador, 'utf8'));
+    habiaDist = datos.habiaDist !== false;
+    head = typeof datos.head === 'string' ? datos.head : null;
   } catch {
     // marcador ilegible: se asume que habia dist/src
   }
@@ -726,7 +764,7 @@ function restaurarHuerfana(copia, distSrc) {
     `[verificar-impacto] AVISO: una ejecucion anterior se corto a mitad (queda su copia en ${copia}). ` +
       'Restauro dist/src a como estaba antes de ella.'
   );
-  devolver(copia, distSrc, habiaDist);
+  devolver(copia, distSrc, habiaDist, head);
 }
 
 const invocadoDirecto = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
