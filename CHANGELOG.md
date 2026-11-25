@@ -1,6 +1,8 @@
 # Changelog
 
 ## Sin publicar
+- TASK-168 (fix) — Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests (2026-11-25)
+- TASK-167a (feature) — guia instalable de duplicacion de grano fino (parte a de TASK-167) (2026-11-25)
 - TASK-150b (fix) — la plantilla del informe en un solo sitio (parte b de TASK-150) (2026-11-25)
 - TASK-150a (fix) — textos que contradicen al codigo o a la Regla 4D (parte a de TASK-150) (2026-11-25)
 - TASK-158c (feature) — verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158) (2026-11-25)

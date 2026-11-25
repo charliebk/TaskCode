@@ -62,6 +62,18 @@ const FICHEROS: Record<string, string> = {
   [`${PLUGIN}/test/tablero.test.ts`]: "const B = path.join(repoRoot, 'docs', 'BOARD.md');\nvoid B;\n",
   [`${PLUGIN}/test/nombra.test.ts`]: "const F = 'pasos.md';\nvoid F;\n",
   [`${PLUGIN}/test/recorre.test.ts`]: "const D = readdirSync(path.join(PLUGIN_ROOT, 'skills'));\nvoid D;\n",
+  // TASK-168: cita test/skills/ solo en un comentario; nombra el SKILL.md de otra skill; nombra el de flujo.
+  [`${PLUGIN}/test/comenta.test.ts`]: '// como en test/skills/marcas.test.ts y test/agents/x.test.ts\nvoid 0;\n',
+  [`${PLUGIN}/test/otra-skill.test.ts`]: "const F = ['otra', 'SKILL.md'];\nvoid F;\n",
+  [`${PLUGIN}/test/nombra-flujo.test.ts`]: "const F = ['flujo', 'SKILL.md'];\nvoid F;\n",
+  // IMP-1 y MEN-1 de su revision: un src que cita SKILL.md y 'flujo' solo en comentarios
+  // (con un test que lo importa) y un test que nombra la skill por su ruta.
+  [`${PLUGIN}/src/comenta-skill.ts`]: "// lee el SKILL.md de 'flujo'\n/* y el de 'flujo' */\nexport const z = 1;\n",
+  [`${PLUGIN}/test/usa-comenta.test.ts`]: "import { z } from '../src/comenta-skill.js';\nvoid z;\n",
+  [`${PLUGIN}/test/ruta-flujo.test.ts`]: 'const R = `${process.cwd()}/flujo/SKILL.md`;\nvoid R;\n',
+  // IMP-2 de su revision: un glob con `/*` y un `//` dentro de cadenas no son comentarios.
+  [`${PLUGIN}/test/glob-flujo.test.ts`]:
+    "const G = 'lib/*';\nconst F = ['flujo', 'SKILL.md'];\nconst H = '*/fin';\nconst U = 'a//b'; const R = 'flujo/SKILL.md';\nvoid G; void F; void H; void U; void R;\n",
   // El enrutador de comandos: quien lo importa solo depende de los comandos que nombra.
   [`${PLUGIN}/src/cli.ts`]: "import { alfa } from './commands/alfa.js';\nimport { beta } from './commands/beta.js';\nexport const main = [alfa, beta];\n",
   [`${PLUGIN}/src/commands/alfa.ts`]: "import { x } from '../core/x.js';\nexport const alfa = x;\n",
@@ -195,13 +207,15 @@ test('TASK-156: un .md de skills/, agents/ o docs/ del plugin elige los tests qu
     assert.deepEqual(ficheros(listar(raiz, 'develop', 2)), ['test/nombra.test.ts', 'test/skills/marcas.test.ts']);
   });
   await conRepo(async (raiz) => {
-    // Nadie nombra SKILL.md: sin la carpeta, seria «ningun test lo referencia».
+    // Los lectores de la carpeta, y quien nombra esta skill (su carpeta y SKILL.md).
     await cambiarYCommitear(raiz, `${PLUGIN}/skills/flujo/SKILL.md`, '# flujo cambiado\n');
     const s = listar(raiz);
     assert.equal(s.todo, false, s.motivo);
-    assert.deepEqual(ficheros(s), ['test/recorre.test.ts', 'test/skills/marcas.test.ts']);
-    // Entre lectores de la carpeta, primero el que vive en test/skills/.
-    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/skills/marcas.test.ts']);
+    // TASK-168: y el que nombra el SKILL.md de flujo (su carpeta y el fichero).
+    assert.deepEqual(ficheros(s), ['test/glob-flujo.test.ts', 'test/nombra-flujo.test.ts', 'test/recorre.test.ts', 'test/ruta-flujo.test.ts', 'test/skills/marcas.test.ts']);
+    // Con tope, primero quien lo nombra (TASK-168); entre lectores, el de test/skills/.
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 1)), ['test/glob-flujo.test.ts']);
+    assert.deepEqual(ficheros(listar(raiz, 'develop', 4)), ['test/glob-flujo.test.ts', 'test/nombra-flujo.test.ts', 'test/ruta-flujo.test.ts', 'test/skills/marcas.test.ts']);
   });
   await conRepo(async (raiz) => {
     await cambiarYCommitear(raiz, `${PLUGIN}/agents/rol.md`, '# rol cambiado\n');
@@ -211,6 +225,25 @@ test('TASK-156: un .md de skills/, agents/ o docs/ del plugin elige los tests qu
     // docs/ del plugin: el que lee PLUGIN_ROOT/docs, no el que usa 'docs' en su repo temporal.
     await cambiarYCommitear(raiz, `${PLUGIN}/docs/ajustes.md`, '# ajustes cambiados\n');
     assert.deepEqual(ficheros(listar(raiz)), ['test/manual.test.ts']);
+  });
+});
+
+test('TASK-168: un .md de skill o agente no elige a quien solo cita test/skills/ en un comentario ni a quien nombra el SKILL.md de otra skill', async () => {
+  // Antes un comentario con `test/skills/x.test.ts` contaba como «lee la carpeta» y un
+  // `SKILL.md` cualquiera como «lo nombra»: un .md de skill arrastraba ~1800 tests.
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/skills/flujo/SKILL.md`, '# flujo otra vez\n');
+    const elegidos = ficheros(listar(raiz));
+    assert.ok(!elegidos.includes('test/comenta.test.ts'), `el comentario no lee la carpeta: ${elegidos.join(', ')}`);
+    assert.ok(!elegidos.includes('test/otra-skill.test.ts'), `nombra el SKILL.md de otra skill: ${elegidos.join(', ')}`);
+    assert.ok(elegidos.includes('test/nombra-flujo.test.ts'), `deja fuera al que nombra esta skill: ${elegidos.join(', ')}`);
+    assert.ok(elegidos.includes('test/glob-flujo.test.ts'), `un glob o una URL en una cadena se toman por comentario: ${elegidos.join(', ')}`);
+    assert.ok(elegidos.includes('test/ruta-flujo.test.ts'), `deja fuera al que la nombra por su ruta: ${elegidos.join(', ')}`);
+    assert.ok(!elegidos.includes('test/usa-comenta.test.ts'), `un src que la cita en comentarios arrastra a quien lo importa: ${elegidos.join(', ')}`);
+  });
+  await conRepo(async (raiz) => {
+    await cambiarYCommitear(raiz, `${PLUGIN}/agents/rol.md`, '# rol otra vez\n');
+    assert.ok(!ficheros(listar(raiz)).includes('test/comenta.test.ts'), 'el comentario con test/agents/ no lee la carpeta');
   });
 });
 

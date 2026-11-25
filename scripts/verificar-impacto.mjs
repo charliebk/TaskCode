@@ -79,6 +79,9 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statS
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// TASK-168 (IMP-2 de su revision): quitar comentarios respetando las cadenas
+// ya lo hace el plugin; se usa su build versionado, no una copia.
+import { sinComentariosC as sinComentarios } from '../taskcode-marketplace/plugins/taskcode-plugin/dist/src/core/doctor-deploy-reglas.js';
 
 export const PLUGIN = 'taskcode-marketplace/plugins/taskcode-plugin';
 const RAPIDO = ['test/core', 'test/cli'];
@@ -98,10 +101,14 @@ export const ENRUTADOR = 'src/cli.ts';
  * fuera: en TASK-139b un rojo suyo solo lo vio la suite completa de finish.
  * `docs` va acotado a la carpeta del plugin (`PLUGIN_ROOT, 'docs'`): media
  * suite usa `'docs'` para los repos temporales de sus pruebas.
+ *
+ * TASK-168: `skills` y `agents` solo entre comillas (`'skills'`, `"skills/..."`).
+ * Antes valia cualquier `/skills/`, y un comentario que citaba
+ * `test/skills/x.test.ts` elegia a su fichero y a todo lo que lo importa.
  */
 const CARPETAS_LEIDAS = [
-  { carpeta: 'skills', patron: /['"]skills['"]|['"/]skills\// },
-  { carpeta: 'agents', patron: /['"]agents['"]|['"/]agents\// },
+  { carpeta: 'skills', patron: /['"]skills['"/]/ },
+  { carpeta: 'agents', patron: /['"]agents['"/]/ },
   { carpeta: 'docs', patron: /PLUGIN_ROOT\s*,\s*['"]docs['"]/ },
 ];
 /** La carpeta de CARPETAS_LEIDAS bajo la que vive `rel` (relativa al plugin), o undefined. */
@@ -310,7 +317,19 @@ export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
     // Ficheros que los tests usan sin importarlos.
     const marcados = [...nodos].filter(([, n]) => MARCADORES.some((m) => enPlugin && m.dependeDe(rel) && m.patron.test(n.texto)));
     const nombre = path.posix.basename(ruta);
-    const porNombre = marcados.length > 0 ? marcados : [...nodos].filter(([, n]) => n.texto.includes(nombre));
+    // TASK-168: un nombre generico (`SKILL.md`, el de cada skill) no basta:
+    // tiene que aparecer tambien la carpeta de esa skill (`'plan'` o `plan/SKILL.md`),
+    // y fuera de los comentarios (IMP-1 de su revision: src/commands/review.ts cita
+    // SKILL.md y 'plan' en comentarios y arrastraba a sus ~100 importadores).
+    const carpetaSkill = enPlugin && nombre === 'SKILL.md' ? path.posix.basename(path.posix.dirname(rel)) : null;
+    const carpetaEntreComillas =
+      carpetaSkill === null ? null : new RegExp(`['"]${carpetaSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`);
+    const loNombra = (texto) => {
+      if (carpetaSkill === null) return texto.includes(nombre);
+      const codigo = sinComentarios(texto);
+      return codigo.includes(nombre) && (codigo.includes(`${carpetaSkill}/${nombre}`) || carpetaEntreComillas.test(codigo));
+    };
+    const porNombre = marcados.length > 0 ? marcados : [...nodos].filter(([, n]) => loNombra(n.texto));
     // TASK-156: y los tests que leen la carpeta entera (skills/, agents/, docs/ del plugin).
     const leida = enPlugin ? carpetaLeida(rel) : undefined;
     const lectores = leida === undefined ? [] : [...nodos].filter(([f, n]) => esTest(f) && leida.patron.test(n.texto));
