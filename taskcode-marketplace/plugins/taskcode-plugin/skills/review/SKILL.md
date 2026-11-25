@@ -39,7 +39,8 @@ punto, no un formalismo.
    `tarea.md` y no debe anclarse. Commitea antes de `taskctl review` (con el
    workspace sucio aborta). En cada ronda siguiente, anade otra linea por
    revisora y la `- 4D ronda K — ` de las correcciones (todos los usos;
-   formato en "Regla 4D" de `task-workflow/revision.md`). Si el
+   formato en "Regla 4D" de `task-workflow/revision.md`; patrones en
+   `task-workflow/duplicacion.md`). Si el
    JSON no trae `revisores`, usa las revisoras cuya `description` encaje
    con los ficheros del diff, y `code-quality-reviewer` para el resto.
    `taskctl review` avisa, sin bloquear, si falta la constancia.

@@ -152,7 +152,8 @@ revierte el cambio.
 
 ### Regla 4D en Java y Spring
 
-La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+La definicion y la severidad, en "Regla 4D" de revision.md; los patrones de
+duplicacion, en duplicacion.md. Aqui:
 
 - Duplicacion: dos `@Service` con el mismo mapeo DTO a entidad escrito a
   mano, en vez de un mapper comun.

@@ -281,7 +281,8 @@ se revierte el cambio.
 
 ### Regla 4D en Angular y Vue
 
-La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+La definicion y la severidad, en "Regla 4D" de revision.md; los patrones de
+duplicacion, en duplicacion.md. Aqui:
 
 - Duplicacion: un composable `useFetchUsuarios` copiado de `useFetchPedidos`
   cambiando la URL, en vez de un `useFetch(url)`.

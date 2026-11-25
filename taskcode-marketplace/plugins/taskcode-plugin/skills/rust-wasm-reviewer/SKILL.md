@@ -307,7 +307,8 @@ mutacion.
 
 ### Regla 4D en Rust y WebAssembly
 
-La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+La definicion y la severidad, en "Regla 4D" de revision.md; los patrones de
+duplicacion, en duplicacion.md. Aqui:
 
 - Duplicacion: `area_f32` y `area_f64` copiadas, en vez de una generica sobre
   un trait numerico.

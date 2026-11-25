@@ -230,7 +230,8 @@ Reproducciones baratas que este dominio agradece:
 
 ### Regla 4D en C#, AutoCAD e IFC
 
-La definicion y la severidad, en "Regla 4D" de revision.md. Aqui:
+La definicion y la severidad, en "Regla 4D" de revision.md; los patrones de
+duplicacion, en duplicacion.md. Aqui:
 
 - Duplicacion: dos metodos que abren la `Transaction` y recorren el
   `BlockTableRecord` igual, cambiando solo el filtro de entidad.

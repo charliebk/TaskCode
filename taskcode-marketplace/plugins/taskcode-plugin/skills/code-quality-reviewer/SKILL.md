@@ -223,7 +223,8 @@ salida de otro proceso.
 
 ### 8. Regla 4D
 
-La definicion y la severidad, en "Regla 4D" de revision.md. En un pase
+La definicion y la severidad, en "Regla 4D" de revision.md; los patrones de
+duplicacion, en duplicacion.md. En un pase
 generico:
 
 - Duplicacion: una funcion de parseo de argumentos nueva junto a la que ya

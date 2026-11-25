@@ -70,6 +70,7 @@ const TOPES_PLUGIN: Readonly<Record<string, number>> = {
   'skills/task-workflow/tests-pesados.md': 3 * KB, // TASK-129
   'skills/task-workflow/poda-tests.md': 4 * KB, // TASK-130
   'skills/task-workflow/disfraz-tests.md': 3 * KB, // TASK-153a
+  'skills/task-workflow/duplicacion.md': 3 * KB, // TASK-167a
 };
 
 /** Tope del total de skills/ + agents/ (248 818 B al fijarlo). */
