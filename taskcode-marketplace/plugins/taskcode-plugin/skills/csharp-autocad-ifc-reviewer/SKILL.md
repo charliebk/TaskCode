@@ -291,21 +291,9 @@ decirlo.
 
 ## El informe
 
-Se escribe sobre el fichero de informe de la ronda que genera `taskctl
-review`, sin borrar la peticion, con las reglas de revision.md. La cabecera,
-con el nombre de esta skill:
-
-```
-# Informe de revision — <ID de la tarea> (ronda <N>)
-
-- Commit revisado: <sha>
-- Revisor: csharp-autocad-ifc-reviewer
-- Veredicto: aprobada
-
-## Hallazgos
-
-<un bloque por hallazgo, con la plantilla de revision.md>
-```
+Se rellena el esqueleto que deja `taskctl review` (cabecera, tabla de
+hallazgos, Regla 4D y lecturas fuera del contexto), como dice "El informe" de
+revision.md, con `csharp-autocad-ifc-reviewer` en `- Revisor:`.
 
 ## Lo que esta skill NO hace
 

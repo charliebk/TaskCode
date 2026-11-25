@@ -336,41 +336,17 @@ contrario de lo que dice:
 
 ## Estructura del informe
 
-Se rellena el esqueleto que deja `taskctl review`, respetando su cabecera
-(ver revision.md), con el nombre de esta skill en `- Revisor:`. Las secciones
-propias de este revisor van **despues** de `## Hallazgos`, donde no chocan con
-lo que el esqueleto ya trae:
+Se rellena el esqueleto que deja `taskctl review` (cabecera, tabla de
+hallazgos, Regla 4D y lecturas fuera del contexto), como dice "El informe" de
+revision.md, con `angular-vue-reviewer` en `- Revisor:`. Este revisor anade, despues
+de `## Hallazgos`:
 
-```markdown
-# Informe de revision — <ID de la tarea> (ronda <N>)
-
-- Commit revisado: <sha>
-- Revisor: angular-vue-reviewer
-- Veredicto: aprobada
-
-## Hallazgos
-
-<un bloque por hallazgo, con la plantilla de revision.md>
-
-## Alcance
-- Ficheros revisados: <los del diff que casaron con los patrones>
-- Contexto adicional pedido: <ninguno, o que y por que>
-
-## Reproduccion
-- Clon: <ruta temporal y rama>
-- Instalacion y build: <comandos y resultado>
-- Suite: <comando, resultado, y linea base antes del diff>
-- Vista ejercitada: <ruta, navegador, volumen de datos, recorrido de teclado>
-- Casos construidos: <que se ejecuto para demostrar cada hallazgo>
-
-## Revisado sin hallazgos
-<areas del diff que se miraron y salieron limpias, para que conste que se
-miraron>
-```
-
-Si no hay nada que reportar, `## Hallazgos` dice **"sin hallazgos"** de
-forma explicita, y `## Reproduccion` deja constancia de que se ejecuto para
-llegar a esa conclusion.
+- `## Alcance`: los ficheros del diff que casaron con los patrones.
+- `## Reproduccion`: clon y rama, instalacion y build, suite con su linea base antes del diff,
+  vista ejercitada (ruta, navegador, volumen de datos, recorrido de teclado) y
+  los casos que demuestran cada hallazgo.
+- `## Revisado sin hallazgos`: las areas del diff que se miraron y salieron
+  limpias.
 
 ## Lo que esta skill no hace
 

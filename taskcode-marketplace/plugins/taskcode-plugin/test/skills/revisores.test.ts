@@ -580,27 +580,13 @@ test('6d. NEGATIVA: ninguna ruta ajena llega a un revisor de dominio', async () 
 
 // --- 3. El veredicto, contra el codigo que lo lee -----------------------
 
-test('7. la linea de veredicto que cada skill prescribe la ACEPTA finish.ts', async () => {
+test('7. ninguna revisora copia la linea de veredicto: la escribe taskctl veredicto', async () => {
+  // TASK-150b (CONT-05): la cabecera del informe vive en el esqueleto de
+  // `taskctl review` y en revision.md; las revisoras no la copian. Lo que
+  // acepta finish.ts lo contrasta el 10f con la tabla de revision.md.
   for (const nombre of REVISORES) {
-    const texto = await leer(nombre);
-
-    // Se buscan las lineas de ejemplo que la skill da como aprobatorias.
-    const aprobatorias = texto
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => /^-\s*veredicto:\s*aprobada/i.test(l));
-
-    assert.ok(
-      aprobatorias.length > 0,
-      `${nombre}: no prescribe ninguna linea "- Veredicto: aprobada..."`
-    );
-
-    for (const linea of aprobatorias) {
-      assert.ok(
-        veredictoAprobado(linea),
-        `${nombre}: prescribe "${linea}", que finish.ts NO acepta — la tarea no se podria cerrar`
-      );
-    }
+    const copias = (await leer(nombre)).split('\n').filter((l) => /^-\s*veredicto:/i.test(l.trim()));
+    assert.deepEqual(copias, [], `${nombre}: copia la linea de veredicto de la cabecera`);
   }
 });
 
@@ -862,22 +848,6 @@ const SECCION_HALLAZGOS = ESQUELETO.find((l) => l.startsWith('## ')) ?? '';
 
 const CAMPO_VEREDICTO = CAMPOS_CABECERA.find((c) => /veredicto/i.test(c)) ?? '';
 
-/** El bloque cercado que contiene el esqueleto del informe, sin las cercas. */
-function bloqueInforme(nombre: string, texto: string): string[] {
-  // Split tolerante a CRLF: estos ficheros se editan en Windows y un '\r'
-  // final romperia cualquier endsWith() sin decir por que.
-  const lineas = texto.split(/\r?\n/);
-  for (let i = 0; i < lineas.length; i++) {
-    if (!/^```/.test(lineas[i] ?? '')) continue;
-    const fin = lineas.findIndex((l, j) => j > i && l.trim() === '```');
-    if (fin === -1) break;
-    const cuerpo = lineas.slice(i + 1, fin);
-    if (cuerpo.some((l) => l.startsWith(TITULO_ANTES))) return cuerpo;
-    i = fin;
-  }
-  assert.fail(`${nombre}: no hay ningun bloque con el esqueleto del informe`);
-}
-
 test('10b. el esqueleto derivado del CLI trae lo que este test da por supuesto', () => {
   // Guard de no-vacuidad: si informeTemplate dejara de tener titulo o
   // campos de cabecera, los asserts de abajo pasarian sin comprobar nada.
@@ -888,63 +858,22 @@ test('10b. el esqueleto derivado del CLI trae lo que este test da por supuesto',
   assert.ok(SECCION_HALLAZGOS.length > 0, 'el esqueleto ya no trae seccion de hallazgos');
 });
 
-test('10c. las cuatro prescriben el esqueleto que taskctl review genera de verdad', async () => {
+test('10c. ninguna revisora copia el esqueleto que taskctl review genera; todas lo rellenan con su nombre', async () => {
+  // TASK-150b (CONT-05): antes cada revisora copiaba la cabecera y este test
+  // exigia que la copia coincidiera con el CLI; ahora hay una sola fuente
+  // (informeTemplate, descrita en "El informe" de revision.md).
   for (const nombre of REVISORES) {
-    const bloque = bloqueInforme(nombre, await leer(nombre));
-
-    const titulo = bloque.find((l) => l.startsWith(TITULO_ANTES));
-    assert.ok(titulo !== undefined, `${nombre}: el bloque no tiene titulo`);
-    assert.ok(
-      titulo.includes(TITULO_ENTRE) && titulo.endsWith(TITULO_DESPUES),
-      `${nombre}: el titulo no tiene la forma que genera el CLI ("${ESQUELETO[0] ?? ''}"), es "${titulo}"`
-    );
-
-    const iHallazgos = bloque.indexOf(SECCION_HALLAZGOS);
-    assert.notEqual(iHallazgos, -1, `${nombre}: el informe no trae "${SECCION_HALLAZGOS}"`);
-
-    // No basta con que el campo EXISTA: tiene que estar en la cabecera.
-    // Con un simple some(), mover "- Commit revisado:" o "- Revisor:" a un
-    // apartado dentro de los hallazgos dejaba la suite verde (ronda 2,
-    // menor 3). El indice de la seccion ya estaba calculado para el
-    // veredicto; se reutiliza para los tres campos.
+    const lineas = (await leer(nombre)).split(/\r?\n/);
+    const titulo = lineas.find((l) => l.startsWith(TITULO_ANTES));
+    assert.equal(titulo, undefined, `${nombre}: copia el titulo del informe ("${titulo ?? ''}")`);
     for (const campo of CAMPOS_CABECERA) {
-      const i = bloque.findIndex((l) => l.startsWith(campo));
-      assert.notEqual(
-        i,
-        -1,
-        `${nombre}: el informe pierde el campo de cabecera "${campo}" que el CLI genera`
-      );
-      assert.ok(
-        i < iHallazgos,
-        `${nombre}: el campo "${campo}" aparece por debajo de "${SECCION_HALLAZGOS}"; va en la cabecera, donde el CLI lo deja`
-      );
+      const copia = lineas.find((l) => l.trim().startsWith(campo));
+      assert.equal(copia, undefined, `${nombre}: copia el campo de cabecera "${campo}"`);
     }
-
-    // El veredicto se SUSTITUYE en la cabecera. Dos lineas -> finish exige
-    // que aprueben las dos, y basta que una siga en PENDIENTE para que la
-    // tarea no cierre. Una sola, y antes de los hallazgos.
-    const iVeredicto = bloque
-      .map((l, i) => (l.startsWith(CAMPO_VEREDICTO) ? i : -1))
-      .filter((i) => i !== -1);
-    assert.equal(
-      iVeredicto.length,
-      1,
-      `${nombre}: el informe prescribe ${iVeredicto.length} lineas "${CAMPO_VEREDICTO}"; tiene que haber exactamente una`
-    );
-
-    // Y que ese veredicto de ejemplo lo acepte de verdad quien lo lee.
-    const linea = bloque[iVeredicto[0] ?? 0] ?? '';
-    assert.ok(
-      veredictoAprobado(linea),
-      `${nombre}: la linea de ejemplo "${linea}" no la aprueba finish.ts`
-    );
-
-    // El revisor se identifica: el esqueleto deja "(rellenar por el agente)".
-    const revisor = bloque.find((l) => /^-\s*Revisor:/i.test(l)) ?? '';
-    assert.ok(
-      revisor.toLowerCase().includes(nombre),
-      `${nombre}: la linea "${revisor}" no nombra a la propia skill`
-    );
+    const texto = lineas.join('\n');
+    assert.match(texto, /esqueleto que deja `taskctl review`/, `${nombre}: no remite al esqueleto`);
+    assert.match(texto, /"El informe" de\s+revision\.md/, `${nombre}: no remite a "El informe" de revision.md`);
+    assert.ok(texto.includes(`\`${nombre}\` en \`- Revisor:\``), `${nombre}: no dice que va su nombre en "- Revisor:"`);
   }
 });
 
