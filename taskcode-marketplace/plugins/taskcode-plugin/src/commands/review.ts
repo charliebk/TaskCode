@@ -63,7 +63,15 @@ import {
   type VeredictoInforme,
 } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
-import { candidatos4D, definicionesDeGrep, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
+import { candidatos4D, definicionesDeGrep, definicionesNuevas, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
+import type { Definicion } from '../core/candidatos-4d.js';
+import {
+  cuerpoDesde,
+  duplicadosPorCuerpo,
+  seccionDuplicadosPorCuerpo,
+  type DefinicionConCuerpo,
+  type DuplicadoPorCuerpo,
+} from '../core/duplicados-cuerpo.js';
 import { assertTransitionAllowed, type TransitionContext } from '../core/state-machine.js';
 import {
   currentBranch,
@@ -75,6 +83,7 @@ import {
   diffParaRevision,
   diffRangeForPaths,
   definicionesEnRef,
+  showFileAtRef,
   GitLaunchError,
   GitCommandError,
   statDeFicheros,
@@ -950,7 +959,20 @@ async function runReview(
 
   // TASK-153b: candidatos 4D (pistas de duplicacion y tests a mutar), una vez
   // por ronda y antes de escribir nada. Nunca lanza.
-  const candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd, excluir);
+  let candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd, excluir);
+  // TASK-167b: duplicados por cuerpo (la misma logica con otro nombre). Avisa
+  // antes de abrir la ronda y va a la peticion; no bloquea. Nunca lanza.
+  const porCuerpo = duplicadosDeRonda(baseBranch, paraRevision.diff, deps.repoCwd, excluir);
+  if (porCuerpo.length > 0) {
+    const [p] = porCuerpo as [DuplicadoPorCuerpo];
+    avisos.push(
+      `${id}: ${String(porCuerpo.length)} definicion(es) nueva(s) casi identica(s) a otra por su cuerpo (la primera: ` +
+        `${p.nueva.nombre} en ${p.nueva.fichero}:${String(p.nueva.linea)} ~ ${p.otra.nombre} en ${p.otra.fichero}:` +
+        `${String(p.otra.linea)}, ${String(Math.round(p.parecido * 100))} %). La revision sigue, pero antes conviene ` +
+        `reutilizar lo que ya existe en vez de duplicarlo (busca todos los usos); la lista va en "${SECCION_CANDIDATOS_4D}" de la peticion.`
+    );
+    candidatos += seccionDuplicadosPorCuerpo(porCuerpo);
+  }
 
   // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
   // el diff real de la rama, no `task.agente_revisor` del frontmatter,
@@ -1358,6 +1380,59 @@ function verificacionDeRonda(
     );
   }
   return motivo !== null ? { tipo: 'documentacion', v, motivo } : { tipo: 'selectiva', v };
+}
+
+/** TASK-167b: ficheros de la rama base que se leen como mucho para comparar cuerpos. */
+const MAX_FICHEROS_CUERPO = 400;
+
+/**
+ * TASK-167b: pares de definiciones nuevas del diff casi identicas por su
+ * cuerpo a otra (de la rama base o nueva). Solo se leen ficheros de las
+ * extensiones que trae el diff, una vez cada uno. Nunca lanza: si Git falla,
+ * no hay pares (los candidatos por nombre siguen saliendo).
+ */
+export function duplicadosDeRonda(
+  baseBranch: string,
+  diffCodigo: string,
+  cwd: string,
+  excluir: readonly string[] = []
+): DuplicadoPorCuerpo[] {
+  try {
+    const nuevas = definicionesNuevas(diffCodigo);
+    if (nuevas.length === 0) return [];
+    const extension = (f: string): string => path.posix.extname(f).toLowerCase();
+    const extensiones = new Set(nuevas.map((d) => extension(d.fichero)));
+    const enBase = definicionesDeGrep(definicionesEnRef(baseBranch, cwd, excluir), baseBranch).filter((d) =>
+      extensiones.has(extension(d.fichero))
+    );
+    const permitidos = new Set([...new Set(enBase.map((d) => d.fichero))].slice(0, MAX_FICHEROS_CUERPO));
+    const lector = (ref: string): ((f: string) => string[] | null) => {
+      const cache = new Map<string, string[] | null>();
+      return (f) => {
+        if (!cache.has(f)) {
+          let lineas: string[] | null = null;
+          try {
+            lineas = showFileAtRef(ref, f, cwd).split(/\r?\n/);
+          } catch {
+            lineas = null;
+          }
+          cache.set(f, lineas);
+        }
+        return cache.get(f) ?? null;
+      };
+    };
+    const conCuerpo = (defs: readonly Definicion[], leer: (f: string) => string[] | null): DefinicionConCuerpo[] =>
+      defs.flatMap((def) => {
+        const lineas = leer(def.fichero);
+        return lineas === null ? [] : [{ def, cuerpo: cuerpoDesde(lineas, def.linea) }];
+      });
+    return duplicadosPorCuerpo(
+      conCuerpo(nuevas, lector('HEAD')),
+      conCuerpo(enBase.filter((d) => permitidos.has(d.fichero)), lector(baseBranch))
+    );
+  } catch {
+    return [];
+  }
 }
 
 /**

@@ -45,9 +45,10 @@ import { configDeRef } from '../fs/config-de-ref.js';
 import { rondaExtraDecidida } from '../core/rondas-extra.js';
 import { alcanceRondaSiguiente, commitRevisadoDeRonda, hallazgosNoCerrados, hallazgosPendientes, plantillaRegla4D, severidadDe, veredictoDeRonda, } from '../core/informe-revision.js';
 import { fenceFor } from '../core/markdown.js';
-import { candidatos4D, definicionesDeGrep, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
+import { candidatos4D, definicionesDeGrep, definicionesNuevas, SECCION_CANDIDATOS_4D, seccionCandidatos4D } from '../core/candidatos-4d.js';
+import { cuerpoDesde, duplicadosPorCuerpo, seccionDuplicadosPorCuerpo, } from '../core/duplicados-cuerpo.js';
 import { assertTransitionAllowed } from '../core/state-machine.js';
-import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, definicionesEnRef, GitLaunchError, GitCommandError, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
+import { currentBranch, resolveBaseBranchForTipo, gitflowBaseArgs, isAncestor, headCommit, logOneline, diffParaRevision, diffRangeForPaths, definicionesEnRef, showFileAtRef, GitLaunchError, GitCommandError, statDeFicheros, PATRONES_TEST, hayMergesEntre, baseDeTipoSinRed, } from '../fs/git.js';
 import { autoCommit, mensajeChore, } from '../fs/git-commit.js';
 import { conProgreso, crearProgreso, entornoConContador } from '../fs/progreso.js';
 import { runGitflowScript } from '../fs/gitflow-runner.js';
@@ -660,7 +661,18 @@ async function runReview(tareasRoot, argv, today, deps, progreso) {
         : datosCoberturaRevision(raizDelRepo(deps.repoCwd), baseBranch, configRama.informe_cobertura, excluir, configRama.umbral_cobertura, configRama.comando_verificacion);
     // TASK-153b: candidatos 4D (pistas de duplicacion y tests a mutar), una vez
     // por ronda y antes de escribir nada. Nunca lanza.
-    const candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd, excluir);
+    let candidatos = seccionCandidatosDeRonda(baseBranch, desde, paraRevision.diff, paraRevision.tests, deps.repoCwd, excluir);
+    // TASK-167b: duplicados por cuerpo (la misma logica con otro nombre). Avisa
+    // antes de abrir la ronda y va a la peticion; no bloquea. Nunca lanza.
+    const porCuerpo = duplicadosDeRonda(baseBranch, paraRevision.diff, deps.repoCwd, excluir);
+    if (porCuerpo.length > 0) {
+        const [p] = porCuerpo;
+        avisos.push(`${id}: ${String(porCuerpo.length)} definicion(es) nueva(s) casi identica(s) a otra por su cuerpo (la primera: ` +
+            `${p.nueva.nombre} en ${p.nueva.fichero}:${String(p.nueva.linea)} ~ ${p.otra.nombre} en ${p.otra.fichero}:` +
+            `${String(p.otra.linea)}, ${String(Math.round(p.parecido * 100))} %). La revision sigue, pero antes conviene ` +
+            `reutilizar lo que ya existe en vez de duplicarlo (busca todos los usos); la lista va en "${SECCION_CANDIDATOS_4D}" de la peticion.`);
+        candidatos += seccionDuplicadosPorCuerpo(porCuerpo);
+    }
     // Clasificacion por dominio (TASK-018, criterios de aceptacion 1 y 2):
     // el diff real de la rama, no `task.agente_revisor` del frontmatter,
     // decide quien revisa. El catalogo se relee de skills/*/SKILL.md en
@@ -998,6 +1010,49 @@ function verificacionDeRonda(id, config, base, tipoTarea, incremental, deps, avi
             `o descartalos, y reintenta. No se ha abierto ronda (${estadoBase}).`);
     }
     return motivo !== null ? { tipo: 'documentacion', v, motivo } : { tipo: 'selectiva', v };
+}
+/** TASK-167b: ficheros de la rama base que se leen como mucho para comparar cuerpos. */
+const MAX_FICHEROS_CUERPO = 400;
+/**
+ * TASK-167b: pares de definiciones nuevas del diff casi identicas por su
+ * cuerpo a otra (de la rama base o nueva). Solo se leen ficheros de las
+ * extensiones que trae el diff, una vez cada uno. Nunca lanza: si Git falla,
+ * no hay pares (los candidatos por nombre siguen saliendo).
+ */
+export function duplicadosDeRonda(baseBranch, diffCodigo, cwd, excluir = []) {
+    try {
+        const nuevas = definicionesNuevas(diffCodigo);
+        if (nuevas.length === 0)
+            return [];
+        const extension = (f) => path.posix.extname(f).toLowerCase();
+        const extensiones = new Set(nuevas.map((d) => extension(d.fichero)));
+        const enBase = definicionesDeGrep(definicionesEnRef(baseBranch, cwd, excluir), baseBranch).filter((d) => extensiones.has(extension(d.fichero)));
+        const permitidos = new Set([...new Set(enBase.map((d) => d.fichero))].slice(0, MAX_FICHEROS_CUERPO));
+        const lector = (ref) => {
+            const cache = new Map();
+            return (f) => {
+                if (!cache.has(f)) {
+                    let lineas = null;
+                    try {
+                        lineas = showFileAtRef(ref, f, cwd).split(/\r?\n/);
+                    }
+                    catch {
+                        lineas = null;
+                    }
+                    cache.set(f, lineas);
+                }
+                return cache.get(f) ?? null;
+            };
+        };
+        const conCuerpo = (defs, leer) => defs.flatMap((def) => {
+            const lineas = leer(def.fichero);
+            return lineas === null ? [] : [{ def, cuerpo: cuerpoDesde(lineas, def.linea) }];
+        });
+        return duplicadosPorCuerpo(conCuerpo(nuevas, lector('HEAD')), conCuerpo(enBase.filter((d) => permitidos.has(d.fichero)), lector(baseBranch)));
+    }
+    catch {
+        return [];
+    }
 }
 /**
  * TASK-153b: la seccion de candidatos 4D de la ronda. Las definiciones nuevas
