@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
 asignado_a: charlie.bk@gmail.com
@@ -42,3 +42,4 @@ mas de 1 h de las correcciones 4D sin consultarlo.
 |---|---|---|---|---|
 | 2026-11-25T06:36:39Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T06:37:27Z | approve | automatico | persona | 0.18.0 |
+| 2026-11-25T06:37:29Z | start | automatico | persona | 0.18.0 |
