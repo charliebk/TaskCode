@@ -6,7 +6,7 @@ quedan sin rellenar a proposito.)
 
 ## Enfoque propuesto
 
-Duracion estimada: 150 min (de la rama abierta al cierre con merge; senales: 4 ficheros de codigo previstos —`core/autorrevision.ts`, `commands/review.ts`, `commands/verificar-menores.ts`, `scripts/verificar-impacto.mjs`—, unos 10 `.md` de skills y agentes, 3 capas —texto de skills/agentes, comandos de taskctl, script de la raiz—, 5 criterios)
+Duracion estimada: 55 min (parte a del troceo; la tarea entera estimaba 150 min)
 
 La regla existe hoy en tres puntos (TASK-137 y TASK-153): `start` pide la
 autorrevision 4D una vez por tarea, `approve` avisa si el plan no dice que
@@ -93,3 +93,7 @@ Tests nuevos por criterio (presupuesto de 1 a 3 por criterio; si se pasa, el mot
 ## Lo que necesita decision de una persona
 
 Nada abierto: troceo autorizado (2026-11-22) y modo rapido (2026-11-12).
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-25: TASK-158a, TASK-158b, TASK-158c, todas en la misma rama. Este plan es el de TASK-158a; las demas partes se planifican al empezarlas.
