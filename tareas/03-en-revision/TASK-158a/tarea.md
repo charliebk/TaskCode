@@ -37,9 +37,9 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] Hay un inventario en la tarea de cada camino que crea o actualiza codigo, con que exige hoy de 4D y que le falta
-- [ ] La skill o el agente de cada camino del inventario exige 4D al escribir, incluido buscar todos los usos antes de dar una duplicacion por resuelta
-- [ ] Un test por camino (skills y agentes) falla si ese camino deja de exigir 4D
+- [x] Hay un inventario en la tarea de cada camino que crea o actualiza codigo, con que exige hoy de 4D y que le falta
+- [x] La skill o el agente de cada camino del inventario exige 4D al escribir, incluido buscar todos los usos antes de dar una duplicacion por resuelta
+- [x] Un test por camino (skills y agentes) falla si ese camino deja de exigir 4D
 
 ## Inventario 4D de los caminos que crean o actualizan codigo
 
@@ -63,6 +63,16 @@ Objetivo de la tarea entera:
 - code-quality-reviewer — cb84d8b
 - 4D ronda 1 — cb84d8b: usos buscados (las lineas 4D se definen solo en revision.md; review remite), 3 tests reescritos con 5 mutaciones en rojo
 - 4D menores — 5e1a96d: usos buscados (unica mencion de la linea de menores en review; revision.md define el formato), 0 tests nuevos (el de review sigue cubriendo el orden: mutado en la ronda 2)
+
+## Resultado
+
+- Inventario 4D de cada camino que crea o actualiza codigo en la propia tarea (seccion de arriba): roles del brainstorm, unificador, plan/approve, implementacion tras start (feature, fix, hotfix), correcciones de ronda, MENORES tras aprobar, hotfix y release, doctor-deploy y revisoras; lo de taskctl queda para 158b y la carrera de verificar-impacto para 158c.
+- Cada camino exige 4D al escribir: apartado  en los cinco roles y en el unificador; revision.md define «Todos los usos, no solo los citados» y el formato de  y ; start pide buscar todos los usos y anotar «usos buscados»; review nombra la linea de las correcciones en la autorrevision de cada ronda y la de los MENORES antes de verificar-menores; finish (hotfix por start) y doctor-deploy (arreglo por plan y start) remiten al ciclo.
+- Un test por camino en test/skills/regla-4d.test.ts (5 tests), todos mutados en rojo (ronda 1: 7 mutaciones; ronda 2: el revisor muto cada uno). Topes de tamano sin subir: el margen sale de quitar duplicaciones (verificar-menores descrito en revision.md y en review; una frase repetida en review).
+- test:rapido 701/701; verificacion por impacto de review: 2063 pasan, 0 fallan.
+- Revision ronda 1 (sonnet): cambios-solicitados. IMP-1 (frase sin verbo por el recorte) e IMP-2 (review no nombraba las lineas) corregidos; MEN-1 y MEN-2 (tests que prometian mas de lo que comprobaban) corregidos; MEN-3 (margen de 1 B) corregido liberando espacio en vez de subir el tope; MEN-4 (cuenta de tests) corregido.
+- Revision ronda 2 (haiku, acotada): aprobada con correcciones. MEN-NUEVO-1 (anotar el commit antes de hacerlo) corregido y cerrado con verificar-menores.
+- Incidencias: el revisor de la ronda 1 clono dentro del repo (TaskCode/TaskCode, en el commit revisado, limpio y sin commits propios); se borro. El de la ronda 2 escribio la cabecera  y verificar-menores no leia el fichero del MENOR: se corrigio la cabecera del informe a la de la plantilla. Propuesta: que el parser acepte  (tarea aparte).
 
 ## Transiciones
 
