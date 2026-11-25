@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f
 asignado_a: charlie.bk@gmail.com
@@ -46,3 +46,4 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|
 | 2026-11-25T07:34:54Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T07:35:40Z | approve | automatico | persona | 0.18.0 |
+| 2026-11-25T07:35:42Z | start | automatico | persona | 0.18.0 |
