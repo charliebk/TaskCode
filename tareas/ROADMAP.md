@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-150c (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-167b, TASK-168, TASK-019
+- **En marcha:** TASK-150c (en diseño), TASK-168 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-167b, TASK-019
 
 ## H0 — H0
 
@@ -161,7 +161,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 20 | TASK-167b | detector de duplicados por cuerpo en el diff (parte b de TASK-167) | alta | TASK-167a | lista para empezar |
 | 21 | TASK-167c | auditoria 4D invocable (parte c de TASK-167) | alta | TASK-167b | espera a TASK-167b |
 | 22 | TASK-167d | tendencia de hallazgos 4D en las metricas (parte d de TASK-167) | alta | TASK-167c | espera a TASK-167c |
-| 23 | TASK-168 | Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests | simple | — | lista para empezar |
+| 23 | TASK-168 | Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests | simple | — | ▶ en diseño |
 
 ## H1 — H1
 

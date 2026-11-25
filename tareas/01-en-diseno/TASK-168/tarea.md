@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-168-agilidad-un-cambio-solo-en-md-de-skills
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -30,3 +30,9 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 - [ ] Un cambio en skills/<x>/SKILL.md elige los tests de test/skills y test/agents que leen la carpeta, y fuera de ellos solo los que nombran esa skill (su carpeta y el fichero), no los que solo mencionan SKILL.md
 - [ ] Un cambio en agents/<x>.md elige los tests que lo nombran y los de test/agents que leen la carpeta
 - [ ] Un test contra un repo temporal falla si un cambio de skill vuelve a arrastrar tests de comandos que no la nombran, o si deja fuera uno que si la nombra
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-25T14:53:37Z | plan | automatico | persona | 0.18.0 |
