@@ -38,14 +38,23 @@ Objetivo de la tarea entera:
 
 ## Criterios de aceptacion
 
-- [ ] Hay una guia instalable de duplicacion de grano fino (helpers copiados, lectores de secciones repetidos, envoltorios de git o fs duplicados, catalogos escritos dos veces) sacada de las auditorias 4D, y start, review y las revisoras remiten a ella
-- [ ] Un test falla si la guia deja de instalarse o alguien deja de remitir a ella
+- [x] Hay una guia instalable de duplicacion de grano fino (helpers copiados, lectores de secciones repetidos, envoltorios de git o fs duplicados, catalogos escritos dos veces) sacada de las auditorias 4D, y start, review y las revisoras remiten a ella
+- [x] Un test falla si la guia deja de instalarse o alguien deja de remitir a ella
 
 ## Autorrevision
 
 - code-quality-reviewer — c94acce
 - 4D — c94acce: helper buscado (disfraz-tests.md como modelo; seccion y cargarCatalogoRevisores de regla-4d.test.ts), usos buscados (donde se remite a disfraz-tests.md: start, revision.md, task-workflow; las revisoras remiten a revision.md), criterios citados, 1 test nuevo con 2 mutaciones en rojo (y el 20b caza el enlace)
 - 4D menores — 59b32c7: usos buscados (los dos patrones nuevos no estaban en revision.md ni en disfraz-tests.md), 1 asercion ampliada
+
+## Resultado
+
+- Guia instalable `skills/task-workflow/duplicacion.md` con los patrones de duplicacion de grano fino que repiten las dos auditorias 4D: helper copiado con otro nombre, lector repetido, envoltorio repetido de una herramienta externa, lista escrita dos veces, el mismo hecho decidido en varios sitios, mensajes y valores por defecto repetidos, regla copiada entre documentos, helpers de test por fichero y correccion a medias. Sin menciones a este repositorio.
+- Remiten a ella: start, review, revision.md («Regla 4D»), task-workflow/SKILL.md y las cinco revisoras.
+- Test en `test/skills/regla-4d.test.ts` (la guia con sus patrones y cada remision); el 20b de task-workflow caza el enlace. Mutaciones: 2 propias y 7 del revisor, todas en rojo.
+- task-workflow/SKILL.md paso de 15 KB con CRLF en la primera verificacion de review (en local, con LF, pasaba): recortado.
+- Revision ronda 1 (sonnet): aprobada con correcciones. MENOR-1 (dos familias que faltaban) corregido y cerrado con verificar-menores; MENOR-2 (margen de bytes de revision.md y task-workflow/SKILL.md para las partes siguientes) y MENOR-3 (cosmetico en start) aceptados, en menores-pendientes.md.
+- Incidencia: el revisor volvio a dejar su clon dentro del repo (TaskCode/TaskCode, limpio, en el commit revisado, sin commits propios); borrado.
 
 ## Transiciones
 
