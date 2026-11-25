@@ -7,7 +7,7 @@ etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-167-regla-4d-preventiva-en-los-proyectos-que
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -41,3 +41,4 @@ anade a `## Candidatos 4D` de la peticion. Avisa, no bloquea.
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-25T16:59:38Z | plan | automatico | persona | 0.18.0 |
+| 2026-11-25T17:00:27Z | approve | automatico | persona | 0.18.0 |
