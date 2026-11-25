@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -31,3 +31,9 @@ CONT-06, CONT-07 y CORE2-03.
 ## Criterios de aceptacion
 - [ ] Los formatos de salida de los agentes brainstorm coinciden con roles-brainstorm.ts y las secciones del plan (Duracion estimada y presupuesto de tests incluidos) salen de una sola fuente que usan plan.ts, plan-brainstorm.ts y el unificador
 - [ ] Un test falla si un agente y roles-brainstorm.ts divergen
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-25T12:52:14Z | plan | automatico | persona | 0.18.0 |
