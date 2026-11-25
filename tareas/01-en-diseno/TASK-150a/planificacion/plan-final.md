@@ -5,7 +5,7 @@ coordinador sin lanzar los tres roles ni el unificador.)
 
 ## Enfoque propuesto
 
-Duracion estimada: 210 min (de la rama abierta al cierre con merge; senales: unos 25 ficheros `.md` de skills y agentes, 3 de codigo —`src/core/roles-brainstorm.ts`, `src/core/plan-brainstorm.ts`, `src/commands/plan.ts`—, la sonda de `hooks/`, 3 capas, 4 criterios y 18 casos de la auditoria)
+Duracion estimada: 55 min (parte a del troceo; la tarea entera estimaba 210 min)
 
 Casos de `docs/auditoria-4d-completa.md` que siguen abiertos segun la
 segunda auditoria: CONT-01 a CONT-18 salvo CONT-08 (cerrado por TASK-153 y
@@ -85,3 +85,7 @@ Tests nuevos por criterio (presupuesto de 1 a 3 por criterio; si se pasa, el mot
 ## Lo que necesita decision de una persona
 
 Nada abierto.
+
+## Troceo aceptado
+
+Troceo aceptado por una persona el 2026-11-25: TASK-150a, TASK-150b, TASK-150c, TASK-150d, todas en la misma rama. Este plan es el de TASK-150a; las demas partes se planifican al empezarlas.
