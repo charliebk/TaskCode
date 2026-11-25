@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 9339872
-tokens_revision: 5160577
+tokens_revision: 6042003
 creado: 2026-11-22
 actualizado: 2026-11-25
 dependencias: []
@@ -47,6 +47,12 @@ Objetivo de la tarea entera:
 - 4D — cdb198c: usos buscados tambien en test/ (el test de TASK-129 exigia la frase contradictoria: actualizado)
 - code-quality-reviewer — 32c57d5
 - 4D ronda 1 — 32c57d5: usos buscados (grep de pide/pidelo/pedido/pedir en revisoras, revision.md y agentes; el resto son la plantilla de 150b), 2 aserciones ampliadas con 2 mutaciones en rojo
+- code-quality-reviewer — ceb7d1d
+- 4D ronda 2 — ceb7d1d: usos buscados (la unica regex de pedir contexto es la de fuente-unica), 1 asercion corregida con 1 mutacion en rojo (pide siempre sin negrita)
+
+## Rondas extra
+
+- Ronda 3: Carlos, al llegar al tope (2026-11-25): IMP-2 de la ronda 2 ya corregido; una ronda acotada lo verifica.
 
 ## Transiciones
 
@@ -64,3 +70,4 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T07:41:20Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 46 | 28499 | 9297000 | 14327 | 16 | 9339872 | - | - |
 | 2026-11-25T08:25:01Z | revision | agente:a56cbe4b0a97ab279 | 68 | 184788 | 4951358 | 24363 | 15 | 5160577 | 1 | - |
+| 2026-11-25T08:59:14Z | revision | agente:a299198556116f925 | 16 | 122754 | 746819 | 11837 | 2 | 881426 | 2 | - |
