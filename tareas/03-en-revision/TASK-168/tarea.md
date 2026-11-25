@@ -53,6 +53,7 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 | 2026-11-25T14:54:53Z | start | automatico | persona | 0.18.0 |
 | 2026-11-25T15:04:33Z | review | automatico | persona | 0.18.0 |
 | 2026-11-25T15:43:47Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T16:16:21Z | review | automatico | persona | 0.18.0 |
 
 ## Coste
 
