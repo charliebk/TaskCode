@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f
 asignado_a: charlie.bk@gmail.com
@@ -77,6 +77,7 @@ Objetivo de la tarea entera:
 | 2026-11-25T07:41:20Z | review | automatico | persona | 0.18.0 |
 | 2026-11-25T08:25:08Z | review | automatico | persona | 0.18.0 |
 | 2026-11-25T09:39:36Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T10:59:36Z | finish | automatico | persona | 0.18.0 |
 
 ## Coste
 
@@ -90,3 +91,10 @@ Objetivo de la tarea entera:
 ## Verificacion omitida
 
 - 2026-11-25T10:59:15Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 204 min
+- Paso de la hora: 204 min reales frente a 55 estimados
+- Cierre (finish): 21 s, de 2026-11-25T10:59:15Z a 2026-11-25T10:59:36Z

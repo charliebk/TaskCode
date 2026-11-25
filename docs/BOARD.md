@@ -2,39 +2,41 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-25. No editar a mano.
 
-## Planificadas (00-planificadas) — 25
+## Planificadas (00-planificadas) — 27
 
 ```text
-ID        Titulo                                                                                      Asignado
---------  ------------------------------------------------------------------------------------------  --------------------
-TASK-001  Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
-TASK-002  Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
-TASK-003  Comando taskctl new (alta individual de tarea)                                              (sin asignar)
-TASK-004  Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
-TASK-005  Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
-TASK-006  Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
-TASK-007  Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
-TASK-008  Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
-TASK-009  taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
-TASK-010  taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
-TASK-011  taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
-TASK-012  Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
-TASK-019  Revisión ligera sin agente para tareas triviales                                            (sin asignar)
-TASK-021  Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
-TASK-140  Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
-TASK-150  Regla 4D: skills y agentes con una sola fuente por regla                                    (sin asignar)
-TASK-152  Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
-TASK-159  Regla 4D (2a auditoria): lectores de vallas, secciones y celdas en core                     (sin asignar)
-TASK-160  Regla 4D (2a auditoria): duplicacion residual en core                                       (sin asignar)
-TASK-161  Regla 4D (2a auditoria): duplicacion residual en commands                                   (sin asignar)
-TASK-162  Regla 4D (2a auditoria): envoltorios de git y helpers en fs, hooks y cli                    (sin asignar)
-TASK-163  Regla 4D (2a auditoria): Git-Flow residual y hotfix sin develop                             (sin asignar)
-TASK-164  Regla 4D (2a auditoria): skills que contradicen al CLI                                      (sin asignar)
-TASK-165  Regla 4D (2a auditoria): disfraz en tests                                                   (sin asignar)
-TASK-166  Regla 4D (2a auditoria): helpers de test duplicados por las correcciones                    (sin asignar)
+ID         Titulo                                                                                      Asignado
+---------  ------------------------------------------------------------------------------------------  --------------------
+TASK-001   Scaffold del proyecto taskctl (plugin.json, bin/, tsconfig, test runner)                    (sin asignar)
+TASK-002   Modelo de tarea, parser de tarea.md y máquina de estados                                    (sin asignar)
+TASK-003   Comando taskctl new (alta individual de tarea)                                              (sin asignar)
+TASK-004   Comando taskctl import (alta masiva desde Markdown)                                         charlie.bk@gmail.com
+TASK-005   Comando taskctl board (listado por estado)                                                  charlie.bk@gmail.com
+TASK-006   Empaquetado del plugin y validación de carga local                                          charlie.bk@gmail.com
+TASK-007   Spike: validar scripts Git-Flow (.sh) vía Bash tool en Windows/IntelliJ                     charlie.bk@gmail.com
+TASK-008   Migrar scripts Git-Flow a scripts/gitflow/ del plugin                                       charlie.bk@gmail.com
+TASK-009   taskctl start: crea rama via create-tipo.sh y mueve tarea a en-curso                        charlie.bk@gmail.com
+TASK-010   taskctl plan: version minima, un solo agente redacta plan-final.md                          charlie.bk@gmail.com
+TASK-011   taskctl approve: checkpoint humano, marca plan_aprobado                                     charlie.bk@gmail.com
+TASK-012   Precondicion de rama base + workspace limpio (seccion 8.3), con auto-switch si esta limpio  charlie.bk@gmail.com
+TASK-019   Revisión ligera sin agente para tareas triviales                                            (sin asignar)
+TASK-021   Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
+TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
+TASK-150b  la plantilla del informe en un solo sitio (parte b de TASK-150)                             (sin asignar)
+TASK-150c  formatos del brainstorm y secciones del plan con una fuente (parte c de TASK-150)           (sin asignar)
+TASK-150d  pasos copiados, diluvio e historial, y la sonda (parte d de TASK-150)                       (sin asignar)
+TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
+TASK-159   Regla 4D (2a auditoria): lectores de vallas, secciones y celdas en core                     (sin asignar)
+TASK-160   Regla 4D (2a auditoria): duplicacion residual en core                                       (sin asignar)
+TASK-161   Regla 4D (2a auditoria): duplicacion residual en commands                                   (sin asignar)
+TASK-162   Regla 4D (2a auditoria): envoltorios de git y helpers en fs, hooks y cli                    (sin asignar)
+TASK-163   Regla 4D (2a auditoria): Git-Flow residual y hotfix sin develop                             (sin asignar)
+TASK-164   Regla 4D (2a auditoria): skills que contradicen al CLI                                      (sin asignar)
+TASK-165   Regla 4D (2a auditoria): disfraz en tests                                                   (sin asignar)
+TASK-166   Regla 4D (2a auditoria): helpers de test duplicados por las correcciones                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 159
+## Terminadas (04-terminadas) — 160
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -186,6 +188,7 @@ TASK-148d  comentarios, diluvio y E/S en core (parte d de TASK-148)             
 TASK-149a  git y hooks (parte a de TASK-149)                                                                                   claude
 TASK-149b  errores y flags del CLI (parte b de TASK-149)                                                                       claude
 TASK-149c  utilidades de fs (parte c de TASK-149)                                                                              claude
+TASK-150a  textos que contradicen al codigo o a la Regla 4D (parte a de TASK-150)                                              charlie.bk@gmail.com
 TASK-151a  core, fs, skills e integracion (parte a de TASK-151)                                                                claude
 TASK-151b  commands, hooks y cli (parte b de TASK-151)                                                                         claude
 TASK-153a  plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153)                                             charlie.bk@gmail.com
