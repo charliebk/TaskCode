@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
 asignado_a: charlie.bk@gmail.com
@@ -83,6 +83,7 @@ Objetivo de la tarea entera:
 | 2026-11-25T02:11:53Z | start | automatico | persona | 0.18.0 |
 | 2026-11-25T02:26:14Z | review | automatico | persona | 0.18.0 |
 | 2026-11-25T03:14:55Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T04:20:37Z | finish | automatico | persona | 0.18.0 |
 
 ## Coste
 
@@ -95,3 +96,10 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-25T03:50:48Z: ronda 2; commit revisado 00aef24b25b81d40623b3fbab134026a538e7c79; commit verificado 5e1a96dd8c0760c7e2827c30d16a312ed7b8a8de; ficheros: taskcode-marketplace/plugins/taskcode-plugin/skills/review/SKILL.md; corregidos: MEN-NUEVO-1; pendientes: ninguno
+
+## Duracion
+
+- Estimada: 55 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 129 min
+- Paso de la hora: 129 min reales frente a 55 estimados
+- Cierre (finish): 1742 s, de 2026-11-25T03:51:35Z a 2026-11-25T04:20:37Z

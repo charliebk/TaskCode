@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
-plan_aprobado: false
+estado: en-diseno
+plan_aprobado: true
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -34,3 +34,10 @@ las tareas viejas no se atascan).
 ## Criterios de aceptacion
 - [ ] Las correcciones de una ronda de revision y los MENORES corregidos pasan por la misma exigencia 4D que la implementacion (autorrevision 4D por ronda y por correccion)
 - [ ] Un test por comando (review en ronda 2, verificar-menores) falla si deja de avisar
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-25T04:21:01Z | plan | automatico | persona | 0.18.0 |
+| 2026-11-25T04:21:47Z | approve | automatico | persona | 0.18.0 |
