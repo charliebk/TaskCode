@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-167b — detector de duplicados por cuerpo en el diff (parte b de TASK-167) · etiquetas: regla-4d · rama feature/task-167-regla-4d-preventiva-en-los-proyectos-que · terminada 2026-11-25 · tareas/04-terminadas/TASK-167b/
 - TASK-168 — Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests · etiquetas: agilidad · rama fix/task-168-agilidad-un-cambio-solo-en-md-de-skills · terminada 2026-11-25 · tareas/04-terminadas/TASK-168/
 - TASK-167a — guia instalable de duplicacion de grano fino (parte a de TASK-167) · etiquetas: regla-4d · rama feature/task-167-regla-4d-preventiva-en-los-proyectos-que · terminada 2026-11-25 · tareas/04-terminadas/TASK-167a/
 - TASK-150b — la plantilla del informe en un solo sitio (parte b de TASK-150) · etiquetas: (sin etiquetas) · rama fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f · terminada 2026-11-25 · tareas/04-terminadas/TASK-150b/
