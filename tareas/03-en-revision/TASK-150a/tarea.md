@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 9339872
-tokens_revision: null
+tokens_revision: 5160577
 creado: 2026-11-22
 actualizado: 2026-11-25
 dependencias: []
@@ -45,6 +45,8 @@ Objetivo de la tarea entera:
 - code-quality-reviewer — a8cb5e7
 - 4D — a8cb5e7: helper buscado (cargarCatalogoRevisores, patron de seccion de los tests de skills), usos buscados (grep en skills/, agents/, docs/ y README de cada frase: clave mal escrita, casillas, test duplicado MENOR, pedir contexto, menciona, tres claves y ocho comandos), criterios citados, 3 tests nuevos con 7 mutaciones en rojo
 - 4D — cdb198c: usos buscados tambien en test/ (el test de TASK-129 exigia la frase contradictoria: actualizado)
+- code-quality-reviewer — 32c57d5
+- 4D ronda 1 — 32c57d5: usos buscados (grep de pide/pidelo/pedido/pedir en revisoras, revision.md y agentes; el resto son la plantilla de 150b), 2 aserciones ampliadas con 2 mutaciones en rojo
 
 ## Transiciones
 
@@ -60,3 +62,4 @@ Objetivo de la tarea entera:
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T07:41:20Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 46 | 28499 | 9297000 | 14327 | 16 | 9339872 | - | - |
+| 2026-11-25T08:25:01Z | revision | agente:a56cbe4b0a97ab279 | 68 | 184788 | 4951358 | 24363 | 15 | 5160577 | 1 | - |
