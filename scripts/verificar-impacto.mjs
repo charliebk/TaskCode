@@ -98,10 +98,11 @@ export const ENRUTADOR = 'src/cli.ts';
  * fuera: en TASK-139b un rojo suyo solo lo vio la suite completa de finish.
  * `docs` va acotado a la carpeta del plugin (`PLUGIN_ROOT, 'docs'`): media
  * suite usa `'docs'` para los repos temporales de sus pruebas.
+ *
+ * TASK-168: `skills` y `agents` solo entre comillas (`'skills'`, `"skills/..."`).
+ * Antes valia cualquier `/skills/`, y un comentario que citaba
+ * `test/skills/x.test.ts` elegia a su fichero y a todo lo que lo importa.
  */
-// TASK-168: solo la cadena entre comillas (`'skills'`, `"skills/..."`). Antes
-// valia cualquier `/skills/`, y un comentario que citaba `test/skills/x.test.ts`
-// elegia a su fichero y a todo lo que lo importa (~1800 tests por un .md).
 const CARPETAS_LEIDAS = [
   { carpeta: 'skills', patron: /['"]skills['"/]/ },
   { carpeta: 'agents', patron: /['"]agents['"/]/ },
@@ -109,6 +110,15 @@ const CARPETAS_LEIDAS = [
 ];
 /** La carpeta de CARPETAS_LEIDAS bajo la que vive `rel` (relativa al plugin), o undefined. */
 const carpetaLeida = (rel) => CARPETAS_LEIDAS.find((c) => rel.startsWith(`${c.carpeta}/`));
+/**
+ * TASK-168: el texto sin comentarios de bloque ni de linea (`//` y `#` al
+ * principio de linea). Aproximado a proposito: basta para que una mencion en
+ * un comentario no cuente como uso; un `//` dentro de una cadena recorta de
+ * mas, que solo puede hacer que se elija algo de menos en ese fichero.
+ */
+function sinComentarios(texto) {
+  return texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1').replace(/^\s*#.*$/gm, '');
+}
 const LANZA_TASKCTL = MARCADORES[0].patron;
 const IMPORT_RE = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
 
@@ -314,11 +324,17 @@ export function seleccionar(cambiadas, nodos, tope = TOPE_POR_DEFECTO) {
     const marcados = [...nodos].filter(([, n]) => MARCADORES.some((m) => enPlugin && m.dependeDe(rel) && m.patron.test(n.texto)));
     const nombre = path.posix.basename(ruta);
     // TASK-168: un nombre generico (`SKILL.md`, el de cada skill) no basta:
-    // tiene que aparecer tambien la carpeta de esa skill (`'plan'` o `plan/SKILL.md`).
+    // tiene que aparecer tambien la carpeta de esa skill (`'plan'` o `plan/SKILL.md`),
+    // y fuera de los comentarios (IMP-1 de su revision: src/commands/review.ts cita
+    // SKILL.md y 'plan' en comentarios y arrastraba a sus ~100 importadores).
     const carpetaSkill = enPlugin && nombre === 'SKILL.md' ? path.posix.basename(path.posix.dirname(rel)) : null;
-    const loNombra = (texto) =>
-      texto.includes(nombre) &&
-      (carpetaSkill === null || texto.includes(`${carpetaSkill}/${nombre}`) || new RegExp(`['"]${carpetaSkill}['"]`).test(texto));
+    const carpetaEntreComillas =
+      carpetaSkill === null ? null : new RegExp(`['"]${carpetaSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`);
+    const loNombra = (texto) => {
+      if (carpetaSkill === null) return texto.includes(nombre);
+      const codigo = sinComentarios(texto);
+      return codigo.includes(nombre) && (codigo.includes(`${carpetaSkill}/${nombre}`) || carpetaEntreComillas.test(codigo));
+    };
     const porNombre = marcados.length > 0 ? marcados : [...nodos].filter(([, n]) => loNombra(n.texto));
     // TASK-156: y los tests que leen la carpeta entera (skills/, agents/, docs/ del plugin).
     const leida = enPlugin ? carpetaLeida(rel) : undefined;
