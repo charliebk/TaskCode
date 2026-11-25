@@ -110,8 +110,8 @@ punto, no un formalismo.
    **MENORES tras aprobar** (`aprobada-con-correcciones` sin CRITICO ni
    IMPORTANTE abiertos): **nunca** se piden como `cambios-solicitados` ni
    abren otra ronda, en ningun modo. Corrige los baratos tocando solo los
-   ficheros que cita cada MENOR (y sus tests), anota su linea
-   `- 4D menores — ` (misma regla), commitea y ejecuta
+   ficheros que cita cada MENOR (y sus tests), commitea, anota con
+   ese commit su linea `- 4D menores — ` (misma regla) y ejecuta
    `taskctl verificar-menores TASK-NNN [--motivo "<por que no se corrigen
    los demas>"]`: comprueba que solo cambia eso y deja los no corregidos en
    `revision/menores-pendientes.md` (backlog: no bloquean `finish`).
