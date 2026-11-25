@@ -75,3 +75,7 @@ Objetivo de la tarea entera:
 ## Verificacion ligera
 
 - 2026-11-25T14:22:09Z: ronda 1; commit revisado af87a4195849627ba94283d27a910facdf4b34ad; commit verificado 59b32c7124f74be787a49f949401a81383245ddf; ficheros: taskcode-marketplace/plugins/taskcode-plugin/skills/task-workflow/duplicacion.md, taskcode-marketplace/plugins/taskcode-plugin/test/skills/regla-4d.test.ts; corregidos: MENOR-1; pendientes: MENOR-2, MENOR-3
+
+## Verificacion parcial
+
+- 2026-11-25T14:22:25Z: todo el codigo que cambia la tarea (12 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
