@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f
 asignado_a: charlie.bk@gmail.com
@@ -55,6 +55,7 @@ que describe la de `informeTemplate`.
 | 2026-11-25T11:01:03Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T11:01:05Z | start | automatico | persona | 0.18.0 |
 | 2026-11-25T11:12:44Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T12:51:23Z | finish | automatico | persona | 0.18.0 |
 
 ## Coste
 
@@ -70,3 +71,10 @@ que describe la de `informeTemplate`.
 ## Verificacion omitida
 
 - 2026-11-25T12:50:49Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
+
+## Duracion
+
+- Estimada: 45 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 110 min
+- Paso de la hora: 110 min reales frente a 45 estimados
+- Cierre (finish): 34 s, de 2026-11-25T12:50:49Z a 2026-11-25T12:51:23Z

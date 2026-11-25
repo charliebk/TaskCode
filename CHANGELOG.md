@@ -1,6 +1,7 @@
 # Changelog
 
 ## Sin publicar
+- TASK-150b (fix) — la plantilla del informe en un solo sitio (parte b de TASK-150) (2026-11-25)
 - TASK-150a (fix) — textos que contradicen al codigo o a la Regla 4D (parte a de TASK-150) (2026-11-25)
 - TASK-158c (feature) — verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158) (2026-11-25)
 - TASK-158b (feature) — taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158) (2026-11-25)

@@ -2,7 +2,7 @@
 
 > Generado automaticamente por taskctl finish el 2026-11-25. No editar a mano.
 
-## Planificadas (00-planificadas) — 27
+## Planificadas (00-planificadas) — 26
 
 ```text
 ID         Titulo                                                                                      Asignado
@@ -22,7 +22,6 @@ TASK-012   Precondicion de rama base + workspace limpio (seccion 8.3), con auto-
 TASK-019   Revisión ligera sin agente para tareas triviales                                            (sin asignar)
 TASK-021   Publicar el marketplace y la versión v0.1.0 del plugin                                      (sin asignar)
 TASK-140   Regla 4D: diluvio del cerrojo de verificar-impacto y poda por fusion                        (sin asignar)
-TASK-150b  la plantilla del informe en un solo sitio (parte b de TASK-150)                             (sin asignar)
 TASK-150c  formatos del brainstorm y secciones del plan con una fuente (parte c de TASK-150)           (sin asignar)
 TASK-150d  pasos copiados, diluvio e historial, y la sonda (parte d de TASK-150)                       (sin asignar)
 TASK-152   Regla 4D: duplicacion de helpers de test                                                    (sin asignar)
@@ -36,7 +35,7 @@ TASK-165   Regla 4D (2a auditoria): disfraz en tests                            
 TASK-166   Regla 4D (2a auditoria): helpers de test duplicados por las correcciones                    (sin asignar)
 ```
 
-## Terminadas (04-terminadas) — 160
+## Terminadas (04-terminadas) — 161
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -189,6 +188,7 @@ TASK-149a  git y hooks (parte a de TASK-149)                                    
 TASK-149b  errores y flags del CLI (parte b de TASK-149)                                                                       claude
 TASK-149c  utilidades de fs (parte c de TASK-149)                                                                              claude
 TASK-150a  textos que contradicen al codigo o a la Regla 4D (parte a de TASK-150)                                              charlie.bk@gmail.com
+TASK-150b  la plantilla del informe en un solo sitio (parte b de TASK-150)                                                     charlie.bk@gmail.com
 TASK-151a  core, fs, skills e integracion (parte a de TASK-151)                                                                claude
 TASK-151b  commands, hooks y cli (parte b de TASK-151)                                                                         claude
 TASK-153a  plan con reutilizacion y autorrevision 4D exigida (parte a de TASK-153)                                             charlie.bk@gmail.com
