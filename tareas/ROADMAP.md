@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-158b, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
+- **En marcha:** TASK-158b (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
 
 ## H0 — H0
 
@@ -144,7 +144,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-156 | verificar-impacto elige los tests que leen los md de skills, agents y docs del plugin | simple | — | ✅ terminada |
 | — | TASK-157 | Timeout de claude plugin list acorde al binario real | simple | — | ✅ terminada |
 | — | TASK-158a | los textos de cada camino exigen 4D y buscar todos los usos (parte a de TASK-158) | alta | — | ✅ terminada |
-| 11 | TASK-158b | taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158) | alta | TASK-158a | lista para empezar |
+| 11 | TASK-158b | taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158) | alta | TASK-158a | ▶ en diseño |
 | 12 | TASK-158c | verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158) | alta | TASK-158b | espera a TASK-158b |
 | 13 | TASK-159 | Regla 4D (2a auditoria): lectores de vallas, secciones y celdas en core | alta | — | lista para empezar |
 | 14 | TASK-160 | Regla 4D (2a auditoria): duplicacion residual en core | alta | — | lista para empezar |
