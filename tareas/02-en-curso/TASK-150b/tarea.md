@@ -33,6 +33,11 @@ que describe la de `informeTemplate`.
 - [ ] La plantilla del informe vive solo en informeTemplate y revision.md; las revisoras remiten a ella en vez de copiarla
 - [ ] Un test falla si una revisora vuelve a copiar la plantilla
 
+## Autorrevision
+
+- code-quality-reviewer — 97f9ff3
+- 4D — 97f9ff3: helper buscado (ESQUELETO, TITULO_ANTES y CAMPOS_CABECERA de revisores.test.ts reutilizados), usos buscados (titulo, Commit revisado y Contexto adicional pedido en skills/, agents/ y docs/: solo las cinco revisoras; tests 7 y 10c exigian la copia), criterios citados, 2 tests reescritos y 1 asercion, 3 mutaciones en rojo
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
