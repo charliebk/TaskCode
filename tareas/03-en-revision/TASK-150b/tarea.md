@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 10711630
-tokens_revision: null
+tokens_revision: 1988146
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: [TASK-150a]
@@ -37,6 +37,7 @@ que describe la de `informeTemplate`.
 
 - code-quality-reviewer — 97f9ff3
 - 4D — 97f9ff3: helper buscado (ESQUELETO, TITULO_ANTES y CAMPOS_CABECERA de revisores.test.ts reutilizados), usos buscados (titulo, Commit revisado y Contexto adicional pedido en skills/, agents/ y docs/: solo las cinco revisoras; tests 7 y 10c exigian la copia), criterios citados, 2 tests reescritos y 1 asercion, 3 mutaciones en rojo
+- 4D menores — d175109: usos buscados (el test 7 lo cubria el 10c: borrado; comentarios de revisores.test.ts al dia), 0 tests nuevos
 
 ## Transiciones
 
@@ -52,3 +53,8 @@ que describe la de `informeTemplate`.
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T11:12:44Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 44 | 27218 | 10670804 | 13564 | 7 | 10711630 | - | - |
+| 2026-11-25T12:02:59Z | revision | agente:a7682666261e4a69a | 32 | 139900 | 1837200 | 11014 | 5 | 1988146 | 1 | - |
+
+## Verificacion ligera
+
+- 2026-11-25T12:03:07Z: ronda 1; commit revisado 2aab1621747686dbd34a08f0596801914eb5d885; commit verificado d1751091ca97a04f4ce49068261f63defa0ac06a; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/skills/revisores.test.ts; corregidos: MEN-1, MEN-2; pendientes: ninguno
