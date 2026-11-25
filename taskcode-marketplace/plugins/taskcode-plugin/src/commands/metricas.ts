@@ -654,8 +654,16 @@ export async function runMetricasCommand(
     };
   }
 
+  /** TASK-167d: la tendencia entre auditorias 4D, por proyecto; nada sin informes. */
+  const seccionAuditorias = auditoriasPorProyecto.flatMap(({ proyecto, auditorias }) => [
+    formatearSerieAuditorias4D(auditorias, varios ? proyecto : null),
+    '',
+  ]);
+
+  // Sin tareas, la serie de auditorias sale igual (como en --json); sin nada, '' (el CLI lo dice).
   if (filas.length === 0) {
-    return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos, json: false };
+    const output = seccionAuditorias.join('\n').trimEnd();
+    return { output, totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos, json: false };
   }
 
   const columnas = [
@@ -680,12 +688,6 @@ export async function runMetricasCommand(
       ...formatearLecturasRevision(f, varios),
     ];
   };
-
-  /** TASK-167d: la tendencia entre auditorias 4D, por proyecto; nada sin informes. */
-  const seccionAuditorias = auditoriasPorProyecto.flatMap(({ proyecto, auditorias }) => [
-    formatearSerieAuditorias4D(auditorias, varios ? proyecto : null),
-    '',
-  ]);
 
   let metricasPath: string | null = null;
   let escritura: MetricasCommandResult['escritura'] = null;

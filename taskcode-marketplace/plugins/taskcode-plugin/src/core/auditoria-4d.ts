@@ -49,13 +49,22 @@ export type LecturaResumen4D = { ok: true; cifras: Cifras4D } | { ok: false; mot
  * cifra que no es un entero, un Total que no es la suma), dice por que.
  */
 export function leerResumenAuditoria4D(texto: string): LecturaResumen4D {
-  const lineas = texto.replace(/\r/g, '').split('\n').map((l) => l.trim());
-  const inicio = lineas.indexOf(SECCION_RESUMEN_4D);
+  // trim() quita tambien el \r de CRLF. Un `## Resumen` dentro de un bloque de codigo (un ejemplo) no cuenta.
+  const lineas = texto.split('\n').map((l) => l.trim());
+  let enBloque = false;
+  const inicio = lineas.findIndex((l) => {
+    if (l.startsWith('```') || l.startsWith('~~~')) enBloque = !enBloque;
+    return !enBloque && l === SECCION_RESUMEN_4D;
+  });
   if (inicio === -1) return { ok: false, motivo: `no tiene la seccion "${SECCION_RESUMEN_4D}"` };
   let i = inicio + 1;
   while (i < lineas.length && lineas[i] !== CABECERA_RESUMEN_4D && !(lineas[i] as string).startsWith('## ')) i++;
   if (lineas[i] !== CABECERA_RESUMEN_4D) return { ok: false, motivo: `su resumen no tiene la cabecera "${CABECERA_RESUMEN_4D}"` };
+  if (!/^\|(\s*:?-+:?\s*\|)+$/.test(lineas[i + 1] ?? '')) {
+    return { ok: false, motivo: 'la tabla del resumen no tiene la fila separadora (|---|...) bajo la cabecera' };
+  }
   const filas = new Map<string, number[]>();
+  // La tabla acaba en la primera linea que no empieza por `|` (tambien una en blanco).
   for (i += 2; i < lineas.length && (lineas[i] as string).startsWith('|'); i++) {
     const [nombre = '', ...valores] = celdasDe(lineas[i] as string);
     if (valores.length !== SEVERIDADES_HALLAZGO.length || valores.some((v) => !/^\d+$/.test(v))) {
@@ -67,7 +76,9 @@ export function leerResumenAuditoria4D(texto: string): LecturaResumen4D {
   const cifras = {} as Cifras4D;
   for (const d of DIMENSIONES_4D) {
     const fila = filas.get(d);
-    if (fila === undefined) return { ok: false, motivo: `al resumen le falta la fila "${d}"` };
+    if (fila === undefined) {
+      return { ok: false, motivo: `al resumen le falta la fila "${d}" (la tabla acaba en la primera linea que no empieza por |)` };
+    }
     cifras[d] = Object.fromEntries(SEVERIDADES_HALLAZGO.map((s, k) => [s, fila[k] as number])) as Record<SeveridadHallazgo, number>;
   }
   const total = filas.get('Total');

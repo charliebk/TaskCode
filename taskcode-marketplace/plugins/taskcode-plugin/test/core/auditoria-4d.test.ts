@@ -32,6 +32,14 @@ test('TASK-167d: el resumen se lee; cada desvio del formato se rechaza con su mo
   assert.match(motivo(informe4D().replace('| Total |', '| Suma |')), /le falta la fila "Total"/);
   assert.match(motivo(informe4D({ Total: '1 | 5 | 9' })), /Total del resumen \(1\/5\/9\) no es la suma de las filas \(1\/5\/8\)/);
   assert.match(motivo(informe4D().replace('| Disfraz | 0 | 2 | 1 |', '| Disfraz | 0 | 2 | 1 |\r\n| Disfraz | 0 | 2 | 1 |')), /"Disfraz" esta repetida/);
+  // Sin fila separadora: lo dice, no que falte una D (H3 de la revision).
+  assert.match(motivo(informe4D().replace('|---|---|---|---|\r\n', '')), /no tiene la fila separadora/);
+  // Una linea en blanco corta la tabla: el motivo lo explica.
+  assert.match(motivo(informe4D().replace('| Diluvio |', '\r\n| Diluvio |')), /falta la fila "Diluvio" \(la tabla acaba en la primera linea que no empieza por \|\)/);
+  // Un `## Resumen` de ejemplo en un bloque de codigo no tapa el real (H4); solo en el bloque, no hay resumen.
+  const conEjemplo = informe4D().replace('## Resumen', '```markdown\r\n## Resumen\r\n| D | x |\r\n```\r\n\r\n## Resumen');
+  assert.ok(leerResumenAuditoria4D(conEjemplo).ok, JSON.stringify(leerResumenAuditoria4D(conEjemplo)));
+  assert.match(motivo('```\n## Resumen\n```\n'), /no tiene la seccion/);
 });
 
 const cifras = (total: number): Cifras4D => ({
