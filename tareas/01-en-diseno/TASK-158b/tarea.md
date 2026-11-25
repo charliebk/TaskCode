@@ -7,7 +7,7 @@ etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
 estado: en-diseno
-plan_aprobado: false
+plan_aprobado: true
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
 asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
@@ -40,3 +40,4 @@ las tareas viejas no se atascan).
 | fecha | fase | modo | decidido_por | version |
 |---|---|---|---|---|
 | 2026-11-25T04:21:01Z | plan | automatico | persona | 0.18.0 |
+| 2026-11-25T04:21:47Z | approve | automatico | persona | 0.18.0 |
