@@ -31,6 +31,11 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 - [ ] Un cambio en agents/<x>.md elige los tests que lo nombran y los de test/agents que leen la carpeta
 - [ ] Un test contra un repo temporal falla si un cambio de skill vuelve a arrastrar tests de comandos que no la nombran, o si deja fuera uno que si la nombra
 
+## Autorrevision
+
+- code-quality-reviewer — 9ab29dd
+- 4D — 9ab29dd: helper buscado (conRepo, cambiarYCommitear, listar y la plantilla de TASK-156 reutilizados), usos buscados (CARPETAS_LEIDAS y porNombre solo en el bucle de seleccion; grep de los 25 tests que casaban: 7 falsos positivos por comentario), criterios citados, 1 test nuevo y 2 expectativas de TASK-156 ajustadas, 3 mutaciones en rojo
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
