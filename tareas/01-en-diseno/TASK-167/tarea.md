@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: feature/task-167-regla-4d-preventiva-en-los-proyectos-que
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -32,3 +32,9 @@ Que los proyectos que instalan el plugin no cometan los fallos 4D que las audito
 - [ ] Hay una auditoria 4D invocable para el proyecto que produce hallazgos clasificados por D y un plan de correccion por olas
 - [ ] taskctl metricas muestra la tendencia de hallazgos 4D por proyecto entre auditorias y por tarea
 - [ ] Un test por pieza falla si deja de instalarse o de comprobar lo suyo
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-25T12:55:40Z | plan | automatico | persona | 0.18.0 |

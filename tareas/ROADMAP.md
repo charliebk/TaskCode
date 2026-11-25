@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** TASK-150c (en diseño)
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-167, TASK-019
+- **En marcha:** TASK-150c (en diseño), TASK-167 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
 
 ## H0 — H0
 
@@ -157,7 +157,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | 17 | TASK-164 | Regla 4D (2a auditoria): skills que contradicen al CLI | media | — | lista para empezar |
 | 18 | TASK-165 | Regla 4D (2a auditoria): disfraz en tests | alta | — | lista para empezar |
 | 19 | TASK-166 | Regla 4D (2a auditoria): helpers de test duplicados por las correcciones | media | — | lista para empezar |
-| 20 | TASK-167 | Regla 4D preventiva en los proyectos que usan el plugin (0.20.0) | alta | — | lista para empezar |
+| 20 | TASK-167 | Regla 4D preventiva en los proyectos que usan el plugin (0.19.0) | alta | — | ▶ en diseño |
 
 ## H1 — H1
 
