@@ -10,7 +10,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { plantillaRepo } from '../helpers/repo-plantilla.js';
 
@@ -656,6 +656,87 @@ test('conDistProtegido (TASK-143c, HAL-2 y HAL-3): devuelve dist/src y suelta el
     assert.equal(conDistProtegido(dir, () => { pisar(); return 7; }), 7);
     comprobar('valor');
   } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** TASK-158c: repo Git temporal con dist/src/x.js commiteado ("v1") en `main` y otra rama `otra` con "v2". */
+function repoConDist(): string {
+  const dir = mkdtempSync(path.join(tmpdir(), 'dist-head-'));
+  git(['init', '-q', '-b', 'main'], dir);
+  git(['config', 'user.email', 't@t'], dir);
+  git(['config', 'user.name', 't'], dir);
+  git(['config', 'core.autocrlf', 'false'], dir);
+  mkdirSync(path.join(dir, 'dist', 'src'), { recursive: true });
+  writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'v1\n');
+  git(['add', '-A'], dir);
+  git(['commit', '-q', '-m', 'v1'], dir);
+  git(['checkout', '-q', '-b', 'otra'], dir);
+  writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'v2\n');
+  git(['commit', '-q', '-am', 'v2'], dir);
+  git(['checkout', '-q', 'main'], dir);
+  return dir;
+}
+
+test('TASK-158c: si HEAD cambia durante la ejecucion, no devuelve la copia de dist/src (es de otro commit) y deja el arbol limpio', async () => {
+  type Protegido = (dir: string, fn: () => unknown) => unknown;
+  const { conDistProtegido, dirCopia } = (await import(pathToFileURL(SCRIPT).href)) as {
+    conDistProtegido: Protegido;
+    dirCopia: (d: string) => string;
+  };
+  const dir = repoConDist();
+  const salida: string[] = [];
+  const log = console.log;
+  console.log = (...a: unknown[]) => { salida.push(a.join(' ')); };
+  try {
+    // La copia se toma en `main` (v1); durante fn se compila y otro proceso cambia de rama.
+    conDistProtegido(dir, () => {
+      writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'compilado');
+      writeFileSync(path.join(dir, 'dist', 'src', 'nuevo.js'), 'de mas');
+      git(['checkout', '-q', '-f', 'otra'], dir);
+      writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'compilado otra vez');
+    });
+  } finally {
+    console.log = log;
+  }
+  try {
+    assert.equal(readFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'utf8'), 'v2\n', 'dist/src es el del HEAD actual, no la copia v1');
+    assert.equal(existsSync(path.join(dir, 'dist', 'src', 'nuevo.js')), false, 'sin salida de compilacion de mas');
+    assert.equal(git(['status', '--porcelain'], dir), '', 'arbol limpio');
+    assert.equal(existsSync(dirCopia(dir)), false, 'la copia se borra');
+    assert.equal(existsSync(`${dirCopia(dir)}.cerrojo`), false, 'el cerrojo se suelta');
+    assert.ok(salida.some((l) => /HEAD cambio durante la ejecucion \([0-9a-f]{7} -> [0-9a-f]{7}\)/.test(l)), salida.join('\n'));
+    // Control: sin cambio de HEAD, en un repo Git, la copia si se devuelve.
+    conDistProtegido(dir, () => { writeFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'compilado'); });
+    assert.equal(readFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'utf8'), 'v2\n');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('TASK-158c: una copia huerfana de otro commit tampoco se devuelve', async () => {
+  type Protegido = (dir: string, fn: () => unknown) => unknown;
+  const { conDistProtegido, dirCopia } = (await import(pathToFileURL(SCRIPT).href)) as {
+    conDistProtegido: Protegido;
+    dirCopia: (d: string) => string;
+  };
+  const dir = repoConDist();
+  const copia = dirCopia(dir);
+  const log = console.log;
+  console.log = () => undefined;
+  try {
+    // Una ejecucion cortada dejo su copia (v1) tomada en `main`; ahora HEAD es `otra` (v2).
+    const headMain = git(['rev-parse', 'HEAD'], dir).trim();
+    mkdirSync(path.join(copia, 'src'), { recursive: true });
+    writeFileSync(path.join(copia, 'src', 'x.js'), 'v1\n');
+    writeFileSync(path.join(copia, 'marcador.json'), JSON.stringify({ dirPlugin: dir, habiaDist: true, head: headMain, pid: 0 }));
+    git(['checkout', '-q', 'otra'], dir);
+    conDistProtegido(dir, () => undefined);
+    assert.equal(readFileSync(path.join(dir, 'dist', 'src', 'x.js'), 'utf8'), 'v2\n', 'la copia huerfana de main no pisa otra');
+    assert.equal(git(['status', '--porcelain'], dir), '');
+  } finally {
+    console.log = log;
+    rmSync(copia, { recursive: true, force: true });
     rmSync(dir, { recursive: true, force: true });
   }
 });
