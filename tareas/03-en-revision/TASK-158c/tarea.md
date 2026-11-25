@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-curso
+estado: en-revision
 plan_aprobado: true
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
 asignado_a: charlie.bk@gmail.com
@@ -16,7 +16,7 @@ regla_seleccion_skill: null
 ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
-tokens_implementacion: null
+tokens_implementacion: 3490185
 tokens_revision: null
 creado: 2026-11-25
 actualizado: 2026-11-25
@@ -48,3 +48,10 @@ mas de 1 h de las correcciones 4D sin consultarlo.
 | 2026-11-25T06:36:39Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T06:37:27Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T06:37:29Z | start | automatico | persona | 0.18.0 |
+| 2026-11-25T06:43:03Z | review | automatico | persona | 0.18.0 |
+
+## Coste
+
+| fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-25T06:43:03Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 20 | 15699 | 3466183 | 8283 | 4 | 3490185 | - | - |
