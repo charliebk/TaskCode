@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-158-regla-4d-preventiva-en-todos-los-proceso
 asignado_a: charlie.bk@gmail.com
@@ -41,3 +41,4 @@ las tareas viejas no se atascan).
 |---|---|---|---|---|
 | 2026-11-25T04:21:01Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T04:21:47Z | approve | automatico | persona | 0.18.0 |
+| 2026-11-25T04:21:49Z | start | automatico | persona | 0.18.0 |
