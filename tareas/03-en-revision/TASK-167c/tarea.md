@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 7286799
-tokens_revision: null
+tokens_revision: 1182623
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: [TASK-167b]
@@ -39,6 +39,7 @@ persona lo pide, crea una tarea por ola con `taskctl new`.
 
 - code-quality-reviewer — d1adc94
 - 4D — d1adc94: helper buscado (la Regla 4D, los patrones y la duracion se remiten a revision.md, duplicacion.md y duracion.md sin copiarlos; FLAGS_NEW de new.ts y assertSinMarcas de doctor-deploy.test.ts reutilizados en vez de otra lista de marcas), usos buscados (no habia formato de auditoria en src/ ni skills/; el formato vive solo en core/auditoria-4d.ts), criterios citados, 2 tests nuevos con 4 mutaciones en rojo (fila del resumen, flag inventado, commit antes de new, encabezado de ola)
+- 4D ronda 1 — b5b8b88: usos buscados (PATRON_INFORME_AUDITORIA_4D solo lo usan la skill y su test; la parte d lo reutilizara), 5 tests mutados en rojo (sin --criterio, sin «Solo si dice que si», sin ceros, sin fila de ejemplo, patron sin -N)
 
 ## Transiciones
 
@@ -48,9 +49,11 @@ persona lo pide, crea una tarea por ola con `taskctl new`.
 | 2026-11-25T19:19:35Z | approve | automatico | persona | 0.18.0 |
 | 2026-11-25T19:19:40Z | start | automatico | persona | 0.18.0 |
 | 2026-11-25T19:27:39Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T19:43:01Z | review | automatico | persona | 0.18.0 |
 
 ## Coste
 
 | fecha | fase | fuente | entrada | cache_escritura | cache_lectura | salida | lecturas | total | ronda | revisor |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T19:27:39Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 60 | 32481 | 7234910 | 19348 | 9 | 7286799 | - | - |
+| 2026-11-25T19:42:15Z | revision | agente:af7e039176889ca5d | 22 | 118219 | 1054539 | 9843 | 3 | 1182623 | 1 | - |
