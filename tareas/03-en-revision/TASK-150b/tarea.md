@@ -45,6 +45,7 @@ que describe la de `informeTemplate`.
 - Tests: el 10c de `revisores.test.ts` pasa de exigir la copia a prohibirla (titulo, campos de cabecera) y exige la remision; el antiguo 7 queda cubierto por el 10c y el 10f; `fuente-unica.test.ts` prohibe «Contexto adicional pedido». Mutaciones: 3 propias y 6 del revisor, todas en rojo.
 - test:rapido 703/703; verificacion por impacto de review en verde.
 - Revision ronda 1 (sonnet): aprobada con correcciones. MEN-1 (comentarios obsoletos en revisores.test.ts) y MEN-2 (test 7 redundante) corregidos y cerrados con verificar-menores.
+- Cierre con `finish --sin-verificacion`, autorizado por Carlos el 2026-11-25: la suite completa dio 1 rojo, el intermitente de tiempos origin-deteccion.test (16 s); aislado, 5/5 en verde.
 
 ## Transiciones
 
