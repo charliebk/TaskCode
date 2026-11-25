@@ -25,11 +25,10 @@ TypeScript o JavaScript que llama al modulo cae al generico. Este revisor
 opina sobre el lado Rust del limite: lo que se exporta, como se exporta y
 que cuesta cruzarlo. No opina sobre como la vista pinta el resultado.
 
-Si para juzgar un cambio hace falta mas contexto, **pedirlo explicitamente**
-(el `lib.rs` que reexporta el modulo, el tipo que cruza el limite, el
-llamador de JavaScript que lo usa, el `Cargo.toml` del workspace) en vez de
-dar por hecho lo que no se ve. Lo que no vale es cargar el workspace entero
-"por si acaso": pedir tres ficheros concretos es barato.
+Si para juzgar un cambio hace falta mas contexto (el `lib.rs` que reexporta el modulo, el tipo que cruza el limite, el
+llamador de JavaScript que lo usa, el `Cargo.toml` del workspace), leelo y
+anotalo como dice "Lo que lees" de revision.md, en vez de dar por hecho lo que
+no se ve. Leer el proyecto entero "por si acaso" no es revisar mejor.
 
 **Regla obligatoria del limite JS-WASM.** Si el diff cambia una firma
 exportada con `#[wasm_bindgen]` (nombre, parametros, tipo devuelto, un

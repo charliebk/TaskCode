@@ -59,7 +59,8 @@ Dentro de la seccion `## Criterios de aceptacion`, añade una subseccion
 **Reglas:**
 
 - Los criterios normales **deben estar todos marcados antes de `finish`**.
-  `finish` no lee las casillas: lo comprueba quien cierra y el revisor.
+  `finish` avisa, sin bloquear, de los que siguen sin marcar; lo comprueban
+  quien cierra y el revisor.
 - Los de "Tras el cierre" no cuentan para cerrar.
 - Despues de cerrar, quien lanzo `finish` verifica esos criterios en la rama
   base mientras se resuelven los detalles de publicacion o despliegue.

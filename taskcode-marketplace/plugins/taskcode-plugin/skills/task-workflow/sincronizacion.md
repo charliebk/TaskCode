@@ -6,7 +6,7 @@ tablero sintetizado) se pueden regenerar automaticamente despues de cada
 transicion de tarea. Para eso, el proyecto declara en `.taskcode/config.yml`
 un comando que reescribe esos ficheros y la lista de rutas que modifica.
 
-**Tres claves opcionales, en `.taskcode/config.yml`:**
+**Claves opcionales, en `.taskcode/config.yml`:**
 
 - **`comando_sincronizacion`**: el comando que el proyecto ejecuta para
   regenerar sus ficheros derivados. Ejemplo: `"node scripts/sincronizar-plan.mjs"`.
@@ -33,13 +33,14 @@ un comando que reescribe esos ficheros y la lista de rutas que modifica.
 
 - Las dos primeras claves van juntas o no van: si una existe, la otra debe
   existir tambien. La tercera es opcional.
-- Una clave mal escrita o un valor invalido aborta **todos** los comandos de
-  `taskctl` que lean config, con un error que enumera las claves validas.
+- Un valor invalido de una clave conocida aborta los comandos de `taskctl`
+  que lean config; una clave desconocida (por ejemplo, mal escrita) avisa y se
+  ignora.
 
 **Como funciona:**
 
-Los ocho comandos que hacen un commit automatico (`new`, `import`, `plan`,
-`approve`, `start`, `review`, `finish`, `codex-review`) siguen este flujo:
+Todo comando de `taskctl` que hace un commit automatico (las fases y los que
+escriben en `tareas/`) sigue este flujo:
 
 1. Escriben sus cambios en `tareas/`.
 2. **Ejecutan el comando de sincronizacion** (si esta declarado).

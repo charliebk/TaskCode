@@ -22,11 +22,9 @@ entero. Y si el diff toca varios dominios a la vez, recibe **solo la parte
 que casa con los patrones de mas abajo**: los ficheros de frontend, de
 infraestructura o de otro lenguaje van a su propio revisor, en paralelo.
 
-Si para juzgar un cambio hace falta mas contexto, **pedirlo explicitamente**
-(el fichero completo, la entidad que la consulta toca, el `pom.xml`) en vez
-de dar por hecho lo que no se ve. Lo que no vale es leer el repositorio
-entero "por si acaso": pedir tres ficheros concretos es barato, cargar el
-proyecto no.
+Si para juzgar un cambio hace falta mas contexto (el fichero completo, la entidad que la consulta toca, el `pom.xml`), leelo y
+anotalo como dice "Lo que lees" de revision.md, en vez de dar por hecho lo que
+no se ve. Leer el proyecto entero "por si acaso" no es revisar mejor.
 
 Si el diff toca tantos dominios distintos que fragmentarlo deja de tener
 sentido, el enrutado puede caer a un unico pase generico. Eso lo decide

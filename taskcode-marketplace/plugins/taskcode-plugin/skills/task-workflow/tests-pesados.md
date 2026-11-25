@@ -9,7 +9,7 @@ En `## Plan de pruebas` del plan, por cada criterio, cuantos tests nuevos se
 preven: **de 1 a 3**. Si un criterio necesita mas, el plan dice por que. Antes
 de escribir un test, busca si ya hay uno que cubra lo mismo: ampliarlo es
 mejor que duplicarlo. En la revision, un test que duplica a otro ya existente
-es un hallazgo MENOR.
+es duplicacion de la Regla 4D (`revision.md`).
 
 ## Marcar un test como pesado
 
