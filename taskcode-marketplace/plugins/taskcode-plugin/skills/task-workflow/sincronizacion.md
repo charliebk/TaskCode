@@ -32,7 +32,7 @@ un comando que reescribe esos ficheros y la lista de rutas que modifica.
 **Reglas de declaracion:**
 
 - Las dos primeras claves van juntas o no van: si una existe, la otra debe
-  existir tambien. La tercera es opcional.
+  existir tambien. Las demas son opcionales.
 - Un valor invalido de una clave conocida aborta los comandos de `taskctl`
   que lean config; una clave desconocida (por ejemplo, mal escrita) avisa y se
   ignora.

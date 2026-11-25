@@ -31,7 +31,7 @@ test('TASK-150a (CONT-01, CONT-16, CONT-02): la configuracion y el cierre dicen 
   assert.doesNotMatch(sinc, /clave mal escrita o un valor invalido aborta/);
   assert.match(sinc, /una clave desconocida \(por ejemplo, mal escrita\) avisa y se\s+ignora/);
   // Las cuentas que divergen del codigo (eran cuatro claves y diecisiete comandos) no se escriben.
-  assert.doesNotMatch(sinc, /\b(Tres|tres) claves\b|\bocho comandos\b/);
+  assert.doesNotMatch(sinc, /\b(Tres|tres) claves\b|\bocho comandos\b|La tercera es opcional/);
   // finish.ts lee las casillas (casillasSinMarcar) y avisa.
   const cierre = await leer('task-workflow/cierre.md');
   assert.doesNotMatch(cierre, /no lee las casillas/);
@@ -42,7 +42,12 @@ test('TASK-150a (CONT-03, CONT-04): ninguna skill rebaja el test duplicado a MEN
   for (const { rel, texto } of await todasLasSkills()) {
     assert.doesNotMatch(texto, /duplica a otro ya existente\s+es\s+(un hallazgo\s+)?MENOR/, `${rel}: el test duplicado sigue la Regla 4D`);
     // Un subagente revisor no tiene a quien pedir: lee y lo anota ("Lo que lees" de revision.md).
-    assert.doesNotMatch(texto, /\*\*pedirlo explicitamente\*\*|pidelo si un|lo pide para un hallazgo/, `${rel}: pide contexto`);
+    // IMP-1 de su revision: tambien las variantes ("**pide siempre**", "lo pide como contexto").
+    assert.doesNotMatch(
+      texto,
+      /\*\*pedirlo explicitamente\*\*|\*\*pide siempre\*\*|pidelo si un|lo pide (para un hallazgo|como contexto)/,
+      `${rel}: pide contexto`
+    );
   }
   assert.match(await leer('task-workflow/tests-pesados.md'), /duplica a otro ya existente\s+es duplicacion de la Regla 4D/);
   for (const r of ['angular-vue', 'java-spring', 'rust-wasm', 'csharp-autocad-ifc']) {
@@ -56,8 +61,7 @@ test('TASK-150a (CONT-09, CONT-18): la descripcion de cada revisora coincide con
     const desc = /^description: (.*)$/m.exec(await leer(`${r.nombre}/SKILL.md`))?.[1] ?? '';
     // El reparto (revisores.ts) solo mira patrones de fichero: nada de "la tarea menciona".
     assert.doesNotMatch(desc, /menciona/, `${r.nombre}: promete un reparto por mencion que no existe`);
-    assert.match(desc, /Se usa si el diff toca/, `${r.nombre}: la descripcion no dice cuando se usa`);
-  }
+    assert.match(desc, /Se usa si el diff toca/, `${r.nombre}: la descripcion no dice cuando se usa`);  }
   // angular-vue: el dialogo que deja la vista inutilizable con teclado es CRITICO y solo CRITICO.
   const av = await leer('angular-vue-reviewer/SKILL.md');
   const importante = av.slice(av.indexOf('**IMPORTANTE**'), av.indexOf('**MENOR**', av.indexOf('**IMPORTANTE**')));

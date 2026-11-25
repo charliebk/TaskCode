@@ -33,13 +33,13 @@ no se ve. Leer el proyecto entero "por si acaso" no es revisar mejor.
 **Regla obligatoria del limite JS-WASM.** Si el diff cambia una firma
 exportada con `#[wasm_bindgen]` (nombre, parametros, tipo devuelto, un
 `Result` que pasa a lanzar) o un tipo que cruza el limite (un struct
-exportado, un enum, lo que se serializa con `serde`), **pide siempre** el
+exportado, un enum, lo que se serializa con `serde`), **lee siempre** el
 llamador TypeScript o JavaScript que lo usa y el `.d.ts` generado (o el
 que el proyecto versione), y revisa los dos lados del contrato: que el
 llamador pasa lo que la firma espera, trata el error nuevo y libera lo que
 recibe. No es opcional: con el diff partido por dominios, nadie mas ve los
-dos lados a la vez. Dejalo escrito en `## Alcance` del informe (que se pidio
-y que se encontro); si el llamador no existe en el repo (un paquete que
+dos lados a la vez. Anotalo en `## Lecturas fuera del contexto permitido`
+(que leiste y que encontraste, ver "Lo que lees" de revision.md); si el llamador no existe en el repo (un paquete que
 consume un tercero), dilo tambien ahi.
 
 Si el diff toca tantos dominios distintos que fragmentarlo deja de tener
@@ -99,7 +99,7 @@ Quedan fuera a proposito, aunque un proyecto Rust y WASM tambien los toque:
 - El TypeScript o JavaScript que **llama** al modulo WASM (el worker, el
   cliente) — no hay sufijo ni carpeta que lo distinga de cualquier otro
   `.ts`. Lo revisa el generico; pero si el diff cambia el contrato del
-  limite, este revisor lo pide como contexto (ver la regla de abajo).
+  limite, este revisor lo lee como contexto (ver la regla de abajo).
 - `.rustfmt.toml` y `.clippy.toml` con punto delante — rustfmt y clippy los
   leen igual que sin punto, pero son la variante menos comun. Si el proyecto
   los usa, un cambio en ellos cae al generico; no cambian el codigo, solo como

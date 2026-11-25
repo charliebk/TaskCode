@@ -1,6 +1,6 @@
 ---
 name: csharp-autocad-ifc-reviewer
-description: Revisor por pares de C# sobre la API de AutoCAD (ObjectARX, AcDbMgd, Civil 3D, BricsCAD) o modelos IFC (IfcOpenShell, xBIM). Se usa si el diff toca .cs, .csproj, .sln, .ifc o .ifcxml. Es una skill de revision, no de implementacion.
+description: Revisor por pares de C# sobre la API de AutoCAD (ObjectARX, AcDbMgd, Civil 3D, BricsCAD) o modelos IFC (IfcOpenShell, xBIM). Se usa si el diff toca .cs, .csproj, .sln, .ifc, .ifcxml o .ifcjson. Es una skill de revision, no de implementacion.
 ---
 
 # Revisor de C# sobre AutoCAD e IFC
