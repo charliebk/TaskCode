@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150b, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
+- **En marcha:** TASK-150b (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
 
 ## H0 — H0
 
@@ -133,7 +133,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | ✅ terminada |
 | — | TASK-149c | utilidades de fs (parte c de TASK-149) | alta | TASK-149b | ✅ terminada |
 | — | TASK-150a | textos que contradicen al codigo o a la Regla 4D (parte a de TASK-150) | alta | — | ✅ terminada |
-| 9 | TASK-150b | la plantilla del informe en un solo sitio (parte b de TASK-150) | alta | TASK-150a | lista para empezar |
+| 9 | TASK-150b | la plantilla del informe en un solo sitio (parte b de TASK-150) | alta | TASK-150a | ▶ en diseño |
 | 10 | TASK-150c | formatos del brainstorm y secciones del plan con una fuente (parte c de TASK-150) | alta | TASK-150b | espera a TASK-150b |
 | 11 | TASK-150d | pasos copiados, diluvio e historial, y la sonda (parte d de TASK-150) | alta | TASK-150c | espera a TASK-150c |
 | — | TASK-151a | core, fs, skills e integracion (parte a de TASK-151) | media | — | ✅ terminada |
