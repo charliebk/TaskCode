@@ -15,15 +15,14 @@ import { FLAGS_NEW } from '../../src/commands/new.js';
 import {
   CABECERA_HALLAZGOS_4D,
   CABECERA_RESUMEN_4D,
-  DES_4D,
   nombreInformeAuditoria4D,
   PATRON_INFORME_AUDITORIA_4D,
   PATRON_OLA_4D,
   SECCION_HALLAZGOS_4D,
   SECCION_OLAS_4D,
   SECCION_RESUMEN_4D,
-  SEVERIDADES_4D,
 } from '../../src/core/auditoria-4d.js';
+import { DIMENSIONES_4D, SEVERIDADES_HALLAZGO } from '../../src/core/informe-revision.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SKILL = path.resolve(HERE, '..', '..', '..', 'skills', 'auditoria-4d', 'SKILL.md');
@@ -58,10 +57,10 @@ test('TASK-167c: la skill pide el informe con el formato de core/auditoria-4d (r
   assert.ok(lineas.includes(CABECERA_RESUMEN_4D), 'cabecera del resumen');
   assert.ok(lineas.includes(CABECERA_HALLAZGOS_4D), 'cabecera de hallazgos');
   // Una fila por D (y el total) en el resumen, con tantas columnas como severidades.
-  for (const d of [...DES_4D, 'Total']) {
+  for (const d of [...DIMENSIONES_4D, 'Total']) {
     const fila = lineas.find((l) => l.startsWith(`| ${d} |`));
     assert.ok(fila, `falta la fila de ${d} en el resumen`);
-    assert.equal(fila.split('|').length - 2, SEVERIDADES_4D.length + 1, `columnas de ${d}`);
+    assert.equal(fila.split('|').length - 2, SEVERIDADES_HALLAZGO.length + 1, `columnas de ${d}`);
   }
   // Una fila de ejemplo de hallazgo con las columnas de la cabecera.
   const hallazgo = lineas.find((l) => /^\| 4D-\d+ \|/.test(l));
@@ -75,6 +74,7 @@ test('TASK-167c: la skill pide el informe con el formato de core/auditoria-4d (r
   assert.match(bloqueOla, /^- Duración estimada: N min/m);
   // Lo que hace el informe legible por una herramienta.
   assert.match(t, /una D sin hallazgos va con ceros/);
+  assert.match(t, /cifras del resumen son números\s+contados/);
   assert.match(t, /\*\*sin tildes\*\*/);
   assert.match(t, /ninguna celda lleva `\|`/);
   // Hallazgos con cita, agentes de solo lectura y la Regla 4D sin copiarla.

@@ -59,6 +59,8 @@ import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion } from '../core/evolucion.js';
 import { calcularGrupos, formatearGrupos } from '../core/grupos-metricas.js';
 import { calcularPorVersion, formatearPorVersion } from '../core/versiones-metricas.js';
+import { formatearSerieAuditorias4D, serieAuditorias4D } from '../core/auditoria-4d.js';
+import { leerAuditorias4D } from '../fs/auditorias-4d.js';
 export class MetricasCommandError extends Error {
 }
 export const FLAGS_METRICAS = [
@@ -351,7 +353,10 @@ export async function leerRepoMetricas(repo, varios) {
     // Los avisos de las filas, sobre TODAS las tareas (tambien con --heuristica).
     for (const f of filas)
         advertencias.push(...avisosDeFila(f, varios));
-    return { leidas: leidas.map((l) => l.task), filas, advertencias, invalidas };
+    // TASK-167d: la tendencia entre auditorias 4D (la de cada tarea es la columna 4D).
+    const auditorias = await leerAuditorias4D(repo.ruta);
+    advertencias.push(...auditorias.avisos.map((a) => (varios ? `${proyecto}: ${a}` : a)));
+    return { leidas: leidas.map((l) => l.task), filas, advertencias, invalidas, auditorias4D: auditorias.auditorias };
 }
 export async function runMetricasCommand(tareasRoot, argv, deps) {
     rechazarFlagsDesconocidos(argv, FLAGS_METRICAS, 'metricas', (m) => new MetricasCommandError(m));
@@ -392,8 +397,12 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
     /** Tarea leida de cada fila, por clave (proyecto, id). */
     const leidaPorClave = new Map();
     const porRepo = [];
+    /** TASK-167d: las auditorias 4D de cada proyecto, en el orden de los repos. */
+    const auditoriasPorProyecto = [];
     for (const repo of repos) {
         const r = await leerRepoMetricas(repo, varios);
+        if (r.auditorias4D.length > 0)
+            auditoriasPorProyecto.push({ proyecto: repo.proyecto, auditorias: r.auditorias4D });
         advertencias.push(...r.advertencias);
         invalidas.push(...r.invalidas);
         r.filas.forEach((f, i) => leidaPorClave.set(claveTarea(f.proyecto, f.id), r.leidas[i]));
@@ -421,6 +430,11 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
             ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
             ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
             ...(conPorVersion ? { porVersion: calcularPorVersion(filas) } : {}),
+            ...(auditoriasPorProyecto.length === 0
+                ? {}
+                : {
+                    auditorias4D: auditoriasPorProyecto.flatMap(({ proyecto, auditorias }) => serieAuditorias4D(auditorias).map((a) => ({ proyecto, ...a }))),
+                }),
         };
         return {
             output: JSON.stringify(objeto),
@@ -452,8 +466,15 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
             json: false,
         };
     }
+    /** TASK-167d: la tendencia entre auditorias 4D, por proyecto; nada sin informes. */
+    const seccionAuditorias = auditoriasPorProyecto.flatMap(({ proyecto, auditorias }) => [
+        formatearSerieAuditorias4D(auditorias, varios ? proyecto : null),
+        '',
+    ]);
+    // Sin tareas, la serie de auditorias sale igual (como en --json); sin nada, '' (el CLI lo dice).
     if (filas.length === 0) {
-        return { output: '', totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos, json: false };
+        const output = seccionAuditorias.join('\n').trimEnd();
+        return { output, totalTareas: 0, advertencias, metricasPath: null, escritura: null, reposLeidos, json: false };
     }
     const columnas = [
         ...(varios ? [COLUMNA_PROYECTO] : []),
@@ -522,6 +543,7 @@ export async function runMetricasCommand(tareasRoot, argv, deps) {
                 '',
                 ...notasFilaEnriquecida(filas, varios),
                 '',
+                ...seccionAuditorias,
                 ...seccionTokens(filas),
                 NOTA_CALENDARIO,
             ].join('\n'),
