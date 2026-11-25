@@ -71,3 +71,7 @@ anade a `## Candidatos 4D` de la peticion. Avisa, no bloquea.
 ## Verificacion ligera
 
 - 2026-11-25T18:49:56Z: ronda 2; commit revisado 09ddcf327b6311781c53b6aa2682907c993d9387; commit verificado 9c9b7d3f3b0e9a2a074ea16c92b4ae83912f33ec; ficheros: taskcode-marketplace/plugins/taskcode-plugin/test/core/duplicados-cuerpo.test.ts; corregidos: ninguno; pendientes: ninguno
+
+## Verificacion parcial
+
+- 2026-11-25T18:50:10Z: todo el codigo que cambia la tarea (11 fichero(s)) cae en rutas_verificacion_parcial de "develop": basta la verificacion de lo afectado; se ejecuta la selectiva `node scripts/verificar-impacto.mjs` en verde, no la completa `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
