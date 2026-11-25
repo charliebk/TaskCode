@@ -6,10 +6,10 @@ sprint: 0
 etiquetas: []
 complejidad: alta
 modelo_sugerido: sonnet
-estado: planificada
+estado: en-diseno
 plan_aprobado: false
 rama: fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f
-asignado_a: null
+asignado_a: charlie.bk@gmail.com
 agente_revisor: general-purpose
 skills_recomendados: []
 regla_seleccion_skill: null
@@ -19,7 +19,7 @@ tokens_diseno: null
 tokens_implementacion: null
 tokens_revision: null
 creado: 2026-11-22
-actualizado: 2026-11-22
+actualizado: 2026-11-25
 dependencias: []
 ---
 ## Objetivo
@@ -31,3 +31,9 @@ Que cada regla de las skills y agentes este escrita en un solo sitio y coincida 
 - [ ] La plantilla del informe vive solo en informeTemplate y revision.md; las revisoras remiten a ella en vez de copiarla
 - [ ] Los formatos de salida de los agentes brainstorm coinciden con roles-brainstorm.ts y las secciones del plan (Duracion estimada y presupuesto de tests incluidos) salen de una sola fuente que usan plan.ts, plan-brainstorm.ts y el unificador
 - [ ] La linea 4D de Autorrevision la exige el aviso de review; los pasos copiados (cadena, coste, tope de rondas, MENORES) remiten a una sola guia; sin diluvio ni historial de versiones en las skills; la sonda de hooks inerte sale del plugin
+
+## Transiciones
+
+| fecha | fase | modo | decidido_por | version |
+|---|---|---|---|---|
+| 2026-11-25T07:34:54Z | plan | automatico | persona | 0.18.0 |

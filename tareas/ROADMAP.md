@@ -12,8 +12,8 @@ Un `### Hn — título` por hito (n es el campo `sprint` de sus tareas), en el o
 
 Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tarea). Sale de las dependencias: ninguna tarea va antes que aquellas de las que depende y, a igualdad, va primero la del hito anterior (en el orden de los `### Hn — título` de la zona manual) y luego la de número menor. taskctl lo regenera en cada transición que cae en la rama de integración; solo la zona manual se edita a mano.
 
-- **En marcha:** ninguna
-- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-150, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
+- **En marcha:** TASK-150 (en diseño)
+- **Listas para empezar:** TASK-001, TASK-007, TASK-140, TASK-152, TASK-159, TASK-160, TASK-161, TASK-162, TASK-163, TASK-164, TASK-165, TASK-166, TASK-019
 
 ## H0 — H0
 
@@ -132,7 +132,7 @@ Orden en que se hacen las tareas, agrupadas por hito (campo `sprint` de cada tar
 | — | TASK-149a | git y hooks (parte a de TASK-149) | alta | — | ✅ terminada |
 | — | TASK-149b | errores y flags del CLI (parte b de TASK-149) | alta | TASK-149a | ✅ terminada |
 | — | TASK-149c | utilidades de fs (parte c de TASK-149) | alta | TASK-149b | ✅ terminada |
-| 9 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | lista para empezar |
+| 9 | TASK-150 | Regla 4D: skills y agentes con una sola fuente por regla | alta | — | ▶ en diseño |
 | — | TASK-151a | core, fs, skills e integracion (parte a de TASK-151) | media | — | ✅ terminada |
 | — | TASK-151b | commands, hooks y cli (parte b de TASK-151) | media | TASK-151a | ✅ terminada |
 | 10 | TASK-152 | Regla 4D: duplicacion de helpers de test | alta | — | lista para empezar |
