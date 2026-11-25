@@ -42,10 +42,10 @@ test('TASK-150a (CONT-03, CONT-04): ninguna skill rebaja el test duplicado a MEN
   for (const { rel, texto } of await todasLasSkills()) {
     assert.doesNotMatch(texto, /duplica a otro ya existente\s+es\s+(un hallazgo\s+)?MENOR/, `${rel}: el test duplicado sigue la Regla 4D`);
     // Un subagente revisor no tiene a quien pedir: lee y lo anota ("Lo que lees" de revision.md).
-    // IMP-1 de su revision: tambien las variantes ("**pide siempre**", "lo pide como contexto").
+    // IMP-1 (ronda 1) e IMP-2 (ronda 2) de su revision: las variantes, con negrita o sin ella.
     assert.doesNotMatch(
       texto,
-      /\*\*pedirlo explicitamente\*\*|\*\*pide siempre\*\*|pidelo si un|lo pide (para un hallazgo|como contexto)/,
+      /pedirlo explicitamente|pide siempre|pidelo si un|lo pide (para un hallazgo|como contexto)/,
       `${rel}: pide contexto`
     );
   }
@@ -61,7 +61,8 @@ test('TASK-150a (CONT-09, CONT-18): la descripcion de cada revisora coincide con
     const desc = /^description: (.*)$/m.exec(await leer(`${r.nombre}/SKILL.md`))?.[1] ?? '';
     // El reparto (revisores.ts) solo mira patrones de fichero: nada de "la tarea menciona".
     assert.doesNotMatch(desc, /menciona/, `${r.nombre}: promete un reparto por mencion que no existe`);
-    assert.match(desc, /Se usa si el diff toca/, `${r.nombre}: la descripcion no dice cuando se usa`);  }
+    assert.match(desc, /Se usa si el diff toca/, `${r.nombre}: la descripcion no dice cuando se usa`);
+  }
   // angular-vue: el dialogo que deja la vista inutilizable con teclado es CRITICO y solo CRITICO.
   const av = await leer('angular-vue-reviewer/SKILL.md');
   const importante = av.slice(av.indexOf('**IMPORTANTE**'), av.indexOf('**MENOR**', av.indexOf('**IMPORTANTE**')));
