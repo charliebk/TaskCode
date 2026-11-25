@@ -44,6 +44,10 @@ conflicto reaparece cuando ya hay código escrito.
   lo que pida medir antes de optimizar va al plan de pruebas o a la decisión
   humana. Si la petición no lista una salida de rendimiento, no falta nada: no
   la nombres en las salidas que faltaron.
+- **Regla 4D**: lo que el plan reutiliza sale de buscar todos los usos en el
+  repo, no solo el primero; si un rol propone una pieza nueva que ya existe
+  o unifica una duplicación sin nombrar cada sitio que la tiene, es un hueco
+  que se escribe en el plan.
 
 ## Qué NO miras
 

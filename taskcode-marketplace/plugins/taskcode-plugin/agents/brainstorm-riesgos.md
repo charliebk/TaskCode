@@ -37,6 +37,10 @@ es el plan final, y en él tienes que decir también lo que tu rol no cubre.
   qué le pasa. Datos ya escritos con el formato viejo incluidos.
 - **Vuelta atrás**: si esto sale mal en producción, cómo se deshace. "No se
   puede deshacer" es una respuesta legítima y hay que escribirla.
+- **Regla 4D desde tu rol**: si el enfoque unifica una duplicación, el riesgo
+  es dejar sitios sin migrar: exige buscar todos los usos (por nombre y por
+  patrón), no solo los citados. Y una guarda que aparenta proteger y no
+  protege (un `catch` que traga, un aviso que nadie lee) es un disfraz.
 
 Ordena por **daño**, no por probabilidad. Lo improbable y catastrófico va
 arriba; lo frecuente y molesto, después.

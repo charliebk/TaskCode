@@ -27,6 +27,11 @@ es el plan final, y en él tienes que decir también lo que tu rol no cubre.
 - **Extender frente a crear**: si ya hay un punto de extensión que sirve, se
   usa; si hay que crear uno, decir por qué el existente no vale. Un helper
   duplicado es como acaban existiendo dos comportamientos para el mismo hecho.
+- **Regla 4D desde tu rol**: antes de proponer una pieza nueva, busca todos
+  los usos de lo que ya hace algo parecido (por nombre y por patrón), no solo
+  el primero que aparezca; si el plan unifica una duplicación, nombra cada
+  sitio que la tiene. Y señala la forma que trae más piezas de las que pide
+  el problema (diluvio) o que se sale del objetivo (desviación).
 - **La forma de la interfaz** entre lo nuevo y lo que ya está: qué firma, qué
   contrato, qué queda público y qué se queda dentro.
 - **Límites entre módulos**: qué responsabilidad queda a cada lado de cada

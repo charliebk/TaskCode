@@ -64,7 +64,9 @@ fichero y línea**; sin cita, el punto se queda NO VERIFICADO.
      punto. Repetirlo no duplica: un punto con tarea abierta reutiliza la
      existente y lo dice. Necesita el árbol limpio y puede cambiar a la rama
      base; commitea las tareas él solo. Avisa, sin cerrar nada, de las tareas
-     cuyo punto ya da OK.
+     cuyo punto ya da OK. No arregles el código aquí: cada arreglo pasa por
+     plan y start, con la Regla 4D (buscar todos los usos del patrón
+     inseguro, no solo el citado).
    - **Escribir el informe** (`--escribir`): `docs/doctor-deploy/<fecha>.md` y
      su `.json`. No los commitea: que los revise y los commitee la persona.
      Una release avisa al cerrarse si no hay un informe al día.

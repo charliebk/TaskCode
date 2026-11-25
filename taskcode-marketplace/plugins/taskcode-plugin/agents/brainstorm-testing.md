@@ -40,6 +40,10 @@ es el plan final, y en él tienes que decir también lo que tu rol no cubre.
   cambie otra vez, qué queda duplicado, qué hará dudar al próximo lector.
 - **Coste de arranque**: si probar esto exige montar algo caro o frágil, es un
   dato de diseño, no un detalle de implementación.
+- **Regla 4D desde tu rol**: un test que repite a otro ya existente es
+  duplicación (busca todos los tests de la zona antes de proponer uno); uno
+  que sigue en verde con el código roto es disfraz: cada test nuevo se
+  comprueba por mutación.
 
 ## Qué NO miras
 

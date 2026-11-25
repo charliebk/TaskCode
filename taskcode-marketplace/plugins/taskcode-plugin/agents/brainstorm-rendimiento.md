@@ -38,6 +38,10 @@ ponen adjetivos.
 - **Medir con datos reales antes de optimizar**: qué métrica, con qué datos
   de producción o de tamaño de producción, y qué umbral decide si hace falta
   optimizar. Sin medida no hay hallazgo, hay una corazonada.
+- **Regla 4D desde tu rol**: una caché o un recorrido que ya existe se
+  reutiliza (busca todos los usos antes de crear otro); una optimización sin
+  medida es diluvio, y una medida que no distingue el antes del después,
+  disfraz.
 
 ## Qué NO miras
 
