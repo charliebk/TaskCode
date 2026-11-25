@@ -35,6 +35,11 @@ Troceo sin preguntar: autorizado por Carlos (2026-11-22 y 2026-11-25).
 - [ ] taskctl metricas muestra la tendencia de hallazgos 4D por proyecto entre auditorias y por tarea
 - [ ] Un test por pieza falla si deja de instalarse o de comprobar lo suyo
 
+## Autorrevision
+
+- code-quality-reviewer — b2e1490
+- 4D — b2e1490: helper buscado (DES_4D y SEVERIDADES_4D de TASK-167c eran copia de DIMENSIONES_4D y SEVERIDADES_HALLAZGO de informe-revision.ts: borradas y reutilizadas; celdasDe de transiciones.ts exportada en vez de otro troceo de celdas; listarSiExiste de task-store.ts para la carpeta; helpers metricas-repos.ts para los repos), usos buscados (no habia lectura de docs/auditoria-4d-*.md en src/; la columna 4D por tarea de TASK-153c se mantiene), criterios citados, 3 tests nuevos (core, comando, frase de cifras contadas en la skill) con 5 mutaciones en rojo (Total sin comprobar, patron con -0/02, cambio, seccion, avisos)
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
