@@ -4,6 +4,7 @@ Indice determinista para la recuperacion de contexto por etiquetas
 (seccion 6.1 de la metodologia). Lo actualiza taskctl finish.
 
 ## Tareas terminadas
+- TASK-150a — textos que contradicen al codigo o a la Regla 4D (parte a de TASK-150) · etiquetas: (sin etiquetas) · rama fix/task-150-regla-4d-skills-y-agentes-con-una-sola-f · terminada 2026-11-25 · tareas/04-terminadas/TASK-150a/
 - TASK-158c — verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158) · etiquetas: regla-4d · rama feature/task-158-regla-4d-preventiva-en-todos-los-proceso · terminada 2026-11-25 · tareas/04-terminadas/TASK-158c/
 - TASK-158b — taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158) · etiquetas: regla-4d · rama feature/task-158-regla-4d-preventiva-en-todos-los-proceso · terminada 2026-11-25 · tareas/04-terminadas/TASK-158b/
 - TASK-158a — los textos de cada camino exigen 4D y buscar todos los usos (parte a de TASK-158) · etiquetas: regla-4d · rama feature/task-158-regla-4d-preventiva-en-todos-los-proceso · terminada 2026-11-25 · tareas/04-terminadas/TASK-158a/
