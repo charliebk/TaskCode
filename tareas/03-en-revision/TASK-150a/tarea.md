@@ -86,3 +86,7 @@ Objetivo de la tarea entera:
 | 2026-11-25T08:25:01Z | revision | agente:a56cbe4b0a97ab279 | 68 | 184788 | 4951358 | 24363 | 15 | 5160577 | 1 | - |
 | 2026-11-25T08:59:14Z | revision | agente:a299198556116f925 | 16 | 122754 | 746819 | 11837 | 2 | 881426 | 2 | - |
 | 2026-11-25T10:20:26Z | revision | agente:a33b6839830498243 | 16 | 112709 | 708925 | 9936 | 2 | 831586 | 3 | - |
+
+## Verificacion omitida
+
+- 2026-11-25T10:59:15Z: taskctl finish --sin-verificacion; no se ejecuto `npm --prefix taskcode-marketplace/plugins/taskcode-plugin test`
