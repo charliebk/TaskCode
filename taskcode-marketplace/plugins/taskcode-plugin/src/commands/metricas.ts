@@ -98,6 +98,8 @@ import { runGit, GitCommandError, GitLaunchError } from '../fs/git.js';
 import { TRAMO_POR_DEFECTO, calcularEvolucion, formatearEvolucion, type Evolucion } from '../core/evolucion.js';
 import { calcularGrupos, formatearGrupos, type Grupos } from '../core/grupos-metricas.js';
 import { calcularPorVersion, formatearPorVersion, type PorVersion } from '../core/versiones-metricas.js';
+import { formatearSerieAuditorias4D, serieAuditorias4D, type Auditoria4D, type Cifras4D } from '../core/auditoria-4d.js';
+import { leerAuditorias4D } from '../fs/auditorias-4d.js';
 
 export class MetricasCommandError extends Error {}
 
@@ -161,6 +163,8 @@ export interface SalidaJsonMetricas {
   grupos?: Grupos;
   /** TASK-084: con `--por-version`. */
   porVersion?: PorVersion;
+  /** TASK-167d: la serie de auditorias 4D de cada proyecto; solo si algun repo tiene informes. */
+  auditorias4D?: Array<{ proyecto: string; fichero: string; fecha: string; numero: number; cifras: Cifras4D; total: number; cambio: number | null }>;
 }
 
 /** Un repo que se mide: su nombre de proyecto, su raiz y su carpeta de tareas. */
@@ -423,6 +427,8 @@ export interface LecturaRepo {
   advertencias: string[];
   /** Solo los tarea.md invalidos: son lo unico que impide --escribir. */
   invalidas: string[];
+  /** TASK-167d: sus informes de auditoria 4D legibles. */
+  auditorias4D: Auditoria4D[];
 }
 
 /**
@@ -521,7 +527,10 @@ export async function leerRepoMetricas(repo: RepoMetricas, varios: boolean): Pro
   );
   // Los avisos de las filas, sobre TODAS las tareas (tambien con --heuristica).
   for (const f of filas) advertencias.push(...avisosDeFila(f, varios));
-  return { leidas: leidas.map((l) => l.task), filas, advertencias, invalidas };
+  // TASK-167d: la tendencia entre auditorias 4D (la de cada tarea es la columna 4D).
+  const auditorias = await leerAuditorias4D(repo.ruta);
+  advertencias.push(...auditorias.avisos.map((a) => (varios ? `${proyecto}: ${a}` : a)));
+  return { leidas: leidas.map((l) => l.task), filas, advertencias, invalidas, auditorias4D: auditorias.auditorias };
 }
 
 export async function runMetricasCommand(
@@ -576,8 +585,11 @@ export async function runMetricasCommand(
   /** Tarea leida de cada fila, por clave (proyecto, id). */
   const leidaPorClave = new Map<string, TareaLeida>();
   const porRepo: string[] = [];
+  /** TASK-167d: las auditorias 4D de cada proyecto, en el orden de los repos. */
+  const auditoriasPorProyecto: Array<{ proyecto: string; auditorias: Auditoria4D[] }> = [];
   for (const repo of repos) {
     const r = await leerRepoMetricas(repo, varios);
+    if (r.auditorias4D.length > 0) auditoriasPorProyecto.push({ proyecto: repo.proyecto, auditorias: r.auditorias4D });
     advertencias.push(...r.advertencias);
     invalidas.push(...r.invalidas);
     r.filas.forEach((f, i) => leidaPorClave.set(claveTarea(f.proyecto, f.id), r.leidas[i] as TareaLeida));
@@ -605,6 +617,13 @@ export async function runMetricasCommand(
       ...(tramoEvolucion === null ? {} : { evolucion: calcularEvolucion(filas, tramoEvolucion) }),
       ...(conGrupos ? { grupos: calcularGrupos(filas, proyectos) } : {}),
       ...(conPorVersion ? { porVersion: calcularPorVersion(filas) } : {}),
+      ...(auditoriasPorProyecto.length === 0
+        ? {}
+        : {
+            auditorias4D: auditoriasPorProyecto.flatMap(({ proyecto, auditorias }) =>
+              serieAuditorias4D(auditorias).map((a) => ({ proyecto, ...a }))
+            ),
+          }),
     };
     return {
       output: JSON.stringify(objeto),
@@ -662,6 +681,12 @@ export async function runMetricasCommand(
     ];
   };
 
+  /** TASK-167d: la tendencia entre auditorias 4D, por proyecto; nada sin informes. */
+  const seccionAuditorias = auditoriasPorProyecto.flatMap(({ proyecto, auditorias }) => [
+    formatearSerieAuditorias4D(auditorias, varios ? proyecto : null),
+    '',
+  ]);
+
   let metricasPath: string | null = null;
   let escritura: MetricasCommandResult['escritura'] = null;
   if (escribir) {
@@ -706,6 +731,7 @@ export async function runMetricasCommand(
         '',
         ...notasFilaEnriquecida(filas, varios),
         '',
+        ...seccionAuditorias,
         ...seccionTokens(filas),
         NOTA_CALENDARIO,
       ].join('\n'),

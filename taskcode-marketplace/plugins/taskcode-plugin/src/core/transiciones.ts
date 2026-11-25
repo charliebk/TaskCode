@@ -119,7 +119,7 @@ function filaATexto(f: FilaTransicion): string {
 }
 
 /** Las celdas de una linea de tabla, sin las barras de los extremos. */
-function celdasDe(linea: string): string[] {
+export function celdasDe(linea: string): string[] {
   return linea
     .trim()
     .replace(/^\|/, '')

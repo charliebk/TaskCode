@@ -92,7 +92,7 @@ function filaATexto(f) {
     return `| ${f.fecha} | ${f.fase} | ${f.modo} | ${f.decidido_por} | ${f.version ?? ''} |`;
 }
 /** Las celdas de una linea de tabla, sin las barras de los extremos. */
-function celdasDe(linea) {
+export function celdasDe(linea) {
     return linea
         .trim()
         .replace(/^\|/, '')
