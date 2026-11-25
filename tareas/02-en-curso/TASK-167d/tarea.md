@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-167-regla-4d-preventiva-en-los-proyectos-que
 asignado_a: charlie.bk@gmail.com
@@ -41,3 +41,4 @@ Troceo sin preguntar: autorizado por Carlos (2026-11-22 y 2026-11-25).
 |---|---|---|---|---|
 | 2026-11-25T19:55:47Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T19:56:08Z | approve | automatico | persona | 0.18.0 |
+| 2026-11-25T19:56:09Z | start | automatico | persona | 0.18.0 |
