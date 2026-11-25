@@ -44,6 +44,7 @@ Objetivo de la tarea entera:
 
 - code-quality-reviewer — a8cb5e7
 - 4D — a8cb5e7: helper buscado (cargarCatalogoRevisores, patron de seccion de los tests de skills), usos buscados (grep en skills/, agents/, docs/ y README de cada frase: clave mal escrita, casillas, test duplicado MENOR, pedir contexto, menciona, tres claves y ocho comandos), criterios citados, 3 tests nuevos con 7 mutaciones en rojo
+- 4D — cdb198c: usos buscados tambien en test/ (el test de TASK-129 exigia la frase contradictoria: actualizado)
 
 ## Transiciones
 
