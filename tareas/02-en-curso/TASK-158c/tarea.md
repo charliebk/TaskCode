@@ -36,6 +36,11 @@ mas de 1 h de las correcciones 4D sin consultarlo.
 ## Criterios de aceptacion
 - [ ] verificar-impacto no devuelve la copia de dist/src si HEAD cambio durante la ejecucion (carrera del freno con update-fix vista en TASK-145b)
 
+## Autorrevision
+
+- code-quality-reviewer — cbdf37f
+- 4D — cbdf37f: helper buscado (git() y el test de conDistProtegido reutilizados), usos buscados (devolver: cierre de conDistProtegido y restaurarHuerfana; conDistProtegido: verificar-impacto y perfil-tests), criterios citados, 2 tests nuevos con 4 mutaciones en rojo
+
 ## Transiciones
 
 | fecha | fase | modo | decidido_por | version |
