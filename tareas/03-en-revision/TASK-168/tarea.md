@@ -17,7 +17,7 @@ ultimo_commit_revisado: null
 revision_codex: false
 tokens_diseno: null
 tokens_implementacion: 7089321
-tokens_revision: 6121861
+tokens_revision: 8704556
 creado: 2026-11-25
 actualizado: 2026-11-25
 dependencias: []
@@ -37,6 +37,12 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 - 4D — 9ab29dd: helper buscado (conRepo, cambiarYCommitear, listar y la plantilla de TASK-156 reutilizados), usos buscados (CARPETAS_LEIDAS y porNombre solo en el bucle de seleccion; grep de los 25 tests que casaban: 7 falsos positivos por comentario), criterios citados, 1 test nuevo y 2 expectativas de TASK-156 ajustadas, 3 mutaciones en rojo
 - code-quality-reviewer — 811ca47
 - 4D ronda 1 — 811ca47: usos buscados (loNombra solo en el bucle; sinComentarios nueva, no habia otra en scripts/), 2 fixtures y 3 aserciones nuevas, 2 mutaciones en rojo
+- code-quality-reviewer — 178bda3
+- 4D ronda 2 — 178bda3: usos buscados (sinComentariosC ya existia en doctor-deploy-reglas: reutilizado, quitada la copia), 1 fixture nuevo con 1 mutacion en rojo
+
+## Rondas extra
+
+- Ronda 3: Carlos, al llegar al tope (2026-11-25): IMP-2 de la ronda 2 ya corregido; una ronda acotada lo verifica.
 
 ## Transiciones
 
@@ -54,3 +60,4 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25T15:04:33Z | implementacion | sesion:ff6e05fd-8834-4424-94c1-161d6d5469d0 | 22 | 14026 | 7066614 | 8659 | 1 | 7089321 | - | - |
 | 2026-11-25T15:43:35Z | revision | agente:a16583df1ee5a0328 | 90 | 164421 | 5927622 | 29728 | 7 | 6121861 | 1 | - |
+| 2026-11-25T16:02:25Z | revision | agente:a96736764f2ca57c2 | 42 | 143395 | 2410737 | 28521 | 3 | 2582695 | 2 | - |
