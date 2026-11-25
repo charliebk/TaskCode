@@ -46,6 +46,10 @@ test('TASK-167c: la skill pide el informe con el formato de core/auditoria-4d (r
   // La ruta del informe es la que reconoce el patron.
   assert.match(t, /docs\/auditoria-4d-<AAAA-MM-DD>\.md/);
   assert.match(nombreInformeAuditoria4D('2026-11-25'), PATRON_INFORME_AUDITORIA_4D);
+  // La segunda auditoria del dia (`-2`) tambien es un informe; otra cosa, no.
+  assert.match(t, /añade `-2`, `-3`/);
+  assert.equal(PATRON_INFORME_AUDITORIA_4D.exec('auditoria-4d-2026-11-25-2.md')?.[2], '2');
+  assert.doesNotMatch('auditoria-4d-2026-11-25-x.md', PATRON_INFORME_AUDITORIA_4D);
   const informe = ejemploInforme(t);
   const lineas = informe.split('\n');
   // Las tres secciones, en orden, cada una seguida de su tabla.
@@ -59,7 +63,20 @@ test('TASK-167c: la skill pide el informe con el formato de core/auditoria-4d (r
     assert.ok(fila, `falta la fila de ${d} en el resumen`);
     assert.equal(fila.split('|').length - 2, SEVERIDADES_4D.length + 1, `columnas de ${d}`);
   }
-  assert.ok(lineas.some((l) => PATRON_OLA_4D.test(l)), 'el plan por olas no usa "### Ola N: titulo"');
+  // Una fila de ejemplo de hallazgo con las columnas de la cabecera.
+  const hallazgo = lineas.find((l) => /^\| 4D-\d+ \|/.test(l));
+  assert.ok(hallazgo, 'falta la fila de ejemplo de hallazgo (| 4D-01 | ...)');
+  assert.equal(hallazgo.split('|').length, CABECERA_HALLAZGOS_4D.split('|').length, 'columnas de la fila de hallazgo');
+  // Cada ola, con sus hallazgos y su duracion.
+  const ola = lineas.findIndex((l) => PATRON_OLA_4D.test(l));
+  assert.ok(ola >= 0, 'el plan por olas no usa "### Ola N: titulo"');
+  const bloqueOla = lineas.slice(ola + 1).join('\n');
+  assert.match(bloqueOla, /^- Hallazgos: 4D-\d+/m);
+  assert.match(bloqueOla, /^- Duración estimada: N min/m);
+  // Lo que hace el informe legible por una herramienta.
+  assert.match(t, /una D sin hallazgos va con ceros/);
+  assert.match(t, /\*\*sin tildes\*\*/);
+  assert.match(t, /ninguna celda lleva `\|`/);
   // Hallazgos con cita, agentes de solo lectura y la Regla 4D sin copiarla.
   assert.match(t, /solo lectura/);
   assert.match(t, /`ruta:línea`/);
@@ -76,6 +93,11 @@ test('TASK-167c: las tareas por ola se crean con taskctl new, flags reales y eti
   assert.ok(flags.length >= 4, `pocos flags: ${flags.join(' ')}`);
   assert.deepEqual(flags.filter((f) => !FLAGS_NEW.includes(f)), [], 'flags que taskctl new no acepta');
   assert.match(bloque, /--etiquetas regla-4d/);
+  // Una tarea sin criterios no se puede cerrar: cada ola lleva los suyos.
+  for (const f of ['--titulo', '--objetivo', '--criterio']) assert.ok(flags.includes(f), `el bloque no pasa ${f}`);
+  // Solo con el si de la persona, y nunca desde otra rama que no sea la base.
+  assert.match(t, /Solo si dice que sí/);
+  assert.match(t, /otra rama que no es la base, no\s+las crees/);
   // Pregunta antes; commitea el informe antes del primer new (new aborta con el arbol sucio).
   const cuerpo = parseFrontmatter(t).body;
   const pregunta = cuerpo.indexOf('AskUserQuestion');

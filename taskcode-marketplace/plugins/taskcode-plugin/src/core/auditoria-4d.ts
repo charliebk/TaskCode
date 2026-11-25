@@ -9,8 +9,11 @@
 export const CARPETA_AUDITORIA_4D = 'docs';
 /** Nombre del informe de una fecha (AAAA-MM-DD). */
 export const nombreInformeAuditoria4D = (fecha: string): string => `auditoria-4d-${fecha}.md`;
-/** Reconoce un informe por su nombre; el grupo 1 es la fecha. */
-export const PATRON_INFORME_AUDITORIA_4D = /^auditoria-4d-(\d{4}-\d{2}-\d{2})\.md$/;
+/**
+ * Reconoce un informe por su nombre; el grupo 1 es la fecha y el 2, si lo
+ * hay, el numero de la auditoria de ese dia (`-2`, `-3`... la primera no lleva).
+ */
+export const PATRON_INFORME_AUDITORIA_4D = /^auditoria-4d-(\d{4}-\d{2}-\d{2})(?:-(\d+))?\.md$/;
 
 /** Las cuatro D, en el orden en que salen en el resumen. */
 export const DES_4D = ['Duplicacion', 'Desviacion', 'Diluvio', 'Disfraz'] as const;
@@ -20,7 +23,11 @@ export const SECCION_RESUMEN_4D = '## Resumen';
 export const SECCION_HALLAZGOS_4D = '## Hallazgos';
 export const SECCION_OLAS_4D = '## Plan por olas';
 
-/** Cabecera de la tabla de `## Resumen`: una fila por D y una de total. */
+/**
+ * Cabecera de la tabla de `## Resumen`: una fila por D y una de total, con
+ * numeros. La tendencia entre auditorias se lee de aqui; la tabla de
+ * hallazgos es el detalle (la skill cuenta el resumen a partir de ella).
+ */
 export const CABECERA_RESUMEN_4D = `| D | ${SEVERIDADES_4D.join(' | ')} |`;
 /** Cabecera de la tabla de `## Hallazgos`. */
 export const CABECERA_HALLAZGOS_4D = '| ID | D | Severidad | Fichero | Hallazgo | Ola |';

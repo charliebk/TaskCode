@@ -78,10 +78,15 @@ corrige nada.
    - Duración estimada: N min
    ```
 
-   Las cifras del resumen salen de la tabla de hallazgos: cuéntalas, no las
-   estimes. Una D sin hallazgos va con ceros, no se quita.
+   Lo lee una herramienta, así que: las cifras del resumen son números
+   contados en la tabla de hallazgos (la `n` del ejemplo es un hueco, no se
+   estima); una D sin hallazgos va con ceros, no se quita; las D y las
+   severidades se escriben tal cual, **sin tildes** (`Duplicacion`,
+   `CRITICO`), y ninguna celda lleva `|` (usa `/`).
 6. Muestra el resumen y las olas, y **pregunta a la persona** (AskUserQuestion)
-   si quiere una tarea por ola. Solo si dice que sí: primero commitea el
+   si quiere una tarea por ola. Si auditaste otra rama que no es la base, no
+   las crees: `taskctl new` cambia a la base, donde el informe no está; dilo.
+   Solo si dice que sí: primero commitea el
    informe (`git add docs/auditoria-4d-<fecha>.md` y `git commit -m "docs:
    auditoria 4D <fecha>"`), porque `taskctl new` aborta con cambios sin
    commitear; después, por cada ola:
