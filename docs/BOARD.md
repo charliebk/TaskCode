@@ -45,7 +45,7 @@ ID         Titulo                                                               
 TASK-150c  formatos del brainstorm y secciones del plan con una fuente (parte c de TASK-150)  charlie.bk@gmail.com
 ```
 
-## Terminadas (04-terminadas) — 162
+## Terminadas (04-terminadas) — 163
 
 ```text
 ID         Titulo                                                                                                              Asignado
@@ -212,4 +212,5 @@ TASK-158a  los textos de cada camino exigen 4D y buscar todos los usos (parte a 
 TASK-158b  taskctl comprueba la autorrevision 4D por ronda y en los MENORES (parte b de TASK-158)                              charlie.bk@gmail.com
 TASK-158c  verificar-impacto no devuelve dist/src si HEAD cambio (parte c de TASK-158)                                         charlie.bk@gmail.com
 TASK-167a  guia instalable de duplicacion de grano fino (parte a de TASK-167)                                                  charlie.bk@gmail.com
+TASK-168   Agilidad: un cambio solo en md de skills o agentes se verifica con sus tests                                        charlie.bk@gmail.com
 ```

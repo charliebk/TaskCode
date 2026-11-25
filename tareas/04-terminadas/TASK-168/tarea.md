@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [agilidad]
 complejidad: simple
 modelo_sugerido: sonnet
-estado: en-revision
+estado: terminada
 plan_aprobado: true
 rama: fix/task-168-agilidad-un-cambio-solo-en-md-de-skills
 asignado_a: charlie.bk@gmail.com
@@ -61,6 +61,7 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 | 2026-11-25T15:04:33Z | review | automatico | persona | 0.18.0 |
 | 2026-11-25T15:43:47Z | review | automatico | persona | 0.18.0 |
 | 2026-11-25T16:16:21Z | review | automatico | persona | 0.18.0 |
+| 2026-11-25T16:59:04Z | finish | automatico | persona | 0.18.0 |
 
 ## Coste
 
@@ -70,3 +71,10 @@ Que verificar-impacto, cuando cambian .md de skills o agentes del plugin, elija 
 | 2026-11-25T15:43:35Z | revision | agente:a16583df1ee5a0328 | 90 | 164421 | 5927622 | 29728 | 7 | 6121861 | 1 | - |
 | 2026-11-25T16:02:25Z | revision | agente:a96736764f2ca57c2 | 42 | 143395 | 2410737 | 28521 | 3 | 2582695 | 2 | - |
 | 2026-11-25T16:26:37Z | revision | agente:ae3363c33be112cc2 | 28 | 135784 | 1454072 | 26072 | 4 | 1615956 | 3 | - |
+
+## Duracion
+
+- Estimada: 50 min
+- Real (de la rama abierta al cierre con merge, sin pausas): 124 min
+- Paso de la hora: 124 min reales frente a 50 estimados
+- Cierre (finish): 1944 s, de 2026-11-25T16:26:40Z a 2026-11-25T16:59:04Z
