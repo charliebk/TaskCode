@@ -6,7 +6,7 @@ sprint: 0
 etiquetas: [regla-4d]
 complejidad: alta
 modelo_sugerido: sonnet
-estado: en-diseno
+estado: en-curso
 plan_aprobado: true
 rama: feature/task-167-regla-4d-preventiva-en-los-proyectos-que
 asignado_a: charlie.bk@gmail.com
@@ -47,3 +47,4 @@ Objetivo de la tarea entera:
 |---|---|---|---|---|
 | 2026-11-25T12:55:40Z | plan | automatico | persona | 0.18.0 |
 | 2026-11-25T12:57:40Z | approve | automatico | persona | 0.18.0 |
+| 2026-11-25T12:57:42Z | start | automatico | persona | 0.18.0 |
